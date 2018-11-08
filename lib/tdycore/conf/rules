@@ -1,0 +1,8 @@
+# -*- makefile -*-
+include $(PETSC_CONF_DIR)/rules
+
+.SUFFIXES: .TDYCORE
+.c.TDYCORE .cpp.TDYCORE .cxx.TDYCORE .cc.TDYCORE .C.TDYCORE:
+	@$(OMAKE) $*.o
+	$(CLINKER) -o $* $*.o $(TDYCORE_LIB)
+	$(RM) $*.o

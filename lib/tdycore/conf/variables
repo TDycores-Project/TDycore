@@ -1,0 +1,29 @@
+# -*- makefile-gmake -*-
+ifeq ($(wildcard $(TDYCORE_DIR)/include/tdycore.h),)
+  $(error Incorrect TDYCORE_DIR: $(TDYCORE_DIR))
+endif
+ifeq ($(wildcard $(PETSC_DIR)/include/petsc.h),)
+  $(error Incorrect PETSC_DIR: $(PETSC_DIR))
+endif
+ifndef PETSC_CONF_DIR
+  ifneq ($(wildcard $(PETSC_DIR)/lib/petsc/conf),)
+    PETSC_CONF_DIR = $(PETSC_DIR)/lib/petsc/conf
+  else
+    $(error Incorrect PETSC_DIR: $(PETSC_DIR))
+  endif
+endif
+include $(PETSC_CONF_DIR)/variables
+ifeq ($(PETSC_ARCH),)
+  PETSC_ARCH = arch-default
+endif
+
+TDYCORE_INCLUDE = -I$(TDYCORE_DIR)/$(PETSC_ARCH)/include -I$(TDYCORE_DIR)/include
+TDYCORE_LIB_DIR = $(TDYCORE_DIR)/$(PETSC_ARCH)/lib
+TDYCORE_LIB     = $(CC_LINKER_SLFLAG)$(TDYCORE_LIB_DIR) -L$(TDYCORE_LIB_DIR) -ltdycore $(PETSC_LIB)
+
+CCPPFLAGS = $(PETSC_CCPPFLAGS) $(TDYCORE_INCLUDE)
+FCPPFLAGS = $(PETSC_FCPPFLAGS) $(TDYCORE_INCLUDE)
+
+INSTALL_LIB_DIR	= $(TDYCORE_LIB_DIR)
+LIBNAME = $(INSTALL_LIB_DIR)/$(LIBBASE).$(AR_LIB_SUFFIX)
+SHLIBS  = libtdycore
