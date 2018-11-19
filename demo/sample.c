@@ -23,17 +23,17 @@ void Forcing(double *x,double *f){
 int main(int argc, char **argv)
 {
   /* Initialize */
-  PetscErrorCode    ierr;
+  PetscErrorCode ierr;
   ierr = PetscInitialize(&argc,&argv,(char*)0,0);CHKERRQ(ierr);
   
   /* Create and distribute the mesh */
-  DM   dm, dmDist = NULL;
+  DM dm, dmDist = NULL;
   const PetscInt  faces[2] = {8  ,8  };
   const PetscReal lower[2] = {0.0,0.0};
   const PetscReal upper[2] = {1.0,1.0};
   ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,2,PETSC_FALSE,faces,lower,upper,NULL,PETSC_TRUE,&dm);CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm);CHKERRQ(ierr);
-  ierr = DMPlexDistribute(dm, 0, NULL, &dmDist);  
+  ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);  
   if (dmDist) {DMDestroy(&dm); dm = dmDist;}
   ierr = DMViewFromOptions(dm, NULL, "-dm_view");CHKERRQ(ierr);
   
@@ -50,15 +50,19 @@ int main(int argc, char **argv)
   ierr = DMCreateGlobalVector(dm,&F);CHKERRQ(ierr);
   ierr = DMCreateMatrix      (dm,&K);CHKERRQ(ierr);
   ierr = TDyComputeSystem(dm,tdy,K,F);CHKERRQ(ierr);
-
+    
   KSP ksp;
   ierr = KSPCreate(PETSC_COMM_WORLD,&ksp);CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp,K,K);CHKERRQ(ierr);
   ierr = KSPSetFromOptions(ksp);CHKERRQ(ierr);
   ierr = KSPSetUp(ksp);CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U);CHKERRQ(ierr);
-    
-  ierr = TDyDestroy(&tdy);CHKERRQ(ierr);
+
+  ierr = KSPDestroy(&ksp);CHKERRQ(ierr);
+  ierr = VecDestroy(&U);CHKERRQ(ierr);
+  ierr = VecDestroy(&F);CHKERRQ(ierr);
+  ierr = MatDestroy(&K);CHKERRQ(ierr);
+  ierr = TDyDestroy(&tdy);CHKERRQ(ierr); 
   ierr = DMDestroy(&dm);CHKERRQ(ierr);
   ierr = PetscFinalize();CHKERRQ(ierr);
   return(0);
