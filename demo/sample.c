@@ -28,7 +28,7 @@ int main(int argc, char **argv)
   
   /* Create and distribute the mesh */
   DM dm, dmDist = NULL;
-  const PetscInt  faces[2] = {8  ,8  };
+  const PetscInt  faces[2] = {3  ,3  };
   const PetscReal lower[2] = {0.0,0.0};
   const PetscReal upper[2] = {1.0,1.0};
   ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,2,PETSC_FALSE,faces,lower,upper,NULL,PETSC_TRUE,&dm);CHKERRQ(ierr);

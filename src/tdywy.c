@@ -308,6 +308,7 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   PetscInt v,vStart,vEnd;
   PetscInt   fStart,fEnd;
   PetscInt c,cStart,cEnd;
+  PetscInt   gStart,lStart,junk;
   PetscInt element_vertex,nA,nB,q,dim,dim2,nq;
   PetscInt element_row,local_row,global_row;
   PetscInt element_col,local_col,global_col;
@@ -315,7 +316,7 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
   PetscScalar pdirichlet;
   PetscFunctionBegin;
-  
+
   ierr = TDyWYLocalElementCompute(dm,tdy);CHKERRQ(ierr);
   nq   = GetNumberOfVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
@@ -379,7 +380,7 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
 
 	  // boundary conditions
 	  PetscInt isbc;
-	  ierr = DMPlexGetSupportSize(dm,global_row,&isbc);CHKERRQ(ierr);
+	  ierr = DMGetLabelValue(dm,"marker",global_row,&isbc);CHKERRQ(ierr);
 	  if(isbc == 1){
 	    (*tdy->dirichlet)(&(tdy->X[v*dim]),&pdirichlet);
 	    G[local_row] += 0.5*sign_row*pdirichlet*tdy->V[global_row];
@@ -403,9 +404,9 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
 	    }
 	    /* Assembled col major, but should be symmetric */
 	    A[local_col*nA+local_row] += tdy->Alocal[closure[c]    *(dim*dim*nq)+
-						      element_vertex*(dim*dim   )+
-						      element_row   *(dim       )+
-						      element_col]*sign_row*sign_col*tdy->V[global_row]*tdy->V[global_col];
+						     element_vertex*(dim*dim   )+
+						     element_row   *(dim       )+
+						     element_col]*sign_row*sign_col*tdy->V[global_row]*tdy->V[global_col];
 	  }
 	}
     }    
@@ -414,19 +415,35 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
     
     /* C and D are in column major, but C is always symmetric and D is
        a vector so it should not matter. */
-    ierr = VecSetValues(F,nB,&Bmap[0],            &D[0],ADD_VALUES);CHKERRQ(ierr);
-    ierr = MatSetValues(K,nB,&Bmap[0],nB,&Bmap[0],&C[0],ADD_VALUES);CHKERRQ(ierr);
+    for(c=0;c<nB;c++){
+      ierr = DMPlexGetPointGlobal(dm,Bmap[c],&gStart,&junk);CHKERRQ(ierr);
+      if(gStart < 0) continue;
+      ierr = VecSetValue(F,gStart,D[c],ADD_VALUES);CHKERRQ(ierr);
+      for(q=0;q<nB;q++){
+	ierr = DMPlexGetPointGlobal(dm,Bmap[q],&lStart,&junk);CHKERRQ(ierr);
+	if (lStart < 0) lStart = -lStart-1;	
+	ierr = MatSetValue(K,gStart,lStart,C[q*nB+c],ADD_VALUES);CHKERRQ(ierr);
+      }
+    }
+
   }
 
   /* Integrate in the forcing */
   for(c=cStart;c<cEnd;c++){
-    ierr = VecSetValue(F,c,tdy->Flocal[c],ADD_VALUES);CHKERRQ(ierr);
+    ierr = DMPlexGetPointGlobal(dm,c,&gStart,&junk);CHKERRQ(ierr);
+    ierr = DMPlexGetPointLocal (dm,c,&lStart,&junk);CHKERRQ(ierr);
+    if(gStart < 0) continue;
+    ierr = VecSetValue(F,gStart,tdy->Flocal[c],ADD_VALUES);CHKERRQ(ierr);
   }
 
   ierr = VecAssemblyBegin(F);CHKERRQ(ierr);
   ierr = VecAssemblyEnd  (F);CHKERRQ(ierr);
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+
+  ierr = VecView(F,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+  ierr = MatView(K,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
   
   PetscFunctionReturn(0);
 }
+
