@@ -495,7 +495,11 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   PetscSection section;
   PetscScalar *u,pdirichlet;
-  ierr = VecGetArray(U,&u);CHKERRQ(ierr);
+  Vec localU;
+  ierr = DMGetLocalVector(dm,&localU);CHKERRQ(ierr);
+  ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU);CHKERRQ(ierr);
+  ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU);CHKERRQ(ierr);
+  ierr = VecGetArray(localU,&u);CHKERRQ(ierr);
   ierr = DMGetDefaultSection(dm, &section);CHKERRQ(ierr);
   nq   = GetNumberOfVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
@@ -603,7 +607,9 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
     }
     ierr = DMPlexRestoreTransitiveClosure(dm,v,PETSC_FALSE,&closureSize,&closure);CHKERRQ(ierr);    
   }
-  ierr = VecRestoreArray(U,&u);CHKERRQ(ierr);
+  ierr = VecRestoreArray(localU,&u);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm,&localU);CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -677,7 +683,6 @@ PetscReal TDyWYVelocityNorm(DM dm,TDy tdy)
   norm_sum = PetscSqrtReal(norm_sum);
   PetscFunctionReturn(norm_sum);
 }
-
 
 /*
 

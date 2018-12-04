@@ -16,8 +16,9 @@ void Velocity(double *x,double *v){
   Permeability(x,K);
   vx  = -4*PetscPowReal(1-x[0],3);
   vx += -PetscPowReal(1-x[1],3);
+  vx += +PetscSinReal(x[1]-1)*PetscSinReal(x[0]-1);
   vy  = -3*PetscPowReal(1-x[1],2)*(1-x[0]);
-  vy += -PetscCosReal(x[0]-1)*PetscCosReal(x[1]-1);
+  vy += -PetscCosReal(x[0]-1)*PetscCosReal(x[1]-1);    
   v[0] = -(K[0]*vx+K[1]*vy);
   v[1] = -(K[2]*vx+K[3]*vy);
 }
