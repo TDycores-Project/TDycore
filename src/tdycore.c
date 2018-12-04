@@ -53,7 +53,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy){
   ierr = PetscFree(tdy->V);CHKERRQ(ierr);
   ierr = PetscFree(tdy->X);CHKERRQ(ierr);
   ierr = PetscFree(tdy->N);CHKERRQ(ierr);
-  ierr = PetscFree(tdy->K);CHKERRQ(ierr);  
+  ierr = PetscFree(tdy->K);CHKERRQ(ierr);
   ierr = PetscFree(tdy);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -66,6 +66,7 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy){
   if (tdy->emap  ) { ierr = PetscFree(tdy->emap  );CHKERRQ(ierr); }
   if (tdy->Alocal) { ierr = PetscFree(tdy->Alocal);CHKERRQ(ierr); }
   if (tdy->Flocal) { ierr = PetscFree(tdy->Flocal);CHKERRQ(ierr); }
+  if (tdy->vel   ) { ierr = PetscFree(tdy->vel   );CHKERRQ(ierr); }  
   PetscFunctionReturn(0);
 }
 
@@ -104,6 +105,14 @@ PetscErrorCode TDySetDirichletFunction(TDy tdy,SpatialFunction f){
   PetscValidPointer(tdy,1);
   PetscValidPointer(  f,2);
   tdy->dirichlet = f;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDirichletFlux(TDy tdy,SpatialFunction f){
+  PetscFunctionBegin;
+  PetscValidPointer(tdy,1);
+  PetscValidPointer(  f,2);
+  tdy->flux = f;
   PetscFunctionReturn(0);
 }
 

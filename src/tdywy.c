@@ -93,6 +93,34 @@ PetscErrorCode FormStencil(PetscScalar *A,PetscScalar *B,PetscScalar *C,
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode RecoverVelocity(PetscScalar *A,PetscScalar *F,PetscInt qq)
+{
+  // Given block matrices of the form in col major form:
+  //
+  //   | A(qxq)   | B(qxr) |   | U |   | G(q) |
+  //   --------------------- . ----- = --------
+  //   | B.T(rxq) |   0    |   | P |   | F(q) |
+  //
+  // return U = A^-1 (G - B P)
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscBLASInt q,o = 1,info,*pivots;
+  ierr = PetscBLASIntCast(qq,&q);CHKERRQ(ierr);
+  ierr = PetscMalloc((q+1)*sizeof(PetscBLASInt),&pivots);CHKERRQ(ierr);
+
+  // Find A = LU factors of A
+  LAPACKgetrf_(&q,&q,A,&q,pivots,&info);
+  if (info<0) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"Bad argument to LU factorization");
+  if (info>0) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_MAT_LU_ZRPVT,"Bad LU factorization");
+
+  // Solve by back-substitution
+  LAPACKgetrs_("N",&q,&o,A,&q,pivots,F,&q,&info);
+  if (info) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"GETRS - Bad solve");
+
+  ierr = PetscFree(pivots);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyWYLocalElementCompute(DM dm,TDy tdy)
 {
   PetscFunctionBegin;
@@ -281,6 +309,12 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
   ierr = PetscMalloc(dim*dim*nq*(cEnd-cStart)*sizeof(PetscReal),&(tdy->Alocal));CHKERRQ(ierr);
   ierr = PetscMalloc(           (cEnd-cStart)*sizeof(PetscReal),&(tdy->Flocal));CHKERRQ(ierr);
 
+  /* This needs to be generalized */
+  if(dim>2){
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Need to rework velocity data structure for 3D.");
+  }
+  ierr = PetscMalloc(dim*(fEnd-fStart)*sizeof(PetscReal),&(tdy->vel));CHKERRQ(ierr); 
+    
   /* Setup the section, 1 dof per cell */
   ierr = PetscSectionCreate(comm,&sec);CHKERRQ(ierr);
   ierr = PetscSectionSetNumFields(sec,1);CHKERRQ(ierr);
@@ -440,10 +474,251 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   ierr = VecAssemblyEnd  (F);CHKERRQ(ierr);
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-
-  ierr = VecView(F,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
-  ierr = MatView(K,PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
   
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
+{
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscInt v,vStart,vEnd;
+  PetscInt   fStart,fEnd;
+  PetscInt c,cStart,cEnd;
+  PetscInt element_vertex,nA,nB,q,nq,offset,dim,dim2;
+  PetscInt element_row,local_row,global_row;
+  PetscInt element_col,local_col,global_col;
+  PetscScalar A[MAX_LOCAL_SIZE],F[MAX_LOCAL_SIZE],sign_row,sign_col;
+  PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
+  ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  PetscSection section;
+  PetscScalar *u,pdirichlet;
+  ierr = VecGetArray(U,&u);CHKERRQ(ierr);
+  ierr = DMGetDefaultSection(dm, &section);CHKERRQ(ierr);
+  nq   = GetNumberOfVertices(dm);
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  dim2 = dim*dim;
+  for(v=vStart;v<vEnd;v++){ // loop vertices
+
+    PetscInt closureSize,*closure = NULL;
+    ierr = DMPlexGetTransitiveClosure(dm,v,PETSC_FALSE,&closureSize,&closure);CHKERRQ(ierr);
+
+    // determine the size and mapping of the vertex-local systems
+    nA = 0; nB = 0;
+    for (c = 0; c < closureSize*2; c += 2) {
+      if ((closure[c] >= fStart) && (closure[c] < fEnd)) { Amap[nA] = closure[c]; nA += 1; }
+      if ((closure[c] >= cStart) && (closure[c] < cEnd)) { Bmap[nB] = closure[c]; nB += 1; }
+    }
+    ierr = PetscMemzero(A,sizeof(PetscScalar)*MAX_LOCAL_SIZE);CHKERRQ(ierr);
+    ierr = PetscMemzero(F,sizeof(PetscScalar)*MAX_LOCAL_SIZE);CHKERRQ(ierr);
+
+    for (c=0;c<closureSize*2;c+=2){ // loop connected cells
+      if ((closure[c] < cStart) || (closure[c] >= cEnd)) continue;
+
+	// for the cell, which local vertex is this vertex?
+	element_vertex = -1;
+	for(q=0;q<nq;q++){
+	  if(v == tdy->vmap[closure[c]*nq+q]){
+	    element_vertex = q;
+	    break;
+	  }
+	}
+	if(element_vertex < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
+
+	for(element_row=0;element_row<dim;element_row++){ // which test function, local to the element/vertex
+	  global_row = tdy->emap[closure[c]*nq*dim+element_vertex*dim+element_row]; // DMPlex point index of the face
+	  sign_row   = PetscSign(global_row);
+	  global_row = PetscAbsInt(global_row);
+	  local_row  = -1;
+	  for(q=0;q<nA;q++){
+	    if(Amap[q] == global_row) {
+	      local_row = q; // row into block matrix A, local to vertex
+	      break;
+	    }
+	  }if(local_row < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
+
+	  local_col  = -1;
+	  for(q=0;q<nB;q++){
+	    if(Bmap[q] == closure[c]) {
+	      local_col = q; // col into block matrix B, local to vertex
+	      break;
+	    }
+	  }if(local_col < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
+
+	  // B P
+	  ierr = PetscSectionGetOffset(section,closure[c],&offset);CHKERRQ(ierr);
+	  F[local_row] += 0.5*sign_row*u[offset]*tdy->V[global_row];
+
+	  // boundary conditions
+	  PetscInt isbc;
+	  ierr = DMGetLabelValue(dm,"marker",global_row,&isbc);CHKERRQ(ierr);
+	  if(isbc == 1){
+	    (*tdy->dirichlet)(&(tdy->X[v*dim]),&pdirichlet);
+	    F[local_row] -= 0.5*sign_row*pdirichlet*tdy->V[global_row];
+	  }
+	  
+	  for(element_col=0;element_col<dim;element_col++){ // which trial function, local to the element/vertex
+	    global_col = tdy->emap[closure[c]*nq*dim+element_vertex*dim+element_col]; // DMPlex point index of the face
+	    sign_col   = PetscSign(global_col);
+	    global_col = PetscAbsInt(global_col);
+	    local_col  = -1; // col into block matrix A, local to vertex
+	    for(q=0;q<nA;q++){
+	      if(Amap[q] == global_col) {
+		local_col = q;
+		break;
+	      }
+	    }if(local_col < 0) {
+	      printf("Looking for %d in ",global_col);
+	      for(q=0;q<nA;q++){ printf("%d ",Amap[q]); }
+	      printf("\n");
+	      CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE);
+	    }
+	    // Assembled col major, but should be symmetric
+	    A[local_col*nA+local_row] += tdy->Alocal[closure[c]    *(dim2*nq)+
+						     element_vertex*(dim2   )+
+						     element_row   *(dim    )+
+						     element_col]*sign_row*sign_col*tdy->V[global_row]*tdy->V[global_col];
+	  }
+	}
+    }
+    /* solves for velocities at a vertex */
+    ierr = RecoverVelocity(&A[0],&F[0],nA);CHKERRQ(ierr);
+
+    /* load velocities into structure */
+    for(q=0;q<nA;q++){
+      global_row = Amap[q];
+      const PetscInt *cone;
+      ierr = DMPlexGetCone(dm,global_row,&cone);CHKERRQ(ierr);
+      offset = -1;
+      if(cone[0] == v){
+	offset = 0;
+      }else if(cone[1] == v){
+	offset = 1;
+      }else{
+	CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE);
+      }
+      tdy->vel[dim*(global_row-fStart)+offset] = F[q]; 
+    }
+    ierr = DMPlexRestoreTransitiveClosure(dm,v,PETSC_FALSE,&closureSize,&closure);CHKERRQ(ierr);    
+  }
+  ierr = VecRestoreArray(U,&u);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/*
+  norm = sqrt( sum_i^n  V_i * ( p(X_i) - P_i )^2 )
+  
+  where n is the number of cells.
+ */
+PetscReal TDyWYPressureNorm(DM dm,TDy tdy,Vec U)
+{
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscSection sec;
+  PetscInt c,cStart,cEnd,offset,dim,gref,junk;
+  PetscReal p,*u,norm,norm_sum;
+  norm = 0;
+  ierr = VecGetArray(U,&u);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMGetDefaultSection(dm,&sec);CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  for(c=cStart;c<cEnd;c++){
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk);CHKERRQ(ierr);
+    if(gref<0) continue;
+    ierr = PetscSectionGetOffset(sec,c,&offset);CHKERRQ(ierr);
+    tdy->dirichlet(&(tdy->X[c*dim]),&p);
+    norm += tdy->V[c]*PetscSqr(u[offset]-p);
+  }
+  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,PetscObjectComm((PetscObject)U));CHKERRQ(ierr);
+  norm_sum = PetscSqrtReal(norm_sum);
+  ierr = VecRestoreArray(U,&u);CHKERRQ(ierr);
+  PetscFunctionReturn(norm_sum);
+}
+
+/*
+
+ */
+PetscReal TDyWYVelocityNorm(DM dm,TDy tdy)
+{
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
+  PetscReal flux0,flux,norm,norm_sum,sign,v[3],vn;
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  norm = 0;
+  for(c=cStart;c<cEnd;c++){
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd);CHKERRQ(ierr);
+    if (gref < 0) continue;
+    const PetscInt *faces;
+    ierr = DMPlexGetConeSize(dm,c,&nf   );CHKERRQ(ierr);
+    ierr = DMPlexGetCone    (dm,c,&faces);CHKERRQ(ierr);
+    for(i=0;i<nf;i++){
+      f = faces[i];
+      const PetscInt *verts;
+      ierr = DMPlexGetConeSize(dm,f,&nv   );CHKERRQ(ierr);
+      ierr = DMPlexGetCone    (dm,f,&verts);CHKERRQ(ierr);
+      sign = PetscSign(tdy->N[dim*f  ]*(tdy->X[dim*f  ]-tdy->X[dim*c  ])+
+		       tdy->N[dim*f+1]*(tdy->X[dim*f+1]-tdy->X[dim*c+1]));
+      flux0 = 0; flux = 0;
+      for(j=0;j<nv;j++){
+	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
+	vn = v[0]*tdy->N[dim*f] + v[1]*tdy->N[dim*f+1];
+	flux0 += sign*vn                        *0.5*tdy->V[f];
+	flux  += sign*tdy->vel[dim*(f-fStart)+j]*0.5*tdy->V[f];
+      }
+      norm += tdy->V[c]/tdy->V[f]*PetscSqr(flux-flux0);
+    }
+  }
+  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,PetscObjectComm((PetscObject)dm));CHKERRQ(ierr);
+  norm_sum = PetscSqrtReal(norm_sum);
+  PetscFunctionReturn(norm_sum);
+}
+
+
+/*
+
+ */
+PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy)
+{
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
+  PetscReal div0,div,flux0,flux,norm,norm_sum,sign,v[3],vn;
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  norm = 0;
+  for(c=cStart;c<cEnd;c++){
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd);CHKERRQ(ierr);
+    if (gref < 0) continue;
+    const PetscInt *faces;
+    ierr = DMPlexGetConeSize(dm,c,&nf   );CHKERRQ(ierr);
+    ierr = DMPlexGetCone    (dm,c,&faces);CHKERRQ(ierr);
+    div0 = 0; div = 0;
+    for(i=0;i<nf;i++){
+      f = faces[i];
+      const PetscInt *verts;
+      ierr = DMPlexGetConeSize(dm,f,&nv   );CHKERRQ(ierr);
+      ierr = DMPlexGetCone    (dm,f,&verts);CHKERRQ(ierr);
+      sign = PetscSign(tdy->N[dim*f  ]*(tdy->X[dim*f  ]-tdy->X[dim*c  ])+
+		       tdy->N[dim*f+1]*(tdy->X[dim*f+1]-tdy->X[dim*c+1]));
+      flux0 = 0; flux = 0;
+      for(j=0;j<nv;j++){
+	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
+	vn = v[0]*tdy->N[dim*f] + v[1]*tdy->N[dim*f+1];
+	flux0 += sign*vn                        *0.5*tdy->V[f];
+	flux  += sign*tdy->vel[dim*(f-fStart)+j]*0.5*tdy->V[f];
+	div0  += flux0;
+	div   += flux; 
+      }
+    }
+    norm += tdy->V[c]*PetscSqr(div-div0);
+  }
+  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,PetscObjectComm((PetscObject)dm));CHKERRQ(ierr);
+  norm_sum = PetscSqrtReal(norm_sum);
+  PetscFunctionReturn(norm_sum);
+}

@@ -11,6 +11,17 @@ void Pressure(double *x,double *f){
   (*f) += PetscSinReal(1-x[1])*PetscCosReal(1-x[0]);
 }
 
+void Velocity(double *x,double *v){
+  double vx,vy,K[4];
+  Permeability(x,K);
+  vx  = -4*PetscPowReal(1-x[0],3);
+  vx += -PetscPowReal(1-x[1],3);
+  vy  = -3*PetscPowReal(1-x[1],2)*(1-x[0]);
+  vy += -PetscCosReal(x[0]-1)*PetscCosReal(x[1]-1);
+  v[0] = -(K[0]*vx+K[1]*vy);
+  v[1] = -(K[2]*vx+K[3]*vy);
+}
+
 void Forcing(double *x,double *f){
   double K[4];
   Permeability(x,K);
@@ -24,11 +35,15 @@ int main(int argc, char **argv)
 {
   /* Initialize */
   PetscErrorCode ierr;
+  PetscInt N = 4;
   ierr = PetscInitialize(&argc,&argv,(char*)0,0);CHKERRQ(ierr);
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL);CHKERRQ(ierr);
+  ierr = PetscOptionsEnd();CHKERRQ(ierr);
   
   /* Create and distribute the mesh */
   DM dm, dmDist = NULL;
-  const PetscInt  faces[2] = {3  ,3  };
+  const PetscInt  faces[2] = {N  ,N  };
   const PetscReal lower[2] = {0.0,0.0};
   const PetscReal upper[2] = {1.0,1.0};
   ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,2,PETSC_FALSE,faces,lower,upper,NULL,PETSC_TRUE,&dm);CHKERRQ(ierr);
@@ -36,28 +51,40 @@ int main(int argc, char **argv)
   ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);  
   if (dmDist) {DMDestroy(&dm); dm = dmDist;}
   ierr = DMViewFromOptions(dm, NULL, "-dm_view");CHKERRQ(ierr);
-  
+
+  /* Setup problem parameters */
   TDy  tdy;
   ierr = TDyCreate(dm,&tdy);CHKERRQ(ierr);
   ierr = TDySetPermeabilityTensor(dm,tdy,Permeability);CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(dm,tdy,WHEELER_YOTOV);CHKERRQ(ierr);
   ierr = TDySetForcingFunction(tdy,Forcing);CHKERRQ(ierr);
   ierr = TDySetDirichletFunction(tdy,Pressure);CHKERRQ(ierr);
-  
+  ierr = TDySetDirichletFlux(tdy,Velocity);CHKERRQ(ierr);
+
+  /* Compute system */
   Mat K;
   Vec U,F;
   ierr = DMCreateGlobalVector(dm,&U);CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(dm,&F);CHKERRQ(ierr);
   ierr = DMCreateMatrix      (dm,&K);CHKERRQ(ierr);
   ierr = TDyComputeSystem(dm,tdy,K,F);CHKERRQ(ierr);
-    
+
+  /* Solve system */
   KSP ksp;
   ierr = KSPCreate(PETSC_COMM_WORLD,&ksp);CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp,K,K);CHKERRQ(ierr);
   ierr = KSPSetFromOptions(ksp);CHKERRQ(ierr);
   ierr = KSPSetUp(ksp);CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U);CHKERRQ(ierr);
+  ierr = TDyWYRecoverVelocity(dm,tdy,U);CHKERRQ(ierr);
+  
+  PetscReal normp,normv,normd;
+  normp = TDyWYPressureNorm  (dm,tdy,U);
+  normv = TDyWYVelocityNorm  (dm,tdy);
+  normd = TDyWYDivergenceNorm(dm,tdy);
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e %e\n",normp,normv,normd);CHKERRQ(ierr);
 
+  /* Cleanup */
   ierr = KSPDestroy(&ksp);CHKERRQ(ierr);
   ierr = VecDestroy(&U);CHKERRQ(ierr);
   ierr = VecDestroy(&F);CHKERRQ(ierr);

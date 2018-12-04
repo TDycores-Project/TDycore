@@ -15,6 +15,8 @@ typedef enum {
   WHEELER_YOTOV         /* P0,BDM1 spaces, vertex quadrature, statically condensed */
 } TDyMethod;
 
+PETSC_EXTERN const char *const TDyMethods[];
+
 typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */
 
 struct _p_TDy {
@@ -28,6 +30,7 @@ struct _p_TDy {
   PetscReal *K; /* allocate full tensor for each cell */
   SpatialFunction forcing;
   SpatialFunction dirichlet;
+  SpatialFunction flux;
   
   /* method-specific information*/
   TDyMethod method;
@@ -38,7 +41,7 @@ struct _p_TDy {
   PetscReal *Alocal;    /* local element matrices (Ku,v) */
   PetscReal *Flocal;    /* local element vectors (f,w) */
   PetscQuadrature quad; /* vertex-based quadrature rule */
-  
+  PetscReal *vel;       /* [face,local_vertex] --> velocity normal to face at vertex */
 };
 
 /* ---------------------------------------------------------------- */
@@ -52,8 +55,7 @@ PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (DM dm,TDy tdy,SpatialFunc
 
 PETSC_EXTERN PetscErrorCode TDySetForcingFunction  (TDy tdy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetDirichletFunction(TDy tdy,SpatialFunction f);
-
-PETSC_EXTERN const char *const TDyMethods[];
+PETSC_EXTERN PetscErrorCode TDySetDirichletFlux    (TDy tdy,SpatialFunction f);
 
 PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(DM dm,TDy tdy,TDyMethod method);
@@ -62,6 +64,11 @@ PETSC_EXTERN PetscErrorCode TDyComputeSystem(DM dm,TDy tdy,Mat K,Vec F);
 
 PETSC_EXTERN PetscErrorCode TDyWYInitialize(DM dm,TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F);
+
+PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyWYPressureNorm(DM dm,TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyWYVelocityNorm(DM dm,TDy tdy);
+PETSC_EXTERN PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy);
 
 /* ---------------------------------------------------------------- */
 
