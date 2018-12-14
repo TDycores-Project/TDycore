@@ -38,7 +38,9 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy){
 
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
-  
+
+  /* initialize function pointers */
+  tdy->forcing = NULL ; tdy->dirichlet = NULL ; tdy->flux = NULL ;
   PetscFunctionReturn(0);
 }
 

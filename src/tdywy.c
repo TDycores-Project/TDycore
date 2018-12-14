@@ -141,7 +141,7 @@ PetscErrorCode TDyWYLocalElementCompute(DM dm,TDy tdy)
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   for(c=cStart;c<cEnd;c++){
-    tdy->Flocal[c] = 0;	  
+    tdy->Flocal[c] = 0;
     ierr = DMPlexComputeCellGeometryFEM(dm,c,tdy->quad,x,DF,DFinv,J);CHKERRQ(ierr); // DF and DFinv are row major
     for(q=0;q<nq;q++){
 
@@ -180,7 +180,7 @@ PetscErrorCode TDyWyQuadrature(PetscQuadrature q,PetscInt dim,PetscInt nq)
   PetscReal *x,*w;
   ierr = PetscMalloc1(nq*dim,&x);CHKERRQ(ierr);
   ierr = PetscMalloc1(nq    ,&w);CHKERRQ(ierr);
-  switch(nq*dim){ 
+  switch(nq*dim){
   case 6: /* tri */
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Triangles not yet supported in WHEELER_YOTOV");
   case 8: /* quad */
@@ -190,7 +190,7 @@ PetscErrorCode TDyWyQuadrature(PetscQuadrature q,PetscInt dim,PetscInt nq)
     x[6] =  1.0; x[7] =  1.0; w[3] = 0.25;
     break;
   case 24: /* hex */
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Hexes not yet supported in WHEELER_YOTOV");    
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Hexes not yet supported in WHEELER_YOTOV");
   }
   ierr = PetscQuadratureSetData(q,dim,1,nq,x,w);CHKERRQ(ierr);
   PetscFunctionReturn(0);
@@ -230,13 +230,13 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
   PetscScalar norm;
   PetscInt local_dirs[8] = {2,1, 3,0, 0,3, 1,2}; /* need to generalize */
   PetscSection sec;
-  
+
   ierr = PetscObjectGetComm((PetscObject)dm,&comm);CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
- 
+
   /* Check that the number of vertices per cell are constant. Soft
      limitation, method is flexible but my data structures are not. */
   nq = GetNumberOfVertices(dm);
@@ -245,7 +245,7 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
      to evaluate the Jacobian via the PETSc interface. */
   ierr = PetscQuadratureCreate(comm,&(tdy->quad));CHKERRQ(ierr);
   ierr = TDyWyQuadrature(tdy->quad,dim,nq);CHKERRQ(ierr);
-  
+
   /* Build vmap and emap */
   ierr = PetscMalloc(    nq*(cEnd-cStart)*sizeof(PetscInt),&(tdy->vmap));CHKERRQ(ierr);
   ierr = PetscMalloc(dim*nq*(cEnd-cStart)*sizeof(PetscInt),&(tdy->emap));CHKERRQ(ierr);
@@ -278,28 +278,28 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
        cells, there isn't a conflict with 0 being a possible point. */
     for(q=0;q<nq;q++){
       for (i=0;i<closureSize*2;i+=2){
-    	if ((closure[i] >= fStart) && (closure[i] < fEnd)) {
-    	  fclosure = NULL;
-    	  ierr = DMPlexGetTransitiveClosure(dm,closure[i],PETSC_TRUE,&fclosureSize,&fclosure);CHKERRQ(ierr);
-    	  for(f=0;f<fclosureSize*2;f+=2){
-    	    if (fclosure[f] == tdy->vmap[c*nq+q]){
-    	      for(v=0;v<fclosureSize*2;v+=2){
-    		for(d=0;d<dim;d++){
-    		  if (fclosure[v] == tdy->vmap[c*nq+local_dirs[q*dim+d]]) {
-    		    tdy->emap[c*nq*dim+q*dim+d] = closure[i];
+	if ((closure[i] >= fStart) && (closure[i] < fEnd)) {
+	  fclosure = NULL;
+	  ierr = DMPlexGetTransitiveClosure(dm,closure[i],PETSC_TRUE,&fclosureSize,&fclosure);CHKERRQ(ierr);
+	  for(f=0;f<fclosureSize*2;f+=2){
+	    if (fclosure[f] == tdy->vmap[c*nq+q]){
+	      for(v=0;v<fclosureSize*2;v+=2){
+		for(d=0;d<dim;d++){
+		  if (fclosure[v] == tdy->vmap[c*nq+local_dirs[q*dim+d]]) {
+		    tdy->emap[c*nq*dim+q*dim+d] = closure[i];
 		    norm = 0;
 		    for(j=0;j<dim;j++) norm += tdy->N[closure[i]*dim+j] * (tdy->X[closure[i]*dim+j] - tdy->X[c*dim+j]);
 		    if (norm < 0) {
 		      tdy->emap[c*nq*dim+q*dim+d] *= -1;
 		      break;
 		    }
-    		  }
-    		}
-    	      }
-    	    }
-    	  }
-    	  ierr = DMPlexRestoreTransitiveClosure(dm,closure[i],PETSC_TRUE,&fclosureSize,&fclosure);CHKERRQ(ierr);
-    	}
+		  }
+		}
+	      }
+	    }
+	  }
+	  ierr = DMPlexRestoreTransitiveClosure(dm,closure[i],PETSC_TRUE,&fclosureSize,&fclosure);CHKERRQ(ierr);
+	}
       }
     }
     ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
@@ -313,8 +313,8 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
   if(dim>2){
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Need to rework velocity data structure for 3D.");
   }
-  ierr = PetscMalloc(dim*(fEnd-fStart)*sizeof(PetscReal),&(tdy->vel));CHKERRQ(ierr); 
-    
+  ierr = PetscMalloc(dim*(fEnd-fStart)*sizeof(PetscReal),&(tdy->vel));CHKERRQ(ierr);
+
   /* Setup the section, 1 dof per cell */
   ierr = PetscSectionCreate(comm,&sec);CHKERRQ(ierr);
   ierr = PetscSectionSetNumFields(sec,1);CHKERRQ(ierr);
@@ -333,7 +333,7 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
   ierr = PetscSectionDestroy(&sec);CHKERRQ(ierr);
   ierr = DMPlexSetAdjacencyUseCone(dm,PETSC_TRUE);CHKERRQ(ierr);
   ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_TRUE);CHKERRQ(ierr);
-  
+
   PetscFunctionReturn(0);
 }
 
@@ -355,7 +355,7 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   nq   = GetNumberOfVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   dim2 = dim*dim;
-    
+
   ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
@@ -415,11 +415,11 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
 	  // boundary conditions
 	  PetscInt isbc;
 	  ierr = DMGetLabelValue(dm,"marker",global_row,&isbc);CHKERRQ(ierr);
-	  if(isbc == 1){
+	  if(isbc == 1 && tdy->dirichlet){
 	    (*tdy->dirichlet)(&(tdy->X[v*dim]),&pdirichlet);
 	    G[local_row] += 0.5*sign_row*pdirichlet*tdy->V[global_row];
 	  }
-	  
+
 	  for(element_col=0;element_col<dim;element_col++){ // which trial function, local to the element/vertex
 	    global_col = tdy->emap[closure[c]*nq*dim+element_vertex*dim+element_col]; // DMPlex point index of the face
 	    sign_col   = PetscSign(global_col);
@@ -443,10 +443,10 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
 						     element_col]*sign_row*sign_col*tdy->V[global_row]*tdy->V[global_col];
 	  }
 	}
-    }    
+    }
     ierr = DMPlexRestoreTransitiveClosure(dm,v,PETSC_FALSE,&closureSize,&closure);CHKERRQ(ierr);
     ierr = FormStencil(&A[0],&B[0],&C[0],&G[0],&D[0],nA,nB);CHKERRQ(ierr);
-    
+
     /* C and D are in column major, but C is always symmetric and D is
        a vector so it should not matter. */
     for(c=0;c<nB;c++){
@@ -455,7 +455,7 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
       ierr = VecSetValue(F,gStart,D[c],ADD_VALUES);CHKERRQ(ierr);
       for(q=0;q<nB;q++){
 	ierr = DMPlexGetPointGlobal(dm,Bmap[q],&lStart,&junk);CHKERRQ(ierr);
-	if (lStart < 0) lStart = -lStart-1;	
+	if (lStart < 0) lStart = -lStart-1;
 	ierr = MatSetValue(K,gStart,lStart,C[q*nB+c],ADD_VALUES);CHKERRQ(ierr);
       }
     }
@@ -474,7 +474,7 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   ierr = VecAssemblyEnd  (F);CHKERRQ(ierr);
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  
+
   PetscFunctionReturn(0);
 }
 
@@ -558,11 +558,11 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
 	  // boundary conditions
 	  PetscInt isbc;
 	  ierr = DMGetLabelValue(dm,"marker",global_row,&isbc);CHKERRQ(ierr);
-	  if(isbc == 1){
+	  if(isbc == 1 && tdy->dirichlet){
 	    (*tdy->dirichlet)(&(tdy->X[v*dim]),&pdirichlet);
 	    F[local_row] -= 0.5*sign_row*pdirichlet*tdy->V[global_row];
 	  }
-	  
+
 	  for(element_col=0;element_col<dim;element_col++){ // which trial function, local to the element/vertex
 	    global_col = tdy->emap[closure[c]*nq*dim+element_vertex*dim+element_col]; // DMPlex point index of the face
 	    sign_col   = PetscSign(global_col);
@@ -603,9 +603,9 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
       }else{
 	CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE);
       }
-      tdy->vel[dim*(global_row-fStart)+offset] = F[q]; 
+      tdy->vel[dim*(global_row-fStart)+offset] = F[q];
     }
-    ierr = DMPlexRestoreTransitiveClosure(dm,v,PETSC_FALSE,&closureSize,&closure);CHKERRQ(ierr);    
+    ierr = DMPlexRestoreTransitiveClosure(dm,v,PETSC_FALSE,&closureSize,&closure);CHKERRQ(ierr);
   }
   ierr = VecRestoreArray(localU,&u);CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&localU);CHKERRQ(ierr);
@@ -615,7 +615,7 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
 
 /*
   norm = sqrt( sum_i^n  V_i * ( p(X_i) - P_i )^2 )
-  
+
   where n is the number of cells.
  */
 PetscReal TDyWYPressureNorm(DM dm,TDy tdy,Vec U)
@@ -625,6 +625,9 @@ PetscReal TDyWYPressureNorm(DM dm,TDy tdy,Vec U)
   PetscSection sec;
   PetscInt c,cStart,cEnd,offset,dim,gref,junk;
   PetscReal p,*u,norm,norm_sum;
+  if(!(tdy->dirichlet)){
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFunction");
+  }
   norm = 0;
   ierr = VecGetArray(U,&u);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
@@ -652,6 +655,9 @@ PetscReal TDyWYVelocityNorm(DM dm,TDy tdy)
   PetscErrorCode ierr;
   PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
   PetscReal flux0,flux,norm,norm_sum,sign,v[3],vn;
+  if(!(tdy->flux)){
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFlux");
+  }
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
@@ -693,6 +699,9 @@ PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy)
   PetscErrorCode ierr;
   PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
   PetscReal div0,div,flux0,flux,norm,norm_sum,sign,v[3],vn;
+  if(!(tdy->flux)){
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFlux");
+  }
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
@@ -718,7 +727,7 @@ PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy)
 	flux0 += sign*vn                        *0.5*tdy->V[f];
 	flux  += sign*tdy->vel[dim*(f-fStart)+j]*0.5*tdy->V[f];
 	div0  += flux0;
-	div   += flux; 
+	div   += flux;
       }
     }
     norm += tdy->V[c]*PetscSqr(div-div0);
