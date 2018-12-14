@@ -133,11 +133,27 @@ PetscErrorCode TDyWYLocalElementCompute(DM dm,TDy tdy)
   PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],f; /* allocated at maximum possible size */
 
   /* using quadrature points as a local numbering, what are the
-     outward normals for each dof at each local vertex? Need to
-     generalize this. */
-  PetscScalar n0[8] = {-1, 0,+1, 0,-1, 0,+1, 0};
-  PetscScalar n1[8] = { 0,-1, 0,-1, 0,+1, 0,+1};
+     outward normals for each dof at each local vertex? */
+  PetscScalar n0[24] = {-1, 0,+1, 0,-1, 0,+1, 0};
+  PetscScalar n1[24] = { 0,-1, 0,-1, 0,+1, 0,+1};
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  if(dim==2){
+    n0[0] = -1; n0[1] = 0;    n1[0] = 0; n1[1] = -1;
+    n0[2] = +1; n0[3] = 0;    n1[2] = 0; n1[3] = -1;   
+    n0[4] = -1; n0[5] = 0;    n1[4] = 0; n1[5] = +1;
+    n0[6] = +1; n0[7] = 0;    n1[6] = 0; n1[7] = +1;
+  }else if(dim==3){
+    n0[0] = -1; n0[1] = 0; n0[2] = 0;   n1[0] = ; n1[1] = ; n1[2] = ;
+    n0[0] = -1; n0[1] = 0; n0[2] = 0;   n1[0] = ; n1[1] = ; n1[2] = ;
+    n0[0] = -1; n0[1] = 0; n0[2] = 0;   n1[0] = ; n1[1] = ; n1[2] = ;
+    n0[0] = -1; n0[1] = 0; n0[2] = 0;   n1[0] = ; n1[1] = ; n1[2] = ;
+    n0[0] = -1; n0[1] = 0; n0[2] = 0;   n1[0] = ; n1[1] = ; n1[2] = ;
+    n0[0] = -1; n0[1] = 0; n0[2] = 0;   n1[0] = ; n1[1] = ; n1[2] = ;
+    n0[0] = -1; n0[1] = 0; n0[2] = 0;   n1[0] = ; n1[1] = ; n1[2] = ;
+    n0[0] = -1; n0[1] = 0; n0[2] = 0;   n1[0] = ; n1[1] = ; n1[2] = ;
+    
+  }
+  
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   for(c=cStart;c<cEnd;c++){
@@ -184,19 +200,26 @@ PetscErrorCode TDyWyQuadrature(PetscQuadrature q,PetscInt dim,PetscInt nq)
   case 6: /* tri */
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Triangles not yet supported in WHEELER_YOTOV");
   case 8: /* quad */
-    x[0] = -1.0; x[1] = -1.0; w[0] = 0.25;
-    x[2] =  1.0; x[3] = -1.0; w[1] = 0.25;
-    x[4] = -1.0; x[5] =  1.0; w[2] = 0.25;
-    x[6] =  1.0; x[7] =  1.0; w[3] = 0.25;
+    x[0] = -1.0; x[1] = -1.0; w[0] = 1.0;
+    x[2] =  1.0; x[3] = -1.0; w[1] = 1.0;
+    x[4] = -1.0; x[5] =  1.0; w[2] = 1.0;
+    x[6] =  1.0; x[7] =  1.0; w[3] = 1.0;
     break;
   case 24: /* hex */
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Hexes not yet supported in WHEELER_YOTOV");
+    x[0]  = -1.0; x[1]  = -1.0; x[2]  = -1.0; w[0] = 1.0;
+    x[3]  =  1.0; x[4]  = -1.0; x[5]  = -1.0; w[1] = 1.0;
+    x[6]  = -1.0; x[7]  =  1.0; x[8]  = -1.0; w[2] = 1.0;
+    x[9]  =  1.0; x[10] =  1.0; x[11] = -1.0; w[3] = 1.0;
+    x[12] = -1.0; x[13] = -1.0; x[14] =  1.0; w[4] = 1.0;
+    x[15] =  1.0; x[16] = -1.0; x[17] =  1.0; w[5] = 1.0;
+    x[18] = -1.0; x[19] =  1.0; x[20] =  1.0; w[6] = 1.0;
+    x[21] =  1.0; x[22] =  1.0; x[23] =  1.0; w[7] = 1.0;
   }
   ierr = PetscQuadratureSetData(q,dim,1,nq,x,w);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
-PetscInt GetNumberOfVertices(DM dm){
+PetscInt GetNumberOfCellVertices(DM dm){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   MPI_Comm       comm;
@@ -219,16 +242,54 @@ PetscInt GetNumberOfVertices(DM dm){
   PetscFunctionReturn(nq);
 }
 
+PetscInt GetNumberOfFaceVertices(DM dm){
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  MPI_Comm       comm;
+  PetscInt nq,f,q,i,fStart,fEnd,vStart,vEnd,closureSize,*closure;
+  ierr = PetscObjectGetComm((PetscObject)dm,&comm);CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  nq = -1;
+  for(f=fStart;f<fEnd;f++){
+    closure = NULL;
+    ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
+    q = 0;
+    for (i=0;i<closureSize*2;i+=2){
+      if ((closure[i] >= vStart) && (closure[i] < vEnd)) q += 1;
+    }
+    if(nq == -1) nq = q;
+    if(nq !=  q) SETERRQ(comm,PETSC_ERR_SUP,"Mesh faces must be of uniform type");
+    ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
+  }
+  PetscFunctionReturn(nq);
+}
+
+PetscReal L1norm(PetscReal *x,PetscReal *y,PetscInt dim){
+  PetscInt i;
+  PetscReal norm;
+  norm = 0;
+  for(i=0;i<dim;i++) norm += PetscAbsReal(x[i]-y[i]);
+  return norm;
+}
+
+PetscReal ADotBMinusC(PetscReal *a,PetscReal *b,PetscReal *c,PetscInt dim){
+  PetscInt i;
+  PetscReal norm;
+  norm = 0;
+  for(i=0;i<dim;i++) norm += a[i]*(b[i]-c[i]);
+  return norm;
+}
+
 PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   MPI_Comm       comm;
-  PetscInt i,j,d,dim,q,nq,c,cStart,cEnd,f,fStart,fEnd,v,vStart,vEnd,p,pStart,pEnd;
+  PetscInt i,d,dim,q,nq,c,cStart,cEnd,f,fStart,fEnd,v,vStart,vEnd,p,pStart,pEnd,nv;
   PetscInt  closureSize,  *closure;
   PetscInt fclosureSize, *fclosure;
   PetscScalar x[24],DF[72],DFinv[72],J[8]; /* allocated at maximum possible size */
-  PetscScalar norm;
-  PetscInt local_dirs[8] = {2,1, 3,0, 0,3, 1,2}; /* need to generalize */
+  PetscInt local_dirs[24];
   PetscSection sec;
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm);CHKERRQ(ierr);
@@ -236,10 +297,25 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
   ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
-
+  if(dim == 2){
+    local_dirs[0] = 2; local_dirs[1] = 1; 
+    local_dirs[2] = 3; local_dirs[3] = 0; 
+    local_dirs[4] = 0; local_dirs[5] = 3; 
+    local_dirs[6] = 1; local_dirs[7] = 2; 
+  }else if(dim == 3){
+    local_dirs[0]  = 6; local_dirs[1]  = 5; local_dirs[2]  = 3; 
+    local_dirs[3]  = 7; local_dirs[4]  = 4; local_dirs[5]  = 2; 
+    local_dirs[6]  = 4; local_dirs[7]  = 7; local_dirs[8]  = 1; 
+    local_dirs[9]  = 5; local_dirs[10] = 6; local_dirs[11] = 0; 
+    local_dirs[12] = 2; local_dirs[13] = 1; local_dirs[14] = 7; 
+    local_dirs[15] = 3; local_dirs[16] = 0; local_dirs[17] = 6; 
+    local_dirs[18] = 0; local_dirs[19] = 3; local_dirs[20] = 5; 
+    local_dirs[21] = 1; local_dirs[22] = 2; local_dirs[23] = 4; 
+  }
+  
   /* Check that the number of vertices per cell are constant. Soft
      limitation, method is flexible but my data structures are not. */
-  nq = GetNumberOfVertices(dm);
+  nq = GetNumberOfCellVertices(dm);
 
   /* Create a PETSc quadrature, we don't really use this, it is just
      to evaluate the Jacobian via the PETSc interface. */
@@ -260,14 +336,13 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
     for(q=0;q<nq;q++){
       for (i=0;i<closureSize*2;i+=2){
 	if ((closure[i] >= vStart) && (closure[i] < vEnd)) {
-	  norm = 0;
-	  for(d=0;d<dim;d++) norm += PetscAbsReal(x[q*dim+d]-tdy->X[closure[i]*dim+d]);
-	  if (norm > 1e-12) continue;
+	  if (L1norm(&(x[q*dim]),&(tdy->X[closure[i]*dim]),dim) > 1e-12) continue;
 	  tdy->vmap[c*nq+q] = closure[i];
 	  break;
 	}
       }
     }
+
     /* We need a map for (local_element_vertex,direction) -->
        global_face_point. To do this, I loop over the vertices of this
        cell and find connected faces. Then I use the local ordering of
@@ -287,9 +362,7 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
 		for(d=0;d<dim;d++){
 		  if (fclosure[v] == tdy->vmap[c*nq+local_dirs[q*dim+d]]) {
 		    tdy->emap[c*nq*dim+q*dim+d] = closure[i];
-		    norm = 0;
-		    for(j=0;j<dim;j++) norm += tdy->N[closure[i]*dim+j] * (tdy->X[closure[i]*dim+j] - tdy->X[c*dim+j]);
-		    if (norm < 0) {
+		    if (ADotBMinusC(&(tdy->N[closure[i]*dim]),&(tdy->X[closure[i]*dim]),&(tdy->X[c*dim]),dim) < 0) {
 		      tdy->emap[c*nq*dim+q*dim+d] *= -1;
 		      break;
 		    }
@@ -304,16 +377,14 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
     }
     ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
   }
-
+  
   /* Allocate space for Alocal and Flocal */
   ierr = PetscMalloc(dim*dim*nq*(cEnd-cStart)*sizeof(PetscReal),&(tdy->Alocal));CHKERRQ(ierr);
   ierr = PetscMalloc(           (cEnd-cStart)*sizeof(PetscReal),&(tdy->Flocal));CHKERRQ(ierr);
 
-  /* This needs to be generalized */
-  if(dim>2){
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Need to rework velocity data structure for 3D.");
-  }
-  ierr = PetscMalloc(dim*(fEnd-fStart)*sizeof(PetscReal),&(tdy->vel));CHKERRQ(ierr);
+  /* Allocate space for velocities */
+  nv = GetNumberOfFaceVertices(dm);
+  ierr = PetscMalloc(nv*(fEnd-fStart)*sizeof(PetscReal),&(tdy->vel));CHKERRQ(ierr);
 
   /* Setup the section, 1 dof per cell */
   ierr = PetscSectionCreate(comm,&sec);CHKERRQ(ierr);
@@ -352,7 +423,7 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   PetscFunctionBegin;
 
   ierr = TDyWYLocalElementCompute(dm,tdy);CHKERRQ(ierr);
-  nq   = GetNumberOfVertices(dm);
+  nq   = GetNumberOfCellVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   dim2 = dim*dim;
 
@@ -501,7 +572,7 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
   ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU);CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u);CHKERRQ(ierr);
   ierr = DMGetDefaultSection(dm, &section);CHKERRQ(ierr);
-  nq   = GetNumberOfVertices(dm);
+  nq   = GetNumberOfCellVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   dim2 = dim*dim;
   for(v=vStart;v<vEnd;v++){ // loop vertices

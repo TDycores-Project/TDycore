@@ -36,18 +36,19 @@ int main(int argc, char **argv)
 {
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt N = 4;
+  PetscInt N = 4, dim = 2;
   ierr = PetscInitialize(&argc,&argv,(char*)0,0);CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL);CHKERRQ(ierr);
   ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL);CHKERRQ(ierr);
   ierr = PetscOptionsEnd();CHKERRQ(ierr);
   
   /* Create and distribute the mesh */
   DM dm, dmDist = NULL;
-  const PetscInt  faces[2] = {N  ,N  };
-  const PetscReal lower[2] = {0.0,0.0};
-  const PetscReal upper[2] = {1.0,1.0};
-  ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,2,PETSC_FALSE,faces,lower,upper,NULL,PETSC_TRUE,&dm);CHKERRQ(ierr);
+  const PetscInt  faces[3] = {N  ,N  ,N  };
+  const PetscReal lower[3] = {0.0,0.0,0.0};
+  const PetscReal upper[3] = {1.0,1.0,1.0};
+  ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,NULL,PETSC_TRUE,&dm);CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm);CHKERRQ(ierr);
   ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);  
   if (dmDist) {DMDestroy(&dm); dm = dmDist;}

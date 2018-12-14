@@ -2,7 +2,7 @@
 
 PetscErrorCode TDyCreate(DM dm,TDy *_tdy){
   TDy            tdy;
-  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,cStart,cEnd,offset;
+  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,cStart,cEnd,eStart,eEnd,offset;
   Vec            coordinates;
   PetscSection   coordSection;
   PetscScalar   *coords;
@@ -16,6 +16,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy){
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = DMPlexGetChart(dm,&pStart,&pEnd);CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd);CHKERRQ(ierr);  
   ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(tdy->V));CHKERRQ(ierr);
   ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->X));CHKERRQ(ierr);
   ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->N));CHKERRQ(ierr);
@@ -27,6 +28,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy){
       ierr = PetscSectionGetOffset(coordSection,p,&offset);CHKERRQ(ierr);
       for(d=0;d<dim;d++) tdy->X[p*dim+d] = coords[offset+d];
     }else{
+      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
       ierr = DMPlexComputeCellGeometryFVM(dm,p,&(tdy->V[p]),&(tdy->X[p*dim]),&(tdy->N[p*dim]));CHKERRQ(ierr);
     }
   }
