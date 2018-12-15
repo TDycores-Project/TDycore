@@ -1,5 +1,6 @@
 #include "tdycore.h"
 
+
 void Permeability(double *x,double *K){
   K[0] = 5; K[1] = 1;
   K[2] = 1; K[3] = 2;
@@ -32,6 +33,24 @@ void Forcing(double *x,double *f){
   (*f) += -K[3]*(-6*(1-x[0])*(x[1]-1)+PetscSinReal(x[1]-1)*PetscCosReal(x[0]-1));
 }
 
+void Permeability3D(double *x,double *K){
+  (*K) = 1;
+}
+
+void Pressure3D(double *x,double *f){
+  (*f) = (1-x[0])*(1-x[1])*(1-x[2]); 
+}
+
+void Velocity3D(double *x,double *v){  
+  v[0] = 0;
+  v[1] = 0;
+  v[2] = 0;
+}
+
+void Forcing3D(double *x,double *f){
+  (*f) = 0;
+}
+
 int main(int argc, char **argv)
 {
   /* Initialize */
@@ -57,11 +76,18 @@ int main(int argc, char **argv)
   /* Setup problem parameters */
   TDy  tdy;
   ierr = TDyCreate(dm,&tdy);CHKERRQ(ierr);
-  ierr = TDySetPermeabilityTensor(dm,tdy,Permeability);CHKERRQ(ierr);
+  if(dim == 2){
+    ierr = TDySetPermeabilityTensor(dm,tdy,Permeability);CHKERRQ(ierr);
+    ierr = TDySetForcingFunction(tdy,Forcing);CHKERRQ(ierr);
+    ierr = TDySetDirichletFunction(tdy,Pressure);CHKERRQ(ierr);
+    ierr = TDySetDirichletFlux(tdy,Velocity);CHKERRQ(ierr);
+  }else{
+    ierr = TDySetPermeabilityScalar(dm,tdy,Permeability3D);CHKERRQ(ierr);
+    ierr = TDySetForcingFunction(tdy,Forcing3D);CHKERRQ(ierr);
+    ierr = TDySetDirichletFunction(tdy,Pressure3D);CHKERRQ(ierr);
+    ierr = TDySetDirichletFlux(tdy,Velocity3D);CHKERRQ(ierr);
+  }
   ierr = TDySetDiscretizationMethod(dm,tdy,WHEELER_YOTOV);CHKERRQ(ierr);
-  ierr = TDySetForcingFunction(tdy,Forcing);CHKERRQ(ierr);
-  ierr = TDySetDirichletFunction(tdy,Pressure);CHKERRQ(ierr);
-  ierr = TDySetDirichletFlux(tdy,Velocity);CHKERRQ(ierr);
 
   /* Compute system */
   Mat K;
