@@ -1,8 +1,7 @@
 #include "tdycore.h"
 #include <petscblaslapack.h>
 
-// 12 faces * 8 cells
-#define MAX_LOCAL_SIZE 96 
+#define MAX_LOCAL_SIZE 144
 
 PetscInt GetNumberOfCellVertices(DM dm){
   PetscFunctionBegin;
