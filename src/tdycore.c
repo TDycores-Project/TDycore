@@ -39,7 +39,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy){
   ierr = PetscMalloc(dim*dim*(cEnd-cStart)*sizeof(PetscReal),&(tdy->K));CHKERRQ(ierr);
 
   /* initialize method information to null */
-  tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
+  tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL; tdy->quad = NULL;
 
   /* initialize function pointers */
   tdy->forcing = NULL ; tdy->dirichlet = NULL ; tdy->flux = NULL ;
@@ -70,7 +70,8 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy){
   if (tdy->emap  ) { ierr = PetscFree(tdy->emap  );CHKERRQ(ierr); }
   if (tdy->Alocal) { ierr = PetscFree(tdy->Alocal);CHKERRQ(ierr); }
   if (tdy->Flocal) { ierr = PetscFree(tdy->Flocal);CHKERRQ(ierr); }
-  if (tdy->vel   ) { ierr = PetscFree(tdy->vel   );CHKERRQ(ierr); }  
+  if (tdy->vel   ) { ierr = PetscFree(tdy->vel   );CHKERRQ(ierr); } 
+  if (tdy->quad  ) { ierr = PetscQuadratureDestroy(&(tdy->quad));CHKERRQ(ierr); }
   PetscFunctionReturn(0);
 }
 
