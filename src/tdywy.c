@@ -513,9 +513,9 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
 	      CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE);
 	    }
 	    /* Assembled col major, but should be symmetric */
-	    A[local_col*nA+local_row] += tdy->Alocal[closure[c]    *(dim*dim*nq)+
-						     element_vertex*(dim*dim   )+
-						     element_row   *(dim       )+
+	    A[local_col*nA+local_row] += tdy->Alocal[closure[c]    *(dim2*nq)+
+						     element_vertex*(dim2   )+
+						     element_row   *(dim    )+
 						     element_col]*sign_row*sign_col*tdy->V[global_row]*tdy->V[global_col];
 	  }
 	}
