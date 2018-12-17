@@ -71,6 +71,7 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy){
   if (tdy->Alocal) { ierr = PetscFree(tdy->Alocal);CHKERRQ(ierr); }
   if (tdy->Flocal) { ierr = PetscFree(tdy->Flocal);CHKERRQ(ierr); }
   if (tdy->vel   ) { ierr = PetscFree(tdy->vel   );CHKERRQ(ierr); } 
+  if (tdy->fmap  ) { ierr = PetscFree(tdy->fmap  );CHKERRQ(ierr); } 
   if (tdy->quad  ) { ierr = PetscQuadratureDestroy(&(tdy->quad));CHKERRQ(ierr); }
   PetscFunctionReturn(0);
 }

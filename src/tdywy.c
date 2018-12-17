@@ -387,9 +387,22 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
   ierr = PetscMalloc(dim*dim*nq*(cEnd-cStart)*sizeof(PetscReal),&(tdy->Alocal));CHKERRQ(ierr);
   ierr = PetscMalloc(           (cEnd-cStart)*sizeof(PetscReal),&(tdy->Flocal));CHKERRQ(ierr);
 
-  /* Allocate space for velocities */
+  /* Allocate space for velocities and create a local_vertex->face map */
   nv = GetNumberOfFaceVertices(dm);
-  ierr = PetscMalloc(nv*(fEnd-fStart)*sizeof(PetscReal),&(tdy->vel));CHKERRQ(ierr);
+  ierr = PetscMalloc(nv*(fEnd-fStart)*sizeof(PetscReal),&(tdy->vel ));CHKERRQ(ierr);
+  ierr = PetscMalloc(nv*(fEnd-fStart)*sizeof(PetscInt ),&(tdy->fmap));CHKERRQ(ierr);
+  for(f=fStart;f<fEnd;f++){
+    closure = NULL;
+    ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
+    c = 0;
+    for (i=0;i<closureSize*2;i+=2){
+      if ((closure[i] >= vStart) && (closure[i] < vEnd)){
+	tdy->fmap[nv*(f-fStart)+c] = closure[i];
+	c += 1;
+      }
+    }
+    ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
+  }
 
   /* Setup the section, 1 dof per cell */
   ierr = PetscSectionCreate(comm,&sec);CHKERRQ(ierr);
@@ -561,7 +574,7 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
   PetscInt v,vStart,vEnd;
   PetscInt   fStart,fEnd;
   PetscInt c,cStart,cEnd;
-  PetscInt element_vertex,nA,nB,q,nq,offset,dim,dim2;
+  PetscInt element_vertex,nA,nB,q,nq,nv,offset,dim,dim2;
   PetscInt element_row,local_row,global_row;
   PetscInt element_col,local_col,global_col;
   PetscScalar A[MAX_LOCAL_SIZE],F[MAX_LOCAL_SIZE],sign_row,sign_col;
@@ -578,6 +591,7 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
   ierr = VecGetArray(localU,&u);CHKERRQ(ierr);
   ierr = DMGetDefaultSection(dm, &section);CHKERRQ(ierr);
   nq   = GetNumberOfCellVertices(dm);
+  nv   = GetNumberOfFaceVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   dim2 = dim*dim;
   for(v=vStart;v<vEnd;v++){ // loop vertices
@@ -669,17 +683,12 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
     /* load velocities into structure */
     for(q=0;q<nA;q++){
       global_row = Amap[q];
-      const PetscInt *cone;
-      ierr = DMPlexGetCone(dm,global_row,&cone);CHKERRQ(ierr);
-      offset = -1;
-      if(cone[0] == v){
-	offset = 0;
-      }else if(cone[1] == v){
-	offset = 1;
-      }else{
-	CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE);
+      for(offset=0;offset<nv;offset++){
+	if(v == tdy->fmap[nv*(global_row-fStart)+offset]){
+	  tdy->vel[nv*(global_row-fStart)+offset] = F[q];
+	  break;
+	}
       }
-      tdy->vel[dim*(global_row-fStart)+offset] = F[q];
     }
     ierr = DMPlexRestoreTransitiveClosure(dm,v,PETSC_FALSE,&closureSize,&closure);CHKERRQ(ierr);
   }

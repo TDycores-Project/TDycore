@@ -38,6 +38,7 @@ struct _p_TDy {
   /* Wheeler-Yotov */
   PetscInt  *vmap;      /* [cell,local_vertex] --> global_vertex */
   PetscInt  *emap;      /* [cell,local_vertex,direction] --> global_face */
+  PetscInt  *fmap;      /* [face,local_vertex] --> global_vertex */
   PetscReal *Alocal;    /* local element matrices (Ku,v) */
   PetscReal *Flocal;    /* local element vectors (f,w) */
   PetscQuadrature quad; /* vertex-based quadrature rule */

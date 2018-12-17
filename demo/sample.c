@@ -38,17 +38,17 @@ void Permeability3D(double *x,double *K){
 }
 
 void Pressure3D(double *x,double *f){
-  (*f) = (1-x[0])*(1-x[1])*(1-x[2]); 
+  (*f) = (1-x[0]*x[0]) + (1-x[1]*x[1]) + (1-x[2]*x[2]);
 }
 
 void Velocity3D(double *x,double *v){  
-  v[0] = 0;
-  v[1] = 0;
-  v[2] = 0;
+  v[0] = 2*x[0];
+  v[1] = 2*x[1];
+  v[2] = 2*x[2];
 }
 
 void Forcing3D(double *x,double *f){
-  (*f) = 0;
+  (*f) = 6;
 }
 
 int main(int argc, char **argv)
