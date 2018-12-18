@@ -1,5 +1,6 @@
 #include "tdycore.h"
 
+PetscReal alpha = 1;
 
 void Permeability(double *x,double *K){
   K[0] = 5; K[1] = 1;
@@ -34,21 +35,27 @@ void Forcing(double *x,double *f){
 }
 
 void Permeability3D(double *x,double *K){
-  (*K) = 1;
+  K[0] = alpha; K[1] = 1; K[2] = 1;
+  K[3] = 1    ; K[4] = 2; K[5] = 1;
+  K[6] = 1    ; K[7] = 1; K[8] = 2;
 }
 
 void Pressure3D(double *x,double *f){
-  (*f) = (1-x[0]*x[0]) + (1-x[1]*x[1]) + (1-x[2]*x[2]);
+  (*f)  = PetscSqr(x[0])*PetscSqr(-x[0]+1);
+  (*f) += PetscSqr(x[1])*PetscSqr(-x[1]+1);
+  (*f) += PetscSqr(x[2])*PetscSqr(-x[2]+1);
 }
 
-void Velocity3D(double *x,double *v){  
-  v[0] = 2*x[0];
-  v[1] = 2*x[1];
-  v[2] = 2*x[2];
+void Velocity3D(double *x,double *v){
+  double K[9]; Permeability(x,K);
+  v[0] = -K[0]*(-2*x[0]+1) - K[1]*(-2*x[1]+1) - K[2]*(-2*x[2]+1);
+  v[1] = -K[3]*(-2*x[0]+1) - K[4]*(-2*x[1]+1) - K[5]*(-2*x[2]+1);
+  v[2] = -K[6]*(-2*x[0]+1) - K[7]*(-2*x[1]+1) - K[8]*(-2*x[2]+1);
 }
 
 void Forcing3D(double *x,double *f){
-  (*f) = 6;
+  double K[9]; Permeability(x,K);
+  (*f) = 2*(K[0] + K[4] + K[8]);
 }
 
 int main(int argc, char **argv)
@@ -58,8 +65,9 @@ int main(int argc, char **argv)
   PetscInt N = 4, dim = 2;
   ierr = PetscInitialize(&argc,&argv,(char*)0,0);CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL);CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL);CHKERRQ(ierr);
+  ierr = PetscOptionsInt ("-dim"  ,"Problem dimension"       ,"",dim  ,&dim  ,NULL);CHKERRQ(ierr);
+  ierr = PetscOptionsInt ("-N"    ,"Number of elements in 1D","",N    ,&N    ,NULL);CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-alpha","Permeability scaling"    ,"",alpha,&alpha,NULL);CHKERRQ(ierr);
   ierr = PetscOptionsEnd();CHKERRQ(ierr);
   
   /* Create and distribute the mesh */
@@ -82,7 +90,7 @@ int main(int argc, char **argv)
     ierr = TDySetDirichletFunction(tdy,Pressure);CHKERRQ(ierr);
     ierr = TDySetDirichletFlux(tdy,Velocity);CHKERRQ(ierr);
   }else{
-    ierr = TDySetPermeabilityScalar(dm,tdy,Permeability3D);CHKERRQ(ierr);
+    ierr = TDySetPermeabilityTensor(dm,tdy,Permeability3D);CHKERRQ(ierr);
     ierr = TDySetForcingFunction(tdy,Forcing3D);CHKERRQ(ierr);
     ierr = TDySetDirichletFunction(tdy,Pressure3D);CHKERRQ(ierr);
     ierr = TDySetDirichletFlux(tdy,Velocity3D);CHKERRQ(ierr);

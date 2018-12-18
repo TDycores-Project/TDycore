@@ -731,6 +731,13 @@ PetscReal TDyWYPressureNorm(DM dm,TDy tdy,Vec U)
   PetscFunctionReturn(norm_sum);
 }
 
+PetscReal ADotB(PetscReal *a,PetscReal *b,PetscInt dim){
+  PetscInt i;
+  PetscReal norm = 0;
+  for(i=0;i<dim;i++) norm += a[i]*b[i];
+  return norm;
+}
+
 /*
 
  */
@@ -739,13 +746,15 @@ PetscReal TDyWYVelocityNorm(DM dm,TDy tdy)
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
-  PetscReal flux0,flux,norm,norm_sum,sign,v[3],vn;
+  PetscReal flux0,flux,norm,norm_sum,sign,v[3],vn,wgt;
   if(!(tdy->flux)){
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFlux");
   }
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  nv   = GetNumberOfFaceVertices(dm);
+  wgt  = 1/((PetscReal)nv);
   norm = 0;
   for(c=cStart;c<cEnd;c++){
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd);CHKERRQ(ierr);
@@ -758,14 +767,13 @@ PetscReal TDyWYVelocityNorm(DM dm,TDy tdy)
       const PetscInt *verts;
       ierr = DMPlexGetConeSize(dm,f,&nv   );CHKERRQ(ierr);
       ierr = DMPlexGetCone    (dm,f,&verts);CHKERRQ(ierr);
-      sign = PetscSign(tdy->N[dim*f  ]*(tdy->X[dim*f  ]-tdy->X[dim*c  ])+
-		       tdy->N[dim*f+1]*(tdy->X[dim*f+1]-tdy->X[dim*c+1]));
+      sign = PetscSign(ADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),&(tdy->X[dim*c]),dim));
       flux0 = 0; flux = 0;
       for(j=0;j<nv;j++){
 	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
-	vn = v[0]*tdy->N[dim*f] + v[1]*tdy->N[dim*f+1];
-	flux0 += sign*vn                        *0.5*tdy->V[f];
-	flux  += sign*tdy->vel[dim*(f-fStart)+j]*0.5*tdy->V[f];
+	vn = ADotB(v,&(tdy->N[dim*f]),dim);
+	flux0 += sign*vn                        *wgt*tdy->V[f];
+	flux  += sign*tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
       }
       norm += tdy->V[c]/tdy->V[f]*PetscSqr(flux-flux0);
     }
@@ -783,13 +791,15 @@ PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy)
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
-  PetscReal div0,div,flux0,flux,norm,norm_sum,sign,v[3],vn;
+  PetscReal div0,div,flux0,flux,norm,norm_sum,sign,v[3],vn,wgt;
   if(!(tdy->flux)){
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFlux");
   }
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  nv   = GetNumberOfFaceVertices(dm);
+  wgt  = 1/((PetscReal)nv);  
   norm = 0;
   for(c=cStart;c<cEnd;c++){
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd);CHKERRQ(ierr);
@@ -803,14 +813,13 @@ PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy)
       const PetscInt *verts;
       ierr = DMPlexGetConeSize(dm,f,&nv   );CHKERRQ(ierr);
       ierr = DMPlexGetCone    (dm,f,&verts);CHKERRQ(ierr);
-      sign = PetscSign(tdy->N[dim*f  ]*(tdy->X[dim*f  ]-tdy->X[dim*c  ])+
-		       tdy->N[dim*f+1]*(tdy->X[dim*f+1]-tdy->X[dim*c+1]));
+      sign = PetscSign(ADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),&(tdy->X[dim*c]),dim));      
       flux0 = 0; flux = 0;
       for(j=0;j<nv;j++){
 	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
-	vn = v[0]*tdy->N[dim*f] + v[1]*tdy->N[dim*f+1];
-	flux0 += sign*vn                        *0.5*tdy->V[f];
-	flux  += sign*tdy->vel[dim*(f-fStart)+j]*0.5*tdy->V[f];
+	vn = ADotB(v,&(tdy->N[dim*f]),dim);	
+	flux0 += sign*vn                        *wgt*tdy->V[f];
+	flux  += sign*tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
 	div0  += flux0;
 	div   += flux;
       }
