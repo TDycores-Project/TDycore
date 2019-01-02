@@ -88,12 +88,16 @@ PetscErrorCode TDySetDiscretizationMethod(DM dm,TDy tdy,TDyMethod method){
   switch (method) {
   case TWO_POINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"TWO_POINT_FLUX is not yet implemented");
+    break;
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
+    break;
   case MIXED_FINITE_ELEMENT:
     SETERRQ(comm,PETSC_ERR_SUP,"MIXED_FINITE_ELEMENT is not yet implemented");
+    break;
   case WHEELER_YOTOV:
     ierr = TDyWYInitialize(dm,tdy);CHKERRQ(ierr);
+    break;
   }
   PetscFunctionReturn(0);
 }
@@ -130,12 +134,16 @@ PetscErrorCode TDyComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   switch (tdy->method) {
   case TWO_POINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"TWO_POINT_FLUX is not yet implemented");
+    break;
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
+    break;
   case MIXED_FINITE_ELEMENT:
     SETERRQ(comm,PETSC_ERR_SUP,"MIXED_FINITE_ELEMENT is not yet implemented");
+    break;
   case WHEELER_YOTOV:
     ierr = TDyWYComputeSystem(dm,tdy,K,F);CHKERRQ(ierr);
+    break;
   }
   PetscFunctionReturn(0);
 }

@@ -248,6 +248,7 @@ PetscErrorCode TDyWyQuadrature(PetscQuadrature q,PetscInt dim,PetscInt nq)
   switch(nq*dim){
   case 6: /* tri */
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Triangles not yet supported in WHEELER_YOTOV");
+    break;
   case 8: /* quad */
     x[0] = -1.0; x[1] = -1.0; w[0] = 1.0;
     x[2] =  1.0; x[3] = -1.0; w[1] = 1.0;
@@ -256,6 +257,7 @@ PetscErrorCode TDyWyQuadrature(PetscQuadrature q,PetscInt dim,PetscInt nq)
     break;
   case 12: /* tet */
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Tetrahedra not yet supported in WHEELER_YOTOV");    
+    break;
   case 24: /* hex */
     x[0]  = -1.0; x[1]  = -1.0; x[2]  = -1.0; w[0] = 1.0;
     x[3]  =  1.0; x[4]  = -1.0; x[5]  = -1.0; w[1] = 1.0;
@@ -265,6 +267,7 @@ PetscErrorCode TDyWyQuadrature(PetscQuadrature q,PetscInt dim,PetscInt nq)
     x[15] =  1.0; x[16] = -1.0; x[17] =  1.0; w[5] = 1.0;
     x[18] = -1.0; x[19] =  1.0; x[20] =  1.0; w[6] = 1.0;
     x[21] =  1.0; x[22] =  1.0; x[23] =  1.0; w[7] = 1.0;
+    break;
   }
   ierr = PetscQuadratureSetData(q,dim,1,nq,x,w);CHKERRQ(ierr);
   PetscFunctionReturn(0);
