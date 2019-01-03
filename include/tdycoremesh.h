@@ -88,9 +88,9 @@ struct _TDy_edge {
 
   PetscInt  id;            /* id of the edge in local numbering         */
 
-  PetscInt num_faces;      /* number of faces that form the edge        */
+  PetscInt num_cells;      /* number of faces that form the edge        */
   PetscInt vertex_ids[2];  /* ids of vertices that form the edge        */
-  PetscInt *face_ids;      /* ids of cells that share the edge          */
+  PetscInt *cell_ids;      /* ids of cells that share the edge          */
 
   PetscBool is_internal;   /* false if the edge is on the mesh boundary */
 

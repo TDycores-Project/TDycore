@@ -104,11 +104,91 @@ PetscErrorCode AllocateMemoryForCells(
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode AllocateMemoryForAVertex(
+    TDy_vertex     *vertex,
+    PetscInt       num_internal_cells,
+    PetscInt       num_edges,
+    PetscInt       num_boundary_cells) {
+  
+  PetscFunctionBegin;
+
+  vertex->num_internal_cells = num_internal_cells;
+  vertex->num_edges          = num_edges;
+  vertex->num_boundary_cells = num_boundary_cells;
+
+  vertex->edge_ids          = (PetscInt *) malloc(num_edges          * sizeof(PetscInt));
+  vertex->internal_cell_ids = (PetscInt *) malloc(num_internal_cells * sizeof(PetscInt));
+  vertex->subcell_ids       = (PetscInt *) malloc(num_internal_cells * sizeof(PetscInt));
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode AllocateMemoryForVertices(
+    PetscInt       num_vertices,
+    PetscInt       nverts_per_cell,
+    TDy_vertex     *vertices) {
+
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+
+  PetscInt num_internal_cells = nverts_per_cell;
+  PetscInt num_edges          = nverts_per_cell;
+  PetscInt num_boundary_cells = 0;
+
+  /* allocate memory for vertices within the mesh*/
+  for (int ivertex=0; ivertex<num_vertices; ivertex++){
+    vertices[ivertex].id = ivertex;
+    ierr = AllocateMemoryForAVertex(&vertices[ivertex], num_internal_cells,
+                                    num_edges, num_boundary_cells); CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode AllocateMemoryForAEdge(
+    TDy_edge *edge,
+    PetscInt num_cells) {
+  
+  PetscFunctionBegin;
+
+  edge->num_cells = num_cells;
+
+  edge->cell_ids = (PetscInt *) malloc(num_cells * sizeof(PetscInt));
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode AllocateMemoryForEdges(
+    PetscInt num_edges,
+    PetscInt ncells_per_edge,
+    TDy_edge *edges) {
+
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+
+  /* allocate memory for edges within the mesh*/
+  for (int iedge=0; iedge<num_edges; iedge++){
+    edges[iedge].id = iedge;
+    ierr = AllocateMemoryForAEdge(&edges[iedge], ncells_per_edge); CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode AllocateMemoryForMesh(
     PetscInt cNum,
     PetscInt eNum,
     PetscInt vNum,
     PetscInt nverts_per_cell,
+    PetscInt ncells_per_edge,
     TDy_mesh *mesh) {
 
   PetscFunctionBegin;
@@ -125,6 +205,8 @@ PetscErrorCode AllocateMemoryForMesh(
   mesh->vertices = (TDy_vertex *) malloc(vNum * sizeof(TDy_vertex ));
 
   ierr = AllocateMemoryForCells(cNum, nverts_per_cell, SUBCELL_QUAD_TYPE, mesh->cells); CHKERRQ(ierr);
+  ierr = AllocateMemoryForVertices(vNum, nverts_per_cell, mesh->vertices); CHKERRQ(ierr);
+  ierr = AllocateMemoryForEdges(eNum, ncells_per_edge, mesh->edges); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
@@ -139,6 +221,7 @@ PetscErrorCode TDyMPFAOInitialize(DM dm,TDy tdy){
   PetscInt       dim;
 
   PetscInt nverts_per_cell;
+  PetscInt ncells_per_edge;
   PetscInt cStart, cEnd, cNum;
   PetscInt vStart, vEnd, vNum;
   PetscInt eStart, eEnd, eNum;
@@ -152,6 +235,7 @@ PetscErrorCode TDyMPFAOInitialize(DM dm,TDy tdy){
 
   /* compute number of vertices per grid cell */
   nverts_per_cell = GetNumberOfCellVertices(dm);
+  ncells_per_edge = 2;
 
   /* Determine the number of cells, edges, and vertices of the mesh */
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd);CHKERRQ(ierr);
@@ -164,7 +248,7 @@ PetscErrorCode TDyMPFAOInitialize(DM dm,TDy tdy){
 
   tdy->mesh = (TDy_mesh *) malloc(sizeof(TDy_mesh));
 
-  ierr = AllocateMemoryForMesh(cNum, eNum, vNum, nverts_per_cell, tdy->mesh); CHKERRQ(ierr);
+  ierr = AllocateMemoryForMesh(cNum, eNum, vNum, nverts_per_cell, ncells_per_edge, tdy->mesh); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
