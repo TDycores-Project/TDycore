@@ -46,7 +46,7 @@ struct _p_TDy {
   PetscReal *vel;       /* [face,local_vertex] --> velocity normal to face at vertex */
 
   /* MPFA-O */
-  TDy_mesh mesh;
+  TDy_mesh *mesh;
 
 };
 
@@ -75,6 +75,8 @@ PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyWYPressureNorm(DM dm,TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyWYVelocityNorm(DM dm,TDy tdy);
 PETSC_EXTERN PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy);
+
+PETSC_EXTERN PetscErrorCode TDyMPFAOInitialize(DM, TDy);
 
 /* ---------------------------------------------------------------- */
 

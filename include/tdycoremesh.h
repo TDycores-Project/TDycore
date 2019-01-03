@@ -12,8 +12,8 @@ typedef struct _TDy_edge       TDy_edge;
 typedef struct _TDy_mesh       TDy_mesh;
 
 typedef enum {
-  SUBCELL_TRIANGLE=0,   /* triangluar subcell for a 2D cell */
-  SUBCELL_TETRAHEDRON   /* tetraedron subcell for a 3D cell */
+  SUBCELL_QUAD_TYPE=0, /* quadrilateral subcell for a 2D cell */
+  SUBCELL_HEX_TYPE     /* hexahedron subcell for a 3D cell */
 } TDySubcellType;
 
 struct _TDy_coordinate{
@@ -54,6 +54,7 @@ struct _TDy_cell {
   PetscInt  num_vertices;  /* number of vertices of the cell    */
   PetscInt  num_edges;     /* number of edges of the cell       */
   PetscInt  num_neighbors; /* number of neigbors of the cell    */
+  PetscInt  num_subcells;  /* number of subcells within the cell*/
 
   PetscInt *vertex_ids;    /* vertice IDs that form the cell    */
   PetscInt *edge_ids;      /* edge IDs that form the cell       */
@@ -101,8 +102,13 @@ struct _TDy_edge {
 
 struct _TDy_mesh {
 
+  PetscInt   num_cells;
+  PetscInt   num_faces;
+  PetscInt   num_edges;
+  PetscInt   num_vertices;
+
   TDy_cell   *cells;
-  TDy_vertex *vertice;
+  TDy_vertex *vertices;
   TDy_edge   *edges;
 
 };
