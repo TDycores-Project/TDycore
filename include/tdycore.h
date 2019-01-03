@@ -3,6 +3,7 @@
 
 #include <petsc.h>
 #include <petsc/private/petscimpl.h>
+#include "tdycoremesh.h"
 
 /* ---------------------------------------------------------------- */
 
@@ -43,6 +44,10 @@ struct _p_TDy {
   PetscReal *Flocal;    /* local element vectors (f,w) */
   PetscQuadrature quad; /* vertex-based quadrature rule */
   PetscReal *vel;       /* [face,local_vertex] --> velocity normal to face at vertex */
+
+  /* MPFA-O */
+  TDy_mesh mesh;
+
 };
 
 /* ---------------------------------------------------------------- */
