@@ -89,8 +89,8 @@ PetscErrorCode TDySetDiscretizationMethod(DM dm,TDy tdy,TDyMethod method){
   case TWO_POINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"TWO_POINT_FLUX is not yet implemented");
     break;
-  case MULTIPOINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
+  case MPFA_O:
+    SETERRQ(comm,PETSC_ERR_SUP,"MPFA_O is not yet implemented");
     break;
   case MIXED_FINITE_ELEMENT:
     SETERRQ(comm,PETSC_ERR_SUP,"MIXED_FINITE_ELEMENT is not yet implemented");
@@ -135,8 +135,8 @@ PetscErrorCode TDyComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   case TWO_POINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"TWO_POINT_FLUX is not yet implemented");
     break;
-  case MULTIPOINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
+  case MPFA_O:
+    SETERRQ(comm,PETSC_ERR_SUP,"MPFA_O is not yet implemented");
     break;
   case MIXED_FINITE_ELEMENT:
     SETERRQ(comm,PETSC_ERR_SUP,"MIXED_FINITE_ELEMENT is not yet implemented");

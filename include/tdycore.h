@@ -11,7 +11,7 @@ typedef struct _p_TDy *TDy;
 
 typedef enum {
   TWO_POINT_FLUX=0,     /* classic finite volumes                                  */
-  MULTIPOINT_FLUX,      /*                                                         */
+  MPFA_O,               /* multipoint flux approximation - O method                */
   MIXED_FINITE_ELEMENT, /* P0,BDM1 spaces, standard approach                       */
   WHEELER_YOTOV         /* P0,BDM1 spaces, vertex quadrature, statically condensed */
 } TDyMethod;
