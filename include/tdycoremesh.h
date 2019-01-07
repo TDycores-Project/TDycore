@@ -81,7 +81,7 @@ struct _TDy_vertex {
   PetscInt *internal_cell_ids;  /* internal cell IDs that share the vertex              */
   PetscInt *subcell_ids;        /* subcell IDs of internal cells that share the vertex  */
 
-  TDy_coordinate cordinate;     /* (x,y,z) location of the vertex                       */
+  TDy_coordinate coordinate;    /* (x,y,z) location of the vertex                       */
 };
 
 struct _TDy_edge {
@@ -94,6 +94,7 @@ struct _TDy_edge {
 
   PetscBool is_internal;   /* false if the edge is on the mesh boundary */
 
+  TDy_vector     normal;   /* unit normal vector                        */
   TDy_coordinate centroid; /* edge centroid                             */
 
   PetscReal length;        /* length of the edge                        */
