@@ -602,13 +602,158 @@ PetscErrorCode UpdateCellOrientation2DMesh(DM dm, TDy tdy) {
     if (vertices[ivertex].num_internal_cells > 1) {
       ierr = UpdateCellOrientationAroundAVertex(tdy, ivertex); CHKERRQ(ierr);
     }
-
   }
 
   PetscFunctionReturn(0);
 
 }
 
+/* ---------------------------------------------------------------- */
+PetscErrorCode ComputeVariableContinuityPoint(PetscReal vertex[3], PetscReal edge[3], PetscReal alpha, PetscInt dim, PetscReal *point){
+
+  PetscFunctionBegin;
+
+  for (int d=0; d<dim; d++) point[d] = (1.0 - alpha)*vertex[d] + edge[d]*alpha;
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode ComputeRightNormalVector(PetscReal v1[3], PetscReal v2[3], PetscInt dim, PetscReal *normal){
+
+  PetscReal vec_from_1_to_2[3];
+  PetscReal norm;
+
+  PetscFunctionBegin;
+
+  if (dim != 2) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"ComputeRightNormalVector only support 2D grids");
+
+  norm = 0.0;
+
+  for (int d=0; d<dim; d++) {
+    vec_from_1_to_2[d] = v2[d] - v1[d];
+    norm += pow(vec_from_1_to_2[d], 2.0);
+  }
+  norm = pow(norm, 0.5);
+
+  normal[0] =  vec_from_1_to_2[1]/norm;
+  normal[1] = -vec_from_1_to_2[0]/norm;
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode ComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim, PetscReal *length){
+
+  PetscFunctionBegin;
+
+  *length = 0.0;
+
+  for (int d=0; d<dim; d++) *length += pow(v1[d] - v2[d], 2.0);
+
+  *length = pow(*length, 0.5);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
+
+  PetscFunctionBegin;
+
+  TDy_mesh       *mesh;
+  TDy_cell       *cells, *cell;
+  TDy_subcell    *subcell;
+  TDy_vertex     *vertices, *vertex;
+  TDy_edge       *edges, *edge_up, *edge_dn;
+  PetscInt       cStart, cEnd, num_subcells;
+  PetscInt       icell, isubcell;
+  PetscInt       dim, d;
+  PetscInt       e_idx_up, e_idx_dn;
+  PetscReal      cell_cen[3], e_cen_up[3], e_cen_dn[3], v_c[3];
+  PetscReal      cp_up[3], cp_dn[3], nu_vec_up[3], nu_vec_dn[3];
+  PetscReal      len_up, len_dn;
+  PetscReal      alpha;
+  PetscErrorCode ierr;
+
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+  edges    = mesh->edges;
+  vertices = mesh->vertices;
+
+  alpha = 1.0;
+
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+  num_subcells = GetNumberOfCellVertices(dm);
+
+  for (icell=0; icell<cEnd-cStart; icell++) {
+
+    // set pointer to cell
+    cell = &cells[icell];
+
+    // save cell centroid
+    for (d=0; d<dim; d++) cell_cen[d] = cell->centroid.X[d];
+
+    for (isubcell=0; isubcell<num_subcells; isubcell++) {
+
+      // set pointer to vertex and subcell
+      vertex  = &vertices[cell->vertex_ids[isubcell]];
+      subcell = &cell->subcells[isubcell];
+
+      // save coorindates of vertex that is part of the subcell
+      for (d=0; d<dim; d++) v_c[d] = vertex->coordinate.X[d];
+
+      // determine ids of up & down edges
+      e_idx_up = cells[icell].edge_ids[isubcell];
+      if (isubcell == 0) e_idx_dn = cells[icell].edge_ids[num_subcells-1];
+      else               e_idx_dn = cells[icell].edge_ids[isubcell    -1];
+
+      // set points to up/down edges
+      edge_up = &edges[e_idx_up];
+      edge_dn = &edges[e_idx_dn];
+
+      // save centroids of up/down edges
+      for (d=0; d<dim; d++) {
+        e_cen_up[d] = edge_up->centroid.X[d];
+        e_cen_dn[d] = edge_dn->centroid.X[d];
+      }
+
+      // compute continuity point
+      ierr = ComputeVariableContinuityPoint(v_c, e_cen_up, alpha, dim, cp_up); CHKERRQ(ierr);
+      ierr = ComputeVariableContinuityPoint(v_c, e_cen_dn, alpha, dim, cp_dn); CHKERRQ(ierr);
+
+      // save continuity point
+      for (d=0; d<dim; d++) {
+        subcell->variable_continuity_coordinates[0].X[d] = cp_up[d];
+        subcell->variable_continuity_coordinates[1].X[d] = cp_dn[d];
+      }
+
+      // compute the 'direction' of nu-vector
+      ierr = ComputeRightNormalVector(cp_up   , cell_cen, dim, nu_vec_up); CHKERRQ(ierr);
+      ierr = ComputeRightNormalVector(cell_cen, cp_dn   , dim, nu_vec_dn); CHKERRQ(ierr);
+
+      // compute length of nu-vectors
+      ierr = ComputeLength(cp_up, cell_cen, dim, &len_up); CHKERRQ(ierr);
+      ierr = ComputeLength(cp_up, cell_cen, dim, &len_dn); CHKERRQ(ierr);
+
+      // save nu-vectors
+      // note: length of nu-vectors is equal to length of edge diagonally
+      //       opposite to the vector
+      for (d=0; d<dim; d++) {
+        subcell->nu_vector[0].V[d] = nu_vec_up[d]*len_dn;
+        subcell->nu_vector[1].V[d] = nu_vec_dn[d]*len_up;
+      }
+
+    }
+  }
+
+  PetscFunctionReturn(0);
+
+}
 /* -------------------------------------------------------------------------- */
 PetscErrorCode Build2DMesh(DM dm, TDy tdy) {
 
@@ -619,6 +764,7 @@ PetscErrorCode Build2DMesh(DM dm, TDy tdy) {
   ierr = Save2DMeshGeometricAttributes(dm, tdy); CHKERRQ(ierr);
   ierr = Save2DMeshConnectivityInfo(   dm, tdy); CHKERRQ(ierr);
   ierr = UpdateCellOrientation2DMesh(  dm, tdy); CHKERRQ(ierr);
+  ierr = SetupSubcellsFor2DMesh     (  dm, tdy); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
