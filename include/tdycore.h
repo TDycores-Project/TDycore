@@ -47,6 +47,9 @@ struct _p_TDy {
 
   /* MPFA-O */
   TDy_mesh *mesh;
+  PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
+  PetscReal ***Trans_in;
+  PetscReal ***Trans_bc;
 
 };
 

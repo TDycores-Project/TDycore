@@ -10,6 +10,25 @@ PetscBool IsClosureWithinBounds(PetscInt closure, PetscInt start, PetscInt end){
 }
 
 /* ---------------------------------------------------------------- */
+PetscErrorCode Allocate_RealArray_4D(PetscReal *****array_4D, PetscInt ndim_1, PetscInt ndim_2, PetscInt ndim_3, PetscInt ndim_4){
+
+  PetscFunctionBegin;
+
+  *array_4D = (PetscReal ****)malloc(ndim_1*sizeof(PetscReal ***));
+  for(int i=0; i<ndim_1; i++){
+    (*array_4D)[i] = (PetscReal ***)malloc(ndim_2*sizeof(PetscReal **));
+    for(int j=0; j<ndim_2; j++){
+      (*array_4D)[i][j] = (PetscReal **)malloc(ndim_3*sizeof(PetscReal *));
+      for(int k=0; k<ndim_3; k++){
+        (*array_4D)[i][j][k] = (PetscReal *)malloc(ndim_4*sizeof(PetscReal));
+      }
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode Initialize_IntegerArray_1D(PetscInt *array_1D, PetscInt ndim_1, PetscInt init_value){
 
   PetscFunctionBegin;
@@ -656,6 +675,24 @@ PetscErrorCode ComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim, Pet
   PetscFunctionReturn(0);
 }
 
+/* ---------------------------------------------------------------- */
+PetscErrorCode ComputeAreaOf2DTriangle(PetscReal v1[3], PetscReal v2[3], PetscReal v3[3], PetscReal *area){
+
+  PetscFunctionBegin;
+
+  /*
+   *
+   *  v1[0] v1[1] 1.0
+   *  v2[0] v2[1] 1.0
+   *  v3[0] v3[1] 1.0
+   *
+  */
+
+  *area = fabs(v1[0]*(v2[1] - v3[1]) - v1[1]*(v2[0] - v3[0]) + 1.0*(v2[0]*v3[1] - v2[1]*v3[0]))/2.0;
+
+  PetscFunctionReturn(0);
+}
+
 /* -------------------------------------------------------------------------- */
 
 PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
@@ -688,8 +725,6 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
-  num_subcells = GetNumberOfCellVertices(dm);
-
   for (icell=0; icell<cEnd-cStart; icell++) {
 
     // set pointer to cell
@@ -697,6 +732,8 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
 
     // save cell centroid
     for (d=0; d<dim; d++) cell_cen[d] = cell->centroid.X[d];
+
+    num_subcells = cell->num_subcells;
 
     for (isubcell=0; isubcell<num_subcells; isubcell++) {
 
@@ -728,8 +765,8 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
 
       // save continuity point
       for (d=0; d<dim; d++) {
-        subcell->variable_continuity_coordinates[0].X[d] = cp_up[d];
-        subcell->variable_continuity_coordinates[1].X[d] = cp_dn[d];
+        subcell->variable_continuity_coordinates[0].X[d] = cp_dn[d];
+        subcell->variable_continuity_coordinates[1].X[d] = cp_up[d];
       }
 
       // compute the 'direction' of nu-vector
@@ -744,9 +781,11 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
       // note: length of nu-vectors is equal to length of edge diagonally
       //       opposite to the vector
       for (d=0; d<dim; d++) {
-        subcell->nu_vector[0].V[d] = nu_vec_up[d]*len_dn;
-        subcell->nu_vector[1].V[d] = nu_vec_dn[d]*len_up;
+        subcell->nu_vector[0].V[d] = nu_vec_dn[d]*len_up;
+        subcell->nu_vector[1].V[d] = nu_vec_up[d]*len_dn;
       }
+
+      ierr = ComputeAreaOf2DTriangle(cp_up, cell_cen, cp_dn, &subcell->volume);
 
     }
   }
@@ -754,6 +793,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
   PetscFunctionReturn(0);
 
 }
+
 /* -------------------------------------------------------------------------- */
 PetscErrorCode Build2DMesh(DM dm, TDy tdy) {
 
@@ -770,6 +810,128 @@ PetscErrorCode Build2DMesh(DM dm, TDy tdy) {
 
 }
 
+/* ---------------------------------------------------------------- */
+PetscErrorCode ComputeEntryOfGMatrix(PetscReal edge_len, PetscReal n[3], PetscReal K[3][3], PetscReal v[3], PetscReal area, PetscInt dim, PetscReal *g){
+
+  PetscFunctionBegin;
+
+  PetscReal Kv[3];
+
+  *g = 0.0;
+
+  for (PetscInt i=0; i<dim; i++){
+    Kv[i] = 0.0;
+    for (PetscInt j=0; j<dim; j++){
+      Kv[i] += K[i][j] * v[j];
+    }
+  }
+
+  for (PetscInt i=0; i<dim; i++){
+    (*g) += n[i] * Kv[i];
+  }
+  (*g) *= -1.0/(2.0*area)*edge_len;
+
+  PetscFunctionReturn(0);
+}
+
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode ComputeGMatrix(DM dm, TDy tdy) {
+
+  PetscFunctionBegin;
+
+  TDy_mesh       *mesh;
+  TDy_cell       *cells, *cell;
+  TDy_subcell    *subcell;
+  TDy_vertex     *vertices, *vertex;
+  TDy_edge       *edges, *edge_up, *edge_dn;
+  PetscInt       num_subcells;
+  PetscInt       icell, isubcell;
+  PetscInt       ii,jj;
+  PetscInt       dim, d;
+  PetscInt       e_idx_up, e_idx_dn;
+  PetscReal      n_up[3], n_dn[3];
+  PetscReal      e_cen_up[3], e_cen_dn[3], v_c[3];
+  PetscReal      e_len_dn, e_len_up;
+  PetscReal      K[3][3], nu_up[3], nu_dn[3];
+  PetscErrorCode ierr;
+
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+  edges    = mesh->edges;
+  vertices = mesh->vertices;
+
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+  for (icell=0; icell<mesh->num_cells*0+1; icell++) {
+
+    // set pointer to cell
+    cell = &cells[icell];
+
+    // extract permeability tensor
+    for (ii=0; ii<dim; ii++) {
+      for (jj=0; jj<dim; jj++) {
+        K[ii][jj] = tdy->K[icell*dim*dim + ii*dim + jj];
+      }
+    }
+
+    num_subcells = cell->num_subcells;
+
+    for (isubcell=0; isubcell<num_subcells; isubcell++) {
+
+      vertex  = &vertices[cell->vertex_ids[isubcell]];
+      subcell = &cell->subcells[isubcell];
+
+      // determine ids of up & down edges
+      e_idx_up = cells[icell].edge_ids[isubcell];
+      if (isubcell == 0) e_idx_dn = cells[icell].edge_ids[num_subcells-1];
+      else               e_idx_dn = cells[icell].edge_ids[isubcell    -1];
+
+      // set points to up/down edges
+      edge_up = &edges[e_idx_up];
+      edge_dn = &edges[e_idx_dn];
+
+      for (d=0; d<dim; d++){
+        // extract nu-vectors
+        nu_dn[d]    = subcell->nu_vector[0].V[d];
+        nu_up[d]    = subcell->nu_vector[1].V[d];
+
+        // extract face centroid of edges
+        e_cen_dn[d] = edge_dn->centroid.X[d];
+        e_cen_up[d] = edge_up->centroid.X[d];
+
+        // extract normal to edges
+        n_dn[d] = edge_dn->normal.V[d];
+        n_up[d] = edge_up->normal.V[d];
+
+        // extract coordinate of the vertex
+        v_c[d] = vertex->coordinate.X[d];
+      }
+
+      //
+      ierr = ComputeLength(v_c, e_cen_dn, dim, &e_len_dn);
+      ierr = ComputeLength(v_c, e_cen_up, dim, &e_len_up);
+
+      //                               _         _   _           _
+      //                              |           | |             |
+      //                              | L_dn*n_dn | | K_xx   K_xy |  _             _
+      // Gmatrix =        -1          |           | |             | |               |
+      //             -----------      |           | |             | | nu_up   nu_dn |
+      //              2*A_{subcell}   | L_up*n_up | | K_yx   K_yy | |_             _|
+      //                              |           | |             |
+      //                              |_         _| |_           _|
+      //
+      ComputeEntryOfGMatrix(e_len_dn, n_dn, K, nu_dn, subcell->volume, dim, &(tdy->subc_Gmatrix[icell][isubcell][0][0]));
+      ComputeEntryOfGMatrix(e_len_dn, n_dn, K, nu_up, subcell->volume, dim, &(tdy->subc_Gmatrix[icell][isubcell][0][1]));
+      ComputeEntryOfGMatrix(e_len_dn, n_up, K, nu_dn, subcell->volume, dim, &(tdy->subc_Gmatrix[icell][isubcell][1][0]));
+      ComputeEntryOfGMatrix(e_len_dn, n_up, K, nu_up, subcell->volume, dim, &(tdy->subc_Gmatrix[icell][isubcell][1][1]));
+
+    }
+  }
+
+  PetscFunctionReturn(0);
+
+}
 /* -------------------------------------------------------------------------- */
 
 PetscErrorCode TDyMPFAOInitialize(DM dm,TDy tdy){
@@ -789,7 +951,11 @@ PetscErrorCode TDyMPFAOInitialize(DM dm,TDy tdy){
 
   ierr = AllocateMemoryForMesh(dm, tdy->mesh); CHKERRQ(ierr);
 
+  ierr = Allocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells, tdy->mesh->num_vertices, 3, 3);CHKERRQ(ierr);
+
   ierr = Build2DMesh(dm, tdy); CHKERRQ(ierr);
+
+  ierr = ComputeGMatrix(dm, tdy); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
