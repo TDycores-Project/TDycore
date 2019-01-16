@@ -41,21 +41,26 @@ void Permeability3D(double *x,double *K){
 }
 
 void Pressure3D(double *x,double *f){
-  (*f)  = PetscSqr(x[0])*PetscSqr(-x[0]+1);
-  (*f) += PetscSqr(x[1])*PetscSqr(-x[1]+1);
-  (*f) += PetscSqr(x[2])*PetscSqr(-x[2]+1);
+  (*f)  = x[0]*(-x[0]+1);
+  (*f) += x[1]*(-x[1]+1);
+  (*f) += x[2]*(-x[2]+1);
+  //(*f) = x[0] + x[1] + x[2];
 }
 
 void Velocity3D(double *x,double *v){
-  double K[9]; Permeability(x,K);
+  double K[9]; Permeability3D(x,K);
   v[0] = -K[0]*(-2*x[0]+1) - K[1]*(-2*x[1]+1) - K[2]*(-2*x[2]+1);
   v[1] = -K[3]*(-2*x[0]+1) - K[4]*(-2*x[1]+1) - K[5]*(-2*x[2]+1);
   v[2] = -K[6]*(-2*x[0]+1) - K[7]*(-2*x[1]+1) - K[8]*(-2*x[2]+1);
+  //v[0] = -(K[0]+K[1]+K[2]);
+  //v[1] = -(K[3]+K[4]+K[5]);
+  //v[2] = -(K[6]+K[7]+K[8]);
 }
 
 void Forcing3D(double *x,double *f){
-  double K[9]; Permeability(x,K);
+  double K[9]; Permeability3D(x,K);
   (*f) = 2*(K[0] + K[4] + K[8]);
+  //(*f) = 0;
 }
 
 int main(int argc, char **argv)
