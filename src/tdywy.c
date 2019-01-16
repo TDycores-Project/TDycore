@@ -195,8 +195,8 @@ PetscErrorCode TDyWYLocalElementCompute(DM dm,TDy tdy)
   PetscInt c,cStart,cEnd;
   PetscInt dim,dim2,i,j,q,nq;
   PetscReal wgt   = 1;    // 1/s from the paper
-  PetscReal Ehat  = 1;    // area of ref element ( [-1,1]^dim )
-  PetscReal ehat  = 1;    // length of ref element edge
+  PetscReal Ehat  = 1;    // area of ref element cell ( [-1,1]^(dim  ) )
+  PetscReal ehat  = 1;    // area of ref element face ( [-1,1]^(dim-1) )
   PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],n0[3],n1[3],f; /* allocated at maximum possible size */
 
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);  
@@ -437,13 +437,14 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   PetscInt element_col,local_col,global_col;
   PetscScalar A[MAX_LOCAL_SIZE],B[MAX_LOCAL_SIZE],C[MAX_LOCAL_SIZE],G[MAX_LOCAL_SIZE],D[MAX_LOCAL_SIZE],sign_row,sign_col;
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
-  PetscScalar pdirichlet;
+  PetscScalar pdirichlet,wgt;
   PetscFunctionBegin;
 
   ierr = TDyWYLocalElementCompute(dm,tdy);CHKERRQ(ierr);
   nq   = GetNumberOfCellVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   dim2 = dim*dim;
+  wgt  = PetscPowReal(0.5,dim-1);
 
   ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
@@ -499,14 +500,14 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
 	  }if(local_col < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
 
 	  // B here is B.T in the paper, assembled in column major
-	  B[local_col*nA+local_row] += 0.5*sign_row*tdy->V[global_row];
+	  B[local_col*nA+local_row] += wgt*sign_row*tdy->V[global_row];
 
 	  // boundary conditions
 	  PetscInt isbc;
 	  ierr = DMGetLabelValue(dm,"marker",global_row,&isbc);CHKERRQ(ierr);
 	  if(isbc == 1 && tdy->dirichlet){
 	    (*tdy->dirichlet)(&(tdy->X[v*dim]),&pdirichlet);
-	    G[local_row] += 0.5*sign_row*pdirichlet*tdy->V[global_row];
+	    G[local_row] += wgt*sign_row*pdirichlet*tdy->V[global_row];
 	  }
 
 	  for(element_col=0;element_col<dim;element_col++){ // which trial function, local to the element/vertex
@@ -583,7 +584,7 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   PetscSection section;
-  PetscScalar *u,pdirichlet;
+  PetscScalar *u,pdirichlet,wgt;
   Vec localU;
   ierr = DMGetLocalVector(dm,&localU);CHKERRQ(ierr);
   ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU);CHKERRQ(ierr);
@@ -594,6 +595,8 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
   nv   = GetNumberOfFaceVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   dim2 = dim*dim;
+  wgt  = PetscPowReal(0.5,dim-1);
+
   for(v=vStart;v<vEnd;v++){ // loop vertices
 
     PetscInt closureSize,*closure = NULL;
@@ -643,14 +646,14 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
 
 	  // B P
 	  ierr = PetscSectionGetOffset(section,closure[c],&offset);CHKERRQ(ierr);
-	  F[local_row] += 0.5*sign_row*u[offset]*tdy->V[global_row];
+	  F[local_row] += wgt*sign_row*u[offset]*tdy->V[global_row];
 
 	  // boundary conditions
 	  PetscInt isbc;
 	  ierr = DMGetLabelValue(dm,"marker",global_row,&isbc);CHKERRQ(ierr);
 	  if(isbc == 1 && tdy->dirichlet){
 	    (*tdy->dirichlet)(&(tdy->X[v*dim]),&pdirichlet);
-	    F[local_row] -= 0.5*sign_row*pdirichlet*tdy->V[global_row];
+	    F[local_row] -= wgt*sign_row*pdirichlet*tdy->V[global_row];
 	  }
 
 	  for(element_col=0;element_col<dim;element_col++){ // which trial function, local to the element/vertex
