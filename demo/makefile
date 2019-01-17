@@ -1,4 +1,4 @@
-TARGETS = sample
+TARGETS = steady
 
 ALL: $(TARGETS)
 clean::
@@ -9,7 +9,7 @@ TDYCORE_DIR ?= $(topdir)
 include $(TDYCORE_DIR)/lib/tdycore/conf/variables
 include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 
-sample: sample.o chkopts
+steady: steady.o chkopts
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB)
 	$(RM) -f $<
 
