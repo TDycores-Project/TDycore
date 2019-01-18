@@ -833,3 +833,73 @@ PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy)
   norm_sum = PetscSqrtReal(norm_sum);
   PetscFunctionReturn(norm_sum);
 }
+
+PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx)
+{
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  TDy      tdy = (TDy)ctx;
+  DM       dm;
+  Vec      Ul;
+  PetscInt c,cStart,cEnd,nv,gref,nf,f,fStart,fEnd,i,j,dim;
+  PetscReal *p,*dp_dt,*r,wgt,sign,div;
+  ierr = TSGetDM(ts,&dm);CHKERRQ(ierr);
+  nv   = GetNumberOfFaceVertices(dm);
+  wgt  = 1/((PetscReal)nv);  
+  ierr = DMGetLocalVector(dm,&Ul);CHKERRQ(ierr);
+  ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,Ul);CHKERRQ(ierr);
+  ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,Ul);CHKERRQ(ierr);
+  ierr = VecGetArray(Ul,&p);CHKERRQ(ierr);
+  ierr = VecGetArray(U_t,&dp_dt);CHKERRQ(ierr);
+  ierr = VecGetArray(R,&r);CHKERRQ(ierr);
+  ierr = TDyUpdateState(dm,tdy,p);CHKERRQ(ierr);
+  ierr = TDyWYLocalElementCompute(dm,tdy);CHKERRQ(ierr);
+  ierr = TDyWYRecoverVelocity(dm,tdy,Ul);CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  for(c=cStart;c<cEnd;c++){
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd);CHKERRQ(ierr);
+    if (gref < 0) continue;
+
+    /* compute the divergence */
+    const PetscInt *faces;
+    ierr = DMPlexGetConeSize(dm,c,&nf   );CHKERRQ(ierr);
+    ierr = DMPlexGetCone    (dm,c,&faces);CHKERRQ(ierr);
+    div = 0;
+    for(i=0;i<nf;i++){
+      f = faces[i];
+      const PetscInt *verts;
+      ierr = DMPlexGetConeSize(dm,f,&nv   );CHKERRQ(ierr);
+      ierr = DMPlexGetCone    (dm,f,&verts);CHKERRQ(ierr);
+      sign = PetscSign(ADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),&(tdy->X[dim*c]),dim));      
+      for(j=0;j<nv;j++){
+	div += sign*tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
+      }
+    }
+
+    r[c] = tdy->porosity[c-cStart]*tdy->dS_dP[c-cStart]*dp_dt[c] + div;
+
+  }
+  
+  /* Cleanup */
+  ierr = VecRestoreArray(U_t,&dp_dt);CHKERRQ(ierr);
+  ierr = VecRestoreArray(Ul,&p);CHKERRQ(ierr);
+  ierr = VecRestoreArray(R,&r);CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm,&Ul);CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/*
+  ierr = TDyWYRecoverVelocity(dm,tdy,U);CHKERRQ(ierr);
+  
+  // Compute the residual
+  PetscReal   *Rarray,*r;
+  ierr = VecGetArray(R,&Rarray);CHKERRQ(ierr);
+  for(c=cStart;c<cEnd;c++){
+    ierr = DMPlexPointGlobalRef(dm,c,Rarray,&r);CHKERRQ(ierr);
+    if(r) *r = tdy->porosity[c-cStart];
+  }  
+  ierr = VecRestoreArray(R,&Rarray);CHKERRQ(ierr);
+*/

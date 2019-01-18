@@ -17,6 +17,7 @@ PetscErrorCode TDySetPermeabilityScalar(DM dm,TDy tdy,SpatialFunction f){
       tdy->K[dim2*(c-cStart)+i*dim+i] = tdy->K[dim2*(c-cStart)];
     }
   }
+  ierr = PetscMemcpy(tdy->K0,tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart));
   PetscFunctionReturn(0);
 }
 
@@ -38,6 +39,7 @@ PetscErrorCode TDySetPermeabilityDiagonal(DM dm,TDy tdy,SpatialFunction f){
       tdy->K[dim2*(c-cStart)+i*dim+i] = val[i];
     }
   }
+  ierr = PetscMemcpy(tdy->K0,tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart));
   PetscFunctionReturn(0);
 }
 
@@ -55,5 +57,13 @@ PetscErrorCode TDySetPermeabilityTensor(DM dm,TDy tdy,SpatialFunction f){
   for(c=cStart;c<cEnd;c++){
     f(&(tdy->X[dim*c]),&(tdy->K[dim2*(c-cStart)]));
   }
+  ierr = PetscMemcpy(tdy->K0,tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart));
   PetscFunctionReturn(0);
 }
+
+void RelativePermeability_Irmay(PetscReal m,PetscReal Se,PetscReal *Kr,PetscReal *dKr_dSe)
+{
+  *Kr = PetscPowReal(Se,m);
+  if(dKr_dSe) *dKr_dSe = PetscPowReal(Se,m-1)*m;
+}
+

@@ -2,7 +2,7 @@
 
 PetscErrorCode TDyCreate(DM dm,TDy *_tdy){
   TDy            tdy;
-  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,cStart,cEnd,eStart,eEnd,offset;
+  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,cStart,cEnd,eStart,eEnd,offset,nc;
   Vec            coordinates;
   PetscSection   coordSection;
   PetscScalar   *coords;
@@ -35,9 +35,24 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy){
   ierr = VecRestoreArray(coordinates,&coords);CHKERRQ(ierr);
   
   /* allocate space for a full tensor perm for each cell */
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);  
-  ierr = PetscMalloc(dim*dim*(cEnd-cStart)*sizeof(PetscReal),&(tdy->K));CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  nc   = cEnd-cStart;
+  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K0));CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K ));CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->porosity));CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Kr));CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->S));CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dP));CHKERRQ(ierr);
 
+  /* problem constants FIX: add mutators */
+  tdy->rho  = 998;
+  tdy->mu   = 9.94e-4;
+  tdy->Sr   = 0.15;
+  tdy->Ss   = 1;
+  tdy->Pref = 101325;
+  tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
+  tdy->gravity[dim-1] = -9.81;
+  
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL; tdy->quad = NULL;
 
@@ -57,7 +72,12 @@ PetscErrorCode TDyDestroy(TDy *_tdy){
   ierr = PetscFree(tdy->V);CHKERRQ(ierr);
   ierr = PetscFree(tdy->X);CHKERRQ(ierr);
   ierr = PetscFree(tdy->N);CHKERRQ(ierr);
+  ierr = PetscFree(tdy->porosity);CHKERRQ(ierr);
+  ierr = PetscFree(tdy->Kr);CHKERRQ(ierr);
+  ierr = PetscFree(tdy->S);CHKERRQ(ierr);
+  ierr = PetscFree(tdy->dS_dP);CHKERRQ(ierr);
   ierr = PetscFree(tdy->K);CHKERRQ(ierr);
+  ierr = PetscFree(tdy->K0);CHKERRQ(ierr);
   ierr = PetscFree(tdy);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -94,6 +114,26 @@ PetscErrorCode TDySetDiscretizationMethod(DM dm,TDy tdy,TDyMethod method){
     SETERRQ(comm,PETSC_ERR_SUP,"MIXED_FINITE_ELEMENT is not yet implemented");
   case WHEELER_YOTOV:
     ierr = TDyWYInitialize(dm,tdy);CHKERRQ(ierr);
+  }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetIFunction(TS ts,TDy tdy){
+  MPI_Comm       comm;
+  PetscErrorCode ierr;
+  PetscValidPointer( ts,1);
+  PetscValidPointer(tdy,2);
+  PetscFunctionBegin;
+  ierr = PetscObjectGetComm((PetscObject)ts,&comm);CHKERRQ(ierr);
+  switch (tdy->method) {
+  case TWO_POINT_FLUX:
+    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TWO_POINT_FLUX");
+  case MULTIPOINT_FLUX:
+    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for MULTIPOINT_FLUX");
+  case MIXED_FINITE_ELEMENT:
+    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for MIXED_FINITE_ELEMENT");
+  case WHEELER_YOTOV:
+    ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy);CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }
@@ -136,6 +176,25 @@ PetscErrorCode TDyComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
     SETERRQ(comm,PETSC_ERR_SUP,"MIXED_FINITE_ELEMENT is not yet implemented");
   case WHEELER_YOTOV:
     ierr = TDyWYComputeSystem(dm,tdy,K,F);CHKERRQ(ierr);
+  }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyUpdateState(DM dm,TDy tdy,PetscReal *P){
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  PetscInt  dim,dim2,i,j,c,cStart,cEnd;
+  PetscReal Se,dSe_dPc,n=1.0,m=1.0,alpha=1.6717e-5,Kr; /* FIX: generalize */
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  dim2 = dim*dim;
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  for(c=cStart;c<cEnd;c++){
+    i = c-cStart;
+    PressureSaturation_Gardner(n,m,alpha,tdy->Pref-P[i],&Se,&dSe_dPc);
+    RelativePermeability_Irmay(m,Se,&Kr,NULL);
+    tdy->S[i] = (tdy->Ss-tdy->Sr)*Se+tdy->Sr;
+    tdy->dS_dP[i] = -dSe_dPc/(tdy->Ss-tdy->Sr);
+    for(j=0;j<dim2;j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
   }
   PetscFunctionReturn(0);
 }
