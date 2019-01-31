@@ -80,6 +80,9 @@ PETSC_EXTERN PetscErrorCode TDySetIFunction(TS ts,TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyWYInitialize(DM dm,TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F);
 
+PETSC_EXTERN PetscErrorCode TDyMFEInitialize(DM dm,TDy tdy);
+PETSC_EXTERN PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F);
+
 PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyWYPressureNorm(DM dm,TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyWYVelocityNorm(DM dm,TDy tdy);
