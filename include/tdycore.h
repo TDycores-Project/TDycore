@@ -55,6 +55,9 @@ struct _p_TDy {
   PetscReal *Flocal;    /* local element vectors (f,w) */
   PetscQuadrature quad; /* vertex-based quadrature rule */
   PetscReal *vel;       /* [face,local_vertex] --> velocity normal to face at vertex */
+
+  PetscInt  *LtoG;    
+
 };
 
 /* ---------------------------------------------------------------- */

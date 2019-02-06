@@ -54,7 +54,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy){
   tdy->gravity[dim-1] = -9.81;
 
   /* initialize method information to null */
-  tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL; tdy->quad = NULL;
+  tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL; tdy->quad = NULL; tdy->LtoG = NULL;
 
   /* initialize function pointers */
   tdy->forcing = NULL ; tdy->dirichlet = NULL ; tdy->flux = NULL ;
@@ -92,6 +92,7 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy){
   if (tdy->Flocal) { ierr = PetscFree(tdy->Flocal);CHKERRQ(ierr); }
   if (tdy->vel   ) { ierr = PetscFree(tdy->vel   );CHKERRQ(ierr); }
   if (tdy->fmap  ) { ierr = PetscFree(tdy->fmap  );CHKERRQ(ierr); }
+  if (tdy->LtoG  ) { ierr = PetscFree(tdy->LtoG  );CHKERRQ(ierr); }
   if (tdy->quad  ) { ierr = PetscQuadratureDestroy(&(tdy->quad));CHKERRQ(ierr); }
   PetscFunctionReturn(0);
 }
