@@ -93,6 +93,15 @@ PETSC_EXTERN void RelativePermeability_Irmay(PetscReal m,PetscReal Se,PetscReal 
 PETSC_EXTERN void PressureSaturation_Gardner(PetscReal n,PetscReal m,PetscReal alpha,PetscReal Pc,PetscReal *Se,PetscReal *dSe_dPc);
 PETSC_EXTERN PetscErrorCode TDyUpdateState(DM dm,TDy tdy,PetscReal *P);
 
+PETSC_EXTERN PetscErrorCode Pullback(PetscScalar *K,PetscScalar *DFinv,PetscScalar *Kappa,PetscScalar J,PetscInt nn);
+PETSC_EXTERN PetscInt TDyGetNumberOfCellVertices(DM dm);
+PETSC_EXTERN PetscInt TDyGetNumberOfFaceVertices(DM dm);
+PETSC_EXTERN PetscReal TDyL1norm(PetscReal *x,PetscReal *y,PetscInt dim);
+PETSC_EXTERN PetscReal TDyADotBMinusC(PetscReal *a,PetscReal *b,PetscReal *c,PetscInt dim);
+PETSC_EXTERN PetscErrorCode TDyCreateCellVertexMap(DM dm,TDy tdy,PetscInt **_map);
+PETSC_EXTERN PetscErrorCode TDyCreateCellVertexDirFaceMap(DM dm,TDy tdy,PetscInt **_map);
+PETSC_EXTERN PetscErrorCode TDyQuadrature(PetscQuadrature q,PetscInt dim);
+
 /* ---------------------------------------------------------------- */
 
 PETSC_EXTERN void PrintMatrix(PetscReal *A,PetscInt nr,PetscInt nc,PetscBool row_major);

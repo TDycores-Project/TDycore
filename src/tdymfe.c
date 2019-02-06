@@ -1,5 +1,8 @@
 #include "tdycore.h"
 
+/* (dim*vertices_per_cell+1)^2 */
+#define MAX_LOCAL_SIZE 625
+
 /*
   BDM1 basis functions on [-1,1] with degrees of freedom chosen to
   match Wheeler2009. Indices map <-- local_vertex*dim + dir.
@@ -9,7 +12,7 @@
   0---1
 
  */
-void HdivBasisQuad(PetscReal *x,PetscReal *B){
+void HdivBasisQuad(const PetscReal *x,PetscReal *B){
   B[0] = -0.25*x[0]*x[1] + 0.25*x[0] + 0.25*x[1] - 0.25;
   B[1] = -0.25*x[0]*x[1] + 0.25*x[0] + 0.25*x[1] - 0.25;
   B[2] = -0.25*x[0]*x[1] + 0.25*x[0] - 0.25*x[1] + 0.25;
@@ -60,7 +63,7 @@ PetscErrorCode TDyMFEInitialize(DM dm,TDy tdy){
   for(f=fStart;f<fEnd;f++){
     ierr = PetscSectionSetFieldDof(sec,f,1,dofs_per_face); CHKERRQ(ierr);
     ierr = PetscSectionSetDof     (sec,f  ,dofs_per_face); CHKERRQ(ierr);
-  }  
+  }
   ierr = PetscSectionSetUp(sec);CHKERRQ(ierr);
   ierr = DMSetDefaultSection(dm,sec);CHKERRQ(ierr);
   ierr = PetscSectionDestroy(&sec);CHKERRQ(ierr);
@@ -70,7 +73,6 @@ PetscErrorCode TDyMFEInitialize(DM dm,TDy tdy){
   ierr = DMPlexSetAdjacencyUseCone   (dm,PETSC_TRUE);CHKERRQ(ierr);
   ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_TRUE);CHKERRQ(ierr);
 
-  /* */
 
 
   
@@ -80,65 +82,86 @@ PetscErrorCode TDyMFEInitialize(DM dm,TDy tdy){
 PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   PetscFunctionBegin;  
   PetscErrorCode ierr;
+  PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nv,vi,vj,di,dj,local_row,local_col,LGmap[25];
+  PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],Klocal[MAX_LOCAL_SIZE],Flocal,f,basis_hdiv[24];
+  const PetscScalar *quad_x;
+  const PetscScalar *quad_w;
+  PetscQuadrature quadrature;
 
-  /* A_ij = (Kappa^-1 u_i,v_j)
-     Loop over cells, use full quadrature, needs to capture x**2 y**2? I think 3x3
-       Loop over vertices twice, integrate each interaction
-         Leads to a dense 8x8 matrix
+  /* Get domain constants */
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr); dim2 = dim*dim;
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  nv = TDyGetNumberOfCellVertices(dm);
 
-     1 corner vs 1 corner
-     u1(xq) = | u11 N1(xq) | 
-              | u12 N2(xq) |
-     v1(xq) = | v11 N1(xq) | 
-              | v12 N2(xq) |
-
-   ( | K11, K12 |  | u11 N1(xq)| )   | v11 N1(xq) |
-   ( | K21, K22 |. | u12 N2(xq)| ) . | v12 N2(xq) |
-
-     | K11 u11 N1(xq) + K12 u12 N2(xq) |   | v11 N1(xq) |
-     | K21 u11 N1(xq) + K22 u12 N2(xq) | . | v12 N2(xq) |
-
-     Each vertex-vertex interaction leads to a 2x2 matrix
-
-     [ K11 N1(xq) N1(xq), K12 N2(xq) N1(xq) ]
-     [ K21 N1(xq) N2(xq), K22 N2(xq) N2(xq) ] * wq
-
-     Loop over cells
-       Loop over quadrature
-         Loop over vertices twice
-	   Assemble in the 8x8 local matrix
-
-     Need:
-       map(face,vertex) --> global_flux_dof + orientation
-       map(cell,local_vertex,direction) --> local_element_flux_dof, this is already defined
-       map(cell,local_element_flux_dof) --> global_flux_dof
-  */
+  /* Get quadrature */
+  ierr = PetscDTGaussTensorQuadrature(dim,1,3,-1,+1,&quadrature);CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr);  
+  nlocal = dim*nv + 1;
   
-  
-  /* B_ij = <p, v_j.n> 
-     Loop over cells
-       Evaluate line integral, by loop around faces, 1 point quadrature is fine
+  for(c=cStart;c<cEnd;c++){
+    
+    /* Only assemble the cells that this processor owns */
+    ierr = DMPlexGetPointGlobal(dm,c,&pStart,&pEnd);CHKERRQ(ierr);
+    if (pStart < 0) continue;
+    LGmap[nlocal-1] = pStart;
+    ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,x,DF,DFinv,J);CHKERRQ(ierr);
+    ierr = PetscMemzero(Klocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE);CHKERRQ(ierr);
+    Flocal = 0;
+    
+    /* Integrate (Kappa^-1 u_i, v_j) */
+    for(q=0;q<nq;q++){
+      
+      /* Compute (J DF^-1 K DF^-T )^-1 */
+      ierr = Pullback(&(tdy->K[dim2*(c-cStart)]),&DFinv[dim2*q],Kinv,J[q],dim);CHKERRQ(ierr);
 
-     <p, v_1.n> = v11 + v12 = [1,1,0,0,0,0,0,0]
-     <p, v_2.n> = v21 + v22 = [0,0,1,1,0,0,0,0]
-     ...
-     Assemble [1,1,1,1,1,1,1,1] into global_cell x global_faces modified by direction
-     
-     Don't actually need Hdiv basis functions here
-  */
-  
+      /* Evaluate the H-div basis */
+      HdivBasisQuad(&(quad_x[dim*q]),basis_hdiv);
+
+      /* Double loop over local vertices */
+      for(vi=0;vi<nv;vi++){
+	for(vj=0;vj<nv;vj++){
+
+	  /* Double loop over directions */
+	  for(di=0;di<dim;di++){
+	    local_row = vi*dim+di;
+	    for(dj=0;dj<dim;dj++){
+	      local_col = vj*dim+dj;
+
+	      /* (K u, v) */
+	      Klocal[local_col*nlocal+local_row] += Kinv[dj*dim+di]*basis_hdiv[local_row]*basis_hdiv[local_col]*quad_w[q];
+	      
+	    }
+	  } /* end directions */
+					 
+	}
+      } /* end vertices */
+
+      /* Integrate forcing if present */
+      if (tdy->forcing) {
+	(*tdy->forcing)(&(x[q*dim]),&f);
+	Flocal += f*J[q]*quad_w[q];
+      }
+      
+    } /* end quadrature */
+
+    /* <p, v_j.n> */
+    for(local_col=0;local_col<(nlocal-1);local_col++){
+      Klocal[local_col *nlocal + (nlocal-1)] = 1;
+      Klocal[(nlocal-1)*nlocal + local_col ] = 1;
+    }
+
+    /* [cell,local_vertex,direction] --> dof and orientation */
+    
+    ierr = VecSetValue(F,LGmap[nlocal-1],Flocal,INSERT_VALUES);CHKERRQ(ierr);
+
+  } /* end cell */
+
   
   ierr = VecAssemblyBegin(F);CHKERRQ(ierr);
   ierr = VecAssemblyEnd  (F);CHKERRQ(ierr);
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  
+  ierr = PetscQuadratureDestroy(&quadrature);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
-
-/*
-  
-  stack time traces and show seasons from gpp
-  seasons across different variables make sense? Use gpp season across all variables?
-  lai, from MODIS
-  
- */

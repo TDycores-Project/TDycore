@@ -3,51 +3,6 @@
 
 #define MAX_LOCAL_SIZE 144
 
-PetscInt GetNumberOfCellVertices(DM dm){
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  MPI_Comm       comm;
-  PetscInt nq,c,q,i,cStart,cEnd,vStart,vEnd,closureSize,*closure;
-  ierr = PetscObjectGetComm((PetscObject)dm,&comm);CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd);CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
-  nq = -1;
-  for(c=cStart;c<cEnd;c++){
-    closure = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
-    q = 0;
-    for (i=0;i<closureSize*2;i+=2){
-      if ((closure[i] >= vStart) && (closure[i] < vEnd)) q += 1;
-    }
-    if(nq == -1) nq = q;
-    if(nq !=  q) SETERRQ(comm,PETSC_ERR_SUP,"Mesh cells must be of uniform type");
-    ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
-  }
-  PetscFunctionReturn(nq);
-}
-
-PetscInt GetNumberOfFaceVertices(DM dm){
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  MPI_Comm       comm;
-  PetscInt nq,f,q,i,fStart,fEnd,vStart,vEnd,closureSize,*closure;
-  ierr = PetscObjectGetComm((PetscObject)dm,&comm);CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd);CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
-  nq = -1;
-  for(f=fStart;f<fEnd;f++){
-    closure = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
-    q = 0;
-    for (i=0;i<closureSize*2;i+=2){
-      if ((closure[i] >= vStart) && (closure[i] < vEnd)) q += 1;
-    }
-    if(nq == -1) nq = q;
-    if(nq !=  q) SETERRQ(comm,PETSC_ERR_SUP,"Mesh faces must be of uniform type");
-    ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
-  }
-  PetscFunctionReturn(nq);
-}
 
 PetscErrorCode Pullback(PetscScalar *K,PetscScalar *DFinv,PetscScalar *Kappa,PetscScalar J,PetscInt nn)
 {
@@ -201,7 +156,7 @@ PetscErrorCode TDyWYLocalElementCompute(DM dm,TDy tdy)
 
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);  
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
-  nq   = GetNumberOfCellVertices(dm);
+  nq   = TDyGetNumberOfCellVertices(dm);
   dim2 = dim*dim;
   for(i=0;i<dim;i++){
     Ehat *= 2;
@@ -238,63 +193,12 @@ PetscErrorCode TDyWYLocalElementCompute(DM dm,TDy tdy)
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyWyQuadrature(PetscQuadrature q,PetscInt dim,PetscInt nq)
-{
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  PetscReal *x,*w;
-  ierr = PetscMalloc1(nq*dim,&x);CHKERRQ(ierr);
-  ierr = PetscMalloc1(nq    ,&w);CHKERRQ(ierr);
-  switch(nq*dim){
-  case 6: /* tri */
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Triangles not yet supported in WHEELER_YOTOV");
-  case 8: /* quad */
-    x[0] = -1.0; x[1] = -1.0; w[0] = 1.0;
-    x[2] =  1.0; x[3] = -1.0; w[1] = 1.0;
-    x[4] = -1.0; x[5] =  1.0; w[2] = 1.0;
-    x[6] =  1.0; x[7] =  1.0; w[3] = 1.0;
-    break;
-  case 12: /* tet */
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Tetrahedra not yet supported in WHEELER_YOTOV");    
-  case 24: /* hex */
-    x[0]  = -1.0; x[1]  = -1.0; x[2]  = -1.0; w[0] = 1.0;
-    x[3]  =  1.0; x[4]  = -1.0; x[5]  = -1.0; w[1] = 1.0;
-    x[6]  = -1.0; x[7]  =  1.0; x[8]  = -1.0; w[2] = 1.0;
-    x[9]  =  1.0; x[10] =  1.0; x[11] = -1.0; w[3] = 1.0;
-    x[12] = -1.0; x[13] = -1.0; x[14] =  1.0; w[4] = 1.0;
-    x[15] =  1.0; x[16] = -1.0; x[17] =  1.0; w[5] = 1.0;
-    x[18] = -1.0; x[19] =  1.0; x[20] =  1.0; w[6] = 1.0;
-    x[21] =  1.0; x[22] =  1.0; x[23] =  1.0; w[7] = 1.0;
-  }
-  ierr = PetscQuadratureSetData(q,dim,1,nq,x,w);CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscReal L1norm(PetscReal *x,PetscReal *y,PetscInt dim){
-  PetscInt i;
-  PetscReal norm;
-  norm = 0;
-  for(i=0;i<dim;i++) norm += PetscAbsReal(x[i]-y[i]);
-  return norm;
-}
-
-PetscReal ADotBMinusC(PetscReal *a,PetscReal *b,PetscReal *c,PetscInt dim){
-  PetscInt i;
-  PetscReal norm;
-  norm = 0;
-  for(i=0;i<dim;i++) norm += a[i]*(b[i]-c[i]);
-  return norm;
-}
-
 PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   MPI_Comm       comm;
-  PetscInt i,d,dim,q,nq,c,cStart,cEnd,f,fStart,fEnd,v,vStart,vEnd,p,pStart,pEnd,nv;
+  PetscInt i,dim,nq,c,cStart,cEnd,f,fStart,fEnd,vStart,vEnd,p,pStart,pEnd,nv;
   PetscInt  closureSize,  *closure;
-  PetscInt fclosureSize, *fclosure;
-  PetscScalar x[24],DF[72],DFinv[72],J[8]; /* allocated at maximum possible size */
-  PetscInt local_dirs[24];
   PetscSection sec;
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm);CHKERRQ(ierr);
@@ -302,93 +206,26 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
   ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
-  if(dim == 2){
-    local_dirs[0] = 2; local_dirs[1] = 1; 
-    local_dirs[2] = 3; local_dirs[3] = 0; 
-    local_dirs[4] = 0; local_dirs[5] = 3; 
-    local_dirs[6] = 1; local_dirs[7] = 2; 
-  }else if(dim == 3){
-    local_dirs[0]  = 6; local_dirs[1]  = 5; local_dirs[2]  = 3; 
-    local_dirs[3]  = 7; local_dirs[4]  = 4; local_dirs[5]  = 2; 
-    local_dirs[6]  = 4; local_dirs[7]  = 7; local_dirs[8]  = 1; 
-    local_dirs[9]  = 5; local_dirs[10] = 6; local_dirs[11] = 0; 
-    local_dirs[12] = 2; local_dirs[13] = 1; local_dirs[14] = 7; 
-    local_dirs[15] = 3; local_dirs[16] = 0; local_dirs[17] = 6; 
-    local_dirs[18] = 0; local_dirs[19] = 3; local_dirs[20] = 5; 
-    local_dirs[21] = 1; local_dirs[22] = 2; local_dirs[23] = 4; 
-  }
   
   /* Check that the number of vertices per cell are constant. Soft
      limitation, method is flexible but my data structures are not. */
-  nq = GetNumberOfCellVertices(dm);
+  nq = TDyGetNumberOfCellVertices(dm);
 
   /* Create a PETSc quadrature, we don't really use this, it is just
      to evaluate the Jacobian via the PETSc interface. */
   ierr = PetscQuadratureCreate(comm,&(tdy->quad));CHKERRQ(ierr);
-  ierr = TDyWyQuadrature(tdy->quad,dim,nq);CHKERRQ(ierr);
+  ierr = TDyQuadrature(tdy->quad,dim);CHKERRQ(ierr);
 
   /* Build vmap and emap */
-  ierr = PetscMalloc(    nq*(cEnd-cStart)*sizeof(PetscInt),&(tdy->vmap));CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*nq*(cEnd-cStart)*sizeof(PetscInt),&(tdy->emap));CHKERRQ(ierr);
-  for(c=cStart;c<cEnd;c++){
-    ierr = DMPlexComputeCellGeometryFEM(dm,c,tdy->quad,x,DF,DFinv,J);CHKERRQ(ierr);
-    closure = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
-
-    /* Check if the image of the quadrature point is coincident with
-       the vertex, if so we create a map, local_element_vertex -->
-       global_vertex_point */
-    for(q=0;q<nq;q++){
-      for (i=0;i<closureSize*2;i+=2){
-	if ((closure[i] >= vStart) && (closure[i] < vEnd)) {
-	  if (L1norm(&(x[q*dim]),&(tdy->X[closure[i]*dim]),dim) > 1e-12) continue;
-	  tdy->vmap[c*nq+q] = closure[i];
-	  break;
-	}
-      }
-    }
-
-    /* We need a map for (local_element_vertex,direction) -->
-       global_face_point. To do this, I loop over the vertices of this
-       cell and find connected faces. Then I use the local ordering of
-       the vertices to determine where the normal of this face
-       points. Finally I check if the normal points into the cell. If
-       so, then the index is given a negative as a flag later in the
-       assembly process. Since the Hasse diagram always begins with
-       cells, there isn't a conflict with 0 being a possible point. */
-    for(q=0;q<nq;q++){
-      for (i=0;i<closureSize*2;i+=2){
-	if ((closure[i] >= fStart) && (closure[i] < fEnd)) {
-	  fclosure = NULL;
-	  ierr = DMPlexGetTransitiveClosure(dm,closure[i],PETSC_TRUE,&fclosureSize,&fclosure);CHKERRQ(ierr);
-	  for(f=0;f<fclosureSize*2;f+=2){
-	    if (fclosure[f] == tdy->vmap[c*nq+q]){
-	      for(v=0;v<fclosureSize*2;v+=2){
-		for(d=0;d<dim;d++){
-		  if (fclosure[v] == tdy->vmap[c*nq+local_dirs[q*dim+d]]) {
-		    tdy->emap[c*nq*dim+q*dim+d] = closure[i];
-		    if (ADotBMinusC(&(tdy->N[closure[i]*dim]),&(tdy->X[closure[i]*dim]),&(tdy->X[c*dim]),dim) < 0) {
-		      tdy->emap[c*nq*dim+q*dim+d] *= -1;
-		      break;
-		    }
-		  }
-		}
-	      }
-	    }
-	  }
-	  ierr = DMPlexRestoreTransitiveClosure(dm,closure[i],PETSC_TRUE,&fclosureSize,&fclosure);CHKERRQ(ierr);
-	}
-      }
-    }
-    ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
-  }
+  ierr = TDyCreateCellVertexMap(dm,tdy,&(tdy->vmap));CHKERRQ(ierr);
+  ierr = TDyCreateCellVertexDirFaceMap(dm,tdy,&(tdy->emap));CHKERRQ(ierr);
   
   /* Allocate space for Alocal and Flocal */
   ierr = PetscMalloc(dim*dim*nq*(cEnd-cStart)*sizeof(PetscReal),&(tdy->Alocal));CHKERRQ(ierr);
   ierr = PetscMalloc(           (cEnd-cStart)*sizeof(PetscReal),&(tdy->Flocal));CHKERRQ(ierr);
 
   /* Allocate space for velocities and create a local_vertex->face map */
-  nv = GetNumberOfFaceVertices(dm);
+  nv = TDyGetNumberOfFaceVertices(dm);
   ierr = PetscMalloc(nv*(fEnd-fStart)*sizeof(PetscReal),&(tdy->vel ));CHKERRQ(ierr);
   ierr = PetscMalloc(nv*(fEnd-fStart)*sizeof(PetscInt ),&(tdy->fmap));CHKERRQ(ierr);
   for(f=fStart;f<fEnd;f++){
@@ -441,7 +278,7 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   PetscFunctionBegin;
 
   ierr = TDyWYLocalElementCompute(dm,tdy);CHKERRQ(ierr);
-  nq   = GetNumberOfCellVertices(dm);
+  nq   = TDyGetNumberOfCellVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   dim2 = dim*dim;
   wgt  = PetscPowReal(0.5,dim-1);
@@ -591,8 +428,8 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
   ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU);CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u);CHKERRQ(ierr);
   ierr = DMGetDefaultSection(dm, &section);CHKERRQ(ierr);
-  nq   = GetNumberOfCellVertices(dm);
-  nv   = GetNumberOfFaceVertices(dm);
+  nq   = TDyGetNumberOfCellVertices(dm);
+  nv   = TDyGetNumberOfFaceVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   dim2 = dim*dim;
   wgt  = PetscPowReal(0.5,dim-1);
@@ -756,7 +593,7 @@ PetscReal TDyWYVelocityNorm(DM dm,TDy tdy)
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
-  nv   = GetNumberOfFaceVertices(dm);
+  nv   = TDyGetNumberOfFaceVertices(dm);
   wgt  = 1/((PetscReal)nv);
   norm = 0;
   for(c=cStart;c<cEnd;c++){
@@ -770,7 +607,7 @@ PetscReal TDyWYVelocityNorm(DM dm,TDy tdy)
       const PetscInt *verts;
       ierr = DMPlexGetConeSize(dm,f,&nv   );CHKERRQ(ierr);
       ierr = DMPlexGetCone    (dm,f,&verts);CHKERRQ(ierr);
-      sign = PetscSign(ADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),&(tdy->X[dim*c]),dim));
+      sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),&(tdy->X[dim*c]),dim));
       flux0 = 0; flux = 0;
       for(j=0;j<nv;j++){
 	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
@@ -801,7 +638,7 @@ PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy)
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
-  nv   = GetNumberOfFaceVertices(dm);
+  nv   = TDyGetNumberOfFaceVertices(dm);
   wgt  = 1/((PetscReal)nv);  
   norm = 0;
   for(c=cStart;c<cEnd;c++){
@@ -816,7 +653,7 @@ PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy)
       const PetscInt *verts;
       ierr = DMPlexGetConeSize(dm,f,&nv   );CHKERRQ(ierr);
       ierr = DMPlexGetCone    (dm,f,&verts);CHKERRQ(ierr);
-      sign = PetscSign(ADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),&(tdy->X[dim*c]),dim));      
+      sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),&(tdy->X[dim*c]),dim));      
       flux0 = 0; flux = 0;
       for(j=0;j<nv;j++){
 	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
@@ -844,7 +681,7 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx)
   PetscInt c,cStart,cEnd,nv,gref,nf,f,fStart,fEnd,i,j,dim;
   PetscReal *p,*dp_dt,*r,wgt,sign,div;
   ierr = TSGetDM(ts,&dm);CHKERRQ(ierr);
-  nv   = GetNumberOfFaceVertices(dm);
+  nv   = TDyGetNumberOfFaceVertices(dm);
   wgt  = 1/((PetscReal)nv);  
   ierr = DMGetLocalVector(dm,&Ul);CHKERRQ(ierr);
   ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,Ul);CHKERRQ(ierr);
@@ -872,7 +709,7 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx)
       const PetscInt *verts;
       ierr = DMPlexGetConeSize(dm,f,&nv   );CHKERRQ(ierr);
       ierr = DMPlexGetCone    (dm,f,&verts);CHKERRQ(ierr);
-      sign = PetscSign(ADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),&(tdy->X[dim*c]),dim));      
+      sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),&(tdy->X[dim*c]),dim));      
       for(j=0;j<nv;j++){
 	div += sign*tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
       }

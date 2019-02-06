@@ -101,6 +101,7 @@ int main(int argc, char **argv)
     ierr = TDySetDirichletFlux(tdy,Velocity3D);CHKERRQ(ierr);
   }
   ierr = TDySetDiscretizationMethod(dm,tdy,WHEELER_YOTOV);CHKERRQ(ierr);
+  //ierr = TDySetDiscretizationMethod(dm,tdy,MIXED_FINITE_ELEMENT);CHKERRQ(ierr);
 
   /* Compute system */
   Mat K;
