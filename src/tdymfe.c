@@ -103,6 +103,7 @@ PetscErrorCode TDyMFEInitialize(DM dm,TDy tdy){
   ncv = TDyGetNumberOfCellVertices(dm);
   nlocal = dim*ncv + 1;
   ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),&(tdy->LtoG));CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),&(tdy->orient));CHKERRQ(ierr);
   for(c=cStart;c<cEnd;c++){
     DMPlexGetPointGlobal(dm,c,&mStart,&mEnd);CHKERRQ(ierr);
     tdy->LtoG[(c-cStart+1)*nlocal-1] = mStart;
@@ -114,7 +115,8 @@ PetscErrorCode TDyMFEInitialize(DM dm,TDy tdy){
 	found = PETSC_FALSE;
 	for(i=0;i<nfv;i++){
 	  if(tdy->vmap[ncv*(c-cStart)+v] == tdy->fmap[nfv*(f_abs-fStart)+i]){
-	    tdy->LtoG[(c-cStart)*nlocal + v*dim + d] = mStart + i;
+	    tdy->LtoG  [(c-cStart)*nlocal + v*dim + d] = mStart + i;
+	    tdy->orient[(c-cStart)*nlocal + v*dim + d] = PetscSign(f);
 	    found = PETSC_TRUE;
 	  }
 	}
@@ -131,8 +133,8 @@ PetscErrorCode TDyMFEInitialize(DM dm,TDy tdy){
 PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   PetscFunctionBegin;  
   PetscErrorCode ierr;
-  PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nv,vi,vj,di,dj,local_row,local_col,isbc;
-  PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],Klocal[MAX_LOCAL_SIZE],Flocal[MAX_LOCAL_SIZE],f,basis_hdiv[24],p;
+  PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nv,vi,vj,di,dj,local_row,local_col,isbc,f;
+  PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],Klocal[MAX_LOCAL_SIZE],Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[24],pressure;
   const PetscScalar *quad_x;
   const PetscScalar *quad_w;
   PetscQuadrature quadrature;
@@ -153,6 +155,7 @@ PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
     ierr = DMPlexGetPointGlobal(dm,c,&pStart,&pEnd);CHKERRQ(ierr);
     if (pStart < 0) continue;
     const PetscInt *LtoG = &(tdy->LtoG[(c-cStart)*nlocal]);
+    const PetscInt *orient = &(tdy->orient[(c-cStart)*nlocal]);
     ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,x,DF,DFinv,J);CHKERRQ(ierr);
     ierr = PetscMemzero(Klocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE);CHKERRQ(ierr);
     ierr = PetscMemzero(Flocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE);CHKERRQ(ierr);
@@ -187,8 +190,8 @@ PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
 
       /* Integrate forcing if present */
       if (tdy->forcing) {
-	(*tdy->forcing)(&(x[q*dim]),&f);
-	Flocal[nlocal-1] += f*J[q]*quad_w[q];
+	(*tdy->forcing)(&(x[q*dim]),&force);
+	Flocal[nlocal-1] += force*J[q]*quad_w[q];
       }
       
     } /* end quadrature */
@@ -205,19 +208,25 @@ PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
 	 Gauss-Lobotto */
       for(vi=0;vi<nv;vi++){
 	for(di=0;di<dim;di++){
-	  f = tdy->emap[(c-cStart)*nv*dim + vi*dim + di];
+	  f = PetscAbsInt(tdy->emap[(c-cStart)*nv*dim + vi*dim + di]);
 	  ierr = DMGetLabelValue(dm,"marker",f,&isbc);CHKERRQ(ierr);
 	  if(isbc == 1){
 	    local_row = vi*dim+di;
-	    tdy->dirichlet(&(tdy->X[(tdy->vmap[(c-cStart)*nv+vi])*dim]),&p);
-	    Flocal[local_row] += p; /* Need to think about this */
+	    tdy->dirichlet(&(tdy->X[(tdy->vmap[(c-cStart)*nv+vi])*dim]),&pressure);
+	    Flocal[local_row] += pressure; /* Need to think about this */
 	  }
 	}
       }
     }
     
     /* apply orientation flips */
-    
+    for(vi=0;vi<nlocal-1;vi++){
+      Flocal[vi] *= (PetscScalar)orient[vi];
+      for(vj=0;vj<nlocal-1;vj++){
+	Klocal[vj*nlocal+vi] *= (PetscScalar)(orient[vi]*orient[vj]);
+      }
+    }
+        
     /* assembly */
     ierr = MatSetValues(K,nlocal,LtoG,nlocal,LtoG,Klocal,INSERT_VALUES);CHKERRQ(ierr);
     ierr = VecSetValues(F,nlocal,LtoG,Flocal,INSERT_VALUES);CHKERRQ(ierr);

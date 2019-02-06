@@ -57,6 +57,7 @@ struct _p_TDy {
   PetscReal *vel;       /* [face,local_vertex] --> velocity normal to face at vertex */
 
   PetscInt  *LtoG;    
+  PetscInt  *orient;    
 
 };
 

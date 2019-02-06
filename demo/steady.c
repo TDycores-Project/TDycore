@@ -100,9 +100,13 @@ int main(int argc, char **argv)
     ierr = TDySetDirichletFunction(tdy,Pressure3D);CHKERRQ(ierr);
     ierr = TDySetDirichletFlux(tdy,Velocity3D);CHKERRQ(ierr);
   }
-  ierr = TDySetDiscretizationMethod(dm,tdy,WHEELER_YOTOV);CHKERRQ(ierr);
-  //ierr = TDySetDiscretizationMethod(dm,tdy,MIXED_FINITE_ELEMENT);CHKERRQ(ierr);
-
+  PetscInt WY = 0;
+  if(WY){
+    ierr = TDySetDiscretizationMethod(dm,tdy,WHEELER_YOTOV);CHKERRQ(ierr);
+  }else{
+    ierr = TDySetDiscretizationMethod(dm,tdy,MIXED_FINITE_ELEMENT);CHKERRQ(ierr);
+  }
+  
   /* Compute system */
   Mat K;
   Vec U,F;
@@ -118,14 +122,14 @@ int main(int argc, char **argv)
   ierr = KSPSetFromOptions(ksp);CHKERRQ(ierr);
   ierr = KSPSetUp(ksp);CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U);CHKERRQ(ierr);
-  ierr = TDyWYRecoverVelocity(dm,tdy,U);CHKERRQ(ierr);
-  
-  PetscReal normp,normv,normd;
-  normp = TDyWYPressureNorm  (dm,tdy,U);
-  normv = TDyWYVelocityNorm  (dm,tdy);
-  normd = TDyWYDivergenceNorm(dm,tdy);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e %e\n",normp,normv,normd);CHKERRQ(ierr);
-
+  if(WY){
+    ierr = TDyWYRecoverVelocity(dm,tdy,U);CHKERRQ(ierr);
+    PetscReal normp,normv,normd;
+    normp = TDyWYPressureNorm  (dm,tdy,U);
+    normv = TDyWYVelocityNorm  (dm,tdy);
+    normd = TDyWYDivergenceNorm(dm,tdy);
+    ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e %e\n",normp,normv,normd);CHKERRQ(ierr);
+  }
   /* Cleanup */
   ierr = KSPDestroy(&ksp);CHKERRQ(ierr);
   ierr = VecDestroy(&U);CHKERRQ(ierr);
