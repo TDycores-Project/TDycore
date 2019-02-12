@@ -130,11 +130,15 @@ PetscErrorCode TDyMFEInitialize(DM dm,TDy tdy){
   PetscFunctionReturn(0);
 }
 
+/* x:  dim  *nq = 2*9 = 18 
+   DF: dim^2*nq = 4*9 = 36
+   J:        nq =   9 = 9
+*/
 PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   PetscFunctionBegin;  
   PetscErrorCode ierr;
   PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nv,vi,vj,di,dj,local_row,local_col,isbc,f;
-  PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],Klocal[MAX_LOCAL_SIZE],Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[24],pressure;
+  PetscScalar x[24],DF[72],DFinv[72],J[9],Kinv[9],Klocal[MAX_LOCAL_SIZE],Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[24],pressure;
   const PetscScalar *quad_x;
   const PetscScalar *quad_w;
   PetscQuadrature quadrature;
@@ -146,6 +150,9 @@ PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
 
   /* Get quadrature */
   ierr = PetscDTGaussTensorQuadrature(dim,1,3,-1,+1,&quadrature);CHKERRQ(ierr);
+  //ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature);CHKERRQ(ierr);
+  //ierr = TDyQuadrature(quadrature,dim);CHKERRQ(ierr);
+  
   ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr);  
   nlocal = dim*nv + 1;
   
@@ -180,7 +187,7 @@ PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
 	      local_col = vj*dim+dj;
 
 	      /* (K u, v) */
-	      Klocal[local_col*nlocal+local_row] += Kinv[dj*dim+di]*basis_hdiv[local_row]*basis_hdiv[local_col]*quad_w[q];
+	      Klocal[local_col*nlocal+local_row] += Kinv[dj*dim+di]*basis_hdiv[local_row]*basis_hdiv[local_col]*quad_w[q]*0.25;
 	      
 	    }
 	  } /* end directions */
@@ -198,8 +205,8 @@ PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
 
     /* <p, v_j.n> */
     for(local_col=0;local_col<(nlocal-1);local_col++){
-      Klocal[local_col *nlocal + (nlocal-1)] = 1;
-      Klocal[(nlocal-1)*nlocal + local_col ] = 1;
+      Klocal[local_col *nlocal + (nlocal-1)] = 0.5;
+      Klocal[(nlocal-1)*nlocal + local_col ] = 0.5;
     }
 
     /* <g, v_j.n> */
@@ -213,7 +220,7 @@ PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
 	  if(isbc == 1){
 	    local_row = vi*dim+di;
 	    tdy->dirichlet(&(tdy->X[(tdy->vmap[(c-cStart)*nv+vi])*dim]),&pressure);
-	    Flocal[local_row] += pressure; /* Need to think about this */
+	    Flocal[local_row] += 0.5*pressure; /* Need to think about this */
 	  }
 	}
       }
@@ -225,8 +232,10 @@ PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
       for(vj=0;vj<nlocal-1;vj++){
 	Klocal[vj*nlocal+vi] *= (PetscScalar)(orient[vi]*orient[vj]);
       }
+      Klocal[(nlocal-1)*nlocal+vi] *= (PetscScalar)orient[vi];
+      Klocal[vi*nlocal+nlocal-1  ] *= (PetscScalar)orient[vi];
     }
-        
+    
     /* assembly */
     ierr = MatSetValues(K,nlocal,LtoG,nlocal,LtoG,Klocal,INSERT_VALUES);CHKERRQ(ierr);
     ierr = VecSetValues(F,nlocal,LtoG,Flocal,INSERT_VALUES);CHKERRQ(ierr);

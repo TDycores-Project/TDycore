@@ -11,6 +11,7 @@ void Pressure(double *x,double *f){
   (*f)  = PetscPowReal(1-x[0],4);
   (*f) += PetscPowReal(1-x[1],3)*(1-x[0]);
   (*f) += PetscSinReal(1-x[1])*PetscCosReal(1-x[0]);
+  (*f)  = 1;
 }
 
 void Velocity(double *x,double *v){
@@ -23,6 +24,8 @@ void Velocity(double *x,double *v){
   vy += -PetscCosReal(x[0]-1)*PetscCosReal(x[1]-1);    
   v[0] = -(K[0]*vx+K[1]*vy);
   v[1] = -(K[2]*vx+K[3]*vy);
+  v[0] = 0;
+  v[1] = 0;
 }
 
 void Forcing(double *x,double *f){
@@ -32,6 +35,7 @@ void Forcing(double *x,double *f){
   (*f) += -K[1]*( 3*PetscPowReal(1-x[1],2)+PetscSinReal(x[0]-1)*PetscCosReal(x[1]-1));
   (*f) += -K[2]*( 3*PetscPowReal(1-x[1],2)+PetscSinReal(x[0]-1)*PetscCosReal(x[1]-1));
   (*f) += -K[3]*(-6*(1-x[0])*(x[1]-1)+PetscSinReal(x[1]-1)*PetscCosReal(x[0]-1));
+  (*f)  = 0;
 }
 
 void Permeability3D(double *x,double *K){
