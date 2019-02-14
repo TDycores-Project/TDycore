@@ -1,18 +1,69 @@
 #include "tdycore.h"
 
+const char *const TDyMethods[] = {
+  "TWO_POINT_FLUX",
+  "MULTIPOINT_FLUX",
+  "BDM1",
+  "WHEELER_YOTOV",
+  /* */
+  "TDyMethod","TDY_METHOD_",NULL};
+
+PetscClassId TDY_CLASSID = 0;
+
+PETSC_EXTERN PetscBool TDyPackageInitialized;
+PetscBool TDyPackageInitialized = PETSC_FALSE;
+
+PetscErrorCode TDyFinalizePackage(void)
+{
+  PetscFunctionBegin;
+  TDyPackageInitialized = PETSC_FALSE;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyInitializePackage(void)
+{
+  char           logList[256];
+  PetscBool      opt,pkg;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  if (TDyPackageInitialized) PetscFunctionReturn(0);
+  TDyPackageInitialized = PETSC_TRUE;
+  ierr = PetscClassIdRegister("TDy",&TDY_CLASSID);CHKERRQ(ierr);
+  /* Process info exclusions */
+  ierr = PetscOptionsGetString(NULL,NULL,"-info_exclude",logList,sizeof(logList),&opt);CHKERRQ(ierr);
+  if (opt) {
+    ierr = PetscStrInList("tdy",logList,',',&pkg);CHKERRQ(ierr);
+    if (pkg) {ierr = PetscInfoDeactivateClass(TDY_CLASSID);CHKERRQ(ierr);}
+  }
+  /* Process summary exclusions */
+  ierr = PetscOptionsGetString(NULL,NULL,"-log_exclude",logList,sizeof(logList),&opt);CHKERRQ(ierr);
+  if (opt) {
+    ierr = PetscStrInList("tdy",logList,',',&pkg);CHKERRQ(ierr);
+    if (pkg) {ierr = PetscLogEventDeactivateClass(TDY_CLASSID);CHKERRQ(ierr);}
+  }
+  ierr = PetscRegisterFinalize(TDyFinalizePackage);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyCreate(DM dm,TDy *_tdy){
   TDy            tdy;
   PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,cStart,cEnd,eStart,eEnd,offset,nc;
   Vec            coordinates;
   PetscSection   coordSection;
   PetscScalar   *coords;
+  MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  ierr = PetscObjectGetComm((PetscObject)dm,&comm);CHKERRQ(ierr);
   PetscValidPointer(_tdy,1);
-  ierr = PetscCalloc1(1,&tdy);CHKERRQ(ierr);
+  ierr = TDyInitializePackage();CHKERRQ(ierr);
+  *_tdy = NULL;
+  ierr = PetscHeaderCreate(tdy,TDY_CLASSID,"TDy","TDy","TDy",comm,TDyDestroy,TDyView);CHKERRQ(ierr);
   *_tdy = tdy;
-
+  
   /* compute/store plex geometry */
+  tdy->dm = dm;
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = DMPlexGetChart(dm,&pStart,&pEnd);CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd);CHKERRQ(ierr);
@@ -99,13 +150,38 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy){
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetDiscretizationMethod(DM dm,TDy tdy,TDyMethod method){
+
+PetscErrorCode TDyView(TDy tdy,PetscViewer viewer)
+{
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
+  if (!viewer) {ierr = PetscViewerASCIIGetStdout(((PetscObject)tdy)->comm,&viewer);CHKERRQ(ierr);}
+  PetscValidHeaderSpecific(viewer,PETSC_VIEWER_CLASSID,2);
+  PetscCheckSameComm(tdy,1,viewer,2);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetFromOptions(TDy tdy)
+{
+  PetscErrorCode ierr;
+  PetscBool flg;
+  TDyMethod method = WHEELER_YOTOV;
+  PetscFunctionBegin;
+  PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
+  ierr = PetscObjectOptionsBegin((PetscObject)tdy);CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_method","Discretization method","TDySetDiscretizationMethod",TDyMethods,(PetscEnum)method,(PetscEnum *)&method,&flg);
+  if (flg && (method != tdy->method)) { ierr = TDySetDiscretizationMethod(tdy,method); }
+  ierr = PetscOptionsEnd();CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method){
   MPI_Comm       comm;
   PetscErrorCode ierr;
-  PetscValidPointer( dm,1);
   PetscValidPointer(tdy,2);
   PetscFunctionBegin;
-  ierr = PetscObjectGetComm((PetscObject)dm,&comm);CHKERRQ(ierr);
+  ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm);CHKERRQ(ierr);
   if (tdy->method != method) { ierr = TDyResetDiscretizationMethod(tdy);CHKERRQ(ierr); }
   tdy->method = method;
   switch (method) {
@@ -115,11 +191,11 @@ PetscErrorCode TDySetDiscretizationMethod(DM dm,TDy tdy,TDyMethod method){
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
     break;
-  case MIXED_FINITE_ELEMENT:
-    ierr = TDyMFEInitialize(dm,tdy);CHKERRQ(ierr);
+  case BDM1:
+    ierr = TDyMFEInitialize(tdy);CHKERRQ(ierr);
     break;
   case WHEELER_YOTOV:
-    ierr = TDyWYInitialize(dm,tdy);CHKERRQ(ierr);
+    ierr = TDyWYInitialize(tdy);CHKERRQ(ierr);
     break;
   }
   PetscFunctionReturn(0);
@@ -139,8 +215,8 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy){
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for MULTIPOINT_FLUX");
     break;
-  case MIXED_FINITE_ELEMENT:
-    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for MIXED_FINITE_ELEMENT");
+  case BDM1:
+    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM1");
     break;
   case WHEELER_YOTOV:
     ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy);CHKERRQ(ierr);
@@ -173,11 +249,11 @@ PetscErrorCode TDySetDirichletFlux(TDy tdy,SpatialFunction f){
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
+PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F){
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ierr = PetscObjectGetComm((PetscObject)dm,&comm);CHKERRQ(ierr);
+  ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm);CHKERRQ(ierr);
   switch (tdy->method) {
   case TWO_POINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"TWO_POINT_FLUX is not yet implemented");
@@ -185,24 +261,24 @@ PetscErrorCode TDyComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
     break;
-  case MIXED_FINITE_ELEMENT:
-    ierr = TDyMFEComputeSystem(dm,tdy,K,F);CHKERRQ(ierr);
+  case BDM1:
+    ierr = TDyMFEComputeSystem(tdy,K,F);CHKERRQ(ierr);
     break;
   case WHEELER_YOTOV:
-    ierr = TDyWYComputeSystem(dm,tdy,K,F);CHKERRQ(ierr);
+    ierr = TDyWYComputeSystem(tdy,K,F);CHKERRQ(ierr);
     break;
   }
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyUpdateState(DM dm,TDy tdy,PetscReal *P){
+PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P){
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
   PetscReal Se,dSe_dPc,n=1.0,m=1.0,alpha=1.6717e-5,Kr; /* FIX: generalize */
-  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm,&dim);CHKERRQ(ierr);
   dim2 = dim*dim;
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   for(c=cStart;c<cEnd;c++){
     i = c-cStart;
     PressureSaturation_Gardner(n,m,alpha,tdy->Pref-P[i],&Se,&dSe_dPc);
@@ -325,12 +401,13 @@ PetscReal TDyADotBMinusC(PetscReal *a,PetscReal *b,PetscReal *c,PetscInt dim){
 
    Allocates memory inside routine, user must free.
 */
-PetscErrorCode TDyCreateCellVertexMap(DM dm,TDy tdy,PetscInt **map){
+PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map){
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt dim,i,v,vStart,vEnd,nv,c,cStart,cEnd,closureSize,*closure;
   PetscQuadrature quad;
   PetscReal x[24],DF[72],DFinv[72],J[8];
+  DM dm = tdy->dm;
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   nv = TDyGetNumberOfCellVertices(dm);
   ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quad);CHKERRQ(ierr);
@@ -370,10 +447,11 @@ PetscErrorCode TDyCreateCellVertexMap(DM dm,TDy tdy,PetscInt **map){
    diagram always begins with cells, there isn't a conflict with 0
    being a possible point.
 */
-PetscErrorCode TDyCreateCellVertexDirFaceMap(DM dm,TDy tdy,PetscInt **map){
+PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map){
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt d,dim,i,f,fStart,fEnd,v,nv,q,c,cStart,cEnd,closureSize,*closure,fclosureSize,*fclosure,local_dirs[24];
+  DM dm = tdy->dm;
   if(!(tdy->vmap)){
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must first create TDyCreateCellVertexMap on tdy->vmap");
   }

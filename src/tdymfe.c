@@ -23,20 +23,14 @@ void HdivBasisQuad(const PetscReal *x,PetscReal *B){
   B[7] = +0.25*x[0]*x[1] + 0.25*x[0] + 0.25*x[1] + 0.25;
 }
 
-PetscErrorCode TDyMFELocalElementCompute(DM dm,TDy tdy)
-{
-  PetscFunctionBegin;
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyMFEInitialize(DM dm,TDy tdy){
+PetscErrorCode TDyMFEInitialize(TDy tdy){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt pStart,pEnd,c,cStart,cEnd,f,f_abs,fStart,fEnd,nfv,ncv,v,vStart,vEnd,mStart,mEnd,i,nlocal,closureSize,*closure;
   PetscSection sec;
   PetscInt d,dim,dofs_per_face = 1;
   PetscBool found;
+  DM dm = tdy->dm;
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   
   /* Get plex limits */
@@ -77,8 +71,8 @@ PetscErrorCode TDyMFEInitialize(DM dm,TDy tdy){
   ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_TRUE);CHKERRQ(ierr);
 
   /* Build vmap and emap */
-  ierr = TDyCreateCellVertexMap(dm,tdy,&(tdy->vmap));CHKERRQ(ierr);
-  ierr = TDyCreateCellVertexDirFaceMap(dm,tdy,&(tdy->emap));CHKERRQ(ierr);
+  ierr = TDyCreateCellVertexMap(tdy,&(tdy->vmap));CHKERRQ(ierr);
+  ierr = TDyCreateCellVertexDirFaceMap(tdy,&(tdy->emap));CHKERRQ(ierr);
 
   /* Build map(face,local_vertex) --> vertex */
   nfv = TDyGetNumberOfFaceVertices(dm);
@@ -134,15 +128,16 @@ PetscErrorCode TDyMFEInitialize(DM dm,TDy tdy){
    DF: dim^2*nq = 4*9 = 36
    J:        nq =   9 = 9
 */
-PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
-  PetscFunctionBegin;  
+PetscErrorCode TDyMFEComputeSystem(TDy tdy,Mat K,Vec F){
+  PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nv,vi,vj,di,dj,local_row,local_col,isbc,f;
   PetscScalar x[24],DF[72],DFinv[72],J[9],Kinv[9],Klocal[MAX_LOCAL_SIZE],Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[24],pressure;
   const PetscScalar *quad_x;
   const PetscScalar *quad_w;
   PetscQuadrature quadrature;
-
+  DM dm = tdy->dm;
+  
   /* Get domain constants */
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr); dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);

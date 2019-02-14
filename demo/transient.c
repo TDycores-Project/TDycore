@@ -40,12 +40,13 @@ int main(int argc, char **argv)
   /* Setup problem parameters */
   TDy  tdy;
   ierr = TDyCreate(dm,&tdy);CHKERRQ(ierr);
-  ierr = TDySetPorosity(dm,tdy,Porosity);CHKERRQ(ierr);
-  ierr = TDySetPermeabilityScalar(dm,tdy,Permeability);CHKERRQ(ierr);
+  ierr = TDySetPorosity(tdy,Porosity);CHKERRQ(ierr);
+  ierr = TDySetPermeabilityScalar(tdy,Permeability);CHKERRQ(ierr);
   ierr = TDySetForcingFunction(tdy,Forcing);CHKERRQ(ierr);
   ierr = TDySetDirichletFunction(tdy,Pressure);CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(dm,tdy,WHEELER_YOTOV);CHKERRQ(ierr);
-
+  ierr = TDySetDiscretizationMethod(tdy,WHEELER_YOTOV);CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy);CHKERRQ(ierr);
+  
   /* Setup initial condition */
   Vec U;
   ierr = DMCreateGlobalVector(dm,&U);CHKERRQ(ierr);

@@ -143,7 +143,7 @@ PetscReal KDotADotB(PetscReal *K,PetscReal *A,PetscReal *B,PetscInt dim)
   return outer;
 }
 
-PetscErrorCode TDyWYLocalElementCompute(DM dm,TDy tdy)
+PetscErrorCode TDyWYLocalElementCompute(TDy tdy)
 {
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -153,7 +153,8 @@ PetscErrorCode TDyWYLocalElementCompute(DM dm,TDy tdy)
   PetscReal Ehat  = 1;    // area of ref element cell ( [-1,1]^(dim  ) )
   PetscReal ehat  = 1;    // area of ref element face ( [-1,1]^(dim-1) )
   PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],n0[3],n1[3],f; /* allocated at maximum possible size */
-
+  DM dm = tdy->dm;
+  
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);  
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   nq   = TDyGetNumberOfCellVertices(dm);
@@ -193,14 +194,15 @@ PetscErrorCode TDyWYLocalElementCompute(DM dm,TDy tdy)
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
+PetscErrorCode TDyWYInitialize(TDy tdy){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   MPI_Comm       comm;
   PetscInt i,dim,nq,c,cStart,cEnd,f,fStart,fEnd,vStart,vEnd,p,pStart,pEnd,nv;
   PetscInt  closureSize,  *closure;
   PetscSection sec;
-
+  DM dm = tdy->dm;
+  
   ierr = PetscObjectGetComm((PetscObject)dm,&comm);CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd);CHKERRQ(ierr);
@@ -217,8 +219,8 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
   ierr = TDyQuadrature(tdy->quad,dim);CHKERRQ(ierr);
 
   /* Build vmap and emap */
-  ierr = TDyCreateCellVertexMap(dm,tdy,&(tdy->vmap));CHKERRQ(ierr);
-  ierr = TDyCreateCellVertexDirFaceMap(dm,tdy,&(tdy->emap));CHKERRQ(ierr);
+  ierr = TDyCreateCellVertexMap(tdy,&(tdy->vmap));CHKERRQ(ierr);
+  ierr = TDyCreateCellVertexDirFaceMap(tdy,&(tdy->emap));CHKERRQ(ierr);
   
   /* Allocate space for Alocal and Flocal */
   ierr = PetscMalloc(dim*dim*nq*(cEnd-cStart)*sizeof(PetscReal),&(tdy->Alocal));CHKERRQ(ierr);
@@ -263,7 +265,7 @@ PetscErrorCode TDyWYInitialize(DM dm,TDy tdy){
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
+PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F){
   PetscErrorCode ierr;
   PetscInt v,vStart,vEnd;
   PetscInt   fStart,fEnd;
@@ -275,9 +277,10 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   PetscScalar A[MAX_LOCAL_SIZE],B[MAX_LOCAL_SIZE],C[MAX_LOCAL_SIZE],G[MAX_LOCAL_SIZE],D[MAX_LOCAL_SIZE],sign_row,sign_col;
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
   PetscScalar pdirichlet,wgt;
+  DM dm = tdy->dm;
   PetscFunctionBegin;
 
-  ierr = TDyWYLocalElementCompute(dm,tdy);CHKERRQ(ierr);
+  ierr = TDyWYLocalElementCompute(tdy);CHKERRQ(ierr);
   nq   = TDyGetNumberOfCellVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   dim2 = dim*dim;
@@ -405,7 +408,7 @@ PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F){
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
+PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U)
 {
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -417,6 +420,7 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
   PetscInt element_col,local_col,global_col;
   PetscScalar A[MAX_LOCAL_SIZE],F[MAX_LOCAL_SIZE],sign_row,sign_col;
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
+  DM dm = tdy->dm;
   ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
@@ -543,13 +547,14 @@ PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U)
 
   where n is the number of cells.
  */
-PetscReal TDyWYPressureNorm(DM dm,TDy tdy,Vec U)
+PetscReal TDyWYPressureNorm(TDy tdy,Vec U)
 {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscSection sec;
   PetscInt c,cStart,cEnd,offset,dim,gref,junk;
   PetscReal p,*u,norm,norm_sum;
+  DM dm = tdy->dm;
   if(!(tdy->dirichlet)){
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFunction");
   }
@@ -581,12 +586,13 @@ PetscReal ADotB(PetscReal *a,PetscReal *b,PetscInt dim){
 /*
 
  */
-PetscReal TDyWYVelocityNorm(DM dm,TDy tdy)
+PetscReal TDyWYVelocityNorm(TDy tdy)
 {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
   PetscReal flux0,flux,norm,norm_sum,sign,v[3],vn,wgt;
+  DM dm = tdy->dm;
   if(!(tdy->flux)){
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFlux");
   }
@@ -626,12 +632,13 @@ PetscReal TDyWYVelocityNorm(DM dm,TDy tdy)
 /*
 
  */
-PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy)
+PetscReal TDyWYDivergenceNorm(TDy tdy)
 {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
   PetscReal div0,div,flux0,flux,norm,norm_sum,sign,v[3],vn,wgt;
+  DM dm = tdy->dm;
   if(!(tdy->flux)){
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFlux");
   }
@@ -689,9 +696,9 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx)
   ierr = VecGetArray(Ul,&p);CHKERRQ(ierr);
   ierr = VecGetArray(U_t,&dp_dt);CHKERRQ(ierr);
   ierr = VecGetArray(R,&r);CHKERRQ(ierr);
-  ierr = TDyUpdateState(dm,tdy,p);CHKERRQ(ierr);
-  ierr = TDyWYLocalElementCompute(dm,tdy);CHKERRQ(ierr);
-  ierr = TDyWYRecoverVelocity(dm,tdy,Ul);CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy,p);CHKERRQ(ierr);
+  ierr = TDyWYLocalElementCompute(tdy);CHKERRQ(ierr);
+  ierr = TDyWYRecoverVelocity(tdy,Ul);CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
@@ -718,7 +725,7 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx)
     r[c] = tdy->porosity[c-cStart]*tdy->dS_dP[c-cStart]*dp_dt[c] + div;
 
   }
-  
+ 
   /* Cleanup */
   ierr = VecRestoreArray(U_t,&dp_dt);CHKERRQ(ierr);
   ierr = VecRestoreArray(Ul,&p);CHKERRQ(ierr);

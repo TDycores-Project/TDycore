@@ -11,7 +11,7 @@ void Pressure(double *x,double *f){
   (*f)  = PetscPowReal(1-x[0],4);
   (*f) += PetscPowReal(1-x[1],3)*(1-x[0]);
   (*f) += PetscSinReal(1-x[1])*PetscCosReal(1-x[0]);
-  (*f)  = 1;
+  //(*f)  = 1;
 }
 
 void Velocity(double *x,double *v){
@@ -24,8 +24,8 @@ void Velocity(double *x,double *v){
   vy += -PetscCosReal(x[0]-1)*PetscCosReal(x[1]-1);    
   v[0] = -(K[0]*vx+K[1]*vy);
   v[1] = -(K[2]*vx+K[3]*vy);
-  v[0] = 0;
-  v[1] = 0;
+  //v[0] = 0;
+  //v[1] = 0;
 }
 
 void Forcing(double *x,double *f){
@@ -35,7 +35,7 @@ void Forcing(double *x,double *f){
   (*f) += -K[1]*( 3*PetscPowReal(1-x[1],2)+PetscSinReal(x[0]-1)*PetscCosReal(x[1]-1));
   (*f) += -K[2]*( 3*PetscPowReal(1-x[1],2)+PetscSinReal(x[0]-1)*PetscCosReal(x[1]-1));
   (*f) += -K[3]*(-6*(1-x[0])*(x[1]-1)+PetscSinReal(x[1]-1)*PetscCosReal(x[0]-1));
-  (*f)  = 0;
+  //(*f)  = 0;
 }
 
 void Permeability3D(double *x,double *K){
@@ -94,22 +94,18 @@ int main(int argc, char **argv)
   TDy  tdy;
   ierr = TDyCreate(dm,&tdy);CHKERRQ(ierr);
   if(dim == 2){
-    ierr = TDySetPermeabilityTensor(dm,tdy,Permeability);CHKERRQ(ierr);
+    ierr = TDySetPermeabilityTensor(tdy,Permeability);CHKERRQ(ierr);
     ierr = TDySetForcingFunction(tdy,Forcing);CHKERRQ(ierr);
     ierr = TDySetDirichletFunction(tdy,Pressure);CHKERRQ(ierr);
     ierr = TDySetDirichletFlux(tdy,Velocity);CHKERRQ(ierr);
   }else{
-    ierr = TDySetPermeabilityTensor(dm,tdy,Permeability3D);CHKERRQ(ierr);
+    ierr = TDySetPermeabilityTensor(tdy,Permeability3D);CHKERRQ(ierr);
     ierr = TDySetForcingFunction(tdy,Forcing3D);CHKERRQ(ierr);
     ierr = TDySetDirichletFunction(tdy,Pressure3D);CHKERRQ(ierr);
     ierr = TDySetDirichletFlux(tdy,Velocity3D);CHKERRQ(ierr);
   }
-  PetscInt WY = 0;
-  if(WY){
-    ierr = TDySetDiscretizationMethod(dm,tdy,WHEELER_YOTOV);CHKERRQ(ierr);
-  }else{
-    ierr = TDySetDiscretizationMethod(dm,tdy,MIXED_FINITE_ELEMENT);CHKERRQ(ierr);
-  }
+  ierr = TDySetDiscretizationMethod(tdy,WHEELER_YOTOV);CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy);CHKERRQ(ierr);
   
   /* Compute system */
   Mat K;
@@ -117,7 +113,7 @@ int main(int argc, char **argv)
   ierr = DMCreateGlobalVector(dm,&U);CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(dm,&F);CHKERRQ(ierr);
   ierr = DMCreateMatrix      (dm,&K);CHKERRQ(ierr);
-  ierr = TDyComputeSystem(dm,tdy,K,F);CHKERRQ(ierr);
+  ierr = TDyComputeSystem(tdy,K,F);CHKERRQ(ierr);
 
   /* Solve system */
   KSP ksp;
@@ -126,12 +122,12 @@ int main(int argc, char **argv)
   ierr = KSPSetFromOptions(ksp);CHKERRQ(ierr);
   ierr = KSPSetUp(ksp);CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U);CHKERRQ(ierr);
-  if(WY){
-    ierr = TDyWYRecoverVelocity(dm,tdy,U);CHKERRQ(ierr);
+  if(tdy->method == WHEELER_YOTOV){
+    ierr = TDyWYRecoverVelocity(tdy,U);CHKERRQ(ierr);
     PetscReal normp,normv,normd;
-    normp = TDyWYPressureNorm  (dm,tdy,U);
-    normv = TDyWYVelocityNorm  (dm,tdy);
-    normd = TDyWYDivergenceNorm(dm,tdy);
+    normp = TDyWYPressureNorm  (tdy,U);
+    normv = TDyWYVelocityNorm  (tdy);
+    normd = TDyWYDivergenceNorm(tdy);
     ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e %e\n",normp,normv,normd);CHKERRQ(ierr);
   }
   /* Cleanup */

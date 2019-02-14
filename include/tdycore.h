@@ -6,12 +6,11 @@
 
 /* ---------------------------------------------------------------- */
 
-typedef struct _p_TDy *TDy;
 
 typedef enum {
   TWO_POINT_FLUX=0,     /* classic finite volumes                                  */
   MULTIPOINT_FLUX,      /*                                                         */
-  MIXED_FINITE_ELEMENT, /* P0,BDM1 spaces, standard approach                       */
+  BDM1,                 /* P0,BDM1 spaces, standard approach                       */
   WHEELER_YOTOV         /* P0,BDM1 spaces, vertex quadrature, statically condensed */
 } TDyMethod;
 
@@ -19,7 +18,21 @@ PETSC_EXTERN const char *const TDyMethods[];
 
 typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */
 
+typedef struct _p_TDy *TDy;
+
+typedef struct _TDyOps *TDyOps;
+struct _TDyOps {
+  PetscErrorCode (*create)(TDy);
+  PetscErrorCode (*destroy)(TDy);
+  PetscErrorCode (*view)(TDy);
+  PetscErrorCode (*setup)(TDy);
+  PetscErrorCode (*setfromoptions)(TDy);
+};
+
 struct _p_TDy {
+  PETSCHEADER(struct _TDyOps);
+  PetscBool setup;
+  DM dm;
   
   /* arrays of the size of the Hasse diagram */
   PetscReal *V; /* volume of point (if applicable) */
@@ -61,49 +74,53 @@ struct _p_TDy {
 
 };
 
+PETSC_EXTERN PetscClassId TDY_CLASSID;
+
 /* ---------------------------------------------------------------- */
 
 PETSC_EXTERN PetscErrorCode TDyCreate(DM dm,TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyDestroy(TDy *tdy);
+PETSC_EXTERN PetscErrorCode TDyView(TDy tdy,PetscViewer viewer);
+PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy tdy);
 
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (DM dm,TDy tdy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(DM dm,TDy tdy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (DM dm,TDy tdy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPorosity            (DM dm,TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy tdy,SpatialFunction f);
 
 PETSC_EXTERN PetscErrorCode TDySetForcingFunction  (TDy tdy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetDirichletFunction(TDy tdy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetDirichletFlux    (TDy tdy,SpatialFunction f);
 
 PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy tdy);
-PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(DM dm,TDy tdy,TDyMethod method);
+PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method);
 
-PETSC_EXTERN PetscErrorCode TDyComputeSystem(DM dm,TDy tdy,Mat K,Vec F);
+PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS ts,TDy tdy);
 
-PETSC_EXTERN PetscErrorCode TDyWYInitialize(DM dm,TDy tdy);
-PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(DM dm,TDy tdy,Mat K,Vec F);
+PETSC_EXTERN PetscErrorCode TDyWYInitialize(TDy tdy);
+PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F);
 
-PETSC_EXTERN PetscErrorCode TDyMFEInitialize(DM dm,TDy tdy);
-PETSC_EXTERN PetscErrorCode TDyMFEComputeSystem(DM dm,TDy tdy,Mat K,Vec F);
+PETSC_EXTERN PetscErrorCode TDyMFEInitialize(TDy tdy);
+PETSC_EXTERN PetscErrorCode TDyMFEComputeSystem(TDy tdy,Mat K,Vec F);
 
-PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(DM dm,TDy tdy,Vec U);
-PETSC_EXTERN PetscReal TDyWYPressureNorm(DM dm,TDy tdy,Vec U);
-PETSC_EXTERN PetscReal TDyWYVelocityNorm(DM dm,TDy tdy);
-PETSC_EXTERN PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy);
+PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyWYPressureNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyWYVelocityNorm(TDy tdy);
+PETSC_EXTERN PetscReal TDyWYDivergenceNorm(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx);
 
 PETSC_EXTERN void RelativePermeability_Irmay(PetscReal m,PetscReal Se,PetscReal *Kr,PetscReal *dKr_dSe);
 PETSC_EXTERN void PressureSaturation_Gardner(PetscReal n,PetscReal m,PetscReal alpha,PetscReal Pc,PetscReal *Se,PetscReal *dSe_dPc);
-PETSC_EXTERN PetscErrorCode TDyUpdateState(DM dm,TDy tdy,PetscReal *P);
+PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P);
 
 PETSC_EXTERN PetscErrorCode Pullback(PetscScalar *K,PetscScalar *DFinv,PetscScalar *Kappa,PetscScalar J,PetscInt nn);
 PETSC_EXTERN PetscInt TDyGetNumberOfCellVertices(DM dm);
 PETSC_EXTERN PetscInt TDyGetNumberOfFaceVertices(DM dm);
 PETSC_EXTERN PetscReal TDyL1norm(PetscReal *x,PetscReal *y,PetscInt dim);
 PETSC_EXTERN PetscReal TDyADotBMinusC(PetscReal *a,PetscReal *b,PetscReal *c,PetscInt dim);
-PETSC_EXTERN PetscErrorCode TDyCreateCellVertexMap(DM dm,TDy tdy,PetscInt **_map);
-PETSC_EXTERN PetscErrorCode TDyCreateCellVertexDirFaceMap(DM dm,TDy tdy,PetscInt **_map);
+PETSC_EXTERN PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **_map);
+PETSC_EXTERN PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **_map);
 PETSC_EXTERN PetscErrorCode TDyQuadrature(PetscQuadrature q,PetscInt dim);
 
 /* ---------------------------------------------------------------- */
