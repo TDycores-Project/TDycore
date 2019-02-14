@@ -23,7 +23,7 @@ void HdivBasisQuad(const PetscReal *x,PetscReal *B){
   B[7] = +0.25*x[0]*x[1] + 0.25*x[0] + 0.25*x[1] + 0.25;
 }
 
-PetscErrorCode TDyMFEInitialize(TDy tdy){
+PetscErrorCode TDyBDMInitialize(TDy tdy){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt pStart,pEnd,c,cStart,cEnd,f,f_abs,fStart,fEnd,nfv,ncv,v,vStart,vEnd,mStart,mEnd,i,nlocal,closureSize,*closure;
@@ -128,7 +128,7 @@ PetscErrorCode TDyMFEInitialize(TDy tdy){
    DF: dim^2*nq = 4*9 = 36
    J:        nq =   9 = 9
 */
-PetscErrorCode TDyMFEComputeSystem(TDy tdy,Mat K,Vec F){
+PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nv,vi,vj,di,dj,local_row,local_col,isbc,f;
@@ -246,7 +246,7 @@ PetscErrorCode TDyMFEComputeSystem(TDy tdy,Mat K,Vec F){
   PetscFunctionReturn(0);
 }
 
-PetscReal TDyMFEPressureNorm(TDy tdy,Vec U)
+PetscReal TDyBDMPressureNorm(TDy tdy,Vec U)
 {
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -276,7 +276,7 @@ PetscReal TDyMFEPressureNorm(TDy tdy,Vec U)
 }
 
 
-PetscReal TDyMFEVelocityNorm(TDy tdy,Vec U)
+PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U)
 {
   PetscFunctionBegin;
   
@@ -313,7 +313,7 @@ PetscReal TDyMFEVelocityNorm(TDy tdy,Vec U)
   PetscFunctionReturn(0);  
 }
 
-PetscReal TDyMFEDivergenceNorm(TDy tdy,Vec U)
+PetscReal TDyBDMDivergenceNorm(TDy tdy,Vec U)
 {
   PetscFunctionBegin;
   PetscFunctionReturn(0);

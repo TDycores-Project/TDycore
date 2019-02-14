@@ -10,7 +10,7 @@
 typedef enum {
   TWO_POINT_FLUX=0,     /* classic finite volumes                                  */
   MULTIPOINT_FLUX,      /*                                                         */
-  BDM1,                 /* P0,BDM1 spaces, standard approach                       */
+  BDM,                  /* P0,BDM1 spaces, standard approach                       */
   WHEELER_YOTOV         /* P0,BDM1 spaces, vertex quadrature, statically condensed */
 } TDyMethod;
 
@@ -102,11 +102,11 @@ PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
 PETSC_EXTERN PetscErrorCode TDyWYInitialize(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F);
 
-PETSC_EXTERN PetscErrorCode TDyMFEInitialize(TDy tdy);
-PETSC_EXTERN PetscErrorCode TDyMFEComputeSystem(TDy tdy,Mat K,Vec F);
-PETSC_EXTERN PetscReal TDyMFEPressureNorm(TDy tdy,Vec U);
-PETSC_EXTERN PetscReal TDyMFEVelocityNorm(TDy tdy,Vec U);
-PETSC_EXTERN PetscReal TDyMFEDivergenceNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscErrorCode TDyBDMInitialize(TDy tdy);
+PETSC_EXTERN PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F);
+PETSC_EXTERN PetscReal TDyBDMPressureNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyBDMDivergenceNorm(TDy tdy,Vec U);
 
 PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyWYPressureNorm(TDy tdy,Vec U);

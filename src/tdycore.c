@@ -3,7 +3,7 @@
 const char *const TDyMethods[] = {
   "TWO_POINT_FLUX",
   "MULTIPOINT_FLUX",
-  "BDM1",
+  "BDM",
   "WHEELER_YOTOV",
   /* */
   "TDyMethod","TDY_METHOD_",NULL};
@@ -191,8 +191,8 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method){
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
     break;
-  case BDM1:
-    ierr = TDyMFEInitialize(tdy);CHKERRQ(ierr);
+  case BDM:
+    ierr = TDyBDMInitialize(tdy);CHKERRQ(ierr);
     break;
   case WHEELER_YOTOV:
     ierr = TDyWYInitialize(tdy);CHKERRQ(ierr);
@@ -215,8 +215,8 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy){
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for MULTIPOINT_FLUX");
     break;
-  case BDM1:
-    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM1");
+  case BDM:
+    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM");
     break;
   case WHEELER_YOTOV:
     ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy);CHKERRQ(ierr);
@@ -261,8 +261,8 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F){
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
     break;
-  case BDM1:
-    ierr = TDyMFEComputeSystem(tdy,K,F);CHKERRQ(ierr);
+  case BDM:
+    ierr = TDyBDMComputeSystem(tdy,K,F);CHKERRQ(ierr);
     break;
   case WHEELER_YOTOV:
     ierr = TDyWYComputeSystem(tdy,K,F);CHKERRQ(ierr);
@@ -519,10 +519,10 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,PetscReal *no
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
     break;
-  case BDM1:
-    if(normp != NULL) { *normp = TDyMFEPressureNorm(tdy,U); }
-    if(normv != NULL) { *normv = TDyMFEVelocityNorm(tdy,U); }
-    if(normd != NULL) { *normd = TDyMFEDivergenceNorm(tdy,U); }
+  case BDM:
+    if(normp != NULL) { *normp = TDyBDMPressureNorm(tdy,U); }
+    if(normv != NULL) { *normv = TDyBDMVelocityNorm(tdy,U); }
+    if(normd != NULL) { *normd = TDyBDMDivergenceNorm(tdy,U); }
     break;
   case WHEELER_YOTOV:
     if(normv || normd){
