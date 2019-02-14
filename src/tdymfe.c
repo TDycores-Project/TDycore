@@ -245,3 +245,76 @@ PetscErrorCode TDyMFEComputeSystem(TDy tdy,Mat K,Vec F){
   ierr = PetscQuadratureDestroy(&quadrature);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
+
+PetscReal TDyMFEPressureNorm(TDy tdy,Vec U)
+{
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscSection sec;
+  PetscInt c,cStart,cEnd,offset,dim,gref,junk;
+  PetscReal p,*u,norm,norm_sum;
+  DM dm = tdy->dm;
+  if(!(tdy->dirichlet)){
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFunction");
+  }
+  norm = 0;
+  ierr = VecGetArray(U,&u);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMGetDefaultSection(dm,&sec);CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  for(c=cStart;c<cEnd;c++){
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk);CHKERRQ(ierr);
+    if(gref<0) continue;
+    ierr = PetscSectionGetOffset(sec,c,&offset);CHKERRQ(ierr);
+    tdy->dirichlet(&(tdy->X[c*dim]),&p);
+    norm += tdy->V[c]*PetscSqr(u[offset]-p);
+  }
+  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,PetscObjectComm((PetscObject)U));CHKERRQ(ierr);
+  norm_sum = PetscSqrtReal(norm_sum);
+  ierr = VecRestoreArray(U,&u);CHKERRQ(ierr);
+  PetscFunctionReturn(norm_sum);
+}
+
+
+PetscReal TDyMFEVelocityNorm(TDy tdy,Vec U)
+{
+  PetscFunctionBegin;
+  
+  /* PetscErrorCode ierr; */
+  /* PetscInt ncv,nlocal,f,fStart,fEnd,c,cStart,cEnd,gStart,gEnd,dim,q,nq=3; */
+  /* PetscScalar x[24],DF[72],DFinv[72],J[9]; */
+  /* PetscQuadrature quadrature; */
+  /* const PetscScalar *quad_x,*quad_w; */
+  /* DM dm = tdy->dm; */
+  /* if(!(tdy->flux)){ */
+  /*   SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the flux function with TDySetDirichletFlux"); */
+  /* } */
+  /* ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr); */
+  /* ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr); */
+  /* ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr); */
+  /* ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq,-1,+1,&quadrature);CHKERRQ(ierr); */
+  /* ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr); */
+  /* ncv = TDyGetNumberOfCellVertices(dm); */
+  /* nlocal = dim*ncv + 1; */
+  /* for(c=cStart;c<cEnd;c++){ */
+  /*   ierr = DMPlexGetPointGlobal(dm,c,&gStart,&gEnd);CHKERRQ(ierr); */
+  /*   if (gStart < 0) continue; */
+  /*   const PetscInt *LtoG   = &(tdy->LtoG  [(c-cStart)*nlocal]); */
+  /*   const PetscInt *orient = &(tdy->orient[(c-cStart)*nlocal]); */
+  /* }       */
+    
+  /* for(f=fStart;f<fEnd;f++){ */
+  /*   ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,x,DF,DFinv,J);CHKERRQ(ierr); */
+  /*   for(q=0;q<nq;q++){ */
+  /*     printf("%d %d %f %f %f %f\n",f,q,quad_x[q],x[q*dim],x[q*dim+1],J[q]); */
+  /*   } */
+  /* } */
+  
+  PetscFunctionReturn(0);  
+}
+
+PetscReal TDyMFEDivergenceNorm(TDy tdy,Vec U)
+{
+  PetscFunctionBegin;
+  PetscFunctionReturn(0);
+}

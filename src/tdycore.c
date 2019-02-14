@@ -506,3 +506,32 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map){
   }
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,PetscReal *normv,PetscReal *normd){
+  MPI_Comm       comm;
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm);CHKERRQ(ierr);
+  switch (tdy->method) {
+  case TWO_POINT_FLUX:
+    SETERRQ(comm,PETSC_ERR_SUP,"TWO_POINT_FLUX is not yet implemented");
+    break;
+  case MULTIPOINT_FLUX:
+    SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
+    break;
+  case BDM1:
+    if(normp != NULL) { *normp = TDyMFEPressureNorm(tdy,U); }
+    if(normv != NULL) { *normv = TDyMFEVelocityNorm(tdy,U); }
+    if(normd != NULL) { *normd = TDyMFEDivergenceNorm(tdy,U); }
+    break;
+  case WHEELER_YOTOV:
+    if(normv || normd){
+      ierr = TDyWYRecoverVelocity(tdy,U);CHKERRQ(ierr);
+    }
+    if(normp != NULL) { *normp = TDyWYPressureNorm(tdy,U); }
+    if(normv != NULL) { *normv = TDyWYVelocityNorm(tdy); }
+    if(normd != NULL) { *normd = TDyWYDivergenceNorm(tdy); }
+    break;
+  }
+  PetscFunctionReturn(0);
+}

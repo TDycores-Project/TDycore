@@ -97,12 +97,16 @@ PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method)
 
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS ts,TDy tdy);
+PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,PetscReal *normv,PetscReal *normd);
 
 PETSC_EXTERN PetscErrorCode TDyWYInitialize(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F);
 
 PETSC_EXTERN PetscErrorCode TDyMFEInitialize(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyMFEComputeSystem(TDy tdy,Mat K,Vec F);
+PETSC_EXTERN PetscReal TDyMFEPressureNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyMFEVelocityNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyMFEDivergenceNorm(TDy tdy,Vec U);
 
 PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyWYPressureNorm(TDy tdy,Vec U);
