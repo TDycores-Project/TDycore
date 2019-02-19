@@ -106,7 +106,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy){
 
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL; tdy->quad = NULL;
-  tdy->LtoG = NULL; tdy->orient = NULL;
+  tdy->faces = NULL; tdy->LtoG = NULL; tdy->orient = NULL;
 
   /* initialize function pointers */
   tdy->forcing = NULL ; tdy->dirichlet = NULL ; tdy->flux = NULL ;
@@ -144,6 +144,7 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy){
   if (tdy->Flocal) { ierr = PetscFree(tdy->Flocal);CHKERRQ(ierr); }
   if (tdy->vel   ) { ierr = PetscFree(tdy->vel   );CHKERRQ(ierr); }
   if (tdy->fmap  ) { ierr = PetscFree(tdy->fmap  );CHKERRQ(ierr); }
+  if (tdy->faces ) { ierr = PetscFree(tdy->faces );CHKERRQ(ierr); }
   if (tdy->LtoG  ) { ierr = PetscFree(tdy->LtoG  );CHKERRQ(ierr); }
   if (tdy->orient) { ierr = PetscFree(tdy->orient);CHKERRQ(ierr); }
   if (tdy->quad  ) { ierr = PetscQuadratureDestroy(&(tdy->quad));CHKERRQ(ierr); }
@@ -391,6 +392,13 @@ PetscReal TDyADotBMinusC(PetscReal *a,PetscReal *b,PetscReal *c,PetscInt dim){
   PetscReal norm;
   norm = 0;
   for(i=0;i<dim;i++) norm += a[i]*(b[i]-c[i]);
+  return norm;
+}
+
+PetscReal TDyADotB(PetscReal *a,PetscReal *b,PetscInt dim){
+  PetscInt i;
+  PetscReal norm = 0;
+  for(i=0;i<dim;i++) norm += a[i]*b[i];
   return norm;
 }
 

@@ -70,7 +70,8 @@ struct _p_TDy {
   PetscReal *vel;       /* [face,local_vertex] --> velocity normal to face at vertex */
 
   PetscInt  *LtoG;    
-  PetscInt  *orient;    
+  PetscInt  *orient;
+  PetscInt  *faces;
 
 };
 
@@ -123,6 +124,7 @@ PETSC_EXTERN PetscInt TDyGetNumberOfCellVertices(DM dm);
 PETSC_EXTERN PetscInt TDyGetNumberOfFaceVertices(DM dm);
 PETSC_EXTERN PetscReal TDyL1norm(PetscReal *x,PetscReal *y,PetscInt dim);
 PETSC_EXTERN PetscReal TDyADotBMinusC(PetscReal *a,PetscReal *b,PetscReal *c,PetscInt dim);
+PETSC_EXTERN PetscReal TDyADotB(PetscReal *a,PetscReal *b,PetscInt dim);
 PETSC_EXTERN PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **_map);
 PETSC_EXTERN PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **_map);
 PETSC_EXTERN PetscErrorCode TDyQuadrature(PetscQuadrature q,PetscInt dim);

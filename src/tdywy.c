@@ -576,13 +576,6 @@ PetscReal TDyWYPressureNorm(TDy tdy,Vec U)
   PetscFunctionReturn(norm_sum);
 }
 
-PetscReal ADotB(PetscReal *a,PetscReal *b,PetscInt dim){
-  PetscInt i;
-  PetscReal norm = 0;
-  for(i=0;i<dim;i++) norm += a[i]*b[i];
-  return norm;
-}
-
 /*
 
  */
@@ -617,7 +610,7 @@ PetscReal TDyWYVelocityNorm(TDy tdy)
       flux0 = 0; flux = 0;
       for(j=0;j<nv;j++){
 	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
-	vn = ADotB(v,&(tdy->N[dim*f]),dim);
+	vn = TDyADotB(v,&(tdy->N[dim*f]),dim);
 	flux0 += sign*vn                        *wgt*tdy->V[f];
 	flux  += sign*tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
       }
@@ -664,7 +657,7 @@ PetscReal TDyWYDivergenceNorm(TDy tdy)
       flux0 = 0; flux = 0;
       for(j=0;j<nv;j++){
 	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
-	vn = ADotB(v,&(tdy->N[dim*f]),dim);	
+	vn = TDyADotB(v,&(tdy->N[dim*f]),dim);	
 	flux0 += sign*vn                        *wgt*tdy->V[f];
 	flux  += sign*tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
 	div0  += flux0;
