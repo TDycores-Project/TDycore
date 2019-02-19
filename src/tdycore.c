@@ -4,7 +4,7 @@ const char *const TDyMethods[] = {
   "TWO_POINT_FLUX",
   "MULTIPOINT_FLUX",
   "BDM",
-  "WHEELER_YOTOV",
+  "WY",
   /* */
   "TDyMethod","TDY_METHOD_",NULL};
 
@@ -167,7 +167,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy)
 {
   PetscErrorCode ierr;
   PetscBool flg;
-  TDyMethod method = WHEELER_YOTOV;
+  TDyMethod method = WY;
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   ierr = PetscObjectOptionsBegin((PetscObject)tdy);CHKERRQ(ierr);
@@ -195,7 +195,7 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method){
   case BDM:
     ierr = TDyBDMInitialize(tdy);CHKERRQ(ierr);
     break;
-  case WHEELER_YOTOV:
+  case WY:
     ierr = TDyWYInitialize(tdy);CHKERRQ(ierr);
     break;
   }
@@ -219,7 +219,7 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy){
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM");
     break;
-  case WHEELER_YOTOV:
+  case WY:
     ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy);CHKERRQ(ierr);
     break;
   }
@@ -265,7 +265,7 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F){
   case BDM:
     ierr = TDyBDMComputeSystem(tdy,K,F);CHKERRQ(ierr);
     break;
-  case WHEELER_YOTOV:
+  case WY:
     ierr = TDyWYComputeSystem(tdy,K,F);CHKERRQ(ierr);
     break;
   }
@@ -532,7 +532,7 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,PetscReal *no
     if(normv != NULL) { *normv = TDyBDMVelocityNorm(tdy,U); }
     if(normd != NULL) { *normd = TDyBDMDivergenceNorm(tdy,U); }
     break;
-  case WHEELER_YOTOV:
+  case WY:
     if(normv || normd){
       ierr = TDyWYRecoverVelocity(tdy,U);CHKERRQ(ierr);
     }

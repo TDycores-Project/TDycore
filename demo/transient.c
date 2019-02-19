@@ -44,7 +44,7 @@ int main(int argc, char **argv)
   ierr = TDySetPermeabilityScalar(tdy,Permeability);CHKERRQ(ierr);
   ierr = TDySetForcingFunction(tdy,Forcing);CHKERRQ(ierr);
   ierr = TDySetDirichletFunction(tdy,Pressure);CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(tdy,WHEELER_YOTOV);CHKERRQ(ierr);
+  ierr = TDySetDiscretizationMethod(tdy,WY);CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy);CHKERRQ(ierr);
   
   /* Setup initial condition */

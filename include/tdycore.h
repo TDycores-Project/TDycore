@@ -11,7 +11,7 @@ typedef enum {
   TWO_POINT_FLUX=0,     /* classic finite volumes                                  */
   MULTIPOINT_FLUX,      /*                                                         */
   BDM,                  /* P0,BDM1 spaces, standard approach                       */
-  WHEELER_YOTOV         /* P0,BDM1 spaces, vertex quadrature, statically condensed */
+  WY                    /* P0,BDM1 spaces, vertex quadrature, statically condensed */
 } TDyMethod;
 
 PETSC_EXTERN const char *const TDyMethods[];

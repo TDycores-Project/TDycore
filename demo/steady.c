@@ -133,7 +133,7 @@ int main(int argc, char **argv)
     ierr = TDySetDirichletFunction(tdy,Pressure3D);CHKERRQ(ierr);
     ierr = TDySetDirichletFlux(tdy,Velocity3D);CHKERRQ(ierr);
   }
-  ierr = TDySetDiscretizationMethod(tdy,WHEELER_YOTOV);CHKERRQ(ierr);
+  ierr = TDySetDiscretizationMethod(tdy,WY);CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy);CHKERRQ(ierr);
   
   /* Compute system */
