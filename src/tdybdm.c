@@ -156,9 +156,9 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F){
   nv = TDyGetNumberOfCellVertices(dm);
 
   /* Get quadrature */
-  ierr = PetscDTGaussTensorQuadrature(dim,1,3,-1,+1,&quadrature);CHKERRQ(ierr);
-  //ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature);CHKERRQ(ierr);
-  //ierr = TDyQuadrature(quadrature,dim);CHKERRQ(ierr);
+  //ierr = PetscDTGaussTensorQuadrature(dim,1,3,-1,+1,&quadrature);CHKERRQ(ierr);
+  ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature);CHKERRQ(ierr);
+  ierr = TDyQuadrature(quadrature,dim);CHKERRQ(ierr);
   
   ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr);  
   nlocal = dim*nv + 1;
@@ -205,15 +205,15 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F){
       /* Integrate forcing if present */
       if (tdy->forcing) {
 	(*tdy->forcing)(&(x[q*dim]),&force);
-	Flocal[nlocal-1] += force*J[q]*quad_w[q];
+	Flocal[nlocal-1] += -force*J[q]*quad_w[q];
       }
       
     } /* end quadrature */
 
     /* <p, v_j.n> */
     for(local_col=0;local_col<(nlocal-1);local_col++){
-      Klocal[local_col *nlocal + (nlocal-1)] = 0.5;
-      Klocal[(nlocal-1)*nlocal + local_col ] = 0.5;
+      Klocal[local_col *nlocal + (nlocal-1)] = -0.5;
+      Klocal[(nlocal-1)*nlocal + local_col ] = -0.5;
     }
 
     /* <g, v_j.n> */
@@ -227,7 +227,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F){
 	  if(isbc == 1){
 	    local_row = vi*dim+di;
 	    tdy->dirichlet(&(tdy->X[(tdy->vmap[(c-cStart)*nv+vi])*dim]),&pressure);
-	    Flocal[local_row] += 0.5*pressure; /* Need to think about this */
+	    Flocal[local_row] += -0.5*pressure; /* Need to think about this */
 	  }
 	}
       }
@@ -244,6 +244,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F){
     }
     
     /* assembly */
+    //printf("K = np.asarray("); PrintMatrix(Klocal,nlocal,nlocal,PETSC_TRUE);printf(")\n");
+    //printf("F = np.asarray("); PrintMatrix(Flocal,1,nlocal,PETSC_TRUE);printf(")\n");
     ierr = MatSetValues(K,nlocal,LtoG,nlocal,LtoG,Klocal,INSERT_VALUES);CHKERRQ(ierr);
     ierr = VecSetValues(F,nlocal,LtoG,Flocal,INSERT_VALUES);CHKERRQ(ierr);
 

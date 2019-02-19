@@ -15,7 +15,7 @@ void ForcingConstant(double *x,double *f){ (*f) = 0; }
 
 /*-------------------------------------------------------------------------------------*/
 
-void PressureQuadratic(double *x,double *p){ (*p) = x[0]*(1-x[0]) + x[1]*(1-x[1]); }
+void PressureQuadratic(double *x,double *p){ (*p) = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1]); }
 void VelocityQuadratic(double *x,double *v){
   double K[4]; Permeability(x,K);
   v[0] = -K[0]*(1-2*x[0]) - K[1]*(1-2*x[1]);

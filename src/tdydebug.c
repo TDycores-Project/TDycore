@@ -8,9 +8,9 @@ void PrintMatrix(PetscReal *A,PetscInt nr,PetscInt nc,PetscBool row_major)
     if(i>0) printf(" [");
     for(j=0;j<nc;j++){
       if(row_major){
-        printf("%+.14f, ",A[i*nc+j]);
+        printf("%+.4f, ",A[i*nc+j]);
       }else{
-        printf("%+.14f, ",A[j*nr+i]);
+        printf("%+.4f, ",A[j*nr+i]);
       }
     }
     printf("]");
