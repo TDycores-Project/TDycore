@@ -375,6 +375,12 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F){
 	}
     }
     ierr = DMPlexRestoreTransitiveClosure(dm,v,PETSC_FALSE,&closureSize,&closure);CHKERRQ(ierr);
+    //printf("v%d\n",v);
+    //printf(" Amap:");for(q=0;q<nA;q++) printf(" %d",Amap[q]); 
+    //printf(" Bmap:");for(q=0;q<nB;q++) printf(" %d",Bmap[q]); printf("\n");
+    //PrintMatrix(A,nA,nA,PETSC_FALSE);
+    //PrintMatrix(B,nA,nB,PETSC_FALSE);
+    //PrintMatrix(G,1,nA,PETSC_FALSE);
     ierr = FormStencil(&A[0],&B[0],&C[0],&G[0],&D[0],nA,nB);CHKERRQ(ierr);
     
     /* C and D are in column major, but C is always symmetric and D is

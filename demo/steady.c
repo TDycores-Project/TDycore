@@ -7,13 +7,13 @@ void Permeability(double *x,double *K){
   K[2] = 1; K[3] = 2;
 }
 
-/*-------------------------------------------------------------------------------------*/
+/*--- -dim 2 -problem 1 ---------------------------------------------------------------*/
 
 void PressureConstant(double *x,double *p){ (*p) = 1; }
 void VelocityConstant(double *x,double *v){ v[0] = 0; v[1] = 0; }
 void ForcingConstant(double *x,double *f){ (*f) = 0; }
 
-/*-------------------------------------------------------------------------------------*/
+/*--- -dim 2 -problem 2 ---------------------------------------------------------------*/
 
 void PressureQuadratic(double *x,double *p){ (*p) = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1]); }
 void VelocityQuadratic(double *x,double *v){
@@ -23,7 +23,7 @@ void VelocityQuadratic(double *x,double *v){
 }
 void ForcingQuadratic(double *x,double *f){ double K[4]; Permeability(x,K); (*f) = 2*K[0]+2*K[3]; }
 
-/*-------------------------------------------------------------------------------------*/
+/*--- -dim 2 -problem 3 ---------------------------------------------------------------*/
 
 void Pressure(double *x,double *f){
   (*f)  = PetscPowReal(1-x[0],4);

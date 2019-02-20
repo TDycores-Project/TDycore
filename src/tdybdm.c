@@ -144,7 +144,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nv,vi,vj,di,dj,local_row,local_col,isbc,f;
-  PetscScalar x[24],DF[72],DFinv[72],J[9],Kinv[9],Klocal[MAX_LOCAL_SIZE],Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[24],pressure;
+  PetscScalar x[24],DF[72],DFinv[72],J[9],Kinv[9],Klocal[MAX_LOCAL_SIZE],Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[24],pressure,ehat,wgt;
   const PetscScalar *quad_x;
   const PetscScalar *quad_w;
   PetscQuadrature quadrature;
@@ -154,7 +154,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F){
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr); dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   nv = TDyGetNumberOfCellVertices(dm);
-
+  ehat = PetscPowReal(2,dim-1);
+  
   /* Get quadrature */
   //ierr = PetscDTGaussTensorQuadrature(dim,1,3,-1,+1,&quadrature);CHKERRQ(ierr);
   ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature);CHKERRQ(ierr);
@@ -194,7 +195,11 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F){
 	      local_col = vj*dim+dj;
 
 	      /* (K u, v) */
-	      Klocal[local_col*nlocal+local_row] += Kinv[dj*dim+di]*basis_hdiv[local_row]*basis_hdiv[local_col]*quad_w[q]*0.25;
+	      wgt  = quad_w[q];
+	      wgt *= tdy->V[PetscAbsInt(tdy->emap[(c-cStart)*nv*dim + vi*dim + di])];
+	      wgt *= tdy->V[PetscAbsInt(tdy->emap[(c-cStart)*nv*dim + vj*dim + dj])];
+	      wgt /= (ehat*ehat);
+	      Klocal[local_col*nlocal+local_row] += Kinv[dj*dim+di]*basis_hdiv[local_row]*basis_hdiv[local_col]*wgt;
 	      
 	    }
 	  } /* end directions */
@@ -211,9 +216,13 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F){
     } /* end quadrature */
 
     /* <p, v_j.n> */
-    for(local_col=0;local_col<(nlocal-1);local_col++){
-      Klocal[local_col *nlocal + (nlocal-1)] = -0.5;
-      Klocal[(nlocal-1)*nlocal + local_col ] = -0.5;
+    for(vi=0;vi<nv;vi++){
+      for(di=0;di<dim;di++){
+	f = PetscAbsInt(tdy->emap[(c-cStart)*nv*dim + vi*dim + di]);
+	local_col = vi*dim + di;
+	Klocal[local_col *nlocal + (nlocal-1)] = -tdy->V[f]/ehat;
+	Klocal[(nlocal-1)*nlocal + local_col ] = -tdy->V[f]/ehat;
+      }
     }
 
     /* <g, v_j.n> */
@@ -227,7 +236,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F){
 	  if(isbc == 1){
 	    local_row = vi*dim+di;
 	    tdy->dirichlet(&(tdy->X[(tdy->vmap[(c-cStart)*nv+vi])*dim]),&pressure);
-	    Flocal[local_row] += -0.5*pressure; /* Need to think about this */
+	    Flocal[local_row] += -pressure *tdy->V[f]/ehat;
 	  }
 	}
       }
@@ -244,10 +253,10 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F){
     }
     
     /* assembly */
-    //printf("K = np.asarray("); PrintMatrix(Klocal,nlocal,nlocal,PETSC_TRUE);printf(")\n");
-    //printf("F = np.asarray("); PrintMatrix(Flocal,1,nlocal,PETSC_TRUE);printf(")\n");
-    ierr = MatSetValues(K,nlocal,LtoG,nlocal,LtoG,Klocal,INSERT_VALUES);CHKERRQ(ierr);
-    ierr = VecSetValues(F,nlocal,LtoG,Flocal,INSERT_VALUES);CHKERRQ(ierr);
+    //PrintMatrix(Klocal,nlocal,nlocal,PETSC_TRUE);
+    //PrintMatrix(Flocal,1,nlocal,PETSC_TRUE);
+    ierr = MatSetValues(K,nlocal,LtoG,nlocal,LtoG,Klocal,ADD_VALUES);CHKERRQ(ierr);
+    ierr = VecSetValues(F,nlocal,LtoG,Flocal,ADD_VALUES);CHKERRQ(ierr);
 
   } /* end cell */
 
