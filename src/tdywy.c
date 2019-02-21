@@ -592,7 +592,7 @@ PetscReal TDyWYVelocityNorm(TDy tdy)
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
-  PetscReal flux_error,norm,norm_sum,v[3],vn,wgt;
+  PetscReal flux_error,norm,norm_sum,v[3],vn,wgt,flux0,flux;
   DM dm = tdy->dm;
   if(!(tdy->flux)){
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFlux");
@@ -614,14 +614,16 @@ PetscReal TDyWYVelocityNorm(TDy tdy)
       const PetscInt *verts;
       ierr = DMPlexGetConeSize(dm,f,&nv   );CHKERRQ(ierr); /* wrong in 3D, how am I even getting O(h)?!? */
       ierr = DMPlexGetCone    (dm,f,&verts);CHKERRQ(ierr);
-      flux_error = 0;
+      flux0 = 0; flux = 0;
       for(j=0;j<nv;j++){
 	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
 	vn = TDyADotB(v,&(tdy->N[dim*f]),dim);
-	flux_error += PetscSqr(vn-tdy->vel[dim*(f-fStart)+j])* wgt*tdy->V[f];
+	flux0 += vn                        *wgt*0.5*tdy->V[f];
+	flux  += tdy->vel[dim*(f-fStart)+j]*wgt*0.5*tdy->V[f];
       }
+      flux_error = PetscSqr((flux-flux0)/tdy->V[f]);
       //printf("%f %f %e\n",tdy->X[f*dim],tdy->X[f*dim+1,flux_error);
-      norm += tdy->V[c]/tdy->V[f]*flux_error;
+      norm += tdy->V[c]*flux_error;
     }
   }
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,PetscObjectComm((PetscObject)dm));CHKERRQ(ierr);

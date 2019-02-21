@@ -306,7 +306,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U)
   PetscReal xq[3],vel[3],vel0[3],x[27],J[9],N[24],norm=0,norm_sum=0;
   const PetscScalar *quad_x,*quad_w;
   PetscQuadrature quadrature;
-  PetscScalar *u,face_error,ve,va;
+  PetscScalar *u,face_error,ve,va,flux0,flux;
   DM dm = tdy->dm;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ierr = VecGetArray(U,&u);CHKERRQ(ierr);
@@ -325,6 +325,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U)
 	/* integrate over face */
 	face_error = 0;
 	ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,x,NULL,NULL,J);CHKERRQ(ierr);
+	flux0 = 0; flux = 0;
 	for(q=0;q<nq;q++){
 	  
 	  /* extend the dim-1 quadrature point to dim */
@@ -361,10 +362,13 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U)
 	  
 	  /* error norm using (3.40) of Wheeler2012 */
 	  // sqrt( int( f(x)^2, dx) )
-	  face_error += PetscSqr(ve-va)*quad_w[q]*J[q];
+	  flux0 += ve*quad_w[q]*J[q];
+	  flux  += va*quad_w[q]*J[q];
 	}
+	face_error += PetscSqr((flux-flux0)/tdy->V[f]);
+
 	//printf("%f %f %e\n",tdy->X[f*dim],tdy->X[f*dim+1],face_error);
-	norm += face_error*tdy->V[c]/tdy->V[f];
+	norm += face_error*tdy->V[c];
       }
     }
     
