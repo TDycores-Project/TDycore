@@ -302,7 +302,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U)
 {
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  PetscInt nlocal,ncv,dim,c,cStart,cEnd,s,vv,d,dd,f,q,nq,i,j,nq1d=3;
+  PetscInt nlocal,ncv,dim,c,cStart,cEnd,s,vv,d,dd,f,q,nq,i,j,nq1d=2;
   PetscReal xq[3],vel[3],vel0[3],x[27],J[9],N[24],norm=0,norm_sum=0;
   const PetscScalar *quad_x,*quad_w;
   PetscQuadrature quadrature;
@@ -315,12 +315,13 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U)
   ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quadrature);CHKERRQ(ierr);
   ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr); 
   nlocal = ncv*dim + 1;
+  //for(i=0;i<16;i++) printf("u[%d] = %f\n",i,u[i]);
   for(c=cStart;c<cEnd;c++){ /* loop cells */
-    
+    //printf("c%d:\n",c);
     for(d=0;d<dim;d++){
       for(s=0;s<2;s++){ /* loop faces */	
 	f = tdy->faces[(c-cStart)*PetscPowInt(2,dim)+2*d+s];
-	
+	//printf("  f%d:\n",f);
 	/* integrate over face */
 	face_error = 0;
 	ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,x,NULL,NULL,J);CHKERRQ(ierr);
@@ -332,24 +333,37 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U)
 	    if(i == d){
 	      xq[i] = PetscPowInt(-1,s+1);
 	    }else{
-	      xq[i] = quad_x[q*dim+j];
+	      xq[i] = quad_x[q*(dim-1)+j];
 	      j += 1;
 	    }
 	  }
-	  
 	  /* interpolate the normal component of the velocity */
 	  HdivBasisQuad(xq,N);
+	  //printf("    xq  = %+f %+f\n    x   = %+f %+f\n",xq[0],xq[1],x[q*dim],x[q*dim+1]);
+	  //printf("    wq = %f, J = %f\n",quad_w[q],J[q]);
+	  //printf("    ");for(vv=0;vv<(nlocal-1);vv++) printf("%5d ",tdy->LtoG[(c-cStart)*nlocal+vv]); printf("\n");
+	  //printf("    ");for(vv=0;vv<(nlocal-1);vv++) printf("%+.2f ",N[vv]); printf("\n");
 	  vel[0] = 0; vel[1] = 0; vel[2] = 0;
 	  for(vv=0;vv<ncv;vv++)
-	    for(dd=0;dd<dim;dd++)
-	      vel[dd] += N[vv*dim+dd]*u[tdy->LtoG[(c-cStart)*nlocal+vv*dim+dd]];
-	  tdy->flux(x,vel0);
+	    for(dd=0;dd<dim;dd++){
+	      i = vv*dim+dd;
+	      j = (c-cStart)*nlocal + i;
+	      //if(PetscAbsReal(N[i]) > 1e-6){
+	      //printf("    %d u%d%d = %+f\n",i,vv,dd,u[tdy->LtoG[j]]);
+	      //}
+	      vel[dd] += N[i]*u[tdy->LtoG[j]]*(PetscScalar)(tdy->orient[j]);
+	    }
+	  tdy->flux(&(x[q*dim]),vel0);
 	  ve = TDyADotB(vel0,&(tdy->N[f*dim]),dim);
 	  va = TDyADotB(vel ,&(tdy->N[f*dim]),dim);
+	  //printf("    v  = %+f, %+f  v .n = %f\n",vel[0] ,vel[1] ,va);
+	  //printf("    v0 = %+f, %+f  v0.n = %f\n",vel0[0],vel0[1],ve);
 	  
 	  /* error norm using (3.40) of Wheeler2012 */
+	  // sqrt( int( f(x)^2, dx) )
 	  face_error += PetscSqr(ve-va)*quad_w[q]*J[q];
 	}
+	//printf("%f %f %e\n",tdy->X[f*dim],tdy->X[f*dim+1],face_error);
 	norm += face_error*tdy->V[c]/tdy->V[f];
       }
     }
@@ -366,5 +380,5 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U)
 PetscReal TDyBDMDivergenceNorm(TDy tdy,Vec U)
 {
   PetscFunctionBegin;
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(1e-1);
 }

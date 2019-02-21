@@ -382,6 +382,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F){
     //PrintMatrix(B,nA,nB,PETSC_FALSE);
     //PrintMatrix(G,1,nA,PETSC_FALSE);
     ierr = FormStencil(&A[0],&B[0],&C[0],&G[0],&D[0],nA,nB);CHKERRQ(ierr);
+    //PrintMatrix(C,nB,nB,PETSC_FALSE);
     
     /* C and D are in column major, but C is always symmetric and D is
        a vector so it should not matter. */
@@ -403,6 +404,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F){
     ierr = DMPlexGetPointGlobal(dm,c,&gStart,&junk);CHKERRQ(ierr);
     ierr = DMPlexGetPointLocal (dm,c,&lStart,&junk);CHKERRQ(ierr);
     if(gStart < 0) continue;
+    //printf("c%d flocal %e\n",c,tdy->Flocal[c]);
     ierr = VecSetValue(F,gStart,tdy->Flocal[c],ADD_VALUES);CHKERRQ(ierr);
   }
 
@@ -590,7 +592,7 @@ PetscReal TDyWYVelocityNorm(TDy tdy)
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
-  PetscReal flux0,flux,norm,norm_sum,sign,v[3],vn,wgt;
+  PetscReal flux_error,norm,norm_sum,v[3],vn,wgt;
   DM dm = tdy->dm;
   if(!(tdy->flux)){
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFlux");
@@ -610,17 +612,16 @@ PetscReal TDyWYVelocityNorm(TDy tdy)
     for(i=0;i<nf;i++){
       f = faces[i];
       const PetscInt *verts;
-      ierr = DMPlexGetConeSize(dm,f,&nv   );CHKERRQ(ierr);
+      ierr = DMPlexGetConeSize(dm,f,&nv   );CHKERRQ(ierr); /* wrong in 3D, how am I even getting O(h)?!? */
       ierr = DMPlexGetCone    (dm,f,&verts);CHKERRQ(ierr);
-      sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),&(tdy->X[dim*c]),dim));
-      flux0 = 0; flux = 0;
+      flux_error = 0;
       for(j=0;j<nv;j++){
 	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
 	vn = TDyADotB(v,&(tdy->N[dim*f]),dim);
-	flux0 += sign*vn                        *wgt*tdy->V[f];
-	flux  += sign*tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
+	flux_error += PetscSqr(vn-tdy->vel[dim*(f-fStart)+j])* wgt*tdy->V[f];
       }
-      norm += tdy->V[c]/tdy->V[f]*PetscSqr(flux-flux0);
+      //printf("%f %f %e\n",tdy->X[f*dim],tdy->X[f*dim+1,flux_error);
+      norm += tdy->V[c]/tdy->V[f]*flux_error;
     }
   }
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,PetscObjectComm((PetscObject)dm));CHKERRQ(ierr);

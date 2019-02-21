@@ -301,6 +301,10 @@ PetscErrorCode TDyQuadrature(PetscQuadrature q,PetscInt dim)
   ierr = PetscMalloc1(nv*dim,&x);CHKERRQ(ierr);
   ierr = PetscMalloc1(nv    ,&w);CHKERRQ(ierr);
   switch(nv*dim){
+  case 2: /* line */
+    x[0] = -1.0; w[0] = 1.0;
+    x[1] =  1.0; w[1] = 1.0;
+    break;
   case 8: /* quad */
     x[0] = -1.0; x[1] = -1.0; w[0] = 1.0;
     x[2] =  1.0; x[3] = -1.0; w[1] = 1.0;
