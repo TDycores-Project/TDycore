@@ -8,6 +8,12 @@ const char *const TDyMethods[] = {
   /* */
   "TDyMethod","TDY_METHOD_",NULL};
 
+const char *const TDyQuadratureTypes[] = {
+  "LUMPED",
+  "FULL",
+  /* */
+  "TDyQuadratureType","TDY_QUAD_",NULL};
+					  
 PetscClassId TDY_CLASSID = 0;
 
 PETSC_EXTERN PetscBool TDyPackageInitialized;
@@ -168,11 +174,14 @@ PetscErrorCode TDySetFromOptions(TDy tdy)
   PetscErrorCode ierr;
   PetscBool flg;
   TDyMethod method = WY;
+  TDyQuadratureType qtype = FULL;
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   ierr = PetscObjectOptionsBegin((PetscObject)tdy);CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_method","Discretization method","TDySetDiscretizationMethod",TDyMethods,(PetscEnum)method,(PetscEnum *)&method,&flg);
   if (flg && (method != tdy->method)) { ierr = TDySetDiscretizationMethod(tdy,method); }
+  ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type","TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&qtype,&flg);
+  if (flg && (qtype != tdy->qtype)) { ierr = TDySetQuadratureType(tdy,qtype); }
   ierr = PetscOptionsEnd();CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -180,7 +189,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy)
 PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method){
   MPI_Comm       comm;
   PetscErrorCode ierr;
-  PetscValidPointer(tdy,2);
+  PetscValidPointer(tdy,1);
   PetscFunctionBegin;
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm);CHKERRQ(ierr);
   if (tdy->method != method) { ierr = TDyResetDiscretizationMethod(tdy);CHKERRQ(ierr); }
@@ -199,6 +208,13 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method){
     ierr = TDyWYInitialize(tdy);CHKERRQ(ierr);
     break;
   }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetQuadratureType(TDy tdy,TDyQuadratureType qtype){
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  tdy->qtype = qtype;
   PetscFunctionReturn(0);
 }
 

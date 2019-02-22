@@ -157,10 +157,15 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F){
   ehat = PetscPowReal(2,dim-1);
   
   /* Get quadrature */
-  //ierr = PetscDTGaussTensorQuadrature(dim,1,3,-1,+1,&quadrature);CHKERRQ(ierr);
-  ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature);CHKERRQ(ierr);
-  ierr = TDyQuadrature(quadrature,dim);CHKERRQ(ierr);
-  
+  switch(tdy->qtype){
+  case FULL:
+    ierr = PetscDTGaussTensorQuadrature(dim,1,3,-1,+1,&quadrature);CHKERRQ(ierr);
+    break;
+  case LUMPED:
+    ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature);CHKERRQ(ierr);
+    ierr = TDyQuadrature(quadrature,dim);CHKERRQ(ierr);
+    break;
+  }
   ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr);  
   nlocal = dim*nv + 1;
   

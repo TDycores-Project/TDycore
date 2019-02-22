@@ -16,6 +16,13 @@ typedef enum {
 
 PETSC_EXTERN const char *const TDyMethods[];
 
+typedef enum {
+  LUMPED=0,
+  FULL
+} TDyQuadratureType;
+
+PETSC_EXTERN const char *const TDyQuadratureTypes[];
+
 typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */
 
 typedef struct _p_TDy *TDy;
@@ -59,6 +66,7 @@ struct _p_TDy {
   
   /* method-specific information*/
   TDyMethod method;
+  TDyQuadratureType qtype;
   
   /* Wheeler-Yotov */
   PetscInt  *vmap;      /* [cell,local_vertex] --> global_vertex */
@@ -95,6 +103,7 @@ PETSC_EXTERN PetscErrorCode TDySetDirichletFlux    (TDy tdy,SpatialFunction f);
 
 PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method);
+PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,TDyQuadratureType qtype);
 
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS ts,TDy tdy);
