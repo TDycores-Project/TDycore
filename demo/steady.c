@@ -50,6 +50,36 @@ void Forcing(double *x,double *f){
   (*f) += -K[3]*(-6*(1-x[0])*(x[1]-1)+PetscSinReal(x[1]-1)*PetscCosReal(x[0]-1));
 }
 
+/*--- -dim 2 -problem 4 ---------------------------------------------------------------*/
+void PermeabilitySine(double *x,double *K){
+  K[0] = 2   ; K[1] = 1.25;
+  K[2] = 1.25; K[3] = 3;
+}
+void PressureSine(double *x,double *p){
+  PetscReal s = PetscSinReal(3*PETSC_PI*x[0]);
+  PetscReal t = PetscSinReal(3*PETSC_PI*x[1]);
+  (*p) = s*s*t*t;
+}
+void VelocitySine(double *x,double *v){
+  double K[4]; PermeabilitySine(x,K);
+  double pi = PETSC_PI;
+  double s3pX = PetscSinReal(3*pi*x[0]);
+  double s3pY = PetscSinReal(3*pi*x[1]);
+  double c3pX = PetscCosReal(3*pi*x[0]);
+  double c3pY = PetscCosReal(3*pi*x[1]);
+  v[0] = -6*K[0]*pi*s3pX*s3pY*s3pY*c3pX - 6*K[1]*pi*s3pX*s3pX*s3pY*c3pY;
+  v[1] = -6*K[2]*pi*s3pX*s3pY*s3pY*c3pX - 6*K[3]*pi*s3pX*s3pX*s3pY*c3pY;
+}
+void ForcingSine(double *x,double *f){
+  double K[4]; PermeabilitySine(x,K);
+  double pi = PETSC_PI;
+  double s3pX = PetscSinReal(3*pi*x[0]);
+  double s3pY = PetscSinReal(3*pi*x[1]);
+  double c3pX = PetscCosReal(3*pi*x[0]);
+  double c3pY = PetscCosReal(3*pi*x[1]);
+  (*f) =  18*pi*pi*(K[0]*s3pX*s3pX*s3pY*s3pY - K[0]*s3pY*s3pY*c3pX*c3pX - K[1]*(PetscCosReal(6*pi*(x[0] - x[1])) - PetscCosReal(6*pi*(x[0] + x[1])))/4 - K[2]*(PetscCosReal(6*pi*(x[0] - x[1])) - PetscCosReal(6*pi*(x[0] + x[1])))/4 + K[3]*s3pX*s3pX*s3pY*s3pY - K[3]*s3pX*s3pX*c3pY*c3pY);
+}
+
 /*-------------------------------------------------------------------------------------*/
 
 void Permeability3D(double *x,double *K){
@@ -157,6 +187,12 @@ int main(int argc, char **argv)
       ierr = TDySetForcingFunction(tdy,Forcing);CHKERRQ(ierr);
       ierr = TDySetDirichletFunction(tdy,Pressure);CHKERRQ(ierr);
       ierr = TDySetDirichletFlux(tdy,Velocity);CHKERRQ(ierr);
+      break;
+    case 4:
+      ierr = TDySetPermeabilityTensor(tdy,PermeabilitySine);CHKERRQ(ierr);
+      ierr = TDySetForcingFunction(tdy,ForcingSine);CHKERRQ(ierr);
+      ierr = TDySetDirichletFunction(tdy,PressureSine);CHKERRQ(ierr);
+      ierr = TDySetDirichletFlux(tdy,VelocitySine);CHKERRQ(ierr);
       break;
     }      
   }else{

@@ -11,6 +11,8 @@ parser.add_argument('-d', dest="dim", metavar='dim', type=int,default=2)
 parser.add_argument('-p', dest="problem", metavar='problem', type=int,default=3)
 parser.add_argument('-m', dest="method", metavar='method', type=str,default="wy")
 parser.add_argument('-x','--perturb', dest="perturb", action="store_true")
+parser.add_argument('--N0', dest="N0", metavar='N0', type=int,default=8)
+parser.add_argument('-n', dest="n", metavar='n', type=int,default=5)
 args = parser.parse_args()
 
 solver = "-pc_type lu -pc_factor_mat_solver_type umfpack"
@@ -29,8 +31,9 @@ def _buildTriangle(rate,offset,h,E):
     return x,y
 
 d = args.dim
-N = np.asarray([8,16,32,64,128]) #,256,512])
-if d == 3: N = np.asarray([4,8,16,32])
+N = args.N0*2**np.asarray(range(args.n))
+
+
 
 h = 1./N
 E = np.zeros((N.size,3))
@@ -44,7 +47,8 @@ for i,n in enumerate(N):
     output,errors = process.communicate()
     E[i] = [float(v) for v in output.split()]
     print("%3d  %.6e %.6e %.6e" % (n,E[i,0],E[i,1],E[i,2]))
-s = 2
+    
+s = 2 # ignore the first two in the rate
 print("rate = %.2f  %.2f  %.2f" % (np.polyfit(np.log10(h[s:]),np.log10(E[s:,0]),1)[0],
                                    np.polyfit(np.log10(h[s:]),np.log10(E[s:,1]),1)[0],
                                    np.polyfit(np.log10(h[s:]),np.log10(E[s:,2]),1)[0]))
