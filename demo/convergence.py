@@ -33,6 +33,7 @@ if d == 3: N = np.asarray([4,8,16,32])
 
 h = 1./N
 E = np.zeros((N.size,3))
+print("       |p-ph|        (3.40)       Sec 5")
 for i,n in enumerate(N):
     ref = "" if i == 0 else " -dm_refine %d" % i
     process = subprocess.Popen("./steady -dim %d -N %d %s %s %s %s" % (d,N[0],ref,solver,method,problem),

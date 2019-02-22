@@ -534,7 +534,7 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,PetscReal *no
   case BDM:
     if(normp != NULL) { *normp = TDyBDMPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyBDMVelocityNorm(tdy,U); }
-    if(normd != NULL) { *normd = TDyBDMDivergenceNorm(tdy,U); }
+    if(normd != NULL) { *normd = TDyBDMVelocityNormFaceAverage(tdy,U); }
     break;
   case WY:
     if(normv || normd){
@@ -542,7 +542,7 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,PetscReal *no
     }
     if(normp != NULL) { *normp = TDyWYPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyWYVelocityNorm(tdy); }
-    if(normd != NULL) { *normd = TDyWYDivergenceNorm(tdy); }
+    if(normd != NULL) { *normd = TDyWYVelocityNormFaceAverage(tdy); }
     break;
   }
   PetscFunctionReturn(0);

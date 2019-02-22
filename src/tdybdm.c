@@ -298,7 +298,16 @@ PetscReal TDyBDMPressureNorm(TDy tdy,Vec U)
   PetscFunctionReturn(norm_sum);
 }
 
-PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U)
+/*
+  Velocity norm given in section 5 of Wheeler2012. 
+
+  ||u-uh||^2 = sum_E sum_e |E| ( 1/|e| int(u.n) - 1/|e| int(uh.n) )^2 
+
+  where the integrals are evaluated by nq1d=2 quadrature. It compares
+  the L2 difference in the mean normal velocity over faces of each
+  cell, weighted by the cell area.
+ */
+PetscReal TDyBDMVelocityNormFaceAverage(TDy tdy,Vec U)
 {
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -369,6 +378,82 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U)
 
 	//printf("%f %f %e\n",tdy->X[f*dim],tdy->X[f*dim+1],face_error);
 	norm += face_error*tdy->V[c];
+      }
+    }
+    
+  }
+  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,PetscObjectComm((PetscObject)dm));CHKERRQ(ierr);
+  norm_sum = PetscSqrtReal(norm_sum);
+  PetscFunctionReturn(norm_sum);
+  ierr = VecRestoreArray(U,&u);CHKERRQ(ierr);
+  ierr = PetscQuadratureDestroy(&quadrature);CHKERRQ(ierr);
+  PetscFunctionReturn(norm_sum);  
+}
+
+/*
+  Velocity norm given in (3.40) of Wheeler2012. 
+
+  ||u-uh||^2 = sum_E sum_e |E|/|e| ||(u-uh).n||^2
+
+  where ||(u-uh).n|| is evaluated with nq1d=2 quadrature. This
+  integrates the normal velocity error over the face, normalized by
+  the area of the face and then weighted by cell volume.
+
+ */
+PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U)
+{
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscInt nlocal,ncv,dim,c,cStart,cEnd,s,vv,d,dd,f,q,nq,i,j,nq1d=2;
+  PetscReal xq[3],vel[3],vel0[3],x[27],J[9],N[24],norm=0,norm_sum=0;
+  const PetscScalar *quad_x,*quad_w;
+  PetscQuadrature quadrature;
+  PetscScalar *u,face_error,ve,va;
+  DM dm = tdy->dm;
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = VecGetArray(U,&u);CHKERRQ(ierr);
+  ncv = TDyGetNumberOfCellVertices(dm);
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quadrature);CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr); 
+  nlocal = ncv*dim + 1;
+  for(c=cStart;c<cEnd;c++){ /* loop cells */
+
+    for(d=0;d<dim;d++){
+      for(s=0;s<2;s++){ /* loop faces */	
+	f = tdy->faces[(c-cStart)*PetscPowInt(2,dim)+2*d+s];
+
+	/* integrate over face */
+	face_error = 0;
+	ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,x,NULL,NULL,J);CHKERRQ(ierr);
+	for(q=0;q<nq;q++){
+	  
+	  /* extend the dim-1 quadrature point to dim */
+	  j = 0;
+	  for(i=0;i<dim;i++){
+	    if(i == d){
+	      xq[i] = PetscPowInt(-1,s+1);
+	    }else{
+	      xq[i] = quad_x[q*(dim-1)+j];
+	      j += 1;
+	    }
+	  }
+	  
+	  /* interpolate the normal component of the velocity */
+	  HdivBasisQuad(xq,N);
+	  vel[0] = 0; vel[1] = 0; vel[2] = 0;
+	  for(vv=0;vv<ncv;vv++)
+	    for(dd=0;dd<dim;dd++){
+	      i = vv*dim+dd;
+	      j = (c-cStart)*nlocal + i;
+	      vel[dd] += N[i]*u[tdy->LtoG[j]]*(PetscScalar)(tdy->orient[j]);
+	    }
+	  tdy->flux(&(x[q*dim]),vel0);
+	  ve = TDyADotB(vel0,&(tdy->N[f*dim]),dim);
+	  va = TDyADotB(vel ,&(tdy->N[f*dim]),dim);
+	  face_error += PetscSqr(va-ve)*quad_w[q]*J[q];
+	}
+	norm += tdy->V[c]/tdy->V[f]*face_error;
       }
     }
     

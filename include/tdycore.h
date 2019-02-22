@@ -106,11 +106,13 @@ PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscErrorCode TDyBDMInitialize(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscReal TDyBDMPressureNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyBDMVelocityNormFaceAverage(TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyBDMDivergenceNorm(TDy tdy,Vec U);
 
 PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyWYPressureNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyWYVelocityNormFaceAverage(TDy tdy);
 PETSC_EXTERN PetscReal TDyWYVelocityNorm(TDy tdy);
 PETSC_EXTERN PetscReal TDyWYDivergenceNorm(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx);

@@ -585,9 +585,13 @@ PetscReal TDyWYPressureNorm(TDy tdy,Vec U)
 }
 
 /*
+  Velocity norm given in section 5 of Wheeler2012. 
 
+  ||u-uh||^2 = sum_E sum_e |E| ( 1/|e| int(u.n) - 1/|e| int(uh.n) )^2 
+
+  where the integrals are evaluated by vertex quadrature.
  */
-PetscReal TDyWYVelocityNorm(TDy tdy)
+PetscReal TDyWYVelocityNormFaceAverage(TDy tdy)
 {
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -618,12 +622,63 @@ PetscReal TDyWYVelocityNorm(TDy tdy)
       for(j=0;j<nv;j++){
 	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
 	vn = TDyADotB(v,&(tdy->N[dim*f]),dim);
-	flux0 += vn                        *wgt*0.5*tdy->V[f];
-	flux  += tdy->vel[dim*(f-fStart)+j]*wgt*0.5*tdy->V[f];
+	flux0 += vn                        *wgt*tdy->V[f];
+	flux  += tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
       }
       flux_error = PetscSqr((flux-flux0)/tdy->V[f]);
       //printf("%f %f %e\n",tdy->X[f*dim],tdy->X[f*dim+1,flux_error);
       norm += tdy->V[c]*flux_error;
+    }
+  }
+  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,PetscObjectComm((PetscObject)dm));CHKERRQ(ierr);
+  norm_sum = PetscSqrtReal(norm_sum);
+  PetscFunctionReturn(norm_sum);
+}
+
+/*
+  Velocity norm given in (3.40) of Wheeler2012. 
+
+  ||u-uh||^2 = sum_E sum_e |E|/|e| ||(u-uh).n||^2
+
+  where ||(u-uh).n|| is evaluated with vertex quadrature. This
+  integrates the normal velocity error over the face, normalized by
+  the area of the face and then weighted by cell volume.
+
+ */
+PetscReal TDyWYVelocityNorm(TDy tdy)
+{
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
+  PetscReal face_error,norm,norm_sum,v[3],vn,wgt;
+  DM dm = tdy->dm;
+  if(!(tdy->flux)){
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFlux");
+  }
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  nv   = TDyGetNumberOfFaceVertices(dm);
+  wgt  = 1/((PetscReal)nv);
+  norm = 0;
+  for(c=cStart;c<cEnd;c++){
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd);CHKERRQ(ierr);
+    if (gref < 0) continue;
+    const PetscInt *faces;
+    ierr = DMPlexGetConeSize(dm,c,&nf   );CHKERRQ(ierr);
+    ierr = DMPlexGetCone    (dm,c,&faces);CHKERRQ(ierr);
+    for(i=0;i<nf;i++){
+      f = faces[i];
+      const PetscInt *verts;
+      ierr = DMPlexGetConeSize(dm,f,&nv   );CHKERRQ(ierr); /* wrong in 3D, how am I even getting O(h)?!? */
+      ierr = DMPlexGetCone    (dm,f,&verts);CHKERRQ(ierr);
+      face_error = 0;
+      for(j=0;j<nv;j++){
+	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
+	vn = TDyADotB(v,&(tdy->N[dim*f]),dim);
+	face_error += PetscSqr(tdy->vel[dim*(f-fStart)+j]-vn)*wgt*tdy->V[f];
+      }
+      norm += tdy->V[c]/tdy->V[f]*face_error;
     }
   }
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,PetscObjectComm((PetscObject)dm));CHKERRQ(ierr);
