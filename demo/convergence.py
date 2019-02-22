@@ -10,11 +10,12 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('-d', dest="dim", metavar='dim', type=int,default=2)
 parser.add_argument('-p', dest="problem", metavar='problem', type=int,default=3)
 parser.add_argument('-m', dest="method", metavar='method', type=str,default="wy")
+parser.add_argument('-x','--perturb', dest="perturb", action="store_true")
 args = parser.parse_args()
 
 solver = "-pc_type lu -pc_factor_mat_solver_type umfpack"
 method = "-tdy_method %s" % args.method
-problem = "-problem %d" % args.problem
+problem = "-problem %d%s" % (args.problem," -perturb" if args.perturb else "")
 
 def _buildTriangle(rate,offset,h,E):
     dh = np.log10(h[0])-np.log10(h[-1])
