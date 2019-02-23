@@ -1,7 +1,7 @@
 #include "tdycore.h"
 
 const char *const TDyMethods[] = {
-  "TWO_POINT_FLUX",
+  "TPF",
   "MULTIPOINT_FLUX",
   "BDM",
   "WY",
@@ -195,8 +195,8 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method){
   if (tdy->method != method) { ierr = TDyResetDiscretizationMethod(tdy);CHKERRQ(ierr); }
   tdy->method = method;
   switch (method) {
-  case TWO_POINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"TWO_POINT_FLUX is not yet implemented");
+  case TPF:
+    ierr = TDyTPFInitialize(tdy);CHKERRQ(ierr);
     break;
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
@@ -226,8 +226,8 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy){
   PetscFunctionBegin;
   ierr = PetscObjectGetComm((PetscObject)ts,&comm);CHKERRQ(ierr);
   switch (tdy->method) {
-  case TWO_POINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TWO_POINT_FLUX");
+  case TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TPF");
     break;
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for MULTIPOINT_FLUX");
@@ -272,8 +272,8 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F){
   PetscFunctionBegin;
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm);CHKERRQ(ierr);
   switch (tdy->method) {
-  case TWO_POINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"TWO_POINT_FLUX is not yet implemented");
+  case TPF:
+    ierr = TDyTPFComputeSystem(tdy,K,F);CHKERRQ(ierr);
     break;
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
@@ -541,8 +541,10 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,PetscReal *no
   PetscFunctionBegin;
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm);CHKERRQ(ierr);
   switch (tdy->method) {
-  case TWO_POINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"TWO_POINT_FLUX is not yet implemented");
+  case TPF:
+    if(normp != NULL) { *normp = TDyTPFPressureNorm(tdy,U); }
+    if(normv != NULL) { *normv = TDyTPFVelocityNorm(tdy,U); }
+    if(normd != NULL) { *normd = TDyTPFVelocityNormFaceAverage(tdy,U); }
     break;
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");

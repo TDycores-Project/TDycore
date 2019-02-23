@@ -246,7 +246,7 @@ PetscErrorCode TDyWYInitialize(TDy tdy){
   /* Setup the section, 1 dof per cell */
   ierr = PetscSectionCreate(comm,&sec);CHKERRQ(ierr);
   ierr = PetscSectionSetNumFields(sec,1);CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldName(sec,0,"LiquidPressure");CHKERRQ(ierr);
+  ierr = PetscSectionSetFieldName(sec,0,"Pressure");CHKERRQ(ierr);
   ierr = PetscSectionSetFieldComponents(sec,0,1);CHKERRQ(ierr);
   ierr = DMPlexGetChart(dm,&pStart,&pEnd);CHKERRQ(ierr);
   ierr = PetscSectionSetChart(sec,pStart,pEnd);CHKERRQ(ierr);
@@ -626,7 +626,7 @@ PetscReal TDyWYVelocityNormFaceAverage(TDy tdy)
 	flux  += tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
       }
       flux_error = PetscSqr((flux-flux0)/tdy->V[f]);
-      //printf("%f %f %e\n",tdy->X[f*dim],tdy->X[f*dim+1,flux_error);
+      //printf("%f %f %e\n",tdy->X[f*dim],tdy->X[f*dim+1],flux_error);
       norm += tdy->V[c]*flux_error;
     }
   }

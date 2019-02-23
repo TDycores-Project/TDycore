@@ -1,0 +1,157 @@
+#include "tdycore.h"
+
+PETSC_STATIC_INLINE void Waxpy(PetscInt dim, PetscScalar a, const PetscScalar *x, const PetscScalar *y, PetscScalar *w) {PetscInt d; for (d = 0; d < dim; ++d) w[d] = a*x[d] + y[d];}
+PETSC_STATIC_INLINE PetscScalar Dot(PetscInt dim, const PetscScalar *x, const PetscScalar *y) {PetscScalar sum = 0.0; PetscInt d; for (d = 0; d < dim; ++d) sum += x[d]*y[d]; return sum;}
+PETSC_STATIC_INLINE PetscReal Norm(PetscInt dim, const PetscScalar *x) {return PetscSqrtReal(PetscAbsScalar(Dot(dim,x,x)));}
+
+PetscErrorCode TDyTPFInitialize(TDy tdy){
+  PetscErrorCode ierr;
+  MPI_Comm comm;
+  PetscInt dim,c,cStart,cEnd,pStart,pEnd;
+  PetscSection sec;
+  DM dm = tdy->dm;
+  PetscFunctionBegin;
+  
+  ierr = PetscObjectGetComm((PetscObject)dm,&comm);CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  ierr = DMPlexGetChart(dm,&pStart,&pEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+
+  /* Setup the section, 1 dof per cell */
+  ierr = PetscSectionCreate(comm,&sec);CHKERRQ(ierr);
+  ierr = PetscSectionSetNumFields(sec,1);CHKERRQ(ierr);
+  ierr = PetscSectionSetFieldName(sec,0,"Pressure");CHKERRQ(ierr);
+  ierr = PetscSectionSetFieldComponents(sec,0,1);CHKERRQ(ierr);
+  ierr = DMPlexGetChart(dm,&pStart,&pEnd);CHKERRQ(ierr);
+  ierr = PetscSectionSetChart(sec,pStart,pEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&pStart,&pEnd);CHKERRQ(ierr);
+  for(c=cStart;c<cEnd;c++){
+    ierr = PetscSectionSetFieldDof(sec,c,0,1); CHKERRQ(ierr);
+    ierr = PetscSectionSetDof(sec,c,1); CHKERRQ(ierr);
+  }
+  ierr = PetscSectionSetUp(sec);CHKERRQ(ierr);
+  ierr = DMSetDefaultSection(dm,sec);CHKERRQ(ierr);
+  ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view");CHKERRQ(ierr);
+  ierr = PetscSectionDestroy(&sec);CHKERRQ(ierr);
+  ierr = DMPlexSetAdjacencyUseCone(dm,PETSC_TRUE);CHKERRQ(ierr);
+  ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_FALSE);CHKERRQ(ierr);
+  
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F){
+  PetscErrorCode ierr;
+  PetscInt dim,dim2,f,fStart,fEnd,c,cStart,cEnd,row,col,junk,ss;
+  PetscReal pnt2pnt[3],dist,Ki,p,force;
+  DM dm = tdy->dm;
+  PetscFunctionBegin;
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  dim2 = dim*dim;
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  for(f=fStart;f<fEnd;f++){
+
+    const PetscInt *supp;
+    ierr = DMPlexGetSupportSize(dm,f,&ss  );CHKERRQ(ierr);
+    ierr = DMPlexGetSupport    (dm,f,&supp);CHKERRQ(ierr);
+
+    // wrt
+    // v = -Ki (pd-p0)/dist
+    // 00 Ki/dist
+    // 0 -Ki pd / dist
+    if(ss==1 && tdy->dirichlet){
+      ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk);CHKERRQ(ierr);
+      Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[f*dim]),pnt2pnt);
+      dist = Norm(dim,pnt2pnt);
+      Ki = tdy->K[(supp[0]-cStart)*dim2];
+      ierr = MatSetValue(K,row,row,Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);CHKERRQ(ierr);
+      (*tdy->dirichlet)(&(tdy->X[f*dim]),&p);
+      ierr = VecSetValue(F,row,p*Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);CHKERRQ(ierr);
+      continue;
+    }
+    
+    Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[supp[1]*dim]),pnt2pnt);
+    dist = Norm(dim,pnt2pnt);
+    Ki = 0.5*(tdy->K[(supp[0]-cStart)*dim2]+tdy->K[(supp[1]-cStart)*dim2]);
+
+    //wrt 0
+    // v = -Ki (p1-p0)/dist
+    // 00  Ki/dist
+    // 01 -Ki/dist
+    
+    //wrt 1
+    // v = -Ki (p0-p1)/dist
+    // 11  Ki/dist
+    // 10 -Ki/dist
+    
+    ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk);CHKERRQ(ierr);
+    ierr = DMPlexGetPointGlobal(dm,supp[1],&col,&junk);CHKERRQ(ierr);
+    ierr = MatSetValue(K,row,row, Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);CHKERRQ(ierr);
+    ierr = MatSetValue(K,row,col,-Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);CHKERRQ(ierr);
+    ierr = MatSetValue(K,col,col, Ki/dist*tdy->V[f]/tdy->V[supp[1]],ADD_VALUES);CHKERRQ(ierr);
+    ierr = MatSetValue(K,col,row,-Ki/dist*tdy->V[f]/tdy->V[supp[1]],ADD_VALUES);CHKERRQ(ierr);
+  }
+
+  if(tdy->forcing){
+    for(c=cStart;c<cEnd;c++){
+      ierr = DMPlexGetPointGlobal(dm,c,&row,&junk);CHKERRQ(ierr);
+      if(row < 0) continue;
+      (*tdy->forcing)(&(tdy->X[c*dim]),&force);
+      ierr = VecSetValue(F,row,force,ADD_VALUES);CHKERRQ(ierr);
+    }
+  }
+
+  // max = 3.63988
+  // min = 3.15550
+  
+  ierr = VecAssemblyBegin(F);CHKERRQ(ierr);
+  ierr = VecAssemblyEnd  (F);CHKERRQ(ierr);
+  ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/*
+  norm = sqrt( sum_i^n  V_i * ( p(X_i) - P_i )^2 )
+
+  where n is the number of cells.
+ */
+PetscReal TDyTPFPressureNorm(TDy tdy,Vec U)
+{
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscSection sec;
+  PetscInt c,cStart,cEnd,offset,dim,gref,junk;
+  PetscReal p,*u,norm,norm_sum;
+  DM dm = tdy->dm;
+  if(!(tdy->dirichlet)){
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFunction");
+  }
+  norm = 0;
+  ierr = VecGetArray(U,&u);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMGetDefaultSection(dm,&sec);CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  for(c=cStart;c<cEnd;c++){
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk);CHKERRQ(ierr);
+    if(gref<0) continue;
+    ierr = PetscSectionGetOffset(sec,c,&offset);CHKERRQ(ierr);
+    tdy->dirichlet(&(tdy->X[c*dim]),&p);
+    norm += tdy->V[c]*PetscSqr(u[offset]-p);
+  }
+  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,PetscObjectComm((PetscObject)U));CHKERRQ(ierr);
+  norm_sum = PetscSqrtReal(norm_sum);
+  ierr = VecRestoreArray(U,&u);CHKERRQ(ierr);
+  PetscFunctionReturn(norm_sum);
+}
+
+PetscReal TDyTPFVelocityNormFaceAverage(TDy tdy,Vec U){
+  PetscFunctionBegin;
+  PetscFunctionReturn(1e-16);
+}
+
+PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U){
+  PetscFunctionBegin;
+  PetscFunctionReturn(1e-16);
+}

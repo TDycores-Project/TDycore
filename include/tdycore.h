@@ -6,9 +6,8 @@
 
 /* ---------------------------------------------------------------- */
 
-
 typedef enum {
-  TWO_POINT_FLUX=0,     /* classic finite volumes                                  */
+  TPF=0,                /* two point flux, classic finite volumes                  */
   MULTIPOINT_FLUX,      /*                                                         */
   BDM,                  /* P0,BDM1 spaces, standard approach                       */
   WY                    /* P0,BDM1 spaces, vertex quadrature, statically condensed */
@@ -108,6 +107,12 @@ PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,TDyQuadratureType qtype
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS ts,TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,PetscReal *normv,PetscReal *normd);
+
+PETSC_EXTERN PetscErrorCode TDyTPFInitialize(TDy tdy);
+PETSC_EXTERN PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F);
+PETSC_EXTERN PetscReal TDyTPFPressureNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyTPFVelocityNormFaceAverage(TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U);
 
 PETSC_EXTERN PetscErrorCode TDyWYInitialize(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F);

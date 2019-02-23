@@ -51,6 +51,7 @@ void Forcing(double *x,double *f){
 }
 
 /*--- -dim 2 -problem 4 ---------------------------------------------------------------*/
+
 void PermeabilitySine(double *x,double *K){
   K[0] = 2   ; K[1] = 1.25;
   K[2] = 1.25; K[3] = 3;
