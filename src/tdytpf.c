@@ -147,8 +147,63 @@ PetscReal TDyTPFPressureNorm(TDy tdy,Vec U)
 }
 
 PetscReal TDyTPFVelocityNormFaceAverage(TDy tdy,Vec U){
+  PetscErrorCode ierr;
+  PetscInt dim,dim2,i,f,fStart,fEnd,c,cStart,cEnd,row,junk;
+  PetscReal pnt2pnt[3],dist,Ki,p,vel[3],va,ve,*u,sign,face_error,norm,norm_sum;
+  DM dm = tdy->dm;
   PetscFunctionBegin;
-  PetscFunctionReturn(1e-16);
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  dim2 = dim*dim;
+  ierr = VecGetArray(U,&u);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  face_error = 0;
+  norm = 0;
+
+  for(c=cStart;c<cEnd;c++){
+
+    PetscInt cs;
+    const PetscInt *cone;
+    ierr = DMPlexGetConeSize(dm,c,&cs  );CHKERRQ(ierr);
+    ierr = DMPlexGetCone    (dm,c,&cone);CHKERRQ(ierr);
+    for(i=0;i<cs;i++){
+      f = cone[i];      
+
+      PetscInt ss;
+      const PetscInt *supp;
+      ierr = DMPlexGetSupportSize(dm,f,&ss  );CHKERRQ(ierr);
+      ierr = DMPlexGetSupport    (dm,f,&supp);CHKERRQ(ierr);
+
+      if(ss==1 && tdy->dirichlet){
+	ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk);CHKERRQ(ierr);
+	Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[f*dim]),pnt2pnt);
+	dist = Norm(dim,pnt2pnt);
+	Ki = tdy->K[(supp[0]-cStart)*dim2];
+	(*tdy->dirichlet)(&(tdy->X[f*dim]),&p);
+	sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),&(tdy->X[dim*supp[0]]),dim));
+	va = sign* -Ki*(p-u[(supp[0]-cStart)])/dist;
+	tdy->flux(&(tdy->X[f*dim]),&(vel[0]));
+	ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
+	face_error = PetscSqr((va-ve)/tdy->V[f]);
+      }else{	
+	Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[supp[1]*dim]),pnt2pnt);
+	dist = Norm(dim,pnt2pnt);
+	Ki = 0.5*(tdy->K[(supp[0]-cStart)*dim2]+tdy->K[(supp[1]-cStart)*dim2]);
+	sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),&(tdy->X[dim*c]),dim));
+	va = sign* -Ki*(u[(supp[1]-cStart)]-u[(supp[0]-cStart)])/dist *tdy->V[f];
+	if(c==supp[1]) va *= -1;
+	tdy->flux(&(tdy->X[f*dim]),&(vel[0]));
+	ve = TDyADotB(vel,&(tdy->N[dim*f]),dim)*tdy->V[f];
+	face_error = PetscSqr((va-ve)/tdy->V[f]);
+      }
+      //printf("%d %d %d %f %f %e\n",c,i,f,va,ve,face_error);
+      norm += face_error*tdy->V[c];
+    }
+  }
+  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,PetscObjectComm((PetscObject)dm));CHKERRQ(ierr);
+  norm_sum = PetscSqrtReal(norm_sum);
+  ierr = VecRestoreArray(U,&u);CHKERRQ(ierr);
+  PetscFunctionReturn(norm_sum);    
 }
 
 PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U){
