@@ -18,6 +18,7 @@ PetscClassId TDY_CLASSID = 0;
 
 PETSC_EXTERN PetscBool TDyPackageInitialized;
 PetscBool TDyPackageInitialized = PETSC_FALSE;
+PetscLogEvent TDy_ComputeSystem = 0;
 
 PetscErrorCode TDyFinalizePackage(void)
 {
@@ -36,6 +37,8 @@ PetscErrorCode TDyInitializePackage(void)
   if (TDyPackageInitialized) PetscFunctionReturn(0);
   TDyPackageInitialized = PETSC_TRUE;
   ierr = PetscClassIdRegister("TDy",&TDY_CLASSID);CHKERRQ(ierr);
+  /* Register events */
+  ierr = PetscLogEventRegister("TDyComputeSystem",TDY_CLASSID,&TDy_ComputeSystem);CHKERRQ(ierr);
   /* Process info exclusions */
   ierr = PetscOptionsGetString(NULL,NULL,"-info_exclude",logList,sizeof(logList),&opt);CHKERRQ(ierr);
   if (opt) {
@@ -271,6 +274,7 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F){
   PetscErrorCode ierr;
   PetscFunctionBegin;
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm);CHKERRQ(ierr);
+  ierr = PetscLogEventBegin(TDy_ComputeSystem,tdy,K,F,0);CHKERRQ(ierr);
   switch (tdy->method) {
   case TPF:
     ierr = TDyTPFComputeSystem(tdy,K,F);CHKERRQ(ierr);
@@ -285,6 +289,7 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F){
     ierr = TDyWYComputeSystem(tdy,K,F);CHKERRQ(ierr);
     break;
   }
+  ierr = PetscLogEventEnd(TDy_ComputeSystem,tdy,K,F,0);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

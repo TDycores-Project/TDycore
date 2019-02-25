@@ -84,6 +84,8 @@ struct _p_TDy {
 
 PETSC_EXTERN PetscClassId TDY_CLASSID;
 
+PETSC_EXTERN PetscLogEvent TDy_ComputeSystem;
+
 /* ---------------------------------------------------------------- */
 
 PETSC_EXTERN PetscErrorCode TDyCreate(DM dm,TDy *tdy);
