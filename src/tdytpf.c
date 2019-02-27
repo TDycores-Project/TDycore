@@ -45,6 +45,9 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F){
   PetscReal pnt2pnt[3],dist,Ki,p,force;
   DM dm = tdy->dm;
   PetscFunctionBegin;
+  if(!tdy->allow_unsuitable_mesh){
+    ierr = TDyTPFCheckMeshSuitability(tdy);CHKERRQ(ierr);
+  }
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
@@ -209,4 +212,28 @@ PetscReal TDyTPFVelocityNormFaceAverage(TDy tdy,Vec U){
 PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U){
   PetscFunctionBegin;
   PetscFunctionReturn(1e-16);
+}
+
+PetscErrorCode TDyTPFCheckMeshSuitability(TDy tdy){
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscInt dim,f,fStart,fEnd;
+  PetscReal diff,dist,pnt2pnt[3];
+  DM dm = tdy->dm;
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  for(f=fStart;f<fEnd;f++){
+    PetscInt ss;
+    const PetscInt *supp;
+    ierr = DMPlexGetSupportSize(dm,f,&ss  );CHKERRQ(ierr);
+    ierr = DMPlexGetSupport    (dm,f,&supp);CHKERRQ(ierr);
+    if(ss==1) continue;
+    Waxpy(dim,-1,&(tdy->X[supp[1]*dim]),&(tdy->X[supp[0]*dim]),pnt2pnt);
+    dist = Norm(dim,pnt2pnt);
+    diff = PetscAbsReal(TDyADotB(&(tdy->N[f*dim]),pnt2pnt,dim)/dist);
+    if(PetscAbsReal(diff-1) > 10*PETSC_MACHINE_EPSILON){
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_SUP,"Mesh is unsuitable for a consistent two point flux method. To force rerun with -tdy_tpf_allow_unsuitable_mesh");
+    }
+  }
+  PetscFunctionReturn(0);
 }

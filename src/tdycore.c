@@ -116,7 +116,8 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy){
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL; tdy->quad = NULL;
   tdy->faces = NULL; tdy->LtoG = NULL; tdy->orient = NULL;
-
+  tdy->allow_unsuitable_mesh = PETSC_FALSE;
+  
   /* initialize function pointers */
   tdy->forcing = NULL ; tdy->dirichlet = NULL ; tdy->flux = NULL ;
   PetscFunctionReturn(0);
@@ -185,6 +186,8 @@ PetscErrorCode TDySetFromOptions(TDy tdy)
   if (flg && (method != tdy->method)) { ierr = TDySetDiscretizationMethod(tdy,method); }
   ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type","TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&qtype,&flg);
   if (flg && (qtype != tdy->qtype)) { ierr = TDySetQuadratureType(tdy,qtype); }
+  ierr = PetscOptionsBool("-tdy_tpf_allow_unsuitable_mesh","Enable to allow non-orthgonal meshes in tpf","",tdy->allow_unsuitable_mesh,&(tdy->allow_unsuitable_mesh),NULL);CHKERRQ(ierr);
+    
   ierr = PetscOptionsEnd();CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -570,3 +573,4 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,PetscReal *no
   }
   PetscFunctionReturn(0);
 }
+

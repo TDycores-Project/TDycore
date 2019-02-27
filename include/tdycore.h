@@ -66,6 +66,7 @@ struct _p_TDy {
   /* method-specific information*/
   TDyMethod method;
   TDyQuadratureType qtype;
+  PetscBool allow_unsuitable_mesh;
   
   /* Wheeler-Yotov */
   PetscInt  *vmap;      /* [cell,local_vertex] --> global_vertex */
@@ -115,6 +116,7 @@ PETSC_EXTERN PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscReal TDyTPFPressureNorm(TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyTPFVelocityNormFaceAverage(TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscErrorCode TDyTPFCheckMeshSuitability(TDy tdy);
 
 PETSC_EXTERN PetscErrorCode TDyWYInitialize(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F);
