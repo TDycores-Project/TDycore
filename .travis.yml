@@ -29,7 +29,7 @@ script:
   - .travis/install-petsc.sh
   - export PETSC_DIR=$PWD/petsc; export PETSC_ARCH=petsc-arch
   - make VERBOSE=1 
-  - (cd demo; make)
+  - (cd demo; make codecov=1 )
   - (cd demo; ./steady -ksp_monitor)
   - (cd demo; ./transient -ksp_monitor)
 
