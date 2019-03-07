@@ -2,6 +2,17 @@ ALL: all
 LOCDIR = .
 DIRS   = include src docs test demo
 
+ifdef codecov
+  MYFLAGS += -fprofile-arcs -ftest-coverage
+  LIBS    += -lgcov
+endif
+
+# These flags are supplemental to the PETSc flags
+CFLAGS   = ${LIBS}
+FFLAGS   = ${LIBS}
+CPPFLAGS = ${MYFLAGS}
+FPPFLAGS = ${MYFLAGS}
+
 TDYCORE_DIR ?= $(CURDIR)
 include ${TDYCORE_DIR}/lib/tdycore/conf/variables
 include ${TDYCORE_DIR}/lib/tdycore/conf/rules
@@ -50,7 +61,7 @@ all-gmake: chk_petsc_dir chk_tdycore_dir arch-tree
 	-@echo "Using PETSC_DIR=${PETSC_DIR}"
 	-@echo "Using PETSC_ARCH=${PETSC_ARCH}"
 	-@echo "=================================================="
-	@${GMAKE} gmake-build PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR} 2>&1 | tee ./${PETSC_ARCH}/log/make.log
+	@${GMAKE} gmake-build PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR} CFLAGS="${CFLAGS}" FFLAGS="${FFLAGS}" CPPFLAGS="${CPPFLAGS}" FPPFLAGS="${FPPFLAGS}"  2>&1 | tee ./${PETSC_ARCH}/log/make.log
 	-@echo "=================================================="
 .PHONY: gmake-build gmake-clean all-gmake
 
@@ -104,7 +115,7 @@ all-cmake: chk_petsc_dir chk_tdycore_dir arch-tree
 	-@echo "Using PETSC_DIR=${PETSC_DIR}"
 	-@echo "Using PETSC_ARCH=${PETSC_ARCH}"
 	-@echo "=================================================="
-	@${OMAKE} cmake-build PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR} 2>&1 | tee ./${PETSC_ARCH}/log/make.log
+	@${OMAKE} cmake-build PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR} CFLAGS="${CFLAGS}" FFLAGS="${FFLAGS}" CPPFLAGS="${CPPFLAGS}" FPPFLAGS="${FPPFLAGS}" 2>&1 | tee ./${PETSC_ARCH}/log/make.log
 	-@echo "=================================================="
 .PHONY: cmake-boot cmake-down cmake-build cmake-clean all-cmake
 
