@@ -1,0 +1,38 @@
+language: 
+
+before_script:
+  - echo -e "Host *\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
+
+sudo: required
+
+dist: trusty # Ubuntu 14.04.
+
+compiler:
+  - gcc
+
+install: sh ./.travis/install-$TRAVIS_OS_NAME-deps.sh
+
+addons:
+  apt:
+    packages:
+      - cmake
+
+matrix:
+  include:
+    - env:
+      os: linux
+
+#    - env:
+#      os: osx
+
+script: 
+  - .travis/install-petsc.sh
+  - export PETSC_DIR=$PWD/petsc; export PETSC_ARCH=petsc-arch
+  - make VERBOSE=1 
+  - (cd demo; make)
+  - (cd demo; ./steady -ksp_monitor)
+  - (cd demo; ./transient -ksp_monitor)
+
+after_success:
+ - bash <(curl -s https://codecov.io/bash)
+
