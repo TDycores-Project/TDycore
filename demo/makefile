@@ -13,7 +13,7 @@ FPPFLAGS = ${MYFLAGS}
 
 ALL: $(TARGETS)
 clean::
-	-@$(RM) $(TARGETS)
+	-@$(RM) $(TARGETS) *.gcov
 
 topdir := $(shell cd .. && pwd)
 TDYCORE_DIR ?= $(topdir)

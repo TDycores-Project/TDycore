@@ -16,6 +16,7 @@ addons:
   apt:
     packages:
       - cmake
+      - lcov
 
 matrix:
   include:
@@ -28,12 +29,16 @@ matrix:
 script: 
   - .travis/install-petsc.sh
   - export PETSC_DIR=$PWD/petsc; export PETSC_ARCH=petsc-arch
-  - make VERBOSE=1 
+  - make codecov=1 V=1 
   - (cd demo; make codecov=1 )
   - (cd demo; ./steady -ksp_monitor)
   - (cd demo; ./transient -ksp_monitor)
-  - cp $PETSC_ARCH/obj/src/*.* src 
+  - ls $PETSC_ARCH/obj/src/
 
 after_success:
- - bash <(curl -s https://codecov.io/bash)
+# Source: https://github.com/codecov/example-cpp11-cmake
+ - lcov --capture --directory . --output-file coverage.info
+#- lcov --remove coverage.info 'petsc-arch/*' --output-file coverage.info # filter system-files
+ - lcov --list coverage.info # debug info
+ - bash <(curl -s https://codecov.io/bash  -f coverage.info)
 
