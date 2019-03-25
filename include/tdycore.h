@@ -149,6 +149,7 @@ PETSC_EXTERN PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **_map);
 PETSC_EXTERN PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **_map);
 PETSC_EXTERN PetscErrorCode TDyQuadrature(PetscQuadrature q,PetscInt dim);
 
+PETSC_EXTERN void HdivBasisQuad(const PetscReal *x,PetscReal *B);
 /* ---------------------------------------------------------------- */
 
 PETSC_EXTERN void PrintMatrix(PetscReal *A,PetscInt nr,PetscInt nc,PetscBool row_major);
