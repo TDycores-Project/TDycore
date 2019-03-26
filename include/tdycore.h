@@ -48,8 +48,7 @@ struct _p_TDy {
   /* MPFA-O */
   TDy_mesh *mesh;
   PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
-  PetscReal ***Trans_in;
-  PetscReal ***Trans_bc;
+  PetscReal ***Trans;
 
 };
 
@@ -80,6 +79,7 @@ PETSC_EXTERN PetscReal TDyWYVelocityNorm(DM dm,TDy tdy);
 PETSC_EXTERN PetscReal TDyWYDivergenceNorm(DM dm,TDy tdy);
 
 PETSC_EXTERN PetscErrorCode TDyMPFAOInitialize(DM, TDy);
+PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(DM,TDy, Mat, Vec);
 
 /* ---------------------------------------------------------------- */
 
