@@ -198,7 +198,7 @@ PetscErrorCode TDyWYInitialize(TDy tdy){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   MPI_Comm       comm;
-  PetscInt i,dim,nq,c,cStart,cEnd,f,fStart,fEnd,vStart,vEnd,p,pStart,pEnd,nv;
+  PetscInt i,dim,ncv,nfv,c,cStart,cEnd,f,fStart,fEnd,vStart,vEnd,p,pStart,pEnd;
   PetscInt  closureSize,  *closure;
   PetscSection sec;
   DM dm = tdy->dm;
@@ -211,7 +211,7 @@ PetscErrorCode TDyWYInitialize(TDy tdy){
   
   /* Check that the number of vertices per cell are constant. Soft
      limitation, method is flexible but my data structures are not. */
-  nq = TDyGetNumberOfCellVertices(dm);
+  ncv = TDyGetNumberOfCellVertices(dm);
 
   /* Create a PETSc quadrature, we don't really use this, it is just
      to evaluate the Jacobian via the PETSc interface. */
@@ -223,39 +223,53 @@ PetscErrorCode TDyWYInitialize(TDy tdy){
   ierr = TDyCreateCellVertexDirFaceMap(tdy,&(tdy->emap));CHKERRQ(ierr);
   
   /* Allocate space for Alocal and Flocal */
-  ierr = PetscMalloc(dim*dim*nq*(cEnd-cStart)*sizeof(PetscReal),&(tdy->Alocal));CHKERRQ(ierr);
-  ierr = PetscMalloc(           (cEnd-cStart)*sizeof(PetscReal),&(tdy->Flocal));CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*dim*ncv*(cEnd-cStart)*sizeof(PetscReal),&(tdy->Alocal));CHKERRQ(ierr);
+  ierr = PetscMalloc(            (cEnd-cStart)*sizeof(PetscReal),&(tdy->Flocal));CHKERRQ(ierr);
 
   /* Allocate space for velocities and create a local_vertex->face map */
-  nv = TDyGetNumberOfFaceVertices(dm);
-  ierr = PetscMalloc(nv*(fEnd-fStart)*sizeof(PetscReal),&(tdy->vel ));CHKERRQ(ierr);
-  ierr = PetscMalloc(nv*(fEnd-fStart)*sizeof(PetscInt ),&(tdy->fmap));CHKERRQ(ierr);
+  nfv = TDyGetNumberOfFaceVertices(dm);
+  ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscReal),&(tdy->vel ));CHKERRQ(ierr);
+  ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscInt ),&(tdy->fmap));CHKERRQ(ierr);
   for(f=fStart;f<fEnd;f++){
     closure = NULL;
     ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
     c = 0;
     for (i=0;i<closureSize*2;i+=2){
       if ((closure[i] >= vStart) && (closure[i] < vEnd)){
-	tdy->fmap[nv*(f-fStart)+c] = closure[i];
+	tdy->fmap[nfv*(f-fStart)+c] = closure[i];
 	c += 1;
       }
     }
+#if defined(PETSC_USE_DEBUG)
+    if(c != nfv){
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Unable to find map(face,local_vertex) -> vertex");
+    }
+#endif    
     ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);CHKERRQ(ierr);
   }
 
   /* map(cell,dim,side) --> global_face */
-  ierr = PetscMalloc((cEnd-cStart)*PetscPowInt(2,dim)*sizeof(PetscInt),&(tdy->faces));CHKERRQ(ierr);
-  PetscInt v,d,s,ncv;
-  ncv = TDyGetNumberOfCellVertices(dm);
+  ierr = PetscMalloc((cEnd-cStart)*(2*dim)*sizeof(PetscInt),&(tdy->faces));CHKERRQ(ierr);
+#if defined(PETSC_USE_DEBUG)
+  for(c=0;c<((cEnd-cStart)*(2*dim));c++){ tdy->faces[c] = -1; }
+#endif
+  PetscInt v,d,s;
   for(c=cStart;c<cEnd;c++){
     for(d=0;d<dim;d++){
       for(s=0;s<2;s++){
-	v = s*PetscPowInt(2,d);	
+	v = s*PetscPowInt(2,d);
 	tdy->faces[(c-cStart)*dim*2+d*2+s] = PetscAbsInt(tdy->emap[(c-cStart)*ncv*dim+v*dim+d]);
       }
     }
   }
-
+#if defined(PETSC_USE_DEBUG)  
+  for(c=0;c<((cEnd-cStart)*(2*dim));c++){
+    if(tdy->faces[c] < 0){
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Unable to find map(cell,dir,side) -> face");
+    }
+  }
+#endif
+  
   /* Setup the section, 1 dof per cell */
   ierr = PetscSectionCreate(comm,&sec);CHKERRQ(ierr);
   ierr = PetscSectionSetNumFields(sec,1);CHKERRQ(ierr);
@@ -287,13 +301,13 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,PetscReal *integral
   PetscInt v,ncv,i,j,d,q,nq,dim,face_dir,face_side,fStart,fEnd,lside[24],nq1d = 2;
   PetscQuadrature quadrature;
   const PetscScalar *quad_x,*quad_w;
-  PetscReal xq[3],x[27],J[9],N[24],value;
+  PetscReal xq[3],x[27],J[9],N[24],DF[72],DFinv[72],value;
   DM dm = tdy->dm;
   ncv  = TDyGetNumberOfCellVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quadrature);CHKERRQ(ierr);
   ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr); 
-  ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,x,NULL,NULL,J);CHKERRQ(ierr);
+  ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,x,DF,DFinv,J);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
 
   if(dim==2){
@@ -328,18 +342,6 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,PetscReal *integral
   (*integral) = 0;
   for(q=0;q<nq;q++){
 
-    /* print quadrature point in dim-1 */
-    //printf("q%d xq[",q);
-    //for(d=0;d<(dim-1);d++)
-    //  printf(" %+.3f",quad_x[(dim-1)*q+d]);
-    //printf(" ] ");
-
-    /* print mapped quantity */
-    //printf("x[");
-    //for(d=0;d<dim;d++)
-    //  printf(" %+.3f",x[dim*q+d]);
-    //printf(" ] ");
-    
     /* extend the dim-1 quadrature point to dim */
     j = 0;
     xq[0] = 0; xq[1] = 0; xq[2] = 0;
@@ -351,17 +353,14 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,PetscReal *integral
 	j += 1;
       }
     }
-    //printf("xq[");
-    //for(d=0;d<dim;d++)
-    //  printf(" %+.3f",xq[d]);
-    //printf(" ] ");
 
-    /* */
+    /* <g,v.n> */
     (*tdy->dirichlet)(&(x[dim*q]),&value);
-    //printf(" %+g",value);
-
-    /* */
-    HdivBasisQuad(xq,N);
+    if(dim==2){
+      HdivBasisQuad(xq,N);
+    }else{
+      HdivBasisHex(xq,N);
+    }
     for(v=0;v<ncv;v++){
       for(d=0;d<dim;d++){
 	if(PetscAbsInt(tdy->emap[c*ncv*dim+v*dim+d]) == f){
@@ -369,8 +368,9 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,PetscReal *integral
 	}
       }
     }
-    //printf(" %+g\n",(*integral));
   }
+  ierr = PetscQuadratureDestroy(&quadrature);CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -411,6 +411,11 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F){
       if ((closure[c] >= fStart) && (closure[c] < fEnd)) { Amap[nA] = closure[c]; nA += 1; }
       if ((closure[c] >= cStart) && (closure[c] < cEnd)) { Bmap[nB] = closure[c]; nB += 1; }
     }
+#if defined(PETSC_USE_DEBUG)
+    if(PetscMax(nA,nB)*PetscMax(nA,nB) > MAX_LOCAL_SIZE){
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"MAX_LOCAL_SIZE not set large enough");
+    }
+#endif    
     ierr = PetscMemzero(A,sizeof(PetscScalar)*MAX_LOCAL_SIZE);CHKERRQ(ierr);
     ierr = PetscMemzero(B,sizeof(PetscScalar)*MAX_LOCAL_SIZE);CHKERRQ(ierr);
     ierr = PetscMemzero(C,sizeof(PetscScalar)*MAX_LOCAL_SIZE);CHKERRQ(ierr);
@@ -458,7 +463,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F){
 	  ierr = DMGetLabelValue(dm,"marker",global_row,&isbc);CHKERRQ(ierr);
 	  if(isbc == 1 && tdy->dirichlet){
 	    ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet);CHKERRQ(ierr);
-	    G[local_row] += 0.5*pdirichlet;	    
+	    G[local_row] = wgt*pdirichlet;
 	  }
 
 	  for(element_col=0;element_col<dim;element_col++){ // which trial function, local to the element/vertex
@@ -613,7 +618,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U)
 	  ierr = DMGetLabelValue(dm,"marker",global_row,&isbc);CHKERRQ(ierr);
 	  if(isbc == 1 && tdy->dirichlet){
 	    ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet);CHKERRQ(ierr);
-	    F[local_row] -= 0.5*pdirichlet;
+	    F[local_row] -= wgt*pdirichlet;
 	  }
 
 	  for(element_col=0;element_col<dim;element_col++){ // which trial function, local to the element/vertex
@@ -655,6 +660,15 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U)
     }
     ierr = DMPlexRestoreTransitiveClosure(dm,v,PETSC_FALSE,&closureSize,&closure);CHKERRQ(ierr);
   }
+
+  /* for(q=fStart;q<fEnd;q++){ */
+  /*   for(c=0;c<2;c++){ */
+  /*     v = tdy->fmap[nv*(q-fStart)+c]; */
+  /*     printf("%d %f %f %d %f %f    %+f\n",q,tdy->X[q*dim],tdy->X[q*dim+1], */
+  /* 	     v,tdy->X[v*dim],tdy->X[v*dim+1], */
+  /* 	     tdy->vel[nv*(q-fStart)+c]); */
+  /*   } */
+  /* } */
   ierr = VecRestoreArray(localU,&u);CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&localU);CHKERRQ(ierr);
 
@@ -733,11 +747,12 @@ PetscReal TDyWYVelocityNormFaceAverage(TDy tdy)
       for(j=0;j<nv;j++){
 	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
 	vn = TDyADotB(v,&(tdy->N[dim*f]),dim);
+	if(f==21) printf("  %+f %+f\n",vn,tdy->vel[dim*(f-fStart)+j]);      
 	flux0 += vn                        *wgt*tdy->V[f];
 	flux  += tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
       }
+      if(f==21) printf("vf: %2d %+1.15e %+1.15e\n",f,flux,flux0);
       flux_error = PetscSqr((flux-flux0)/tdy->V[f]);
-      //printf("%f %f %e\n",tdy->X[f*dim],tdy->X[f*dim+1],flux_error);
       norm += tdy->V[c]*flux_error;
     }
   }
@@ -758,94 +773,7 @@ PetscReal TDyWYVelocityNormFaceAverage(TDy tdy)
 PetscReal TDyWYVelocityNorm(TDy tdy)
 {
   PetscFunctionBegin;
-  PetscErrorCode ierr;
-  PetscInt gref,nlocal,ncv,nfv,dim,c,cStart,cEnd,fStart,fEnd,s,vv,d,dd,f,q,nq,i,j,count,nq1d=3;
-  PetscReal xq[3],vel[3],vel0[3],x[27],J[9],N[24],norm=0,norm_sum=0;
-  const PetscScalar *quad_x,*quad_w;
-  PetscQuadrature quadrature;
-  PetscScalar face_error,ve,va,flux0,flux,orient;
-  DM dm = tdy->dm;
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
-  
-  //ierr = VecGetArray(U,&u);CHKERRQ(ierr);
-  
-  ncv = TDyGetNumberOfCellVertices(dm);
-  nfv = TDyGetNumberOfFaceVertices(dm);
-  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
-  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quadrature);CHKERRQ(ierr);
-  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr); 
-  nlocal = ncv*dim + 1;
-  for(c=cStart;c<cEnd;c++){ /* loop cells */
-    ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd);CHKERRQ(ierr);
-    if (gref < 0) continue;
-    //printf("c%d:\n",c);
-    for(d=0;d<dim;d++){
-      for(s=0;s<2;s++){ /* loop faces */	
-	f = tdy->faces[(c-cStart)*PetscPowInt(2,dim)+2*d+s];
-	//printf("  f%d:\n",f);
-	/* integrate over face */
-	face_error = 0;
-	ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,x,NULL,NULL,J);CHKERRQ(ierr);
-	flux0 = 0; flux = 0;
-	for(q=0;q<nq;q++){
-	  
-	  /* extend the dim-1 quadrature point to dim */
-	  j = 0;
-	  for(i=0;i<dim;i++){
-	    if(i == d){
-	      xq[i] = PetscPowInt(-1,s+1);
-	    }else{
-	      xq[i] = quad_x[q*(dim-1)+j];
-	      j += 1;
-	    }
-	  }
-	  
-	  /* interpolate the normal component of the velocity */
-	  HdivBasisQuad(xq,N);
-	  vel[0] = 0; vel[1] = 0; vel[2] = 0;
-	  for(vv=0;vv<ncv;vv++)
-	    for(dd=0;dd<dim;dd++){
-	      i = vv*dim+dd;
-	      j = (c-cStart)*nlocal + i;
-	      //printf("%d %+f\n",i,N[i]);
-	      if(PetscAbsInt(tdy->emap[(c-cStart)*ncv*dim+i]) == f){
-		orient = (PetscScalar)(PetscSign(tdy->emap[(c-cStart)*ncv*dim+i]));
-		count = -1;
-		for(count=0;count<nfv;count++){
-		  if(tdy->vmap[(c-cStart)*ncv+vv] == tdy->fmap[(f-fStart)*nfv+count]){
-		    vel[dd] += N[i]*tdy->vel[(f-fStart)*nfv+count]*orient;
-		    //printf("%d %d %d %d %d\n",c,f,vv,dd,q);
-		  }
-		}
-		
-	      }
-	    }
-	  tdy->flux(&(x[q*dim]),vel0);
-	  ve = TDyADotB(vel0,&(tdy->N[f*dim]),dim);
-	  va = TDyADotB(vel ,&(tdy->N[f*dim]),dim);
-	  //printf("    v  = %+f, %+f  v .n = %f\n",vel[0] ,vel[1] ,va);
-	  //printf("    v0 = %+f, %+f  v0.n = %f\n",vel0[0],vel0[1],ve);
-	  
-	  /* error norm using (3.40) of Wheeler2012 */
-	  // sqrt( int( f(x)^2, dx) )
-	  flux0 += ve*quad_w[q]*J[q];
-	  flux  += va*quad_w[q]*J[q];
-	}
-	face_error += PetscSqr((flux-flux0)/tdy->V[f]);
-
-	//printf("%f %f %e\n",tdy->X[f*dim],tdy->X[f*dim+1],face_error);
-	norm += face_error*tdy->V[c];
-      }
-    }
-    
-  }
-  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,PetscObjectComm((PetscObject)dm));CHKERRQ(ierr);
-  norm_sum = PetscSqrtReal(norm_sum);
-  PetscFunctionReturn(norm_sum);
-  //ierr = VecRestoreArray(U,&u);CHKERRQ(ierr);
-  ierr = PetscQuadratureDestroy(&quadrature);CHKERRQ(ierr);
-  PetscFunctionReturn(norm_sum);    
+  PetscFunctionReturn(1e-16);
 }
 
 /*
