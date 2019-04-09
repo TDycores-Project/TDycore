@@ -7,10 +7,10 @@ void Permeability(double *x,double *K){
   K[2] = 1; K[3] = 2;
 }
 
-/*--- -dim 2 -problem 1 ---------------------------------------------------------------*/
+/*--- -dim {2|3} -problem 1 ---------------------------------------------------------------*/
 
-void PressureConstant(double *x,double *p){ (*p) = 1; }
-void VelocityConstant(double *x,double *v){ v[0] = 0; v[1] = 0; }
+void PressureConstant(double *x,double *p){ (*p) = 3.14; }
+void VelocityConstant(double *x,double *v){ v[0] = 0; v[1] = 0; v[2] = 0;}
 void ForcingConstant(double *x,double *f){ (*f) = 0; }
 
 /*--- -dim 2 -problem 2 ---------------------------------------------------------------*/
@@ -81,7 +81,7 @@ void ForcingSine(double *x,double *f){
   (*f) =  18*pi*pi*(K[0]*s3pX*s3pX*s3pY*s3pY - K[0]*s3pY*s3pY*c3pX*c3pX - K[1]*(PetscCosReal(6*pi*(x[0] - x[1])) - PetscCosReal(6*pi*(x[0] + x[1])))/4 - K[2]*(PetscCosReal(6*pi*(x[0] - x[1])) - PetscCosReal(6*pi*(x[0] + x[1])))/4 + K[3]*s3pX*s3pX*s3pY*s3pY - K[3]*s3pX*s3pX*c3pY*c3pY);
 }
 
-/*-------------------------------------------------------------------------------------*/
+/*--- -dim 3 -problem 2 ---------------------------------------------------------------*/
 
 void Permeability3D(double *x,double *K){
   K[0] = alpha; K[1] = 1; K[2] = 1;
@@ -90,26 +90,37 @@ void Permeability3D(double *x,double *K){
 }
 
 void Pressure3D(double *x,double *f){
-  (*f)  = x[0]*(-x[0]+1);
-  (*f) += x[1]*(-x[1]+1);
-  (*f) += x[2]*(-x[2]+1);
-  //(*f) = x[0] + x[1] + x[2];
+  PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
+  PetscReal xm12 = PetscSqr(x[0]-1);
+  PetscReal ym12 = PetscSqr(x[1]-1);
+  PetscReal zm12 = PetscSqr(x[2]-1);
+  (*f) = x2*y2*z2*xm12*ym12*zm12;
 }
 
 void Velocity3D(double *x,double *v){
+  PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
+  PetscReal xm12 = PetscSqr(x[0]-1);
+  PetscReal ym12 = PetscSqr(x[1]-1);
+  PetscReal zm12 = PetscSqr(x[2]-1);
+  PetscReal px = (x2*y2*z2*(2*x[0] - 2)*ym12*zm12 + 2*x[0]*y2*z2*xm12*ym12*zm12);
+  PetscReal py = (x2*y2*z2*xm12*(2*x[1] - 2)*zm12 + 2*x2*x[1]*z2*xm12*ym12*zm12);
+  PetscReal pz = (x2*y2*z2*xm12*ym12*(2*x[2] - 2) + 2*x2*y2*x[2]*xm12*ym12*zm12);
   double K[9]; Permeability3D(x,K);
-  v[0] = -K[0]*(-2*x[0]+1) - K[1]*(-2*x[1]+1) - K[2]*(-2*x[2]+1);
-  v[1] = -K[3]*(-2*x[0]+1) - K[4]*(-2*x[1]+1) - K[5]*(-2*x[2]+1);
-  v[2] = -K[6]*(-2*x[0]+1) - K[7]*(-2*x[1]+1) - K[8]*(-2*x[2]+1);
-  //v[0] = -(K[0]+K[1]+K[2]);
-  //v[1] = -(K[3]+K[4]+K[5]);
-  //v[2] = -(K[6]+K[7]+K[8]);
+  v[0] = -K[0]*px - K[1]*py - K[2]*pz;
+  v[1] = -K[3]*px - K[4]*py - K[5]*pz;
+  v[2] = -K[6]*px - K[7]*py - K[8]*pz;
 }
 
 void Forcing3D(double *x,double *f){
+  PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
+  PetscReal xm1  = (x[0]-1);
+  PetscReal ym1  = (x[1]-1);
+  PetscReal zm1  = (x[2]-1);
+  PetscReal xm12 = PetscSqr(x[0]-1);
+  PetscReal ym12 = PetscSqr(x[1]-1);
+  PetscReal zm12 = PetscSqr(x[2]-1);
   double K[9]; Permeability3D(x,K);
-  (*f) = 2*(K[0] + K[4] + K[8]);
-  //(*f) = 0;
+  (*f) = -2*K[0]*y2*z2*ym12*zm12*(x2 + 4*x[0]*xm1 + xm12) - 4*K[1]*x[0]*x[1]*z2*xm1*ym1*zm12*(x[0]*x[1] + x[0]*ym1 + x[1]*xm1 + xm1*ym1) - 4*K[2]*x[0]*y2*x[2]*xm1*ym12*zm1*(x[0]*x[2] + x[0]*zm1 + x[2]*xm1 + xm1*zm1) - 4*K[3]*x[0]*x[1]*z2*xm1*ym1*zm12*(x[0]*x[1] + x[0]*ym1 + x[1]*xm1 + xm1*ym1) - 2*K[4]*x2*z2*xm12*zm12*(y2 + 4*x[1]*ym1 + ym12) - 4*K[5]*x2*x[1]*x[2]*xm12*ym1*zm1*(x[1]*x[2] + x[1]*zm1 + x[2]*ym1 + ym1*zm1) - 4*K[6]*x[0]*y2*x[2]*xm1*ym12*zm1*(x[0]*x[2] + x[0]*zm1 + x[2]*xm1 + xm1*zm1) - 4*K[7]*x2*x[1]*x[2]*xm12*ym1*zm1*(x[1]*x[2] + x[1]*zm1 + x[2]*ym1 + ym1*zm1) - 2*K[8]*x2*y2*xm12*ym12*(z2 + 4*x[2]*zm1 + zm12);
 }
 
 PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h){
@@ -143,7 +154,7 @@ int main(int argc, char **argv)
 {
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt N = 4, dim = 2, problem = 3;
+  PetscInt N = 4, dim = 2, problem = 2;
   PetscBool perturb = PETSC_FALSE;
   ierr = PetscInitialize(&argc,&argv,(char*)0,0);CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");CHKERRQ(ierr);
@@ -198,9 +209,18 @@ int main(int argc, char **argv)
     }      
   }else{
     ierr = TDySetPermeabilityTensor(tdy,Permeability3D);CHKERRQ(ierr);
-    ierr = TDySetForcingFunction(tdy,Forcing3D);CHKERRQ(ierr);
-    ierr = TDySetDirichletFunction(tdy,Pressure3D);CHKERRQ(ierr);
-    ierr = TDySetDirichletFlux(tdy,Velocity3D);CHKERRQ(ierr);
+    switch(problem){
+    case 1:
+      ierr = TDySetForcingFunction(tdy,ForcingConstant);CHKERRQ(ierr);
+      ierr = TDySetDirichletFunction(tdy,PressureConstant);CHKERRQ(ierr);
+      ierr = TDySetDirichletFlux(tdy,VelocityConstant);CHKERRQ(ierr);
+      break;
+    case 2:
+      ierr = TDySetForcingFunction(tdy,Forcing3D);CHKERRQ(ierr);
+      ierr = TDySetDirichletFunction(tdy,Pressure3D);CHKERRQ(ierr);
+      ierr = TDySetDirichletFlux(tdy,Velocity3D);CHKERRQ(ierr);
+      break;
+    }
   }
   ierr = TDySetDiscretizationMethod(tdy,WY);CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy);CHKERRQ(ierr);
