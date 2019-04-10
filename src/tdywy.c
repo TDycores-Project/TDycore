@@ -747,11 +747,11 @@ PetscReal TDyWYVelocityNormFaceAverage(TDy tdy)
       for(j=0;j<nv;j++){
 	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
 	vn = TDyADotB(v,&(tdy->N[dim*f]),dim);
-	if(f==21) printf("  %+f %+f\n",vn,tdy->vel[dim*(f-fStart)+j]);      
+	//if(f==21) printf("  %+f %+f\n",vn,tdy->vel[dim*(f-fStart)+j]);      
 	flux0 += vn                        *wgt*tdy->V[f];
 	flux  += tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
       }
-      if(f==21) printf("vf: %2d %+1.15e %+1.15e\n",f,flux,flux0);
+      //if(f==21) printf("vf: %2d %+1.15e %+1.15e\n",f,flux,flux0);
       flux_error = PetscSqr((flux-flux0)/tdy->V[f]);
       norm += tdy->V[c]*flux_error;
     }
@@ -773,7 +773,97 @@ PetscReal TDyWYVelocityNormFaceAverage(TDy tdy)
 PetscReal TDyWYVelocityNorm(TDy tdy)
 {
   PetscFunctionBegin;
-  PetscFunctionReturn(1e-16);
+  PetscErrorCode ierr;
+  PetscInt c,cStart,cEnd,dim,gref,fStart,fEnd,junk,d,s,f;
+  DM dm = tdy->dm;
+  if(!(tdy->flux)){
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the velocity function with TDySetDirichletFlux");
+  }
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+
+  PetscInt i,j,ncv,nfv,q,nq,nq1d=1;
+  const PetscScalar *quad_x,*quad_w;
+  PetscReal xq[3],x[100],DF[100],DFinv[100],J[100],N[24],vel[3],ve,va,flux0,flux,flux_error,Nn,C;
+  PetscQuadrature quad;
+  ncv  = TDyGetNumberOfCellVertices(dm);
+  nfv  = TDyGetNumberOfFaceVertices(dm);
+  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quad);CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr); 
+
+  /* loop cells */
+  flux_error = 0;
+  for(c=cStart;c<cEnd;c++){
+    //printf("cell %2d\n",c);
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk);CHKERRQ(ierr);
+    if (gref < 0) continue;
+
+    /* loop faces */
+    for(d=0;d<dim;d++){
+      for(s=0;s<2;s++){	
+	f = tdy->faces[(c-cStart)*dim*2+d*2+s];
+	//printf("   face %2d\n",f);	
+	ierr = DMPlexComputeCellGeometryFEM(dm,f,quad,x,DF,DFinv,J);CHKERRQ(ierr);
+
+	/* loop quadrature */
+	flux0 = flux = 0;
+	for(q=0;q<nq;q++){
+	  
+	  /* extend the dim-1 quadrature point to dim */
+	  j = 0;
+	  xq[0] = 0; xq[1] = 0; xq[2] = 0;
+	  for(i=0;i<dim;i++){
+	    if(i == d){
+	      xq[i] = PetscPowInt(-1,s+1);
+	    }else{
+	      xq[i] = quad_x[q*(dim-1)+j];
+	      j += 1;
+	    }
+	  }	  
+	  //printf("      quad %d, x = %+.3f %+.3f, xq = %+.3f %+.3f, J = %f\n",q,x[q*dim],x[q*dim+1],xq[0],xq[1],J[q]);
+	  if(dim==2){
+	    HdivBasisQuad(xq,N);
+	  }else{
+	    HdivBasisHex(xq,N);
+	  }
+	  va = 0;
+
+	  //if(v == tdy->fmap[nv*(global_row-fStart)+offset]){
+	  // tdy->vel[nv*(global_row-fStart)+offset] = F[q];
+	  
+	  for(i=0;i<ncv;i++){
+	    Nn = PetscPowInt(-1,s+1)*N[i*dim+d];
+
+	    for(j=0;j<nfv;j++){
+	      if(tdy->vmap[ncv*(c-cStart)+i] == tdy->fmap[nfv*(f-fStart)+j]) break;
+	    }	    
+	    C  = tdy->vel[nfv*(f-fStart)+j];
+	    va += Nn*C;
+	    //if(f==21) printf("         N[%d] = [%+.2f,%+.2f] -> %+.2f * %+.4f\n",i,N[i*dim],N[i*dim+1],Nn,C);
+	  }
+	  //printf("      va = %f\n",va);
+	  
+	  tdy->flux(x,vel);
+	  ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
+	  //printf("      ve = %f\n",ve);
+
+	  flux  += va*quad_w[q]*J[q];
+	  flux0 += ve*quad_w[q]*J[q];
+	  
+	}
+	//if(f==21) printf("vf: %2d %+1.15e %+1.15e\n",f,flux,flux0);
+	
+	//printf("      flux0 = %f, flux = %f\n",flux0,flux);
+	flux_error += PetscSqr((flux-flux0)/tdy->V[f])*tdy->V[c];
+	// int(va)/V - int(ve)/V
+	// int(va-ve)/V
+	
+      }
+    }
+    
+  }  
+  PetscFunctionReturn(PetscSqrtReal(flux_error));
 }
 
 /*
@@ -787,7 +877,7 @@ PetscReal TDyWYDivergenceNorm(TDy tdy)
   PetscReal div0,div,flux0,flux,norm,norm_sum,sign,v[3],vn,wgt;
   DM dm = tdy->dm;
   if(!(tdy->flux)){
-    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the pressure function with TDySetDirichletFlux");
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the velocity function with TDySetDirichletFlux");
   }
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
