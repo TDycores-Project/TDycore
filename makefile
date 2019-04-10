@@ -63,7 +63,7 @@ all-gmake: chk_petsc_dir chk_tdycore_dir arch-tree
 	-@echo "=================================================="
 	@${GMAKE} gmake-build PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR} CFLAGS="${CFLAGS}" FFLAGS="${FFLAGS}" CPPFLAGS="${CPPFLAGS}" FPPFLAGS="${FPPFLAGS}"  2>&1 | tee ./${PETSC_ARCH}/log/make.log
 	-@echo "=================================================="
-.PHONY: gmake-build gmake-clean all-gmake
+.PHONY: gmake-build gmake-clean all-gmake style
 
 
 #
@@ -230,6 +230,12 @@ test-build:
 	-@echo "Completed test"
 .PHONY: check test test-build
 
+#
+# Documentation
+#
+style :
+	@astyle --options=.astylerc \
+          ${TDYCORE_DIR}/src/*.[ch] ${TDYCORE_DIR}/include/*.[ch] ${TDYCORE_DIR}/demo/*.[ch]
 
 #
 # Documentation
