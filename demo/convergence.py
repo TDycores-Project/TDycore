@@ -47,11 +47,12 @@ for i,n in enumerate(N):
     output,errors = process.communicate()
     E[i] = [float(v) for v in output.split()]
     print("%3d  %.6e %.6e %.6e" % (n,E[i,0],E[i,1],E[i,2]))
+
+for s in range(h.size-1):
     
-s = 2 # ignore the first two in the rate
-print("rate = %.2f  %.2f  %.2f" % (np.polyfit(np.log10(h[s:]),np.log10(E[s:,0]),1)[0],
-                                   np.polyfit(np.log10(h[s:]),np.log10(E[s:,1]),1)[0],
-                                   np.polyfit(np.log10(h[s:]),np.log10(E[s:,2]),1)[0]))
+    print("rate = %.2f  %.2f  %.2f" % (np.polyfit(np.log10(h[s:]),np.log10(E[s:,0]),1)[0],
+                                       np.polyfit(np.log10(h[s:]),np.log10(E[s:,1]),1)[0],
+                                       np.polyfit(np.log10(h[s:]),np.log10(E[s:,2]),1)[0]))
 
 pad = 0.05
 lbl = 0.19
