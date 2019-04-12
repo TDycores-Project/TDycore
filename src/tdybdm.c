@@ -116,10 +116,12 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
       tdy->fmap[nfv*(f-fStart)+i] = closure[c];
       i += 1;
     }
+#if defined(PETSC_USE_DEBUG)    
     if(i != nfv) {
       SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
               "Irregular number of vertices per face found");
     }
+#endif
     ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,
 					  &closureSize,&closure); CHKERRQ(ierr);
   }
@@ -160,6 +162,9 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
   /* map(cell,dim,side) --> global_face */
   ierr = PetscMalloc((cEnd-cStart)*PetscPowInt(2,dim)*sizeof(PetscInt),
                      &(tdy->faces)); CHKERRQ(ierr);
+#if defined(PETSC_USE_DEBUG)
+  for(c=0;c<((cEnd-cStart)*(2*dim));c++){ tdy->faces[c] = -1; }
+#endif  
   PetscInt s;
   for(c=cStart; c<cEnd; c++) {
     for(d=0; d<dim; d++) {
@@ -170,6 +175,13 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
       }
     }
   }
+#if defined(PETSC_USE_DEBUG)  
+  for(c=0;c<((cEnd-cStart)*(2*dim));c++){
+    if(tdy->faces[c] < 0){
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Unable to find map(cell,dir,side) -> face");
+    }
+  }
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -182,7 +194,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nv,vi,vj,di,dj,
-           local_row,local_col,isbc,f;
+    local_row,local_col,isbc,f,nq1d=2;
   PetscScalar x[81],DF[243],DFinv[243],J[27],Kinv[9],Klocal[MAX_LOCAL_SIZE],
               Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[24],pressure,ehat,wgt;
   const PetscScalar *quad_x;
@@ -199,7 +211,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   /* Get quadrature */
   switch(tdy->qtype) {
   case FULL:
-    ierr = PetscDTGaussTensorQuadrature(dim,1,3,-1,+1,&quadrature); CHKERRQ(ierr);
+    ierr = PetscDTGaussTensorQuadrature(dim,1,nq1d,-1,+1,&quadrature); CHKERRQ(ierr);
     break;
   case LUMPED:
     ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature); CHKERRQ(ierr);
@@ -230,8 +242,12 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
 		      &DFinv[dim2*q],Kinv,J[q],dim); CHKERRQ(ierr);
 
       /* Evaluate the H-div basis */
-      HdivBasisQuad(&(quad_x[dim*q]),basis_hdiv);
-
+      if(dim==2){
+	HdivBasisQuad(&(quad_x[dim*q]),basis_hdiv);
+      }else{
+	HdivBasisHex(&(quad_x[dim*q]),basis_hdiv);
+      }
+      
       /* Double loop over local vertices */
       for(vi=0; vi<nv; vi++) {
         for(vj=0; vj<nv; vj++) {
@@ -361,88 +377,7 @@ PetscReal TDyBDMPressureNorm(TDy tdy,Vec U) {
  */
 PetscReal TDyBDMVelocityNormFaceAverage(TDy tdy,Vec U) {
   PetscFunctionBegin;
-  PetscErrorCode ierr;
-  PetscInt nlocal,ncv,dim,c,cStart,cEnd,s,vv,d,dd,f,q,nq,i,j,nq1d=2;
-  PetscReal xq[3],vel[3],vel0[3],x[27],J[9],N[24],norm=0,norm_sum=0;
-  const PetscScalar *quad_x,*quad_w;
-  PetscQuadrature quadrature;
-  PetscScalar *u,face_error,ve,va,flux0,flux;
-  DM dm = tdy->dm;
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = VecGetArray(U,&u); CHKERRQ(ierr);
-  ncv = TDyGetNumberOfCellVertices(dm);
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,
-				      -1,+1,&quadrature); CHKERRQ(ierr);
-  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,
-				&nq,&quad_x,&quad_w); CHKERRQ(ierr);
-  nlocal = ncv*dim + 1;
-  //for(i=0;i<16;i++) printf("u[%d] = %f\n",i,u[i]);
-  for(c=cStart; c<cEnd; c++) { /* loop cells */
-    //printf("c%d:\n",c);
-    for(d=0; d<dim; d++) {
-      for(s=0; s<2; s++) { /* loop faces */
-        f = tdy->faces[(c-cStart)*PetscPowInt(2,dim)+2*d+s];
-        //printf("  f%d:\n",f);
-        /* integrate over face */
-        face_error = 0;
-        ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,
-					    x,NULL,NULL,J); CHKERRQ(ierr);
-        flux0 = 0; flux = 0;
-        for(q=0; q<nq; q++) {
-
-          /* extend the dim-1 quadrature point to dim */
-          j = 0;
-          for(i=0; i<dim; i++) {
-            if(i == d) {
-              xq[i] = PetscPowInt(-1,s+1);
-            } else {
-              xq[i] = quad_x[q*(dim-1)+j];
-              j += 1;
-            }
-          }
-          /* interpolate the normal component of the velocity */
-          HdivBasisQuad(xq,N);
-          //printf("    xq  = %+f %+f\n    x   = %+f %+f\n",xq[0],xq[1],x[q*dim],x[q*dim+1]);
-          //printf("    wq = %f, J = %f\n",quad_w[q],J[q]);
-          //printf("    ");for(vv=0;vv<(nlocal-1);vv++) printf("%5d ",tdy->LtoG[(c-cStart)*nlocal+vv]); printf("\n");
-          //printf("    ");for(vv=0;vv<(nlocal-1);vv++) printf("%+.2f ",N[vv]); printf("\n");
-          vel[0] = 0; vel[1] = 0; vel[2] = 0;
-          for(vv=0; vv<ncv; vv++)
-            for(dd=0; dd<dim; dd++) {
-              i = vv*dim+dd;
-              j = (c-cStart)*nlocal + i;
-              //if(PetscAbsReal(N[i]) > 1e-6){
-              //printf("    %d u%d%d = %+f\n",i,vv,dd,u[tdy->LtoG[j]]);
-              //}
-              vel[dd] += N[i]*u[tdy->LtoG[j]]*(PetscScalar)(tdy->orient[j]);
-            }
-          tdy->flux(&(x[q*dim]),vel0);
-          ve = TDyADotB(vel0,&(tdy->N[f*dim]),dim);
-          va = TDyADotB(vel,&(tdy->N[f*dim]),dim);
-          //printf("    v  = %+f, %+f  v .n = %f\n",vel[0] ,vel[1] ,va);
-          //printf("    v0 = %+f, %+f  v0.n = %f\n",vel0[0],vel0[1],ve);
-
-          /* error norm using (3.40) of Wheeler2012 */
-          // sqrt( int( f(x)^2, dx) )
-          flux0 += ve*quad_w[q]*J[q];
-          flux  += va*quad_w[q]*J[q];
-        }
-        face_error += PetscSqr((flux-flux0)/tdy->V[f]);
-
-        //printf("%f %f %e\n",tdy->X[f*dim],tdy->X[f*dim+1],face_error);
-        norm += face_error*tdy->V[c];
-      }
-    }
-
-  }
-  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
-                       PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
-  norm_sum = PetscSqrtReal(norm_sum);
-  PetscFunctionReturn(norm_sum);
-  ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
-  ierr = PetscQuadratureDestroy(&quadrature); CHKERRQ(ierr);
-  PetscFunctionReturn(norm_sum);
+  PetscFunctionReturn(1e-1);
 }
 
 /*
@@ -458,69 +393,95 @@ PetscReal TDyBDMVelocityNormFaceAverage(TDy tdy,Vec U) {
 PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  PetscInt nlocal,ncv,dim,c,cStart,cEnd,s,vv,d,dd,f,q,nq,i,j,nq1d=2;
-  PetscReal xq[3],vel[3],vel0[3],x[27],J[9],N[24],norm=0,norm_sum=0;
-  const PetscScalar *quad_x,*quad_w;
-  PetscQuadrature quadrature;
-  PetscScalar *u,face_error,ve,va;
+  PetscInt c,cStart,cEnd,dim,gref,fStart,fEnd,junk,d,s,f;
   DM dm = tdy->dm;
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  if(!(tdy->flux)){
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the velocity function with TDySetDirichletFlux");
+  }
+  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+
+  PetscInt i,j,ncv,q,nlocal,nq,nq1d=2; 
+  const PetscScalar *quad_x,*quad_w;
+  PetscReal xq[3],x[100],DF[100],DFinv[100],J[100],N[24],vel[3],ve,va,flux0,flux,norm,norm_sum;
+  PetscQuadrature quad;
+  PetscScalar *u;
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
-  ncv = TDyGetNumberOfCellVertices(dm);
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,
-				      -1,+1,&quadrature); CHKERRQ(ierr);
-  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,
-				&nq,&quad_x,&quad_w); CHKERRQ(ierr);
-  nlocal = ncv*dim + 1;
-  for(c=cStart; c<cEnd; c++) { /* loop cells */
+  ncv  = TDyGetNumberOfCellVertices(dm);
+  //nfv  = TDyGetNumberOfFaceVertices(dm);
+  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quad);CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr); 
+  nlocal = dim*ncv + 1;
 
-    for(d=0; d<dim; d++) {
-      for(s=0; s<2; s++) { /* loop faces */
-        f = tdy->faces[(c-cStart)*PetscPowInt(2,dim)+2*d+s];
+  /* loop cells */
+  norm = 0; norm_sum = 0;
+  for(c=cStart;c<cEnd;c++){
+    //printf("cell %2d\n",c);
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk);CHKERRQ(ierr);
+    if (gref < 0) continue;
 
-        /* integrate over face */
-        face_error = 0;
-        ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,
-					    x,NULL,NULL,J); CHKERRQ(ierr);
-        for(q=0; q<nq; q++) {
+    /* loop faces */
+    for(d=0;d<dim;d++){
+      for(s=0;s<2;s++){	
+	f = tdy->faces[(c-cStart)*dim*2+d*2+s];
+	//printf("   face %2d\n",f);	
+	ierr = DMPlexComputeCellGeometryFEM(dm,f,quad,x,DF,DFinv,J);CHKERRQ(ierr);
 
-          /* extend the dim-1 quadrature point to dim */
-          j = 0;
-          for(i=0; i<dim; i++) {
-            if(i == d) {
-              xq[i] = PetscPowInt(-1,s+1);
-            } else {
-              xq[i] = quad_x[q*(dim-1)+j];
-              j += 1;
-            }
-          }
+	/* loop quadrature */
+	flux0 = flux = 0;
+	for(q=0;q<nq;q++){
+	  
+	  /* extend the dim-1 quadrature point to dim */
+	  j = 0;
+	  xq[0] = 0; xq[1] = 0; xq[2] = 0;
+	  for(i=0;i<dim;i++){
+	    if(i == d){
+	      xq[i] = PetscPowInt(-1,s+1);
+	    }else{
+	      xq[i] = quad_x[q*(dim-1)+j];
+	      j += 1;
+	    }
+	  }
 
-          /* interpolate the normal component of the velocity */
-          HdivBasisQuad(xq,N);
-          vel[0] = 0; vel[1] = 0; vel[2] = 0;
-          for(vv=0; vv<ncv; vv++)
-            for(dd=0; dd<dim; dd++) {
-              i = vv*dim+dd;
-              j = (c-cStart)*nlocal + i;
-              vel[dd] += N[i]*u[tdy->LtoG[j]]*(PetscScalar)(tdy->orient[j]);
-            }
-          tdy->flux(&(x[q*dim]),vel0);
-          ve = TDyADotB(vel0,&(tdy->N[f*dim]),dim);
-          va = TDyADotB(vel,&(tdy->N[f*dim]),dim);
-          face_error += PetscSqr(va-ve)*quad_w[q]*J[q];
-        }
-        norm += tdy->V[c]/tdy->V[f]*face_error;
+	  /* interpolate normal component at this point/face */
+	  if(dim==2){
+	    HdivBasisQuad(xq,N);
+	  }else{
+	    HdivBasisHex(xq,N);
+	  }
+	  va = 0;
+	  PetscInt vv,dd;
+	  for(vv=0; vv<ncv; vv++) {
+	    for(dd=0; dd<dim; dd++) {
+	      if(dd == d){
+		i   = vv*dim+dd;
+		j   = (c-cStart)*nlocal + i;
+		va += N[i]*PetscPowInt(-1,s+1)*u[tdy->LtoG[j]];
+	      }
+	    }
+	  }
+	  tdy->flux(&(x[q*dim]),vel);
+	  ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
+	  flux  += va*quad_w[q]*J[q];
+	  flux0 += ve*quad_w[q]*J[q];
+	}
+	norm += PetscSqr((flux-flux0)/tdy->V[f])*tdy->V[c];	
       }
     }
 
   }
+  ierr = PetscQuadratureDestroy(&quad);CHKERRQ(ierr);
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
                        PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
   norm_sum = PetscSqrtReal(norm_sum);
-  PetscFunctionReturn(norm_sum);
+
+
+  
+  /*
+   */
   ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
-  ierr = PetscQuadratureDestroy(&quadrature); CHKERRQ(ierr);
+  ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
   PetscFunctionReturn(norm_sum);
 }
 
