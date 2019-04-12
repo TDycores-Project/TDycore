@@ -853,7 +853,7 @@ PetscReal TDyWYVelocityNorm(TDy tdy)
 	  }
 	  //printf("      va = %f\n",va);
 	  
-	  tdy->flux(x,vel);
+	  tdy->flux(&(x[q*dim]),vel);
 	  ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
 	  //printf("      ve = %f\n",ve);
 
