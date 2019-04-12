@@ -104,12 +104,12 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
 
   /* Build map(face,local_vertex) --> vertex */
   nfv = TDyGetNumberOfFaceVertices(dm);
-  ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscInt),&(tdy->fmap));
-  CHKERRQ(ierr);
+  ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscInt),
+		     &(tdy->fmap)); CHKERRQ(ierr);
   for(f=fStart; f<fEnd; f++) {
     closure = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);
-    CHKERRQ(ierr);
+    ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,
+				      &closureSize,&closure); CHKERRQ(ierr);
     i = 0;
     for(c=0; c<closureSize*2; c+=2) {
       if ((closure[c] < vStart) || (closure[c] >= vEnd)) continue;
@@ -120,25 +120,25 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
       SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
               "Irregular number of vertices per face found");
     }
-    ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);
-    CHKERRQ(ierr);
+    ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,
+					  &closureSize,&closure); CHKERRQ(ierr);
   }
 
   /* use vmap, emap, and fmap to build a LtoG map for local element
      assembly */
   ncv = TDyGetNumberOfCellVertices(dm);
   nlocal = dim*ncv + 1;
-  ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),&(tdy->LtoG));
-  CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),&(tdy->orient));
-  CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),
+		     &(tdy->LtoG)); CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),
+		     &(tdy->orient)); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&mStart,&mEnd); CHKERRQ(ierr);
     tdy->LtoG[(c-cStart+1)*nlocal-1] = mStart;
     for(v=0; v<ncv; v++) {
       for(d=0; d<dim; d++) {
-        f = tdy->emap[(c-cStart)*ncv*dim+v*dim
-                      +d]; /* which face is this local dof on? */
+	/* which face is this local dof on? */
+        f = tdy->emap[(c-cStart)*ncv*dim+v*dim+d]; 
         f_abs = PetscAbsInt(f);
         ierr = DMPlexGetPointGlobal(dm,f_abs,&mStart,&mEnd); CHKERRQ(ierr);
         found = PETSC_FALSE;
@@ -174,16 +174,16 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
   PetscFunctionReturn(0);
 }
 
-/* x:  dim  *nq = 2*9 = 18
-   DF: dim^2*nq = 4*9 = 36
-   J:        nq =   9 = 9
+/* x:  dim  *nq = 3*27 = 81
+   DF: dim^2*nq = 9*27 = 243
+   J:        nq =   27 = 27
 */
 PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nv,vi,vj,di,dj,
            local_row,local_col,isbc,f;
-  PetscScalar x[24],DF[72],DFinv[72],J[9],Kinv[9],Klocal[MAX_LOCAL_SIZE],
+  PetscScalar x[81],DF[243],DFinv[243],J[27],Kinv[9],Klocal[MAX_LOCAL_SIZE],
               Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[24],pressure,ehat,wgt;
   const PetscScalar *quad_x;
   const PetscScalar *quad_w;
@@ -206,8 +206,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     ierr = TDyQuadrature(quadrature,dim); CHKERRQ(ierr);
     break;
   }
-  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);
-  CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,
+				&nq,&quad_x,&quad_w); CHKERRQ(ierr);
   nlocal = dim*nv + 1;
 
   for(c=cStart; c<cEnd; c++) {
@@ -217,8 +217,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     if (pStart < 0) continue;
     const PetscInt *LtoG = &(tdy->LtoG[(c-cStart)*nlocal]);
     const PetscInt *orient = &(tdy->orient[(c-cStart)*nlocal]);
-    ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,x,DF,DFinv,J);
-    CHKERRQ(ierr);
+    ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,
+					x,DF,DFinv,J); CHKERRQ(ierr);
     ierr = PetscMemzero(Klocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
     ierr = PetscMemzero(Flocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
 
@@ -226,8 +226,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     for(q=0; q<nq; q++) {
 
       /* Compute (J DF^-1 K DF^-T )^-1 */
-      ierr = Pullback(&(tdy->K[dim2*(c-cStart)]),&DFinv[dim2*q],Kinv,J[q],dim);
-      CHKERRQ(ierr);
+      ierr = Pullback(&(tdy->K[dim2*(c-cStart)]),
+		      &DFinv[dim2*q],Kinv,J[q],dim); CHKERRQ(ierr);
 
       /* Evaluate the H-div basis */
       HdivBasisQuad(&(quad_x[dim*q]),basis_hdiv);
@@ -247,8 +247,10 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
               wgt *= tdy->V[PetscAbsInt(tdy->emap[(c-cStart)*nv*dim + vi*dim + di])];
               wgt *= tdy->V[PetscAbsInt(tdy->emap[(c-cStart)*nv*dim + vj*dim + dj])];
               wgt /= (ehat*ehat);
-              Klocal[local_col*nlocal+local_row] += Kinv[dj*dim
-                                                    +di]*basis_hdiv[local_row]*basis_hdiv[local_col]*wgt;
+              Klocal[local_col*nlocal+local_row] +=
+		Kinv[dj*dim+di]*
+		basis_hdiv[local_row]*
+		basis_hdiv[local_col]*wgt;
 
             }
           } /* end directions */
@@ -370,10 +372,10 @@ PetscReal TDyBDMVelocityNormFaceAverage(TDy tdy,Vec U) {
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
   ncv = TDyGetNumberOfCellVertices(dm);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quadrature);
-  CHKERRQ(ierr);
-  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);
-  CHKERRQ(ierr);
+  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,
+				      -1,+1,&quadrature); CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,
+				&nq,&quad_x,&quad_w); CHKERRQ(ierr);
   nlocal = ncv*dim + 1;
   //for(i=0;i<16;i++) printf("u[%d] = %f\n",i,u[i]);
   for(c=cStart; c<cEnd; c++) { /* loop cells */
@@ -384,8 +386,8 @@ PetscReal TDyBDMVelocityNormFaceAverage(TDy tdy,Vec U) {
         //printf("  f%d:\n",f);
         /* integrate over face */
         face_error = 0;
-        ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,x,NULL,NULL,J);
-        CHKERRQ(ierr);
+        ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,
+					    x,NULL,NULL,J); CHKERRQ(ierr);
         flux0 = 0; flux = 0;
         for(q=0; q<nq; q++) {
 
@@ -466,10 +468,10 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
   ncv = TDyGetNumberOfCellVertices(dm);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quadrature);
-  CHKERRQ(ierr);
-  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);
-  CHKERRQ(ierr);
+  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,
+				      -1,+1,&quadrature); CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,
+				&nq,&quad_x,&quad_w); CHKERRQ(ierr);
   nlocal = ncv*dim + 1;
   for(c=cStart; c<cEnd; c++) { /* loop cells */
 
@@ -479,8 +481,8 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
 
         /* integrate over face */
         face_error = 0;
-        ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,x,NULL,NULL,J);
-        CHKERRQ(ierr);
+        ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,
+					    x,NULL,NULL,J); CHKERRQ(ierr);
         for(q=0; q<nq; q++) {
 
           /* extend the dim-1 quadrature point to dim */
