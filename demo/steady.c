@@ -129,6 +129,24 @@ void Forcing3D(double *x,double *f){
   (*f) = -2*K[0]*y2*z2*ym12*zm12*(x2 + 4*x[0]*xm1 + xm12) - 4*K[1]*x[0]*x[1]*z2*xm1*ym1*zm12*(x[0]*x[1] + x[0]*ym1 + x[1]*xm1 + xm1*ym1) - 4*K[2]*x[0]*y2*x[2]*xm1*ym12*zm1*(x[0]*x[2] + x[0]*zm1 + x[2]*xm1 + xm1*zm1) - 4*K[3]*x[0]*x[1]*z2*xm1*ym1*zm12*(x[0]*x[1] + x[0]*ym1 + x[1]*xm1 + xm1*ym1) - 2*K[4]*x2*z2*xm12*zm12*(y2 + 4*x[1]*ym1 + ym12) - 4*K[5]*x2*x[1]*x[2]*xm12*ym1*zm1*(x[1]*x[2] + x[1]*zm1 + x[2]*ym1 + ym1*zm1) - 4*K[6]*x[0]*y2*x[2]*xm1*ym12*zm1*(x[0]*x[2] + x[0]*zm1 + x[2]*xm1 + xm1*zm1) - 4*K[7]*x2*x[1]*x[2]*xm12*ym1*zm1*(x[1]*x[2] + x[1]*zm1 + x[2]*ym1 + ym1*zm1) - 2*K[8]*x2*y2*xm12*ym12*(z2 + 4*x[2]*zm1 + zm12);
 }
 
+/*--- -dim 3 -problem 3 ---------------------------------------------------------------*/
+
+void PressureSine3D(double *x,double *f){
+  (*f) = PetscSinReal(PETSC_PI*x[0])*PetscSinReal(PETSC_PI*x[1])*PetscSinReal(PETSC_PI*x[2]);
+}
+
+void VelocitySine3D(double *x,double *v){
+  double K[9]; Permeability3D(x,K);
+  v[0]  = -K[0]*PETSC_PI*PetscSinReal(PETSC_PI*x[1])*PetscSinReal(PETSC_PI*x[2])*PetscCosReal(PETSC_PI*x[0]) - K[1]*PETSC_PI*PetscSinReal(PETSC_PI*x[0])*PetscSinReal(PETSC_PI*x[2])*PetscCosReal(PETSC_PI*x[1]) - K[2]*PETSC_PI*PetscSinReal(PETSC_PI*x[0])*PetscSinReal(PETSC_PI*x[1])*PetscCosReal(PETSC_PI*x[2]);
+  v[1]  = -K[3]*PETSC_PI*PetscSinReal(PETSC_PI*x[1])*PetscSinReal(PETSC_PI*x[2])*PetscCosReal(PETSC_PI*x[0]) - K[4]*PETSC_PI*PetscSinReal(PETSC_PI*x[0])*PetscSinReal(PETSC_PI*x[2])*PetscCosReal(PETSC_PI*x[1]) - K[5]*PETSC_PI*PetscSinReal(PETSC_PI*x[0])*PetscSinReal(PETSC_PI*x[1])*PetscCosReal(PETSC_PI*x[2]);
+  v[2]  = -K[6]*PETSC_PI*PetscSinReal(PETSC_PI*x[1])*PetscSinReal(PETSC_PI*x[2])*PetscCosReal(PETSC_PI*x[0]) - K[7]*PETSC_PI*PetscSinReal(PETSC_PI*x[0])*PetscSinReal(PETSC_PI*x[2])*PetscCosReal(PETSC_PI*x[1]) - K[8]*PETSC_PI*PetscSinReal(PETSC_PI*x[0])*PetscSinReal(PETSC_PI*x[1])*PetscCosReal(PETSC_PI*x[2]);
+}
+
+void ForcingSine3D(double *x,double *f){
+  double K[9]; Permeability3D(x,K);
+  (*f) =  PETSC_PI*PETSC_PI*(K[0]*PetscSinReal(PETSC_PI*x[0])*PetscSinReal(PETSC_PI*x[1])*PetscSinReal(PETSC_PI*x[2]) - K[1]*PetscSinReal(PETSC_PI*x[2])*PetscCosReal(PETSC_PI*x[0])*PetscCosReal(PETSC_PI*x[1]) - K[2]*PetscSinReal(PETSC_PI*x[1])*PetscCosReal(PETSC_PI*x[0])*PetscCosReal(PETSC_PI*x[2]) - K[3]*PetscSinReal(PETSC_PI*x[2])*PetscCosReal(PETSC_PI*x[0])*PetscCosReal(PETSC_PI*x[1]) + K[4]*PetscSinReal(PETSC_PI*x[0])*PetscSinReal(PETSC_PI*x[1])*PetscSinReal(PETSC_PI*x[2]) - K[5]*PetscSinReal(PETSC_PI*x[0])*PetscCosReal(PETSC_PI*x[1])*PetscCosReal(PETSC_PI*x[2]) - K[6]*PetscSinReal(PETSC_PI*x[1])*PetscCosReal(PETSC_PI*x[0])*PetscCosReal(PETSC_PI*x[2]) - K[7]*PetscSinReal(PETSC_PI*x[0])*PetscCosReal(PETSC_PI*x[1])*PetscCosReal(PETSC_PI*x[2]) + K[8]*PetscSinReal(PETSC_PI*x[0])*PetscSinReal(PETSC_PI*x[1])*PetscSinReal(PETSC_PI*x[2]));
+}
+
 PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -220,7 +238,7 @@ int main(int argc, char **argv) {
       ierr = TDySetDirichletFunction(tdy,PressureSine); CHKERRQ(ierr);
       ierr = TDySetDirichletFlux(tdy,VelocitySine); CHKERRQ(ierr);
       break;
-    }      
+    }
   }else{
     ierr = TDySetPermeabilityTensor(tdy,Permeability3D);CHKERRQ(ierr);
     switch(problem){
@@ -233,6 +251,11 @@ int main(int argc, char **argv) {
       ierr = TDySetForcingFunction(tdy,Forcing3D);CHKERRQ(ierr);
       ierr = TDySetDirichletFunction(tdy,Pressure3D);CHKERRQ(ierr);
       ierr = TDySetDirichletFlux(tdy,Velocity3D);CHKERRQ(ierr);
+      break;
+    case 3:
+      ierr = TDySetForcingFunction(tdy,ForcingSine3D);CHKERRQ(ierr);
+      ierr = TDySetDirichletFunction(tdy,PressureSine3D);CHKERRQ(ierr);
+      ierr = TDySetDirichletFlux(tdy,VelocitySine3D);CHKERRQ(ierr);
       break;
     }
   }
