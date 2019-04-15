@@ -299,12 +299,17 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
   ierr = DMSetDefaultSection(dm,sec); CHKERRQ(ierr);
   ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view"); CHKERRQ(ierr);
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
-  ierr = DMPlexSetAdjacencyUseCone(dm,PETSC_TRUE); CHKERRQ(ierr);
-  ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_TRUE); CHKERRQ(ierr);
+  //ierr = DMPlexSetAdjacencyUseCone(dm,PETSC_TRUE); CHKERRQ(ierr);
+  //ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_TRUE); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
 
+/*
+  nq = nq1d^2 = 9
+  x  = nq*dim = 27
+  DF = dim^2 *nq = 81
+ */
 PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,PetscReal *integral){
 
   PetscFunctionBegin;
@@ -312,7 +317,7 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,PetscReal *integral
   PetscInt v,ncv,i,j,d,q,nq,dim,face_dir,face_side,fStart,fEnd,lside[24],nq1d = 2;
   PetscQuadrature quadrature;
   const PetscScalar *quad_x,*quad_w;
-  PetscReal xq[3],x[27],J[9],N[24],DF[72],DFinv[72],value;
+  PetscReal xq[3],x[27],J[9],N[24],DF[81],DFinv[81],value;
   DM dm = tdy->dm;
   ncv  = TDyGetNumberOfCellVertices(dm);
   ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
@@ -364,7 +369,7 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,PetscReal *integral
 	j += 1;
       }
     }
-
+    
     /* <g,v.n> */
     (*tdy->dirichlet)(&(x[dim*q]),&value);
     if(dim==2){
@@ -381,7 +386,7 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,PetscReal *integral
     }
   }
   ierr = PetscQuadratureDestroy(&quadrature);CHKERRQ(ierr);
-
+  
   PetscFunctionReturn(0);
 }
 
