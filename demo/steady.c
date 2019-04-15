@@ -154,9 +154,10 @@ PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
   Vec          coordinates;
   PetscSection coordSection;
   PetscScalar *coords;
-  PetscInt     v,vStart,vEnd,offset,value;
-  ierr = DMGetLabelByNum(dm,2,&label);
-  CHKERRQ(ierr); // this is the 'marker' label which marks boundary entities
+  PetscInt     v,vStart,vEnd,offset,value,dim;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  /* this is the 'marker' label which marks boundary entities */
+  ierr = DMGetLabelByNum(dm,2,&label); CHKERRQ(ierr); 
   ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
   ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
@@ -164,12 +165,21 @@ PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
   for(v=vStart; v<vEnd; v++) {
     ierr = PetscSectionGetOffset(coordSection,v,&offset); CHKERRQ(ierr);
     ierr = DMLabelGetValue(label,v,&value); CHKERRQ(ierr);
-    if(value==-1) {
-      PetscReal r = ((PetscReal)rand())/((PetscReal)RAND_MAX)*
-                    (h*0.471404); // h*sqrt(2)/3
-      PetscReal t = ((PetscReal)rand())/((PetscReal)RAND_MAX)*PETSC_PI;
-      coords[offset  ] += r*PetscCosReal(t);
-      coords[offset+1] += r*PetscSinReal(t);
+    if(dim==2) {
+      if(value==-1){
+	/* perturb randomly O(h*sqrt(2)/3) */
+	PetscReal r = ((PetscReal)rand())/((PetscReal)RAND_MAX)*(h*0.471404); 
+	PetscReal t = ((PetscReal)rand())/((PetscReal)RAND_MAX)*PETSC_PI;
+	coords[offset  ] += r*PetscCosReal(t);
+	coords[offset+1] += r*PetscSinReal(t);
+      }
+    } else {
+      /* this is because 'marker' is broken in 3D */
+      if(coords[offset] > 0 && coords[offset] < 1 &&
+	 coords[offset+1] > 0 && coords[offset+1] < 1 &&
+	 coords[offset+2] > 0 && coords[offset+2] < 1){
+	coords[offset+2] += (((PetscReal)rand())/((PetscReal)RAND_MAX)-0.5)*h*0.1;
+      }
     }
   }
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
