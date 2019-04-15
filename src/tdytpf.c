@@ -35,8 +35,8 @@ PetscErrorCode TDyTPFInitialize(TDy tdy) {
   ierr = DMSetDefaultSection(dm,sec); CHKERRQ(ierr);
   ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view"); CHKERRQ(ierr);
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
-  ierr = DMPlexSetAdjacencyUseCone(dm,PETSC_TRUE); CHKERRQ(ierr);
-  ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_FALSE); CHKERRQ(ierr);
+  //ierr = DMPlexSetAdjacencyUseCone(dm,PETSC_TRUE); CHKERRQ(ierr);
+  //ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_FALSE); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
