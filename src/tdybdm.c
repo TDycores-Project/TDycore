@@ -95,8 +95,8 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
 
   /* I am not sure what we want here, but this seems to be a
      conservative estimate on the sparsity we need. */
-  ierr = DMPlexSetAdjacencyUseCone   (dm,PETSC_TRUE); CHKERRQ(ierr);
-  ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_TRUE); CHKERRQ(ierr);
+  //ierr = DMPlexSetAdjacencyUseCone   (dm,PETSC_TRUE); CHKERRQ(ierr);
+  //ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_TRUE); CHKERRQ(ierr);
 
   /* Build vmap and emap */
   ierr = TDyCreateCellVertexMap(tdy,&(tdy->vmap)); CHKERRQ(ierr);
@@ -302,8 +302,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
           ierr = DMGetLabelValue(dm,"marker",f,&isbc); CHKERRQ(ierr);
           if(isbc == 1) {
             local_row = vi*dim+di;
-            tdy->dirichlet(&(tdy->X[(tdy->vmap[(c-cStart)*nv+vi])*dim]),&pressure);
-            Flocal[local_row] += -pressure *tdy->V[f]/ehat;
+	    ierr = IntegrateOnFace(tdy,c,f,&pressure); CHKERRQ(ierr);
+	    Flocal[local_row] += -pressure/ehat*((PetscScalar)orient[vi*dim+di]);
           }
         }
       }
@@ -402,7 +402,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
 
-  PetscInt i,j,ncv,q,nlocal,nq,nq1d=2; 
+  PetscInt i,j,ncv,q,nlocal,nq,vv,dd,nq1d=2; 
   const PetscScalar *quad_x,*quad_w;
   PetscReal xq[3],x[100],DF[100],DFinv[100],J[100],N[24],vel[3],ve,va,flux0,flux,norm,norm_sum;
   PetscQuadrature quad;
@@ -451,7 +451,6 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
 	    HdivBasisHex(xq,N);
 	  }
 	  va = 0;
-	  PetscInt vv,dd;
 	  for(vv=0; vv<ncv; vv++) {
 	    for(dd=0; dd<dim; dd++) {
 	      if(dd == d){
@@ -461,8 +460,11 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
 	      }
 	    }
 	  }
+	  /* exact value normal to this point/face */
 	  tdy->flux(&(x[q*dim]),vel);
 	  ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
+
+	  /* quadrature */
 	  flux  += va*quad_w[q]*J[q];
 	  flux0 += ve*quad_w[q]*J[q];
 	}
@@ -475,11 +477,6 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
                        PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
   norm_sum = PetscSqrtReal(norm_sum);
-
-
-  
-  /*
-   */
   ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
   ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
   PetscFunctionReturn(norm_sum);
