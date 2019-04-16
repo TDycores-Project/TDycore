@@ -219,7 +219,7 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
     ierr = TDyTPFInitialize(tdy); CHKERRQ(ierr);
     break;
   case MPFA_O:
-    ierr = TDyMPFAOInitialize(tdy);CHKERRQ(ierr);
+    ierr = TDyMPFAOInitialize(tdy); CHKERRQ(ierr);
     break;
   case BDM:
     ierr = TDyBDMInitialize(tdy); CHKERRQ(ierr);
@@ -250,7 +250,7 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TPF");
     break;
   case MPFA_O:
-    ierr = TDyMPFAOInitialize(tdy);CHKERRQ(ierr);
+    ierr = TDyMPFAOInitialize(tdy); CHKERRQ(ierr);
     break;
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM");
@@ -297,7 +297,7 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
     ierr = TDyTPFComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
   case MPFA_O:
-    ierr = TDyMPFAOComputeSystem(tdy,K,F);CHKERRQ(ierr);
+    ierr = TDyMPFAOComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
   case BDM:
     ierr = TDyBDMComputeSystem(tdy,K,F); CHKERRQ(ierr);
@@ -468,10 +468,10 @@ PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
   ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc(nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
-#if defined(PETSC_USE_DEBUG)
-  for(c=0;c<nv*(cEnd-cStart);c++){ (*map)[c] = -1; }
-#endif    
-  for(c=cStart;c<cEnd;c++){
+  #if defined(PETSC_USE_DEBUG)
+  for(c=0; c<nv*(cEnd-cStart); c++) { (*map)[c] = -1; }
+  #endif
+  for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexComputeCellGeometryFEM(dm,c,quad,x,DF,DFinv,J); CHKERRQ(ierr);
     closure = NULL;
     ierr = DMPlexGetTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
@@ -488,13 +488,14 @@ PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
     ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
     CHKERRQ(ierr);
   }
-#if defined(PETSC_USE_DEBUG)
-  for(c=0;c<nv*(cEnd-cStart);c++){
-    if((*map)[c]<0){
-      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Unable to find map(cell,local_vertex) -> vertex");
+  #if defined(PETSC_USE_DEBUG)
+  for(c=0; c<nv*(cEnd-cStart); c++) {
+    if((*map)[c]<0) {
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+              "Unable to find map(cell,local_vertex) -> vertex");
     }
   }
-#endif  
+  #endif
   ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -542,10 +543,10 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc(dim*nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
-#if defined(PETSC_USE_DEBUG)
-  for(c=0;c<dim*nv*(cEnd-cStart);c++){ (*map)[c] = 0; }
-#endif    
-  for(c=cStart;c<cEnd;c++){
+  #if defined(PETSC_USE_DEBUG)
+  for(c=0; c<dim*nv*(cEnd-cStart); c++) { (*map)[c] = 0; }
+  #endif
+  for(c=cStart; c<cEnd; c++) {
     closure = NULL;
     ierr = DMPlexGetTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
     CHKERRQ(ierr);
@@ -579,13 +580,14 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
     ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
     CHKERRQ(ierr);
   }
-#if defined(PETSC_USE_DEBUG)
-  for(c=0;c<dim*nv*(cEnd-cStart);c++){
-    if((*map)[c]==0){
-      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Unable to find map(cell,local_vertex,dir) -> face");
+  #if defined(PETSC_USE_DEBUG)
+  for(c=0; c<dim*nv*(cEnd-cStart); c++) {
+    if((*map)[c]==0) {
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+              "Unable to find map(cell,local_vertex,dir) -> face");
     }
   }
-#endif    
+  #endif
   PetscFunctionReturn(0);
 }
 
@@ -601,7 +603,8 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     if(normv != NULL) { *normv = TDyTPFVelocityNorm(tdy,U); }
     break;
   case MPFA_O:
-    SETERRQ(comm,PETSC_ERR_SUP,"TDyComputeErrorNorms: MPFA_O is not yet implemented");
+    SETERRQ(comm,PETSC_ERR_SUP,
+            "TDyComputeErrorNorms: MPFA_O is not yet implemented");
     break;
   case BDM:
     if(normp != NULL) { *normp = TDyBDMPressureNorm(tdy,U); }

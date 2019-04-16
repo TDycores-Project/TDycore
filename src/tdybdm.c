@@ -23,34 +23,58 @@ void HdivBasisQuad(const PetscReal *x,PetscReal *B) {
   B[7] = +0.25*x[0]*x[1] + 0.25*x[0] + 0.25*x[1] + 0.25;
 }
 
-void HdivBasisHex(const PetscReal *x,PetscReal *B){
-  B[0]  = +0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] - 0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] - 0.125;
-  B[1]  = +0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] - 0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] - 0.125;
-  B[2]  = +0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] - 0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] - 0.125;
-  B[3]  = +0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] + 0.125*x[1]*x[2] - 0.125*x[1] - 0.125*x[2] + 0.125;
-  B[4]  = -0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] + 0.125*x[0]*x[2] - 0.125*x[0] - 0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] - 0.125;
-  B[5]  = -0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] + 0.125*x[0]*x[2] - 0.125*x[0] - 0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] - 0.125;
-  B[6]  = -0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] + 0.125*x[1]*x[2] - 0.125*x[1] + 0.125*x[2] - 0.125;
-  B[7]  = +0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] + 0.125*x[0]*x[2] - 0.125*x[0] - 0.125*x[1]*x[2] + 0.125*x[1] - 0.125*x[2] + 0.125;
-  B[8]  = -0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] + 0.125*x[1]*x[2] - 0.125*x[1] + 0.125*x[2] - 0.125;
-  B[9]  = -0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] - 0.125*x[1]*x[2] + 0.125*x[1] - 0.125*x[2] + 0.125;
-  B[10] = -0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] - 0.125*x[1]*x[2] + 0.125*x[1] - 0.125*x[2] + 0.125;
-  B[11] = +0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] + 0.125*x[0]*x[2] - 0.125*x[0] + 0.125*x[1]*x[2] - 0.125*x[1] + 0.125*x[2] - 0.125;
-  B[12] = -0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] + 0.125*x[1]*x[2] + 0.125*x[1] - 0.125*x[2] - 0.125;
-  B[13] = -0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] + 0.125*x[1]*x[2] + 0.125*x[1] - 0.125*x[2] - 0.125;
-  B[14] = +0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] - 0.125*x[0]*x[2] - 0.125*x[0] - 0.125*x[1]*x[2] - 0.125*x[1] + 0.125*x[2] + 0.125;
-  B[15] = -0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] - 0.125*x[1]*x[2] - 0.125*x[1] + 0.125*x[2] + 0.125;
-  B[16] = +0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] - 0.125*x[0]*x[2] - 0.125*x[0] + 0.125*x[1]*x[2] + 0.125*x[1] - 0.125*x[2] - 0.125;
-  B[17] = -0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] - 0.125*x[1]*x[2] - 0.125*x[1] + 0.125*x[2] + 0.125;
-  B[18] = +0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] - 0.125*x[1]*x[2] - 0.125*x[1] - 0.125*x[2] - 0.125;
-  B[19] = -0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] - 0.125*x[0]*x[2] - 0.125*x[0] + 0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] + 0.125;
-  B[20] = -0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] - 0.125*x[0]*x[2] - 0.125*x[0] + 0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] + 0.125;
-  B[21] = +0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] + 0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] + 0.125;
-  B[22] = +0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] + 0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] + 0.125;
-  B[23] = +0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] + 0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] + 0.125;
+void HdivBasisHex(const PetscReal *x,PetscReal *B) {
+  B[0]  = +0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] -
+          0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] - 0.125;
+  B[1]  = +0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] -
+          0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] - 0.125;
+  B[2]  = +0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] -
+          0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] - 0.125;
+  B[3]  = +0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] +
+          0.125*x[1]*x[2] - 0.125*x[1] - 0.125*x[2] + 0.125;
+  B[4]  = -0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] + 0.125*x[0]*x[2] - 0.125*x[0] -
+          0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] - 0.125;
+  B[5]  = -0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] + 0.125*x[0]*x[2] - 0.125*x[0] -
+          0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] - 0.125;
+  B[6]  = -0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] +
+          0.125*x[1]*x[2] - 0.125*x[1] + 0.125*x[2] - 0.125;
+  B[7]  = +0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] + 0.125*x[0]*x[2] - 0.125*x[0] -
+          0.125*x[1]*x[2] + 0.125*x[1] - 0.125*x[2] + 0.125;
+  B[8]  = -0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] +
+          0.125*x[1]*x[2] - 0.125*x[1] + 0.125*x[2] - 0.125;
+  B[9]  = -0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] -
+          0.125*x[1]*x[2] + 0.125*x[1] - 0.125*x[2] + 0.125;
+  B[10] = -0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] - 0.125*x[0]*x[2] + 0.125*x[0] -
+          0.125*x[1]*x[2] + 0.125*x[1] - 0.125*x[2] + 0.125;
+  B[11] = +0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] + 0.125*x[0]*x[2] - 0.125*x[0] +
+          0.125*x[1]*x[2] - 0.125*x[1] + 0.125*x[2] - 0.125;
+  B[12] = -0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] +
+          0.125*x[1]*x[2] + 0.125*x[1] - 0.125*x[2] - 0.125;
+  B[13] = -0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] +
+          0.125*x[1]*x[2] + 0.125*x[1] - 0.125*x[2] - 0.125;
+  B[14] = +0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] - 0.125*x[0]*x[2] - 0.125*x[0] -
+          0.125*x[1]*x[2] - 0.125*x[1] + 0.125*x[2] + 0.125;
+  B[15] = -0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] -
+          0.125*x[1]*x[2] - 0.125*x[1] + 0.125*x[2] + 0.125;
+  B[16] = +0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] - 0.125*x[0]*x[2] - 0.125*x[0] +
+          0.125*x[1]*x[2] + 0.125*x[1] - 0.125*x[2] - 0.125;
+  B[17] = -0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] -
+          0.125*x[1]*x[2] - 0.125*x[1] + 0.125*x[2] + 0.125;
+  B[18] = +0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] -
+          0.125*x[1]*x[2] - 0.125*x[1] - 0.125*x[2] - 0.125;
+  B[19] = -0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] - 0.125*x[0]*x[2] - 0.125*x[0] +
+          0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] + 0.125;
+  B[20] = -0.125*x[0]*x[1]*x[2] - 0.125*x[0]*x[1] - 0.125*x[0]*x[2] - 0.125*x[0] +
+          0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] + 0.125;
+  B[21] = +0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] +
+          0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] + 0.125;
+  B[22] = +0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] +
+          0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] + 0.125;
+  B[23] = +0.125*x[0]*x[1]*x[2] + 0.125*x[0]*x[1] + 0.125*x[0]*x[2] + 0.125*x[0] +
+          0.125*x[1]*x[2] + 0.125*x[1] + 0.125*x[2] + 0.125;
 }
 
-PetscErrorCode TDyBDMInitialize(TDy tdy){
+PetscErrorCode TDyBDMInitialize(TDy tdy) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt pStart,pEnd,c,cStart,cEnd,f,f_abs,fStart,fEnd,nfv,ncv,v,vStart,vEnd,
@@ -105,25 +129,25 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
   /* Build map(face,local_vertex) --> vertex */
   nfv = TDyGetNumberOfFaceVertices(dm);
   ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscInt),
-		     &(tdy->fmap)); CHKERRQ(ierr);
+                     &(tdy->fmap)); CHKERRQ(ierr);
   for(f=fStart; f<fEnd; f++) {
     closure = NULL;
     ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,
-				      &closureSize,&closure); CHKERRQ(ierr);
+                                      &closureSize,&closure); CHKERRQ(ierr);
     i = 0;
     for(c=0; c<closureSize*2; c+=2) {
       if ((closure[c] < vStart) || (closure[c] >= vEnd)) continue;
       tdy->fmap[nfv*(f-fStart)+i] = closure[c];
       i += 1;
     }
-#if defined(PETSC_USE_DEBUG)    
+    #if defined(PETSC_USE_DEBUG)
     if(i != nfv) {
       SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
               "Irregular number of vertices per face found");
     }
-#endif
+    #endif
     ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,
-					  &closureSize,&closure); CHKERRQ(ierr);
+                                          &closureSize,&closure); CHKERRQ(ierr);
   }
 
   /* use vmap, emap, and fmap to build a LtoG map for local element
@@ -131,16 +155,16 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
   ncv = TDyGetNumberOfCellVertices(dm);
   nlocal = dim*ncv + 1;
   ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),
-		     &(tdy->LtoG)); CHKERRQ(ierr);
+                     &(tdy->LtoG)); CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),
-		     &(tdy->orient)); CHKERRQ(ierr);
+                     &(tdy->orient)); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&mStart,&mEnd); CHKERRQ(ierr);
     tdy->LtoG[(c-cStart+1)*nlocal-1] = mStart;
     for(v=0; v<ncv; v++) {
       for(d=0; d<dim; d++) {
-	/* which face is this local dof on? */
-        f = tdy->emap[(c-cStart)*ncv*dim+v*dim+d]; 
+        /* which face is this local dof on? */
+        f = tdy->emap[(c-cStart)*ncv*dim+v*dim+d];
         f_abs = PetscAbsInt(f);
         ierr = DMPlexGetPointGlobal(dm,f_abs,&mStart,&mEnd); CHKERRQ(ierr);
         found = PETSC_FALSE;
@@ -162,9 +186,9 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
   /* map(cell,dim,side) --> global_face */
   ierr = PetscMalloc((cEnd-cStart)*PetscPowInt(2,dim)*sizeof(PetscInt),
                      &(tdy->faces)); CHKERRQ(ierr);
-#if defined(PETSC_USE_DEBUG)
-  for(c=0;c<((cEnd-cStart)*(2*dim));c++){ tdy->faces[c] = -1; }
-#endif  
+  #if defined(PETSC_USE_DEBUG)
+  for(c=0; c<((cEnd-cStart)*(2*dim)); c++) { tdy->faces[c] = -1; }
+  #endif
   PetscInt s;
   for(c=cStart; c<cEnd; c++) {
     for(d=0; d<dim; d++) {
@@ -175,13 +199,14 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
       }
     }
   }
-#if defined(PETSC_USE_DEBUG)  
-  for(c=0;c<((cEnd-cStart)*(2*dim));c++){
-    if(tdy->faces[c] < 0){
-      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Unable to find map(cell,dir,side) -> face");
+  #if defined(PETSC_USE_DEBUG)
+  for(c=0; c<((cEnd-cStart)*(2*dim)); c++) {
+    if(tdy->faces[c] < 0) {
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+              "Unable to find map(cell,dir,side) -> face");
     }
   }
-#endif
+  #endif
 
   PetscFunctionReturn(0);
 }
@@ -194,7 +219,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nv,vi,vj,di,dj,
-    local_row,local_col,isbc,f,nq1d=2;
+           local_row,local_col,isbc,f,nq1d=2;
   PetscScalar x[81],DF[243],DFinv[243],J[27],Kinv[9],Klocal[MAX_LOCAL_SIZE],
               Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[24],pressure,ehat,wgt;
   const PetscScalar *quad_x;
@@ -211,7 +236,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   /* Get quadrature */
   switch(tdy->qtype) {
   case FULL:
-    ierr = PetscDTGaussTensorQuadrature(dim,1,nq1d,-1,+1,&quadrature); CHKERRQ(ierr);
+    ierr = PetscDTGaussTensorQuadrature(dim,1,nq1d,-1,+1,&quadrature);
+    CHKERRQ(ierr);
     break;
   case LUMPED:
     ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature); CHKERRQ(ierr);
@@ -219,7 +245,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     break;
   }
   ierr = PetscQuadratureGetData(quadrature,NULL,NULL,
-				&nq,&quad_x,&quad_w); CHKERRQ(ierr);
+                                &nq,&quad_x,&quad_w); CHKERRQ(ierr);
   nlocal = dim*nv + 1;
 
   for(c=cStart; c<cEnd; c++) {
@@ -230,7 +256,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     const PetscInt *LtoG = &(tdy->LtoG[(c-cStart)*nlocal]);
     const PetscInt *orient = &(tdy->orient[(c-cStart)*nlocal]);
     ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,
-					x,DF,DFinv,J); CHKERRQ(ierr);
+                                        x,DF,DFinv,J); CHKERRQ(ierr);
     ierr = PetscMemzero(Klocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
     ierr = PetscMemzero(Flocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
 
@@ -239,15 +265,15 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
 
       /* Compute (J DF^-1 K DF^-T )^-1 */
       ierr = Pullback(&(tdy->K[dim2*(c-cStart)]),
-		      &DFinv[dim2*q],Kinv,J[q],dim); CHKERRQ(ierr);
+                      &DFinv[dim2*q],Kinv,J[q],dim); CHKERRQ(ierr);
 
       /* Evaluate the H-div basis */
-      if(dim==2){
-	HdivBasisQuad(&(quad_x[dim*q]),basis_hdiv);
-      }else{
-	HdivBasisHex(&(quad_x[dim*q]),basis_hdiv);
+      if(dim==2) {
+        HdivBasisQuad(&(quad_x[dim*q]),basis_hdiv);
+      } else {
+        HdivBasisHex(&(quad_x[dim*q]),basis_hdiv);
       }
-      
+
       /* Double loop over local vertices */
       for(vi=0; vi<nv; vi++) {
         for(vj=0; vj<nv; vj++) {
@@ -264,9 +290,9 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
               wgt *= tdy->V[PetscAbsInt(tdy->emap[(c-cStart)*nv*dim + vj*dim + dj])];
               wgt /= (ehat*ehat);
               Klocal[local_col*nlocal+local_row] +=
-		Kinv[dj*dim+di]*
-		basis_hdiv[local_row]*
-		basis_hdiv[local_col]*wgt;
+                Kinv[dj*dim+di]*
+                basis_hdiv[local_row]*
+                basis_hdiv[local_col]*wgt;
 
             }
           } /* end directions */
@@ -302,8 +328,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
           ierr = DMGetLabelValue(dm,"marker",f,&isbc); CHKERRQ(ierr);
           if(isbc == 1) {
             local_row = vi*dim+di;
-	    ierr = IntegrateOnFace(tdy,c,f,&pressure); CHKERRQ(ierr);
-	    Flocal[local_row] += -pressure/ehat*((PetscScalar)orient[vi*dim+di]);
+            ierr = IntegrateOnFace(tdy,c,f,&pressure); CHKERRQ(ierr);
+            Flocal[local_row] += -pressure/ehat*((PetscScalar)orient[vi*dim+di]);
           }
         }
       }
@@ -381,85 +407,88 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   PetscErrorCode ierr;
   PetscInt c,cStart,cEnd,dim,gref,fStart,fEnd,junk,d,s,f;
   DM dm = tdy->dm;
-  if(!(tdy->flux)){
-    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the velocity function with TDySetDirichletFlux");
+  if(!(tdy->flux)) {
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+            "Must set the velocity function with TDySetDirichletFlux");
   }
-  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
-  PetscInt i,j,ncv,q,nlocal,nq,vv,dd,nq1d=2; 
+  PetscInt i,j,ncv,q,nlocal,nq,vv,dd,nq1d=2;
   const PetscScalar *quad_x,*quad_w;
-  PetscReal xq[3],x[100],DF[100],DFinv[100],J[100],N[24],vel[3],ve,va,flux0,flux,norm,norm_sum;
+  PetscReal xq[3],x[100],DF[100],DFinv[100],J[100],N[24],vel[3],ve,va,flux0,flux,
+            norm,norm_sum;
   PetscQuadrature quad;
   PetscScalar *u;
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
   ncv  = TDyGetNumberOfCellVertices(dm);
   //nfv  = TDyGetNumberOfFaceVertices(dm);
-  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quad);CHKERRQ(ierr);
-  ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr); 
+  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quad); CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w);
+  CHKERRQ(ierr);
   nlocal = dim*ncv + 1;
 
   /* loop cells */
   norm = 0; norm_sum = 0;
-  for(c=cStart;c<cEnd;c++){
+  for(c=cStart; c<cEnd; c++) {
     //printf("cell %2d\n",c);
-    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk);CHKERRQ(ierr);
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
     if (gref < 0) continue;
 
     /* loop faces */
-    for(d=0;d<dim;d++){
-      for(s=0;s<2;s++){	
-	f = tdy->faces[(c-cStart)*dim*2+d*2+s];
-	//printf("   face %2d\n",f);	
-	ierr = DMPlexComputeCellGeometryFEM(dm,f,quad,x,DF,DFinv,J);CHKERRQ(ierr);
+    for(d=0; d<dim; d++) {
+      for(s=0; s<2; s++) {
+        f = tdy->faces[(c-cStart)*dim*2+d*2+s];
+        //printf("   face %2d\n",f);
+        ierr = DMPlexComputeCellGeometryFEM(dm,f,quad,x,DF,DFinv,J); CHKERRQ(ierr);
 
-	/* loop quadrature */
-	flux0 = flux = 0;
-	for(q=0;q<nq;q++){
-	  
-	  /* extend the dim-1 quadrature point to dim */
-	  j = 0;
-	  xq[0] = 0; xq[1] = 0; xq[2] = 0;
-	  for(i=0;i<dim;i++){
-	    if(i == d){
-	      xq[i] = PetscPowInt(-1,s+1);
-	    }else{
-	      xq[i] = quad_x[q*(dim-1)+j];
-	      j += 1;
-	    }
-	  }
+        /* loop quadrature */
+        flux0 = flux = 0;
+        for(q=0; q<nq; q++) {
 
-	  /* interpolate normal component at this point/face */
-	  if(dim==2){
-	    HdivBasisQuad(xq,N);
-	  }else{
-	    HdivBasisHex(xq,N);
-	  }
-	  va = 0;
-	  for(vv=0; vv<ncv; vv++) {
-	    for(dd=0; dd<dim; dd++) {
-	      if(dd == d){
-		i   = vv*dim+dd;
-		j   = (c-cStart)*nlocal + i;
-		va += N[i]*PetscPowInt(-1,s+1)*u[tdy->LtoG[j]];
-	      }
-	    }
-	  }
-	  /* exact value normal to this point/face */
-	  tdy->flux(&(x[q*dim]),vel);
-	  ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
+          /* extend the dim-1 quadrature point to dim */
+          j = 0;
+          xq[0] = 0; xq[1] = 0; xq[2] = 0;
+          for(i=0; i<dim; i++) {
+            if(i == d) {
+              xq[i] = PetscPowInt(-1,s+1);
+            } else {
+              xq[i] = quad_x[q*(dim-1)+j];
+              j += 1;
+            }
+          }
 
-	  /* quadrature */
-	  flux  += va*quad_w[q]*J[q];
-	  flux0 += ve*quad_w[q]*J[q];
-	}
-	norm += PetscSqr((flux-flux0)/tdy->V[f])*tdy->V[c];	
+          /* interpolate normal component at this point/face */
+          if(dim==2) {
+            HdivBasisQuad(xq,N);
+          } else {
+            HdivBasisHex(xq,N);
+          }
+          va = 0;
+          for(vv=0; vv<ncv; vv++) {
+            for(dd=0; dd<dim; dd++) {
+              if(dd == d) {
+                i   = vv*dim+dd;
+                j   = (c-cStart)*nlocal + i;
+                va += N[i]*PetscPowInt(-1,s+1)*u[tdy->LtoG[j]];
+              }
+            }
+          }
+          /* exact value normal to this point/face */
+          tdy->flux(&(x[q*dim]),vel);
+          ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
+
+          /* quadrature */
+          flux  += va*quad_w[q]*J[q];
+          flux0 += ve*quad_w[q]*J[q];
+        }
+        norm += PetscSqr((flux-flux0)/tdy->V[f])*tdy->V[c];
       }
     }
 
   }
-  ierr = PetscQuadratureDestroy(&quad);CHKERRQ(ierr);
+  ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
                        PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
   norm_sum = PetscSqrtReal(norm_sum);

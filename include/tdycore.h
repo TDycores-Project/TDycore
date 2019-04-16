@@ -169,7 +169,7 @@ PETSC_EXTERN PetscErrorCode TDyQuadrature(PetscQuadrature q,PetscInt dim);
 PETSC_EXTERN void HdivBasisQuad(const PetscReal *x,PetscReal *B);
 PETSC_EXTERN void HdivBasisHex(const PetscReal *x,PetscReal *B);
 PETSC_EXTERN PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
-					    PetscReal *integral);
+    PetscReal *integral);
 
 PETSC_EXTERN PetscErrorCode TDyMPFAOInitialize(TDy);
 PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy, Mat, Vec);

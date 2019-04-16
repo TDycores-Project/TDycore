@@ -230,59 +230,62 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
 
   /* Allocate space for Alocal and Flocal */
   ierr = PetscMalloc(dim*dim*ncv*(cEnd-cStart)*sizeof(PetscReal),
-		     &(tdy->Alocal));CHKERRQ(ierr);
+                     &(tdy->Alocal)); CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),
-		     &(tdy->Flocal));CHKERRQ(ierr);
+                     &(tdy->Flocal)); CHKERRQ(ierr);
 
   /* Allocate space for velocities and create a local_vertex->face map */
   nfv = TDyGetNumberOfFaceVertices(dm);
   ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscReal),
-		     &(tdy->vel ));CHKERRQ(ierr);
+                     &(tdy->vel )); CHKERRQ(ierr);
   ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscInt ),
-		     &(tdy->fmap));CHKERRQ(ierr);
-  for(f=fStart;f<fEnd;f++){
+                     &(tdy->fmap)); CHKERRQ(ierr);
+  for(f=fStart; f<fEnd; f++) {
     closure = NULL;
     ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);
     CHKERRQ(ierr);
     c = 0;
-    for (i=0;i<closureSize*2;i+=2){
-      if ((closure[i] >= vStart) && (closure[i] < vEnd)){
-	tdy->fmap[nfv*(f-fStart)+c] = closure[i];
-	c += 1;
+    for (i=0; i<closureSize*2; i+=2) {
+      if ((closure[i] >= vStart) && (closure[i] < vEnd)) {
+        tdy->fmap[nfv*(f-fStart)+c] = closure[i];
+        c += 1;
       }
     }
-#if defined(PETSC_USE_DEBUG)
-    if(c != nfv){
+    #if defined(PETSC_USE_DEBUG)
+    if(c != nfv) {
       SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-	      "Unable to find map(face,local_vertex) -> vertex");
+              "Unable to find map(face,local_vertex) -> vertex");
     }
-#endif    
+    #endif
     ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,
-					  &closureSize,&closure);CHKERRQ(ierr);
+                                          &closureSize,&closure); CHKERRQ(ierr);
   }
 
   /* map(cell,dim,side) --> global_face */
-  ierr = PetscMalloc((cEnd-cStart)*(2*dim)*sizeof(PetscInt),&(tdy->faces));CHKERRQ(ierr);
-#if defined(PETSC_USE_DEBUG)
-  for(c=0;c<((cEnd-cStart)*(2*dim));c++){ tdy->faces[c] = -1; }
-#endif
+  ierr = PetscMalloc((cEnd-cStart)*(2*dim)*sizeof(PetscInt),&(tdy->faces));
+  CHKERRQ(ierr);
+  #if defined(PETSC_USE_DEBUG)
+  for(c=0; c<((cEnd-cStart)*(2*dim)); c++) { tdy->faces[c] = -1; }
+  #endif
   PetscInt v,d,s;
-  for(c=cStart;c<cEnd;c++){
-    for(d=0;d<dim;d++){
-      for(s=0;s<2;s++){
-	v = s*PetscPowInt(2,d);
-	tdy->faces[(c-cStart)*dim*2+d*2+s] = PetscAbsInt(tdy->emap[(c-cStart)*ncv*dim+v*dim+d]);
+  for(c=cStart; c<cEnd; c++) {
+    for(d=0; d<dim; d++) {
+      for(s=0; s<2; s++) {
+        v = s*PetscPowInt(2,d);
+        tdy->faces[(c-cStart)*dim*2+d*2+s] = PetscAbsInt(tdy->emap[(c-cStart)*ncv*dim
+                                             +v*dim+d]);
       }
     }
   }
-#if defined(PETSC_USE_DEBUG)  
-  for(c=0;c<((cEnd-cStart)*(2*dim));c++){
-    if(tdy->faces[c] < 0){
-      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Unable to find map(cell,dir,side) -> face");
+  #if defined(PETSC_USE_DEBUG)
+  for(c=0; c<((cEnd-cStart)*(2*dim)); c++) {
+    if(tdy->faces[c] < 0) {
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+              "Unable to find map(cell,dir,side) -> face");
     }
   }
-#endif
-  
+  #endif
+
   /* Setup the section, 1 dof per cell */
   ierr = PetscSectionCreate(comm,&sec); CHKERRQ(ierr);
   ierr = PetscSectionSetNumFields(sec,1); CHKERRQ(ierr);
@@ -308,7 +311,8 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
   x  = nq*dim = 27
   DF = dim^2 *nq = 81
  */
-PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,PetscReal *integral){
+PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
+                               PetscReal *integral) {
 
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -318,18 +322,21 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,PetscReal *integral
   PetscReal xq[3],x[27],J[9],N[24],DF[81],DFinv[81],value;
   DM dm = tdy->dm;
   ncv  = TDyGetNumberOfCellVertices(dm);
-  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
-  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quadrature);CHKERRQ(ierr);
-  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr); 
-  ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,x,DF,DFinv,J);CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quadrature);
+  CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w);
+  CHKERRQ(ierr);
+  ierr = DMPlexComputeCellGeometryFEM(dm,f,quadrature,x,DF,DFinv,J);
+  CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
-  if(dim==2){
+  if(dim==2) {
     lside[0] = 0; lside[1] = 0;
     lside[2] = 1; lside[3] = 0;
     lside[4] = 0; lside[5] = 1;
     lside[6] = 1; lside[7] = 1;
-  }else{
+  } else {
     lside[0]  = 0; lside[1]  = 0; lside[2]  = 0;
     lside[3]  = 1; lside[4]  = 0; lside[5]  = 0;
     lside[6]  = 0; lside[7]  = 1; lside[8]  = 0;
@@ -343,52 +350,52 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,PetscReal *integral
   /* relative to this cell, where is this face? */
   face_side = -1;
   face_dir  = -1;
-  for(v=0;v<ncv;v++){
-    for(d=0;d<dim;d++){      
-      if(PetscAbsInt(tdy->emap[c*ncv*dim+v*dim+d]) == f){
-	face_side = lside[v*dim+d];
-	face_dir  = d;
+  for(v=0; v<ncv; v++) {
+    for(d=0; d<dim; d++) {
+      if(PetscAbsInt(tdy->emap[c*ncv*dim+v*dim+d]) == f) {
+        face_side = lside[v*dim+d];
+        face_dir  = d;
       }
     }
   }
-  
+
   /* loop over quadrature points */
   (*integral) = 0;
-  for(q=0;q<nq;q++){
+  for(q=0; q<nq; q++) {
 
     /* extend the dim-1 quadrature point to dim */
     j = 0;
     xq[0] = 0; xq[1] = 0; xq[2] = 0;
-    for(i=0;i<dim;i++){
-      if(i == face_dir){
-	xq[i] = PetscPowInt(-1,face_side+1);
-      }else{
-	xq[i] = quad_x[q*(dim-1)+j];
-	j += 1;
+    for(i=0; i<dim; i++) {
+      if(i == face_dir) {
+        xq[i] = PetscPowInt(-1,face_side+1);
+      } else {
+        xq[i] = quad_x[q*(dim-1)+j];
+        j += 1;
       }
     }
-    
+
     /* <g,v.n> */
     (*tdy->dirichlet)(&(x[dim*q]),&value);
-    if(dim==2){
+    if(dim==2) {
       HdivBasisQuad(xq,N);
-    }else{
+    } else {
       HdivBasisHex(xq,N);
     }
-    for(v=0;v<ncv;v++){
-      for(d=0;d<dim;d++){
-	if(PetscAbsInt(tdy->emap[c*ncv*dim+v*dim+d]) == f){
-	  (*integral) += value*TDyADotB(&(tdy->N[f*dim]),&(N[v*dim]),dim)*quad_w[q]*J[q];
-	}
+    for(v=0; v<ncv; v++) {
+      for(d=0; d<dim; d++) {
+        if(PetscAbsInt(tdy->emap[c*ncv*dim+v*dim+d]) == f) {
+          (*integral) += value*TDyADotB(&(tdy->N[f*dim]),&(N[v*dim]),dim)*quad_w[q]*J[q];
+        }
       }
     }
   }
-  ierr = PetscQuadratureDestroy(&quadrature);CHKERRQ(ierr);
-  
+  ierr = PetscQuadratureDestroy(&quadrature); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F){
+PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscErrorCode ierr;
   PetscInt v,vStart,vEnd;
   PetscInt   fStart,fEnd;
@@ -425,11 +432,12 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F){
       if ((closure[c] >= fStart) && (closure[c] < fEnd)) { Amap[nA] = closure[c]; nA += 1; }
       if ((closure[c] >= cStart) && (closure[c] < cEnd)) { Bmap[nB] = closure[c]; nB += 1; }
     }
-#if defined(PETSC_USE_DEBUG)
-    if(PetscMax(nA,nB)*PetscMax(nA,nB) > MAX_LOCAL_SIZE){
-      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"MAX_LOCAL_SIZE not set large enough");
+    #if defined(PETSC_USE_DEBUG)
+    if(PetscMax(nA,nB)*PetscMax(nA,nB) > MAX_LOCAL_SIZE) {
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+              "MAX_LOCAL_SIZE not set large enough");
     }
-#endif    
+    #endif
     ierr = PetscMemzero(A,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
     ierr = PetscMemzero(B,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
     ierr = PetscMemzero(C,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
@@ -439,70 +447,74 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F){
     for (c=0; c<closureSize*2; c+=2) { // loop connected cells
       if ((closure[c] < cStart) || (closure[c] >= cEnd)) continue;
 
-	// for the cell, which local vertex is this vertex?
-	element_vertex = -1;
-	for(q=0;q<nq;q++){
-	  if(v == tdy->vmap[closure[c]*nq+q]){
-	    element_vertex = q;
-	    break;
-	  }
-	}
-	if(element_vertex < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
+      // for the cell, which local vertex is this vertex?
+      element_vertex = -1;
+      for(q=0; q<nq; q++) {
+        if(v == tdy->vmap[closure[c]*nq+q]) {
+          element_vertex = q;
+          break;
+        }
+      }
+      if(element_vertex < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
 
-	for(element_row=0;element_row<dim;element_row++){ // which test function, local to the element/vertex
-	  global_row = tdy->emap[closure[c]*nq*dim+element_vertex*dim+element_row]; // DMPlex point index of the face
-	  sign_row   = PetscSign(global_row);
-	  global_row = PetscAbsInt(global_row);
-	  local_row  = -1;
-	  for(q=0;q<nA;q++){
-	    if(Amap[q] == global_row) {
-	      local_row = q; // row into block matrix A, local to vertex
-	      break;
-	    }
-	  }if(local_row < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
+      for(element_row=0; element_row<dim;
+          element_row++) { // which test function, local to the element/vertex
+        global_row = tdy->emap[closure[c]*nq*dim+element_vertex*dim
+                               +element_row]; // DMPlex point index of the face
+        sign_row   = PetscSign(global_row);
+        global_row = PetscAbsInt(global_row);
+        local_row  = -1;
+        for(q=0; q<nA; q++) {
+          if(Amap[q] == global_row) {
+            local_row = q; // row into block matrix A, local to vertex
+            break;
+          }
+        } if(local_row < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
 
-	  local_col  = -1;
-	  for(q=0;q<nB;q++){
-	    if(Bmap[q] == closure[c]) {
-	      local_col = q; // col into block matrix B, local to vertex
-	      break;
-	    }
-	  }if(local_col < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
+        local_col  = -1;
+        for(q=0; q<nB; q++) {
+          if(Bmap[q] == closure[c]) {
+            local_col = q; // col into block matrix B, local to vertex
+            break;
+          }
+        } if(local_col < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
 
-	  // B here is B.T in the paper, assembled in column major
-	  B[local_col*nA+local_row] += wgt*sign_row*tdy->V[global_row];
+        // B here is B.T in the paper, assembled in column major
+        B[local_col*nA+local_row] += wgt*sign_row*tdy->V[global_row];
 
-	  // Pressure boundary conditions
-	  PetscInt isbc;
-	  ierr = DMGetLabelValue(dm,"marker",global_row,&isbc);CHKERRQ(ierr);
-	  if(isbc == 1 && tdy->dirichlet){
-	    ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet);CHKERRQ(ierr);
-	    G[local_row] = wgt*pdirichlet;
-	  }
+        // Pressure boundary conditions
+        PetscInt isbc;
+        ierr = DMGetLabelValue(dm,"marker",global_row,&isbc); CHKERRQ(ierr);
+        if(isbc == 1 && tdy->dirichlet) {
+          ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
+          G[local_row] = wgt*pdirichlet;
+        }
 
-	  for(element_col=0;element_col<dim;element_col++){ // which trial function, local to the element/vertex
-	    global_col = tdy->emap[closure[c]*nq*dim+element_vertex*dim+element_col]; // DMPlex point index of the face
-	    sign_col   = PetscSign(global_col);
-	    global_col = PetscAbsInt(global_col);
-	    local_col  = -1; // col into block matrix A, local to vertex
-	    for(q=0;q<nA;q++){
-	      if(Amap[q] == global_col) {
-		local_col = q;
-		break;
-	      }
-	    }if(local_col < 0) {
-	      printf("Looking for %d in ",global_col);
-	      for(q=0;q<nA;q++){ printf("%d ",Amap[q]); }
-	      printf("\n");
-	      CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE);
-	    }
-	    /* Assembled col major, but should be symmetric */
-	    A[local_col*nA+local_row] += tdy->Alocal[closure[c]    *(dim2*nq)+
-						     element_vertex*(dim2   )+
-						     element_row   *(dim    )+
-						     element_col]*sign_row*sign_col*tdy->V[global_row]*tdy->V[global_col];
-	  }
-	}
+        for(element_col=0; element_col<dim;
+            element_col++) { // which trial function, local to the element/vertex
+          global_col = tdy->emap[closure[c]*nq*dim+element_vertex*dim
+                                 +element_col]; // DMPlex point index of the face
+          sign_col   = PetscSign(global_col);
+          global_col = PetscAbsInt(global_col);
+          local_col  = -1; // col into block matrix A, local to vertex
+          for(q=0; q<nA; q++) {
+            if(Amap[q] == global_col) {
+              local_col = q;
+              break;
+            }
+          } if(local_col < 0) {
+            printf("Looking for %d in ",global_col);
+            for(q=0; q<nA; q++) { printf("%d ",Amap[q]); }
+            printf("\n");
+            CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE);
+          }
+          /* Assembled col major, but should be symmetric */
+          A[local_col*nA+local_row] += tdy->Alocal[closure[c]    *(dim2*nq)+
+                                       element_vertex*(dim2   )+
+                                       element_row   *(dim    )+
+                                       element_col]*sign_row*sign_col*tdy->V[global_row]*tdy->V[global_col];
+        }
+      }
     }
     ierr = DMPlexRestoreTransitiveClosure(dm,v,PETSC_FALSE,&closureSize,&closure);
     CHKERRQ(ierr);
@@ -594,71 +606,75 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
     for (c=0; c<closureSize*2; c+=2) { // loop connected cells
       if ((closure[c] < cStart) || (closure[c] >= cEnd)) continue;
 
-	// for the cell, which local vertex is this vertex?
-	element_vertex = -1;
-	for(q=0;q<nq;q++){
-	  if(v == tdy->vmap[closure[c]*nq+q]){
-	    element_vertex = q;
-	    break;
-	  }
-	}
-	if(element_vertex < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
+      // for the cell, which local vertex is this vertex?
+      element_vertex = -1;
+      for(q=0; q<nq; q++) {
+        if(v == tdy->vmap[closure[c]*nq+q]) {
+          element_vertex = q;
+          break;
+        }
+      }
+      if(element_vertex < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
 
-	for(element_row=0;element_row<dim;element_row++){ // which test function, local to the element/vertex
-	  global_row = tdy->emap[closure[c]*nq*dim+element_vertex*dim+element_row]; // DMPlex point index of the face
-	  sign_row   = PetscSign(global_row);
-	  global_row = PetscAbsInt(global_row);
-	  local_row  = -1;
-	  for(q=0;q<nA;q++){
-	    if(Amap[q] == global_row) {
-	      local_row = q; // row into block matrix A, local to vertex
-	      break;
-	    }
-	  }if(local_row < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
+      for(element_row=0; element_row<dim;
+          element_row++) { // which test function, local to the element/vertex
+        global_row = tdy->emap[closure[c]*nq*dim+element_vertex*dim
+                               +element_row]; // DMPlex point index of the face
+        sign_row   = PetscSign(global_row);
+        global_row = PetscAbsInt(global_row);
+        local_row  = -1;
+        for(q=0; q<nA; q++) {
+          if(Amap[q] == global_row) {
+            local_row = q; // row into block matrix A, local to vertex
+            break;
+          }
+        } if(local_row < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
 
-	  local_col  = -1;
-	  for(q=0;q<nB;q++){
-	    if(Bmap[q] == closure[c]) {
-	      local_col = q; // col into block matrix B, local to vertex
-	      break;
-	    }
-	  }if(local_col < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
+        local_col  = -1;
+        for(q=0; q<nB; q++) {
+          if(Bmap[q] == closure[c]) {
+            local_col = q; // col into block matrix B, local to vertex
+            break;
+          }
+        } if(local_col < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
 
-	  // B P
-	  ierr = PetscSectionGetOffset(section,closure[c],&offset);CHKERRQ(ierr);
-	  F[local_row] += wgt*sign_row*u[offset]*tdy->V[global_row];
+        // B P
+        ierr = PetscSectionGetOffset(section,closure[c],&offset); CHKERRQ(ierr);
+        F[local_row] += wgt*sign_row*u[offset]*tdy->V[global_row];
 
-	  // boundary conditions
-	  PetscInt isbc;
-	  ierr = DMGetLabelValue(dm,"marker",global_row,&isbc);CHKERRQ(ierr);
-	  if(isbc == 1 && tdy->dirichlet){
-	    ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet);CHKERRQ(ierr);
-	    F[local_row] -= wgt*pdirichlet;
-	  }
+        // boundary conditions
+        PetscInt isbc;
+        ierr = DMGetLabelValue(dm,"marker",global_row,&isbc); CHKERRQ(ierr);
+        if(isbc == 1 && tdy->dirichlet) {
+          ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
+          F[local_row] -= wgt*pdirichlet;
+        }
 
-	  for(element_col=0;element_col<dim;element_col++){ // which trial function, local to the element/vertex
-	    global_col = tdy->emap[closure[c]*nq*dim+element_vertex*dim+element_col]; // DMPlex point index of the face
-	    sign_col   = PetscSign(global_col);
-	    global_col = PetscAbsInt(global_col);
-	    local_col  = -1; // col into block matrix A, local to vertex
-	    for(q=0;q<nA;q++){
-	      if(Amap[q] == global_col) {
-		local_col = q;
-		break;
-	      }
-	    }if(local_col < 0) {
-	      printf("Looking for %d in ",global_col);
-	      for(q=0;q<nA;q++){ printf("%d ",Amap[q]); }
-	      printf("\n");
-	      CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE);
-	    }
-	    // Assembled col major, but should be symmetric
-	    A[local_col*nA+local_row] += tdy->Alocal[closure[c]    *(dim2*nq)+
-						     element_vertex*(dim2   )+
-						     element_row   *(dim    )+
-						     element_col]*sign_row*sign_col*tdy->V[global_row]*tdy->V[global_col];
-	  }
-	}
+        for(element_col=0; element_col<dim;
+            element_col++) { // which trial function, local to the element/vertex
+          global_col = tdy->emap[closure[c]*nq*dim+element_vertex*dim
+                                 +element_col]; // DMPlex point index of the face
+          sign_col   = PetscSign(global_col);
+          global_col = PetscAbsInt(global_col);
+          local_col  = -1; // col into block matrix A, local to vertex
+          for(q=0; q<nA; q++) {
+            if(Amap[q] == global_col) {
+              local_col = q;
+              break;
+            }
+          } if(local_col < 0) {
+            printf("Looking for %d in ",global_col);
+            for(q=0; q<nA; q++) { printf("%d ",Amap[q]); }
+            printf("\n");
+            CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE);
+          }
+          // Assembled col major, but should be symmetric
+          A[local_col*nA+local_row] += tdy->Alocal[closure[c]    *(dim2*nq)+
+                                       element_vertex*(dim2   )+
+                                       element_row   *(dim    )+
+                                       element_col]*sign_row*sign_col*tdy->V[global_row]*tdy->V[global_col];
+        }
+      }
     }
     /* solves for velocities at a vertex */
     ierr = RecoverVelocity(&A[0],&F[0],nA); CHKERRQ(ierr);
@@ -718,109 +734,111 @@ PetscReal TDyWYPressureNorm(TDy tdy,Vec U) {
 }
 
 /*
-  Velocity norm given in section 5 of Wheeler2012. 
+  Velocity norm given in section 5 of Wheeler2012.
 
-  ||u-uh||^2 = sum_E sum_e |E| ( 1/|e| int(u.n) - 1/|e| int(uh.n) )^2 
+  ||u-uh||^2 = sum_E sum_e |E| ( 1/|e| int(u.n) - 1/|e| int(uh.n) )^2
 
   where the integrals are evaluated by nq1d=1 quadrature. It compares
   the L2 difference in the mean normal velocity over faces of each
   cell, weighted by the cell area.
 */
-PetscReal TDyWYVelocityNorm(TDy tdy)
-{
+PetscReal TDyWYVelocityNorm(TDy tdy) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt c,cStart,cEnd,dim,gref,fStart,fEnd,junk,d,s,f;
   DM dm = tdy->dm;
-  if(!(tdy->flux)){
-    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Must set the velocity function with TDySetDirichletFlux");
+  if(!(tdy->flux)) {
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+            "Must set the velocity function with TDySetDirichletFlux");
   }
-  ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd);CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
   PetscInt i,j,ncv,nfv,q,nq,nq1d=1;
   const PetscScalar *quad_x,*quad_w;
-  PetscReal xq[3],x[100],DF[100],DFinv[100],J[100],N[24],vel[3],ve,va,flux0,flux,norm,norm_sum,Nn,C;
+  PetscReal xq[3],x[100],DF[100],DFinv[100],J[100],N[24],vel[3],ve,va,flux0,flux,
+            norm,norm_sum,Nn,C;
   PetscQuadrature quad;
   ncv  = TDyGetNumberOfCellVertices(dm);
   nfv  = TDyGetNumberOfFaceVertices(dm);
-  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quad);CHKERRQ(ierr);
-  ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w);CHKERRQ(ierr); 
+  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quad); CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w);
+  CHKERRQ(ierr);
 
   /* loop cells */
   norm = 0; norm_sum = 0;
-  for(c=cStart;c<cEnd;c++){
+  for(c=cStart; c<cEnd; c++) {
     //printf("cell %2d\n",c);
-    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk);CHKERRQ(ierr);
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
     if (gref < 0) continue;
 
     /* loop faces */
-    for(d=0;d<dim;d++){
-      for(s=0;s<2;s++){	
-	f = tdy->faces[(c-cStart)*dim*2+d*2+s];
-	//printf("   face %2d\n",f);	
-	ierr = DMPlexComputeCellGeometryFEM(dm,f,quad,x,DF,DFinv,J);CHKERRQ(ierr);
+    for(d=0; d<dim; d++) {
+      for(s=0; s<2; s++) {
+        f = tdy->faces[(c-cStart)*dim*2+d*2+s];
+        //printf("   face %2d\n",f);
+        ierr = DMPlexComputeCellGeometryFEM(dm,f,quad,x,DF,DFinv,J); CHKERRQ(ierr);
 
-	/* loop quadrature */
-	flux0 = flux = 0;
-	for(q=0;q<nq;q++){
-	  
-	  /* extend the dim-1 quadrature point to dim */
-	  j = 0;
-	  xq[0] = 0; xq[1] = 0; xq[2] = 0;
-	  for(i=0;i<dim;i++){
-	    if(i == d){
-	      xq[i] = PetscPowInt(-1,s+1);
-	    }else{
-	      xq[i] = quad_x[q*(dim-1)+j];
-	      j += 1;
-	    }
-	  }	  
-	  //printf("      quad %d, x = %+.3f %+.3f, xq = %+.3f %+.3f, J = %f\n",q,x[q*dim],x[q*dim+1],xq[0],xq[1],J[q]);
-	  if(dim==2){
-	    HdivBasisQuad(xq,N);
-	  }else{
-	    HdivBasisHex(xq,N);
-	  }
-	  va = 0;
+        /* loop quadrature */
+        flux0 = flux = 0;
+        for(q=0; q<nq; q++) {
 
-	  //if(v == tdy->fmap[nv*(global_row-fStart)+offset]){
-	  // tdy->vel[nv*(global_row-fStart)+offset] = F[q];
-	  
-	  for(i=0;i<ncv;i++){
-	    Nn = PetscPowInt(-1,s+1)*N[i*dim+d];
+          /* extend the dim-1 quadrature point to dim */
+          j = 0;
+          xq[0] = 0; xq[1] = 0; xq[2] = 0;
+          for(i=0; i<dim; i++) {
+            if(i == d) {
+              xq[i] = PetscPowInt(-1,s+1);
+            } else {
+              xq[i] = quad_x[q*(dim-1)+j];
+              j += 1;
+            }
+          }
+          //printf("      quad %d, x = %+.3f %+.3f, xq = %+.3f %+.3f, J = %f\n",q,x[q*dim],x[q*dim+1],xq[0],xq[1],J[q]);
+          if(dim==2) {
+            HdivBasisQuad(xq,N);
+          } else {
+            HdivBasisHex(xq,N);
+          }
+          va = 0;
 
-	    for(j=0;j<nfv;j++){
-	      if(tdy->vmap[ncv*(c-cStart)+i] == tdy->fmap[nfv*(f-fStart)+j]) break;
-	    }
-	    if(j==nfv) continue;
-	    C  = tdy->vel[nfv*(f-fStart)+j];
-	    va += Nn*C;
-	    //if(f==21) printf("         N[%d] = [%+.2f,%+.2f] -> %+.2f * %+.4f\n",i,N[i*dim],N[i*dim+1],Nn,C);
-	  }
-	  //printf("      va = %f\n",va);
-	  
-	  tdy->flux(&(x[q*dim]),vel);
-	  ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
-	  //printf("      ve = %f\n",ve);
+          //if(v == tdy->fmap[nv*(global_row-fStart)+offset]){
+          // tdy->vel[nv*(global_row-fStart)+offset] = F[q];
 
-	  flux  += va*quad_w[q]*J[q];
-	  flux0 += ve*quad_w[q]*J[q];
-	  
-	}
-	//if(f==21) printf("vf: %2d %+1.15e %+1.15e\n",f,flux,flux0);
-	
-	//printf("      flux0 = %f, flux = %f\n",flux0,flux);
-	norm += PetscSqr((flux-flux0)/tdy->V[f])*tdy->V[c];
-	// int(va)/V - int(ve)/V
-	// int(va-ve)/V
-	
+          for(i=0; i<ncv; i++) {
+            Nn = PetscPowInt(-1,s+1)*N[i*dim+d];
+
+            for(j=0; j<nfv; j++) {
+              if(tdy->vmap[ncv*(c-cStart)+i] == tdy->fmap[nfv*(f-fStart)+j]) break;
+            }
+            if(j==nfv) continue;
+            C  = tdy->vel[nfv*(f-fStart)+j];
+            va += Nn*C;
+            //if(f==21) printf("         N[%d] = [%+.2f,%+.2f] -> %+.2f * %+.4f\n",i,N[i*dim],N[i*dim+1],Nn,C);
+          }
+          //printf("      va = %f\n",va);
+
+          tdy->flux(&(x[q*dim]),vel);
+          ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
+          //printf("      ve = %f\n",ve);
+
+          flux  += va*quad_w[q]*J[q];
+          flux0 += ve*quad_w[q]*J[q];
+
+        }
+        //if(f==21) printf("vf: %2d %+1.15e %+1.15e\n",f,flux,flux0);
+
+        //printf("      flux0 = %f, flux = %f\n",flux0,flux);
+        norm += PetscSqr((flux-flux0)/tdy->V[f])*tdy->V[c];
+        // int(va)/V - int(ve)/V
+        // int(va-ve)/V
+
       }
     }
 
   }
-  ierr = PetscQuadratureDestroy(&quad);CHKERRQ(ierr);
+  ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
                        PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
   norm_sum = PetscSqrtReal(norm_sum);

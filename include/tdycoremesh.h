@@ -16,32 +16,37 @@ typedef enum {
   SUBCELL_HEX_TYPE     /* hexahedron subcell for a 3D cell */
 } TDySubcellType;
 
-struct _TDy_coordinate{
+struct _TDy_coordinate {
 
- PetscReal X[3];
+  PetscReal X[3];
 
 };
 
-struct _TDy_vector{
+struct _TDy_vector {
 
- PetscReal V[3];
+  PetscReal V[3];
 
 };
 
 struct _TDy_subcell {
 
-  PetscInt       id;                               /* id of the subcell                                          */
-  TDySubcellType type;                             /* triangle or tetrahedron                                    */
+  PetscInt
+  id;                               /* id of the subcell                                          */
+  TDySubcellType
+  type;                             /* triangle or tetrahedron                                    */
 
   PetscInt cell_id;                                /* cell id in local numbering to which the subcell belongs to */
 
   PetscInt num_vertices;                           /* number of vertices that form the subcell                   */
   PetscInt num_nu_vectors;                         /* number of nu vectors of the subcell                        */
 
-  TDy_vector     *nu_vector;                       /* nu vectors used to compute transmissibility                */
+  TDy_vector
+  *nu_vector;                       /* nu vectors used to compute transmissibility                */
 
-  TDy_coordinate *variable_continuity_coordinates; /* coordinates at which variable continuity is enforced       */
-  TDy_coordinate *vertices_cordinates;             /* vertex coordinates that form the subcell                   */
+  TDy_coordinate
+  *variable_continuity_coordinates; /* coordinates at which variable continuity is enforced       */
+  TDy_coordinate
+  *vertices_cordinates;             /* vertex coordinates that form the subcell                   */
 
   PetscReal volume;                                /* volume of the subcell                                      */
 
@@ -81,7 +86,8 @@ struct _TDy_vertex {
   PetscInt *internal_cell_ids;  /* internal cell IDs that share the vertex              */
   PetscInt *subcell_ids;        /* subcell IDs of internal cells that share the vertex  */
 
-  TDy_coordinate coordinate;    /* (x,y,z) location of the vertex                       */
+  TDy_coordinate
+  coordinate;    /* (x,y,z) location of the vertex                       */
 };
 
 struct _TDy_edge {
