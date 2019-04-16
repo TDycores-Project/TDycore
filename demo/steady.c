@@ -289,10 +289,9 @@ int main(int argc, char **argv) {
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
 
   /* Evaluate error norms */
-  PetscReal normp,normv,normd;
-  ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv,&normd);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e %e\n",normp,normv,normd);
-  CHKERRQ(ierr);
+  PetscReal normp,normv;
+  ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e\n",normp,normv); CHKERRQ(ierr);
 
   /* Cleanup */
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);

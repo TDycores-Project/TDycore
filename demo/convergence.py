@@ -36,8 +36,8 @@ N = args.N0*2**np.asarray(range(args.n))
 
 
 h = 1./N
-E = np.zeros((N.size,3))
-print("       |p-ph|        (3.40)       Sec 5")
+E = np.zeros((N.size,2))
+print("       |p-ph|        |v-vh|")
 for i,n in enumerate(N):
     ref = "" if i == 0 else " -dm_refine %d" % i
     process = subprocess.Popen("./steady -dim %d -N %d %s %s %s %s" % (d,N[0],ref,solver,method,problem),
@@ -46,13 +46,12 @@ for i,n in enumerate(N):
                                stderr=subprocess.PIPE)
     output,errors = process.communicate()
     E[i] = [float(v) for v in output.split()]
-    print("%3d  %.6e %.6e %.6e" % (n,E[i,0],E[i,1],E[i,2]))
+    print("%3d  %.6e %.6e" % (n,E[i,0],E[i,1]))
 
 for s in range(h.size-1):
     
-    print("rate = %.2f  %.2f  %.2f" % (np.polyfit(np.log10(h[s:]),np.log10(E[s:,0]),1)[0],
-                                       np.polyfit(np.log10(h[s:]),np.log10(E[s:,1]),1)[0],
-                                       np.polyfit(np.log10(h[s:]),np.log10(E[s:,2]),1)[0]))
+    print("rate = %.2f  %.2f" % (np.polyfit(np.log10(h[s:]),np.log10(E[s:,0]),1)[0],
+                                 np.polyfit(np.log10(h[s:]),np.log10(E[s:,1]),1)[0]))                                
 
 pad = 0.05
 lbl = 0.19
@@ -65,14 +64,12 @@ h0  = 10**(np.log10(h[ 0]) + 0.02*dh)
 fig,ax = plt.subplots(tight_layout=True)
 ax.loglog(h,E[:,0],'-o',ms=4)
 ax.loglog(h,E[:,1],'-^',ms=4)
-ax.loglog(h,E[:,2],'-s',ms=4)
 tx,ty = _buildTriangle(2.0,0.05,h,E[:,0])
 ax.loglog(tx,ty,'-k')
 ax.text(tx[1],ty[1],"2 ",ha="right",va="bottom")
 ax.text(h0,E[0,0],r"$|||p-p_h|||$")
 ax.text(h0,E[0,1],r"$|||\mathbf{u}-\mathbf{u}_h|||$")
-ax.text(h0,E[0,2],r"$|||\nabla\cdot\left(\mathbf{u}-\mathbf{u}_h\right)|||$")
 ax.set_xlim(hL,hR)
 ax.set_xlabel("Mesh size, $h$")
 ax.set_ylabel("Norm of Error")
-fig.savefig("convergence%dD.png" % d)
+fig.savefig("convergence_%d_%d%s.png" % (d,args.problem,"_x" if args.perturb else ""))

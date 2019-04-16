@@ -718,61 +718,6 @@ PetscReal TDyWYPressureNorm(TDy tdy,Vec U) {
 }
 
 /*
-  Velocity norm given in section 5 of Wheeler2012.
-
-  ||u-uh||^2 = sum_E sum_e |E| ( 1/|e| int(u.n) - 1/|e| int(uh.n) )^2
-
-  where the integrals are evaluated by vertex quadrature.
- */
-PetscReal TDyWYVelocityNormFaceAverage(TDy tdy) {
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
-  PetscReal flux_error,norm,norm_sum,v[3],vn,wgt,flux0,flux;
-  DM dm = tdy->dm;
-  if(!(tdy->flux)) {
-    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the pressure function with TDySetDirichletFlux");
-  }
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
-  nv   = TDyGetNumberOfFaceVertices(dm);
-  wgt  = 1/((PetscReal)nv);
-  norm = 0;
-  for(c=cStart; c<cEnd; c++) {
-    ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd); CHKERRQ(ierr);
-    if (gref < 0) continue;
-    const PetscInt *faces;
-    ierr = DMPlexGetConeSize(dm,c,&nf   ); CHKERRQ(ierr);
-    ierr = DMPlexGetCone    (dm,c,&faces); CHKERRQ(ierr);
-    for(i=0; i<nf; i++) {
-      f = faces[i];
-      const PetscInt *verts;
-      ierr = DMPlexGetConeSize(dm,f,&nv   );
-      CHKERRQ(ierr); /* wrong in 3D, how am I even getting O(h)?!? */
-      ierr = DMPlexGetCone    (dm,f,&verts); CHKERRQ(ierr);
-      flux0 = 0; flux = 0;
-
-      for(j=0;j<nv;j++){
-	tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
-	vn = TDyADotB(v,&(tdy->N[dim*f]),dim);
-	//if(f==21) printf("  %+f %+f\n",vn,tdy->vel[dim*(f-fStart)+j]);      
-	flux0 += vn                        *wgt*tdy->V[f];
-	flux  += tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
-      }
-      //if(f==21) printf("vf: %2d %+1.15e %+1.15e\n",f,flux,flux0);
-      flux_error = PetscSqr((flux-flux0)/tdy->V[f]);
-      norm += tdy->V[c]*flux_error;
-    }
-  }
-  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
-                       PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
-  norm_sum = PetscSqrtReal(norm_sum);
-  PetscFunctionReturn(norm_sum);
-}
-
-/*
   Velocity norm given in section 5 of Wheeler2012. 
 
   ||u-uh||^2 = sum_E sum_e |E| ( 1/|e| int(u.n) - 1/|e| int(uh.n) )^2 
@@ -876,57 +821,6 @@ PetscReal TDyWYVelocityNorm(TDy tdy)
 
   }
   ierr = PetscQuadratureDestroy(&quad);CHKERRQ(ierr);
-  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
-                       PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
-  norm_sum = PetscSqrtReal(norm_sum);
-  PetscFunctionReturn(norm_sum);
-}
-
-/*
-
- */
-PetscReal TDyWYDivergenceNorm(TDy tdy) {
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  PetscInt nv,i,j,f,fStart,fEnd,c,cStart,cEnd,nf,dim,gref;
-  PetscReal div0,div,flux0,flux,norm,norm_sum,sign,v[3],vn,wgt;
-  DM dm = tdy->dm;
-  if(!(tdy->flux)) {
-    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the pressure function with TDySetDirichletFlux");
-  }
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
-  nv   = TDyGetNumberOfFaceVertices(dm);
-  wgt  = 1/((PetscReal)nv);
-  norm = 0;
-  for(c=cStart; c<cEnd; c++) {
-    ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd); CHKERRQ(ierr);
-    if (gref < 0) continue;
-    const PetscInt *faces;
-    ierr = DMPlexGetConeSize(dm,c,&nf   ); CHKERRQ(ierr);
-    ierr = DMPlexGetCone    (dm,c,&faces); CHKERRQ(ierr);
-    div0 = 0; div = 0;
-    for(i=0; i<nf; i++) {
-      f = faces[i];
-      const PetscInt *verts;
-      ierr = DMPlexGetConeSize(dm,f,&nv   ); CHKERRQ(ierr);
-      ierr = DMPlexGetCone    (dm,f,&verts); CHKERRQ(ierr);
-      sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),
-                                      &(tdy->X[dim*c]),dim));
-      flux0 = 0; flux = 0;
-      for(j=0; j<nv; j++) {
-        tdy->flux(&(tdy->X[verts[j]*dim]),&(v[0]));
-        vn = TDyADotB(v,&(tdy->N[dim*f]),dim);
-        flux0 += sign*vn                        *wgt*tdy->V[f];
-        flux  += sign*tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
-        div0  += flux0;
-        div   += flux;
-      }
-    }
-    norm += tdy->V[c]*PetscSqr(div-div0);
-  }
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
                        PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
   norm_sum = PetscSqrtReal(norm_sum);

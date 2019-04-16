@@ -367,20 +367,6 @@ PetscReal TDyBDMPressureNorm(TDy tdy,Vec U) {
 }
 
 /*
-  Velocity norm given in section 5 of Wheeler2012.
-
-  ||u-uh||^2 = sum_E sum_e |E| ( 1/|e| int(u.n) - 1/|e| int(uh.n) )^2
-
-  where the integrals are evaluated by nq1d=2 quadrature. It compares
-  the L2 difference in the mean normal velocity over faces of each
-  cell, weighted by the cell area.
- */
-PetscReal TDyBDMVelocityNormFaceAverage(TDy tdy,Vec U) {
-  PetscFunctionBegin;
-  PetscFunctionReturn(1e-1);
-}
-
-/*
   Velocity norm given in (3.40) of Wheeler2012.
 
   ||u-uh||^2 = sum_E sum_e |E|/|e| ||(u-uh).n||^2
@@ -480,9 +466,4 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
   ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
   PetscFunctionReturn(norm_sum);
-}
-
-PetscReal TDyBDMDivergenceNorm(TDy tdy,Vec U) {
-  PetscFunctionBegin;
-  PetscFunctionReturn(1e-1);
 }

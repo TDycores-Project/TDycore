@@ -158,7 +158,7 @@ PetscReal TDyTPFPressureNorm(TDy tdy,Vec U) {
   PetscFunctionReturn(norm_sum);
 }
 
-PetscReal TDyTPFVelocityNormFaceAverage(TDy tdy,Vec U) {
+PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
   PetscErrorCode ierr;
   PetscInt dim,dim2,i,f,fStart,fEnd,c,cStart,cEnd,row,junk;
   PetscReal pnt2pnt[3],dist,Ki,p,vel[3],va,ve,*u,sign,face_error,norm,norm_sum;
@@ -219,11 +219,6 @@ PetscReal TDyTPFVelocityNormFaceAverage(TDy tdy,Vec U) {
   norm_sum = PetscSqrtReal(norm_sum);
   ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
   PetscFunctionReturn(norm_sum);
-}
-
-PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
-  PetscFunctionBegin;
-  PetscFunctionReturn(1e-16);
 }
 
 PetscErrorCode TDyTPFCheckMeshSuitability(TDy tdy) {

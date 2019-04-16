@@ -590,7 +590,7 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
 }
 
 PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
-                                    PetscReal *normv,PetscReal *normd) {
+                                    PetscReal *normv) {
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -599,7 +599,6 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
   case TPF:
     if(normp != NULL) { *normp = TDyTPFPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyTPFVelocityNorm(tdy,U); }
-    if(normd != NULL) { *normd = TDyTPFVelocityNormFaceAverage(tdy,U); }
     break;
   case MULTIPOINT_FLUX:
     SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
@@ -607,15 +606,13 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
   case BDM:
     if(normp != NULL) { *normp = TDyBDMPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyBDMVelocityNorm(tdy,U); }
-    if(normd != NULL) { *normd = TDyBDMVelocityNormFaceAverage(tdy,U); }
     break;
   case WY:
-    if(normv || normd) {
+    if(normv) {
       ierr = TDyWYRecoverVelocity(tdy,U); CHKERRQ(ierr);
     }
     if(normp != NULL) { *normp = TDyWYPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyWYVelocityNorm(tdy); }
-    if(normd != NULL) { *normd = TDyWYVelocityNormFaceAverage(tdy); }
     break;
   }
   PetscFunctionReturn(0);
