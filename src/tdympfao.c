@@ -14,9 +14,11 @@ PetscBool IsClosureWithinBounds(PetscInt closure, PetscInt start,
 PetscErrorCode Initialize_IntegerArray_1D(PetscInt *array_1D, PetscInt ndim_1,
     PetscInt init_value) {
 
+  PetscInt i;
+
   PetscFunctionBegin;
 
-  for(int i=0; i<ndim_1; i++)
+  for(i=0; i<ndim_1; i++)
     array_1D[i] = init_value;
 
   PetscFunctionReturn(0);
@@ -26,9 +28,11 @@ PetscErrorCode Initialize_IntegerArray_1D(PetscInt *array_1D, PetscInt ndim_1,
 PetscErrorCode Initialize_RealArray_1D(PetscReal *array_1D, PetscInt ndim_1,
                                        PetscReal value) {
 
+  PetscInt i;
+
   PetscFunctionBegin;
 
-  for(int i=0; i<ndim_1; i++) {
+  for(i=0; i<ndim_1; i++) {
     array_1D[i] = value;
   }
 
@@ -39,10 +43,12 @@ PetscErrorCode Initialize_RealArray_1D(PetscReal *array_1D, PetscInt ndim_1,
 PetscErrorCode Initialize_RealArray_2D(PetscReal **array_2D, PetscInt ndim_1,
                                        PetscInt ndim_2, PetscReal value) {
 
+  PetscInt i,j;
+
   PetscFunctionBegin;
 
-  for(int i=0; i<ndim_1; i++) {
-    for (int j=0; j<ndim_2; j++) {
+  for(i=0; i<ndim_1; i++) {
+    for (j=0; j<ndim_2; j++) {
       array_2D[i][j] = value;
     }
   }
@@ -54,11 +60,13 @@ PetscErrorCode Initialize_RealArray_2D(PetscReal **array_2D, PetscInt ndim_1,
 PetscErrorCode Initialize_RealArray_3D(PetscReal ***array_3D, PetscInt ndim_1,
                                        PetscInt ndim_2, PetscInt ndim_3, PetscReal value) {
 
+  PetscInt i,j,k;
+
   PetscFunctionBegin;
 
-  for(int i=0; i<ndim_1; i++) {
-    for (int j=0; j<ndim_2; j++) {
-      for (int k=0; k<ndim_3; k++) {
+  for(i=0; i<ndim_1; i++) {
+    for (j=0; j<ndim_2; j++) {
+      for (k=0; k<ndim_3; k++) {
         array_3D[i][j][k] = value;
       }
     }
@@ -71,12 +79,14 @@ PetscErrorCode Initialize_RealArray_3D(PetscReal ***array_3D, PetscInt ndim_1,
 PetscErrorCode Initialize_RealArray_4D(PetscReal ****array_4D, PetscInt ndim_1,
                                        PetscInt ndim_2, PetscInt ndim_3, PetscInt ndim_4, PetscReal value) {
 
+  PetscInt i,j,k,l;
+
   PetscFunctionBegin;
 
-  for (int i=0; i<ndim_1; i++) {
-    for (int j=0; j<ndim_2; j++) {
-      for (int k=0; k<ndim_3; k++) {
-        for (int l=0; l<ndim_4; l++) {
+  for (i=0; i<ndim_1; i++) {
+    for (j=0; j<ndim_2; j++) {
+      for (k=0; k<ndim_3; k++) {
+        for (l=0; l<ndim_4; l++) {
           array_4D[i][j][k][l] = value;
         }
       }
@@ -104,12 +114,13 @@ PetscErrorCode Allocate_RealArray_1D(PetscReal **array_1D, PetscInt ndim_1) {
 PetscErrorCode Allocate_RealArray_2D(PetscReal ***array_2D, PetscInt ndim_1,
                                      PetscInt ndim_2) {
 
+  PetscInt i;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
   *array_2D = (PetscReal **)malloc(ndim_1*sizeof(PetscReal *));
-  for(int i=0; i<ndim_1; i++)
+  for(i=0; i<ndim_1; i++)
     (*array_2D)[i] = (PetscReal *)malloc(ndim_2*sizeof(PetscReal ));
 
   ierr = Initialize_RealArray_2D(*array_2D, ndim_1, ndim_2, 0.0); CHKERRQ(ierr);
@@ -120,9 +131,11 @@ PetscErrorCode Allocate_RealArray_2D(PetscReal ***array_2D, PetscInt ndim_1,
 /* ---------------------------------------------------------------- */
 PetscErrorCode Deallocate_RealArray_2D(PetscReal **array_2D, PetscInt ndim_1) {
 
+  PetscInt i;
+
   PetscFunctionBegin;
 
-  for(int i=0; i<ndim_1; i++) {
+  for(i=0; i<ndim_1; i++) {
     free(array_2D[i]);
   }
   free(array_2D);
@@ -134,14 +147,15 @@ PetscErrorCode Deallocate_RealArray_2D(PetscReal **array_2D, PetscInt ndim_1) {
 PetscErrorCode Allocate_RealArray_3D(PetscReal ****array_3D, PetscInt ndim_1,
                                      PetscInt ndim_2, PetscInt ndim_3) {
 
+  PetscInt i,j;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
   *array_3D = (PetscReal ***)malloc(ndim_1*sizeof(PetscReal **));
-  for(int i=0; i<ndim_1; i++) {
+  for(i=0; i<ndim_1; i++) {
     (*array_3D)[i] = (PetscReal **)malloc(ndim_2*sizeof(PetscReal *));
-    for(int j=0; j<ndim_2; j++) {
+    for(j=0; j<ndim_2; j++) {
       (*array_3D)[i][j] = (PetscReal *)malloc(ndim_3*sizeof(PetscReal));
     }
   }
@@ -157,16 +171,17 @@ PetscErrorCode Allocate_RealArray_3D(PetscReal ****array_3D, PetscInt ndim_1,
 PetscErrorCode Allocate_RealArray_4D(PetscReal *****array_4D, PetscInt ndim_1,
                                      PetscInt ndim_2, PetscInt ndim_3, PetscInt ndim_4) {
 
+  PetscInt i,j,k;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
   *array_4D = (PetscReal ****)malloc(ndim_1*sizeof(PetscReal ***));
-  for(int i=0; i<ndim_1; i++) {
+  for(i=0; i<ndim_1; i++) {
     (*array_4D)[i] = (PetscReal ***)malloc(ndim_2*sizeof(PetscReal **));
-    for(int j=0; j<ndim_2; j++) {
+    for(j=0; j<ndim_2; j++) {
       (*array_4D)[i][j] = (PetscReal **)malloc(ndim_3*sizeof(PetscReal *));
-      for(int k=0; k<ndim_3; k++) {
+      for(k=0; k<ndim_3; k++) {
         (*array_4D)[i][j][k] = (PetscReal *)malloc(ndim_4*sizeof(PetscReal));
       }
     }
@@ -224,6 +239,7 @@ PetscErrorCode AllocateMemoryForACell(
   PetscFunctionBegin;
 
   PetscErrorCode ierr;
+  PetscInt       isubcell;
   PetscInt       num_subcells;
   TDy_subcell    *subcells;
 
@@ -252,7 +268,7 @@ PetscErrorCode AllocateMemoryForACell(
   cell->subcells     = (TDy_subcell *) malloc(num_subcells * sizeof(TDy_subcell));
 
   subcells = cell->subcells;
-  for (int isubcell=0; isubcell<num_subcells; isubcell++) {
+  for (isubcell=0; isubcell<num_subcells; isubcell++) {
 
     subcells[isubcell].id      = isubcell;
     subcells[isubcell].cell_id = cell->id;
@@ -273,6 +289,7 @@ PetscErrorCode AllocateMemoryForCells(
 
   PetscFunctionBegin;
 
+  PetscInt icell;
   PetscErrorCode ierr;
 
   PetscInt num_vertices  = nverts_per_cell;
@@ -280,7 +297,7 @@ PetscErrorCode AllocateMemoryForCells(
   PetscInt num_neighbors = nverts_per_cell;
 
   /* allocate memory for cells within the mesh*/
-  for (int icell=0; icell<num_cells; icell++) {
+  for (icell=0; icell<num_cells; icell++) {
     cells[icell].id = icell;
     ierr = AllocateMemoryForACell(&cells[icell], num_vertices, num_edges,
                                   num_neighbors, subcell_type); CHKERRQ(ierr);
@@ -325,6 +342,7 @@ PetscErrorCode AllocateMemoryForVertices(
 
   PetscFunctionBegin;
 
+  PetscInt ivertex;
   PetscErrorCode ierr;
 
   PetscInt num_internal_cells = nverts_per_cell;
@@ -332,7 +350,7 @@ PetscErrorCode AllocateMemoryForVertices(
   PetscInt num_boundary_cells = 0;
 
   /* allocate memory for vertices within the mesh*/
-  for (int ivertex=0; ivertex<num_vertices; ivertex++) {
+  for  (ivertex=0; ivertex<num_vertices; ivertex++) {
     vertices[ivertex].id = ivertex;
     ierr = AllocateMemoryForAVertex(&vertices[ivertex], num_internal_cells,
                                     num_edges, num_boundary_cells); CHKERRQ(ierr);
@@ -366,10 +384,11 @@ PetscErrorCode AllocateMemoryForEdges(
 
   PetscFunctionBegin;
 
+  PetscInt iedge;
   PetscErrorCode ierr;
 
   /* allocate memory for edges within the mesh*/
-  for (int iedge=0; iedge<num_edges; iedge++) {
+  for (iedge=0; iedge<num_edges; iedge++) {
     edges[iedge].id = iedge;
     ierr = AllocateMemoryForAEdge(&edges[iedge], ncells_per_edge); CHKERRQ(ierr);
   }
@@ -438,7 +457,7 @@ PetscErrorCode SaveTwoDimMeshGeometricAttributes(DM dm, TDy tdy) {
   PetscInt       vStart, vEnd;
   PetscInt       eStart, eEnd;
   PetscInt       pStart, pEnd;
-  PetscInt       icell, iedge, ivertex;
+  PetscInt       icell, iedge, ivertex, ielement, d;
   PetscErrorCode ierr;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -454,24 +473,24 @@ PetscErrorCode SaveTwoDimMeshGeometricAttributes(DM dm, TDy tdy) {
   edges    = mesh->edges;
   vertices = mesh->vertices;
 
-  for (int ielement=pStart; ielement<pEnd; ielement++) {
+  for (ielement=pStart; ielement<pEnd; ielement++) {
 
     if (IsClosureWithinBounds(ielement, vStart, vEnd)) { // is the element a vertex?
       ivertex = ielement - vStart;
-      for (int d=0; d<dim; d++) {
+      for (d=0; d<dim; d++) {
         vertices[ivertex].coordinate.X[d] = tdy->X[ielement*dim + d];
       }
     } else if (IsClosureWithinBounds(ielement, eStart,
                                      eEnd)) { // is the element an edge?
       iedge = ielement - eStart;
-      for (int d=0; d<dim; d++) {
+      for (d=0; d<dim; d++) {
         edges[iedge].centroid.X[d] = tdy->X[ielement*dim + d];
         edges[iedge].normal.V[d]   = tdy->N[ielement*dim + d];
       }
     } else if (IsClosureWithinBounds(ielement, cStart,
                                      cEnd)) { // is the elment a cell?
       icell = ielement - cStart;
-      for (int d=0; d<dim; d++) {
+      for (d=0; d<dim; d++) {
         cells[icell].centroid.X[d] = tdy->X[ielement*dim + d];
       }
     }
@@ -502,6 +521,7 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(DM dm, TDy tdy) {
   const PetscInt *support, *cone;
   PetscInt       c2vCount, c2eCount;
   PetscInt       nverts_per_cell;
+  PetscInt       i,j,e,v,s;
   PetscBool      use_cone;
   PetscErrorCode ierr;
 
@@ -533,13 +553,13 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(DM dm, TDy tdy) {
     c2vCount = 0;
     c2eCount = 0;
 
-    for (int i=0; i<closureSize*2; i+=2)  {
+    for (i=0; i<closureSize*2; i+=2)  {
 
       if (IsClosureWithinBounds(closure[i], vStart,
                                 vEnd)) { /* Is the closure a vertex? */
         ivertex = closure[i] - vStart;
         cells[icell].vertex_ids[c2vCount] = ivertex ;
-        for (int j=0; j<nverts_per_cell; j++) {
+        for (j=0; j<nverts_per_cell; j++) {
           if (vertices[ivertex].internal_cell_ids[j] == -1) {
             vertices[ivertex].num_internal_cells++;
             vertices[ivertex].internal_cell_ids[j] = icell;
@@ -552,7 +572,7 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(DM dm, TDy tdy) {
                                        eEnd)) { /* Is the closure an edge? */
         iedge = closure[i] - eStart;
         cells[icell].edge_ids[c2eCount] = iedge;
-        for (int j=0; j<2; j++) {
+        for (j=0; j<2; j++) {
           if (edges[iedge].cell_ids[j] == -1) {
             edges[iedge].cell_ids[j] = icell;
             break;
@@ -564,7 +584,7 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(DM dm, TDy tdy) {
   }
 
   // edge--to--vertex
-  for (int e=eStart; e<eEnd; e++) {
+  for (e=eStart; e<eEnd; e++) {
     ierr = DMPlexGetConeSize(dm, e, &coneSize); CHKERRQ(ierr);
     ierr = DMPlexGetCone(dm, e, &cone); CHKERRQ(ierr);
     ierr = DMPlexGetSupportSize(dm, e, &supportSize); CHKERRQ(ierr);
@@ -578,12 +598,12 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(DM dm, TDy tdy) {
   }
 
   // vertex--to--edge
-  for (int v=vStart; v<vEnd; v++) {
+  for (v=vStart; v<vEnd; v++) {
     ierr = DMPlexGetSupport(dm, v, &support); CHKERRQ(ierr);
     ierr = DMPlexGetSupportSize(dm, v, &supportSize); CHKERRQ(ierr);
     ivertex = v - vStart;
     vertices[ivertex].num_edges = supportSize;
-    for (int s=0; s<supportSize; s++) {
+    for (s=0; s<supportSize; s++) {
       iedge = support[s] - eStart;
       vertices[ivertex].edge_ids[s] = iedge;
       if (!edges[iedge].is_internal) vertices[ivertex].num_boundary_cells++;
@@ -636,6 +656,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   PetscBool      is_cell[8];
   PetscBool      is_internal_edge[8];
   PetscBool      boundary_edge_present;
+  PetscInt       i;
   PetscErrorCode ierr;
 
   mesh     = tdy->mesh;
@@ -648,7 +669,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   count  = 0;
 
   // compute angle to all cell centroids w.r.t. the shared vertix
-  for (PetscInt i=0; i<ncells; i++) {
+  for (i=0; i<ncells; i++) {
     icell = vertex->internal_cell_ids[i];
 
     x = cells[icell].centroid.X[0] - vertex->coordinate.X[0];
@@ -668,7 +689,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   // compute angle to face centroids w.r.t. the shared vertix
   boundary_edge_present = PETSC_FALSE;
 
-  for (PetscInt i=0; i<nedges; i++) {
+  for (i=0; i<nedges; i++) {
     iedge = vertex->edge_ids[i];
     x = edges[iedge].centroid.X[0] - vertex->coordinate.X[0];
     y = edges[iedge].centroid.X[1] - vertex->coordinate.X[1];
@@ -693,7 +714,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   if (boundary_edge_present) {
     // for a boundary vertex, find the last boundary edge in the
     // anitclockwise direction around the vertex
-    for (PetscInt i=0; i<count; i++) {
+    for (i=0; i<count; i++) {
       if (!is_cell[idx[i]]) { // is this an edge?
         if (!is_internal_edge[idx[i]]) { // is this a boundary edge?
           start_idx = i;
@@ -715,7 +736,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   tmp_nedges = 0;
 
   // save information about cell/vetex from [start_idx+1:count] in temporary arrays
-  for (PetscInt i=start_idx+1; i<count; i++) {
+  for (i=start_idx+1; i<count; i++) {
 
     if (is_cell[idx[i]]) {
       tmp_cell_ids   [tmp_ncells] = ids[idx[i]];
@@ -728,7 +749,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   }
 
   // save information about cell/vetex from [0:start_idx] in temporary arrays
-  for (PetscInt i=0; i<=start_idx; i++) {
+  for (i=0; i<=start_idx; i++) {
     if (is_cell[idx[i]]) {
       tmp_cell_ids   [tmp_ncells] = ids[idx[i]];
       tmp_subcell_ids[tmp_ncells] = subcell_ids[idx[i]];;
@@ -740,13 +761,13 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   }
 
   // save information about sorted cell ids
-  for (PetscInt i=0; i<tmp_ncells; i++) {
+  for (i=0; i<tmp_ncells; i++) {
     vertex->internal_cell_ids[i] = tmp_cell_ids[i];
     vertex->subcell_ids[i]       = tmp_subcell_ids[i];
   }
 
   // save information about sorted edge ids
-  for (PetscInt i=0; i<tmp_nedges; i++) {
+  for (i=0; i<tmp_nedges; i++) {
     vertex->edge_ids[i] = tmp_edge_ids[i];
   }
 
@@ -871,9 +892,10 @@ PetscErrorCode UpdateCellOrientationAroundAEdgeTwoDimMesh(DM dm, TDy tdy) {
 PetscErrorCode ComputeVariableContinuityPoint(PetscReal vertex[3],
     PetscReal edge[3], PetscReal alpha, PetscInt dim, PetscReal *point) {
 
+  PetscInt d;
   PetscFunctionBegin;
 
-  for (int d=0; d<dim; d++) point[d] = (1.0 - alpha)*vertex[d] + edge[d]*alpha;
+  for (d=0; d<dim; d++) point[d] = (1.0 - alpha)*vertex[d] + edge[d]*alpha;
 
   PetscFunctionReturn(0);
 }
@@ -882,6 +904,7 @@ PetscErrorCode ComputeVariableContinuityPoint(PetscReal vertex[3],
 PetscErrorCode ComputeRightNormalVector(PetscReal v1[3], PetscReal v2[3],
                                         PetscInt dim, PetscReal *normal) {
 
+  PetscInt d;
   PetscReal vec_from_1_to_2[3];
   PetscReal norm;
 
@@ -892,7 +915,7 @@ PetscErrorCode ComputeRightNormalVector(PetscReal v1[3], PetscReal v2[3],
 
   norm = 0.0;
 
-  for (int d=0; d<dim; d++) {
+  for (d=0; d<dim; d++) {
     vec_from_1_to_2[d] = v2[d] - v1[d];
     norm += pow(vec_from_1_to_2[d], 2.0);
   }
@@ -908,11 +931,13 @@ PetscErrorCode ComputeRightNormalVector(PetscReal v1[3], PetscReal v2[3],
 PetscErrorCode ComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim,
                              PetscReal *length) {
 
+  PetscInt d;
+
   PetscFunctionBegin;
 
   *length = 0.0;
 
-  for (int d=0; d<dim; d++) *length += pow(v1[d] - v2[d], 2.0);
+  for (d=0; d<dim; d++) *length += pow(v1[d] - v2[d], 2.0);
 
   *length = pow(*length, 0.5);
 
@@ -1070,7 +1095,7 @@ PetscErrorCode OutputCellsTwoDimMesh(DM dm, TDy tdy) {
   TDy_cell       *cells, *cell;
   TDy_subcell    *subcell;
   PetscInt       dim;
-  PetscInt       icell;
+  PetscInt       icell, d, k;
   PetscErrorCode ierr;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -1122,12 +1147,12 @@ PetscErrorCode OutputCellsTwoDimMesh(DM dm, TDy tdy) {
     cell = &cells[icell];
 
     // save centroid
-    for (PetscInt d=0; d<dim; d++) cell_cen_v[icell*dim + d] = cell->centroid.X[d];
+    for (d=0; d<dim; d++) cell_cen_v[icell*dim + d] = cell->centroid.X[d];
 
     // save volume
     cell_vol_v[icell] = cell->volume;
 
-    for (PetscInt k=0; k<4; k++) {
+    for (k=0; k<4; k++) {
       neigh_id_v [icell*4 + k] = cell->neighbor_ids[k];
       vertex_id_v[icell*4 + k] = cell->vertex_ids[k];
       edge_id_v  [icell*4 + k] = cell->edge_ids[k];
@@ -1141,12 +1166,12 @@ PetscErrorCode OutputCellsTwoDimMesh(DM dm, TDy tdy) {
       scell_gmatrix_v[icell*4*4 + k*4 + 2] = tdy->subc_Gmatrix[icell][k][1][0];
       scell_gmatrix_v[icell*4*4 + k*4 + 3] = tdy->subc_Gmatrix[icell][k][1][1];
 
-      for (PetscInt d=0; d<dim; d++) {
+      for (d=0; d<dim; d++) {
         scell_nu_v[count] = subcell->nu_vector[0].V[d];
         scell_cp_v[count] = subcell->variable_continuity_coordinates[0].X[d];
         count++;
       }
-      for (PetscInt d=0; d<dim; d++) {
+      for (d=0; d<dim; d++) {
         scell_nu_v[count] = subcell->nu_vector[1].V[d];
         scell_cp_v[count] = subcell->variable_continuity_coordinates[1].X[d];
         count++;
@@ -1199,7 +1224,7 @@ PetscErrorCode OutputEdgesTwoDimMesh(DM dm, TDy tdy) {
   TDy_mesh       *mesh;
   TDy_edge       *edges, *edge;
   PetscInt       dim;
-  PetscInt       iedge;
+  PetscInt       iedge, d;
   PetscErrorCode ierr;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -1220,8 +1245,8 @@ PetscErrorCode OutputEdgesTwoDimMesh(DM dm, TDy tdy) {
 
   for (iedge=0; iedge<mesh->num_edges; iedge++) {
     edge = &edges[iedge];
-    for (PetscInt d=0; d<dim; d++) edge_cen_v[iedge*dim + d] = edge->centroid.X[d];
-    for (PetscInt d=0; d<dim; d++) edge_nor_v[iedge*dim + d] = edge->normal.V[d];
+    for (d=0; d<dim; d++) edge_cen_v[iedge*dim + d] = edge->centroid.X[d];
+    for (d=0; d<dim; d++) edge_nor_v[iedge*dim + d] = edge->normal.V[d];
   }
 
   ierr = VecRestoreArray(edge_cen, &edge_cen_v); CHKERRQ(ierr);
@@ -1244,7 +1269,7 @@ PetscErrorCode OutputVerticesTwoDimMesh(DM dm, TDy tdy) {
   TDy_mesh       *mesh;
   TDy_vertex     *vertices, *vertex;
   PetscInt       dim;
-  PetscInt       ivertex;
+  PetscInt       ivertex, i, d;
   PetscErrorCode ierr;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -1272,9 +1297,9 @@ PetscErrorCode OutputVerticesTwoDimMesh(DM dm, TDy tdy) {
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     vertex = &vertices[ivertex];
-    for (PetscInt d=0; d<dim;
+    for (d=0; d<dim;
          d++) vert_coord_v[ivertex*dim + d] = vertex->coordinate.X[d];
-    for (PetscInt i=0; i<4; i++) {
+    for (i=0; i<4; i++) {
       vert_icell_ids_v[ivertex*4 + i] = vertex->internal_cell_ids[i];
       vert_edge_ids_v[ivertex*4 + i] = vertex->edge_ids[i];
       vert_subcell_ids_v[ivertex*4 + i] = vertex->subcell_ids[i];
@@ -1305,7 +1330,7 @@ PetscErrorCode OutputTransmissibilityMatrixTwoDimMesh(DM dm, TDy tdy) {
 
   TDy_mesh       *mesh;
   PetscInt       dim;
-  PetscInt       ivertex;
+  PetscInt       ivertex, i, j;
   PetscErrorCode ierr;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -1325,8 +1350,8 @@ PetscErrorCode OutputTransmissibilityMatrixTwoDimMesh(DM dm, TDy tdy) {
   count = 0;
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
-    for (PetscInt i=0; i<5; i++) {
-      for (PetscInt j=0; j<5; j++) {
+    for (i=0; i<5; i++) {
+      for (j=0; j<5; j++) {
         tmat_v[count] = tdy->Trans[ivertex][i][j];
         count++;
       }
@@ -1380,18 +1405,19 @@ PetscErrorCode ComputeEntryOfGMatrix(PetscReal edge_len, PetscReal n[3],
 
   PetscFunctionBegin;
 
+  PetscInt i, j;
   PetscReal Kv[3];
 
   *g = 0.0;
 
-  for (PetscInt i=0; i<dim; i++) {
+  for (i=0; i<dim; i++) {
     Kv[i] = 0.0;
-    for (PetscInt j=0; j<dim; j++) {
+    for (j=0; j<dim; j++) {
       Kv[i] += K[i][j] * v[j];
     }
   }
 
-  for (PetscInt i=0; i<dim; i++) {
+  for (i=0; i<dim; i++) {
     (*g) += n[i] * Kv[i];
   }
   (*g) *= -1.0/(2.0*area)*edge_len;
@@ -1507,10 +1533,12 @@ PetscErrorCode ComputeGMatrix(DM dm, TDy tdy) {
 PetscErrorCode ExtractSubGmatrix(TDy tdy, PetscInt cell_id,
                                  PetscInt sub_cell_id, PetscInt dim, PetscReal **Gmatrix) {
 
+  PetscInt i, j;
+
   PetscFunctionBegin;
 
-  for (PetscInt i=0; i<dim; i++) {
-    for (PetscInt j=0; j<dim; j++) {
+  for (i=0; i<dim; i++) {
+    for (j=0; j<dim; j++) {
       Gmatrix[i][j] = tdy->subc_Gmatrix[cell_id][sub_cell_id][i][j];
     }
   }
@@ -1532,7 +1560,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex(TDy tdy,
   PetscInt idx, vertex_id;
   PetscErrorCode ierr;
   PetscBLASInt info, *pivots;
-  PetscInt n,m, ndim;
+  PetscInt i, j, n, m, ndim;
   PetscScalar zero = 0.0, one = 1.0;
 
   PetscFunctionBegin;
@@ -1556,7 +1584,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex(TDy tdy,
   ierr = Allocate_RealArray_1D(&AinvB1d, ncells*ncells); CHKERRQ(ierr);
   ierr = Allocate_RealArray_1D(&CuptimesAinvB1d, ncells*ncells); CHKERRQ(ierr);
 
-  for (PetscInt i=0; i<ncells; i++) {
+  for (i=0; i<ncells; i++) {
     icell    = vertex->internal_cell_ids[i];
     isubcell = vertex->subcell_ids[i];
 
@@ -1579,8 +1607,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex(TDy tdy,
   }
 
   idx = 0;
-  for (PetscInt j=0; j<ncells; j++) {
-    for (PetscInt i=0; i<ncells; i++) {
+  for (j=0; j<ncells; j++) {
+    for (i=0; i<ncells; i++) {
       A[i][j] = -Cup[i][j] + Cdn[i][j];
       B[i][j] = -Fup[i][j] + Fdn[i][j];
       A1d[idx]= -Cup[i][j] + Cdn[i][j];
@@ -1611,8 +1639,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex(TDy tdy,
             CuptimesAinvB1d, &m);
 
   idx = 0;
-  for (PetscInt j=0; j<ncells; j++) {
-    for (PetscInt i=0; i<ncells; i++) {
+  for (j=0; j<ncells; j++) {
+    for (i=0; i<ncells; i++) {
       AinvB[i][j] = AinvB1d[idx];
       tdy->Trans[vertex_id][i][j] = CuptimesAinvB1d[idx] - Fup[i][j];
       idx++;
@@ -1782,8 +1810,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex(TDy tdy,
   }
 
   idx = 0;
-  for (PetscInt j=0; j<ncells_in-1; j++) {
-    for (PetscInt i=0; i<ncells_in-1; i++) {
+  for (j=0; j<ncells_in-1; j++) {
+    for (i=0; i<ncells_in-1; i++) {
       AInxIn[i][j]     = -CupInxIn[i][j] + CdnInxIn[i][j];
       AInxIn_1d[idx]   = -CupInxIn[i][j] + CdnInxIn[i][j];
       CupInxIn_1d[idx] = CupInxIn[i][j];
@@ -1793,19 +1821,19 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex(TDy tdy,
 
   idx = 0;
   i   = 0;
-  for (PetscInt j=0; j<ncells_in-1; j++) {
+  for (j=0; j<ncells_in-1; j++) {
     CupBcxIn_1d[idx] = Cup[i][j+1];
   }
 
   idx = 0;
   i   = ncells_in;
-  for (PetscInt j=0; j<ncells_in-1; j++) {
+  for (j=0; j<ncells_in-1; j++) {
     CdnBcxIn_1d[idx] = Cdn[i][j+1];
   }
 
   idx = 0;
-  for (PetscInt j=0; j<ncells_bc; j++) {
-    for (PetscInt i=0; i<ncells_in-1; i++) {
+  for (j=0; j<ncells_bc; j++) {
+    for (i=0; i<ncells_in-1; i++) {
       //DInxBc[i][j]     = CupInxBc[i][j] - CdnInxBc[i][j];
       DInxBc_1d[idx]   = CupInxBc[i][j] - CdnInxBc[i][j];
       idx++;
@@ -1813,8 +1841,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex(TDy tdy,
   }
 
   idx = 0;
-  for (PetscInt j=0; j<ncells_in; j++) {
-    for (PetscInt i=0; i<ncells_in-1; i++) {
+  for (j=0; j<ncells_in; j++) {
+    for (i=0; i<ncells_in-1; i++) {
       BInxIn[i][j]     = -FupInxIn[i][j] + FdnInxIn[i][j];
       BInxIn_1d[idx]   = -FupInxIn[i][j] + FdnInxIn[i][j];
       idx++;
@@ -2083,6 +2111,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscInt       dim;
   PetscReal      **Gmatrix;
   PetscReal      sign;
+  PetscInt       i, j;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -2239,11 +2268,11 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
         isubcell = vertex->subcell_ids[0];
         ierr = ExtractSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
         value = 0.0;
-        for (PetscInt i=0; i<dim; i++) {
+        for (i=0; i<dim; i++) {
           row = cell_ids_from_to[i][0];
           if (row>-1) sign = -1.0;
           else        sign = +1.0;
-          for (PetscInt j=0; j<dim; j++) {
+          for (j=0; j<dim; j++) {
             value += sign*Gmatrix[i][j];
           }
         }
