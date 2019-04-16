@@ -1268,7 +1268,6 @@ PetscErrorCode OutputTransmissibilityMatrixTwoDimMesh(DM dm, TDy tdy) {
       for (PetscInt j=0; j<5; j++) {
         tmat_v[count] = tdy->Trans[ivertex][i][j];
         count++;
-        if(ivertex==2) printf("tdy->Trans[ivertex][%d][%d] = %f\n",i,j,tdy->Trans[ivertex][i][j]);
         }
      }
   }
