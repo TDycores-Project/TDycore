@@ -175,10 +175,10 @@ int main(int argc, char **argv) {
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
   //ierr = TDyWYRecoverVelocity(dm,tdy,U);CHKERRQ(ierr);
 
-  //PetscReal normp, normv;
+  PetscReal normp, normv;
   //normp = TDyWYPressureNorm  (dm,tdy,U);
-  //ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
-  //ierr = PetscPrintf(PETSC_COMM_WORLD,"%e\n",normp);CHKERRQ(ierr);
+  ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"%e\n",normp);CHKERRQ(ierr);
 
   // Cleanup
 

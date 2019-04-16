@@ -603,8 +603,8 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     if(normv != NULL) { *normv = TDyTPFVelocityNorm(tdy,U); }
     break;
   case MPFA_O:
-    SETERRQ(comm,PETSC_ERR_SUP,
-            "TDyComputeErrorNorms: MPFA_O is not yet implemented");
+    if(normp != NULL) { *normp = TDyWYPressureNorm(tdy,U); }
+    //if(normv != NULL) {}
     break;
   case BDM:
     if(normp != NULL) { *normp = TDyBDMPressureNorm(tdy,U); }
