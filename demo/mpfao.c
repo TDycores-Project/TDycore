@@ -165,11 +165,11 @@ int main(int argc, char **argv)
   ierr = KSPSolve(ksp,F,U);CHKERRQ(ierr);
   //ierr = TDyWYRecoverVelocity(dm,tdy,U);CHKERRQ(ierr);
   
-  //PetscReal normp,normv,normd;
-  //normp = TDyWYPressureNorm  (dm,tdy,U);
+  PetscReal normp;
+  normp = TDyWYPressureNorm  (dm,tdy,U);
   //normv = TDyWYVelocityNorm  (dm,tdy);
   //normd = TDyWYDivergenceNorm(dm,tdy);
-  //ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e %e\n",normp,normv,normd);CHKERRQ(ierr);
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"%e\n",normp);CHKERRQ(ierr);
 
   // Cleanup
   
