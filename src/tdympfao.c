@@ -987,8 +987,8 @@ PetscErrorCode SetupSubcellsForTwoDimMesh(DM dm, TDy tdy) {
       ierr = ComputeRightNormalVector(cell_cen, cp_dn   , dim, nu_vec_up); CHKERRQ(ierr);
 
       // compute length of nu-vectors
-      ierr = ComputeLength(cp_up, cell_cen, dim, &len_up); CHKERRQ(ierr);
-      ierr = ComputeLength(cp_dn, cell_cen, dim, &len_dn); CHKERRQ(ierr);
+      ierr = ComputeLength(cp_up, cell_cen, dim, &len_dn); CHKERRQ(ierr);
+      ierr = ComputeLength(cp_dn, cell_cen, dim, &len_up); CHKERRQ(ierr);
 
       // save nu-vectors
       // note: length of nu-vectors is equal to length of edge diagonally
