@@ -1,4 +1,4 @@
-TARGETS = steady transient
+TARGETS = steady transient mpfao
 
 ifdef codecov
   MYFLAGS += -fprofile-arcs -ftest-coverage
@@ -31,3 +31,6 @@ transient: transient.o chkopts
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
 
+mpfao: mpfao.o chkopts
+	$(CLINKER) -o $@ $< $(TDYCORE_LIB)
+	$(RM) -f $<

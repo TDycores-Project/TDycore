@@ -1,8 +1,8 @@
 #include "tdycore.h"
+#include "tdyutils.h"
 #include <petscblaslapack.h>
 
 #define MAX_LOCAL_SIZE 144
-
 
 PetscErrorCode Pullback(PetscScalar *K,PetscScalar *DFinv,PetscScalar *Kappa,
                         PetscScalar J,PetscInt nn) {

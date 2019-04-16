@@ -3,12 +3,13 @@
 
 #include <petsc.h>
 #include <petsc/private/petscimpl.h>
+#include "tdycoremesh.h"
 
 /* ---------------------------------------------------------------- */
 
 typedef enum {
   TPF=0,                /* two point flux, classic finite volumes                  */
-  MULTIPOINT_FLUX,      /*                                                         */
+  MPFA_O,               /* multipoint flux approximation - O method                */
   BDM,                  /* P0,BDM1 spaces, standard approach                       */
   WY                    /* P0,BDM1 spaces, vertex quadrature, statically condensed */
 } TDyMethod;
@@ -83,6 +84,11 @@ struct _p_TDy {
   PetscInt  *orient;
   PetscInt  *faces;
 
+  /* MPFA-O */
+  TDy_mesh *mesh;
+  PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
+  PetscReal ***Trans;
+
 };
 
 PETSC_EXTERN PetscClassId TDY_CLASSID;
@@ -110,6 +116,7 @@ PETSC_EXTERN PetscErrorCode TDySetDirichletFunction(TDy tdy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetDirichletFlux    (TDy tdy,SpatialFunction f);
 
 PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy tdy);
+
 PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,
     TDyMethod method);
 PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
@@ -163,6 +170,10 @@ PETSC_EXTERN void HdivBasisQuad(const PetscReal *x,PetscReal *B);
 PETSC_EXTERN void HdivBasisHex(const PetscReal *x,PetscReal *B);
 PETSC_EXTERN PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
 					    PetscReal *integral);
+
+PETSC_EXTERN PetscErrorCode TDyMPFAOInitialize(TDy);
+PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy, Mat, Vec);
+
 /* ---------------------------------------------------------------- */
 
 PETSC_EXTERN void PrintMatrix(PetscReal *A,PetscInt nr,PetscInt nc,

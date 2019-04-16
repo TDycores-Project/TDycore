@@ -2,7 +2,7 @@
 
 const char *const TDyMethods[] = {
   "TPF",
-  "MULTIPOINT_FLUX",
+  "MPFA_O",
   "BDM",
   "WY",
   /* */
@@ -218,8 +218,8 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
   case TPF:
     ierr = TDyTPFInitialize(tdy); CHKERRQ(ierr);
     break;
-  case MULTIPOINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
+  case MPFA_O:
+    ierr = TDyMPFAOInitialize(tdy);CHKERRQ(ierr);
     break;
   case BDM:
     ierr = TDyBDMInitialize(tdy); CHKERRQ(ierr);
@@ -249,8 +249,8 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TPF");
     break;
-  case MULTIPOINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for MULTIPOINT_FLUX");
+  case MPFA_O:
+    ierr = TDyMPFAOInitialize(tdy);CHKERRQ(ierr);
     break;
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM");
@@ -296,8 +296,8 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
   case TPF:
     ierr = TDyTPFComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
-  case MULTIPOINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
+  case MPFA_O:
+    ierr = TDyMPFAOComputeSystem(tdy,K,F);CHKERRQ(ierr);
     break;
   case BDM:
     ierr = TDyBDMComputeSystem(tdy,K,F); CHKERRQ(ierr);
@@ -600,8 +600,8 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     if(normp != NULL) { *normp = TDyTPFPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyTPFVelocityNorm(tdy,U); }
     break;
-  case MULTIPOINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
+  case MPFA_O:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyComputeErrorNorms: MPFA_O is not yet implemented");
     break;
   case BDM:
     if(normp != NULL) { *normp = TDyBDMPressureNorm(tdy,U); }
