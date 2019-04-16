@@ -1009,6 +1009,295 @@ PetscErrorCode SetupSubcellsForTwoDimMesh(DM dm, TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode SavePetscVecAsBinary(Vec vec, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
+  ierr = VecView(vec, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode OutputCellsTwoDimMesh(DM dm, TDy tdy) {
+
+  PetscFunctionBegin;
+
+  TDy_mesh       *mesh;
+  TDy_cell       *cells, *cell;
+  TDy_subcell    *subcell;
+  PetscInt       dim;
+  PetscInt       icell;
+  PetscErrorCode ierr;
+
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+
+  Vec cell_cen, cell_vol;
+  Vec cell_neigh_ids, cell_vertex_ids, cell_edge_ids;
+  Vec scell_nu, scell_cp, scell_vol, scell_gmatrix;
+
+  PetscScalar *cell_cen_v, *cell_vol_v;
+  PetscScalar *neigh_id_v, *vertex_id_v, *edge_id_v;
+  PetscScalar *scell_nu_v, *scell_cp_v, *scell_vol_v, *scell_gmatrix_v;
+
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_cells*dim     , &cell_cen); CHKERRQ(ierr);
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_cells         , &cell_vol);  CHKERRQ(ierr);
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_cells*4       , &cell_neigh_ids); CHKERRQ(ierr);
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_cells*4       , &cell_vertex_ids); CHKERRQ(ierr);
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_cells*4       , &cell_edge_ids); CHKERRQ(ierr);
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_cells*4*dim*2 , &scell_nu); CHKERRQ(ierr);
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_cells*4*dim*2 , &scell_cp); CHKERRQ(ierr);
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_cells*4       , &scell_vol); CHKERRQ(ierr);
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_cells*4*4     , &scell_gmatrix); CHKERRQ(ierr);
+
+  ierr = VecGetArray(cell_cen       , &cell_cen_v); CHKERRQ(ierr);
+  ierr = VecGetArray(cell_vol       , &cell_vol_v); CHKERRQ(ierr);
+  ierr = VecGetArray(cell_neigh_ids , &neigh_id_v); CHKERRQ(ierr);
+  ierr = VecGetArray(cell_vertex_ids, &vertex_id_v); CHKERRQ(ierr);
+  ierr = VecGetArray(cell_edge_ids  , &edge_id_v); CHKERRQ(ierr);
+  ierr = VecGetArray(scell_nu       , &scell_nu_v); CHKERRQ(ierr);
+  ierr = VecGetArray(scell_cp       , &scell_cp_v); CHKERRQ(ierr);
+  ierr = VecGetArray(scell_vol      , &scell_vol_v); CHKERRQ(ierr);
+  ierr = VecGetArray(scell_gmatrix  , &scell_gmatrix_v); CHKERRQ(ierr);
+
+  PetscInt count = 0;
+  for (icell = 0; icell < mesh->num_cells; icell++){
+
+    // set pointer to cell
+    cell = &cells[icell];
+
+    // save centroid
+    for (PetscInt d=0; d<dim; d++) cell_cen_v[icell*dim + d] = cell->centroid.X[d];
+
+    // save volume
+    cell_vol_v[icell] = cell->volume;
+
+    for (PetscInt k=0; k<4; k++){
+      neigh_id_v [icell*4 + k] = cell->neighbor_ids[k];
+      vertex_id_v[icell*4 + k] = cell->vertex_ids[k];
+      edge_id_v  [icell*4 + k] = cell->edge_ids[k];
+
+      subcell = &cell->subcells[k];
+
+      scell_vol_v[icell*4 + k] = subcell->volume;
+
+      scell_gmatrix_v[icell*4*4 + k*4 + 0] = tdy->subc_Gmatrix[icell][k][0][0];
+      scell_gmatrix_v[icell*4*4 + k*4 + 1] = tdy->subc_Gmatrix[icell][k][0][1];
+      scell_gmatrix_v[icell*4*4 + k*4 + 2] = tdy->subc_Gmatrix[icell][k][1][0];
+      scell_gmatrix_v[icell*4*4 + k*4 + 3] = tdy->subc_Gmatrix[icell][k][1][1];
+
+      for (PetscInt d=0; d<dim; d++) {
+        scell_nu_v[count] = subcell->nu_vector[0].V[d];
+        scell_cp_v[count] = subcell->variable_continuity_coordinates[0].X[d];
+        count++;
+      }
+      for (PetscInt d=0; d<dim; d++) {
+        scell_nu_v[count] = subcell->nu_vector[1].V[d];
+        scell_cp_v[count] = subcell->variable_continuity_coordinates[1].X[d];
+        count++;
+      }
+    }
+
+  }
+
+  ierr = VecRestoreArray(cell_cen       , &cell_cen_v); CHKERRQ(ierr);
+  ierr = VecRestoreArray(cell_vol       , &cell_vol_v); CHKERRQ(ierr);
+  ierr = VecRestoreArray(cell_neigh_ids , &neigh_id_v); CHKERRQ(ierr);
+  ierr = VecRestoreArray(cell_vertex_ids, &vertex_id_v); CHKERRQ(ierr);
+  ierr = VecRestoreArray(cell_edge_ids  , &edge_id_v); CHKERRQ(ierr);
+  ierr = VecRestoreArray(scell_nu       , &scell_nu_v); CHKERRQ(ierr);
+  ierr = VecRestoreArray(scell_cp       , &scell_cp_v); CHKERRQ(ierr);
+  ierr = VecRestoreArray(scell_vol      , &scell_vol_v); CHKERRQ(ierr);
+  ierr = VecRestoreArray(scell_gmatrix  , &scell_gmatrix_v); CHKERRQ(ierr);
+
+  ierr = SavePetscVecAsBinary(cell_cen       , "cell_cen.bin"); CHKERRQ(ierr);
+  ierr = SavePetscVecAsBinary(cell_vol       , "cell_vol.bin"); CHKERRQ(ierr);
+  ierr = SavePetscVecAsBinary(cell_neigh_ids , "cell_neigh_ids.bin"); CHKERRQ(ierr);
+  ierr = SavePetscVecAsBinary(cell_vertex_ids, "cell_vertex_ids.bin"); CHKERRQ(ierr);
+  ierr = SavePetscVecAsBinary(cell_edge_ids  , "cell_edge_ids.bin"); CHKERRQ(ierr);
+  ierr = SavePetscVecAsBinary(scell_nu       , "subcell_nu.bin"); CHKERRQ(ierr);
+  ierr = SavePetscVecAsBinary(scell_cp       , "subcell_cp.bin"); CHKERRQ(ierr);
+  ierr = SavePetscVecAsBinary(scell_vol      , "subcell_vol.bin"); CHKERRQ(ierr);
+  ierr = SavePetscVecAsBinary(scell_gmatrix  , "subcell_gmatrix.bin"); CHKERRQ(ierr);
+
+  ierr = VecDestroy(&cell_cen); CHKERRQ(ierr);
+  ierr = VecDestroy(&cell_vol); CHKERRQ(ierr);
+  ierr = VecDestroy(&cell_neigh_ids); CHKERRQ(ierr);
+  ierr = VecDestroy(&cell_vertex_ids); CHKERRQ(ierr);
+  ierr = VecDestroy(&cell_edge_ids); CHKERRQ(ierr);
+  ierr = VecDestroy(&scell_nu); CHKERRQ(ierr);
+  ierr = VecDestroy(&scell_cp); CHKERRQ(ierr);
+  ierr = VecDestroy(&scell_vol); CHKERRQ(ierr);
+  ierr = VecDestroy(&scell_gmatrix); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode OutputEdgesTwoDimMesh(DM dm, TDy tdy) {
+
+  PetscFunctionBegin;
+
+  TDy_mesh       *mesh;
+  TDy_edge       *edges, *edge;
+  PetscInt       dim;
+  PetscInt       iedge;
+  PetscErrorCode ierr;
+
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+  mesh  = tdy->mesh;
+  edges = mesh->edges;
+
+  Vec edge_cen, edge_nor;
+  PetscScalar *edge_cen_v, *edge_nor_v;
+
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_edges*dim, &edge_cen); CHKERRQ(ierr);
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_edges*dim, &edge_nor); CHKERRQ(ierr);
+
+  ierr = VecGetArray(edge_cen, &edge_cen_v); CHKERRQ(ierr);
+  ierr = VecGetArray(edge_nor, &edge_nor_v); CHKERRQ(ierr);
+
+  for (iedge=0; iedge<mesh->num_edges; iedge++) {
+    edge = &edges[iedge];
+    for (PetscInt d=0; d<dim; d++) edge_cen_v[iedge*dim + d] = edge->centroid.X[d];
+    for (PetscInt d=0; d<dim; d++) edge_nor_v[iedge*dim + d] = edge->normal.V[d];
+  }
+
+  ierr = VecRestoreArray(edge_cen, &edge_cen_v); CHKERRQ(ierr);
+  ierr = VecRestoreArray(edge_nor, &edge_nor_v); CHKERRQ(ierr);
+
+  ierr = SavePetscVecAsBinary(edge_cen, "edge_cen.bin"); CHKERRQ(ierr);
+  ierr = SavePetscVecAsBinary(edge_nor, "edge_nor.bin"); CHKERRQ(ierr);
+
+  ierr = VecDestroy(&edge_cen); CHKERRQ(ierr);
+  ierr = VecDestroy(&edge_nor); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode OutputVerticesTwoDimMesh(DM dm, TDy tdy) {
+
+  PetscFunctionBegin;
+
+  TDy_mesh       *mesh;
+  TDy_vertex     *vertices, *vertex;
+  PetscInt       dim;
+  PetscInt       ivertex;
+  PetscErrorCode ierr;
+
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+  mesh     = tdy->mesh;
+  vertices = mesh->vertices;
+
+  Vec vert_coord, vert_icell_ids, vert_edge_ids, vert_subcell_ids;
+  PetscScalar *vert_coord_v, *vert_icell_ids_v, *vert_edge_ids_v, *vert_subcell_ids_v;
+
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_vertices*dim, &vert_coord); CHKERRQ(ierr);
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_vertices*4, &vert_icell_ids); CHKERRQ(ierr);
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_vertices*4, &vert_edge_ids); CHKERRQ(ierr);
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_vertices*4, &vert_subcell_ids); CHKERRQ(ierr);
+
+  ierr = VecGetArray(vert_coord, &vert_coord_v); CHKERRQ(ierr);
+  ierr = VecGetArray(vert_icell_ids, &vert_icell_ids_v); CHKERRQ(ierr);
+  ierr = VecGetArray(vert_edge_ids, &vert_edge_ids_v); CHKERRQ(ierr);
+  ierr = VecGetArray(vert_subcell_ids, &vert_subcell_ids_v); CHKERRQ(ierr);
+
+  for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+    vertex = &vertices[ivertex];
+    for (PetscInt d=0; d<dim; d++) vert_coord_v[ivertex*dim + d] = vertex->coordinate.X[d];
+    for (PetscInt i=0; i<4; i++) {
+      vert_icell_ids_v[ivertex*4 + i] = vertex->internal_cell_ids[i];
+      vert_edge_ids_v[ivertex*4 + i] = vertex->edge_ids[i];
+      vert_subcell_ids_v[ivertex*4 + i] = vertex->subcell_ids[i];
+    }
+  }
+
+  ierr = VecRestoreArray(vert_coord, &vert_coord_v); CHKERRQ(ierr);
+  ierr = VecRestoreArray(vert_icell_ids, &vert_icell_ids_v); CHKERRQ(ierr);
+  ierr = VecRestoreArray(vert_edge_ids, &vert_edge_ids_v); CHKERRQ(ierr);
+  ierr = VecRestoreArray(vert_subcell_ids, &vert_subcell_ids_v); CHKERRQ(ierr);
+
+  ierr = SavePetscVecAsBinary(vert_coord, "vert_coord.bin"); CHKERRQ(ierr);
+  ierr = SavePetscVecAsBinary(vert_icell_ids, "vert_icell_ids.bin"); CHKERRQ(ierr);
+  ierr = SavePetscVecAsBinary(vert_edge_ids, "vert_edge_ids.bin"); CHKERRQ(ierr);
+  ierr = SavePetscVecAsBinary(vert_subcell_ids, "vert_subcell_ids.bin"); CHKERRQ(ierr);
+
+  ierr = VecDestroy(&vert_coord); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode OutputTransmissibilityMatrixTwoDimMesh(DM dm, TDy tdy) {
+
+  PetscFunctionBegin;
+
+  TDy_mesh       *mesh;
+  PetscInt       dim;
+  PetscInt       ivertex;
+  PetscErrorCode ierr;
+
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+  mesh     = tdy->mesh;
+
+  Vec tmat;
+  PetscScalar *tmat_v;
+
+  ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_vertices*5*5, &tmat); CHKERRQ(ierr);
+
+  ierr = VecGetArray(tmat, &tmat_v); CHKERRQ(ierr);
+
+  PetscInt count;
+
+  count = 0;
+  for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+
+    for (PetscInt i=0; i<5; i++) {
+      for (PetscInt j=0; j<5; j++) {
+        tmat_v[count] = tdy->Trans[ivertex][i][j];
+        count++;
+        if(ivertex==2) printf("tdy->Trans[ivertex][%d][%d] = %f\n",i,j,tdy->Trans[ivertex][i][j]);
+        }
+     }
+  }
+
+  ierr = VecRestoreArray(tmat, &tmat_v); CHKERRQ(ierr);
+
+  ierr = SavePetscVecAsBinary(tmat, "trans_matrix.bin"); CHKERRQ(ierr);
+
+  ierr = VecDestroy(&tmat); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode OutputTwoDimMesh(DM dm, TDy tdy) {
+
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = OutputCellsTwoDimMesh(dm, tdy); CHKERRQ(ierr);
+  ierr = OutputVerticesTwoDimMesh(dm, tdy); CHKERRQ(ierr);
+  ierr = OutputEdgesTwoDimMesh(dm, tdy); CHKERRQ(ierr);
+  ierr = OutputTransmissibilityMatrixTwoDimMesh(dm, tdy); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode BuildTwoDimMesh(DM dm, TDy tdy) {
 
   PetscFunctionBegin;
@@ -1629,6 +1918,8 @@ PetscErrorCode TDyMPFAOInitialize(DM dm,TDy tdy){
   ierr = ComputeGMatrix(dm, tdy); CHKERRQ(ierr);
 
   ierr = ComputeTransmissibilityMatrix(dm, tdy); CHKERRQ(ierr);
+
+  ierr = OutputTwoDimMesh(dm, tdy);
 
   /* Setup the section, 1 dof per cell */
   PetscSection sec;
