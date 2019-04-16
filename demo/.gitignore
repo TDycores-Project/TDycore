@@ -1,4 +1,6 @@
 *dSYM
 sample
 mpfao
+steady
+transient
 *.bin*
