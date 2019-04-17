@@ -32,5 +32,5 @@ transient: transient.o chkopts
 	$(RM) -f $<
 
 mpfao: mpfao.o chkopts
-	$(CLINKER) -o $@ $< $(TDYCORE_LIB)
+	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
