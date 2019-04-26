@@ -4,6 +4,21 @@
 #include <petscblaslapack.h>
 
 /* ---------------------------------------------------------------- */
+PetscErrorCode ComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim,
+                             PetscReal *length) {
+
+  PetscFunctionBegin;
+
+  *length = 0.0;
+
+  for (int d=0; d<dim; d++) *length += pow(v1[d] - v2[d], 2.0);
+
+  *length = pow(*length, 0.5);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 
 PetscBool IsClosureWithinBounds(PetscInt closure, PetscInt start,
                                 PetscInt end) {
@@ -522,6 +537,8 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(DM dm, TDy tdy) {
   PetscInt       c2vCount, c2eCount;
   PetscInt       nverts_per_cell;
   PetscInt       i,j,e,v,s;
+  PetscReal      v_1[3], v_2[3];
+  PetscInt       d;
   PetscBool      use_cone;
   PetscErrorCode ierr;
 
@@ -923,23 +940,6 @@ PetscErrorCode ComputeRightNormalVector(PetscReal v1[3], PetscReal v2[3],
 
   normal[0] =  vec_from_1_to_2[1]/norm;
   normal[1] = -vec_from_1_to_2[0]/norm;
-
-  PetscFunctionReturn(0);
-}
-
-/* ---------------------------------------------------------------- */
-PetscErrorCode ComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim,
-                             PetscReal *length) {
-
-  PetscInt d;
-
-  PetscFunctionBegin;
-
-  *length = 0.0;
-
-  for (d=0; d<dim; d++) *length += pow(v1[d] - v2[d], 2.0);
-
-  *length = pow(*length, 0.5);
 
   PetscFunctionReturn(0);
 }
@@ -1420,7 +1420,7 @@ PetscErrorCode ComputeEntryOfGMatrix(PetscReal edge_len, PetscReal n[3],
   for (i=0; i<dim; i++) {
     (*g) += n[i] * Kv[i];
   }
-  (*g) *= -1.0/(2.0*area)*edge_len;
+  (*g) *= 1.0/(2.0*area)*edge_len;
 
   PetscFunctionReturn(0);
 }
@@ -2152,9 +2152,9 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
         for (icol=0; icol<vertex->num_internal_cells; icol++) {
           col   = vertex->internal_cell_ids[icol];
           value = tdy->Trans[vertex_id][icell][icol];
-          row = icell_from; ierr = MatSetValue(K, row, col, -value, ADD_VALUES);
+          row = icell_from; ierr = MatSetValue(K, row, col, value, ADD_VALUES);
           CHKERRQ(ierr);
-          row = icell_to  ; ierr = MatSetValue(K, row, col,  value, ADD_VALUES);
+          row = icell_to  ; ierr = MatSetValue(K, row, col, -value, ADD_VALUES);
           CHKERRQ(ierr);
         }
       }
@@ -2205,13 +2205,13 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
             for (icol=0; icol<vertex->num_internal_cells; icol++) {
               col   = vertex->internal_cell_ids[icol];
               value = tdy->Trans[vertex_id][icell][icol];
-              ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
+              ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
             }
 
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
               value = tdy->Trans[vertex_id][icell][icol + vertex->num_internal_cells] *
                       pBoundary[icol];
-              ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
+              ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
             }
           }
 
@@ -2220,13 +2220,13 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
             for (icol=0; icol<vertex->num_internal_cells; icol++) {
               col = vertex->internal_cell_ids[icol];
               value = tdy->Trans[vertex_id][icell][icol];
-              ierr = MatSetValue(K, row, col,  value, ADD_VALUES); CHKERRQ(ierr);
+              ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
             }
 
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
               value = tdy->Trans[vertex_id][icell][icol + vertex->num_internal_cells] *
                       pBoundary[icol];
-              ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
+              ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
             }
           }
         }
@@ -2234,17 +2234,18 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
         // For fluxes through boundary edges, only add contribution to the vector
         for (icell=0; icell<vertex->num_boundary_cells; icell++) {
           row = cell_ids_from_to[icell][0];
+
           if (row>-1) {
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
               value = tdy->Trans[vertex_id][icell+vertex->num_internal_cells-1][icol +
                       vertex->num_internal_cells] * pBoundary[icol];
-              ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
+              ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
             }
 
             for (icol=0; icol<vertex->num_internal_cells; icol++) {
               col   = vertex->internal_cell_ids[icol];
               value = tdy->Trans[vertex_id][icell+vertex->num_internal_cells-1][icol];
-              ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
+              ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
             }
           }
 
@@ -2253,12 +2254,12 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
               value = tdy->Trans[vertex_id][icell+vertex->num_internal_cells-1][icol +
                       vertex->num_internal_cells] * pBoundary[icol];
-              ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
+              ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
             }
             for (icol=0; icol<vertex->num_internal_cells; icol++) {
               col   = vertex->internal_cell_ids[icol];
               value = tdy->Trans[vertex_id][icell+vertex->num_internal_cells-1][icol];
-              ierr = MatSetValue(K, row, col,  value, ADD_VALUES); CHKERRQ(ierr);
+              ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
             }
           }
         }
@@ -2277,7 +2278,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
           }
         }
         row = icell; col = icell;
-        ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
+        ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
 
 
         // For fluxes through boundary edges, only add contribution to the vector
@@ -2286,7 +2287,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
           if (row>-1) {
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
               value = Gmatrix[icell][icol] * pBoundary[icol];
-              ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
+              ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
             }
           }
 
@@ -2294,7 +2295,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
           if (row>-1) {
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
               value = Gmatrix[icell][icol] * pBoundary[icol];
-              ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
+              ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
             }
           }
 
