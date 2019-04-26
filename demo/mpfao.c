@@ -173,12 +173,12 @@ int main(int argc, char **argv) {
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
-  //ierr = TDyWYRecoverVelocity(dm,tdy,U);CHKERRQ(ierr);
+
+  ierr = TDyMPFAORecoverVelocity(tdy, U);CHKERRQ(ierr);
 
   PetscReal normp, normv;
-  //normp = TDyWYPressureNorm  (dm,tdy,U);
   ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,"%e\n",normp);CHKERRQ(ierr);
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e\n",normp,normv);CHKERRQ(ierr);
 
   // Cleanup
 

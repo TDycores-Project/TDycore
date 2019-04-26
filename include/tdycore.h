@@ -173,6 +173,8 @@ PETSC_EXTERN PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
 
 PETSC_EXTERN PetscErrorCode TDyMPFAOInitialize(TDy);
 PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy, Mat, Vec);
+PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy, Vec);
+PETSC_EXTERN PetscReal TDyMPFAOVelocityNorm(TDy);
 
 /* ---------------------------------------------------------------- */
 

@@ -604,7 +604,7 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     break;
   case MPFA_O:
     if(normp != NULL) { *normp = TDyWYPressureNorm(tdy,U); }
-    //if(normv != NULL) {}
+    if(normv != NULL) { *normv = TDyMPFAOVelocityNorm(tdy); }
     break;
   case BDM:
     if(normp != NULL) { *normp = TDyBDMPressureNorm(tdy,U); }

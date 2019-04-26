@@ -2334,3 +2334,265 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 
 }
 /* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
+
+  DM             dm;
+  TDy_mesh       *mesh;
+  TDy_vertex     *vertices, *vertex;
+  TDy_edge       *edges, *edge;
+  PetscInt       ivertex, icell, isubcell;
+  PetscInt       icol, row, col, vertex_id, iedge;
+  PetscInt       fStart, fEnd;
+  PetscInt       dim;
+  PetscReal      **Gmatrix;
+  PetscInt       edge_id;
+  PetscScalar    *u;
+  PetscReal vel[3];
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  dm       = tdy->dm;
+  mesh     = tdy->mesh;
+  vertices = mesh->vertices;
+  edges    = mesh->edges;
+
+  ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+
+  ierr = VecGetArray(U, &u); CHKERRQ(ierr);
+
+  PetscReal vel_error;
+  PetscReal X[2];
+  PetscReal vel_normal;
+
+  vel_error = 0.0;
+
+  for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+
+    vertex    = &vertices[ivertex];
+    vertex_id = vertex->id;
+
+    if (vertex->num_boundary_cells == 0) {
+
+      // Internal vertex
+
+      PetscScalar Pcomputed[vertex->num_internal_cells];
+      PetscScalar Vcomputed[vertex->num_internal_cells];
+
+      // Save local pressure stencil
+      for (icell=0; icell<vertex->num_internal_cells; icell++) {
+        Pcomputed[icell] = u[vertex->internal_cell_ids[icell]];
+        Vcomputed[icell] = 0.0;
+      }
+
+      // F = T*P
+      for (icell=0; icell<vertex->num_internal_cells; icell++) {
+        if (icell==0) edge_id = vertex->edge_ids[vertex->num_internal_cells-1];
+        else          edge_id = vertex->edge_ids[icell-1];
+
+        edge = &(edges[edge_id]);
+
+        for (icol=0; icol<vertex->num_internal_cells; icol++) {
+          Vcomputed[icell] += tdy->Trans[vertex_id][icell][icol] * Pcomputed[icol] *2.0/edge->length/2.0;
+        }
+
+
+        tdy->vel[edge_id] += Vcomputed[icell];
+
+        X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
+        X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
+        tdy->flux(X,vel);
+        vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
+
+        vel_error += PetscPowReal( (Vcomputed[icell] - vel_normal), 2.0);
+      }
+
+    } else {
+
+      // Boudnary vertex
+
+      PetscScalar Pcomputed[vertex->num_internal_cells];
+      PetscScalar Pboundary[vertex->num_boundary_cells];
+      PetscScalar Vcomputed[vertex->num_internal_cells + vertex->num_boundary_cells];
+
+      for (icell=0; icell<vertex->num_internal_cells; icell++) {
+        Pcomputed[icell] = u[vertex->internal_cell_ids[icell]];
+        Vcomputed[icell] = 0.0;
+      }
+
+      PetscInt numBoundary = 0;
+      for (iedge=0; iedge<vertex->num_edges; iedge++) {
+
+        if (iedge==0) edge = &edges[vertex->edge_ids[vertex->num_edges-1]];
+        else          edge = &edges[vertex->edge_ids[iedge-1]];
+
+        if (edge->is_internal == 0) {
+          PetscInt f = edge->id + fStart;
+          (*tdy->dirichlet)(&(tdy->X[f*dim]), &Pboundary[numBoundary]);
+          Vcomputed[vertex->num_internal_cells + numBoundary] = 0.0;
+          numBoundary++;
+        }
+      }
+
+      if (vertex->num_internal_cells > 1) {
+
+        // F = T_in * P_in + T_bc * P_bc
+
+        // Flux through internal edges
+        for (icell=0; icell<vertex->num_internal_cells-1; icell++) {
+          edge_id = vertex->edge_ids[icell];
+          edge = &edges[edge_id];
+
+          // T_in * P_in
+          for (icol=0; icol<vertex->num_internal_cells; icol++) {
+            row = icell;
+            col = icol;
+            Vcomputed[row] += tdy->Trans[vertex_id][row][col] * Pcomputed[icol] *2.0/edge->length/2.0;
+          }
+
+          // T_bc * P_bc
+          for (icol=0; icol<vertex->num_boundary_cells; icol++) {
+            row = icell;
+            col = icol+vertex->num_internal_cells;
+            Vcomputed[row] += tdy->Trans[vertex_id][row][col] * Pboundary[icol] *2.0/edge->length/2.0;
+          }
+
+          tdy->vel[edge_id] += Vcomputed[row];
+
+          X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
+          X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
+
+          tdy->flux(X,vel);
+          vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
+
+          vel_error += PetscPowReal( (Vcomputed[row] - vel_normal), 2.0);
+        }
+
+        // Flux through boundary edges
+        for (icell=0; icell<vertex->num_boundary_cells; icell++) {
+
+          if (icell == 0) edge_id = vertex->edge_ids[icell + vertex->num_internal_cells  ];
+          else            edge_id = vertex->edge_ids[icell + vertex->num_internal_cells-2];
+          edge = &edges[edge_id];
+
+          // T_in * P_in
+          for (icol=0; icol<vertex->num_internal_cells; icol++) {
+            row = icell+vertex->num_internal_cells-1;
+            col = icol;
+            Vcomputed[row] += tdy->Trans[vertex_id][row][col] * Pcomputed[icol] *2.0/edge->length/2.0;
+          }
+
+          // T_bc * P_bc
+
+          for (icol=0; icol<vertex->num_boundary_cells; icol++) {
+            row = icell+vertex->num_internal_cells-1;
+            col = icol+vertex->num_internal_cells;
+            Vcomputed[row] += tdy->Trans[vertex_id][row][col] * Pboundary[icol] *2.0/edge->length/2.0;
+          }
+
+          tdy->vel[edge_id] += Vcomputed[row];
+
+          X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
+          X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
+
+          tdy->flux(X,vel);
+          vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
+
+          PetscReal pTrue;
+          (*tdy->dirichlet)(&(tdy->X[(vertex->internal_cell_ids[icell+vertex->num_internal_cells-1])*dim]), &pTrue);
+
+          vel_error += PetscPowReal( (Vcomputed[row] - vel_normal), 2.0);
+
+        }
+      } else {
+
+        // Boundary vertex is at a corner
+        icell    = vertex->internal_cell_ids[0];
+        isubcell = vertex->subcell_ids[0];
+        ierr = ExtractSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
+
+        for (iedge=0; iedge<vertex->num_edges; iedge++) {
+
+          if (iedge==0) edge = &edges[vertex->edge_ids[vertex->num_edges-1]];
+          else          edge = &edges[vertex->edge_ids[iedge-1]];
+
+          edge_id = edge->id;
+          Vcomputed[0] = 0.0;
+          for (icol=0; icol<vertex->num_boundary_cells; icol++) {
+            Vcomputed[0]      += -(Gmatrix[iedge][icol]*Pcomputed[0] - Gmatrix[iedge][icol]*Pboundary[icol])*2.0/edge->length/2.0;
+          }
+
+          tdy->vel[edge_id] += Vcomputed[0];
+
+          X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
+          X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
+
+          tdy->flux(X,vel);
+          PetscReal pTrue;
+
+          (*tdy->dirichlet)(&(tdy->X[icell*dim]), &pTrue);
+          vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
+
+          vel_error += PetscPowReal( (Vcomputed[0] - vel_normal), 2.0);
+
+        }
+
+      }
+
+    } // if (vertex->num_boundary_cells == 0)
+
+  } // for-loop
+
+  ierr = VecRestoreArray(U, &u); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
+
+  DM dm;
+  TDy_mesh *mesh;
+  TDy_edge       *edges, *edge;
+  PetscInt dim;
+  PetscInt iedge;
+  PetscInt       fStart, fEnd;
+  PetscReal norm, norm_sum, vel_normal;
+  PetscReal vel[3];
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  dm = tdy->dm;
+  mesh     = tdy->mesh;
+  edges = mesh->edges;
+
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
+
+  if (!(tdy->flux)) {
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+            "Must set the velocity function with TDySetDirichletFlux");
+  }
+
+  norm_sum = 0.0;
+  norm     = 0.0;
+
+  for (iedge=0; iedge<mesh->num_edges; iedge++) {
+
+    edge = &(edges[iedge]);
+
+    tdy->flux(&(tdy->X[(iedge + fStart)*dim]),vel);
+    vel_normal = vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1];
+    norm += PetscPowReal( vel_normal - tdy->vel[iedge], 2.0);///edge->length;
+  }
+
+  norm_sum = PetscSqrtReal(norm);
+
+  PetscFunctionReturn(norm_sum);
+}
