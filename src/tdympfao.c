@@ -612,6 +612,12 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(DM dm, TDy tdy) {
 
     edges[iedge].vertex_ids[0] = cone[0]-vStart;
     edges[iedge].vertex_ids[1] = cone[1]-vStart;
+
+    for (d=0; d<dim; d++) {
+      v_1[d] = vertices[edges[iedge].vertex_ids[0]].coordinate.X[d];
+      v_2[d] = vertices[edges[iedge].vertex_ids[1]].coordinate.X[d];
+    }
+    ierr = ComputeLength(v_1, v_2, dim, &(edges[iedge].length)); CHKERRQ(ierr);
   }
 
   // vertex--to--edge
