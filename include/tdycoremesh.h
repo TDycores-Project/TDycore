@@ -55,6 +55,9 @@ struct _TDy_subcell {
 struct _TDy_cell {
 
   PetscInt  id;            /* id of the cell in local numbering */
+  PetscInt  global_id;     /* global id of the cell in local numbering */
+
+  PetscBool is_local;
 
   PetscInt  num_vertices;  /* number of vertices of the cell    */
   PetscInt  num_edges;     /* number of edges of the cell       */

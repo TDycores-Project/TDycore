@@ -260,6 +260,7 @@ PetscErrorCode AllocateMemoryForACell(
   PetscInt       num_subcells;
   TDy_subcell    *subcells;
 
+  cell->is_local      = PETSC_FALSE;
   cell->num_vertices  = num_vertices;
   cell->num_edges     = num_edges;
   cell->num_neighbors = num_neighbors;
@@ -2042,6 +2043,42 @@ PetscErrorCode ComputeTransmissibilityMatrix(DM dm, TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode IdentifyLocalCells(TDy tdy) {
+
+  PetscErrorCode ierr;
+  DM             dm;
+  Vec            junkVec;
+  PetscInt       junkInt;
+  PetscInt       gref;
+  PetscInt       cStart, cEnd, c;
+  TDy_cell       *cells;
+
+  PetscFunctionBegin;
+
+  dm = tdy->dm;
+  cells = tdy->mesh->cells;
+
+  // Once needs to atleast haved called a DMCreateXYZ() before using DMPlexGetPointGlobal()
+  ierr = DMCreateGlobalVector(dm, &junkVec); CHKERRQ(ierr);
+  ierr = VecDestroy(&junkVec); CHKERRQ(ierr);
+
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+  for (c=cStart; c<cEnd; c++) {
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
+    if (gref>=0) {
+      cells[c].is_local = PETSC_TRUE;
+      cells[c].global_id = gref;
+    } else {
+      cells[c].is_local = PETSC_FALSE;
+      cells[c].global_id = -gref-1;
+    }
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
 
 PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
@@ -2103,6 +2140,8 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   //ierr = DMPlexSetAdjacencyUseCone(dm,PETSC_TRUE);CHKERRQ(ierr);
   //ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_TRUE);CHKERRQ(ierr);
 
+  ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 
 }
@@ -2144,6 +2183,8 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+  PetscInt rank;
+  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
@@ -2163,11 +2204,13 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 
         for (icol=0; icol<vertex->num_internal_cells; icol++) {
           col   = vertex->internal_cell_ids[icol];
+          col   = cells[vertex->internal_cell_ids[icol]].global_id;
+          if (col<0) col = -col - 1;
           value = tdy->Trans[vertex_id][icell][icol];
-          row = icell_from; ierr = MatSetValue(K, row, col, value, ADD_VALUES);
-          CHKERRQ(ierr);
-          row = icell_to  ; ierr = MatSetValue(K, row, col, -value, ADD_VALUES);
-          CHKERRQ(ierr);
+          row = cells[icell_from].global_id;
+          if (cells[icell_from].is_local) {ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);}
+          row = cells[icell_to].global_id;
+          if (cells[icell_to].is_local) {ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);}
         }
       }
 
@@ -2212,10 +2255,10 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
           icell_from = edge->cell_ids[0];
           icell_to   = edge->cell_ids[1];
 
-          row = icell_from;
-          if (row>-1) {
+          if (cells[icell_from].is_local) {
+            row   = cells[icell_from].global_id;
             for (icol=0; icol<vertex->num_internal_cells; icol++) {
-              col   = vertex->internal_cell_ids[icol];
+              col   = cells[vertex->internal_cell_ids[icol]].global_id;
               value = tdy->Trans[vertex_id][icell][icol];
               ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
             }
@@ -2227,10 +2270,10 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
             }
           }
 
-          row = icell_to;
-          if (row>-1) {
+          if (cells[icell_to].is_local) {
+            row   = cells[icell_to].global_id;
             for (icol=0; icol<vertex->num_internal_cells; icol++) {
-              col = vertex->internal_cell_ids[icol];
+              col   = cells[vertex->internal_cell_ids[icol]].global_id;
               value = tdy->Trans[vertex_id][icell][icol];
               ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
             }
@@ -2247,7 +2290,9 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
         for (icell=0; icell<vertex->num_boundary_cells; icell++) {
           row = cell_ids_from_to[icell][0];
 
-          if (row>-1) {
+          if (cells[cell_ids_from_to[icell][0]].is_local) {
+            row   = cells[cell_ids_from_to[icell][0]].global_id;
+
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
               value = tdy->Trans[vertex_id][icell+vertex->num_internal_cells-1][icol +
                       vertex->num_internal_cells] * pBoundary[icol];
@@ -2255,23 +2300,25 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
             }
 
             for (icol=0; icol<vertex->num_internal_cells; icol++) {
-              col   = vertex->internal_cell_ids[icol];
+              col   = cells[vertex->internal_cell_ids[icol]].global_id;
               value = tdy->Trans[vertex_id][icell+vertex->num_internal_cells-1][icol];
               ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
             }
           }
 
-          row = cell_ids_from_to[icell][1];
-          if (row>-1) {
+          if (cells[cell_ids_from_to[icell][1]].is_local) {
+            row   = cells[cell_ids_from_to[icell][1]].global_id;
+
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
               value = tdy->Trans[vertex_id][icell+vertex->num_internal_cells-1][icol +
                       vertex->num_internal_cells] * pBoundary[icol];
               ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
             }
+
             for (icol=0; icol<vertex->num_internal_cells; icol++) {
-              col   = vertex->internal_cell_ids[icol];
+              col   = cells[vertex->internal_cell_ids[icol]].global_id;
               value = tdy->Trans[vertex_id][icell+vertex->num_internal_cells-1][icol];
-              ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
+              {ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);}
             }
           }
         }
@@ -2289,22 +2336,24 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
             value += sign*Gmatrix[i][j];
           }
         }
-        row = icell; col = icell;
-        ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
+        row   = cells[vertex->internal_cell_ids[0]].global_id;
+        col   = cells[vertex->internal_cell_ids[0]].global_id;
+        if (cells[icell].is_local) {ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);}
 
 
         // For fluxes through boundary edges, only add contribution to the vector
         for (icell=0; icell<vertex->num_boundary_cells; icell++) {
-          row = cell_ids_from_to[icell][0];
-          if (row>-1) {
+
+          if (cells[cell_ids_from_to[icell][0]].is_local) {
+            row   = cells[cell_ids_from_to[icell][0]].global_id;
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
               value = Gmatrix[icell][icol] * pBoundary[icol];
               ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
             }
           }
 
-          row = cell_ids_from_to[icell][1];
-          if (row>-1) {
+          if (cells[cell_ids_from_to[icell][1]].is_local) {
+            row   = cells[cell_ids_from_to[icell][1]].global_id;
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
               value = Gmatrix[icell][icol] * pBoundary[icol];
               ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
@@ -2320,9 +2369,12 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscReal f;
   if (tdy->forcing) {
     for (icell=0; icell<tdy->mesh->num_cells; icell++) {
-      (*tdy->forcing)(&(tdy->X[icell*dim]), &f);
-      value = f * cells[icell].volume;
-      ierr = VecSetValue(F, icell, value, ADD_VALUES); CHKERRQ(ierr);
+      if (cells[icell].is_local) {
+        (*tdy->forcing)(&(tdy->X[icell*dim]), &f);
+        value = f * cells[icell].volume;
+        row = cells[icell].global_id;
+        ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
+      }
     }
   }
 
