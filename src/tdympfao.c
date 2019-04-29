@@ -2424,6 +2424,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
   PetscReal vel_normal;
 
   vel_error = 0.0;
+  PetscInt count = 0;
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -2463,6 +2464,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
         vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
 
         vel_error += PetscPowReal( (Vcomputed[icell] - vel_normal), 2.0);
+        count++;
       }
 
     } else {
@@ -2524,6 +2526,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
           vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
 
           vel_error += PetscPowReal( (Vcomputed[row] - vel_normal), 2.0);
+          count++;
         }
 
         // Flux through boundary edges
@@ -2560,6 +2563,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
           (*tdy->dirichlet)(&(tdy->X[(vertex->internal_cell_ids[icell+vertex->num_internal_cells-1])*dim]), &pTrue);
 
           vel_error += PetscPowReal( (Vcomputed[row] - vel_normal), 2.0);
+          count++;
 
         }
       } else {
@@ -2592,6 +2596,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
           vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
 
           vel_error += PetscPowReal( (Vcomputed[0] - vel_normal), 2.0);
+          count++;
 
         }
 
@@ -2602,6 +2607,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
   } // for-loop
 
   ierr = VecRestoreArray(U, &u); CHKERRQ(ierr);
+  printf("vel_error: %15.14f\n",PetscPowReal(vel_error/count,0.5));
 
   PetscFunctionReturn(0);
 
