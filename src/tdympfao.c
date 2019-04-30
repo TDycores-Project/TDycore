@@ -334,6 +334,7 @@ PetscErrorCode AllocateMemoryForAVertex(
 
   PetscFunctionBegin;
 
+  vertex->is_local           = PETSC_FALSE;
   vertex->num_internal_cells = 0;
   vertex->num_edges          = num_edges;
   vertex->num_boundary_cells = 0;
@@ -386,6 +387,8 @@ PetscErrorCode AllocateMemoryForAEdge(
   PetscFunctionBegin;
 
   edge->num_cells = num_cells;
+
+  edge->is_local = PETSC_FALSE;
 
   edge->cell_ids = (PetscInt *) malloc(num_cells * sizeof(PetscInt));
 
@@ -2079,6 +2082,84 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode IdentifyLocalVertices(TDy tdy) {
+
+  PetscInt       ivertex, icell, c;
+  TDy_mesh       *mesh;
+  TDy_cell       *cells;
+  TDy_vertex     *vertices;
+
+  PetscFunctionBegin;
+
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+  vertices = mesh->vertices;
+
+  for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+    for (c=0; c<vertices[ivertex].num_internal_cells; c++) {
+      icell = vertices[ivertex].internal_cell_ids[c];
+      if (cells[icell].is_local) vertices[ivertex].is_local = PETSC_TRUE;
+    }
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode IdentifyLocalEdges(TDy tdy) {
+
+  PetscInt iedge, icell_1, icell_2;
+  TDy_mesh *mesh;
+  TDy_cell *cells;
+  TDy_edge *edges;
+
+  PetscFunctionBegin;
+
+  mesh  = tdy->mesh;
+  cells = mesh->cells;
+  edges = mesh->edges;
+
+  for (iedge=0; iedge<mesh->num_edges; iedge++) {
+
+    if (!edges[iedge].is_internal) { // Is it a boundary edge?
+
+      // Determine the cell ID for the boundary edge
+      if (edges[iedge].cell_ids[0] != -1) icell_1 = edges[iedge].cell_ids[0];
+      else                                icell_2 = edges[iedge].cell_ids[1];
+
+      // Is the cell locally owned?
+      if (cells[icell_1].is_local) edges[iedge].is_local = PETSC_TRUE;
+
+    } else { // An internal edge
+
+      // Save the two cell ID
+      icell_1 = edges[iedge].cell_ids[0];
+      icell_2 = edges[iedge].cell_ids[1];
+
+      if (cells[icell_1].is_local && cells[icell_2].is_local) { // Are both cells locally owned?
+
+        edges[iedge].is_local = PETSC_TRUE;
+
+      } else if (cells[icell_1].is_local && !cells[icell_2].is_local) { // Is icell_1 locally owned?
+
+        // Is the global ID of icell_1 lower than global ID of icell_2?
+        if (cells[icell_1].global_id < cells[icell_2].global_id) edges[iedge].is_local = PETSC_TRUE;
+
+      } else if (!cells[icell_1].is_local && cells[icell_2].is_local) { // Is icell_2 locally owned
+
+        // Is the global ID of icell_2 lower than global ID of icell_1?
+        if (cells[icell_2].global_id < cells[icell_1].global_id) edges[iedge].is_local = PETSC_TRUE;
+
+      }
+    }
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
 
 PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
@@ -2141,6 +2222,8 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   //ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_TRUE);CHKERRQ(ierr);
 
   ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
+  ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);
+  ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
@@ -2183,9 +2266,6 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
-  PetscInt rank;
-  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -2402,7 +2482,8 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
   PetscReal      **Gmatrix;
   PetscInt       edge_id;
   PetscScalar    *u;
-  PetscReal vel[3];
+  Vec            localU;
+  PetscReal      vel[3];
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -2417,7 +2498,10 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 
   ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
 
-  ierr = VecGetArray(U, &u); CHKERRQ(ierr);
+  ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
 
   PetscReal vel_error;
   PetscReal X[2];
@@ -2463,8 +2547,10 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
         tdy->flux(X,vel);
         vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
 
-        vel_error += PetscPowReal( (Vcomputed[icell] - vel_normal), 2.0);
-        count++;
+        if (edges[edge_id].is_local){
+          vel_error += PetscPowReal( (Vcomputed[icell] - vel_normal), 2.0);
+          count++;
+        }
       }
 
     } else {
@@ -2525,8 +2611,10 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
           tdy->flux(X,vel);
           vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
 
-          vel_error += PetscPowReal( (Vcomputed[row] - vel_normal), 2.0);
-          count++;
+          if (edges[edge_id].is_local){
+            vel_error += PetscPowReal( (Vcomputed[row] - vel_normal), 2.0);
+            count++;
+          }
         }
 
         // Flux through boundary edges
@@ -2562,8 +2650,10 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
           PetscReal pTrue;
           (*tdy->dirichlet)(&(tdy->X[(vertex->internal_cell_ids[icell+vertex->num_internal_cells-1])*dim]), &pTrue);
 
-          vel_error += PetscPowReal( (Vcomputed[row] - vel_normal), 2.0);
-          count++;
+          if (edges[edge_id].is_local){
+            vel_error += PetscPowReal( (Vcomputed[row] - vel_normal), 2.0);
+            count++;
+          }
 
         }
       } else {
@@ -2595,8 +2685,10 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
           (*tdy->dirichlet)(&(tdy->X[icell*dim]), &pTrue);
           vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
 
-          vel_error += PetscPowReal( (Vcomputed[0] - vel_normal), 2.0);
-          count++;
+          if (edges[edge_id].is_local){
+            vel_error += PetscPowReal( (Vcomputed[0] - vel_normal), 2.0);
+            count++;
+          }
 
         }
 
@@ -2606,8 +2698,18 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 
   } // for-loop
 
-  ierr = VecRestoreArray(U, &u); CHKERRQ(ierr);
-  printf("vel_error: %15.14f\n",PetscPowReal(vel_error/count,0.5));
+  ierr = VecRestoreArray(localU, &u); CHKERRQ(ierr);
+  PetscReal vel_error_sum;
+  PetscInt  count_sum;
+
+  ierr = MPI_Allreduce(&vel_error,&vel_error_sum,1,MPIU_REAL,MPI_SUM,
+                       PetscObjectComm((PetscObject)U)); CHKERRQ(ierr);
+  ierr = MPI_Allreduce(&count,&count_sum,1,MPI_INT,MPI_SUM,
+                       PetscObjectComm((PetscObject)U)); CHKERRQ(ierr);
+
+  PetscInt rank;
+  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+  if (rank==0) printf("vel_error: %15.14f\n",PetscPowReal(vel_error/count,0.5));
 
   PetscFunctionReturn(0);
 
