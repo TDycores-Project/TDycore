@@ -2709,7 +2709,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 
   PetscInt rank;
   MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-  if (rank==0) printf("vel_error: %15.14f\n",PetscPowReal(vel_error/count,0.5));
+  if (rank==0) printf("%15.14f ",PetscPowReal(vel_error/count,0.5));
 
   PetscFunctionReturn(0);
 
@@ -2718,20 +2718,22 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 /* -------------------------------------------------------------------------- */
 PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
 
-  DM dm;
-  TDy_mesh *mesh;
+  DM             dm;
+  TDy_mesh       *mesh;
   TDy_edge       *edges, *edge;
-  PetscInt dim;
-  PetscInt iedge;
+  TDy_cell       *cells, *cell;
+  PetscInt       dim;
+  PetscInt       icell, iedge, edge_id;
   PetscInt       fStart, fEnd;
-  PetscReal norm, norm_sum, vel_normal;
-  PetscReal vel[3];
+  PetscReal      norm, norm_sum, vel_normal;
+  PetscReal      vel[3];
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
-  dm = tdy->dm;
-  mesh     = tdy->mesh;
+  dm    = tdy->dm;
+  mesh  = tdy->mesh;
+  cells = mesh->cells;
   edges = mesh->edges;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -2745,15 +2747,25 @@ PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
   norm_sum = 0.0;
   norm     = 0.0;
 
-  for (iedge=0; iedge<mesh->num_edges; iedge++) {
+  for (icell=0; icell<mesh->num_cells; icell++) {
 
-    edge = &(edges[iedge]);
+    cell = &(cells[icell]);
 
-    tdy->flux(&(tdy->X[(iedge + fStart)*dim]),vel);
-    vel_normal = vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1];
-    norm += PetscPowReal( vel_normal - tdy->vel[iedge], 2.0);///edge->length;
+    if (!cell->is_local) continue;
+
+    for (iedge=0; iedge<cell->num_edges; iedge++) {
+      edge_id = cell->edge_ids[iedge];
+      edge    = &(edges[edge_id]);
+
+      tdy->flux(&(tdy->X[(edge_id + fStart)*dim]),vel);
+      vel_normal = vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1];
+
+      norm += PetscSqr((vel_normal - tdy->vel[edge_id]))*tdy->V[icell];
+    }
   }
 
+  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
+                       PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
   norm_sum = PetscSqrtReal(norm);
 
   PetscFunctionReturn(norm_sum);
