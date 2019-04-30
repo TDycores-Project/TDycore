@@ -2709,7 +2709,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 
   PetscInt rank;
   MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-  if (rank==0) printf("%15.14f ",PetscPowReal(vel_error/count,0.5));
+  if (rank==0) printf("%15.14f ",PetscPowReal(vel_error_sum/count_sum,0.5));
 
   PetscFunctionReturn(0);
 
@@ -2766,7 +2766,7 @@ PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
 
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
                        PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
-  norm_sum = PetscSqrtReal(norm);
+  norm_sum = PetscSqrtReal(norm_sum);
 
   PetscFunctionReturn(norm_sum);
 }
