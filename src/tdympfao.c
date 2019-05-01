@@ -2236,7 +2236,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   TDy_mesh       *mesh;
   TDy_cell       *cells;
   TDy_vertex     *vertices, *vertex;
-  TDy_edge       *edges, *edge;
+  TDy_edge       *edges;
   PetscInt       ivertex, icell, icell_from, icell_to, isubcell;
   PetscInt       icol, row, col, vertex_id, iedge;
   PetscReal      value;
@@ -2275,6 +2275,8 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
     if (vertex->num_boundary_cells == 0) {
       for (icell=0; icell<vertex->num_internal_cells; icell++) {
 
+        TDy_edge *edge;
+
         if (icell==0) edge = &edges[vertex->edge_ids[vertex->num_internal_cells-1]];
         else          edge = &edges[vertex->edge_ids[icell-1]];
 
@@ -2309,6 +2311,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
       numBoundary = 0;
       for (iedge=0; iedge<vertex->num_edges; iedge++) {
 
+        TDy_edge *edge;
         if (iedge==0) edge = &edges[vertex->edge_ids[vertex->num_edges-1]];
         else          edge = &edges[vertex->edge_ids[iedge-1]];
 
@@ -2330,6 +2333,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
         for (icell=0; icell<vertex->num_internal_cells-1; icell++) {
           iedge = vertex->edge_ids[icell];
 
+          TDy_edge *edge;
           edge = &edges[vertex->edge_ids[icell]];
 
           icell_from = edge->cell_ids[0];
@@ -2370,7 +2374,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
         for (icell=0; icell<vertex->num_boundary_cells; icell++) {
           row = cell_ids_from_to[icell][0];
 
-          if (cells[cell_ids_from_to[icell][0]].is_local) {
+          if (cell_ids_from_to[icell][0]>-1 && cells[cell_ids_from_to[icell][0]].is_local) {
             row   = cells[cell_ids_from_to[icell][0]].global_id;
 
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
@@ -2386,7 +2390,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
             }
           }
 
-          if (cells[cell_ids_from_to[icell][1]].is_local) {
+          if (cell_ids_from_to[icell][1]>-1 && cells[cell_ids_from_to[icell][1]].is_local) {
             row   = cells[cell_ids_from_to[icell][1]].global_id;
 
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
@@ -2424,7 +2428,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
         // For fluxes through boundary edges, only add contribution to the vector
         for (icell=0; icell<vertex->num_boundary_cells; icell++) {
 
-          if (cells[cell_ids_from_to[icell][0]].is_local) {
+          if (cell_ids_from_to[icell][0]>-1 && cells[cell_ids_from_to[icell][0]].is_local) {
             row   = cells[cell_ids_from_to[icell][0]].global_id;
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
               value = Gmatrix[icell][icol] * pBoundary[icol];
@@ -2432,7 +2436,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
             }
           }
 
-          if (cells[cell_ids_from_to[icell][1]].is_local) {
+          if (cell_ids_from_to[icell][1]>-1 && cells[cell_ids_from_to[icell][1]].is_local) {
             row   = cells[cell_ids_from_to[icell][1]].global_id;
             for (icol=0; icol<vertex->num_boundary_cells; icol++) {
               value = Gmatrix[icell][icol] * pBoundary[icol];
@@ -2539,15 +2543,15 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
           Vcomputed[icell] += tdy->Trans[vertex_id][icell][icol] * Pcomputed[icol] *2.0/edge->length/2.0;
         }
 
-
         tdy->vel[edge_id] += Vcomputed[icell];
 
-        X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
-        X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
-        tdy->flux(X,vel);
-        vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
-
         if (edges[edge_id].is_local){
+          X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
+          X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
+          
+          tdy->flux(X,vel);
+          vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
+
           vel_error += PetscPowReal( (Vcomputed[icell] - vel_normal), 2.0);
           count++;
         }
@@ -2605,13 +2609,13 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 
           tdy->vel[edge_id] += Vcomputed[row];
 
-          X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
-          X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
-
-          tdy->flux(X,vel);
-          vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
-
           if (edges[edge_id].is_local){
+            X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
+            X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
+  
+            tdy->flux(X,vel);
+            vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
+  
             vel_error += PetscPowReal( (Vcomputed[row] - vel_normal), 2.0);
             count++;
           }
@@ -2641,16 +2645,13 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 
           tdy->vel[edge_id] += Vcomputed[row];
 
-          X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
-          X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
-
-          tdy->flux(X,vel);
-          vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
-
-          PetscReal pTrue;
-          (*tdy->dirichlet)(&(tdy->X[(vertex->internal_cell_ids[icell+vertex->num_internal_cells-1])*dim]), &pTrue);
-
           if (edges[edge_id].is_local){
+            X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
+            X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
+
+            tdy->flux(X,vel);
+            vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
+
             vel_error += PetscPowReal( (Vcomputed[row] - vel_normal), 2.0);
             count++;
           }
@@ -2676,16 +2677,14 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 
           tdy->vel[edge_id] += Vcomputed[0];
 
-          X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
-          X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
-
-          tdy->flux(X,vel);
-          PetscReal pTrue;
-
-          (*tdy->dirichlet)(&(tdy->X[icell*dim]), &pTrue);
-          vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
-
           if (edges[edge_id].is_local){
+            X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
+            X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
+
+            tdy->flux(X,vel);
+
+            vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
+
             vel_error += PetscPowReal( (Vcomputed[0] - vel_normal), 2.0);
             count++;
           }
