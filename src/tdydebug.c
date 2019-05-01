@@ -1,4 +1,4 @@
-#include "tdycore.h"
+#include <tdycoreprivate.h>
 
 void PrintMatrix(PetscReal *A,PetscInt nr,PetscInt nc,PetscBool row_major) {
   PetscInt i,j;

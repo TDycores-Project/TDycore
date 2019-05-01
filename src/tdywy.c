@@ -1,4 +1,4 @@
-#include "tdycore.h"
+#include <tdycoreprivate.h>
 #include "tdyutils.h"
 #include <petscblaslapack.h>
 
