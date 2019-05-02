@@ -1,5 +1,5 @@
-#if !defined(TDYCOREPRIVATE_H)
-#define TDYCOREPRIVATE_H
+#if !defined(TDYCOREIMPL_H)
+#define TDYCOREIMPL_H
 
 #include <petsc.h>
 #include <petsc/private/petscimpl.h>

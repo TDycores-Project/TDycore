@@ -1,4 +1,4 @@
-#include <tdycoreprivate.h>
+#include <private/tdycoreimpl.h>
 
 /* (dim*vertices_per_cell+1)^2 */
 #define MAX_LOCAL_SIZE 625

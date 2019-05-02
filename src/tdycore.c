@@ -1,4 +1,4 @@
-#include <tdycoreprivate.h>
+#include <private/tdycoreimpl.h>
 
 const char *const TDyMethods[] = {
   "TPF",

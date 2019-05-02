@@ -1,4 +1,4 @@
-#include <tdycoreprivate.h>
+#include <private/tdycoreimpl.h>
 
 PETSC_STATIC_INLINE void Waxpy(PetscInt dim, PetscScalar a,
                                const PetscScalar *x, const PetscScalar *y, PetscScalar *w) {PetscInt d; for (d = 0; d < dim; ++d) w[d] = a*x[d] + y[d];}

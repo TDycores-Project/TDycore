@@ -1,4 +1,4 @@
-#include <tdycoreprivate.h>
+#include <private/tdycoreimpl.h>
 
 PetscErrorCode TDySetPermeabilityScalar(TDy tdy,SpatialFunction f) {
   PetscInt dim,dim2,i,c,cStart,cEnd;

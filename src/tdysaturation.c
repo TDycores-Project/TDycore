@@ -1,4 +1,4 @@
-#include <tdycoreprivate.h>
+#include <private/tdycoreimpl.h>
 
 void PressureSaturation_Gardner(PetscReal n,PetscReal m,PetscReal alpha,
                                 PetscReal Pc,PetscReal *Se,PetscReal *dSe_dPc) {
