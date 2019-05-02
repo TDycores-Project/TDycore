@@ -15,7 +15,7 @@ libtdycore := $(if $(filter-out no,$(BUILDSHAREDLIB)),$(libtdycore_shared),$(lib
 pkgs := tdycore
 srcs-tdycore.c   := $(wildcard src/*.c)
 srcs-tdycore.cxx := $(wildcard src/*.cxx)
-srcs-tdycore.F90 := $(wildcard src/*.F90)
+srcs-tdycore.F90 := $(wildcard src/f90-mod/*.F90)
 
 all : $(libtdycore)
 
@@ -90,7 +90,7 @@ $(OBJDIR)/%.o : %.F90 | $$(@D)/.DIR $(MODDIR)/.DIR
 	$(COMPILE.fc) $(abspath $<) -o $(if $(FCMOD),$(abspath $@),$@)
 
 # Hack: manual dependencies on object files
-tdycore.mod.o:= $(OBJDIR)/src/tdycoreftn.o
+tdycore.mod.o:= $(OBJDIR)/src/tdycore.o
 srcs-tdycore.F90.o = $(srcs-tdycore.F90:%.F90=$(OBJDIR)/%.o)
 $(filter-out $(tdycore.mod.o),$(srcs-tdycore.F90.o)): | $(tdycore.mod.o)
 

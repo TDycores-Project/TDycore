@@ -1,6 +1,7 @@
 *dSYM
 sample
 mpfao
+mpfaof90
 steady
 transient
 *.bin*
