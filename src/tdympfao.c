@@ -1456,7 +1456,7 @@ PetscErrorCode ComputeGMatrix(DM dm, TDy tdy) {
   PetscReal      n_up[3], n_dn[3];
   PetscReal      e_cen_up[3], e_cen_dn[3], v_c[3];
   PetscReal      e_len_dn, e_len_up;
-  PetscReal      K[3][3], nu_up[3], nu_dn[3];
+  PetscReal      K[3][3], nu_up[3], nu_dn[3], *localK;
   PetscErrorCode ierr;
 
   mesh     = tdy->mesh;
@@ -1465,6 +1465,24 @@ PetscErrorCode ComputeGMatrix(DM dm, TDy tdy) {
   vertices = mesh->vertices;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+  if (tdy->ops->computepermeability) {
+    // If peremeability function is set, use it instead.
+    // Will need to consolidate this code with code in tdypermeability.c
+    ierr = PetscMalloc(9*sizeof(PetscReal),&localK); CHKERRQ(ierr);
+    for (icell=0; icell<mesh->num_cells; icell++) {
+      ierr = (*tdy->ops->computepermeability)(tdy, &(tdy->X[icell*dim]), localK, tdy->permeabilityctx);CHKERRQ(ierr);
+
+      PetscInt count = 0;
+      for (ii=0; ii<dim; ii++) {
+        for (jj=0; jj<dim; jj++) {
+          tdy->K[icell*dim*dim + ii*dim + jj] = localK[count];
+          count++;
+        }
+      }
+    }
+    ierr = PetscFree(localK); CHKERRQ(ierr);
+  }
 
   for (icell=0; icell<mesh->num_cells; icell++) {
 
