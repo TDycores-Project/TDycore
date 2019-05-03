@@ -13,6 +13,10 @@ struct _TDyOps {
   PetscErrorCode (*view)(TDy);
   PetscErrorCode (*setup)(TDy);
   PetscErrorCode (*setfromoptions)(TDy);
+  PetscErrorCode (*computepermeability)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computeforcing)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computedirichletvalue)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computedirichletflux)(TDy,PetscReal*,PetscReal*,void*);
 };
 
 struct _p_TDy {
@@ -41,6 +45,12 @@ struct _p_TDy {
   PetscReal *porosity;  /* porosity for each cell [1] */
   PetscReal *S,
             *dS_dP;  /* saturation and derivative wrt pressure for each cell [1] */
+
+  void *permeabilityctx;
+  void *forcingctx;
+  void *dirichletvaluectx;
+  void *dirichletfluxctx;
+
   SpatialFunction forcing;
   SpatialFunction dirichlet;
   SpatialFunction flux;
