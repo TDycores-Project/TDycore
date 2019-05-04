@@ -125,7 +125,8 @@ program main
      CHKERRA(ierr);
      dm = dmDist;
   end if
-  call DMSetUp(dm,ierr); CHKERRA(ierr)
+  call DMSetUp(dm,ierr);
+  CHKERRA(ierr)
   call DMSetFromOptions(dm, ierr);
   CHKERRA(ierr);
   !call DMViewFromOptions(dm,PETSC_NULL_CHARACTER,'-dm_view',ierr); CHKERRA(ierr)
@@ -133,9 +134,12 @@ program main
   call TDyCreate(dm, tdy, ierr);
   CHKERRA(ierr);
 
-  call TDySetPermeabilityFunction(tdy,PermeabilityFunction,user,ierr); CHKERRA(ierr);
-  call TDySetDirichletValueFunction(tdy,PressureFunction,user,ierr); CHKERRA(ierr);
-  call TDySetForcingFunction2(tdy,ForcingFunction,user,ierr); CHKERRA(ierr);
+  call TDySetPermeabilityFunction(tdy,PermeabilityFunction,user,ierr);
+  CHKERRA(ierr);
+  call TDySetDirichletValueFunction(tdy,PressureFunction,user,ierr);
+  CHKERRA(ierr);
+  call TDySetForcingFunction2(tdy,ForcingFunction,user,ierr);
+  CHKERRA(ierr);
 
   method = 1;
   call TDySetDiscretizationMethod(tdy,method, ierr);
@@ -150,7 +154,8 @@ program main
   CHKERRA(ierr);
   call DMCreateMatrix      (dm,K,ierr);
   CHKERRA(ierr);
-  call TDyComputeSystem(tdy,K,F,ierr); CHKERRQ(ierr);
+  call TDyComputeSystem(tdy,K,F,ierr);
+  CHKERRA(ierr);
 
   !Solve system
   call KSPCreate(PETSC_COMM_WORLD,ksp,ierr);
