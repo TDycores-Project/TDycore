@@ -9,23 +9,25 @@
 #include "tdycore.h"
 
 #ifdef PETSC_HAVE_FORTRAN_CAPS
-#define tdycreate_                  TDYCREATE
-#define tdysetdiscretizationmethod_ TDYSETDISCRETIZATIONMETHOD
-#define tdysetfromoption_           TDYSETFROMOPTIONS
-#define tdycomputesystem_           TDYCOMPUTESYSTEM
-#define tdysetpermeabilityfunction_   TDYSETPERMEABILITYFUNCTION
-#define tdysetforcingfunction2_      TDYSETFORCINGFUNCTION2
-#define tdysetdirichletvaluefunction_    TDYSETDIRICHLETVALUEFUNCTION
-//#define tdysetdirichletflux_        TDYSETDIRICHLETFLUX
+#define tdycreate_                     TDYCREATE
+#define tdysetdiscretizationmethod_    TDYSETDISCRETIZATIONMETHOD
+#define tdysetfromoption_              TDYSETFROMOPTIONS
+#define tdycomputesystem_              TDYCOMPUTESYSTEM
+#define tdycomputeerrornorms_          TDYCOMPUTEERRORNORMS
+#define tdysetpermeabilityfunction_    TDYSETPERMEABILITYFUNCTION
+#define tdysetforcingfunction2_        TDYSETFORCINGFUNCTION2
+#define tdysetdirichletvaluefunction_  TDYSETDIRICHLETVALUEFUNCTION
+#define tdysetdirichletfluxfunction_   TDYSETDIRICHLETFLUXFUNCTION
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
-#define tdycreate_                  tdycreate
-#define tdysetdiscretizationmethod_ tdysetdiscretizationmethod
-#define tdysetfromoptions_          tdysetfromoptions
-#define tdycomputesystem_           tdycomputesystem
-#define tdysetpermeabilityfunction_   tdysetpermeabilityfunction
-#define tdysetforcingfunction2_      tdysetforcingfunction2
-#define tdysetdirichletvaluefunction_    tdysetdirichletvaluefunction
-//#define tdysetdirichletflux_        tdysetdirichletflux
+#define tdycreate_                     tdycreate
+#define tdysetdiscretizationmethod_    tdysetdiscretizationmethod
+#define tdysetfromoptions_             tdysetfromoptions
+#define tdycomputesystem_              tdycomputesystem
+#define tdycomputeerrornorms_          tdycomputeerrornorms
+#define tdysetpermeabilityfunction_    tdysetpermeabilityfunction
+#define tdysetforcingfunction2_        tdysetforcingfunction2
+#define tdysetdirichletvaluefunction_  tdysetdirichletvaluefunction
+#define tdysetdirichletfluxfunction_   tdysetdirichletfluxfunction
 #endif
 
 static struct {
@@ -77,6 +79,19 @@ PETSC_EXTERN void PETSC_STDCALL  tdycomputesystem_(TDy tdy, Mat K, Vec F, int *_
   (TDy)PetscToPointer((tdy) ),
   (Mat)PetscToPointer((K) ),
   (Vec)PetscToPointer((F) ));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void PETSC_STDCALL  tdycomputeerrornorms_(TDy tdy, Vec U, PetscReal *normp, PetscReal *normv,  int *__ierr){
+*__ierr = TDyComputeErrorNorms(
+  (TDy)PetscToPointer((tdy) ),
+  (Vec)PetscToPointer((U) ),
+  normp, normv);
 }
 #if defined(__cplusplus)
 }
@@ -137,4 +152,23 @@ PETSC_EXTERN void PETSC_STDCALL tdysetdirichletvaluefunction_(TDy *tdy, void (PE
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
 #endif
   *ierr = TDySetDirichletValueFunction(*tdy,ourtdydirichletvaluefunction,NULL);
+}
+
+static PetscErrorCode ourtdydirichletfluxfunction(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
+{
+#if defined(PETSC_HAVE_F90_2PTR_ARG)
+  void* ptr;
+  PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,_cb.function_pgiptr,NULL,&ptr);
+#endif
+  PetscObjectUseFortranCallback(tdy,_cb.dirichletflux,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetdirichletfluxfunction_(TDy *tdy, void (PETSC_STDCALL *func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+{
+  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.dirichletflux,(PetscVoidFunction)func,ctx);
+  if (*ierr) return;
+#if defined(PETSC_HAVE_F90_2PTR_ARG)
+  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
+#endif
+  *ierr = TDySetDirichletFluxFunction(*tdy,ourtdydirichletfluxfunction,NULL);
 }

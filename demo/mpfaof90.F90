@@ -45,6 +45,44 @@ contains
 
   end subroutine PressureFunction
 
+  subroutine VelocityFunction(tdy,x,v,user,ierr)
+
+    implicit none
+
+    TDy                    :: tdy
+    PetscReal, intent(in)  :: x(2)
+    PetscReal, intent(out) :: v(2)
+    type(userctx)          :: user
+    PetscErrorCode         :: ierr
+
+    PetscReal :: vx, vy
+    PetscReal :: K(4)
+
+    call PermeabilityFunction(tdy,x,K,user,ierr);
+
+    !vx  = -4*PetscPowReal(1-x[0],3);
+    !vx += -  PetscPowReal(1-x[1],3);
+    !vx += +PetscSinReal(x[1]-1)*PetscSinReal(x[0]-1);
+    !vy  = -3*PetscPowReal(1-x[1],2)*(1-x[0]);
+    !vy += -PetscCosReal(x[0]-1)*PetscCosReal(x[1]-1);
+
+    vx = &
+      -4.d0*((1.d0-x(1))**3.d0) &
+      -     ((1.d0-x(2))**3.d0) &
+      + sin((x(2)-1.d0)) * sin(x(1)-1.d0);
+    vy = &
+      -3.d0 * ((1.d0-x(2))**2.d0) *(1.d0-x(1)) &
+      - cos(x(1)-1.d0) * cos(x(2)-1.d0);
+
+    !v[0] = -(K[0]*vx+K[1]*vy);
+    !v[1] = -(K[2]*vx+K[3]*vy);
+    v(1) = -K(1)*vx - K(2)*vy;
+    v(2) = -K(3)*vx - K(4)*vy;
+
+    ierr = 0;
+
+  end subroutine VelocityFunction
+
   subroutine ForcingFunction(tdy,x,f,user,ierr)
 
     implicit none
@@ -95,6 +133,7 @@ program main
   PetscBool      :: flg
   PetscInt       :: dim, faces(3)
   PetscReal      :: lower(3), upper(3)
+  PetscReal      :: normp, normv
   Mat            :: K
   Vec            :: U,F
   type (userctx) :: user
@@ -140,6 +179,8 @@ program main
   CHKERRA(ierr);
   call TDySetForcingFunction2(tdy,ForcingFunction,user,ierr);
   CHKERRA(ierr);
+  call TDySetDirichletFluxFunction(tdy,VelocityFunction,user,ierr);
+  CHKERRA(ierr);
 
   method = 1;
   call TDySetDiscretizationMethod(tdy,method, ierr);
@@ -172,6 +213,12 @@ program main
   call KSPSolve(ksp,F,U,ierr);
   CHKERRQ(ierr);
 
+  call TDyMPFAORecoverVelocity(tdy, U, ierr);
+  CHKERRQ(ierr);
+
+  call TDyComputeErrorNorms(tdy,U,normp,normv,ierr);
+  CHKERRA(ierr);
+  write(*,*)normp,normv
 
   call PetscFinalize(ierr)
   
