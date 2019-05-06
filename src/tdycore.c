@@ -603,7 +603,7 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     if(normv != NULL) { *normv = TDyTPFVelocityNorm(tdy,U); }
     break;
   case MPFA_O:
-    if(normp != NULL) { *normp = TDyWYPressureNorm(tdy,U); }
+    if(normp != NULL) { *normp = TDyMPFAOPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyMPFAOVelocityNorm(tdy); }
     break;
   case BDM:

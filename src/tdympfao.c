@@ -2741,6 +2741,60 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
+
+  DM             dm;
+  TDy_mesh       *mesh;
+  TDy_cell       *cells, *cell;
+  PetscScalar    *u;
+  Vec            localU;
+  PetscInt       dim;
+  PetscInt       icell;
+  PetscReal      norm, norm_sum, pressure;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  dm    = tdy->dm;
+  mesh  = tdy->mesh;
+  cells = mesh->cells;
+
+  if (! tdy->ops->computedirichletvalue) {
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+            "Must set the dirichlet function with TDySetDirichletValueFunction");
+  }
+
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+  ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
+
+  norm_sum = 0.0;
+  norm     = 0.0;
+
+  for (icell=0; icell<mesh->num_cells; icell++) {
+
+    cell = &(cells[icell]);
+    if (!cell->is_local) continue;
+
+    ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[icell*dim]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
+    norm += ((pressure - u[icell])) * cell->volume;
+  }
+
+  ierr = VecRestoreArray(localU, &u); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm,&localU); CHKERRQ(ierr);
+
+  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
+                       PetscObjectComm((PetscObject)U)); CHKERRQ(ierr);
+
+  norm_sum = PetscSqrtReal(norm_sum);
+
+  PetscFunctionReturn(norm_sum);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
 
   DM             dm;

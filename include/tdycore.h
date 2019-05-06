@@ -117,6 +117,7 @@ PETSC_EXTERN PetscErrorCode TDyMPFAOInitialize(TDy);
 PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy, Mat, Vec);
 PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy, Vec);
 PETSC_EXTERN PetscReal TDyMPFAOVelocityNorm(TDy);
+PETSC_EXTERN PetscReal TDyMPFAOPressureNorm(TDy tdy,Vec U);
 
 /* ---------------------------------------------------------------- */
 

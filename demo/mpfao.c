@@ -254,7 +254,7 @@ int main(int argc, char **argv) {
       break;
     case 3:
       //ierr = TDySetForcingFunction(tdy,Forcing); CHKERRQ(ierr);
-      ierr = TDySetDirichletFunction(tdy,Pressure); CHKERRQ(ierr);
+      //ierr = TDySetDirichletFunction(tdy,Pressure); CHKERRQ(ierr);
       //ierr = TDySetDirichletFlux(tdy,Velocity); CHKERRQ(ierr);
       ierr = TDySetForcingFunction2(tdy,ForcingFunction,NULL); CHKERRQ(ierr);
       ierr = TDySetDirichletValueFunction(tdy,PressureFunction,NULL); CHKERRQ(ierr);
