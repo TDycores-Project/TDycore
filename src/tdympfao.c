@@ -2780,7 +2780,7 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
     if (!cell->is_local) continue;
 
     ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[icell*dim]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
-    norm += ((pressure - u[icell])) * cell->volume;
+    norm += (PetscSqr(pressure - u[icell])) * cell->volume;
   }
 
   ierr = VecRestoreArray(localU, &u); CHKERRQ(ierr);
