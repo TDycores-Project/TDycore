@@ -1,6 +1,6 @@
 #include <petsc.h>
 #include <private/tdycoreimpl.h>
-#include "tdycoremesh.h"
+#include <private/tdymeshimpl.h>
 #include <private/tdymemoryimpl.h>
 #include "tdyutils.h"
 

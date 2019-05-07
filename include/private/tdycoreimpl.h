@@ -3,7 +3,7 @@
 
 #include <petsc.h>
 #include <petsc/private/petscimpl.h>
-#include <tdycoremesh.h>
+#include <private/tdymeshimpl.h>
 #include <tdycore.h>
 
 typedef struct _TDyOps *TDyOps;

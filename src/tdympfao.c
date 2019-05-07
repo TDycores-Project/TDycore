@@ -1,5 +1,5 @@
 #include <private/tdycoreimpl.h>
-#include "tdycoremesh.h"
+#include <private/tdymeshimpl.h>
 #include "tdyutils.h"
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>

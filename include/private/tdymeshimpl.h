@@ -1,5 +1,5 @@
-#if !defined(TDYCOREMESH_H)
-#define TDYCOREMESH_H
+#if !defined(TDYCOREMESHIMPL_H)
+#define TDYCOREMESHIMPL_H
 
 #include <petsc.h>
 #include "tdycore.h"
