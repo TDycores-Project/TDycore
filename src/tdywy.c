@@ -1,5 +1,5 @@
 #include <private/tdycoreimpl.h>
-#include "tdyutils.h"
+#include <private/tdyutils.h>
 #include <petscblaslapack.h>
 
 #define MAX_LOCAL_SIZE 144

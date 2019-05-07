@@ -2,7 +2,7 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
 #include <private/tdymemoryimpl.h>
-#include "tdyutils.h"
+#include <private/tdyutils.h>
 
 /* ---------------------------------------------------------------- */
 

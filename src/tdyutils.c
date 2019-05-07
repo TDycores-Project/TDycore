@@ -1,4 +1,4 @@
-#include "tdyutils.h"
+#include <private/tdyutils.h>
 #include <petscblaslapack.h>
 
 /* ---------------------------------------------------------------- */
