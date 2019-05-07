@@ -6,8 +6,6 @@
 
 #define PetscToPointer(a) (*(PetscFortranAddr *)(a))
 
-#include "tdycore.h"
-
 #ifdef PETSC_HAVE_FORTRAN_CAPS
 #define tdympfaorecovervelocity_         TDYMPFAORECOVERVELOCITY
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)

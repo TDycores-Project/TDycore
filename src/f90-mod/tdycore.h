@@ -1,4 +1,4 @@
-#include "finclude/tdycore.h"
+#include <finclude/tdycore.h>
 #include <petsc/finclude/petscsys.h>
 #include <petsc/finclude/petscdm.h>
 
