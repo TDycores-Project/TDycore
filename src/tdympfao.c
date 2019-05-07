@@ -4,23 +4,6 @@
 #include <petscblaslapack.h>
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode ComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim,
-                             PetscReal *length) {
-
-  PetscFunctionBegin;
-
-  PetscInt d;
-
-  *length = 0.0;
-
-  for (d=0; d<dim; d++) *length += pow(v1[d] - v2[d], 2.0);
-
-  *length = pow(*length, 0.5);
-
-  PetscFunctionReturn(0);
-}
-
-/* ---------------------------------------------------------------- */
 
 PetscBool IsClosureWithinBounds(PetscInt closure, PetscInt start,
                                 PetscInt end) {
