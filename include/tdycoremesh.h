@@ -2,6 +2,7 @@
 #define TDYCOREMESH_H
 
 #include <petsc.h>
+#include "tdycore.h"
 
 typedef struct _TDy_coordinate TDy_coordinate;
 typedef struct _TDy_vector     TDy_vector;
@@ -132,5 +133,7 @@ struct _TDy_mesh {
 
 };
 
+PETSC_EXTERN PetscErrorCode BuildTwoDimMesh(TDy);
+PETSC_EXTERN PetscErrorCode AllocateMemoryForMesh(DM,TDy_mesh*);
 
 #endif

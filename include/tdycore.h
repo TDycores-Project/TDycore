@@ -3,7 +3,6 @@
 
 #include <petsc.h>
 #include <petsc/private/petscimpl.h>
-#include <tdycoremesh.h>
 
 /* ---------------------------------------------------------------- */
 
