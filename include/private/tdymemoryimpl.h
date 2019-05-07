@@ -1,5 +1,5 @@
-#if !defined(TDYMEMORY_H)
-#define TDYMEMORY_H
+#if !defined(TDYMEMORYIMPL_H)
+#define TDYMEMORYIMPL_H
 
 #include <petsc.h>
 

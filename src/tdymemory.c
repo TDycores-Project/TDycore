@@ -1,4 +1,4 @@
-#include "tdymemory.h"
+#include <private/tdymemoryimpl.h>
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode Initialize_IntegerArray_1D(PetscInt *array_1D, PetscInt ndim_1,

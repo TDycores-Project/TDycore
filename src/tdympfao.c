@@ -1,7 +1,7 @@
 #include <private/tdycoreimpl.h>
 #include "tdycoremesh.h"
 #include "tdyutils.h"
-#include "tdymemory.h"
+#include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 
 /* ---------------------------------------------------------------- */
