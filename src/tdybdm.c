@@ -136,6 +136,7 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
 		     &(tdy->orient)); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&mStart,&mEnd); CHKERRQ(ierr);
+    if(mStart<0) mStart = -(mStart+1);
     tdy->LtoG[(c-cStart+1)*nlocal-1] = mStart;
     for(v=0; v<ncv; v++) {
       for(d=0; d<dim; d++) {
@@ -143,6 +144,7 @@ PetscErrorCode TDyBDMInitialize(TDy tdy){
         f = tdy->emap[(c-cStart)*ncv*dim+v*dim+d]; 
         f_abs = PetscAbsInt(f);
         ierr = DMPlexGetPointGlobal(dm,f_abs,&mStart,&mEnd); CHKERRQ(ierr);
+	if(mStart<0) mStart = -(mStart+1);    
         found = PETSC_FALSE;
         for(i=0; i<nfv; i++) {
           if(tdy->vmap[ncv*(c-cStart)+v] == tdy->fmap[nfv*(f_abs-fStart)+i]) {
