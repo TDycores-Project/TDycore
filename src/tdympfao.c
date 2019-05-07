@@ -465,10 +465,11 @@ PetscErrorCode AllocateMemoryForMesh(DM dm, TDy_mesh *mesh) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode SaveTwoDimMeshGeometricAttributes(DM dm, TDy tdy) {
+PetscErrorCode SaveTwoDimMeshGeometricAttributes(TDy tdy) {
 
   PetscFunctionBegin;
 
+  DM             dm;
   TDy_mesh       *mesh;
   TDy_cell       *cells;
   TDy_vertex     *vertices;
@@ -481,6 +482,7 @@ PetscErrorCode SaveTwoDimMeshGeometricAttributes(DM dm, TDy tdy) {
   PetscInt       icell, iedge, ivertex, ielement, d;
   PetscErrorCode ierr;
 
+  dm       = tdy->dm;
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   /* Determine the number of cells, edges, and vertices of the mesh */
@@ -523,10 +525,11 @@ PetscErrorCode SaveTwoDimMeshGeometricAttributes(DM dm, TDy tdy) {
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode SaveTwoDimMeshConnectivityInfo(DM dm, TDy tdy) {
+PetscErrorCode SaveTwoDimMeshConnectivityInfo(TDy tdy) {
 
   PetscFunctionBegin;
 
+  DM             dm;
   TDy_mesh       *mesh;
   TDy_cell       *cells;
   TDy_vertex     *vertices;
@@ -547,6 +550,8 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(DM dm, TDy tdy) {
   PetscInt       d;
   PetscBool      use_cone;
   PetscErrorCode ierr;
+
+  dm = tdy->dm;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
@@ -805,10 +810,11 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode UpdateCellOrientationAroundAVertexTwoDimMesh(DM dm, TDy tdy) {
+PetscErrorCode UpdateCellOrientationAroundAVertexTwoDimMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
+  DM             dm;
   TDy_mesh       *mesh;
   PetscInt       vStart, vEnd;
   TDy_vertex     *vertices, *vertex;
@@ -818,6 +824,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertexTwoDimMesh(DM dm, TDy tdy) {
   PetscReal      x,y, theta_1, theta_2;
   PetscErrorCode ierr;
 
+  dm       = tdy->dm;
   mesh     = tdy->mesh;
   edges    = mesh->edges;
   vertices = mesh->vertices;
@@ -868,10 +875,11 @@ PetscErrorCode UpdateCellOrientationAroundAVertexTwoDimMesh(DM dm, TDy tdy) {
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode UpdateCellOrientationAroundAEdgeTwoDimMesh(DM dm, TDy tdy) {
+PetscErrorCode UpdateCellOrientationAroundAEdgeTwoDimMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
+  DM             dm;
   TDy_mesh       *mesh;
   PetscReal      dot_product;
   PetscInt       eStart, eEnd;
@@ -880,6 +888,7 @@ PetscErrorCode UpdateCellOrientationAroundAEdgeTwoDimMesh(DM dm, TDy tdy) {
   TDy_edge       *edges, *edge;
   PetscErrorCode ierr;
 
+  dm    = tdy->dm;
   mesh  = tdy->mesh;
   cells = mesh->cells;
   edges = mesh->edges;
@@ -978,10 +987,11 @@ PetscErrorCode ComputeAreaOf2DTriangle(PetscReal v1[3], PetscReal v2[3],
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode SetupSubcellsForTwoDimMesh(DM dm, TDy tdy) {
+PetscErrorCode SetupSubcellsForTwoDimMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
+  DM             dm;
   TDy_mesh       *mesh;
   TDy_cell       *cells, *cell;
   TDy_subcell    *subcell;
@@ -998,6 +1008,7 @@ PetscErrorCode SetupSubcellsForTwoDimMesh(DM dm, TDy tdy) {
   PetscReal      normal, centroid;
   PetscErrorCode ierr;
 
+  dm       = tdy->dm;
   mesh     = tdy->mesh;
   cells    = mesh->cells;
   edges    = mesh->edges;
@@ -1099,10 +1110,11 @@ PetscErrorCode SavePetscVecAsBinary(Vec vec, const char filename[]) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode OutputCellsTwoDimMesh(DM dm, TDy tdy) {
+PetscErrorCode OutputCellsTwoDimMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
+  DM             dm;
   TDy_mesh       *mesh;
   TDy_cell       *cells, *cell;
   TDy_subcell    *subcell;
@@ -1110,6 +1122,7 @@ PetscErrorCode OutputCellsTwoDimMesh(DM dm, TDy tdy) {
   PetscInt       icell, d, k;
   PetscErrorCode ierr;
 
+  dm = tdy->dm;
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   mesh     = tdy->mesh;
@@ -1229,16 +1242,18 @@ PetscErrorCode OutputCellsTwoDimMesh(DM dm, TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode OutputEdgesTwoDimMesh(DM dm, TDy tdy) {
+PetscErrorCode OutputEdgesTwoDimMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
+  DM             dm;
   TDy_mesh       *mesh;
   TDy_edge       *edges, *edge;
   PetscInt       dim;
   PetscInt       iedge, d;
   PetscErrorCode ierr;
 
+  dm = tdy->dm;
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   mesh  = tdy->mesh;
@@ -1274,16 +1289,18 @@ PetscErrorCode OutputEdgesTwoDimMesh(DM dm, TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode OutputVerticesTwoDimMesh(DM dm, TDy tdy) {
+PetscErrorCode OutputVerticesTwoDimMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
+  DM             dm;
   TDy_mesh       *mesh;
   TDy_vertex     *vertices, *vertex;
   PetscInt       dim;
   PetscInt       ivertex, i, d;
   PetscErrorCode ierr;
 
+  dm = tdy->dm;
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   mesh     = tdy->mesh;
@@ -1336,15 +1353,17 @@ PetscErrorCode OutputVerticesTwoDimMesh(DM dm, TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode OutputTransmissibilityMatrixTwoDimMesh(DM dm, TDy tdy) {
+PetscErrorCode OutputTransmissibilityMatrixTwoDimMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
+  DM             dm;
   TDy_mesh       *mesh;
   PetscInt       dim;
   PetscInt       ivertex, i, j;
   PetscErrorCode ierr;
 
+  dm = tdy->dm;
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   mesh     = tdy->mesh;
@@ -1380,32 +1399,32 @@ PetscErrorCode OutputTransmissibilityMatrixTwoDimMesh(DM dm, TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode OutputTwoDimMesh(DM dm, TDy tdy) {
+PetscErrorCode OutputTwoDimMesh(TDy tdy) {
 
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
-  ierr = OutputCellsTwoDimMesh(dm, tdy); CHKERRQ(ierr);
-  ierr = OutputVerticesTwoDimMesh(dm, tdy); CHKERRQ(ierr);
-  ierr = OutputEdgesTwoDimMesh(dm, tdy); CHKERRQ(ierr);
-  ierr = OutputTransmissibilityMatrixTwoDimMesh(dm, tdy); CHKERRQ(ierr);
+  ierr = OutputCellsTwoDimMesh(tdy); CHKERRQ(ierr);
+  ierr = OutputVerticesTwoDimMesh(tdy); CHKERRQ(ierr);
+  ierr = OutputEdgesTwoDimMesh(tdy); CHKERRQ(ierr);
+  ierr = OutputTransmissibilityMatrixTwoDimMesh(tdy); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode BuildTwoDimMesh(DM dm, TDy tdy) {
+PetscErrorCode BuildTwoDimMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
   PetscErrorCode ierr;
 
-  ierr = SaveTwoDimMeshGeometricAttributes(dm, tdy); CHKERRQ(ierr);
-  ierr = SaveTwoDimMeshConnectivityInfo(   dm, tdy); CHKERRQ(ierr);
-  ierr = UpdateCellOrientationAroundAVertexTwoDimMesh(  dm, tdy); CHKERRQ(ierr);
-  ierr = SetupSubcellsForTwoDimMesh     (  dm, tdy); CHKERRQ(ierr);
-  ierr = UpdateCellOrientationAroundAEdgeTwoDimMesh(  dm, tdy); CHKERRQ(ierr);
+  ierr = SaveTwoDimMeshGeometricAttributes(tdy); CHKERRQ(ierr);
+  ierr = SaveTwoDimMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
+  ierr = UpdateCellOrientationAroundAVertexTwoDimMesh(tdy); CHKERRQ(ierr);
+  ierr = SetupSubcellsForTwoDimMesh     (  tdy); CHKERRQ(ierr);
+  ierr = UpdateCellOrientationAroundAEdgeTwoDimMesh(  tdy); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
@@ -1439,10 +1458,11 @@ PetscErrorCode ComputeEntryOfGMatrix(PetscReal edge_len, PetscReal n[3],
 
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeGMatrix(DM dm, TDy tdy) {
+PetscErrorCode ComputeGMatrix(TDy tdy) {
 
   PetscFunctionBegin;
 
+  DM             dm;
   TDy_mesh       *mesh;
   TDy_cell       *cells, *cell;
   TDy_subcell    *subcell;
@@ -1459,6 +1479,7 @@ PetscErrorCode ComputeGMatrix(DM dm, TDy tdy) {
   PetscReal      K[3][3], nu_up[3], nu_dn[3], *localK;
   PetscErrorCode ierr;
 
+  dm       = tdy->dm;
   mesh     = tdy->mesh;
   cells    = mesh->cells;
   edges    = mesh->edges;
@@ -2031,7 +2052,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex(TDy tdy,
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeTransmissibilityMatrix(DM dm, TDy tdy) {
+PetscErrorCode ComputeTransmissibilityMatrix(TDy tdy) {
 
   TDy_mesh       *mesh;
   TDy_cell       *cells;
@@ -2205,11 +2226,11 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   ierr = Allocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 5, 5);
   CHKERRQ(ierr);
 
-  ierr = BuildTwoDimMesh(dm, tdy); CHKERRQ(ierr);
+  ierr = BuildTwoDimMesh(tdy); CHKERRQ(ierr);
 
-  ierr = ComputeGMatrix(dm, tdy); CHKERRQ(ierr);
+  ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
 
-  ierr = ComputeTransmissibilityMatrix(dm, tdy); CHKERRQ(ierr);
+  ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
 
   ierr = PetscMalloc(tdy->mesh->num_edges*sizeof(PetscReal),
                      &(tdy->vel )); CHKERRQ(ierr);
