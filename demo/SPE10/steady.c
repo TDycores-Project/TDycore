@@ -54,6 +54,7 @@ PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
   PetscBLASInt n = dim;
   PetscReal one = 1, zero = 0;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscMemzero(tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart)); CHKERRQ(ierr);
   for(c=cStart;c<cEnd;c++){
     if(dim==2){ /* in 2D we use the x-y plane */
       x = (tdy->X[c*dim  ]-xL)/dx;
@@ -86,12 +87,14 @@ void Pressure(double *x,double *f){
 
 int main(int argc, char **argv) {
   PetscErrorCode ierr;
-  PetscInt dim = 2;
+  PetscInt dim = 2, N = 0;
   PetscReal ang = 0;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"SPE Options",""); CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-dim","Problem dimension","",
 			  dim,&dim,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt ("-N","Number of cells in each dimension","",
+			  N,&N,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-angle","Permeability angle","",
 			  ang,&ang,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
@@ -105,6 +108,9 @@ int main(int argc, char **argv) {
     faces[1] = faces[2];
     lower[1] = lower[2];
     upper[1] = upper[2];
+  }
+  if(N>0){
+    faces[0] = faces[1] = faces[2] = N;
   }
   ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
                              NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
