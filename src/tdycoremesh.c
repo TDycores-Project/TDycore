@@ -788,11 +788,10 @@ PetscErrorCode ComputeAreaOf2DTriangle(PetscReal v1[3], PetscReal v2[3],
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode SetupSubcellsForTwoDimMesh(TDy tdy) {
+PetscErrorCode SetupSubcellsForTwoDimMesh(DM dm, TDy tdy) {
 
   PetscFunctionBegin;
 
-  DM             dm;
   TDy_mesh       *mesh;
   TDy_cell       *cells, *cell;
   TDy_subcell    *subcell;
@@ -809,7 +808,6 @@ PetscErrorCode SetupSubcellsForTwoDimMesh(TDy tdy) {
   PetscReal      normal, centroid;
   PetscErrorCode ierr;
 
-  dm       = tdy->dm;
   mesh     = tdy->mesh;
   cells    = mesh->cells;
   edges    = mesh->edges;
@@ -1224,7 +1222,7 @@ PetscErrorCode BuildTwoDimMesh(TDy tdy) {
   ierr = SaveTwoDimMeshGeometricAttributes(tdy); CHKERRQ(ierr);
   ierr = SaveTwoDimMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
   ierr = UpdateCellOrientationAroundAVertexTwoDimMesh(tdy); CHKERRQ(ierr);
-  ierr = SetupSubcellsForTwoDimMesh     (  tdy); CHKERRQ(ierr);
+  ierr = SetupSubcellsForTwoDimMesh     (  tdy->dm, tdy); CHKERRQ(ierr);
   ierr = UpdateCellOrientationAroundAEdgeTwoDimMesh(  tdy); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
