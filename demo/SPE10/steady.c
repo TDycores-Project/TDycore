@@ -38,9 +38,17 @@ PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
   dim2 = dim*dim;
 
   // Rotation matrix
-  PetscReal R[9],T[9];
-  Rotation(R,ang,2,dim);
-  
+  PetscBLASInt n = dim;
+  PetscReal one = 1, zero = 0;
+  PetscReal R[9],R1[9],T[9];
+  if(dim == 2){
+    Rotation(R,ang,2,dim);
+  }else{
+    Rotation(R1,    ang,1,dim);
+    Rotation(T ,0.5*ang,2,dim);
+    BLASgemm_("N","N",&n,&n,&n,&one,R1,&n,T,&n,&zero,R,&n);
+  }
+      
   // Read data
   ierr = PetscMalloc(3*nz*ny*nx*sizeof(PetscReal),&buffer); CHKERRQ(ierr);
   if(f){
@@ -51,8 +59,6 @@ PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
   PetscInt c,cStart,cEnd;
   PetscReal dx = 20, dy = 10, dz = 2;
   PetscReal xL = -600, yL = -1100, zL = -170;
-  PetscBLASInt n = dim;
-  PetscReal one = 1, zero = 0;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMemzero(tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart)); CHKERRQ(ierr);
   for(c=cStart;c<cEnd;c++){
@@ -81,8 +87,10 @@ PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
 }
 
 void Pressure(double *x,double *f){
-  PetscReal xL = 1200; //, yL = 2200, zL = 170;
-  (*f) = (0.5*xL+x[0])/xL;
+  PetscReal xL = 1200, yL = 2200, zL = -170;
+  (*f)  = (0.5*xL+x[0])/xL;
+  (*f) += (0.5*yL+x[1])/yL;
+  (*f) += (0.5*zL+x[2])/zL;
 }
 
 int main(int argc, char **argv) {
@@ -110,8 +118,12 @@ int main(int argc, char **argv) {
     upper[1] = upper[2];
   }
   if(N>0){
-    faces[0] = faces[1] = faces[2] = N;
+    PetscReal fct = (PetscReal)N/(PetscReal)faces[0];
+    faces[0] = N;
+    faces[1] = (PetscInt)(fct*faces[1]);
+    faces[2] = (PetscInt)(fct*faces[2]);
   }
+  printf("grid: %d %d %d = %d\n",faces[0],faces[1],faces[2],faces[0]*faces[1]*faces[2]);
   ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
                              NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
