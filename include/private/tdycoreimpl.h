@@ -4,6 +4,7 @@
 #include <petsc.h>
 #include <petsc/private/petscimpl.h>
 #include <private/tdymeshimpl.h>
+#include <private/tdyregressionimpl.h>
 #include <tdycore.h>
 
 typedef struct _TDyOps *TDyOps;
@@ -77,6 +78,10 @@ struct _p_TDy {
   TDy_mesh *mesh;
   PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
   PetscReal ***Trans;
+
+  PetscBool regression_testing;
+  TDy_regression *regression;
+  
 
 };
 

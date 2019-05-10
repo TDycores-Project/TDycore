@@ -68,6 +68,8 @@ PETSC_EXTERN PetscErrorCode TDySetIFunction(TS ts,TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     PetscReal *normv);
 
+PETSC_EXTERN PetscErrorCode TDyOutputRegression(TDy,Vec);
+
 PETSC_EXTERN PetscErrorCode TDyTPFInitialize(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscReal TDyTPFPressureNorm(TDy tdy,Vec U);

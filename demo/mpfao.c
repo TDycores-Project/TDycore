@@ -274,6 +274,8 @@ int main(int argc, char **argv) {
   ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
   ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e\n",normp,normv);CHKERRQ(ierr);
 
+  ierr = TDyOutputRegression(tdy,U);
+
   // Cleanup
 
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
@@ -284,5 +286,5 @@ int main(int argc, char **argv) {
   ierr = DMDestroy(&dm);CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
 
-  return(0);
+  return(86);
 }
