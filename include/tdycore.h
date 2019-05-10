@@ -8,7 +8,7 @@
 
 typedef enum {
   TPF=0,                /* two point flux, classic finite volumes                  */
-  MULTIPOINT_FLUX,      /*                                                         */
+  MPFA_O,               /* multipoint flux approximation - O method                */
   BDM,                  /* P0,BDM1 spaces, standard approach                       */
   WY                    /* P0,BDM1 spaces, vertex quadrature, statically condensed */
 } TDyMethod;
@@ -26,64 +26,6 @@ typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */
 
 typedef struct _p_TDy *TDy;
 
-typedef struct _TDyOps *TDyOps;
-struct _TDyOps {
-  PetscErrorCode (*create)(TDy);
-  PetscErrorCode (*destroy)(TDy);
-  PetscErrorCode (*view)(TDy);
-  PetscErrorCode (*setup)(TDy);
-  PetscErrorCode (*setfromoptions)(TDy);
-};
-
-struct _p_TDy {
-  PETSCHEADER(struct _TDyOps);
-  PetscBool setup;
-  DM dm;
-
-  /* arrays of the size of the Hasse diagram */
-  PetscReal *V; /* volume of point (if applicable) */
-  PetscReal *X; /* centroid of point */
-  PetscReal *N; /* normal of point (if applicable) */
-
-  /* problem constants */
-  PetscReal  rho;        /* density of water [kg m-3]*/
-  PetscReal  mu;         /* viscosity of water [Pa s] */
-  PetscReal  Sr;         /* residual saturation (min) [1] */
-  PetscReal  Ss;         /* saturated saturation (max) [1] */
-  PetscReal  gravity[3]; /* vector of gravity [m s-2] */
-  PetscReal  Pref;       /* reference pressure */
-
-
-  /* material parameters */
-  PetscReal *K,
-            *K0;     /* permeability tensor (cell,intrinsic) for each cell [m2] */
-  PetscReal *Kr;        /* relative permeability for each cell [1] */
-  PetscReal *porosity;  /* porosity for each cell [1] */
-  PetscReal *S,
-            *dS_dP;  /* saturation and derivative wrt pressure for each cell [1] */
-  SpatialFunction forcing;
-  SpatialFunction dirichlet;
-  SpatialFunction flux;
-
-  /* method-specific information*/
-  TDyMethod method;
-  TDyQuadratureType qtype;
-  PetscBool allow_unsuitable_mesh;
-
-  /* Wheeler-Yotov */
-  PetscInt  *vmap;      /* [cell,local_vertex] --> global_vertex */
-  PetscInt  *emap;      /* [cell,local_vertex,direction] --> global_face */
-  PetscInt  *fmap;      /* [face,local_vertex] --> global_vertex */
-  PetscReal *Alocal;    /* local element matrices (Ku,v) */
-  PetscReal *Flocal;    /* local element vectors (f,w) */
-  PetscQuadrature quad; /* vertex-based quadrature rule */
-  PetscReal *vel;       /* [face,local_vertex] --> velocity normal to face at vertex */
-
-  PetscInt  *LtoG;
-  PetscInt  *orient;
-  PetscInt  *faces;
-
-};
 
 PETSC_EXTERN PetscClassId TDY_CLASSID;
 
@@ -95,6 +37,11 @@ PETSC_EXTERN PetscErrorCode TDyCreate(DM dm,TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyDestroy(TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyView(TDy tdy,PetscViewer viewer);
 PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy tdy);
+
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
+PETSC_EXTERN PetscErrorCode TDySetForcingFunction2(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
+PETSC_EXTERN PetscErrorCode TDySetDirichletValueFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
+PETSC_EXTERN PetscErrorCode TDySetDirichletFluxFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (TDy tdy,
     SpatialFunction f);
@@ -110,6 +57,7 @@ PETSC_EXTERN PetscErrorCode TDySetDirichletFunction(TDy tdy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetDirichletFlux    (TDy tdy,SpatialFunction f);
 
 PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy tdy);
+
 PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,
     TDyMethod method);
 PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
@@ -162,7 +110,14 @@ PETSC_EXTERN PetscErrorCode TDyQuadrature(PetscQuadrature q,PetscInt dim);
 PETSC_EXTERN void HdivBasisQuad(const PetscReal *x,PetscReal *B);
 PETSC_EXTERN void HdivBasisHex(const PetscReal *x,PetscReal *B);
 PETSC_EXTERN PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
-					    PetscReal *integral);
+    PetscReal *integral);
+
+PETSC_EXTERN PetscErrorCode TDyMPFAOInitialize(TDy);
+PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy, Mat, Vec);
+PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy, Vec);
+PETSC_EXTERN PetscReal TDyMPFAOVelocityNorm(TDy);
+PETSC_EXTERN PetscReal TDyMPFAOPressureNorm(TDy tdy,Vec U);
+
 /* ---------------------------------------------------------------- */
 
 PETSC_EXTERN void PrintMatrix(PetscReal *A,PetscInt nr,PetscInt nc,

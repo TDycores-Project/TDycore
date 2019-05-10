@@ -33,6 +33,8 @@ script:
   - (cd demo; make codecov=1 )
   - (cd demo; ./steady -ksp_monitor)
   - (cd demo; ./transient -ksp_monitor)
+  - (cd demo; ./mpfao -ksp_monitor)
+  - (cd demo; ./mpfaof90 -ksp_monitor)
   - ls $PETSC_ARCH/obj/src/
 
 after_success:

@@ -1,4 +1,4 @@
-#include "tdycore.h"
+#include <private/tdycoreimpl.h>
 
 PetscErrorCode TDySetPorosity(TDy tdy,SpatialFunction f) {
   PetscInt dim,c,cStart,cEnd;

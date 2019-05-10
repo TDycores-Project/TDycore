@@ -1,4 +1,32 @@
-#include "tdycore.h"
+#include <private/tdycoreimpl.h>
+
+PetscErrorCode TDySetPermeabilityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  if (f) tdy->ops->computepermeability = f;
+  if (ctx) tdy->permeabilityctx = ctx;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetForcingFunction2(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  if (f) tdy->ops->computeforcing = f;
+  if (ctx) tdy->forcingctx = ctx;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDirichletValueFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  if (f) tdy->ops->computedirichletvalue = f;
+  if (ctx) tdy->dirichletvaluectx = ctx;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDirichletFluxFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  if (f) tdy->ops->computedirichletflux = f;
+  if (ctx) tdy->dirichletfluxctx = ctx;
+  PetscFunctionReturn(0);
+}
 
 PetscErrorCode TDySetPermeabilityScalar(TDy tdy,SpatialFunction f) {
   PetscInt dim,dim2,i,c,cStart,cEnd;

@@ -1,8 +1,8 @@
-#include "tdycore.h"
+#include <private/tdycoreimpl.h>
 
 const char *const TDyMethods[] = {
   "TPF",
-  "MULTIPOINT_FLUX",
+  "MPFA_O",
   "BDM",
   "WY",
   /* */
@@ -218,8 +218,8 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
   case TPF:
     ierr = TDyTPFInitialize(tdy); CHKERRQ(ierr);
     break;
-  case MULTIPOINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
+  case MPFA_O:
+    ierr = TDyMPFAOInitialize(tdy); CHKERRQ(ierr);
     break;
   case BDM:
     ierr = TDyBDMInitialize(tdy); CHKERRQ(ierr);
@@ -249,8 +249,8 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TPF");
     break;
-  case MULTIPOINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for MULTIPOINT_FLUX");
+  case MPFA_O:
+    ierr = TDyMPFAOInitialize(tdy); CHKERRQ(ierr);
     break;
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM");
@@ -296,8 +296,8 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
   case TPF:
     ierr = TDyTPFComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
-  case MULTIPOINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
+  case MPFA_O:
+    ierr = TDyMPFAOComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
   case BDM:
     ierr = TDyBDMComputeSystem(tdy,K,F); CHKERRQ(ierr);
@@ -468,10 +468,10 @@ PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
   ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc(nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
-#if defined(PETSC_USE_DEBUG)
-  for(c=0;c<nv*(cEnd-cStart);c++){ (*map)[c] = -1; }
-#endif    
-  for(c=cStart;c<cEnd;c++){
+  #if defined(PETSC_USE_DEBUG)
+  for(c=0; c<nv*(cEnd-cStart); c++) { (*map)[c] = -1; }
+  #endif
+  for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexComputeCellGeometryFEM(dm,c,quad,x,DF,DFinv,J); CHKERRQ(ierr);
     closure = NULL;
     ierr = DMPlexGetTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
@@ -488,13 +488,14 @@ PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
     ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
     CHKERRQ(ierr);
   }
-#if defined(PETSC_USE_DEBUG)
-  for(c=0;c<nv*(cEnd-cStart);c++){
-    if((*map)[c]<0){
-      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Unable to find map(cell,local_vertex) -> vertex");
+  #if defined(PETSC_USE_DEBUG)
+  for(c=0; c<nv*(cEnd-cStart); c++) {
+    if((*map)[c]<0) {
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+              "Unable to find map(cell,local_vertex) -> vertex");
     }
   }
-#endif  
+  #endif
   ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -542,10 +543,10 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc(dim*nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
-#if defined(PETSC_USE_DEBUG)
-  for(c=0;c<dim*nv*(cEnd-cStart);c++){ (*map)[c] = 0; }
-#endif    
-  for(c=cStart;c<cEnd;c++){
+  #if defined(PETSC_USE_DEBUG)
+  for(c=0; c<dim*nv*(cEnd-cStart); c++) { (*map)[c] = 0; }
+  #endif
+  for(c=cStart; c<cEnd; c++) {
     closure = NULL;
     ierr = DMPlexGetTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
     CHKERRQ(ierr);
@@ -579,13 +580,14 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
     ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
     CHKERRQ(ierr);
   }
-#if defined(PETSC_USE_DEBUG)
-  for(c=0;c<dim*nv*(cEnd-cStart);c++){
-    if((*map)[c]==0){
-      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Unable to find map(cell,local_vertex,dir) -> face");
+  #if defined(PETSC_USE_DEBUG)
+  for(c=0; c<dim*nv*(cEnd-cStart); c++) {
+    if((*map)[c]==0) {
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+              "Unable to find map(cell,local_vertex,dir) -> face");
     }
   }
-#endif    
+  #endif
   PetscFunctionReturn(0);
 }
 
@@ -600,8 +602,9 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     if(normp != NULL) { *normp = TDyTPFPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyTPFVelocityNorm(tdy,U); }
     break;
-  case MULTIPOINT_FLUX:
-    SETERRQ(comm,PETSC_ERR_SUP,"MULTIPOINT_FLUX is not yet implemented");
+  case MPFA_O:
+    if(normp != NULL) { *normp = TDyMPFAOPressureNorm(tdy,U); }
+    if(normv != NULL) { *normv = TDyMPFAOVelocityNorm(tdy); }
     break;
   case BDM:
     if(normp != NULL) { *normp = TDyBDMPressureNorm(tdy,U); }
