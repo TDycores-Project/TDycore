@@ -739,7 +739,7 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
 
       // Determine the cell ID for the boundary edge
       if (edges[iedge].cell_ids[0] != -1) icell_1 = edges[iedge].cell_ids[0];
-      else                                icell_2 = edges[iedge].cell_ids[1];
+      else                                icell_1 = edges[iedge].cell_ids[1];
 
       // Is the cell locally owned?
       if (cells[icell_1].is_local) edges[iedge].is_local = PETSC_TRUE;
