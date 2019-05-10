@@ -6,3 +6,5 @@ mpfaof90
 steady
 transient
 *.bin*
+*.regression
+*.stdout

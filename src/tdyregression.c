@@ -71,8 +71,6 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   }
 
   ierr = VecRestoreArray(temp_vec,&vec_ptr); CHKERRQ(ierr);
-  VecView(temp_vec,PETSC_VIEWER_STDOUT_WORLD);
-  MPI_Barrier(PETSC_COMM_WORLD);
 
   ierr = VecGetSize(temp_vec,&global_count); CHKERRQ(ierr);
   if (myrank != 0) global_count = 0;
@@ -157,7 +155,6 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
 
     ierr = VecGetSize(reg->cells_per_process_vec,&count); CHKERRQ(ierr);
     ierr = VecGetArray(reg->cells_per_process_vec,&vec_ptr); CHKERRQ(ierr);
-    printf("count = %d\n",count);
     fprintf(fp,"-- PRESSURE: Liquid Pressure --\n");
     fprintf(fp,"      Max: %21.13e\n",max_val);
     fprintf(fp,"      Min: %21.13e\n",min_val);

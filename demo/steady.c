@@ -212,6 +212,7 @@ int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
   PetscInt N = 4, dim = 2, problem = 2;
+  PetscInt successful_exit_code=0;
   PetscBool perturb = PETSC_FALSE;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
@@ -226,6 +227,8 @@ int main(int argc, char **argv) {
                           &perturb,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-alpha","Permeability scaling","",alpha,&alpha,NULL);
   CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
+                         successful_exit_code,&successful_exit_code,NULL);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   /* Create and distribute the mesh */
@@ -315,6 +318,9 @@ int main(int argc, char **argv) {
   ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
   ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e\n",normp,normv); CHKERRQ(ierr);
 
+  /* Save regression file */
+  ierr = TDyOutputRegression(tdy,U);
+
   /* Cleanup */
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
   ierr = VecDestroy(&U); CHKERRQ(ierr);
@@ -323,5 +329,6 @@ int main(int argc, char **argv) {
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
-  return(0);
+
+  return(successful_exit_code);
 }

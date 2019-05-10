@@ -176,6 +176,7 @@ int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
   PetscInt N = 8, dim = 2, problem = 3;
+  PetscInt successful_exit_code=0;
   PetscBool perturb = PETSC_FALSE;
 
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
@@ -191,6 +192,8 @@ int main(int argc, char **argv) {
                           &perturb,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-alpha","Permeability scaling","",alpha,&alpha,NULL);
   CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
+                         successful_exit_code,&successful_exit_code,NULL);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   /* Create and distribute the mesh */
@@ -286,5 +289,5 @@ int main(int argc, char **argv) {
   ierr = DMDestroy(&dm);CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
 
-  return(86);
+  return(successful_exit_code);
 }
