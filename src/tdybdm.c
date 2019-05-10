@@ -152,7 +152,8 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
 
   /* use vmap, emap, and fmap to build a LtoG map for local element
      assembly */
-  ncv = TDyGetNumberOfCellVertices(dm);
+  tdy->ncv = TDyGetNumberOfCellVertices(dm);
+  ncv = tdy->ncv;
   nlocal = dim*ncv + 1;
   ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),
                      &(tdy->LtoG)); CHKERRQ(ierr);
@@ -232,7 +233,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   /* Get domain constants */
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr); dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  nv = TDyGetNumberOfCellVertices(dm);
+  nv = tdy->ncv;
   ehat = PetscPowReal(2,dim-1);
 
   /* Get quadrature */
@@ -424,8 +425,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   PetscQuadrature quad;
   PetscScalar *u;
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
-  ncv  = TDyGetNumberOfCellVertices(dm);
-  //nfv  = TDyGetNumberOfFaceVertices(dm);
+  ncv  = tdy->ncv;
   ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quad); CHKERRQ(ierr);
   ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w);
   CHKERRQ(ierr);

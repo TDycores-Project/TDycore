@@ -160,7 +160,7 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  nq   = TDyGetNumberOfCellVertices(dm);
+  nq   = tdy->ncv;
   dim2 = dim*dim;
   for(i=0; i<dim; i++) {
     Ehat *= 2;
@@ -217,8 +217,9 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
 
   /* Check that the number of vertices per cell are constant. Soft
      limitation, method is flexible but my data structures are not. */
-  ncv = TDyGetNumberOfCellVertices(dm);
-
+  tdy->ncv = TDyGetNumberOfCellVertices(dm);
+  ncv = tdy->ncv;
+  
   /* Create a PETSc quadrature, we don't really use this, it is just
      to evaluate the Jacobian via the PETSc interface. */
   ierr = PetscQuadratureCreate(comm,&(tdy->quad)); CHKERRQ(ierr);
@@ -235,7 +236,8 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
                      &(tdy->Flocal)); CHKERRQ(ierr);
 
   /* Allocate space for velocities and create a local_vertex->face map */
-  nfv = TDyGetNumberOfFaceVertices(dm);
+  tdy->nfv = TDyGetNumberOfFaceVertices(dm);
+  nfv = tdy->nfv;
   ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscReal),
                      &(tdy->vel )); CHKERRQ(ierr);
   ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscInt ),
@@ -321,7 +323,7 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
   const PetscScalar *quad_x,*quad_w;
   PetscReal xq[3],x[27],J[9],N[24],DF[81],DFinv[81],value;
   DM dm = tdy->dm;
-  ncv  = TDyGetNumberOfCellVertices(dm);
+  ncv  = tdy->ncv;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quadrature);
   CHKERRQ(ierr);
@@ -412,7 +414,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
 
   ierr = TDyWYLocalElementCompute(tdy); CHKERRQ(ierr);
-  nq   = TDyGetNumberOfCellVertices(dm);
+  nq   = tdy->ncv;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   wgt  = PetscPowReal(0.5,dim-1);
@@ -582,8 +584,8 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
   ierr = DMGetDefaultSection(dm, &section); CHKERRQ(ierr);
-  nq   = TDyGetNumberOfCellVertices(dm);
-  nv   = TDyGetNumberOfFaceVertices(dm);
+  nq   = tdy->ncv;
+  nv   = tdy->nfv;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   wgt  = PetscPowReal(0.5,dim-1);
@@ -760,8 +762,8 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
   PetscReal xq[3],x[100],DF[100],DFinv[100],J[100],N[24],vel[3],ve,va,flux0,flux,
             norm,norm_sum,Nn,C;
   PetscQuadrature quad;
-  ncv  = TDyGetNumberOfCellVertices(dm);
-  nfv  = TDyGetNumberOfFaceVertices(dm);
+  ncv  = tdy->ncv;
+  nfv  = tdy->nfv;
   ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quad); CHKERRQ(ierr);
   ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w);
   CHKERRQ(ierr);
@@ -854,7 +856,7 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   PetscInt c,cStart,cEnd,nv,gref,nf,f,fStart,fEnd,i,j,dim;
   PetscReal *p,*dp_dt,*r,wgt,sign,div;
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
-  nv   = TDyGetNumberOfFaceVertices(dm);
+  nv   = tdy->nfv;
   wgt  = 1/((PetscReal)nv);
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);

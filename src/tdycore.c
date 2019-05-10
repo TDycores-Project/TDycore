@@ -462,7 +462,7 @@ PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
   PetscReal x[24],DF[72],DFinv[72],J[8];
   DM dm = tdy->dm;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  nv = TDyGetNumberOfCellVertices(dm);
+  nv = tdy->ncv;
   ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quad); CHKERRQ(ierr);
   ierr = TDyQuadrature(quad,dim); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
@@ -539,7 +539,7 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
     local_dirs[18] = 0; local_dirs[19] = 3; local_dirs[20] = 5;
     local_dirs[21] = 1; local_dirs[22] = 2; local_dirs[23] = 4;
   }
-  nv = TDyGetNumberOfCellVertices(dm);
+  nv = tdy->ncv;
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc(dim*nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
