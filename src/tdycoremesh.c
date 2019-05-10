@@ -30,6 +30,9 @@ PetscErrorCode AllocateMemoryForASubcell(
     num_nu_vectors = 3;
     num_vertices   = 8;
     break;
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported subcell type");
+    break;
   }
 
   subcell->type           = subcell_type;
@@ -80,6 +83,9 @@ PetscErrorCode AllocateMemoryForACell(
     break;
   case SUBCELL_HEX_TYPE:
     num_subcells = 8;
+    break;
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported subcell type");
     break;
   }
 
@@ -546,6 +552,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   PetscSortRealWithPermutation(count, theta, idx);
 
   // determine the starting sorted index
+  start_idx = -1;
   if (boundary_edge_present) {
     // for a boundary vertex, find the last boundary edge in the
     // anitclockwise direction around the vertex

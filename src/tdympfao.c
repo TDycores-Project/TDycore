@@ -1263,6 +1263,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
   mesh     = tdy->mesh;
   vertices = mesh->vertices;
   edges    = mesh->edges;
+  row = -1;
 
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);

@@ -119,14 +119,14 @@ void Pressure3D(double *x,double *f) {
 }
 
 void Velocity3D(double *x,double *v) {
-  double K[9]; Permeability(x,K);
+  double K[9]; Permeability3D(x,K);
   v[0] = -K[0]*(-2*x[0]+1) - K[1]*(-2*x[1]+1) - K[2]*(-2*x[2]+1);
   v[1] = -K[3]*(-2*x[0]+1) - K[4]*(-2*x[1]+1) - K[5]*(-2*x[2]+1);
   v[2] = -K[6]*(-2*x[0]+1) - K[7]*(-2*x[1]+1) - K[8]*(-2*x[2]+1);
 }
 
 void Forcing3D(double *x,double *f) {
-  double K[9]; Permeability(x,K);
+  double K[9]; Permeability3D(x,K);
   (*f) = 2*(K[0] + K[4] + K[8]);
 }
 
@@ -243,7 +243,6 @@ int main(int argc, char **argv) {
       break;
     }
   } else {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"MPFA-O does not support 3D problems");
     //ierr = TDySetPermeabilityTensor(tdy,Permeability3D); CHKERRQ(ierr);
     //ierr = TDySetForcingFunction(tdy,Forcing3D); CHKERRQ(ierr);
     //ierr = TDySetDirichletFunction(tdy,Pressure3D); CHKERRQ(ierr);
