@@ -28,7 +28,8 @@ struct _p_TDy {
   PetscReal *V; /* volume of point (if applicable) */
   PetscReal *X; /* centroid of point */
   PetscReal *N; /* normal of point (if applicable) */
-
+  PetscInt ncv,nfv; /* number of {cell|face} vertices */
+  
   /* problem constants */
   PetscReal  rho;        /* density of water [kg m-3]*/
   PetscReal  mu;         /* viscosity of water [Pa s] */
