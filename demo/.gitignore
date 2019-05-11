@@ -7,4 +7,5 @@ steady
 transient
 *.bin*
 *.regression
-*.stdout
+*.stdout*
+*.regression.old
