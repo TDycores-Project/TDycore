@@ -226,6 +226,24 @@ program main
   call TDyOutputRegression(tdy,U,ierr);
   CHKERRA(ierr);
 
+  call KSPDestroy(ksp,ierr);
+  CHKERRQ(ierr);
+
+  call VecDestroy(U,ierr);
+  CHKERRQ(ierr);
+
+  call VecDestroy(F,ierr);
+  CHKERRQ(ierr);
+
+  call MatDestroy(K,ierr);
+  CHKERRQ(ierr);
+
+  call TDyDestroy(tdy,ierr);
+  CHKERRQ(ierr);
+
+  call DMDestroy(dm,ierr);
+  CHKERRQ(ierr);
+
   call PetscFinalize(ierr)
   CHKERRA(ierr);
 

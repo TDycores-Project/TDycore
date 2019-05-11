@@ -19,6 +19,7 @@
 #define tdysetdirichletvaluefunction_  TDYSETDIRICHLETVALUEFUNCTION
 #define tdysetdirichletfluxfunction_   TDYSETDIRICHLETFLUXFUNCTION
 #define tdyoutputregression_           TDYOUTPUTREGRESSION
+#define tdydestroy_                    TDYDESTROY
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
 #define tdycreate_                     tdycreate
 #define tdysetdiscretizationmethod_    tdysetdiscretizationmethod
@@ -30,6 +31,7 @@
 #define tdysetdirichletvaluefunction_  tdysetdirichletvaluefunction
 #define tdysetdirichletfluxfunction_   tdysetdirichletfluxfunction
 #define tdyoutputregression_           tdyoutputregression
+#define tdydestroy_                    tdydestroy
 #endif
 
 static struct {
@@ -106,6 +108,16 @@ PETSC_EXTERN void PETSC_STDCALL  tdyoutputregression_(TDy tdy, Vec U, int *__ier
 *__ierr = TDyOutputRegression(
   (TDy)PetscToPointer((tdy) ),
   (Vec)PetscToPointer((U) ));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void PETSC_STDCALL  tdydestroy_(TDy *_tdy, int *__ierr){
+*__ierr = TDyDestroy(_tdy);
 }
 #if defined(__cplusplus)
 }
