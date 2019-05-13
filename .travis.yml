@@ -31,7 +31,6 @@ script:
   - export PETSC_DIR=$PWD/petsc; export PETSC_ARCH=petsc-arch
   - make codecov=1 V=1 
   - (cd demo; make V=1 codecov=1 )
-  - (cd demo; ./mpfaof90 -ksp_monitor)
   - (cd regression_tests; make test)
   - cat regression_tests/*testlog
   - ls $PETSC_ARCH/obj/src/
