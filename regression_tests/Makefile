@@ -38,27 +38,27 @@ endif
 test : test-mpfao test-mpfaof90 test-steady test-transient
 
 test-steady :
-	$(PYTHON) $(TEST_MANAGER) -e ../demo/steady $(TEST_OPTIONS) \
+	$(PYTHON) $(TEST_MANAGER) -e ../demo/steady/steady $(TEST_OPTIONS) \
 		--suite standard standard_parallel \
-		--config-files ../demo/steady.cfg \
+		--config-files ../demo/steady/steady.cfg \
 		--logfile_prefix steady
 
 test-transient :
-	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient $(TEST_OPTIONS) \
+	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/transient $(TEST_OPTIONS) \
 		--suite standard standard_parallel \
-		--config-files ../demo/transient.cfg \
+		--config-files ../demo/transient/transient.cfg \
 		--logfile_prefix transient
 
 test-mpfao :
-	$(PYTHON) $(TEST_MANAGER) -e ../demo/mpfao $(TEST_OPTIONS) \
+	$(PYTHON) $(TEST_MANAGER) -e ../demo/mpfao/mpfao $(TEST_OPTIONS) \
 		--suite standard standard_parallel \
-		--config-files ../demo/mpfao.cfg \
+		--config-files ../demo/mpfao/mpfao.cfg \
 		--logfile_prefix mpfao
 
 test-mpfaof90 :
-	$(PYTHON) $(TEST_MANAGER) -e ../demo/mpfaof90 $(TEST_OPTIONS) \
+	$(PYTHON) $(TEST_MANAGER) -e ../demo/mpfaof90/mpfaof90 $(TEST_OPTIONS) \
 		--suite standard standard_parallel \
-		--config-files ../demo/mpfaof90.cfg \
+		--config-files ../demo/mpfaof90/mpfaof90.cfg \
 		--logfile_prefix mpfaof90
 
 #

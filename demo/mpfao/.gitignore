@@ -1,5 +1,6 @@
 .DS_Store
 *dSYM
+mpfao
 *.bin*
 *.regression
 *.stdout*
