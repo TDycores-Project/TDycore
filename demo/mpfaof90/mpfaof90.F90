@@ -3,20 +3,17 @@ module f90module
   use tdycore
 #include <petsc/finclude/petsc.h>
 #include <finclude/tdycore.h>
-  type userctx
-     PetscInt :: a
-  end type userctx
 
 contains
 
-  subroutine PermeabilityFunction(tdy,x,K,user,ierr)
+  subroutine PermeabilityFunction(tdy,x,K,dummy,ierr)
 
     implicit none
 
     TDy                    :: tdy
     PetscReal, intent(in)  :: x(2)
     PetscReal, intent(out) :: K(4)
-    type(userctx)          :: user
+    integer                :: dummy(*)
     PetscErrorCode         :: ierr
 
     K(1) = 5.d0; K(2) = 1.d0
@@ -26,14 +23,14 @@ contains
     
   end subroutine PermeabilityFunction
   
-  subroutine PressureFunction(tdy,x,f,user,ierr)
+  subroutine PressureFunction(tdy,x,f,dummy,ierr)
 
     implicit none
 
     TDy                    :: tdy
     PetscReal, intent(in)  :: x(2)
     PetscReal, intent(out) :: f
-    type(userctx)          :: user
+    integer                :: dummy(*)
     PetscErrorCode         :: ierr
 
     !(*f)  = PetscPowReal(1-x[0],4);
@@ -45,20 +42,22 @@ contains
 
   end subroutine PressureFunction
 
-  subroutine VelocityFunction(tdy,x,v,user,ierr)
+  subroutine VelocityFunction(tdy,x,v,dummy,ierr)
 
     implicit none
 
     TDy                    :: tdy
     PetscReal, intent(in)  :: x(2)
     PetscReal, intent(out) :: v(2)
-    type(userctx)          :: user
+    integer                :: dummy(*)
     PetscErrorCode         :: ierr
 
     PetscReal :: vx, vy
     PetscReal :: K(4)
+    integer   :: dummy2(1)
 
-    call PermeabilityFunction(tdy,x,K,user,ierr);
+
+    call PermeabilityFunction(tdy,x,K,dummy2,ierr);
 
     !vx  = -4*PetscPowReal(1-x[0],3);
     !vx += -  PetscPowReal(1-x[1],3);
@@ -83,19 +82,20 @@ contains
 
   end subroutine VelocityFunction
 
-  subroutine ForcingFunction(tdy,x,f,user,ierr)
+  subroutine ForcingFunction(tdy,x,f,dummy,ierr)
 
     implicit none
 
     TDy                    :: tdy
     PetscReal, intent(in)  :: x(2)
     PetscReal, intent(out) :: f
-    type(userctx)          :: user
+    integer                :: dummy(*)
     PetscErrorCode         :: ierr
 
     PetscReal :: K(4)
-    
-    call PermeabilityFunction(tdy,x,K,user,ierr);
+    integer   :: dummy2(1)
+
+    call PermeabilityFunction(tdy,x,K,dummy2,ierr);
     
     !(*f)  = -K[0]*(12*PetscPowReal(1-x[0],2)+PetscSinReal(x[1]-1)*PetscCosReal(x[0]-1));
     !(*f) += -K[1]*( 3*PetscPowReal(1-x[1],2)+PetscSinReal(x[0]-1)*PetscCosReal(x[1]-1));
@@ -136,7 +136,6 @@ program main
   PetscReal      :: normp, normv
   Mat            :: K
   Vec            :: U,F
-  type (userctx) :: user
   KSP            :: ksp
   PetscErrorCode :: ierr
 
@@ -176,13 +175,13 @@ program main
   call TDyCreate(dm, tdy, ierr);
   CHKERRA(ierr);
 
-  call TDySetPermeabilityFunction(tdy,PermeabilityFunction,user,ierr);
+  call TDySetPermeabilityFunction(tdy,PermeabilityFunction,0,ierr);
   CHKERRA(ierr);
-  call TDySetDirichletValueFunction(tdy,PressureFunction,user,ierr);
+  call TDySetDirichletValueFunction(tdy,PressureFunction,0,ierr);
   CHKERRA(ierr);
-  call TDySetForcingFunction2(tdy,ForcingFunction,user,ierr);
+  call TDySetForcingFunction2(tdy,ForcingFunction,0,ierr);
   CHKERRA(ierr);
-  call TDySetDirichletFluxFunction(tdy,VelocityFunction,user,ierr);
+  call TDySetDirichletFluxFunction(tdy,VelocityFunction,0,ierr);
   CHKERRA(ierr);
 
   method = 1;
