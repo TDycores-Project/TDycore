@@ -129,7 +129,7 @@ program main
 
   TDy            :: tdy
   DM             :: dm, dmDist
-  PetscInt       :: N, rank, method
+  PetscInt       :: N, rank, method, successful_exit_code
   PetscBool      :: flg
   PetscInt       :: dim, faces(3)
   PetscReal      :: lower(3), upper(3)
@@ -144,8 +144,11 @@ program main
 
   N = 8
   dim = 2;
+  successful_exit_code= 0
 
   call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-N',N,flg,ierr);
+  CHKERRA(ierr)
+  call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-successful_exit_code',successful_exit_code,flg,ierr);
   CHKERRA(ierr)
   call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr);
   CHKERRA(ierr)
@@ -220,6 +223,29 @@ program main
   CHKERRA(ierr);
   write(*,*)normp,normv
 
+  call TDyOutputRegression(tdy,U,ierr);
+  CHKERRA(ierr);
+
+  call KSPDestroy(ksp,ierr);
+  CHKERRQ(ierr);
+
+  call VecDestroy(U,ierr);
+  CHKERRQ(ierr);
+
+  call VecDestroy(F,ierr);
+  CHKERRQ(ierr);
+
+  call MatDestroy(K,ierr);
+  CHKERRQ(ierr);
+
+  call TDyDestroy(tdy,ierr);
+  CHKERRQ(ierr);
+
+  call DMDestroy(dm,ierr);
+  CHKERRQ(ierr);
+
   call PetscFinalize(ierr)
-  
+  CHKERRA(ierr);
+
+  call exit(successful_exit_code)
 end

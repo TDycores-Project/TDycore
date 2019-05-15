@@ -202,6 +202,14 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           "Enable to allow non-orthgonal meshes in tpf","",tdy->allow_unsuitable_mesh,
                           &(tdy->allow_unsuitable_mesh),NULL); CHKERRQ(ierr);
 
+  ierr = PetscOptionsBool("-tdy_regression_test",
+                          "Enable output of a regression file","",tdy->regression_testing,
+                          &(tdy->regression_testing),NULL); CHKERRQ(ierr);
+
+  if (tdy->regression_testing) {
+    ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
+  }
+
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -617,6 +625,17 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     if(normp != NULL) { *normp = TDyWYPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyWYVelocityNorm(tdy); }
     break;
+  }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyOutputRegression(TDy tdy, Vec U) {
+
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  if (tdy->regression_testing){
+    ierr = TDyRegressionOutput(tdy,U); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }

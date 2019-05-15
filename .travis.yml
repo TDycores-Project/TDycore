@@ -30,11 +30,9 @@ script:
   - .travis/install-petsc.sh
   - export PETSC_DIR=$PWD/petsc; export PETSC_ARCH=petsc-arch
   - make codecov=1 V=1 
-  - (cd demo; make codecov=1 )
-  - (cd demo; ./steady -ksp_monitor)
-  - (cd demo; ./transient -ksp_monitor)
-  - (cd demo; ./mpfao -ksp_monitor)
-  - (cd demo; ./mpfaof90 -ksp_monitor)
+  - (cd demo; make V=1 codecov=1 )
+  - (cd regression_tests; make test)
+  - cat regression_tests/*testlog
   - ls $PETSC_ARCH/obj/src/
 
 after_success:

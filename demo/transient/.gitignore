@@ -1,5 +1,6 @@
 .DS_Store
 *dSYM
+transient
 *.bin*
 *.regression
 *.stdout*

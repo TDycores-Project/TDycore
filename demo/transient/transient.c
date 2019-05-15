@@ -20,11 +20,14 @@ int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
   PetscInt N = 4, dim = 2;
+  PetscInt successful_exit_code=0;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Transient Options","");
   CHKERRQ(ierr);
   ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL);
   CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
+                         successful_exit_code,&successful_exit_code,NULL);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   /* Create and distribute the mesh */
@@ -67,9 +70,12 @@ int main(int argc, char **argv) {
   ierr = TSSetUp(ts); CHKERRQ(ierr);
   ierr = TSSolve(ts,U); CHKERRQ(ierr);
 
+  /* Save regression file */
+  ierr = TDyOutputRegression(tdy,U);
+
   /* Cleanup */
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
-  return(0);
+  return(successful_exit_code);
 }

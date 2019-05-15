@@ -216,18 +216,18 @@ testexamples:
 
 
 # Test build
-check: test
-test:
-	-@${OMAKE} test-build PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR} 2>&1 | tee ./${PETSC_ARCH}/log/test.log
-test-build:
-	-@echo "Running test to verify correct installation"
-	-@echo "Using TDYCORE_DIR=${TDYCORE_DIR}"
-	-@echo "Using PETSC_DIR=${PETSC_DIR}"
-	-@echo "Using PETSC_ARCH=${PETSC_ARCH}"
-	@cd test; ${OMAKE} clean       PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR}
-	@cd test; ${OMAKE} test-build  PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR}
-	@cd test; ${OMAKE} clean       PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR}
-	-@echo "Completed test"
+#check: test
+#test:
+#	-@${OMAKE} test-build PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR} 2>&1 | tee ./${PETSC_ARCH}/log/test.log
+#test-build:
+#	-@echo "Running test to verify correct installation"
+#	-@echo "Using TDYCORE_DIR=${TDYCORE_DIR}"
+#	-@echo "Using PETSC_DIR=${PETSC_DIR}"
+#	-@echo "Using PETSC_ARCH=${PETSC_ARCH}"
+#	@cd test; ${OMAKE} clean       PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR}
+#	@cd test; ${OMAKE} test-build  PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR}
+#	@cd test; ${OMAKE} clean       PETSC_ARCH=${PETSC_ARCH} PETSC_DIR=${PETSC_DIR} TDYCORE_DIR=${TDYCORE_DIR}
+#	-@echo "Completed test"
 .PHONY: check test test-build
 
 #
@@ -264,3 +264,12 @@ alletags:
 deleteetags:
 	-@${RM} CTAGS TAGS
 .PHONY: alletags deleteetags
+
+#
+# Compile demo codes
+#
+demo: all-gmake
+	@cd demo; make
+	
+rtest: demo
+	-@(cd regression_tests; make test)

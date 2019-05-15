@@ -1,4 +1,4 @@
-TARGETS = build-steady build-transient build-mpfao build-mpfaof90
+TARGETS = steady
 
 ifdef codecov
   MYFLAGS += -fprofile-arcs -ftest-coverage
@@ -15,7 +15,7 @@ ALL: $(TARGETS)
 clean::
 	-@$(RM) $(TARGETS) *.gcov *.regression *.old *.stdout
 
-topdir := $(shell cd .. && pwd)
+topdir := $(shell cd ../.. && pwd)
 TDYCORE_DIR ?= $(topdir)
 include $(TDYCORE_DIR)/lib/tdycore/conf/variables
 include $(TDYCORE_DIR)/lib/tdycore/conf/rules
@@ -23,14 +23,6 @@ include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 build:
 	@cd ../; make
 
-build-steady:
-	@cd steady/; make
-
-build-transient:
-	@cd transient; make
-
-build-mpfao:
-	@cd mpfao; make
-
-build-mpfaof90:
-	@cd mpfaof90; make
+steady: steady.o chkopts
+	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
+	$(RM) -f $<
