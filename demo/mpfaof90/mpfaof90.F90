@@ -184,7 +184,7 @@ program main
   call TDySetDirichletFluxFunction(tdy,VelocityFunction,0,ierr);
   CHKERRA(ierr);
 
-  method = 1;
+  method = MPFA_O;
   call TDySetDiscretizationMethod(tdy,method, ierr);
   CHKERRA(ierr);
   call TDySetFromOptions(tdy, ierr);
