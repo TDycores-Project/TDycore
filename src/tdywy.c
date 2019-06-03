@@ -194,6 +194,10 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
         (*tdy->forcing)(&(x[q*dim]),&f);
         tdy->Flocal[c] += f*J[q];
       }
+      if (tdy->ops->computeforcing) {
+        ierr = (*tdy->ops->computeforcing)(tdy, &(x[q*dim]), &f, tdy->forcingctx);CHKERRQ(ierr);
+        tdy->Flocal[c] += f*J[q];
+      }
     }
 
   }
@@ -214,6 +218,26 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
   ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+
+  if (tdy->ops->computepermeability) {
+    // If peremeability function is set, use it instead.
+    // Will need to consolidate this code with code in tdypermeability.c
+    PetscReal *localK;
+    PetscInt icell,ii,jj;
+    ierr = PetscMalloc(9*sizeof(PetscReal),&localK); CHKERRQ(ierr);
+    for (icell=0; icell<cEnd-cStart; icell++) {
+      ierr = (*tdy->ops->computepermeability)(tdy, &(tdy->X[icell*dim]), localK, tdy->permeabilityctx);CHKERRQ(ierr);
+
+      PetscInt count = 0;
+      for (ii=0; ii<dim; ii++) {
+        for (jj=0; jj<dim; jj++) {
+          tdy->K[icell*dim*dim + ii*dim + jj] = localK[count];
+          count++;
+        }
+      }
+    }
+    ierr = PetscFree(localK); CHKERRQ(ierr);
+  }
 
   /* Check that the number of vertices per cell are constant. Soft
      limitation, method is flexible but my data structures are not. */
@@ -378,7 +402,13 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
     }
 
     /* <g,v.n> */
-    (*tdy->dirichlet)(&(x[dim*q]),&value);
+    if (tdy->dirichlet) {
+      (*tdy->dirichlet)(&(x[dim*q]),&value);
+    }
+    if (tdy->ops->computedirichletvalue) {
+        ierr = (*tdy->ops->computedirichletvalue)(tdy, &(x[dim*q]), &value, tdy->dirichletvaluectx);CHKERRQ(ierr);
+    }
+
     if(dim==2) {
       HdivBasisQuad(xq,N);
     } else {
@@ -487,7 +517,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
         // Pressure boundary conditions
         PetscInt isbc;
         ierr = DMGetLabelValue(dm,"marker",global_row,&isbc); CHKERRQ(ierr);
-        if(isbc == 1 && tdy->dirichlet) {
+        if(isbc == 1 && (tdy->dirichlet || tdy->ops->computedirichletvalue)) {
           ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
           G[local_row] = wgt*pdirichlet;
         }
@@ -647,7 +677,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
         // boundary conditions
         PetscInt isbc;
         ierr = DMGetLabelValue(dm,"marker",global_row,&isbc); CHKERRQ(ierr);
-        if(isbc == 1 && tdy->dirichlet) {
+        if(isbc == 1 && (tdy->dirichlet || tdy->ops->computedirichletvalue)) {
           ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
           F[local_row] -= wgt*pdirichlet;
         }
@@ -712,7 +742,7 @@ PetscReal TDyWYPressureNorm(TDy tdy,Vec U) {
   PetscInt c,cStart,cEnd,offset,dim,gref,junk;
   PetscReal p,*u,norm,norm_sum;
   DM dm = tdy->dm;
-  if(!(tdy->dirichlet)) {
+  if(!(tdy->dirichlet) && !(tdy->ops->computedirichletvalue)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
             "Must set the pressure function with TDySetDirichletFunction");
   }
@@ -725,7 +755,12 @@ PetscReal TDyWYPressureNorm(TDy tdy,Vec U) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
     if(gref<0) continue;
     ierr = PetscSectionGetOffset(sec,c,&offset); CHKERRQ(ierr);
-    tdy->dirichlet(&(tdy->X[c*dim]),&p);
+    if (tdy->dirichlet){
+      tdy->dirichlet(&(tdy->X[c*dim]),&p);
+    }
+    if (tdy->ops->computedirichletvalue) {
+        ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[c*dim]), &p, tdy->dirichletvaluectx);CHKERRQ(ierr);
+    }
     norm += tdy->V[c]*PetscSqr(u[offset]-p);
   }
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
@@ -749,7 +784,7 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
   PetscErrorCode ierr;
   PetscInt c,cStart,cEnd,dim,gref,fStart,fEnd,junk,d,s,f;
   DM dm = tdy->dm;
-  if(!(tdy->flux)) {
+  if(!(tdy->flux) && !(tdy->ops->computedirichletflux)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
             "Must set the velocity function with TDySetDirichletFlux");
   }
@@ -821,7 +856,13 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
           }
           //printf("      va = %f\n",va);
 
-          tdy->flux(&(x[q*dim]),vel);
+          if (tdy->flux){
+            tdy->flux(&(x[q*dim]),vel);
+          }
+          if (tdy->ops->computedirichletflux) {
+            ierr = (*tdy->ops->computedirichletflux)(tdy, &(x[q*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);
+          }
+
           ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
           //printf("      ve = %f\n",ve);
 
