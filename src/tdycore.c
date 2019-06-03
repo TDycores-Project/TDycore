@@ -612,6 +612,9 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     if(normv != NULL) { *normv = TDyTPFVelocityNorm(tdy,U); }
     break;
   case MPFA_O:
+    if(normv) {
+      ierr = TDyMPFAORecoverVelocity(tdy,U); CHKERRQ(ierr);
+    }
     if(normp != NULL) { *normp = TDyMPFAOPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyMPFAOVelocityNorm(tdy); }
     break;

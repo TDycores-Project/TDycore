@@ -215,9 +215,6 @@ program main
   call KSPSolve(ksp,F,U,ierr);
   CHKERRQ(ierr);
 
-  call TDyMPFAORecoverVelocity(tdy, U, ierr);
-  CHKERRQ(ierr);
-
   call TDyComputeErrorNorms(tdy,U,normp,normv,ierr);
   CHKERRA(ierr);
   write(*,*)normp,normv

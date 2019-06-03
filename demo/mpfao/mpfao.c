@@ -271,8 +271,6 @@ int main(int argc, char **argv) {
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
 
-  ierr = TDyMPFAORecoverVelocity(tdy, U);CHKERRQ(ierr);
-
   PetscReal normp, normv;
   ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
   ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e\n",normp,normv);CHKERRQ(ierr);
