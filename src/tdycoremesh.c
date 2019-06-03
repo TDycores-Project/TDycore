@@ -416,6 +416,8 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(TDy tdy) {
         c2eCount++;
       }
     }
+
+    ierr = DMPlexRestoreTransitiveClosure(dm, icell, use_cone, &closureSize, &closure);
   }
 
   // edge--to--vertex
