@@ -10,7 +10,14 @@ typedef struct _TDy_subcell    TDy_subcell;
 typedef struct _TDy_cell       TDy_cell;
 typedef struct _TDy_vertex     TDy_vertex;
 typedef struct _TDy_edge       TDy_edge;
+typedef struct _TDy_face       TDy_face;
 typedef struct _TDy_mesh       TDy_mesh;
+
+typedef enum {
+  CELL_QUAD_TYPE=0, /* quadrilateral cell for a 2D cell */
+  CELL_HEX_TYPE     /* hexahedron cell for a 3D cell */
+} TDyCellType;
+
 
 typedef enum {
   SUBCELL_QUAD_TYPE=0, /* quadrilateral subcell for a 2D cell */
@@ -51,6 +58,10 @@ struct _TDy_subcell {
 
   PetscReal volume;                                /* volume of the subcell                                      */
 
+  PetscInt num_faces;               /* number of faces */
+  PetscInt *face_ids;               /* ids of faces */
+  PetscReal *face_area;             /* area of faces */
+
 };
 
 struct _TDy_cell {
@@ -62,11 +73,13 @@ struct _TDy_cell {
 
   PetscInt  num_vertices;  /* number of vertices of the cell    */
   PetscInt  num_edges;     /* number of edges of the cell       */
+  PetscInt  num_faces;     /* number of faces of the cell       */
   PetscInt  num_neighbors; /* number of neigbors of the cell    */
   PetscInt  num_subcells;  /* number of subcells within the cell*/
 
   PetscInt *vertex_ids;    /* vertice IDs that form the cell    */
   PetscInt *edge_ids;      /* edge IDs that form the cell       */
+  PetscInt *face_ids;      /* face IDs that form the cell       */
   PetscInt *neighbor_ids;  /* neighbor IDs that form the cell   */
 
   TDy_coordinate centroid; /* cell centroid                     */
@@ -86,9 +99,11 @@ struct _TDy_vertex {
 
   PetscInt  num_internal_cells; /* number of internal cells sharing the vertex          */
   PetscInt  num_edges;          /* number of edges sharing the vertex                   */
+  PetscInt  num_faces;          /* number of faces sharing the vartex                   */
   PetscInt  num_boundary_cells; /* number of boundary cells sharing the vertex          */
 
   PetscInt *edge_ids;           /* edge IDs that share the vertex                       */
+  PetscInt *face_ids;           /* face IDs that share the vertex                       */
   PetscInt *internal_cell_ids;  /* internal cell IDs that share the vertex              */
   PetscInt *subcell_ids;        /* subcell IDs of internal cells that share the vertex  */
 
@@ -120,6 +135,29 @@ struct _TDy_edge {
 
 };
 
+struct _TDy_face {
+  PetscInt id;             /* id of the face in local numbering */
+  PetscBool is_local;      /* true if the face :  */
+                           /* 1. Is shared by locally owned cells, or   */
+                           /* 2. Is shared by local cell and non-local  */
+                           /*    cell such that global ID of local cell */
+                           /*    is smaller than the global ID of       */
+                           /*    non-local cell */
+
+  PetscBool is_internal;   /* false if the face is on the mesh boundary */
+
+  PetscInt num_vertices;   /* number of vertices that form the face */
+  PetscInt num_edges;      /* number of edges that form the face */
+  PetscInt num_cells;      /* number of cells that share the face */
+
+  PetscInt *vertex_ids;    /* id of vertices that form the face */
+  PetscInt *edge_ids;      /* id of edges that form the face */
+  PetscInt *cell_ids;      /* id of cells that share the face */
+
+  TDy_coordinate centroid; /* centroid of the face */
+  TDy_vector normal;       /* unit normal to the face */
+};
+
 struct _TDy_mesh {
 
   PetscInt   num_cells;
@@ -130,11 +168,13 @@ struct _TDy_mesh {
   TDy_cell   *cells;
   TDy_vertex *vertices;
   TDy_edge   *edges;
+  TDy_face   *faces;
 
 };
 
 PETSC_EXTERN PetscErrorCode OutputMesh(TDy);
 PETSC_EXTERN PetscErrorCode BuildTwoDimMesh(TDy);
+PETSC_EXTERN PetscErrorCode BuildMesh(TDy);
 PETSC_EXTERN PetscErrorCode AllocateMemoryForMesh(DM,TDy_mesh*);
 
 #endif

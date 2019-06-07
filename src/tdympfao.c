@@ -6,7 +6,8 @@
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode ComputeEntryOfGMatrix(PetscReal edge_len, PetscReal n[3],
-                                     PetscReal K[3][3], PetscReal v[3], PetscReal area, PetscInt dim, PetscReal *g) {
+                                     PetscReal K[3][3], PetscReal v[3],
+                                     PetscReal area, PetscInt dim, PetscReal *g) {
 
   PetscFunctionBegin;
 
@@ -30,9 +31,35 @@ PetscErrorCode ComputeEntryOfGMatrix(PetscReal edge_len, PetscReal n[3],
   PetscFunctionReturn(0);
 }
 
+/* ---------------------------------------------------------------- */
+PetscErrorCode ComputeEntryOfGMatrix3D(PetscReal area, PetscReal n[3],
+                                       PetscReal K[3][3], PetscReal v[3],
+                                       PetscReal vol, PetscInt dim, PetscReal *g) {
+
+  PetscFunctionBegin;
+
+  PetscInt i, j;
+  PetscReal Kv[3];
+
+  *g = 0.0;
+
+  for (i=0; i<dim; i++) {
+    Kv[i] = 0.0;
+    for (j=0; j<dim; j++) {
+      Kv[i] += K[i][j] * v[j];
+    }
+  }
+
+  for (i=0; i<dim; i++) {
+    (*g) += n[i] * Kv[i];
+  }
+  (*g) *= 1.0/(vol*6.0)*area;
+
+  PetscFunctionReturn(0);
+}
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeGMatrix(TDy tdy) {
+PetscErrorCode ComputeGMatrixFor2DMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
@@ -50,7 +77,7 @@ PetscErrorCode ComputeGMatrix(TDy tdy) {
   PetscReal      n_up[3], n_dn[3];
   PetscReal      e_cen_up[3], e_cen_dn[3], v_c[3];
   PetscReal      e_len_dn, e_len_up;
-  PetscReal      K[3][3], nu_up[3], nu_dn[3], *localK;
+  PetscReal      K[3][3], nu_up[3], nu_dn[3];
   PetscErrorCode ierr;
 
   dm       = tdy->dm;
@@ -60,24 +87,6 @@ PetscErrorCode ComputeGMatrix(TDy tdy) {
   vertices = mesh->vertices;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-
-  if (tdy->ops->computepermeability) {
-    // If peremeability function is set, use it instead.
-    // Will need to consolidate this code with code in tdypermeability.c
-    ierr = PetscMalloc(9*sizeof(PetscReal),&localK); CHKERRQ(ierr);
-    for (icell=0; icell<mesh->num_cells; icell++) {
-      ierr = (*tdy->ops->computepermeability)(tdy, &(tdy->X[icell*dim]), localK, tdy->permeabilityctx);CHKERRQ(ierr);
-
-      PetscInt count = 0;
-      for (ii=0; ii<dim; ii++) {
-        for (jj=0; jj<dim; jj++) {
-          tdy->K[icell*dim*dim + ii*dim + jj] = localK[count];
-          count++;
-        }
-      }
-    }
-    ierr = PetscFree(localK); CHKERRQ(ierr);
-  }
 
   for (icell=0; icell<mesh->num_cells; icell++) {
 
@@ -151,6 +160,129 @@ PetscErrorCode ComputeGMatrix(TDy tdy) {
 
   PetscFunctionReturn(0);
 
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode ComputeGMatrixFor3DMesh(TDy tdy) {
+
+  PetscFunctionBegin;
+  PetscInt dim,icell;
+  PetscErrorCode ierr;
+
+  TDy_mesh *mesh;
+  TDy_cell *cells;
+  TDy_face *faces;
+  
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+  faces = mesh->faces;
+  //vertices = mesh->vertices;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  //for (icell=0; icell<mesh->num_cells; icell++) {
+  for (icell=0; icell<1; icell++) {
+
+    // set pointer to cell
+    TDy_cell *cell;
+
+    cell = &(cells[icell]);
+
+    // extract permeability tensor
+    PetscInt ii,jj;
+    PetscReal K[3][3];
+
+    for (ii=0; ii<dim; ii++) {
+      for (jj=0; jj<dim; jj++) {
+        K[ii][jj] = tdy->K[icell*dim*dim + ii*dim + jj];
+      }
+    }
+
+    //PetscInt num_subcells = cell->num_subcells;
+    PetscInt isubcell;
+
+    for (isubcell=0; isubcell<cell->num_subcells; isubcell++) {
+
+      TDy_subcell *subcell;
+
+      subcell = &cell->subcells[isubcell];
+
+      PetscInt ii,jj;
+
+      for (ii=0;ii<subcell->num_faces;ii++) {
+
+        PetscInt d;
+        PetscReal area;
+        PetscReal normal[3];
+
+        TDy_face *face = &faces[subcell->face_ids[ii]];
+        
+        area = subcell->face_area[ii];
+        for (d=0; d<dim; d++) normal[d] = face->normal.V[d];
+
+        for (jj=0;jj<subcell->num_faces;jj++) {
+          PetscReal nu[3];
+
+          for (d=0; d<dim; d++) nu[d] = subcell->nu_vector[jj].V[d];
+          ierr = ComputeEntryOfGMatrix3D(area, normal, K, nu, subcell->volume, dim,
+                                         &(tdy->subc_Gmatrix[icell][isubcell][ii][jj]));
+          CHKERRQ(ierr);
+        }
+      }
+    }
+  }
+
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode ComputeGMatrix(TDy tdy) {
+
+  PetscFunctionBegin;
+  PetscInt dim;
+  PetscErrorCode ierr;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  if (tdy->ops->computepermeability) {
+
+    PetscReal *localK;
+    PetscInt icell, ii, jj;
+    TDy_mesh *mesh;
+
+    mesh = tdy->mesh;
+
+    // If peremeability function is set, use it instead.
+    // Will need to consolidate this code with code in tdypermeability.c
+    ierr = PetscMalloc(9*sizeof(PetscReal),&localK); CHKERRQ(ierr);
+    for (icell=0; icell<mesh->num_cells; icell++) {
+      ierr = (*tdy->ops->computepermeability)(tdy, &(tdy->X[icell*dim]), localK, tdy->permeabilityctx);CHKERRQ(ierr);
+
+      PetscInt count = 0;
+      for (ii=0; ii<dim; ii++) {
+        for (jj=0; jj<dim; jj++) {
+          tdy->K[icell*dim*dim + ii*dim + jj] = localK[count];
+          count++;
+        }
+      }
+    }
+    ierr = PetscFree(localK); CHKERRQ(ierr);
+  }
+
+  switch (dim) {
+  case 2:
+    ierr = ComputeGMatrixFor2DMesh(tdy); CHKERRQ(ierr);
+    break;
+  case 3:
+    ierr = ComputeGMatrixFor3DMesh(tdy); CHKERRQ(ierr);
+    break;
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in ComputeGMatrix");
+    break;
+  }
+
+  PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
@@ -778,7 +910,6 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   PetscErrorCode ierr;
   MPI_Comm       comm;
-  PetscInt       dim;
   DM             dm;
 
   PetscFunctionBegin;
@@ -786,10 +917,6 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   dm = tdy->dm;
 
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-
-  if (dim != 2) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,
-                          "TDyMPFAOInitialize only support 2D grids");
 
   tdy->mesh = (TDy_mesh *) malloc(sizeof(TDy_mesh));
 
@@ -800,7 +927,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   ierr = Allocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 5, 5);
   CHKERRQ(ierr);
 
-  ierr = BuildTwoDimMesh(tdy); CHKERRQ(ierr);
+  ierr = BuildMesh(tdy); CHKERRQ(ierr);
 
   ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
 
