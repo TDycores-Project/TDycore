@@ -12,6 +12,17 @@ PetscErrorCode PermeabilityFunction(TDy tdy, double *x, double *K, void *ctx){
   return 0;
 }
 
+void Permeability3D(double *x,double *K) {
+  K[0] = 1.0; K[1] = 0.0; K[2] = 0.0;
+  K[3] = 0.0; K[4] = 1.0; K[5] = 0.0;
+  K[6] = 0.0; K[7] = 0.0; K[8] = 1.0;
+}
+
+PetscErrorCode PermeabilityFunction3D(TDy tdy, double *x, double *K, void *ctx){
+  Permeability3D(x, K);
+  return 0;
+}
+
 /*--- -dim {2|3} -problem 1 ---------------------------------------------------------------*/
 
 PetscErrorCode PressureConstantFunction(TDy tdy, double *x,double *p, void *ctx) { (*p) = 3.14; return 0; }
@@ -106,11 +117,13 @@ PetscErrorCode ForcingSineFunction(TDy tdy, double *x,double *f, void *ctx) {
   return 0;
 }
 
+/*
 void Permeability3D(double *x,double *K) {
   K[0] = alpha; K[1] = 1; K[2] = 1;
   K[3] = 1    ; K[4] = 2; K[5] = 1;
   K[6] = 1    ; K[7] = 1; K[8] = 2;
 }
+*/
 
 void Pressure3D(double *x,double *f) {
   (*f)  = PetscSqr(x[0])*PetscSqr(-x[0]+1);
@@ -246,6 +259,8 @@ int main(int argc, char **argv) {
       break;
     }
   } else {
+    ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction3D,NULL); CHKERRQ(ierr);
+
     //ierr = TDySetPermeabilityTensor(tdy,Permeability3D); CHKERRQ(ierr);
     //ierr = TDySetForcingFunction(tdy,Forcing3D); CHKERRQ(ierr);
     //ierr = TDySetDirichletFunction(tdy,Pressure3D); CHKERRQ(ierr);
