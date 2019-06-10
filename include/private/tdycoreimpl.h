@@ -54,7 +54,6 @@ struct _p_TDy {
   void *dirichletfluxctx;
 
   SpatialFunction forcing;
-  SpatialFunction dirichlet;
   SpatialFunction flux;
 
   /* method-specific information*/

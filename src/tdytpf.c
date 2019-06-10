@@ -64,14 +64,14 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
     // v = -Ki (pd-p0)/dist
     // 00 Ki/dist
     // 0 -Ki pd / dist
-    if(ss==1 && tdy->dirichlet) {
+    if(ss==1 && tdy->ops->computedirichletvalue) {
       ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk); CHKERRQ(ierr);
       Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[f*dim]),pnt2pnt);
       dist = Norm(dim,pnt2pnt);
       Ki = tdy->K[(supp[0]-cStart)*dim2];
       ierr = MatSetValue(K,row,row,Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);
       CHKERRQ(ierr);
-      (*tdy->dirichlet)(&(tdy->X[f*dim]),&p);
+      ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]),&p, tdy->dirichletvaluectx);CHKERRQ(ierr);
       ierr = VecSetValue(F,row,p*Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);
       CHKERRQ(ierr);
       continue;
@@ -135,9 +135,9 @@ PetscReal TDyTPFPressureNorm(TDy tdy,Vec U) {
   PetscInt c,cStart,cEnd,offset,dim,gref,junk;
   PetscReal p,*u,norm,norm_sum;
   DM dm = tdy->dm;
-  if(!(tdy->dirichlet)) {
+  if(!(tdy->ops->computedirichletvalue)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the pressure function with TDySetDirichletFunction");
+            "Must set the pressure function with TDySetDirichletValueFunction");
   }
   norm = 0;
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
@@ -148,7 +148,7 @@ PetscReal TDyTPFPressureNorm(TDy tdy,Vec U) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
     if(gref<0) continue;
     ierr = PetscSectionGetOffset(sec,c,&offset); CHKERRQ(ierr);
-    tdy->dirichlet(&(tdy->X[c*dim]),&p);
+    ierr = (*tdy->ops->computedirichletvalue)(tdy,&(tdy->X[c*dim]),&p,tdy->dirichletvaluectx);CHKERRQ(ierr);
     norm += tdy->V[c]*PetscSqr(u[offset]-p);
   }
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
@@ -186,12 +186,12 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
       ierr = DMPlexGetSupportSize(dm,f,&ss  ); CHKERRQ(ierr);
       ierr = DMPlexGetSupport    (dm,f,&supp); CHKERRQ(ierr);
 
-      if(ss==1 && tdy->dirichlet) {
+      if(ss==1 && tdy->ops->computedirichletvalue) {
         ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk); CHKERRQ(ierr);
         Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[f*dim]),pnt2pnt);
         dist = Norm(dim,pnt2pnt);
         Ki = tdy->K[(supp[0]-cStart)*dim2];
-        (*tdy->dirichlet)(&(tdy->X[f*dim]),&p);
+        ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]),&p, tdy->dirichletvaluectx);CHKERRQ(ierr);
         sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),
                                         &(tdy->X[dim*supp[0]]),dim));
         va = sign* -Ki*(p-u[(supp[0]-cStart)])/dist;

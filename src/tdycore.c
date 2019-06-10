@@ -130,7 +130,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   tdy->qtype = FULL;
   
   /* initialize function pointers */
-  tdy->forcing = NULL ; tdy->dirichlet = NULL ; tdy->flux = NULL ;
+  tdy->forcing = NULL ; tdy->flux = NULL ;
   PetscFunctionReturn(0);
 }
 
@@ -276,14 +276,6 @@ PetscErrorCode TDySetForcingFunction(TDy tdy,SpatialFunction f) {
   PetscValidPointer(tdy,1);
   PetscValidPointer(  f,2);
   tdy->forcing = f;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetDirichletFunction(TDy tdy,SpatialFunction f) {
-  PetscFunctionBegin;
-  PetscValidPointer(tdy,1);
-  PetscValidPointer(  f,2);
-  tdy->dirichlet = f;
   PetscFunctionReturn(0);
 }
 

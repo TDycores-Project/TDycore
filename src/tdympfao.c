@@ -975,7 +975,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         
         PetscInt f;
         f = edge->id + fStart;
-        //(*tdy->dirichlet)(&(tdy->X[f*dim]), &pBoundary[numBoundary]);
         ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
         cell_ids_from_to[numBoundary][0] = edge->cell_ids[0];
         cell_ids_from_to[numBoundary][1] = edge->cell_ids[1];
@@ -1132,7 +1131,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
         
         PetscInt f;
         f = edge->id + fStart;
-        //(*tdy->dirichlet)(&(tdy->X[f*dim]), &pBoundary[numBoundary]);
         ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
         cell_ids_from_to[numBoundary][0] = edge->cell_ids[0];
         cell_ids_from_to[numBoundary][1] = edge->cell_ids[1];
@@ -1348,7 +1346,6 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 
         if (edge->is_internal == 0) {
           PetscInt f = edge->id + fStart;
-          //(*tdy->dirichlet)(&(tdy->X[f*dim]), &Pboundary[numBoundary]);
           ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &Pboundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
           Vcomputed[vertex->num_internal_cells + numBoundary] = 0.0;
           numBoundary++;

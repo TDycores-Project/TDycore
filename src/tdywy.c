@@ -402,11 +402,8 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
     }
 
     /* <g,v.n> */
-    if (tdy->dirichlet) {
-      (*tdy->dirichlet)(&(x[dim*q]),&value);
-    }
     if (tdy->ops->computedirichletvalue) {
-        ierr = (*tdy->ops->computedirichletvalue)(tdy, &(x[dim*q]), &value, tdy->dirichletvaluectx);CHKERRQ(ierr);
+      ierr = (*tdy->ops->computedirichletvalue)(tdy, &(x[dim*q]), &value, tdy->dirichletvaluectx);CHKERRQ(ierr);
     }
 
     if(dim==2) {
@@ -517,7 +514,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
         // Pressure boundary conditions
         PetscInt isbc;
         ierr = DMGetLabelValue(dm,"marker",global_row,&isbc); CHKERRQ(ierr);
-        if(isbc == 1 && (tdy->dirichlet || tdy->ops->computedirichletvalue)) {
+        if(isbc == 1 && tdy->ops->computedirichletvalue) {
           ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
           G[local_row] = wgt*pdirichlet;
         }
@@ -677,7 +674,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
         // boundary conditions
         PetscInt isbc;
         ierr = DMGetLabelValue(dm,"marker",global_row,&isbc); CHKERRQ(ierr);
-        if(isbc == 1 && (tdy->dirichlet || tdy->ops->computedirichletvalue)) {
+        if(isbc == 1 && tdy->ops->computedirichletvalue) {
           ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
           F[local_row] -= wgt*pdirichlet;
         }
@@ -742,9 +739,9 @@ PetscReal TDyWYPressureNorm(TDy tdy,Vec U) {
   PetscInt c,cStart,cEnd,offset,dim,gref,junk;
   PetscReal p,*u,norm,norm_sum;
   DM dm = tdy->dm;
-  if(!(tdy->dirichlet) && !(tdy->ops->computedirichletvalue)) {
+  if(!(tdy->ops->computedirichletvalue)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the pressure function with TDySetDirichletFunction");
+            "Must set the pressure function with TDySetDirichletValueFunction");
   }
   norm = 0;
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
@@ -755,11 +752,8 @@ PetscReal TDyWYPressureNorm(TDy tdy,Vec U) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
     if(gref<0) continue;
     ierr = PetscSectionGetOffset(sec,c,&offset); CHKERRQ(ierr);
-    if (tdy->dirichlet){
-      tdy->dirichlet(&(tdy->X[c*dim]),&p);
-    }
     if (tdy->ops->computedirichletvalue) {
-        ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[c*dim]), &p, tdy->dirichletvaluectx);CHKERRQ(ierr);
+      ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[c*dim]), &p, tdy->dirichletvaluectx);CHKERRQ(ierr);
     }
     norm += tdy->V[c]*PetscSqr(u[offset]-p);
   }
