@@ -127,7 +127,8 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   tdy->quad = NULL;
   tdy->faces = NULL; tdy->LtoG = NULL; tdy->orient = NULL;
   tdy->allow_unsuitable_mesh = PETSC_FALSE;
-
+  tdy->qtype = FULL;
+  
   /* initialize function pointers */
   tdy->forcing = NULL ; tdy->dirichlet = NULL ; tdy->flux = NULL ;
   PetscFunctionReturn(0);

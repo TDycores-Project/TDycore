@@ -21,7 +21,7 @@ include $(TDYCORE_DIR)/lib/tdycore/conf/variables
 include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 
 build:
-	@cd ../; make
+	@cd ../../; make
 
 steady: steady.o chkopts
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
