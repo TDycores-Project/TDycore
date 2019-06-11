@@ -179,7 +179,7 @@ program main
   CHKERRA(ierr);
   call TDySetDirichletValueFunction(tdy,PressureFunction,0,ierr);
   CHKERRA(ierr);
-  call TDySetForcingFunction2(tdy,ForcingFunction,0,ierr);
+  call TDySetForcingFunction(tdy,ForcingFunction,0,ierr);
   CHKERRA(ierr);
   call TDySetDirichletFluxFunction(tdy,VelocityFunction,0,ierr);
   CHKERRA(ierr);

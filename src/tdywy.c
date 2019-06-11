@@ -190,10 +190,6 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
       }
 
       // integrate the forcing function using the same quadrature
-      if (tdy->forcing) {
-        (*tdy->forcing)(&(x[q*dim]),&f);
-        tdy->Flocal[c] += f*J[q];
-      }
       if (tdy->ops->computeforcing) {
         ierr = (*tdy->ops->computeforcing)(tdy, &(x[q*dim]), &f, tdy->forcingctx);CHKERRQ(ierr);
         tdy->Flocal[c] += f*J[q];

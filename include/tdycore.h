@@ -39,7 +39,7 @@ PETSC_EXTERN PetscErrorCode TDyView(TDy tdy,PetscViewer viewer);
 PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy tdy);
 
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySetForcingFunction2(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
+PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetDirichletValueFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetDirichletFluxFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 
@@ -52,7 +52,6 @@ PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (TDy tdy,
 PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy tdy,
     SpatialFunction f);
 
-PETSC_EXTERN PetscErrorCode TDySetForcingFunction  (TDy tdy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetDirichletFlux    (TDy tdy,SpatialFunction f);
 
 PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy tdy);

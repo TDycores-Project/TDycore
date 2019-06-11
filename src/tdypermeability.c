@@ -7,7 +7,7 @@ PetscErrorCode TDySetPermeabilityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscR
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetForcingFunction2(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+PetscErrorCode TDySetForcingFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
   if (f) tdy->ops->computeforcing = f;
   if (ctx) tdy->forcingctx = ctx;

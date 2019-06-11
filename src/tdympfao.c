@@ -1216,7 +1216,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   PetscReal f;
-  if (tdy->forcing || tdy->ops->computeforcing) {
+  if (tdy->ops->computeforcing) {
     for (icell=0; icell<tdy->mesh->num_cells; icell++) {
       if (cells[icell].is_local) {
         ierr = (*tdy->ops->computeforcing)(tdy, &(tdy->X[icell*dim]), &f, tdy->forcingctx);CHKERRQ(ierr);

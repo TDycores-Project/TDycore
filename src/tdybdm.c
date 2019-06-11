@@ -304,8 +304,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
       } /* end vertices */
 
       /* Integrate forcing if present */
-      if (tdy->forcing) {
-        (*tdy->forcing)(&(x[q*dim]),&force);
+      if (tdy->ops->computeforcing) {
+        ierr = (*tdy->ops->computeforcing)(tdy,&(x[q*dim]),&force,tdy->forcingctx);CHKERRQ(ierr);
         Flocal[nlocal-1] += -force*J[q]*quad_w[q];
       }
 

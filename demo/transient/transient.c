@@ -13,8 +13,9 @@ PetscErrorCode Pressure(TDy tdy,double *x,double *p,void *ctx) {
   PetscFunctionReturn(0);
 }
 
-void Forcing(double *x,double *f) {
+PetscErrorCode Forcing(TDy tdy,double *x,double *f,void *ctx) {
   (*f) = 0;
+  PetscFunctionReturn(0);
 }
 
 int main(int argc, char **argv) {
@@ -48,7 +49,7 @@ int main(int argc, char **argv) {
   ierr = TDyCreate(dm,&tdy); CHKERRQ(ierr);
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
   ierr = TDySetPermeabilityScalar(tdy,Permeability); CHKERRQ(ierr);
-  ierr = TDySetForcingFunction(tdy,Forcing); CHKERRQ(ierr);
+  ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
   ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);

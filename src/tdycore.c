@@ -130,7 +130,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   tdy->qtype = FULL;
   
   /* initialize function pointers */
-  tdy->forcing = NULL ; tdy->flux = NULL ;
+  tdy->flux = NULL ;
   PetscFunctionReturn(0);
 }
 
@@ -268,14 +268,6 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
     ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy); CHKERRQ(ierr);
     break;
   }
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetForcingFunction(TDy tdy,SpatialFunction f) {
-  PetscFunctionBegin;
-  PetscValidPointer(tdy,1);
-  PetscValidPointer(  f,2);
-  tdy->forcing = f;
   PetscFunctionReturn(0);
 }
 

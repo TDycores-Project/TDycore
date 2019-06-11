@@ -103,11 +103,11 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
     CHKERRQ(ierr);
   }
 
-  if(tdy->forcing) {
+  if(tdy->ops->computeforcing) {
     for(c=cStart; c<cEnd; c++) {
       ierr = DMPlexGetPointGlobal(dm,c,&row,&junk); CHKERRQ(ierr);
       if(row < 0) continue;
-      (*tdy->forcing)(&(tdy->X[c*dim]),&force);
+      ierr = (*tdy->ops->computeforcing)(tdy,&(tdy->X[c*dim]),&force,tdy->forcingctx);CHKERRQ(ierr);;
       ierr = VecSetValue(F,row,force,ADD_VALUES); CHKERRQ(ierr);
     }
   }
