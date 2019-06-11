@@ -195,7 +195,7 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
         sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),
                                         &(tdy->X[dim*supp[0]]),dim));
         va = sign* -Ki*(p-u[(supp[0]-cStart)])/dist;
-        tdy->flux(&(tdy->X[f*dim]),&(vel[0]));
+        ierr = (*tdy->ops->computedirichletflux)(tdy,&(tdy->X[f*dim]),&(vel[0]),tdy->dirichletfluxctx);CHKERRQ(ierr);
         ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
         face_error = PetscSqr((va-ve)/tdy->V[f]);
       } else {
@@ -206,7 +206,7 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
                                         &(tdy->X[dim*c]),dim));
         va = sign* -Ki*(u[(supp[1]-cStart)]-u[(supp[0]-cStart)])/dist *tdy->V[f];
         if(c==supp[1]) va *= -1;
-        tdy->flux(&(tdy->X[f*dim]),&(vel[0]));
+        ierr = (*tdy->ops->computedirichletflux)(tdy,&(tdy->X[f*dim]),&(vel[0]),tdy->dirichletfluxctx);CHKERRQ(ierr);
         ve = TDyADotB(vel,&(tdy->N[dim*f]),dim)*tdy->V[f];
         face_error = PetscSqr((va-ve)/tdy->V[f]);
       }

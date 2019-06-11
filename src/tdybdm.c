@@ -410,9 +410,9 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   PetscErrorCode ierr;
   PetscInt c,cStart,cEnd,dim,gref,fStart,fEnd,junk,d,s,f;
   DM dm = tdy->dm;
-  if(!(tdy->flux)) {
+  if(!(tdy->ops->computedirichletflux)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the velocity function with TDySetDirichletFlux");
+            "Must set the velocity function with TDySetDirichletFluxFunction");
   }
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
@@ -478,7 +478,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
             }
           }
           /* exact value normal to this point/face */
-          tdy->flux(&(x[q*dim]),vel);
+          ierr = (*tdy->ops->computedirichletflux)(tdy,&(x[q*dim]),vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
           ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
 
           /* quadrature */

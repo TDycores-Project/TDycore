@@ -774,9 +774,9 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
   PetscErrorCode ierr;
   PetscInt c,cStart,cEnd,dim,gref,fStart,fEnd,junk,d,s,f;
   DM dm = tdy->dm;
-  if(!(tdy->flux) && !(tdy->ops->computedirichletflux)) {
+  if(!(tdy->ops->computedirichletflux)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the velocity function with TDySetDirichletFlux");
+            "Must set the velocity function with TDySetDirichletFluxFunction");
   }
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
@@ -846,9 +846,6 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
           }
           //printf("      va = %f\n",va);
 
-          if (tdy->flux){
-            tdy->flux(&(x[q*dim]),vel);
-          }
           if (tdy->ops->computedirichletflux) {
             ierr = (*tdy->ops->computedirichletflux)(tdy, &(x[q*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);
           }

@@ -1315,7 +1315,6 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
           X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
           X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
           
-          //tdy->flux(X,vel);
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
 
           vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
@@ -1381,7 +1380,6 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
             X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
             X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
   
-            //tdy->flux(X,vel);
             ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
             vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
   
@@ -1418,7 +1416,6 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
             X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
             X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
 
-            //tdy->flux(X,vel);
             ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
             vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
 
@@ -1451,7 +1448,6 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
             X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
             X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
 
-            //tdy->flux(X,vel);
             ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
 
             vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
@@ -1563,13 +1559,6 @@ PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
 
-  /*
-  if (!(tdy->flux)) {
-    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the velocity function with TDySetDirichletFlux");
-  }
-  */
-
   norm_sum = 0.0;
   norm     = 0.0;
 
@@ -1583,7 +1572,6 @@ PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
       edge_id = cell->edge_ids[iedge];
       edge    = &(edges[edge_id]);
 
-      //tdy->flux(&(tdy->X[(edge_id + fStart)*dim]),vel);
       ierr = (*tdy->ops->computedirichletflux)(tdy, &(tdy->X[(edge_id + fStart)*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);
       vel_normal = vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1];
 

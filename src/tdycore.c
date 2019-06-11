@@ -129,8 +129,6 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   tdy->allow_unsuitable_mesh = PETSC_FALSE;
   tdy->qtype = FULL;
   
-  /* initialize function pointers */
-  tdy->flux = NULL ;
   PetscFunctionReturn(0);
 }
 
@@ -268,14 +266,6 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
     ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy); CHKERRQ(ierr);
     break;
   }
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetDirichletFlux(TDy tdy,SpatialFunction f) {
-  PetscFunctionBegin;
-  PetscValidPointer(tdy,1);
-  PetscValidPointer(  f,2);
-  tdy->flux = f;
   PetscFunctionReturn(0);
 }
 

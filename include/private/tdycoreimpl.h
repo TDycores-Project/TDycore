@@ -53,8 +53,6 @@ struct _p_TDy {
   void *dirichletvaluectx;
   void *dirichletfluxctx;
 
-  SpatialFunction flux;
-
   /* method-specific information*/
   TDyMethod method;
   TDyQuadratureType qtype;
