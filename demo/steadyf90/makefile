@@ -1,4 +1,4 @@
-TARGETS = mpfaof90
+TARGETS = steadyf90
 
 ifdef codecov
   MYFLAGS += -fprofile-arcs -ftest-coverage
@@ -23,6 +23,6 @@ include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 build:
 	@cd ../; make
 
-mpfaof90: mpfaof90.o chkopts
+steadyf90: steadyf90.o chkopts
 	$(FLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<

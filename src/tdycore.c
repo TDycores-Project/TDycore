@@ -129,8 +129,6 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   tdy->allow_unsuitable_mesh = PETSC_FALSE;
   tdy->qtype = FULL;
   
-  /* initialize function pointers */
-  tdy->forcing = NULL ; tdy->dirichlet = NULL ; tdy->flux = NULL ;
   PetscFunctionReturn(0);
 }
 
@@ -268,30 +266,6 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
     ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy); CHKERRQ(ierr);
     break;
   }
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetForcingFunction(TDy tdy,SpatialFunction f) {
-  PetscFunctionBegin;
-  PetscValidPointer(tdy,1);
-  PetscValidPointer(  f,2);
-  tdy->forcing = f;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetDirichletFunction(TDy tdy,SpatialFunction f) {
-  PetscFunctionBegin;
-  PetscValidPointer(tdy,1);
-  PetscValidPointer(  f,2);
-  tdy->dirichlet = f;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetDirichletFlux(TDy tdy,SpatialFunction f) {
-  PetscFunctionBegin;
-  PetscValidPointer(tdy,1);
-  PetscValidPointer(  f,2);
-  tdy->flux = f;
   PetscFunctionReturn(0);
 }
 
@@ -612,6 +586,9 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     if(normv != NULL) { *normv = TDyTPFVelocityNorm(tdy,U); }
     break;
   case MPFA_O:
+    if(normv) {
+      ierr = TDyMPFAORecoverVelocity(tdy,U); CHKERRQ(ierr);
+    }
     if(normp != NULL) { *normp = TDyMPFAOPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyMPFAOVelocityNorm(tdy); }
     break;

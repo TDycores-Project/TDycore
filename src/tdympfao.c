@@ -975,7 +975,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         
         PetscInt f;
         f = edge->id + fStart;
-        //(*tdy->dirichlet)(&(tdy->X[f*dim]), &pBoundary[numBoundary]);
         ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
         cell_ids_from_to[numBoundary][0] = edge->cell_ids[0];
         cell_ids_from_to[numBoundary][1] = edge->cell_ids[1];
@@ -1132,7 +1131,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
         
         PetscInt f;
         f = edge->id + fStart;
-        //(*tdy->dirichlet)(&(tdy->X[f*dim]), &pBoundary[numBoundary]);
         ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
         cell_ids_from_to[numBoundary][0] = edge->cell_ids[0];
         cell_ids_from_to[numBoundary][1] = edge->cell_ids[1];
@@ -1218,7 +1216,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   PetscReal f;
-  if (tdy->forcing || tdy->ops->computeforcing) {
+  if (tdy->ops->computeforcing) {
     for (icell=0; icell<tdy->mesh->num_cells; icell++) {
       if (cells[icell].is_local) {
         ierr = (*tdy->ops->computeforcing)(tdy, &(tdy->X[icell*dim]), &f, tdy->forcingctx);CHKERRQ(ierr);
@@ -1317,7 +1315,6 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
           X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
           X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
           
-          //tdy->flux(X,vel);
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
 
           vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
@@ -1348,7 +1345,6 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 
         if (edge->is_internal == 0) {
           PetscInt f = edge->id + fStart;
-          //(*tdy->dirichlet)(&(tdy->X[f*dim]), &Pboundary[numBoundary]);
           ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &Pboundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
           Vcomputed[vertex->num_internal_cells + numBoundary] = 0.0;
           numBoundary++;
@@ -1384,7 +1380,6 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
             X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
             X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
   
-            //tdy->flux(X,vel);
             ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
             vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
   
@@ -1421,7 +1416,6 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
             X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
             X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
 
-            //tdy->flux(X,vel);
             ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
             vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
 
@@ -1454,7 +1448,6 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
             X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertex->coordinate.X[0])/2.0;
             X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertex->coordinate.X[1])/2.0;
 
-            //tdy->flux(X,vel);
             ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
 
             vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
@@ -1566,13 +1559,6 @@ PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
 
-  /*
-  if (!(tdy->flux)) {
-    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the velocity function with TDySetDirichletFlux");
-  }
-  */
-
   norm_sum = 0.0;
   norm     = 0.0;
 
@@ -1586,7 +1572,6 @@ PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
       edge_id = cell->edge_ids[iedge];
       edge    = &(edges[edge_id]);
 
-      //tdy->flux(&(tdy->X[(edge_id + fStart)*dim]),vel);
       ierr = (*tdy->ops->computedirichletflux)(tdy, &(tdy->X[(edge_id + fStart)*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);
       vel_normal = vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1];
 

@@ -15,7 +15,7 @@
 #define tdycomputesystem_              TDYCOMPUTESYSTEM
 #define tdycomputeerrornorms_          TDYCOMPUTEERRORNORMS
 #define tdysetpermeabilityfunction_    TDYSETPERMEABILITYFUNCTION
-#define tdysetforcingfunction2_        TDYSETFORCINGFUNCTION2
+#define tdysetforcingfunction_         TDYSETFORCINGFUNCTION
 #define tdysetdirichletvaluefunction_  TDYSETDIRICHLETVALUEFUNCTION
 #define tdysetdirichletfluxfunction_   TDYSETDIRICHLETFLUXFUNCTION
 #define tdyoutputregression_           TDYOUTPUTREGRESSION
@@ -27,7 +27,7 @@
 #define tdycomputesystem_              tdycomputesystem
 #define tdycomputeerrornorms_          tdycomputeerrornorms
 #define tdysetpermeabilityfunction_    tdysetpermeabilityfunction
-#define tdysetforcingfunction2_        tdysetforcingfunction2
+#define tdysetforcingfunction_         tdysetforcingfunction
 #define tdysetdirichletvaluefunction_  tdysetdirichletvaluefunction
 #define tdysetdirichletfluxfunction_   tdysetdirichletfluxfunction
 #define tdyoutputregression_           tdyoutputregression
@@ -151,14 +151,14 @@ static PetscErrorCode ourtdyforcingfunction2(TDy tdy,PetscReal *x,PetscReal *f,v
   PetscObjectUseFortranCallback(tdy,_cb.forcing,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetforcingfunction2_(TDy *tdy, void (PETSC_STDCALL *func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+PETSC_EXTERN void PETSC_STDCALL tdysetforcingfunction_(TDy *tdy, void (PETSC_STDCALL *func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
 {
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.forcing,(PetscVoidFunction)func,ctx);
   if (*ierr) return;
 #if defined(PETSC_HAVE_F90_2PTR_ARG)
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
 #endif
-  *ierr = TDySetForcingFunction2(*tdy,ourtdyforcingfunction2,NULL);
+  *ierr = TDySetForcingFunction(*tdy,ourtdyforcingfunction2,NULL);
 }
 
 static PetscErrorCode ourtdydirichletvaluefunction(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)

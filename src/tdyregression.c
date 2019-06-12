@@ -52,8 +52,10 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   if (min_ncells_local<regression->num_cells_per_process) {
     regression->num_cells_per_process = min_ncells_local;
   }
-  
-  ierr = PetscMalloc(ncells_local*sizeof(PetscInt),&(regression->cells_per_process_natural_ids)); CHKERRQ(ierr);
+
+  if (myrank == 0) {
+    ierr = PetscMalloc(ncells_local*regression->num_cells_per_process*sizeof(PetscInt),&(regression->cells_per_process_natural_ids)); CHKERRQ(ierr);
+  }
   increment = floor(ncells_local/regression->num_cells_per_process);
 
   global_offset = 0;
@@ -66,7 +68,6 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   ierr = VecGetArray(temp_vec,&vec_ptr); CHKERRQ(ierr);
 
   for (c=0; c<regression->num_cells_per_process; c++){
-    regression->cells_per_process_natural_ids[c] = c*increment + global_offset;
     vec_ptr[c] = c*increment + global_offset;
   }
 
@@ -96,7 +97,10 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
 
   if (myrank==0) {
     ierr = VecGetArray(regression->cells_per_process_vec,&vec_ptr); CHKERRQ(ierr);
-    for (c=0; c<global_count; c++) int_array[c] = floor(vec_ptr[c]);
+    for (c=0; c<global_count; c++) {
+      regression->cells_per_process_natural_ids[c] = floor(vec_ptr[c]);
+      int_array[c] = floor(vec_ptr[c]);
+    }
     ierr = VecRestoreArray(regression->cells_per_process_vec,&vec_ptr); CHKERRQ(ierr);
   }
     
@@ -160,7 +164,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
     fprintf(fp,"      Min: %21.13e\n",min_val);
     fprintf(fp,"     Mean: %21.13e\n",mean_val);
     for (i=0; i<count; i++) {
-      fprintf(fp,"%9d: %21.13e\n",i,vec_ptr[i]);
+      fprintf(fp,"%9d: %21.13e\n",reg->cells_per_process_natural_ids[i],vec_ptr[i]);
     }
     
     ierr = VecRestoreArray(reg->cells_per_process_vec,&vec_ptr); CHKERRQ(ierr);

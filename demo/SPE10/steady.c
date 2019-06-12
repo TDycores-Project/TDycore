@@ -86,11 +86,12 @@ PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
   PetscFunctionReturn(0);
 }
 
-void Pressure(double *x,double *f){
+PetscErrorCode Pressure(TDy tdy,double *x,double *f,void *ctx){
   PetscReal xL = 1200, yL = 2200, zL = -170;
   (*f)  = (0.5*xL+x[0])/xL;
   (*f) += (0.5*yL+x[1])/yL;
   (*f) += (0.5*zL+x[2])/zL;
+  PetscFunctionReturn(0);
 }
 
 int main(int argc, char **argv) {
@@ -137,7 +138,7 @@ int main(int argc, char **argv) {
   ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
   ierr = ReadSPE10Permeability(tdy,ang); CHKERRQ(ierr);
-  ierr = TDySetDirichletFunction(tdy,Pressure); CHKERRQ(ierr);
+  ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
 
   /* Compute system */
   Mat K;

@@ -304,8 +304,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
       } /* end vertices */
 
       /* Integrate forcing if present */
-      if (tdy->forcing) {
-        (*tdy->forcing)(&(x[q*dim]),&force);
+      if (tdy->ops->computeforcing) {
+        ierr = (*tdy->ops->computeforcing)(tdy,&(x[q*dim]),&force,tdy->forcingctx);CHKERRQ(ierr);
         Flocal[nlocal-1] += -force*J[q]*quad_w[q];
       }
 
@@ -322,7 +322,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     }
 
     /* <g, v_j.n> */
-    if(tdy->dirichlet) {
+    if(tdy->ops->computedirichletvalue) {
       /* loop over all possible v_j's for this cell, integrating with
       Gauss-Lobotto */
       for(vi=0; vi<nv; vi++) {
@@ -372,9 +372,9 @@ PetscReal TDyBDMPressureNorm(TDy tdy,Vec U) {
   PetscInt c,cStart,cEnd,offset,dim,gref,junk;
   PetscReal p,*u,norm,norm_sum;
   DM dm = tdy->dm;
-  if(!(tdy->dirichlet)) {
+  if(!(tdy->ops->computedirichletvalue)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the pressure function with TDySetDirichletFunction");
+            "Must set the pressure function with TDySetDirichletValueFunction");
   }
   norm = 0;
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
@@ -385,7 +385,7 @@ PetscReal TDyBDMPressureNorm(TDy tdy,Vec U) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
     if(gref<0) continue;
     ierr = PetscSectionGetOffset(sec,c,&offset); CHKERRQ(ierr);
-    tdy->dirichlet(&(tdy->X[c*dim]),&p);
+    ierr = (*tdy->ops->computedirichletvalue)(tdy,&(tdy->X[c*dim]),&p,tdy->dirichletvaluectx);CHKERRQ(ierr);
     norm += tdy->V[c]*PetscSqr(u[offset]-p);
   }
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
@@ -410,9 +410,9 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   PetscErrorCode ierr;
   PetscInt c,cStart,cEnd,dim,gref,fStart,fEnd,junk,d,s,f;
   DM dm = tdy->dm;
-  if(!(tdy->flux)) {
+  if(!(tdy->ops->computedirichletflux)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the velocity function with TDySetDirichletFlux");
+            "Must set the velocity function with TDySetDirichletFluxFunction");
   }
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
@@ -478,7 +478,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
             }
           }
           /* exact value normal to this point/face */
-          tdy->flux(&(x[q*dim]),vel);
+          ierr = (*tdy->ops->computedirichletflux)(tdy,&(x[q*dim]),vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
           ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
 
           /* quadrature */

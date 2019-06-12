@@ -35,7 +35,7 @@ endif
 # standard tests that are run to verify executable is built correctly
 #
 
-test : test-mpfao test-mpfaof90 test-steady test-transient
+test : test-mpfao test-steadyf90 test-steady test-transient
 
 test-steady :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/steady/steady $(TEST_OPTIONS) \
@@ -55,11 +55,11 @@ test-mpfao :
 		--config-files ../demo/mpfao/mpfao.cfg \
 		--logfile_prefix mpfao
 
-test-mpfaof90 :
-	$(PYTHON) $(TEST_MANAGER) -e ../demo/mpfaof90/mpfaof90 $(TEST_OPTIONS) \
+test-steadyf90 :
+	$(PYTHON) $(TEST_MANAGER) -e ../demo/steadyf90/steadyf90 $(TEST_OPTIONS) \
 		--suite standard standard_parallel \
-		--config-files ../demo/mpfaof90/mpfaof90.cfg \
-		--logfile_prefix mpfaof90
+		--config-files ../demo/steadyf90/steadyf90.cfg \
+		--logfile_prefix steadyf90
 
 #
 # Try to cleanup the regression test output.

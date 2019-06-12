@@ -224,23 +224,23 @@ int main(int argc, char **argv) {
     ierr = TDySetPermeabilityTensor(tdy,Permeability); CHKERRQ(ierr);
     switch(problem) {
     case 1:
-      ierr = TDySetForcingFunction2(tdy,ForcingConstantFunction,NULL); CHKERRQ(ierr);
+      ierr = TDySetForcingFunction(tdy,ForcingConstantFunction,NULL); CHKERRQ(ierr);
       ierr = TDySetDirichletValueFunction(tdy,PressureConstantFunction,NULL); CHKERRQ(ierr);
       ierr = TDySetDirichletFluxFunction(tdy,VelocityConstantFunction,NULL); CHKERRQ(ierr);
       break;
     case 2:
-      ierr = TDySetForcingFunction2(tdy,ForcingQuadraticFunction,NULL); CHKERRQ(ierr);
+      ierr = TDySetForcingFunction(tdy,ForcingQuadraticFunction,NULL); CHKERRQ(ierr);
       ierr = TDySetDirichletValueFunction(tdy,PressureQuadraticFunction,NULL); CHKERRQ(ierr);
       ierr = TDySetDirichletFluxFunction(tdy,VelocityQuadraticFunction,NULL); CHKERRQ(ierr);
       break;
     case 3:
-      ierr = TDySetForcingFunction2(tdy,ForcingFunction,NULL); CHKERRQ(ierr);
+      ierr = TDySetForcingFunction(tdy,ForcingFunction,NULL); CHKERRQ(ierr);
       ierr = TDySetDirichletValueFunction(tdy,PressureFunction,NULL); CHKERRQ(ierr);
       ierr = TDySetDirichletFluxFunction(tdy,VelocityFunction,NULL); CHKERRQ(ierr);
       break;
     case 4:
       ierr = TDySetPermeabilityFunction(tdy,PermeabilitySineFunction,NULL); CHKERRQ(ierr);
-      ierr = TDySetForcingFunction2(tdy,ForcingSineFunction,NULL); CHKERRQ(ierr);
+      ierr = TDySetForcingFunction(tdy,ForcingSineFunction,NULL); CHKERRQ(ierr);
       ierr = TDySetDirichletValueFunction(tdy,PressureSineFunction,NULL); CHKERRQ(ierr);
       ierr = TDySetDirichletFluxFunction(tdy,VelocitySineFunction,NULL); CHKERRQ(ierr);
       break;
@@ -270,8 +270,6 @@ int main(int argc, char **argv) {
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
-
-  ierr = TDyMPFAORecoverVelocity(tdy, U);CHKERRQ(ierr);
 
   PetscReal normp, normv;
   ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
