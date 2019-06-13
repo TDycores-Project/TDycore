@@ -191,12 +191,12 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscObjectOptionsBegin((PetscObject)tdy); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_method","Discretization method",
                           "TDySetDiscretizationMethod",TDyMethods,(PetscEnum)method,(PetscEnum *)&method,
-                          &flg);
-  if (flg && (method != tdy->method)) { ierr = TDySetDiscretizationMethod(tdy,method); }
+                          &flg); CHKERRQ(ierr);
+  if (flg && (method != tdy->method)) { ierr = TDySetDiscretizationMethod(tdy,method); CHKERRQ(ierr); }
   ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type",
                           "TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&qtype,
-                          &flg);
-  if (flg && (qtype != tdy->qtype)) { ierr = TDySetQuadratureType(tdy,qtype); }
+                          &flg); CHKERRQ(ierr);
+  if (flg && (qtype != tdy->qtype)) { ierr = TDySetQuadratureType(tdy,qtype); CHKERRQ(ierr); }
   ierr = PetscOptionsBool("-tdy_tpf_allow_unsuitable_mesh",
                           "Enable to allow non-orthgonal meshes in tpf","",tdy->allow_unsuitable_mesh,
                           &(tdy->allow_unsuitable_mesh),NULL); CHKERRQ(ierr);
