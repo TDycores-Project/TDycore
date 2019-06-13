@@ -268,7 +268,7 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TPF");
     break;
   case MPFA_O:
-    ierr = TDyMPFAOInitialize(tdy); CHKERRQ(ierr);
+    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for MPFA_O");
     break;
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM");
