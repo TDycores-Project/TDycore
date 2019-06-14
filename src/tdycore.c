@@ -153,6 +153,20 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyGetDimension(TDy tdy,PetscInt *dim) {
+  PetscErrorCode ierr;
+  PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
+  ierr = DMGetDimension(tdy->dm,dim); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyGetDM(TDy tdy,DM *dm) {
+  PetscFunctionBegin;
+  PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
+  *dm = tdy->dm;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -169,7 +183,6 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   if (tdy->quad  ) { ierr = PetscQuadratureDestroy(&(tdy->quad)); CHKERRQ(ierr); }
   PetscFunctionReturn(0);
 }
-
 
 PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
   PetscErrorCode ierr;

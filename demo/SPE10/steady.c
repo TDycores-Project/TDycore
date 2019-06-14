@@ -34,7 +34,9 @@ PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
   const char filename[] = "spe_perm.dat";
   FILE *f = fopen(filename,"r");
   PetscReal *buffer;
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDimension(tdy,&dim); CHKERRQ(ierr);
+  ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
   dim2 = dim*dim;
 
   // Rotation matrix
@@ -59,7 +61,7 @@ PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
   PetscInt c,cStart,cEnd;
   PetscReal dx = 20, dy = 10, dz = 2;
   PetscReal xL = -600, yL = -1100, zL = -170;
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMemzero(tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart)); CHKERRQ(ierr);
   for(c=cStart;c<cEnd;c++){
     if(dim==2){ /* in 2D we use the x-y plane */
