@@ -30,19 +30,19 @@ PetscErrorCode Rotation(PetscReal *R, PetscReal ang, PetscInt axis, PetscInt dim
 PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  PetscInt i,x,y,z,d,nx=60,ny=220,nz=85,dim,dim2;
+  PetscInt i,x,y,z,d,nx=60,ny=220,nz=85,dim;
   const char filename[] = "spe_perm.dat";
   FILE *f = fopen(filename,"r");
-  PetscReal *buffer;
+  PetscReal *buffer,*X;
   DM dm;
   ierr = TDyGetDimension(tdy,&dim); CHKERRQ(ierr);
   ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
-  dim2 = dim*dim;
-
+  ierr = TDyGetCentroidArray(tdy,&X); CHKERRQ(ierr);
+  
   // Rotation matrix
   PetscBLASInt n = dim;
   PetscReal one = 1, zero = 0;
-  PetscReal R[9],R1[9],T[9];
+  PetscReal R[9],R1[9],T[9],K[9];
   if(dim == 2){
     Rotation(R,ang,2,dim);
   }else{
@@ -62,27 +62,29 @@ PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
   PetscReal dx = 20, dy = 10, dz = 2;
   PetscReal xL = -600, yL = -1100, zL = -170;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart)); CHKERRQ(ierr);
+
   for(c=cStart;c<cEnd;c++){
-    if(dim==2){ /* in 2D we use the x-y plane */
-      x = (tdy->X[c*dim  ]-xL)/dx;
+    K[0] = K[1] = K[2] = K[3] = K[4] = K[5] = K[6] = K[7] = K[8] = 0;
+    if(dim==2){ /* in 2D we use the x-z plane */
+      x = (X[c*dim  ]-xL)/dx;
       y = 0;
-      z = (tdy->X[c*dim+1]-zL)/dz;
+      z = (X[c*dim+1]-zL)/dz;
       z = nz - 1 - z;
-      tdy->K[dim2*(c-cStart)+0*dim+0] = buffer[0*(nz*ny*nx)+z*(ny*nx)+y*(nx)+x];
-      tdy->K[dim2*(c-cStart)+1*dim+1] = buffer[2*(nz*ny*nx)+z*(ny*nx)+y*(nx)+x];
+      K[0*dim+0] = buffer[0*(nz*ny*nx)+z*(ny*nx)+y*(nx)+x];
+      K[1*dim+1] = buffer[2*(nz*ny*nx)+z*(ny*nx)+y*(nx)+x];
     }else{
-      x = (tdy->X[c*dim  ]-xL)/dx;
-      y = (tdy->X[c*dim+1]-yL)/dy;
-      z = (tdy->X[c*dim+2]-zL)/dz;
+      x = (X[c*dim  ]-xL)/dx;
+      y = (X[c*dim+1]-yL)/dy;
+      z = (X[c*dim+2]-zL)/dz;
       z = nz - 1 - z;
       for(d=0;d<dim;d++){
-	tdy->K[dim2*(c-cStart)+d*dim+d] = buffer[d*(nz*ny*nx)+z*(ny*nx)+y*(nx)+x];
+	K[d*dim+d] = buffer[d*(nz*ny*nx)+z*(ny*nx)+y*(nx)+x];
       }
     }
     /* K = R * K * R.T */
-    BLASgemm_("N","T",&n,&n,&n,&one,&(tdy->K[dim2*(c-cStart)]),&n,R,&n,&zero,T,&n);
-    BLASgemm_("N","N",&n,&n,&n,&one,R,&n,T,&n,&zero,&(tdy->K[dim2*(c-cStart)]),&n);
+    BLASgemm_("N","T",&n,&n,&n,&one,K,&n,R,&n,&zero,T,&n);
+    BLASgemm_("N","N",&n,&n,&n,&one,R,&n,T,&n,&zero,K,&n);
+    ierr = TDySetCellPermeability(tdy,c,K); CHKERRQ(ierr);
   }
   ierr = PetscFree(buffer); CHKERRQ(ierr);
   PetscFunctionReturn(0);

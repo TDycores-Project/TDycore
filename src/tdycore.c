@@ -167,6 +167,13 @@ PetscErrorCode TDyGetDM(TDy tdy,DM *dm) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyGetCentroidArray(TDy tdy,PetscReal **X) {
+  PetscFunctionBegin;
+  PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
+  *X = tdy->X;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
