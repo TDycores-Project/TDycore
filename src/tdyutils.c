@@ -254,3 +254,22 @@ PetscErrorCode ComputeVolumeOfTetrahedron(PetscReal node_1[3], PetscReal node_2[
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+PetscInt ReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value) {
+
+  PetscFunctionBegin;
+
+  PetscInt idx = -1;
+  PetscInt i;
+
+  for (i=0; i<nlist; i++){
+    if (list[i] == value) {
+      idx = i;
+      break;
+    }
+  }
+
+  if (idx == -1) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "ReturnIndexInList: Did not find the value in the list");
+
+  PetscFunctionReturn(idx);
+}
