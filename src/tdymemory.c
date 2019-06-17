@@ -13,6 +13,20 @@ PetscErrorCode Initialize_IntegerArray_1D(PetscInt *array_1D, PetscInt ndim_1,
 }
 
 /* ---------------------------------------------------------------- */
+PetscErrorCode Initialize_IntegerArray_2D(PetscInt **array_2D, PetscInt ndim_1,
+                                          PetscInt ndim_2, PetscInt value) {
+
+  PetscInt i,j;
+  PetscFunctionBegin;
+  for(i=0; i<ndim_1; i++) {
+    for (j=0; j<ndim_2; j++) {
+      array_2D[i][j] = value;
+    }
+  }
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode Initialize_RealArray_1D(PetscReal *array_1D, PetscInt ndim_1,
                                        PetscReal value) {
 
@@ -83,6 +97,21 @@ PetscErrorCode Allocate_IntegerArray_1D(PetscInt **array_1D, PetscInt ndim_1) {
 }
 
 /* ---------------------------------------------------------------- */
+PetscErrorCode Allocate_IntegerArray_2D(PetscInt ***array_2D, PetscInt ndim_1,
+                                     PetscInt ndim_2) {
+
+  PetscInt i;
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  *array_2D = (PetscInt **)malloc(ndim_1*sizeof(PetscInt *));
+  for(i=0; i<ndim_1; i++) {
+    (*array_2D)[i] = (PetscInt *)malloc(ndim_2*sizeof(PetscInt ));
+  }
+  ierr = Initialize_IntegerArray_2D(*array_2D, ndim_1, ndim_2, -1); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode Allocate_RealArray_1D(PetscReal **array_1D, PetscInt ndim_1) {
 
   PetscErrorCode ierr;
@@ -146,6 +175,18 @@ PetscErrorCode Allocate_RealArray_4D(PetscReal *****array_4D, PetscInt ndim_1,
   }
   ierr = Initialize_RealArray_4D(*array_4D, ndim_1, ndim_2, ndim_3, ndim_4, 0.0);
   CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode Deallocate_IntegerArray_2D(PetscInt **array_2D, PetscInt ndim_1) {
+
+  PetscInt i;
+  PetscFunctionBegin;
+  for(i=0; i<ndim_1; i++) {
+    free(array_2D[i]);
+  }
+  free(array_2D);
   PetscFunctionReturn(0);
 }
 
