@@ -554,17 +554,20 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
 
     /* C and D are in column major, but C is always symmetric and D is
        a vector so it should not matter. */
+    PetscReal maxC = 0;
+    for(c=0; c<nB*nB; c++) { maxC = PetscMax(maxC,PetscAbsReal(C[c])); }
     for(c=0; c<nB; c++) {
       ierr = DMPlexGetPointGlobal(dm,Bmap[c],&gStart,&junk); CHKERRQ(ierr);
       if(gStart < 0) continue;
       ierr = VecSetValue(F,gStart,D[c],ADD_VALUES); CHKERRQ(ierr);
       for(q=0; q<nB; q++) {
+	if (PetscAbsReal(C[q*nB+c])<(1e-12*maxC)) continue;
         ierr = DMPlexGetPointGlobal(dm,Bmap[q],&lStart,&junk); CHKERRQ(ierr);
         if (lStart < 0) lStart = -lStart-1;
         ierr = MatSetValue(K,gStart,lStart,C[q*nB+c],ADD_VALUES); CHKERRQ(ierr);
       }
     }
-
+    
   }
 
   /* Integrate in the forcing */
