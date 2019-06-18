@@ -150,6 +150,7 @@ int main(int argc, char **argv) {
   ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(dm,&F); CHKERRQ(ierr);
   ierr = DMCreateMatrix      (dm,&K); CHKERRQ(ierr);
+  ierr = MatSetOption(K,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr);
   ierr = TDyComputeSystem(tdy,K,F); CHKERRQ(ierr);
 
   /* Solve system */
