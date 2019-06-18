@@ -1800,9 +1800,10 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
   PetscFunctionBegin;
 
   PetscInt icell, isubcell, ncells, cell_id;
-  PetscInt ii;
+  PetscInt ii, boundary_cell_count;
 
   ncells = vertex->num_internal_cells;
+  boundary_cell_count = 0;
 
   for (icell=0; icell<ncells; icell++) {
 
@@ -1823,7 +1824,11 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
       TDy_face *face = &faces[subcell->face_ids[iface]];
 
       // Skip boundary face
-      if (face->cell_ids[0] == -1 || face->cell_ids[1] == -1) break;
+      if (face->cell_ids[0] == -1 || face->cell_ids[1] == -1) {
+        subcell->face_unknown_idx[iface] = -boundary_cell_count-ncells;
+        boundary_cell_count++;
+        continue;
+      }
 
       // Find the index of cells given by face->cell_ids[0:1] within the cell id list given
       // vertex->internal_cell_ids
