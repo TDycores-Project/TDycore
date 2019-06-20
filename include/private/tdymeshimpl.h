@@ -108,6 +108,7 @@ struct _TDy_vertex {
   PetscInt *face_ids;           /* face IDs that share the vertex                       */
   PetscInt *internal_cell_ids;  /* internal cell IDs that share the vertex              */
   PetscInt *subcell_ids;        /* subcell IDs of internal cells that share the vertex  */
+  PetscInt *boundary_face_ids;  /* IDs of the faces that are on the boundary            */
 
   TDy_coordinate
   coordinate;    /* (x,y,z) location of the vertex                       */
