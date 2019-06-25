@@ -2185,9 +2185,19 @@ PetscErrorCode DetermineUpwindFacesForSubcell(TDy tdy, TDy_vertex *vertex) {
     cell_up2dw[count][0] = cell_traversal[1][3]; cell_up2dw[count][1] = cell_traversal[0][3]; count++;
   }
 
-  // Save: c0 --> c2 --> c5 --> c4
   if (ncells == 8) {
-    count = 0;
+    count=0;
+
+    // c0 --> c2 --> c5 --> c4
+    i=0;
+    for (j=0;j<4;j++){
+      cell_up2dw[count][0] = cell_traversal[i][j];
+      if (j<3) cell_up2dw[count][1] = cell_traversal[i][j+1];
+      else     cell_up2dw[count][1] = cell_traversal[i][0];
+      count++;
+    }
+
+    // c3 <-- c7 <-- c6 <-- c1
     i=1;
     for (j=0;j<4;j++){
       cell_up2dw[count][1] = cell_traversal[i][j];
