@@ -765,7 +765,6 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   TDy_subcell    *subcell;
   TDy_face *faces;
   PetscInt dim;
-  PetscInt d, cell_id;
   PetscReal **Fup, **Fdn;
   PetscReal **Cup, **Cdn;
   PetscReal **A, **B, **AinvB;
@@ -816,7 +815,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
     idx_interface_p1 = subcell->face_unknown_idx[1];
     idx_interface_p2 = subcell->face_unknown_idx[2];
 
-    for (PetscInt iface=0;iface<subcell->num_faces;iface++) {
+    PetscInt iface;
+    for (iface=0;iface<subcell->num_faces;iface++) {
       TDy_face *face = &faces[subcell->face_ids[iface]];
       
       PetscInt cell_1 = ReturnIndexInList(vertex->internal_cell_ids, ncells, face->cell_ids[0]);
@@ -1048,8 +1048,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
     idx_interface_p1 = subcell->face_unknown_idx[1];
     idx_interface_p2 = subcell->face_unknown_idx[2];
 
-    PetscInt idx_flux;
-    for (PetscInt iface=0; iface<subcell->num_faces; iface++) {
+    PetscInt idx_flux, iface;
+    for (iface=0; iface<subcell->num_faces; iface++) {
       face = &faces[subcell->face_ids[iface]];
 
       PetscBool upwind_entries;
