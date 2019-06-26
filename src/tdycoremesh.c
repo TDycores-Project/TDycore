@@ -960,8 +960,28 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(TDy tdy) {
 
   // allocate memory to save ids of faces on the boundary
   for (v=vStart; v<vEnd; v++) {
-   vertex = &vertices[v-vStart];
-   ierr = Allocate_IntegerArray_1D(&vertex->boundary_face_ids,vertex->num_boundary_cells); CHKERRQ(ierr); ;
+    vertex = &vertices[v-vStart];
+
+    PetscInt nflux_in=0;
+    switch (vertex->num_internal_cells) {
+      case 1:
+        nflux_in = 0;
+        break;
+      case 2:
+        nflux_in = 1;
+        break;
+      case 4:
+        nflux_in = 4;
+        break;
+      case 8:
+        nflux_in = 12;
+        break;
+      default:
+        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "Unsupported number of internal cells.");
+        break;
+    }
+    ierr = Allocate_IntegerArray_1D(&vertex->boundary_face_ids,vertex->num_boundary_cells); CHKERRQ(ierr);
+    ierr = Allocate_IntegerArray_1D(&vertex->trans_row_face_ids,nflux_in+vertex->num_boundary_cells); CHKERRQ(ierr); ;
   }
 
   PetscFunctionReturn(0);
@@ -1999,6 +2019,62 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
           if (cell->id == face->cell_ids[1]) subcell->is_face_up[iface] = PETSC_TRUE;
           else                               subcell->is_face_up[iface] = PETSC_FALSE;
           break;
+        }
+      }
+    }
+  }
+
+  PetscInt nup_bnd_flux=0, ndn_bnd_flux=0;
+  PetscInt nflux_in = 0, nflux_bc = 0;
+
+  nflux_bc = vertex->num_boundary_cells/2;
+
+  switch (vertex->num_internal_cells) {
+  case 1:
+    nflux_in = 0;
+    break;
+  case 2:
+    nflux_in = 1;
+    break;
+  case 4:
+    nflux_in = 4;
+    break;
+  case 8:
+    nflux_in = 12;
+    break;
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SetupUpwindFacesForSubcell: Unsupported vertex->num_internal_cells");
+    break;
+  }
+
+  // Save the face index that corresponds to the flux in transmissibility matrix
+  for (icell=0; icell<ncells; icell++) {
+
+    TDy_cell    *cell;
+    TDy_subcell *subcell;
+
+    // Determine the cell and subcell id
+    cell_id  = vertex->internal_cell_ids[icell];
+    isubcell = vertex->subcell_ids[icell];
+
+    // Get access to the cell and subcell
+    cell    = &cells[cell_id];
+    subcell = &cell->subcells[isubcell];
+
+    // Loop over all faces of the subcell
+    for (iface=0; iface<subcell->num_faces; iface++) {
+      TDy_face *face = &faces[subcell->face_ids[iface]];
+
+      PetscInt idx_flux = subcell->face_unknown_idx[iface];
+      if (face->is_internal) {
+        vertex->trans_row_face_ids[idx_flux] = face->id;
+      } else {
+        if (subcell->is_face_up[iface]) {
+          vertex->trans_row_face_ids[nflux_in+nup_bnd_flux] = face->id;
+          nup_bnd_flux++;
+        } else {
+          vertex->trans_row_face_ids[nflux_in+nflux_bc+ndn_bnd_flux] = face->id;
+          ndn_bnd_flux++;
         }
       }
     }
