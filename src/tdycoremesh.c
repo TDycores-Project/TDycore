@@ -2343,6 +2343,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
     // set pointer to cell
     cell = &cells[icell];
+    cell->volume = 0.0;
 
     // save cell centroid
     for (d=0; d<dim; d++) cell_cen[d] = cell->centroid.X[d];
@@ -2457,6 +2458,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
       }
 
       ierr = ComputeVolumeOfTetrahedron(cell_cen, face_cen[0], face_cen[1], face_cen[2], &subcell->volume); CHKERRQ(ierr);
+      cell->volume += subcell->volume;
     }
 
   }
