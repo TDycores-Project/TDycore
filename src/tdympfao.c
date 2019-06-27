@@ -1664,7 +1664,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
   TDy_cell       *cells;
   TDy_vertex     *vertices, *vertex;
   TDy_face       *faces;
-  PetscInt       ivertex, icell, icell_from, icell_to;
+  PetscInt       ivertex, icell_from, icell_to;
   PetscInt       irow, icol, row, col, vertex_id;
   PetscReal      value;
   PetscInt       vStart, vEnd;
@@ -1916,11 +1916,10 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   TDy_mesh       *mesh;
   TDy_cell       *cells, *cell;
   TDy_vertex     *vertices, *vertex;
-  TDy_edge       *edges;
   TDy_face       *faces;
   TDy_subcell    *subcell;
   PetscInt       ivertex, icell, isubcell, icell_from, icell_to;
-  PetscInt       irow, icol, row, col, vertex_id, iedge, iface;
+  PetscInt       irow, icol, row, col, vertex_id;
   PetscInt       ncells, ncells_bnd;
   PetscReal      value;
   PetscInt       vStart, vEnd;
@@ -1936,7 +1935,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   mesh     = tdy->mesh;
   cells    = mesh->cells;
   vertices = mesh->vertices;
-  edges    = mesh->edges;
   faces    = mesh->faces;
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
@@ -2276,7 +2274,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   TDy_cell       *cells, *cell;
   TDy_vertex     *vertices, *vertex;
   TDy_face       *faces;
-  TDy_subcell    *subcells, *subcell;
+  TDy_subcell    *subcell;
   PetscInt       ivertex, icell;
   PetscInt       icol, row, col, iface, isubcell;
   PetscReal      value;
@@ -2326,11 +2324,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
     subcell = &cell->subcells[isubcell];
 
     ierr = ExtractSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
-
-    PetscInt idx_interface_p0, idx_interface_p1, idx_interface_p2;
-    idx_interface_p0 = subcell->face_unknown_idx[0];
-    idx_interface_p1 = subcell->face_unknown_idx[1];
-    idx_interface_p2 = subcell->face_unknown_idx[2];
 
     numBoundary = 0;
     for (iface=0; iface<subcell->num_faces; iface++) {
