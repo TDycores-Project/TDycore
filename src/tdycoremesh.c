@@ -1851,7 +1851,7 @@ PetscErrorCode ComputeFirstTraversalOrder(TDy_vertex *vertex, TDy_face *faces, T
     if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"ComputeFirstTraversalOrder: Did not find a common cell or a boundary face");
   }
 
-  for (j=0;j<ncells+ncells_bnd;j++){
+  for (j=0;j<4;j++){
     if (cell_traversal[i][j]>ncells-1) cell_traversal[i][j] = -cell_traversal[i][j];
   }
 
