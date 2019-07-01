@@ -825,6 +825,16 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
 
       upwind_entries = (subcell->is_face_up[iface]==1);
 
+      if (upwind_entries && cell_1 != i) {
+        PetscInt tmp = cell_1;
+        cell_1 = cell_2;
+        cell_2 = tmp;
+      } else if (!upwind_entries && cell_2 != i) {
+        PetscInt tmp = cell_1;
+        cell_1 = cell_2;
+        cell_2 = tmp;
+      }
+
       PetscInt idx_flux;
       idx_flux = subcell->face_unknown_idx[iface];
 
