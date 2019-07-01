@@ -2515,7 +2515,7 @@ PetscErrorCode UpdateCellOrientationAroundAFace3DMesh(TDy tdy) {
 
     ierr = CreateVecJoiningTwoVertices(f_cen, c_cen, f2c); CHKERRQ(ierr);
     ierr = DotProduct(normal,f2c,&dot_prod); CHKERRQ(ierr);
-    if ( dot_prod < 0.0 ) {
+    if ( dot_prod > 0.0 ) {
       PetscInt tmp;
       tmp = face->cell_ids[0];
       face->cell_ids[0] = face->cell_ids[1];
