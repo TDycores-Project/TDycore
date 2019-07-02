@@ -1081,7 +1081,24 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
         Cup[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
         Cup[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
         Cup[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
-        Fup[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+
+        if (npcen==4){
+          if (idx_flux<4) {
+            Fup[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+          } else if (idx_flux == 4) {
+            Fup[idx_flux][0]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+          } else {
+            Fup[idx_flux][3]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+          }
+        } else {
+          if (idx_flux==0) {
+            Fup[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+          } else if (idx_flux == 1) {
+            Fup[idx_flux][0]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+          } else {
+            Fup[idx_flux][1]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+          }
+        }
       } else {
         if (face->is_internal==0) {
           idx_flux = ndn_bnd_flux + nflux_in;
@@ -1090,7 +1107,25 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
         Cdn[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
         Cdn[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
         Cdn[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
-        Fdn[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+
+        if (npcen==4){
+          if (idx_flux<4) {
+            Fdn[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+          } else if (idx_flux == 4) {
+            Fdn[idx_flux][1]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+          } else{
+            Fdn[idx_flux][2]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+          }
+        } else {
+          if (idx_flux==0) {
+            Fdn[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+          } else if (idx_flux == 1) {
+            Fdn[idx_flux][0]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+          } else {
+            Fdn[idx_flux][1]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+          }
+        }
+
       }
 
     }
@@ -1130,7 +1165,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   }
 
   idx = 0;
-  for (j=0; j<nflux_bc; j++) {
+  for (j=0; j<nflux_bc*2; j++) {
     for (i=0; i<nflux_in; i++) {
       CupInxBc[i][j] = Cup[i][j+npitf_in];
       CdnInxBc[i][j] = Cdn[i][j+npitf_in];
@@ -2356,15 +2391,13 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
       else        sign = +1.0;
 
       value = 0.0;
-      for (i=0; i<dim; i++) {
-        for (j=0; j<dim; j++) {
-        value += sign*Gmatrix[i][j];
-        }
+      for (j=0; j<dim; j++) {
+        value += sign*Gmatrix[iface][j];
       }
 
       row   = cells[icell].global_id;
       col   = cells[icell].global_id;
-      if (cells[icell].is_local) {ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);}
+      if (cells[icell].is_local) {ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);}
 
     }
 
@@ -2381,7 +2414,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
         row   = cells[cell_from].global_id;
         for (icol=0; icol<vertex->num_boundary_cells; icol++) {
           value = Gmatrix[iface][icol] * pBoundary[icol];
-          ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
+          ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
         }
 
       }
@@ -2390,7 +2423,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
         row   = cells[cell_to].global_id;
         for (icol=0; icol<vertex->num_boundary_cells; icol++) {
           value = Gmatrix[iface][icol] * pBoundary[icol];
-          ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
+          ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
         }
       }
     }
