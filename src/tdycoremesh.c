@@ -1222,6 +1222,26 @@ PetscErrorCode OutputTwoDimMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode OutputMesh(TDy tdy) {
+
+  PetscErrorCode ierr;
+  PetscInt dim;
+
+  PetscFunctionBegin;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  switch(dim) {
+    case 2:
+      ierr = OutputTwoDimMesh(tdy); CHKERRQ(ierr);
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Output of mesh only supported for 2D meshes");
+      break;
+  }
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode BuildTwoDimMesh(TDy tdy) {
 
   PetscFunctionBegin;

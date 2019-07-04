@@ -205,8 +205,19 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           "Enable output of a regression file","",tdy->regression_testing,
                           &(tdy->regression_testing),NULL); CHKERRQ(ierr);
 
+  ierr = PetscOptionsBool("-tdy_output_mesh",
+                          "Enable output of mesh attributes","",tdy->output_mesh,
+                          &(tdy->output_mesh),NULL); CHKERRQ(ierr);
+
   if (tdy->regression_testing) {
     ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
+  }
+
+  if (tdy->output_mesh) {
+    if (tdy->method != MPFA_O) {
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-tdy_output_mesh only supported for MPFA-O method");
+    }
+    ierr = OutputMesh(tdy); CHKERRQ(ierr);
   }
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);

@@ -133,6 +133,7 @@ struct _TDy_mesh {
 
 };
 
+PETSC_EXTERN PetscErrorCode OutputMesh(TDy);
 PETSC_EXTERN PetscErrorCode BuildTwoDimMesh(TDy);
 PETSC_EXTERN PetscErrorCode AllocateMemoryForMesh(DM,TDy_mesh*);
 
