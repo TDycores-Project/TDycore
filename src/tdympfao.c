@@ -2513,7 +2513,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
+PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
 
   DM             dm;
   TDy_mesh       *mesh;
@@ -2757,6 +2757,30 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
+
+  PetscFunctionBegin;
+  PetscInt dim;
+  PetscErrorCode ierr;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  switch (dim) {
+  case 2:
+    ierr = TDyMPFAORecoverVelocity_2DMesh(tdy,U); CHKERRQ(ierr);
+    break;
+  case 3:
+    //ierr = TDyMPFAORecoverVelocity_3DMesh(tdy,U); CHKERRQ(ierr);
+    break;
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in ComputeGMatrix");
+    break;
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 
   DM             dm;
@@ -2811,7 +2835,7 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
+PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
 
   DM             dm;
   TDy_mesh       *mesh;
@@ -2857,6 +2881,32 @@ PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
                        PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
   norm_sum = PetscSqrtReal(norm_sum);
+
+  PetscFunctionReturn(norm_sum);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  PetscInt dim;
+  PetscErrorCode ierr;
+  PetscReal norm_sum;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  switch (dim) {
+  case 2:
+    norm_sum = TDyMPFAOVelocityNorm_2DMesh(tdy);
+    break;
+  case 3:
+    //norm_sum = TDyMPFAOVelocityNorm_3DMesh(tdy);
+    break;
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in ComputeGMatrix");
+    break;
+  }
 
   PetscFunctionReturn(norm_sum);
 }
