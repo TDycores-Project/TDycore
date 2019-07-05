@@ -126,9 +126,10 @@ void Permeability3D(double *x,double *K) {
 */
 
 PetscErrorCode Pressure3D(TDy tdy, double *x,double *p, void *ctx) {
-  (*p)  = PetscSqr(x[0])*PetscSqr(-x[0]+1);
-  (*p) += PetscSqr(x[1])*PetscSqr(-x[1]+1);
-  (*p) += PetscSqr(x[2])*PetscSqr(-x[2]+1);
+  (*p)  = (x[0])*(-x[0]+1);
+  (*p) += (x[1])*(-x[1]+1);
+  (*p) += (x[2])*(-x[2]+1);
+
   return 0;
 }
 
