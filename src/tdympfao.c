@@ -53,7 +53,7 @@ PetscErrorCode ComputeEntryOfGMatrix3D(PetscReal area, PetscReal n[3],
   for (i=0; i<dim; i++) {
     (*g) += n[i] * Kv[i];
   }
-  (*g) *= 1.0/(vol*6.0)*area;
+  (*g) *= 1.0/(vol)*area;
 
   PetscFunctionReturn(0);
 }

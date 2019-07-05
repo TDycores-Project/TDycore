@@ -2458,6 +2458,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
       }
 
       ierr = ComputeVolumeOfTetrahedron(cell_cen, face_cen[0], face_cen[1], face_cen[2], &subcell->volume); CHKERRQ(ierr);
+      subcell->volume = subcell->volume*6.0;
       cell->volume += subcell->volume;
     }
 
