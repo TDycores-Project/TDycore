@@ -76,6 +76,7 @@ struct _p_TDy {
   PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
   PetscReal ***Trans;
 
+  PetscBool output_mesh;
   PetscBool regression_testing;
   TDy_regression *regression;
   

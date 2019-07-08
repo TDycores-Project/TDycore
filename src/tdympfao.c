@@ -810,8 +810,6 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
                      &(tdy->vel )); CHKERRQ(ierr);
   ierr = Initialize_RealArray_1D(tdy->vel, tdy->mesh->num_edges, 0.0); CHKERRQ(ierr);
 
-  //ierr = OutputTwoDimMesh(dm, tdy);
-
   /* Setup the section, 1 dof per cell */
   PetscSection sec;
   PetscInt p, pStart, pEnd;
