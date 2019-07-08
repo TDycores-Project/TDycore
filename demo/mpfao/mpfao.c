@@ -264,7 +264,7 @@ int main(int argc, char **argv) {
     }
   } else {
     ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction3D,NULL); CHKERRQ(ierr);
-    ierr = TDySetForcingFunction2(tdy,Forcing3D,NULL); CHKERRQ(ierr);
+    ierr = TDySetForcingFunction(tdy,Forcing3D,NULL); CHKERRQ(ierr);
     ierr = TDySetDirichletValueFunction(tdy,Pressure3D,NULL); CHKERRQ(ierr);
     ierr = TDySetDirichletFluxFunction(tdy,Velocity3D,NULL); CHKERRQ(ierr);
   }
