@@ -86,6 +86,18 @@ PetscErrorCode TDySetPermeabilityTensor(TDy tdy,SpatialFunction f) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetCellPermeability(TDy tdy,PetscInt c,PetscReal *K) {
+  PetscInt dim2,i,cStart;
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&i); CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm,&dim2); CHKERRQ(ierr);
+  dim2 *= dim2;  
+  for(i=0;i<dim2;i++) tdy->K[dim2*(c-cStart)+i] = K[i];
+  PetscFunctionReturn(0);
+}
+
 void RelativePermeability_Irmay(PetscReal m,PetscReal Se,PetscReal *Kr,
                                 PetscReal *dKr_dSe) {
   *Kr = PetscPowReal(Se,m);

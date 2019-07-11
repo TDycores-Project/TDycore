@@ -38,6 +38,10 @@ PETSC_EXTERN PetscErrorCode TDyDestroy(TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyView(TDy tdy,PetscViewer viewer);
 PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy tdy);
 
+PETSC_EXTERN PetscErrorCode TDyGetDimension(TDy tdy,PetscInt *dim);
+PETSC_EXTERN PetscErrorCode TDyGetDM(TDy tdy,DM *dm);
+PETSC_EXTERN PetscErrorCode TDyGetCentroidArray(TDy tdy,PetscReal **X);
+
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetDirichletValueFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
@@ -49,6 +53,7 @@ PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy tdy,
     SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (TDy tdy,
     SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetCellPermeability(TDy,PetscInt,PetscReal*);
 PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy tdy,
     SpatialFunction f);
 
