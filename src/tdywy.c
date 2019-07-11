@@ -432,7 +432,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscScalar A[MAX_LOCAL_SIZE],B[MAX_LOCAL_SIZE],C[MAX_LOCAL_SIZE],
               G[MAX_LOCAL_SIZE],D[MAX_LOCAL_SIZE],sign_row,sign_col;
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
-  PetscScalar pdirichlet,wgt;
+  PetscScalar pdirichlet,wgt,tol=1e4*PETSC_MACHINE_EPSILON;
   DM dm = tdy->dm;
   PetscFunctionBegin;
 
@@ -561,7 +561,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
       if(gStart < 0) continue;
       ierr = VecSetValue(F,gStart,D[c],ADD_VALUES); CHKERRQ(ierr);
       for(q=0; q<nB; q++) {
-	if (PetscAbsReal(C[q*nB+c])<(1e-12*maxC)) continue;
+	if (PetscAbsReal(C[q*nB+c])<(tol*maxC)) continue;
         ierr = DMPlexGetPointGlobal(dm,Bmap[q],&lStart,&junk); CHKERRQ(ierr);
         if (lStart < 0) lStart = -lStart-1;
         ierr = MatSetValue(K,gStart,lStart,C[q*nB+c],ADD_VALUES); CHKERRQ(ierr);
