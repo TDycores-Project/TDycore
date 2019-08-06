@@ -897,12 +897,18 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(TDy tdy) {
     PetscInt c;
     for (c=0;c<coneSize;c++) {
       faces[iface].edge_ids[c] = cone[c]-eStart;
+    }
 
-      PetscInt iedge = faces[iface].edge_ids[c];
-      for (v=0;v<2;v++){
-        PetscInt ivertex = edges[iedge].vertex_ids[v];
-        vertex = &vertices[ivertex];
+    // face--to-vertex
+    ierr = DMPlexGetTransitiveClosure(dm, f, use_cone, &closureSize, &closure); CHKERRQ(ierr);
+    for (PetscInt i=0; i<closureSize*2; i+=2)  {
+      if (IsClosureWithinBounds(closure[i],vStart,vEnd)) {
+        face->vertex_ids[face->num_vertices] = closure[i]-vStart;
+        face->num_vertices++;
+
         PetscBool found = PETSC_FALSE;
+        PetscInt ivertex = closure[i]-vStart;
+        vertex = &vertices[ivertex];
         PetscInt ii;
         for (ii=0; ii<vertex->num_faces; ii++) {
           if (vertex->face_ids[ii] == iface) {
@@ -913,14 +919,10 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(TDy tdy) {
         if (!found) {
           vertex->face_ids[vertex->num_faces] = iface;
           vertex->num_faces++;
-
-          face->vertex_ids[face->num_vertices] = vertex->id;
-          face->num_vertices++;
-
-          found = PETSC_TRUE;
         }
       }
     }
+    ierr = DMPlexRestoreTransitiveClosure(dm, icell, use_cone, &closureSize, &closure); CHKERRQ(ierr);
 
     // face--to--cell
     ierr = DMPlexGetSupportSize(dm, f, &supportSize); CHKERRQ(ierr);
