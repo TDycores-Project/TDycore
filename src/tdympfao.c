@@ -2892,7 +2892,7 @@ PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
 
   PetscInt dim;
   PetscErrorCode ierr;
-  PetscReal norm_sum;
+  PetscReal norm_sum = 0.0;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 

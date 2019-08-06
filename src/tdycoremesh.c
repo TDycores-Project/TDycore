@@ -1940,7 +1940,7 @@ PetscErrorCode ComputeSecondTraversalOrder(TDy_vertex *vertex, TDy_face *faces, 
   // Rearrange cell_traversal[1][:] such that
   // cell_traversal[0][0] and cell_traversal[1][0] are connected
   cell_1 = cell_traversal[0][0];
-  PetscInt idx_beg;
+  PetscInt idx_beg=0;
   for (j=0;j<4;j++) {
     cell_2 = cell_traversal[1][j];
     if ( cell2cell_conn[cell_1][cell_2] == 1) {
