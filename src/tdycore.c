@@ -328,17 +328,18 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
-  PetscReal Se,dSe_dPc,n=1.0,m=1.0,alpha=1.6717e-5,Kr; /* FIX: generalize */
+  PetscReal Se,dSe_dPc,n=0.5,m=0.5,alpha=1.6717e-5,Kr; /* FIX: generalize */
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
-    PressureSaturation_Gardner(n,m,alpha,tdy->Pref-P[i],&Se,&dSe_dPc);
+    PressureSaturation_VanGenuchten(n,m,alpha,tdy->Pref-P[i],&Se,&dSe_dPc);
     RelativePermeability_Irmay(m,Se,&Kr,NULL);
     tdy->S[i] = (tdy->Ss-tdy->Sr)*Se+tdy->Sr;
     tdy->dS_dP[i] = -dSe_dPc/(tdy->Ss-tdy->Sr);
     for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
+    //printf("c[%2d] %+e %+e %+e %+e\n",c,tdy->Pref-P[i],Kr,Se,dSe_dPc);
   }
   PetscFunctionReturn(0);
 }

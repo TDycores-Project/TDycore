@@ -93,8 +93,12 @@ PETSC_EXTERN PetscReal TDyWYVelocityNorm(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,
     void *ctx);
 
+PETSC_EXTERN void RelativePermeability_Mualem(PetscReal m,PetscReal Se,
+    PetscReal *Kr,PetscReal *dKr_dSe);
 PETSC_EXTERN void RelativePermeability_Irmay(PetscReal m,PetscReal Se,
     PetscReal *Kr,PetscReal *dKr_dSe);
+PETSC_EXTERN void PressureSaturation_VanGenuchten(PetscReal n,PetscReal m,
+    PetscReal alpha,PetscReal Pc,PetscReal *Se,PetscReal *dSe_dPc);
 PETSC_EXTERN void PressureSaturation_Gardner(PetscReal n,PetscReal m,
     PetscReal alpha,PetscReal Pc,PetscReal *Se,PetscReal *dSe_dPc);
 PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P);
