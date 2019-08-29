@@ -333,11 +333,32 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
   x  = nq*dim = 27
   DF = dim^2 *nq = 81
  */
+PetscErrorCode IntegrateOnFaceConstant(TDy tdy,PetscInt c,PetscInt f,
+				       PetscReal *integral) {
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  
+  PetscReal value = 0;
+  PetscInt dim;
+  (*integral) = 0;
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  
+  if (tdy->ops->computedirichletvalue) {
+    ierr = (*tdy->ops->computedirichletvalue)(tdy,
+  					      &(tdy->X[f*dim]),
+  					      &value,
+  					      tdy->dirichletvaluectx);CHKERRQ(ierr);
+  }
+  (*integral) = value*tdy->V[f];
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
                                PetscReal *integral) {
 
   PetscFunctionBegin;
-  PetscErrorCode ierr;
+  PetscErrorCode ierr;  
   PetscInt v,ncv,i,j,d,q,nq,dim,face_dir,face_side,fStart,fEnd,lside[24],nq1d = 2;
   PetscQuadrature quadrature;
   const PetscScalar *quad_x,*quad_w;
@@ -401,7 +422,7 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
     if (tdy->ops->computedirichletvalue) {
       ierr = (*tdy->ops->computedirichletvalue)(tdy, &(x[dim*q]), &value, tdy->dirichletvaluectx);CHKERRQ(ierr);
     }
-
+    
     if(dim==2) {
       HdivBasisQuad(xq,N);
     } else {
@@ -543,14 +564,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
     }
     ierr = DMPlexRestoreTransitiveClosure(dm,v,PETSC_FALSE,&closureSize,&closure);
     CHKERRQ(ierr);
-    //printf("v%d\n",v);
-    //printf(" Amap:");for(q=0;q<nA;q++) printf(" %d",Amap[q]);
-    //printf(" Bmap:");for(q=0;q<nB;q++) printf(" %d",Bmap[q]); printf("\n");
-    //PrintMatrix(A,nA,nA,PETSC_FALSE);
-    //PrintMatrix(B,nA,nB,PETSC_FALSE);
-    //PrintMatrix(G,1,nA,PETSC_FALSE);
     ierr = FormStencil(&A[0],&B[0],&C[0],&G[0],&D[0],nA,nB); CHKERRQ(ierr);
-    //PrintMatrix(C,nB,nB,PETSC_FALSE);
 
     /* C and D are in column major, but C is always symmetric and D is
        a vector so it should not matter. */
@@ -575,7 +589,6 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
     ierr = DMPlexGetPointGlobal(dm,c,&gStart,&junk); CHKERRQ(ierr);
     ierr = DMPlexGetPointLocal (dm,c,&lStart,&junk); CHKERRQ(ierr);
     if(gStart < 0) continue;
-    //printf("c%d flocal %e\n",c,tdy->Flocal[c]);
     ierr = VecSetValue(F,gStart,tdy->Flocal[c],ADD_VALUES); CHKERRQ(ierr);
   }
 
@@ -669,13 +682,13 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
         // B P
         ierr = PetscSectionGetOffset(section,closure[c],&offset); CHKERRQ(ierr);
         F[local_row] += wgt*sign_row*u[offset]*tdy->V[global_row];
-
+	
         // boundary conditions
         PetscInt isbc;
         ierr = DMGetLabelValue(dm,"marker",global_row,&isbc); CHKERRQ(ierr);
         if(isbc == 1 && tdy->ops->computedirichletvalue) {
-          ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
-          F[local_row] -= wgt*pdirichlet;
+          ierr = IntegrateOnFaceConstant(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
+          F[local_row] -= wgt*sign_row*pdirichlet;
         }
 
         for(element_col=0; element_col<dim;
@@ -706,7 +719,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
     }
     /* solves for velocities at a vertex */
     ierr = RecoverVelocity(&A[0],&F[0],nA); CHKERRQ(ierr);
-
+    
     /* load velocities into structure */
     for(q=0; q<nA; q++) {
       global_row = Amap[q];
@@ -722,7 +735,6 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   }
   ierr = VecRestoreArray(localU,&u); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&localU); CHKERRQ(ierr);
-
   PetscFunctionReturn(0);
 }
 
@@ -799,7 +811,6 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
   /* loop cells */
   norm = 0; norm_sum = 0;
   for(c=cStart; c<cEnd; c++) {
-    //printf("cell %2d\n",c);
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
     if (gref < 0) continue;
 
@@ -807,7 +818,6 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
     for(d=0; d<dim; d++) {
       for(s=0; s<2; s++) {
         f = tdy->faces[(c-cStart)*dim*2+d*2+s];
-        //printf("   face %2d\n",f);
         ierr = DMPlexComputeCellGeometryFEM(dm,f,quad,x,DF,DFinv,J); CHKERRQ(ierr);
 
         /* loop quadrature */
@@ -825,48 +835,30 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
               j += 1;
             }
           }
-          //printf("      quad %d, x = %+.3f %+.3f, xq = %+.3f %+.3f, J = %f\n",q,x[q*dim],x[q*dim+1],xq[0],xq[1],J[q]);
           if(dim==2) {
             HdivBasisQuad(xq,N);
           } else {
             HdivBasisHex(xq,N);
           }
           va = 0;
-
-          //if(v == tdy->fmap[nv*(global_row-fStart)+offset]){
-          // tdy->vel[nv*(global_row-fStart)+offset] = F[q];
-
           for(i=0; i<ncv; i++) {
             Nn = PetscPowInt(-1,s+1)*N[i*dim+d];
-
             for(j=0; j<nfv; j++) {
               if(tdy->vmap[ncv*(c-cStart)+i] == tdy->fmap[nfv*(f-fStart)+j]) break;
             }
             if(j==nfv) continue;
             C  = tdy->vel[nfv*(f-fStart)+j];
             va += Nn*C;
-            //if(f==21) printf("         N[%d] = [%+.2f,%+.2f] -> %+.2f * %+.4f\n",i,N[i*dim],N[i*dim+1],Nn,C);
           }
-          //printf("      va = %f\n",va);
-
           if (tdy->ops->computedirichletflux) {
             ierr = (*tdy->ops->computedirichletflux)(tdy, &(x[q*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);
           }
-
           ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
-          //printf("      ve = %f\n",ve);
-
           flux  += va*quad_w[q]*J[q];
           flux0 += ve*quad_w[q]*J[q];
 
         }
-        //if(f==21) printf("vf: %2d %+1.15e %+1.15e\n",f,flux,flux0);
-
-        //printf("      flux0 = %f, flux = %f\n",flux0,flux);
         norm += PetscSqr((flux-flux0)/tdy->V[f])*tdy->V[c];
-        // int(va)/V - int(ve)/V
-        // int(va-ve)/V
-
       }
     }
 
@@ -904,7 +896,7 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd); CHKERRQ(ierr);
     if (gref < 0) continue;
-
+    
     /* compute the divergence */
     const PetscInt *faces;
     ierr = DMPlexGetConeSize(dm,c,&nf   ); CHKERRQ(ierr);
@@ -918,14 +910,16 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
       sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),
                                       &(tdy->X[dim*c]),dim));
       for(j=0; j<nv; j++) {
-        div += sign*tdy->vel[dim*(f-fStart)+j]*wgt*tdy->V[f];
+        div += sign*tdy->vel[nv*(f-fStart)+j]*wgt*tdy->V[f];
       }
     }
 
-    r[c] = tdy->porosity[c-cStart]*tdy->dS_dP[c-cStart]*dp_dt[c] + div;
-
+    r[c] = tdy->porosity[c-cStart]*tdy->dS_dP[c-cStart]*dp_dt[c] + div - tdy->Flocal[c-cStart];
+    //PetscPrintf(PETSC_COMM_WORLD,"R[%2d] = %+e %+e %+e = %+e\n",
+    // 	c,tdy->porosity[c-cStart]*tdy->dS_dP[c-cStart]*dp_dt[c],
+    // 		div,tdy->Flocal[c-cStart],r[c]);
   }
-
+  
   /* Cleanup */
   ierr = VecRestoreArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
