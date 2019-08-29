@@ -5,11 +5,11 @@ void Porosity(double *x,double *theta) {
 }
 
 void Permeability(double *x,double *K) {
-  (*K) = 1;
+  (*K) = 1e-10;
 }
 
 PetscErrorCode Pressure(TDy tdy,double *x,double *p,void *ctx) {
-  (*p) = 1;
+  (*p) = 91325;
   PetscFunctionReturn(0);
 }
 
@@ -21,24 +21,38 @@ PetscErrorCode Forcing(TDy tdy,double *x,double *f,void *ctx) {
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt N = 4, dim = 2;
+  PetscInt N = 4, dim = 3;
   PetscInt successful_exit_code=0;
+  char exofile[256];
+  PetscBool exo = PETSC_FALSE;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Transient Options","");
-  CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL);
-  CHKERRQ(ierr);
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,
+			   "Transient Options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-N","Number of elements in 1D",
+			 "",N,&N,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
+  ierr = PetscOptionsString("-exo","Mesh file in exodus format","",
+			    exofile,exofile,256,&exo); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   /* Create and distribute the mesh */
   DM dm, dmDist = NULL;
-  const PetscInt  faces[3] = {N,N  };
-  const PetscReal lower[3] = {0.0,0.0};
-  const PetscReal upper[3] = {1.0,1.0};
-  ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
-                             NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
+  DMLabel marker;
+  if(exo){
+    ierr = DMPlexCreateExodusFromFile(PETSC_COMM_WORLD,exofile,
+				      PETSC_TRUE,&dm); CHKERRQ(ierr);
+    ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+    ierr = DMCreateLabel(dm,"marker"); CHKERRQ(ierr);
+    ierr = DMGetLabel(dm,"marker",&marker); CHKERRQ(ierr);
+    ierr = DMPlexMarkBoundaryFaces(dm,1,marker); CHKERRQ(ierr);
+  }else{
+    const PetscInt  faces[3] = {N,N,N  };
+    const PetscReal lower[3] = {-0.5,-0.5,-0.5};
+    const PetscReal upper[3] = {+0.5,+0.5,+0.5};
+    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
+			       NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
+  }
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
   if (dmDist) {DMDestroy(&dm); dm = dmDist;}
@@ -57,7 +71,8 @@ int main(int argc, char **argv) {
   /* Setup initial condition */
   Vec U;
   ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
-
+  ierr = VecSet(U,90325); CHKERRQ(ierr);
+  
   /* Create time stepping and solve */
   TS  ts;
   ierr = TSCreate(PETSC_COMM_WORLD,&ts); CHKERRQ(ierr);
@@ -73,7 +88,7 @@ int main(int argc, char **argv) {
   ierr = TSSolve(ts,U); CHKERRQ(ierr);
 
   /* Save regression file */
-  ierr = TDyOutputRegression(tdy,U);
+  ierr = TDyOutputRegression(tdy,U); CHKERRQ(ierr);
 
   /* Cleanup */
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
