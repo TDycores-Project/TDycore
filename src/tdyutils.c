@@ -273,3 +273,20 @@ PetscInt ReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value) {
 
   PetscFunctionReturn(idx);
 }
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode SavePetscVecAsBinary(Vec vec, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE,
+                               &viewer); CHKERRQ(ierr);
+  ierr = VecView(vec, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+

@@ -17,5 +17,6 @@ PETSC_EXTERN PetscErrorCode NormalToQuadrilateral(PetscReal node_1[3], PetscReal
 PETSC_EXTERN PetscErrorCode ComputeVolumeOfTetrahedron(PetscReal node_1[3], PetscReal node_2[3],PetscReal node_3[3], PetscReal node_4[3],PetscReal *volume);
 PETSC_EXTERN PetscErrorCode CreateVecJoiningTwoVertices(PetscReal vtx_from[3],PetscReal vtx_to[3], PetscReal vec[3]);
 PETSC_EXTERN PetscInt ReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value);
+PETSC_EXTERN PetscInt SavePetscVecAsBinary(Vec vec, const char filename[]);
 
 #endif
