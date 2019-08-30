@@ -901,7 +901,8 @@ PetscErrorCode SaveTwoDimMeshConnectivityInfo(TDy tdy) {
 
     // face--to-vertex
     ierr = DMPlexGetTransitiveClosure(dm, f, use_cone, &closureSize, &closure); CHKERRQ(ierr);
-    for (PetscInt i=0; i<closureSize*2; i+=2)  {
+    PetscInt i;
+    for (i=0; i<closureSize*2; i+=2)  {
       if (IsClosureWithinBounds(closure[i],vStart,vEnd)) {
         face->vertex_ids[face->num_vertices] = closure[i]-vStart;
         face->num_vertices++;
