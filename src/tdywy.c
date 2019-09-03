@@ -169,10 +169,16 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
   ehat = Ehat / 2;
   for(c=cStart; c<cEnd; c++) {
     tdy->Flocal[c] = 0;
-    ierr = DMPlexComputeCellGeometryFEM(dm,c,tdy->quad,x,DF,DFinv,J);
-    CHKERRQ(ierr); // DF and DFinv are row major
+    // DF and DFinv are row major
+    ierr = DMPlexComputeCellGeometryFEM(dm,c,tdy->quad,x,DF,DFinv,J); CHKERRQ(ierr); 
     for(q=0; q<nq; q++) {
 
+      if(J[q]<0){
+	PetscPrintf(((PetscObject)dm)->comm,"cell %d:  DF = \n",c);
+	PrintMatrix(DF,dim,dim,PETSC_TRUE);
+	SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+		"Determinant of the jacobian is negative");
+      }
       // compute Kappa^-1 which will be in column major format (shouldn't matter as it is symmetric)
       ierr = Pullback(&(tdy->K[dim2*(c-cStart)]),&DFinv[dim2*q],Kinv,J[q],dim);
       CHKERRQ(ierr);
@@ -239,7 +245,7 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
      limitation, method is flexible but my data structures are not. */
   tdy->ncv = TDyGetNumberOfCellVertices(dm);
   ncv = tdy->ncv;
-  
+
   /* Create a PETSc quadrature, we don't really use this, it is just
      to evaluate the Jacobian via the PETSc interface. */
   ierr = PetscQuadratureCreate(comm,&(tdy->quad)); CHKERRQ(ierr);
