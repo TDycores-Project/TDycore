@@ -2328,7 +2328,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   PetscInt       dim;
   PetscReal      **Gmatrix;
   PetscReal      sign;
-  PetscInt       i, j;
+  PetscInt       j;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
