@@ -18,6 +18,46 @@ PetscErrorCode Forcing(TDy tdy,double *x,double *f,void *ctx) {
   PetscFunctionReturn(0);
 }
 
+
+PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  DMLabel      label;
+  Vec          coordinates;
+  PetscSection coordSection;
+  PetscScalar *coords;
+  PetscInt     v,vStart,vEnd,offset,value,dim;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  /* this is the 'marker' label which marks boundary entities */
+  ierr = DMGetLabelByNum(dm,2,&label); CHKERRQ(ierr);
+  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  for(v=vStart; v<vEnd; v++) {
+    ierr = PetscSectionGetOffset(coordSection,v,&offset); CHKERRQ(ierr);
+    ierr = DMLabelGetValue(label,v,&value); CHKERRQ(ierr);
+    if(dim==2) {
+      if(value==-1) {
+        /* perturb randomly O(h*sqrt(2)/3) */
+        PetscReal r = ((PetscReal)rand())/((PetscReal)RAND_MAX)*(h*0.471404);
+        PetscReal t = ((PetscReal)rand())/((PetscReal)RAND_MAX)*PETSC_PI;
+        coords[offset  ] += r*PetscCosReal(t);
+        coords[offset+1] += r*PetscSinReal(t);
+      }
+    } else {
+      /* this is because 'marker' is broken in 3D */
+      if(coords[offset] > -0.5 && coords[offset] < 0.5 &&
+	 coords[offset+1] > -0.5 && coords[offset+1] < 0.5 &&
+	 coords[offset+2] > -0.5 && coords[offset+2] < 0.5) {
+        coords[offset+2] += (((PetscReal)rand())/((PetscReal)RAND_MAX)-0.5)*h*0.8;
+      }
+    }
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
@@ -42,6 +82,7 @@ int main(int argc, char **argv) {
   if(exo){
     ierr = DMPlexCreateExodusFromFile(PETSC_COMM_WORLD,exofile,
 				      PETSC_TRUE,&dm); CHKERRQ(ierr);
+    //ierr = DMPlexOrient(dm); CHKERRQ(ierr);
     ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
     ierr = DMCreateLabel(dm,"marker"); CHKERRQ(ierr);
     ierr = DMGetLabel(dm,"marker",&marker); CHKERRQ(ierr);
@@ -52,6 +93,7 @@ int main(int argc, char **argv) {
     const PetscReal upper[3] = {+0.5,+0.5,+0.5};
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
 			       NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
+    ierr = PerturbInteriorVertices(dm,1./N); CHKERRQ(ierr);
   }
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
@@ -71,7 +113,7 @@ int main(int argc, char **argv) {
   /* Setup initial condition */
   Vec U;
   ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
-  ierr = VecSet(U,90325); CHKERRQ(ierr);
+  ierr = VecSet(U,91325); CHKERRQ(ierr);
   
   /* Create time stepping and solve */
   TS  ts;
