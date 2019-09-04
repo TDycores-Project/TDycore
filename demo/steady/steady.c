@@ -1,4 +1,5 @@
 #include "tdycore.h"
+#include "private/tdycoreimpl.h"
 
 PetscReal alpha = 1;
 
@@ -210,15 +211,56 @@ PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
         coords[offset+1] += r*PetscSinReal(t);
       }
     } else {
-      /* this is because 'marker' is broken in 3D */
-      if(coords[offset] > 0 && coords[offset] < 1 &&
-          coords[offset+1] > 0 && coords[offset+1] < 1 &&
-          coords[offset+2] > 0 && coords[offset+2] < 1) {
-        coords[offset+2] += (((PetscReal)rand())/((PetscReal)RAND_MAX)-0.5)*h*0.1;
-      }
+      PetscReal x,y,z;
+      x = coords[offset]; y = coords[offset+1]; z = coords[offset+2];
+      coords[offset]   = x + 0.03*PetscSinReal(3*PETSC_PI*x)*PetscCosReal(3*PETSC_PI*y)*PetscCosReal(3*PETSC_PI*z);
+      coords[offset+1] = y - 0.04*PetscCosReal(3*PETSC_PI*x)*PetscSinReal(3*PETSC_PI*y)*PetscCosReal(3*PETSC_PI*z);
+      coords[offset+2] = z + 0.05*PetscCosReal(3*PETSC_PI*x)*PetscCosReal(3*PETSC_PI*y)*PetscSinReal(3*PETSC_PI*z);
+
+      /* /\* this is because 'marker' is broken in 3D *\/ */
+      /* if(coords[offset] > 0 && coords[offset] < 1 && */
+      /*     coords[offset+1] > 0 && coords[offset+1] < 1 && */
+      /*     coords[offset+2] > 0 && coords[offset+2] < 1) { */
+      /*   coords[offset+2] += (((PetscReal)rand())/((PetscReal)RAND_MAX)-0.5)*h*0.1; */
+      /* } */
     }
   }
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode OperatorApplicationResidual(TDy tdy,Mat K,PetscErrorCode (*f)(TDy,PetscReal*,PetscReal*,void*),Vec R){
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscInt dim,c,cStart,cEnd,q,nq1d=3,nq=27;
+  PetscQuadrature quadrature;
+  PetscReal x[81],J[27],DF[243],DFinv[243],value,mean,volume=0;
+  const PetscScalar *quad_x,*quad_w;
+  Vec U;
+  DM dm;
+  ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscDTGaussTensorQuadrature(dim,1,nq1d,-1,+1,&quadrature); CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w); CHKERRQ(ierr);
+  for(c=cStart; c<cEnd; c++) {
+    mean = 0;
+    ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,x,DF,DFinv,J); CHKERRQ(ierr);
+    for(q=0;q<nq;q++){
+      (*f)(NULL,&(x[q*dim]),&value,NULL);
+      mean += value*quad_w[q]*J[q];
+    }
+    mean /= tdy->V[c];
+    ierr = VecSetValue(U,c,mean,INSERT_VALUES); CHKERRQ(ierr);
+    volume += tdy->V[c];
+  }
+  ierr = VecScale(R,-1); CHKERRQ(ierr);
+  ierr = MatMultAdd(K,U,R,R); CHKERRQ(ierr);
+  ierr = VecAbs(R); CHKERRQ(ierr);
+  //ierr = VecScale(R,1./volume); CHKERRQ(ierr);
+  ierr = VecDestroy(&U); CHKERRQ(ierr);
+  ierr = PetscQuadratureDestroy(&quadrature); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -228,6 +270,8 @@ int main(int argc, char **argv) {
   PetscInt N = 4, dim = 2, problem = 2;
   PetscInt successful_exit_code=0;
   PetscBool perturb = PETSC_FALSE;
+  char exofile[256];
+  PetscBool exo = PETSC_FALSE;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
   CHKERRQ(ierr);
@@ -243,17 +287,29 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
+  ierr = PetscOptionsString("-exo","Mesh file in exodus format","",
+			    exofile,exofile,256,&exo); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   /* Create and distribute the mesh */
   DM dm, dmDist = NULL;
-  const PetscInt  faces[3] = {N,N,N  };
-  const PetscReal lower[3] = {0.0,0.0,0.0};
-  const PetscReal upper[3] = {1.0,1.0,1.0};
-  ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
-                             NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
-  if(perturb) {
-    ierr = PerturbInteriorVertices(dm,1./N); CHKERRQ(ierr);
+  DMLabel marker;
+  if(exo){
+    ierr = DMPlexCreateExodusFromFile(PETSC_COMM_WORLD,exofile,
+				      PETSC_TRUE,&dm); CHKERRQ(ierr);
+    ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+    ierr = DMCreateLabel(dm,"marker"); CHKERRQ(ierr);
+    ierr = DMGetLabel(dm,"marker",&marker); CHKERRQ(ierr);
+    ierr = DMPlexMarkBoundaryFaces(dm,1,marker); CHKERRQ(ierr);
+  }else{
+    const PetscInt  faces[3] = {N,N,N  };
+    const PetscReal lower[3] = {0.0,0.0,0.0};
+    const PetscReal upper[3] = {1.0,1.0,1.0};
+    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
+			       NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
+    if(perturb) {
+      ierr = PerturbInteriorVertices(dm,1./N); CHKERRQ(ierr);
+    }
   }
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
@@ -326,6 +382,15 @@ int main(int argc, char **argv) {
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
+  
+  /* Output solution */
+  PetscViewer viewer;
+  PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"sol.vtk",FILE_MODE_WRITE,&viewer);
+  ierr = DMView(dm,viewer); CHKERRQ(ierr);
+  ierr = VecView(U,viewer); CHKERRQ(ierr);  
+  ierr = OperatorApplicationResidual(tdy,K,PressureConstant,F); 
+  ierr = VecView(F,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   /* Evaluate error norms */
   PetscReal normp,normv;
