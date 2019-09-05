@@ -1552,6 +1552,59 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode IdentifyLocalFaces(TDy tdy) {
+
+  PetscInt iface, icell_1, icell_2;
+  TDy_mesh *mesh;
+  TDy_cell *cells;
+  TDy_face *faces;
+
+  PetscFunctionBegin;
+
+  mesh  = tdy->mesh;
+  cells = mesh->cells;
+  faces = mesh->faces;
+
+  for (iface=0; iface<mesh->num_faces; iface++) {
+
+    if (!faces[iface].is_internal) { // Is it a boundary face?
+
+      // Determine the cell ID for the boundary edge
+      if (faces[iface].cell_ids[0] != -1) icell_1 = faces[iface].cell_ids[0];
+      else                                icell_1 = faces[iface].cell_ids[1];
+
+      // Is the cell locally owned?
+      if (cells[icell_1].is_local) faces[iface].is_local = PETSC_TRUE;
+
+    } else { // An internal face
+
+      // Save the two cell ID
+      icell_1 = faces[iface].cell_ids[0];
+      icell_2 = faces[iface].cell_ids[1];
+
+      if (cells[icell_1].is_local && cells[icell_2].is_local) { // Are both cells locally owned?
+
+        faces[iface].is_local = PETSC_TRUE;
+
+      } else if (cells[icell_1].is_local && !cells[icell_2].is_local) { // Is icell_1 locally owned?
+
+        // Is the global ID of icell_1 lower than global ID of icell_2?
+        if (cells[icell_1].global_id < cells[icell_2].global_id) faces[iface].is_local = PETSC_TRUE;
+
+      } else if (!cells[icell_1].is_local && cells[icell_2].is_local) { // Is icell_2 locally owned
+
+        // Is the global ID of icell_2 lower than global ID of icell_1?
+        if (cells[icell_2].global_id < cells[icell_1].global_id) faces[iface].is_local = PETSC_TRUE;
+
+      }
+    }
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
 
 PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
@@ -1579,10 +1632,18 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   case 2:
     ierr = Allocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 5, 5);
     CHKERRQ(ierr);
+    ierr = PetscMalloc(tdy->mesh->num_edges*sizeof(PetscReal),
+                     &(tdy->vel )); CHKERRQ(ierr);
+    ierr = Initialize_RealArray_1D(tdy->vel, tdy->mesh->num_edges, 0.0); CHKERRQ(ierr);
+
     break;
   case 3:
     ierr = Allocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 12, 12);
     CHKERRQ(ierr);
+    ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
+                     &(tdy->vel )); CHKERRQ(ierr);
+    ierr = Initialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
+
     break;
   default:
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in TDyMPFAOInitialize");
@@ -1594,10 +1655,6 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
 
   ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
-
-  ierr = PetscMalloc(tdy->mesh->num_edges*sizeof(PetscReal),
-                     &(tdy->vel )); CHKERRQ(ierr);
-  ierr = Initialize_RealArray_1D(tdy->vel, tdy->mesh->num_edges, 0.0); CHKERRQ(ierr);
 
   /* Setup the section, 1 dof per cell */
   PetscSection sec;
@@ -1624,6 +1681,9 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
   ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);
   ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
+  if (dim == 3) {
+    ierr = IdentifyLocalFaces(tdy); CHKERRQ(ierr);
+  }
 
   PetscFunctionReturn(0);
 
@@ -2739,7 +2799,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
 
   } // for-loop
 
-  ierr = VecRestoreArray(localU, &u); CHKERRQ(ierr);
+  ierr = VecRestoreArray(localU,&u); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm,&localU); CHKERRQ(ierr);
+
   PetscReal vel_error_sum;
   PetscInt  count_sum;
 
@@ -2751,6 +2813,541 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
   PetscInt rank;
   MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
   if (rank==0) printf("%15.14f ",PetscPowReal(vel_error_sum/count_sum,0.5));
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U) {
+
+  DM             dm;
+  TDy_mesh       *mesh;
+  TDy_cell       *cells;
+  TDy_vertex     *vertices, *vertex;
+  PetscInt       ivertex;
+  PetscInt       irow, icol, vertex_id;
+  PetscInt       vStart, vEnd;
+  PetscInt       fStart, fEnd;
+  PetscInt       dim;
+  PetscReal      **Gmatrix;
+  PetscScalar    *u;
+  Vec            localU;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  dm       = tdy->dm;
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+  vertices = mesh->vertices;
+
+  ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
+
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+
+  // TODO: Save localU
+  ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
+
+  for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+
+    vertex    = &vertices[ivertex];
+    vertex_id = vertex->id;
+
+    if (vertex->num_boundary_cells == 0) {
+
+      PetscInt    nflux_in = vertex->num_internal_cells;
+      PetscScalar Pcomputed[vertex->num_internal_cells];
+      PetscScalar Vcomputed[vertex->num_internal_cells];
+
+      // Save local pressure stencil and initialize veloctiy
+      PetscInt icell;
+      for (icell=0; icell<nflux_in; icell++) {
+        Pcomputed[icell] = u[vertex->internal_cell_ids[icell]];
+        Vcomputed[icell] = 0.0;
+      }
+
+      // F = T*P
+      for (irow=0; irow<nflux_in; irow++) {
+
+        PetscInt face_id = vertex->face_ids[irow];
+        PetscInt cell_id = vertex->internal_cell_ids[irow];
+        PetscInt subcell_id = vertex->subcell_ids[irow];
+
+        TDy_cell *cell = &cells[cell_id];
+        TDy_subcell *subcell = &cell->subcells[subcell_id];
+
+        PetscInt i, iface=-1;
+        for (i=0; i<subcell->num_faces;i++) {
+          if (subcell->face_ids[i] == face_id) {
+            iface = i;
+            break;
+          }
+        }
+
+        for (icol=0; icol<vertex->num_internal_cells; icol++) {
+          Vcomputed[irow] = tdy->Trans[vertex_id][irow][icol] *
+                            Pcomputed[icol]                   *
+                            subcell->face_area[iface];
+          
+        }
+        tdy->vel[face_id] += Vcomputed[irow];
+      }
+    }
+  }
+
+  ierr = VecRestoreArray(localU,&u); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm,&localU); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices_3DMesh(TDy tdy, Vec U) {
+
+  DM             dm;
+  TDy_mesh       *mesh;
+  TDy_cell       *cells, *cell;
+  TDy_vertex     *vertices, *vertex;
+  TDy_face       *faces;
+  TDy_subcell    *subcell;
+  PetscInt       ivertex, icell, icell_from, icell_to;
+  PetscInt       irow, icol, row, col, vertex_id;
+  PetscInt       ncells, ncells_bnd;
+  PetscReal      value;
+  PetscInt       vStart, vEnd;
+  PetscInt       fStart, fEnd;
+  PetscInt       dim;
+  PetscReal      **Gmatrix;
+  Vec            localU;
+  PetscScalar    *u;
+  PetscInt npcen, npitf_bc, nflux_bc, nflux_in;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  dm       = tdy->dm;
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+  vertices = mesh->vertices;
+  faces    = mesh->faces;
+
+  ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum( dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
+
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+
+  // TODO: Save localU
+  ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
+
+    /*
+
+    flux                   =              T                 *     P
+            _           _     _                           _    _        _
+           |  _       _  |   |  _           _     _     _  |  |  _    _  |
+           | |         | |   | |             |   |       | |  | |      | |
+           | | flux_in | |   | |    T_00     |   | T_01  | |  | | Pcen | |
+           | |         | |   | |             |   |       | |  | |      | |
+    flux = | |_       _| | = | |_           _|   |_     _| |  | |      | |
+           |             |   |                             |  | |_    _| |
+           |  _       _  |   |  _           _     _     _  |  |  _    _  |
+           | | flux_bc | |   | |    T_10     |   | T_11  | |  | | Pbc  | |
+           | |_       _| |   | |_           _|   |_     _| |  | |_    _| |
+           |_           _|   |_                           _|  |_        _|
+
+    */
+
+  for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+
+    vertex    = &vertices[ivertex];
+    vertex_id = vertex->id;
+
+    ncells    = vertex->num_internal_cells;
+    ncells_bnd= vertex->num_boundary_cells;
+
+    if (ncells_bnd == 0) continue;
+    if (ncells < 2)  continue;
+    
+    npcen    = vertex->num_internal_cells;
+    npitf_bc = vertex->num_boundary_cells;
+    nflux_bc = npitf_bc/2;
+
+    switch (npcen) {
+    case 2:
+      nflux_in = 1;
+      break;
+    case 4:
+      nflux_in = 4;
+      break;
+    default:
+      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "Unsupported number of internal cells.");
+      break;
+    }
+
+    // Vertex is on the boundary
+    
+    PetscScalar pBoundary[4];
+    PetscInt numBoundary;
+    
+    // For boundary edges, save following information:
+    //  - Dirichlet pressure value
+    numBoundary = 0;
+
+    for (irow=0; irow<ncells; irow++){
+      icell = vertex->internal_cell_ids[irow];
+      PetscInt isubcell = vertex->subcell_ids[irow];
+
+      cell = &cells[icell];
+      subcell = &cell->subcells[isubcell];
+
+      PetscInt iface;
+      for (iface=0;iface<subcell->num_faces;iface++) {
+
+        TDy_face *face = &faces[subcell->face_ids[iface]];
+        icell_from = face->cell_ids[0];
+        icell_to   = face->cell_ids[1];
+
+        if (face->is_internal == 0) {
+          PetscInt f;
+          f = face->id + fStart;
+          ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
+          numBoundary++;
+        }
+      }
+    }
+
+    for (irow=0; irow<nflux_in; irow++){
+
+      PetscInt face_id = vertex->trans_row_face_ids[irow];
+      PetscInt isubcell = vertex->subcell_ids[irow];
+      TDy_face *face = &faces[face_id];
+
+      if (!face->is_local) continue;
+
+      icell_from = face->cell_ids[0];
+      icell_to   = face->cell_ids[1];
+      icell = vertex->internal_cell_ids[irow];
+      cell = &cells[icell];
+      subcell = &cell->subcells[isubcell];
+
+      PetscInt i, iface=-1;
+      for (i=0; i<subcell->num_faces;i++) {
+        if (subcell->face_ids[i] == face_id) {
+          iface = i;
+          break;
+        }
+      }
+
+      if (cells[icell_from].is_local) {
+        row   = cells[icell_from].global_id;
+
+        // +T_00
+        for (icol=0; icol<npcen; icol++) {
+          col   = cells[vertex->internal_cell_ids[icol]].global_id;
+          value = tdy->Trans[vertex_id][irow][icol] *
+                  u[cells[vertex->internal_cell_ids[icol]].id] *
+                  subcell->face_area[iface];
+          tdy->vel[face_id] += value;
+          //ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
+        }
+        
+        // -T_01 * Pbc
+        for (icol=0; icol<npitf_bc; icol++) {
+          value = tdy->Trans[vertex_id][irow][icol + npcen] * pBoundary[icol]*subcell->face_area[iface];
+          //ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
+          tdy->vel[face_id] += -value;
+        }
+      }
+      
+      if (cells[icell_to].is_local) {
+
+        row   = cells[icell_to].global_id;
+
+        // -T_00
+        for (icol=0; icol<npcen; icol++) {
+          col   = cells[vertex->internal_cell_ids[icol]].global_id;
+          value = tdy->Trans[vertex_id][irow][icol] *
+                  u[cells[vertex->internal_cell_ids[icol]].id] *
+                  subcell->face_area[iface];
+          //ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
+          tdy->vel[face_id] += -value;
+        }
+        
+        // +T_01 * Pbc
+        for (icol=0; icol<npitf_bc; icol++) {
+          value = tdy->Trans[vertex_id][irow][icol + npcen] * pBoundary[icol]*subcell->face_area[iface];
+          //ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
+          tdy->vel[face_id] += value;
+        }
+      }
+    }
+    
+    // For fluxes through boundary edges, only add contribution to the vector
+    for (irow=0; irow<nflux_bc*2; irow++) {
+
+      //row = cell_ids_from_to[irow][0];
+
+      PetscInt face_id = vertex->trans_row_face_ids[irow + nflux_in];
+      TDy_face *face = &faces[face_id];
+
+      if (!face->is_local) continue;
+
+      icell_from = face->cell_ids[0];
+      icell_to   = face->cell_ids[1];
+
+      if (icell_from>-1 && cells[icell_from].is_local) {
+        cell = &cells[icell_from];
+        row   = cells[icell_from].global_id;
+
+        PetscInt i, iface=-1, isubcell = -1;
+
+        for (i=0; i<vertex->num_internal_cells;i++){
+          if (vertex->internal_cell_ids[i] == icell_from) {
+            isubcell = vertex->subcell_ids[i];
+            break;
+          }
+        }
+        
+        subcell = &cell->subcells[isubcell];
+
+        for (i=0; i<subcell->num_faces;i++) {
+          if (subcell->face_ids[i] == face_id) {
+            iface = i;
+            break;
+          }
+        }
+
+        // +T_10
+        for (icol=0; icol<npcen; icol++) {
+          col   = cells[vertex->internal_cell_ids[icol]].global_id;
+          value = tdy->Trans[vertex_id][irow+nflux_in][icol]*
+                  u[cells[vertex->internal_cell_ids[icol]].id] *
+                  subcell->face_area[iface];
+          //ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
+          tdy->vel[face_id] += value;
+        }
+
+        //  -T_11 * Pbc
+        for (icol=0; icol<npitf_bc; icol++) {
+          value = tdy->Trans[vertex_id][irow+nflux_in][icol+npcen] * pBoundary[icol]*subcell->face_area[iface];
+          //ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
+          tdy->vel[face_id] += -value;
+        }
+        
+      }
+      
+      if (icell_to>-1 && cells[icell_to].is_local) {
+        cell = &cells[icell_to];
+        row   = cells[icell_to].global_id;
+        
+        PetscInt i, iface=-1, isubcell = -1;
+
+        for (i=0; i<vertex->num_internal_cells;i++){
+          if (vertex->internal_cell_ids[i] == icell_to) {
+            isubcell = vertex->subcell_ids[i];
+            break;
+          }
+        }
+        
+        subcell = &cell->subcells[isubcell];
+
+        for (i=0; i<subcell->num_faces;i++) {
+          if (subcell->face_ids[i] == face_id) {
+            iface = i;
+            break;
+          }
+        }
+
+        // -T_10
+        for (icol=0; icol<npcen; icol++) {
+          col   = cells[vertex->internal_cell_ids[icol]].global_id;
+          value = tdy->Trans[vertex_id][irow+nflux_in][icol]*
+                  u[cells[vertex->internal_cell_ids[icol]].id] *
+                  subcell->face_area[iface];
+          //ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
+          tdy->vel[face_id] += -value;
+        }
+        
+        //  +T_11 * Pbc
+        for (icol=0; icol<vertex->num_boundary_cells; icol++) {
+          value = tdy->Trans[vertex_id][irow+nflux_in][icol+npcen] * pBoundary[icol]*subcell->face_area[iface];
+          //ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
+          tdy->vel[face_id] += value;
+        }
+      }
+    }
+  }
+
+  ierr = VecRestoreArray(localU,&u); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm,&localU); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(TDy tdy, Vec U) {
+
+  DM             dm;
+  TDy_mesh       *mesh;
+  TDy_cell       *cells, *cell;
+  TDy_vertex     *vertices, *vertex;
+  TDy_face       *faces;
+  TDy_subcell    *subcell;
+  PetscInt       ivertex, icell;
+  PetscInt       icol, row, col, iface, isubcell;
+  PetscReal      value;
+  PetscInt       vStart, vEnd;
+  PetscInt       fStart, fEnd;
+  PetscInt       dim;
+  PetscReal      **Gmatrix;
+  PetscReal      sign;
+  PetscInt       j;
+  PetscScalar    *u;
+  Vec            localU;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  dm       = tdy->dm;
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+  vertices = mesh->vertices;
+  faces    = mesh->faces;
+
+  ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
+
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+
+  // TODO: Save localU
+  ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
+
+  for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+    
+    vertex    = &vertices[ivertex];
+    
+    if (vertex->num_boundary_cells == 0) continue;
+    if (vertex->num_internal_cells > 1)  continue;
+    
+    // Vertex is on the boundary
+    
+    // For boundary edges, save following information:
+    //  - Dirichlet pressure value
+    //  - Cell IDs connecting the boundary edge in the direction of unit normal
+    
+    icell    = vertex->internal_cell_ids[0];
+    isubcell = vertex->subcell_ids[0];
+
+    cell = &cells[icell];
+    subcell = &cell->subcells[isubcell];
+
+    PetscScalar pBoundary[subcell->num_faces];
+
+    ierr = ExtractSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
+
+    for (iface=0; iface<subcell->num_faces; iface++) {
+      
+      TDy_face *face = &faces[subcell->face_ids[iface]];
+
+      PetscInt f;
+      f = face->id + fStart;
+      ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[iface], tdy->dirichletvaluectx);CHKERRQ(ierr);
+
+    }
+
+    for (iface=0; iface<subcell->num_faces; iface++) {
+
+      TDy_face *face = &faces[subcell->face_ids[iface]];
+
+      if (!face->is_local) continue;
+
+      row = face->cell_ids[0];
+      if (row>-1) sign = -1.0;
+      else        sign = +1.0;
+
+      value = 0.0;
+      for (j=0; j<dim; j++) {
+        value += sign*Gmatrix[iface][j]*(pBoundary[j] - u[icell])*subcell->face_area[iface];
+      }
+
+      //ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
+      // Should it be '-value' or 'value'?
+      tdy->vel[face->id] += -value;
+
+    }
+
+    // For fluxes through boundary edges, only add contribution to the vector
+    for (iface=0; iface<subcell->num_faces; iface++) {
+
+      TDy_face *face = &faces[subcell->face_ids[iface]];
+
+      if (!face->is_local) continue;
+
+      row = face->cell_ids[0];
+      PetscInt cell_from = face->cell_ids[0];
+      PetscInt cell_to   = face->cell_ids[1];
+
+      if (cell_from>-1 && cells[cell_from].is_local) {
+        row   = cells[cell_from].global_id;
+        value = 0.0;
+        for (icol=0; icol<vertex->num_boundary_cells; icol++) {
+          value += Gmatrix[iface][icol] * (pBoundary[icol] - u[icell])*subcell->face_area[iface];
+          //ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
+        }
+        // Should it be '-value' or 'value'?
+        tdy->vel[face->id] += value;
+
+      }
+
+      if (cell_to>-1 && cells[cell_to].is_local) {
+        row   = cells[cell_to].global_id;
+        value = 0.0;
+        for (icol=0; icol<vertex->num_boundary_cells; icol++) {
+          value += Gmatrix[iface][icol] * (pBoundary[icol] - u[icell])*subcell->face_area[iface];
+          //ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
+        }
+        // Should it be '-value' or 'value'?
+        tdy->vel[face->id] += -value;
+      }
+    }
+  }
+
+  ierr = VecRestoreArray(localU,&u); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm,&localU); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyMPFAORecoverVelocity_3DMesh(TDy tdy, Vec U) {
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  ierr = TDyMPFAORecoverVelocity_InternalVertices_3DMesh(tdy, U); CHKERRQ(ierr);
+  ierr = TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(tdy, U); CHKERRQ(ierr);
+  ierr = TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices_3DMesh(tdy, U); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
@@ -2770,7 +3367,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
     ierr = TDyMPFAORecoverVelocity_2DMesh(tdy,U); CHKERRQ(ierr);
     break;
   case 3:
-    //ierr = TDyMPFAORecoverVelocity_3DMesh(tdy,U); CHKERRQ(ierr);
+    ierr = TDyMPFAORecoverVelocity_3DMesh(tdy,U); CHKERRQ(ierr);
     break;
   default:
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in ComputeGMatrix");
