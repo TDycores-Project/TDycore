@@ -2920,7 +2920,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
   TDy_face       *faces;
   TDy_subcell    *subcell;
   PetscInt       ivertex, icell, icell_from, icell_to;
-  PetscInt       irow, icol, row, col, vertex_id;
+  PetscInt       irow, icol, vertex_id;
   PetscInt       ncells, ncells_bnd;
   PetscReal      value;
   PetscInt       vStart, vEnd;
@@ -3052,11 +3052,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       }
 
       if (cells[icell_from].is_local) {
-        row   = cells[icell_from].global_id;
 
         // +T_00
         for (icol=0; icol<npcen; icol++) {
-          col   = cells[vertex->internal_cell_ids[icol]].global_id;
           value = tdy->Trans[vertex_id][irow][icol] *
                   u[cells[vertex->internal_cell_ids[icol]].id] *
                   subcell->face_area[iface];
@@ -3074,11 +3072,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       
       if (cells[icell_to].is_local) {
 
-        row   = cells[icell_to].global_id;
-
         // -T_00
         for (icol=0; icol<npcen; icol++) {
-          col   = cells[vertex->internal_cell_ids[icol]].global_id;
           value = tdy->Trans[vertex_id][irow][icol] *
                   u[cells[vertex->internal_cell_ids[icol]].id] *
                   subcell->face_area[iface];
@@ -3098,8 +3093,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
     // For fluxes through boundary edges, only add contribution to the vector
     for (irow=0; irow<nflux_bc*2; irow++) {
 
-      //row = cell_ids_from_to[irow][0];
-
       PetscInt face_id = vertex->trans_row_face_ids[irow + nflux_in];
       TDy_face *face = &faces[face_id];
 
@@ -3110,7 +3103,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
       if (icell_from>-1 && cells[icell_from].is_local) {
         cell = &cells[icell_from];
-        row   = cells[icell_from].global_id;
 
         PetscInt i, iface=-1, isubcell = -1;
 
@@ -3132,7 +3124,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         // +T_10
         for (icol=0; icol<npcen; icol++) {
-          col   = cells[vertex->internal_cell_ids[icol]].global_id;
           value = tdy->Trans[vertex_id][irow+nflux_in][icol]*
                   u[cells[vertex->internal_cell_ids[icol]].id] *
                   subcell->face_area[iface];
@@ -3151,7 +3142,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       
       if (icell_to>-1 && cells[icell_to].is_local) {
         cell = &cells[icell_to];
-        row   = cells[icell_to].global_id;
         
         PetscInt i, iface=-1, isubcell = -1;
 
@@ -3173,7 +3163,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         // -T_10
         for (icol=0; icol<npcen; icol++) {
-          col   = cells[vertex->internal_cell_ids[icol]].global_id;
           value = tdy->Trans[vertex_id][irow+nflux_in][icol]*
                   u[cells[vertex->internal_cell_ids[icol]].id] *
                   subcell->face_area[iface];
@@ -3208,7 +3197,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
   TDy_face       *faces;
   TDy_subcell    *subcell;
   PetscInt       ivertex, icell;
-  PetscInt       icol, row, col, iface, isubcell;
+  PetscInt       icol, row, iface, isubcell;
   PetscReal      value;
   PetscInt       vStart, vEnd;
   PetscInt       fStart, fEnd;
