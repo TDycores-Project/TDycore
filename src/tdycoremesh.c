@@ -1583,8 +1583,8 @@ PetscErrorCode FindFaceIDsOfACellCommonToAVertex(TDy_cell *cell, TDy_face *faces
 /* -------------------------------------------------------------------------- */
 
 PetscErrorCode UpdateFaceOrientationAroundAVertex(TDy_cell *cell, TDy_face *faces,
-                                                  TDy_vertex *vertex, PetscInt f_idx[3],
-                                                  PetscInt dim) {
+                                                  TDy_vertex *vertex, PetscInt dim,
+                                                  PetscInt f_idx[3]) {
   
   PetscFunctionBegin;
   
@@ -2383,7 +2383,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
       // Update order of faces in f_idx so (face_ids[0], face_ids[1], face_ids[2])
       // form a plane such that normal to plane points toward the cell centroid
-      ierr = UpdateFaceOrientationAroundAVertex(cell, faces, vertex, subcell->face_ids, dim);
+      ierr = UpdateFaceOrientationAroundAVertex(cell, faces, vertex, dim, subcell->face_ids);
       
       PetscReal face_cen[3][3];
 
