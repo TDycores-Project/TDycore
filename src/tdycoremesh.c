@@ -664,7 +664,7 @@ PetscErrorCode AreFacesNeighbors(TDy_face *face_1, TDy_face *face_2) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode SaveTwoDimMeshGeometricAttributes(TDy tdy) {
+PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
 
   PetscFunctionBegin;
 
@@ -739,7 +739,7 @@ PetscErrorCode SaveTwoDimMeshGeometricAttributes(TDy tdy) {
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode SaveTwoDimMeshConnectivityInfo(TDy tdy) {
+PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
 
   PetscFunctionBegin;
 
@@ -1156,7 +1156,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode UpdateCellOrientationAroundAVertexTwoDimMesh(TDy tdy) {
+PetscErrorCode UpdateCellOrientationAroundAVertex2DMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
@@ -1223,6 +1223,11 @@ PetscErrorCode UpdateCellOrientationAroundAVertexTwoDimMesh(TDy tdy) {
 
 PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
 
+  /*
+    For a vertex, save face ids such that all internal faces
+    are listed first followed by boundary faces.
+  */
+
   PetscFunctionBegin;
 
   DM             dm;
@@ -1276,7 +1281,7 @@ PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
 }
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode UpdateCellOrientationAroundAEdgeTwoDimMesh(TDy tdy) {
+PetscErrorCode UpdateCellOrientationAroundAEdge2DMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
@@ -1388,7 +1393,7 @@ PetscErrorCode ComputeAreaOf2DTriangle(PetscReal v1[3], PetscReal v2[3],
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode SetupSubcellsForTwoDimMesh(DM dm, TDy tdy) {
+PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
 
   PetscFunctionBegin;
 
@@ -2318,6 +2323,15 @@ PetscErrorCode DetermineUpwindFacesForSubcell(TDy tdy, TDy_vertex *vertex) {
 
 PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
+  /*
+    For each subcell:
+      - Determine face IDs in such a order so the normal to plane formed by
+        centroid of face IDs points toward the vertex of cell shared by subcell
+      - Compute area of faces
+      - Compute nu_vector
+      - Compute volume of subcell (and subsequently compute the volume of cell)
+  */
+
   PetscFunctionBegin;
 
   DM dm;
@@ -2394,6 +2408,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
         PetscInt neighboring_vertex_ids[2];
 
+        // Find 'n0' and 'n1'
         ierr = FindNeighboringVerticesOfAFace(face,vertex->id,neighboring_vertex_ids);
         
         PetscReal edge0_cen[3], edge1_cen[3];
@@ -2405,15 +2420,6 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
         // area of face
         ierr = QuadrilateralArea(v_c, edge0_cen, face_cen[iface], edge1_cen, &subcell->face_area[iface]);
-
-        /*
-        // normal to face
-        if (face->cell_ids[0] == cell->id) {
-          ierr = NormalToQuadrilateral(v_c, edge0_cen, face_cen[iface], edge1_cen, f_normal); CHKERRQ(ierr);
-        } else {
-          ierr = NormalToQuadrilateral(v_c, edge1_cen, face_cen[iface], edge0_cen, f_normal); CHKERRQ(ierr);
-        }
-        */
 
         // nu_vec on the "iface"-th is given as:
         //  = (x_{iface+1} - x_{cell_centroid}) x (x_{iface+2} - x_{cell_centroid})
@@ -2481,6 +2487,14 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode UpdateCellOrientationAroundAFace3DMesh(TDy tdy) {
 
+  /*
+  
+  Ensure the order of cell_ids for a given face is such that:
+    Vector from face->cell_ids[0] to face->cell_ids[1] points in the direction
+    of the normal vector to the face.
+  
+  */
+
   PetscFunctionBegin;
 
   DM             dm;
@@ -2532,7 +2546,7 @@ PetscErrorCode UpdateCellOrientationAroundAFace3DMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode OutputCellsTwoDimMesh(TDy tdy) {
+PetscErrorCode OutputCells2DMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
@@ -2665,7 +2679,7 @@ PetscErrorCode OutputCellsTwoDimMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode OutputEdgesTwoDimMesh(TDy tdy) {
+PetscErrorCode OutputEdges2DMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
@@ -2712,7 +2726,7 @@ PetscErrorCode OutputEdgesTwoDimMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode OutputVerticesTwoDimMesh(TDy tdy) {
+PetscErrorCode OutputVertices2DMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
@@ -2776,7 +2790,7 @@ PetscErrorCode OutputVerticesTwoDimMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode OutputTransmissibilityMatrixTwoDimMesh(TDy tdy) {
+PetscErrorCode OutputTransmissibilityMatrix2DMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
@@ -2822,16 +2836,16 @@ PetscErrorCode OutputTransmissibilityMatrixTwoDimMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode OutputTwoDimMesh(TDy tdy) {
+PetscErrorCode Output2DMesh(TDy tdy) {
 
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
-  ierr = OutputCellsTwoDimMesh(tdy); CHKERRQ(ierr);
-  ierr = OutputVerticesTwoDimMesh(tdy); CHKERRQ(ierr);
-  ierr = OutputEdgesTwoDimMesh(tdy); CHKERRQ(ierr);
-  ierr = OutputTransmissibilityMatrixTwoDimMesh(tdy); CHKERRQ(ierr);
+  ierr = OutputCells2DMesh(tdy); CHKERRQ(ierr);
+  ierr = OutputVertices2DMesh(tdy); CHKERRQ(ierr);
+  ierr = OutputEdges2DMesh(tdy); CHKERRQ(ierr);
+  ierr = OutputTransmissibilityMatrix2DMesh(tdy); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -2847,7 +2861,7 @@ PetscErrorCode OutputMesh(TDy tdy) {
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
   switch(dim) {
     case 2:
-      ierr = OutputTwoDimMesh(tdy); CHKERRQ(ierr);
+      ierr = Output2DMesh(tdy); CHKERRQ(ierr);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Output of mesh only supported for 2D meshes");
@@ -2869,16 +2883,16 @@ PetscErrorCode BuildMesh(TDy tdy) {
 
   switch (dim) {
   case 2:
-    ierr = SaveTwoDimMeshGeometricAttributes(tdy); CHKERRQ(ierr);
-    ierr = SaveTwoDimMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
-    ierr = UpdateCellOrientationAroundAVertexTwoDimMesh(tdy); CHKERRQ(ierr);
-    ierr = SetupSubcellsForTwoDimMesh     (  tdy->dm, tdy); CHKERRQ(ierr);
-    ierr = UpdateCellOrientationAroundAEdgeTwoDimMesh(  tdy); CHKERRQ(ierr);
+    ierr = SaveMeshGeometricAttributes(tdy); CHKERRQ(ierr);
+    ierr = SaveMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
+    ierr = UpdateCellOrientationAroundAVertex2DMesh(tdy); CHKERRQ(ierr);
+    ierr = SetupSubcellsFor2DMesh     (  tdy->dm, tdy); CHKERRQ(ierr);
+    ierr = UpdateCellOrientationAroundAEdge2DMesh(  tdy); CHKERRQ(ierr);
     break;
 
   case 3:
-    ierr = SaveTwoDimMeshGeometricAttributes(tdy); CHKERRQ(ierr);
-    ierr = SaveTwoDimMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
+    ierr = SaveMeshGeometricAttributes(tdy); CHKERRQ(ierr);
+    ierr = SaveMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
     ierr = UpdateFaceOrderAroundAVertex3DMesh(tdy); CHKERRQ(ierr);
     ierr = UpdateCellOrientationAroundAFace3DMesh(  tdy); CHKERRQ(ierr);
     ierr = SetupSubcellsFor3DMesh     (tdy); CHKERRQ(ierr);
