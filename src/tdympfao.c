@@ -2826,7 +2826,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U) {
   TDy_mesh       *mesh;
   TDy_cell       *cells;
   TDy_vertex     *vertices, *vertex;
-  PetscInt       ivertex;
+  TDy_face       *faces;
+  TDy_subcell    *subcell;
+  PetscInt       ivertex, icell_from, icell_to;
   PetscInt       irow, icol, vertex_id;
   PetscInt       vStart, vEnd;
   PetscInt       fStart, fEnd;
@@ -2842,6 +2844,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U) {
   mesh     = tdy->mesh;
   cells    = mesh->cells;
   vertices = mesh->vertices;
+  faces    = mesh->faces;
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -2877,14 +2880,28 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U) {
       // F = T*P
       for (irow=0; irow<nflux_in; irow++) {
 
-        PetscInt face_id = vertex->face_ids[irow];
-        PetscInt cell_id = vertex->internal_cell_ids[irow];
-        PetscInt subcell_id = vertex->subcell_ids[irow];
+        PetscInt face_id = vertex->trans_row_face_ids[irow];
+        TDy_face *face = &faces[face_id];
 
-        TDy_cell *cell = &cells[cell_id];
-        TDy_subcell *subcell = &cell->subcells[subcell_id];
+        if (!face->is_local) continue;
 
-        PetscInt i, iface=-1;
+        icell_from = face->cell_ids[0];
+        icell_to   = face->cell_ids[1];
+
+        TDy_cell *cell = &cells[icell_from];
+
+
+        PetscInt i, iface=-1, isubcell = -1;
+
+        for (i=0; i<vertex->num_internal_cells;i++){
+          if (vertex->internal_cell_ids[i] == icell_from) {
+            isubcell = vertex->subcell_ids[i];
+            break;
+          }
+        }
+
+        subcell = &cell->subcells[isubcell];
+
         for (i=0; i<subcell->num_faces;i++) {
           if (subcell->face_ids[i] == face_id) {
             iface = i;
@@ -2893,6 +2910,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U) {
         }
 
         for (icol=0; icol<vertex->num_internal_cells; icol++) {
+
           Vcomputed[irow] = tdy->Trans[vertex_id][irow][icol] *
                             Pcomputed[icol]                   *
                             subcell->face_area[iface];
@@ -3032,7 +3050,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
     for (irow=0; irow<nflux_in; irow++){
 
       PetscInt face_id = vertex->trans_row_face_ids[irow];
-      PetscInt isubcell = vertex->subcell_ids[irow];
       TDy_face *face = &faces[face_id];
 
       if (!face->is_local) continue;
@@ -3040,18 +3057,27 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       icell_from = face->cell_ids[0];
       icell_to   = face->cell_ids[1];
       icell = vertex->internal_cell_ids[irow];
-      cell = &cells[icell];
-      subcell = &cell->subcells[isubcell];
-
-      PetscInt i, iface=-1;
-      for (i=0; i<subcell->num_faces;i++) {
-        if (subcell->face_ids[i] == face_id) {
-          iface = i;
-          break;
-        }
-      }
 
       if (cells[icell_from].is_local) {
+
+        cell = &cells[icell_from];
+        PetscInt i, iface=-1, isubcell = -1;
+
+        for (i=0; i<vertex->num_internal_cells;i++){
+          if (vertex->internal_cell_ids[i] == icell_from) {
+            isubcell = vertex->subcell_ids[i];
+            break;
+          }
+        }
+
+        subcell = &cell->subcells[isubcell];
+
+        for (i=0; i<subcell->num_faces;i++) {
+          if (subcell->face_ids[i] == face_id) {
+            iface = i;
+            break;
+          }
+        }
 
         // +T_00
         for (icol=0; icol<npcen; icol++) {
@@ -3071,6 +3097,25 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       }
       
       if (cells[icell_to].is_local) {
+
+        cell = &cells[icell_to];
+        PetscInt i, iface=-1, isubcell = -1;
+
+        for (i=0; i<vertex->num_internal_cells;i++){
+          if (vertex->internal_cell_ids[i] == icell_to) {
+            isubcell = vertex->subcell_ids[i];
+            break;
+          }
+        }
+
+        subcell = &cell->subcells[isubcell];
+
+        for (i=0; i<subcell->num_faces;i++) {
+          if (subcell->face_ids[i] == face_id) {
+            iface = i;
+            break;
+          }
+        }
 
         // -T_00
         for (icol=0; icol<npcen; icol++) {
