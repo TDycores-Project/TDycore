@@ -181,5 +181,11 @@ PETSC_EXTERN PetscErrorCode OutputMesh(TDy);
 PETSC_EXTERN PetscErrorCode BuildTwoDimMesh(TDy);
 PETSC_EXTERN PetscErrorCode BuildMesh(TDy);
 PETSC_EXTERN PetscErrorCode AllocateMemoryForMesh(DM,TDy_mesh*);
-
+PETSC_EXTERN PetscErrorCode SubCell_GetIthNuVector(TDy_subcell*,PetscInt,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode Edge_GetCentroid(TDy_edge*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode Edge_GetNormal(TDy_edge*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode Face_GetNormal(TDy_face*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode Face_GetCentroid(TDy_face*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode Vertex_GetCoordinate(TDy_vertex*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode Cell_GetCentroid(TDy_cell*,PetscInt, PetscReal*);
 #endif

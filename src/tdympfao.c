@@ -72,7 +72,7 @@ PetscErrorCode ComputeGMatrixFor2DMesh(TDy tdy) {
   PetscInt       num_subcells;
   PetscInt       icell, isubcell;
   PetscInt       ii,jj;
-  PetscInt       dim, d;
+  PetscInt       dim;
   PetscInt       e_idx_up, e_idx_dn;
   PetscReal      n_up[3], n_dn[3];
   PetscReal      e_cen_up[3], e_cen_dn[3], v_c[3];
@@ -116,23 +116,19 @@ PetscErrorCode ComputeGMatrixFor2DMesh(TDy tdy) {
       edge_up = &edges[e_idx_up];
       edge_dn = &edges[e_idx_dn];
 
-      for (d=0; d<dim; d++) {
+      // extract nu-vectors
+      ierr = SubCell_GetIthNuVector(subcell, 0, dim, &nu_up[0]); CHKERRQ(ierr);
+      ierr = SubCell_GetIthNuVector(subcell, 1, dim, &nu_dn[0]); CHKERRQ(ierr);
 
-        // extract nu-vectors
-        nu_up[d]    = subcell->nu_vector[0].V[d];
-        nu_dn[d]    = subcell->nu_vector[1].V[d];
+      // extract centroid of edges
+      ierr = Edge_GetCentroid(edge_dn, dim, &e_cen_dn[0]); CHKERRQ(ierr);
+      ierr = Edge_GetCentroid(edge_up, dim, &e_cen_up[0]); CHKERRQ(ierr);
 
-        // extract face centroid of edges
-        e_cen_dn[d] = edge_dn->centroid.X[d];
-        e_cen_up[d] = edge_up->centroid.X[d];
+      // extract normal to edges
+      ierr = Edge_GetNormal(edge_dn, dim, &n_dn[0]); CHKERRQ(ierr);
+      ierr = Edge_GetNormal(edge_up, dim, &n_up[0]); CHKERRQ(ierr);
 
-        // extract normal to edges
-        n_dn[d] = edge_dn->normal.V[d];
-        n_up[d] = edge_up->normal.V[d];
-
-        // extract coordinate of the vertex
-        v_c[d] = vertex->coordinate.X[d];
-      }
+      ierr = Vertex_GetCoordinate(vertex, dim, &v_c[0]); CHKERRQ(ierr);
 
       //
       ierr = ComputeLength(v_c, e_cen_dn, dim, &e_len_dn);
@@ -215,12 +211,14 @@ PetscErrorCode ComputeGMatrixFor3DMesh(TDy tdy) {
         TDy_face *face = &faces[subcell->face_ids[ii]];
         
         area = subcell->face_area[ii];
-        for (d=0; d<dim; d++) normal[d] = face->normal.V[d];
+
+        ierr = Face_GetNormal(face, dim, &normal[0]); CHKERRQ(ierr);
 
         for (jj=0;jj<subcell->num_faces;jj++) {
-          PetscReal nu[3];
+          PetscReal nu[dim];
 
-          for (d=0; d<dim; d++) nu[d] = subcell->nu_vector[jj].V[d];
+          ierr = SubCell_GetIthNuVector(subcell, jj, dim, &nu[0]); CHKERRQ(ierr);
+          
           ierr = ComputeEntryOfGMatrix3D(area, normal, K, nu, subcell->volume, dim,
                                          &(tdy->subc_Gmatrix[icell][isubcell][ii][jj]));
           CHKERRQ(ierr);
