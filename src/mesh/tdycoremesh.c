@@ -357,6 +357,7 @@ PetscErrorCode AllocateMemoryForASubcell(
   ierr = Allocate_TDyVector_1D(num_nu_vectors, &subcell->nu_vector); CHKERRQ(ierr);
   ierr = Allocate_TDyCoordinate_1D(num_nu_vectors, &subcell->variable_continuity_coordinates); CHKERRQ(ierr);
   ierr = Allocate_TDyCoordinate_1D(num_vertices, &subcell->vertices_cordinates); CHKERRQ(ierr);
+  ierr = Allocate_TDyCoordinate_1D(num_nu_vectors, &subcell->face_centroid); CHKERRQ(ierr);
 
   ierr = Allocate_IntegerArray_1D(&subcell->face_ids,num_faces); CHKERRQ(ierr);
   ierr = Allocate_RealArray_1D(&subcell->face_area,num_faces); CHKERRQ(ierr);
@@ -1402,6 +1403,19 @@ PetscErrorCode SubCell_GetIthNuVector(TDy_subcell *subcell, PetscInt i, PetscInt
   }
   
   for (d=0; d<dim; d++) nu_vec[d] = subcell->nu_vector[i].V[d];
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode SubCell_GetIthFaceCentroid(TDy_subcell *subcell, PetscInt i, PetscInt dim, PetscReal *centroid) {
+  PetscFunctionBegin;
+  PetscInt d;
+
+  if (i>=subcell->num_faces) {
+    SETERRQ(PETSC_COMM_SELF,PETSC_ERR_USER,"Subcell: Requested i-th face centroid exceeds max num_faces");
+  }
+
+  for (d=0; d<dim; d++) centroid[d] = subcell->face_centroid[i].X[d];
   PetscFunctionReturn(0);
 }
 
@@ -2479,6 +2493,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         for (d=0; d<dim; d++) {
           edge0_cen[d] = (v_c[d] + vertices[neighboring_vertex_ids[0]].coordinate.X[d])/2.0;
           edge1_cen[d] = (v_c[d] + vertices[neighboring_vertex_ids[1]].coordinate.X[d])/2.0;
+          subcell->face_centroid[iface].X[d] = (v_c[d] + edge0_cen[d] + face_cen[iface][d] + edge1_cen[d])/4.0;
         }
 
         // area of face

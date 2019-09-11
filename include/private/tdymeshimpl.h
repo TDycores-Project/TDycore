@@ -61,6 +61,7 @@ struct _TDy_subcell {
   PetscInt num_faces;               /* number of faces */
   PetscInt *face_ids;               /* ids of faces */
   PetscReal *face_area;             /* area of faces */
+  TDy_coordinate *face_centroid;    /* centroid of faces of subcell */
   PetscInt *is_face_up;             /* true if the face->cell_ids[0] is upwind of face->cell_ids[1] in cell traversal order*/
   PetscInt *face_unknown_idx;       /* index of the unknown associated with the face within the vector interface unknowns common to a vertex*/
 
@@ -182,6 +183,7 @@ PETSC_EXTERN PetscErrorCode BuildTwoDimMesh(TDy);
 PETSC_EXTERN PetscErrorCode BuildMesh(TDy);
 PETSC_EXTERN PetscErrorCode AllocateMemoryForMesh(DM,TDy_mesh*);
 PETSC_EXTERN PetscErrorCode SubCell_GetIthNuVector(TDy_subcell*,PetscInt,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode SubCell_GetIthFaceCentroid(TDy_subcell*,PetscInt,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode Edge_GetCentroid(TDy_edge*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode Edge_GetNormal(TDy_edge*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode Face_GetNormal(TDy_face*,PetscInt, PetscReal*);
