@@ -7,7 +7,7 @@
 /* ---------------------------------------------------------------- */
 PetscErrorCode ComputeEntryOfGMatrix(PetscReal edge_len, PetscReal n[3],
                                      PetscReal K[3][3], PetscReal v[3],
-                                     PetscReal area, PetscInt dim, PetscReal *g) {
+                                     PetscReal T, PetscInt dim, PetscReal *g) {
 
   PetscFunctionBegin;
 
@@ -26,7 +26,7 @@ PetscErrorCode ComputeEntryOfGMatrix(PetscReal edge_len, PetscReal n[3],
   for (i=0; i<dim; i++) {
     (*g) += n[i] * Kv[i];
   }
-  (*g) *= 1.0/(2.0*area)*edge_len;
+  (*g) *= 1.0/(T)*edge_len;
 
   PetscFunctionReturn(0);
 }
@@ -34,7 +34,7 @@ PetscErrorCode ComputeEntryOfGMatrix(PetscReal edge_len, PetscReal n[3],
 /* ---------------------------------------------------------------- */
 PetscErrorCode ComputeEntryOfGMatrix3D(PetscReal area, PetscReal n[3],
                                        PetscReal K[3][3], PetscReal v[3],
-                                       PetscReal vol, PetscInt dim, PetscReal *g) {
+                                       PetscReal T, PetscInt dim, PetscReal *g) {
 
   PetscFunctionBegin;
 
@@ -53,7 +53,7 @@ PetscErrorCode ComputeEntryOfGMatrix3D(PetscReal area, PetscReal n[3],
   for (i=0; i<dim; i++) {
     (*g) += n[i] * Kv[i];
   }
-  (*g) *= -1.0/(vol)*area;
+  (*g) *= -1.0/(T)*area;
 
   PetscFunctionReturn(0);
 }
@@ -143,13 +143,13 @@ PetscErrorCode ComputeGMatrixFor2DMesh(TDy tdy) {
       //                              |           | |             |
       //                              |_         _| |_           _|
       //
-      ComputeEntryOfGMatrix(e_len_up, n_up, K, nu_up, subcell->volume, dim,
+      ComputeEntryOfGMatrix(e_len_up, n_up, K, nu_up, subcell->T, dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][0][0]));
-      ComputeEntryOfGMatrix(e_len_up, n_up, K, nu_dn, subcell->volume, dim,
+      ComputeEntryOfGMatrix(e_len_up, n_up, K, nu_dn, subcell->T, dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][0][1]));
-      ComputeEntryOfGMatrix(e_len_dn, n_dn, K, nu_up, subcell->volume, dim,
+      ComputeEntryOfGMatrix(e_len_dn, n_dn, K, nu_up, subcell->T, dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][1][0]));
-      ComputeEntryOfGMatrix(e_len_dn, n_dn, K, nu_dn, subcell->volume, dim,
+      ComputeEntryOfGMatrix(e_len_dn, n_dn, K, nu_dn, subcell->T, dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][1][1]));
     }
   }
@@ -204,7 +204,6 @@ PetscErrorCode ComputeGMatrixFor3DMesh(TDy tdy) {
 
       for (ii=0;ii<subcell->num_faces;ii++) {
 
-        PetscInt d;
         PetscReal area;
         PetscReal normal[3];
 
@@ -219,7 +218,7 @@ PetscErrorCode ComputeGMatrixFor3DMesh(TDy tdy) {
 
           ierr = SubCell_GetIthNuVector(subcell, jj, dim, &nu[0]); CHKERRQ(ierr);
           
-          ierr = ComputeEntryOfGMatrix3D(area, normal, K, nu, subcell->volume, dim,
+          ierr = ComputeEntryOfGMatrix3D(area, normal, K, nu, subcell->T, dim,
                                          &(tdy->subc_Gmatrix[icell][isubcell][ii][jj]));
           CHKERRQ(ierr);
         }

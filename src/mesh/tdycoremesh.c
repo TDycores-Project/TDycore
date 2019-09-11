@@ -1546,7 +1546,9 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
         subcell->nu_vector[1].V[d] = nu_vec_dn[d]*len_dn;
       }
 
-      ierr = ComputeAreaOf2DTriangle(cp_up, cell_cen, cp_dn, &subcell->volume);
+      PetscReal area;
+      ierr = ComputeAreaOf2DTriangle(cp_up, cell_cen, cp_dn, &area);
+      subcell->T = 2.0*area;
 
     }
     ierr = DMPlexComputeCellGeometryFVM(dm, icell, &(cell->volume), &centroid,
@@ -2525,8 +2527,9 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
       }
 
-      ierr = ComputeVolumeOfTetrahedron(cell_cen, face_cen[0], face_cen[1], face_cen[2], &subcell->volume); CHKERRQ(ierr);
-      subcell->volume = subcell->volume*6.0;
+      PetscReal volume;
+      ierr = ComputeVolumeOfTetrahedron(cell_cen, face_cen[0], face_cen[1], face_cen[2], &volume); CHKERRQ(ierr);
+      subcell->T = volume*6.0;
     }
     ierr = DMPlexComputeCellGeometryFVM(dm, icell, &(cell->volume), &centroid,
                                         &normal); CHKERRQ(ierr);
@@ -2683,7 +2686,7 @@ PetscErrorCode OutputCells2DMesh(TDy tdy) {
 
       subcell = &cell->subcells[k];
 
-      scell_vol_v[icell*4 + k] = subcell->volume;
+      scell_vol_v[icell*4 + k] = subcell->T;
 
       scell_gmatrix_v[icell*4*4 + k*4 + 0] = tdy->subc_Gmatrix[icell][k][0][0];
       scell_gmatrix_v[icell*4*4 + k*4 + 1] = tdy->subc_Gmatrix[icell][k][0][1];

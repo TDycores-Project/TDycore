@@ -56,7 +56,7 @@ struct _TDy_subcell {
   TDy_coordinate
   *vertices_cordinates;             /* vertex coordinates that form the subcell                   */
 
-  PetscReal volume;                                /* volume of the subcell                                      */
+  PetscReal T;                      /* Double product for 2D and triple product 3D subcell        */
 
   PetscInt num_faces;               /* number of faces */
   PetscInt *face_ids;               /* ids of faces */
