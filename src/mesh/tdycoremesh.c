@@ -1421,6 +1421,25 @@ PetscErrorCode SubCell_GetIthFaceCentroid(TDy_subcell *subcell, PetscInt i, Pets
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode Subcell_GetFaceIndexForAFace(TDy_subcell* subcell, PetscInt face_id, PetscInt *face_idx) {
+
+  PetscFunctionBegin;
+  PetscInt i;
+  *face_idx = -1;
+
+  for (i=0; i<subcell->num_faces;i++) {
+    if (subcell->face_ids[i] == face_id) {
+      *face_idx = i;
+      break;
+    }
+  }
+  if (*face_idx == -1) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"For the given subcell, did not find any face that matched face_id");
+  }
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode Edge_GetCentroid(TDy_edge *edge, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;
@@ -2986,4 +3005,27 @@ PetscErrorCode BuildMesh(TDy tdy) {
 
   PetscFunctionReturn(0);
 
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode FindSubcellOfACellThatIncludesAVertex(TDy_cell *cell, TDy_vertex *vertex, TDy_subcell** subcell) {
+
+  PetscFunctionBegin;
+
+  PetscInt i, isubcell = -1;
+
+  for (i=0; i<vertex->num_internal_cells;i++){
+    if (vertex->internal_cell_ids[i] == cell->id) {
+      isubcell = vertex->subcell_ids[i];
+      break;
+    }
+  }
+
+  if (isubcell == -1) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a subcell of a given cell that includes the given vertex");
+  }
+  
+  *subcell = &cell->subcells[isubcell];
+
+  PetscFunctionReturn(0);
 }

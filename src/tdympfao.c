@@ -2899,23 +2899,10 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 
         TDy_cell *cell = &cells[icell_from];
 
-        PetscInt i, iface=-1, isubcell = -1;
+        PetscInt iface=-1;
 
-        for (i=0; i<vertex->num_internal_cells;i++){
-          if (vertex->internal_cell_ids[i] == icell_from) {
-            isubcell = vertex->subcell_ids[i];
-            break;
-          }
-        }
-
-        subcell = &cell->subcells[isubcell];
-
-        for (i=0; i<subcell->num_faces;i++) {
-          if (subcell->face_ids[i] == face_id) {
-            iface = i;
-            break;
-          }
-        }
+        ierr = FindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
+        ierr = Subcell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
 
         factor = subcell->face_area[iface]/face->area;
         for (icol=0; icol<vertex->num_internal_cells; icol++) {
@@ -3081,23 +3068,11 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       if (cells[icell_from].is_local) {
 
         cell = &cells[icell_from];
-        PetscInt i, iface=-1, isubcell = -1;
 
-        for (i=0; i<vertex->num_internal_cells;i++){
-          if (vertex->internal_cell_ids[i] == icell_from) {
-            isubcell = vertex->subcell_ids[i];
-            break;
-          }
-        }
+        PetscInt iface=-1;
 
-        subcell = &cell->subcells[isubcell];
-
-        for (i=0; i<subcell->num_faces;i++) {
-          if (subcell->face_ids[i] == face_id) {
-            iface = i;
-            break;
-          }
-        }
+        ierr = FindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
+        ierr = Subcell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
 
         // +T_00 * Pcen
         value = 0.0;
@@ -3127,23 +3102,11 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       } else {
       
         cell = &cells[icell_to];
-        PetscInt i, iface=-1, isubcell = -1;
 
-        for (i=0; i<vertex->num_internal_cells;i++){
-          if (vertex->internal_cell_ids[i] == icell_to) {
-            isubcell = vertex->subcell_ids[i];
-            break;
-          }
-        }
+        PetscInt iface=-1;
 
-        subcell = &cell->subcells[isubcell];
-
-        for (i=0; i<subcell->num_faces;i++) {
-          if (subcell->face_ids[i] == face_id) {
-            iface = i;
-            break;
-          }
-        }
+        ierr = FindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
+        ierr = Subcell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
 
         // -T_00 * Pcen
         value = 0.0;
@@ -3186,23 +3149,10 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       if (icell_from>-1 && cells[icell_from].is_local) {
         cell = &cells[icell_from];
 
-        PetscInt i, iface=-1, isubcell = -1;
+        PetscInt iface=-1;
 
-        for (i=0; i<vertex->num_internal_cells;i++){
-          if (vertex->internal_cell_ids[i] == icell_from) {
-            isubcell = vertex->subcell_ids[i];
-            break;
-          }
-        }
-        
-        subcell = &cell->subcells[isubcell];
-
-        for (i=0; i<subcell->num_faces;i++) {
-          if (subcell->face_ids[i] == face_id) {
-            iface = i;
-            break;
-          }
-        }
+        ierr = FindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
+        ierr = Subcell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
 
         // +T_10 * Pcen
         value = 0.0;
@@ -3232,23 +3182,10 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       
         cell = &cells[icell_to];
         
-        PetscInt i, iface=-1, isubcell = -1;
+        PetscInt iface=-1;
 
-        for (i=0; i<vertex->num_internal_cells;i++){
-          if (vertex->internal_cell_ids[i] == icell_to) {
-            isubcell = vertex->subcell_ids[i];
-            break;
-          }
-        }
-        
-        subcell = &cell->subcells[isubcell];
-
-        for (i=0; i<subcell->num_faces;i++) {
-          if (subcell->face_ids[i] == face_id) {
-            iface = i;
-            break;
-          }
-        }
+        ierr = FindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
+        ierr = Subcell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
 
         // -T_10 * Pcen
         value = 0.0;
