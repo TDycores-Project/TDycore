@@ -1506,7 +1506,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
   PetscReal      cp_up[3], cp_dn[3], nu_vec_up[3], nu_vec_dn[3];
   PetscReal      len_up, len_dn;
   PetscReal      alpha;
-  PetscReal      normal, centroid;
+  PetscReal      normal[2], centroid;
   PetscErrorCode ierr;
 
   mesh     = tdy->mesh;
@@ -1586,7 +1586,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
 
     }
     ierr = DMPlexComputeCellGeometryFVM(dm, icell, &(cell->volume), &centroid,
-                                        &normal); CHKERRQ(ierr);
+                                        &normal[0]); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
@@ -2441,7 +2441,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
   PetscInt       icell, isubcell, ivertex;
   PetscInt       dim, d;
   PetscReal      cell_cen[3], v_c[3];
-  PetscReal      normal, centroid;
+  PetscReal      normal[3], centroid;
   PetscErrorCode ierr;
 
   dm       = tdy->dm;
@@ -2567,7 +2567,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
       subcell->T = volume*6.0;
     }
     ierr = DMPlexComputeCellGeometryFVM(dm, icell, &(cell->volume), &centroid,
-                                        &normal); CHKERRQ(ierr);
+                                        &normal[0]); CHKERRQ(ierr);
 
   }
 
