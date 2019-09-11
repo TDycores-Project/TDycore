@@ -162,6 +162,7 @@ struct _TDy_face {
 
   TDy_coordinate centroid; /* centroid of the face */
   TDy_vector normal;       /* unit normal to the face */
+  PetscReal area;          /* area of the face */
 };
 
 struct _TDy_mesh {

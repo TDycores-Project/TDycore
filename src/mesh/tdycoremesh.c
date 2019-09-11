@@ -731,6 +731,7 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
       for (d=0; d<dim; d++) {
         faces[iface].centroid.X[d] = tdy->X[ielement*dim + d];
       }
+      faces[iface].area = tdy->V[ielement];
     }
   }
 
