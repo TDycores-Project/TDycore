@@ -2441,7 +2441,6 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
   PetscInt       icell, isubcell, ivertex;
   PetscInt       dim, d;
   PetscReal      cell_cen[3], v_c[3];
-  PetscReal      normal[3], centroid;
   PetscErrorCode ierr;
 
   dm       = tdy->dm;
@@ -2566,6 +2565,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
       ierr = ComputeVolumeOfTetrahedron(cell_cen, face_cen[0], face_cen[1], face_cen[2], &volume); CHKERRQ(ierr);
       subcell->T = volume*6.0;
     }
+    PetscReal normal[3], centroid;
     ierr = DMPlexComputeCellGeometryFVM(dm, icell, &(cell->volume), &centroid,
                                         &normal[0]); CHKERRQ(ierr);
 
