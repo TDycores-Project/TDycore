@@ -2,27 +2,86 @@
 #include <petscblaslapack.h>
 
 /* ---------------------------------------------------------------- */
-PetscInt GetNumberOfCellVertices(DM dm) {
+PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
+  PetscFunctionBegin;
+
+  PetscInt i, p, pStart, pEnd;
+  PetscInt cSize,*c;
+  MPI_Comm       comm;
+  PetscErrorCode ierr;
+
+  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &pStart, &pEnd); CHKERRQ(ierr);
+
+  for(p=pStart; p<pEnd; p++) {
+    c = NULL;
+    ierr = DMPlexGetTransitiveClosure(dm,p,PETSC_TRUE,&cSize,&c);CHKERRQ(ierr);
+    closureSize[p] = cSize;
+    if (cSize > maxClosureSize) SETERRQ(comm,PETSC_ERR_USER,"closureSize > maxClosureSize");
+    for (i=0;i<cSize*2;i++) closure[p][i] = c[i];
+    ierr = DMPlexRestoreTransitiveClosure(dm,p,PETSC_TRUE,&cSize,&c);CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDySaveClosures_Faces(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
+  PetscFunctionBegin;
+
+  PetscInt i, p, pStart, pEnd;
+  PetscInt cSize,*c;
+  MPI_Comm       comm;
+  PetscErrorCode ierr;
+
+  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm, 2, &pStart, &pEnd); CHKERRQ(ierr);
+
+  for(p=pStart; p<pEnd; p++) {
+    c = NULL;
+    ierr = DMPlexGetTransitiveClosure(dm,p,PETSC_TRUE,&cSize,&c);CHKERRQ(ierr);
+    closureSize[p] = cSize;
+    if (cSize > maxClosureSize) SETERRQ(comm,PETSC_ERR_USER,"closureSize > maxClosureSize");
+    for (i=0;i<cSize*2;i++) closure[p][i] = c[i];
+    ierr = DMPlexRestoreTransitiveClosure(dm,p,PETSC_TRUE,&cSize,&c);CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDySaveClosures(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
+  PetscFunctionBegin;
+
+  PetscInt dim;
+  PetscErrorCode ierr;
+
+  ierr = TDySaveClosures_Cells(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  if (dim == 3) {
+    ierr = TDySaveClosures_Faces(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscInt GetNumberOfCellVertices(DM dm, PetscInt *closureSize, PetscInt **closure) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   MPI_Comm       comm;
-  PetscInt nq,c,q,i,cStart,cEnd,vStart,vEnd,closureSize,*closure;
+  PetscInt nq,c,q,i,cStart,cEnd,vStart,vEnd;
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   nq = -1;
   for(c=cStart; c<cEnd; c++) {
-    closure = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
-    CHKERRQ(ierr);
     q = 0;
-    for (i=0; i<closureSize*2; i+=2) {
-      if ((closure[i] >= vStart) && (closure[i] < vEnd)) q += 1;
+    for (i=0; i<closureSize[c]*2; i+=2) {
+      if ((closure[c][i] >= vStart) && (closure[c][i] < vEnd)) q += 1;
     }
     if(nq == -1) nq = q;
     if(nq !=  q) SETERRQ(comm,PETSC_ERR_SUP,"Mesh cells must be of uniform type");
-    ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
-    CHKERRQ(ierr);
   }
   PetscFunctionReturn(nq);
 }

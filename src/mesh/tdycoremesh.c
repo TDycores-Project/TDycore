@@ -579,10 +579,12 @@ PetscErrorCode AllocateMemoryForFaces(
 
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode AllocateMemoryForMesh(DM dm, TDy_mesh *mesh) {
+PetscErrorCode AllocateMemoryForMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
+  DM dm;
+  TDy_mesh *mesh;
   PetscInt nverts_per_cell;
   PetscInt cStart, cEnd, cNum;
   PetscInt vStart, vEnd, vNum;
@@ -593,15 +595,14 @@ PetscErrorCode AllocateMemoryForMesh(DM dm, TDy_mesh *mesh) {
 
   PetscErrorCode ierr;
 
+  dm = tdy->dm;
+  mesh = tdy->mesh;
+
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   if (dim!= 2 && dim!=3 ) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Only 2D and 3D grids are supported");
   }
-
-  /* compute number of vertices per grid cell */
-  nverts_per_cell = GetNumberOfCellVertices(dm);
-  cell_type = GetCellType(dim, nverts_per_cell);
 
   /* Determine the number of cells, edges, and vertices of the mesh */
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
@@ -625,20 +626,27 @@ PetscErrorCode AllocateMemoryForMesh(DM dm, TDy_mesh *mesh) {
   mesh->num_edges    = eNum;
   mesh->num_vertices = vNum;
 
+  tdy->maxClosureSize = 27;
+  ierr = Allocate_IntegerArray_1D(&tdy->closureSize, cNum+fNum+eNum+fNum); CHKERRQ(ierr);
+  ierr = Allocate_IntegerArray_2D(&tdy->closure, cNum+fNum+eNum+fNum, 2*tdy->maxClosureSize); CHKERRQ(ierr);
+  ierr = TDySaveClosures(dm, tdy->closureSize, tdy->closure, tdy->maxClosureSize); CHKERRQ(ierr);
+
+  /* compute number of vertices per grid cell */
+  nverts_per_cell = GetNumberOfCellVertices(dm, tdy->closureSize, tdy->closure);
+  tdy->ncv = nverts_per_cell;
+  cell_type = GetCellType(dim, nverts_per_cell);
+
   ierr = Allocate_TDyCell_1D(cNum, &mesh->cells); CHKERRQ(ierr);
   ierr = Allocate_TDyFace_1D(fNum, &mesh->faces); CHKERRQ(ierr);
   ierr = Allocate_TDyEdge_1D(eNum, &mesh->edges); CHKERRQ(ierr);
   ierr = Allocate_TDyVertex_1D(vNum, &mesh->vertices); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForCells(cNum, cell_type, mesh->cells); CHKERRQ(ierr);
-  ierr = AllocateMemoryForVertices(vNum, cell_type, mesh->vertices);
-  CHKERRQ(ierr);
+  ierr = AllocateMemoryForVertices(vNum, cell_type, mesh->vertices); CHKERRQ(ierr);
 
-  ierr = AllocateMemoryForEdges(eNum, cell_type, mesh->edges);
-  CHKERRQ(ierr);
+  ierr = AllocateMemoryForEdges(eNum, cell_type, mesh->edges); CHKERRQ(ierr);
 
-  ierr = AllocateMemoryForFaces(fNum, cell_type, mesh->faces);
-  CHKERRQ(ierr);
+  ierr = AllocateMemoryForFaces(fNum, cell_type, mesh->faces); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
@@ -758,22 +766,20 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   PetscInt       fStart, fEnd;
   PetscInt       pStart, pEnd;
   PetscInt       icell;
-  PetscInt       closureSize, supportSize, coneSize;
-  PetscInt       *closure;
+  PetscInt       supportSize, coneSize;
   const PetscInt *support, *cone;
   PetscInt       c2vCount, c2eCount, c2fCount;
   PetscInt       nverts_per_cell;
   PetscInt       i,j,e,v,s;
   PetscReal      v_1[3], v_2[3];
   PetscInt       d;
-  PetscBool      use_cone;
   PetscErrorCode ierr;
 
   dm = tdy->dm;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
-  nverts_per_cell = GetNumberOfCellVertices(dm);
+  nverts_per_cell = tdy->ncv;
 
   /* Determine the number of cells, edges, and vertices of the mesh */
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
@@ -797,21 +803,17 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   // edge--to--cell
   // cell--to--edge
   // edge--to--cell
-  use_cone = PETSC_TRUE;
   for (icell=cStart; icell<cEnd; icell++) {
-    closure  = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm, icell, use_cone, &closureSize, &closure);
-    CHKERRQ(ierr);
 
     c2vCount = 0;
     c2eCount = 0;
     c2fCount = 0;
 
-    for (i=0; i<closureSize*2; i+=2)  {
+    for (i=0; i<tdy->closureSize[icell]*2; i+=2)  {
 
-      if (IsClosureWithinBounds(closure[i], vStart,
+      if (IsClosureWithinBounds(tdy->closure[icell][i], vStart,
                                 vEnd)) { /* Is the closure a vertex? */
-        PetscInt ivertex = closure[i] - vStart;
+        PetscInt ivertex = tdy->closure[icell][i] - vStart;
         cells[icell].vertex_ids[c2vCount] = ivertex ;
         for (j=0; j<nverts_per_cell; j++) {
           if (vertices[ivertex].internal_cell_ids[j] == -1) {
@@ -822,9 +824,9 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
           }
         }
         c2vCount++;
-      } else if (IsClosureWithinBounds(closure[i], eStart,
+      } else if (IsClosureWithinBounds(tdy->closure[icell][i], eStart,
                                        eEnd)) { /* Is the closure an edge? */
-        PetscInt iedge = closure[i] - eStart;
+        PetscInt iedge = tdy->closure[icell][i] - eStart;
         cells[icell].edge_ids[c2eCount] = iedge;
         for (j=0; j<2; j++) {
           if (edges[iedge].cell_ids[j] == -1) {
@@ -833,9 +835,9 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
           }
         }
         c2eCount++;
-      } else if (IsClosureWithinBounds(closure[i], fStart,
+      } else if (IsClosureWithinBounds(tdy->closure[icell][i], fStart,
                                        fEnd)) { /* Is the closure a face? */
-        PetscInt iface = closure[i] - fStart;
+        PetscInt iface = tdy->closure[icell][i] - fStart;
         cells[icell].face_ids[c2fCount] = iface;
         for (j=0; j<2; j++) {
           if (faces[iface].cell_ids[j] == -1) {
@@ -848,8 +850,8 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
       }
     }
 
-    ierr = DMPlexRestoreTransitiveClosure(dm, icell, use_cone, &closureSize, &closure);
   }
+
 
   // edge--to--vertex
   for (e=eStart; e<eEnd; e++) {
@@ -903,15 +905,14 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
     }
 
     // face--to-vertex
-    ierr = DMPlexGetTransitiveClosure(dm, f, use_cone, &closureSize, &closure); CHKERRQ(ierr);
     PetscInt i;
-    for (i=0; i<closureSize*2; i+=2)  {
-      if (IsClosureWithinBounds(closure[i],vStart,vEnd)) {
-        face->vertex_ids[face->num_vertices] = closure[i]-vStart;
+    for (i=0; i<tdy->closureSize[f]*2; i+=2)  {
+      if (IsClosureWithinBounds(tdy->closure[f][i],vStart,vEnd)) {
+        face->vertex_ids[face->num_vertices] = tdy->closure[f][i]-vStart;
         face->num_vertices++;
 
         PetscBool found = PETSC_FALSE;
-        PetscInt ivertex = closure[i]-vStart;
+        PetscInt ivertex = tdy->closure[f][i]-vStart;
         vertex = &vertices[ivertex];
         PetscInt ii;
         for (ii=0; ii<vertex->num_faces; ii++) {
@@ -926,7 +927,6 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
         }
       }
     }
-    ierr = DMPlexRestoreTransitiveClosure(dm, icell, use_cone, &closureSize, &closure); CHKERRQ(ierr);
 
     // face--to--cell
     ierr = DMPlexGetSupportSize(dm, f, &supportSize); CHKERRQ(ierr);

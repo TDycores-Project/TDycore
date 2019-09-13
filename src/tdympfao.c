@@ -1609,6 +1609,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   MPI_Comm       comm;
   DM             dm;
   PetscInt       dim;
+  PetscInt       nrow,ncol,nsubcells;
 
   PetscFunctionBegin;
 
@@ -1618,10 +1619,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   tdy->mesh = (TDy_mesh *) malloc(sizeof(TDy_mesh));
 
-  ierr = AllocateMemoryForMesh(dm, tdy->mesh); CHKERRQ(ierr);
-
-  ierr = Allocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
-                               tdy->mesh->num_vertices, 3, 3); CHKERRQ(ierr);
+  ierr = AllocateMemoryForMesh(tdy); CHKERRQ(ierr);
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -1636,6 +1634,10 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
                      &(tdy->vel_count)); CHKERRQ(ierr);
     ierr = Initialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_edges, 0); CHKERRQ(ierr);
 
+    nsubcells = 4;
+    nrow = 2;
+    ncol = 2;
+
     break;
   case 3:
     ierr = Allocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 12, 12);
@@ -1647,11 +1649,18 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
                      &(tdy->vel_count)); CHKERRQ(ierr);
     ierr = Initialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_faces, 0); CHKERRQ(ierr);
 
+    nsubcells = 8;
+    nrow = 3;
+    ncol = 3;
+
     break;
   default:
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in TDyMPFAOInitialize");
     break;
   }
+
+  ierr = Allocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
+                               nsubcells, nrow, ncol); CHKERRQ(ierr);
 
   ierr = BuildMesh(tdy); CHKERRQ(ierr);
 
