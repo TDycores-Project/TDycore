@@ -4,29 +4,29 @@
 #include <petsc.h>
 #include <private/tdymeshimpl.h>
 
-PETSC_EXTERN PetscErrorCode Initialize_IntegerArray_1D(PetscInt*,PetscInt,PetscInt);
-PETSC_EXTERN PetscErrorCode Initialize_IntegerArray_2D(PetscInt**,PetscInt,PetscInt,PetscInt);
-PETSC_EXTERN PetscErrorCode Initialize_RealArray_1D(PetscReal*,PetscInt,PetscReal);
-PETSC_EXTERN PetscErrorCode Initialize_RealArray_2D(PetscReal**,PetscInt,PetscInt,PetscReal);
-PETSC_EXTERN PetscErrorCode Initialize_RealArray_3D(PetscReal***,PetscInt,PetscInt,PetscInt,PetscReal);
-PETSC_EXTERN PetscErrorCode Initialize_RealArray_4D(PetscReal****,PetscInt,PetscInt,PetscInt,PetscInt,PetscReal);
-PETSC_EXTERN PetscErrorCode Allocate_IntegerArray_1D(PetscInt**,PetscInt);
-PETSC_EXTERN PetscErrorCode Allocate_IntegerArray_2D(PetscInt***,PetscInt,PetscInt);
-PETSC_EXTERN PetscErrorCode Allocate_RealArray_1D(PetscReal**,PetscInt);
-PETSC_EXTERN PetscErrorCode Allocate_RealArray_2D(PetscReal***,PetscInt, PetscInt);
-PETSC_EXTERN PetscErrorCode Allocate_RealArray_3D(PetscReal****,PetscInt,PetscInt,PetscInt);
-PETSC_EXTERN PetscErrorCode Allocate_RealArray_4D(PetscReal*****,PetscInt,PetscInt,PetscInt,PetscInt);
-PETSC_EXTERN PetscErrorCode Deallocate_IntegerArray_2D(PetscInt**,PetscInt);
-PETSC_EXTERN PetscErrorCode Deallocate_RealArray_2D(PetscReal**,PetscInt);
-PETSC_EXTERN PetscErrorCode Deallocate_RealArray_3D(PetscReal***,PetscInt,PetscInt);
-PETSC_EXTERN PetscErrorCode Deallocate_RealArray_4D(PetscReal****,PetscInt,PetscInt,PetscInt);
-PETSC_EXTERN PetscErrorCode Allocate_TDyCell_1D(PetscInt,TDy_cell**);
-PETSC_EXTERN PetscErrorCode Allocate_TDyVertex_1D(PetscInt,TDy_vertex**);
-PETSC_EXTERN PetscErrorCode Allocate_TDyEdge_1D(PetscInt,TDy_edge**);
-PETSC_EXTERN PetscErrorCode Allocate_TDyFace_1D(PetscInt,TDy_face**);
-PETSC_EXTERN PetscErrorCode Allocate_TDySubcell_1D(PetscInt,TDy_subcell**);
-PETSC_EXTERN PetscErrorCode Allocate_TDyVector_1D(PetscInt,TDy_vector**);
-PETSC_EXTERN PetscErrorCode Allocate_TDyCoordinate_1D(PetscInt,TDy_coordinate**);
+PETSC_EXTERN PetscErrorCode TDyInitialize_IntegerArray_1D(PetscInt*,PetscInt,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyInitialize_IntegerArray_2D(PetscInt**,PetscInt,PetscInt,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyInitialize_RealArray_1D(PetscReal*,PetscInt,PetscReal);
+PETSC_EXTERN PetscErrorCode TDyInitialize_RealArray_2D(PetscReal**,PetscInt,PetscInt,PetscReal);
+PETSC_EXTERN PetscErrorCode TDyInitialize_RealArray_3D(PetscReal***,PetscInt,PetscInt,PetscInt,PetscReal);
+PETSC_EXTERN PetscErrorCode TDyInitialize_RealArray_4D(PetscReal****,PetscInt,PetscInt,PetscInt,PetscInt,PetscReal);
+PETSC_EXTERN PetscErrorCode TDyAllocate_IntegerArray_1D(PetscInt**,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyAllocate_IntegerArray_2D(PetscInt***,PetscInt,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyAllocate_RealArray_1D(PetscReal**,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyAllocate_RealArray_2D(PetscReal***,PetscInt, PetscInt);
+PETSC_EXTERN PetscErrorCode TDyAllocate_RealArray_3D(PetscReal****,PetscInt,PetscInt,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyAllocate_RealArray_4D(PetscReal*****,PetscInt,PetscInt,PetscInt,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyDeallocate_IntegerArray_2D(PetscInt**,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyDeallocate_RealArray_2D(PetscReal**,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyDeallocate_RealArray_3D(PetscReal***,PetscInt,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyDeallocate_RealArray_4D(PetscReal****,PetscInt,PetscInt,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyAllocate_TDyCell_1D(PetscInt,TDy_cell**);
+PETSC_EXTERN PetscErrorCode TDyAllocate_TDyVertex_1D(PetscInt,TDy_vertex**);
+PETSC_EXTERN PetscErrorCode TDyAllocate_TDyEdge_1D(PetscInt,TDy_edge**);
+PETSC_EXTERN PetscErrorCode TDyAllocate_TDyFace_1D(PetscInt,TDy_face**);
+PETSC_EXTERN PetscErrorCode TDyAllocate_TDySubcell_1D(PetscInt,TDy_subcell**);
+PETSC_EXTERN PetscErrorCode TDyAllocate_TDyVector_1D(PetscInt,TDy_vector**);
+PETSC_EXTERN PetscErrorCode TDyAllocate_TDyCoordinate_1D(PetscInt,TDy_coordinate**);
 
 #endif
 

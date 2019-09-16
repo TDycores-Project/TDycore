@@ -127,7 +127,7 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
   ierr = TDyCreateCellVertexDirFaceMap(tdy,&(tdy->emap)); CHKERRQ(ierr);
 
   /* Build map(face,local_vertex) --> vertex */
-  nfv = TDyGetNumberOfFaceVertices(dm);
+  nfv = TDyTDyGetNumberOfFaceVertices(dm);
   ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscInt),
                      &(tdy->fmap)); CHKERRQ(ierr);
   for(f=fStart; f<fEnd; f++) {

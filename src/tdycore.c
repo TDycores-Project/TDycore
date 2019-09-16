@@ -237,7 +237,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     if (tdy->method != MPFA_O) {
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-tdy_output_mesh only supported for MPFA-O method");
     }
-    ierr = OutputMesh(tdy); CHKERRQ(ierr);
+    ierr = TDyOutputMesh(tdy); CHKERRQ(ierr);
   }
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
@@ -401,7 +401,7 @@ PetscInt TDyGetNumberOfCellVertices(DM dm) {
   PetscFunctionReturn(nq);
 }
 
-PetscInt TDyGetNumberOfFaceVertices(DM dm) {
+PetscInt TDyTDyGetNumberOfFaceVertices(DM dm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   MPI_Comm       comm;

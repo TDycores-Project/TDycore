@@ -256,7 +256,7 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
                      &(tdy->Flocal)); CHKERRQ(ierr);
 
   /* Allocate space for velocities and create a local_vertex->face map */
-  tdy->nfv = TDyGetNumberOfFaceVertices(dm);
+  tdy->nfv = TDyTDyGetNumberOfFaceVertices(dm);
   nfv = tdy->nfv;
   ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscReal),
                      &(tdy->vel )); CHKERRQ(ierr);
