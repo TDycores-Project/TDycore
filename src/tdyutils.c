@@ -66,7 +66,7 @@ PetscErrorCode TDySaveClosures(DM dm, PetscInt *closureSize, PetscInt **closure,
 }
 
 /* ---------------------------------------------------------------- */
-PetscInt GetNumberOfCellVertices(DM dm, PetscInt *closureSize, PetscInt **closure) {
+PetscInt GetNumberOfCellVerticesWithClosures(DM dm, PetscInt *closureSize, PetscInt **closure) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   MPI_Comm       comm;

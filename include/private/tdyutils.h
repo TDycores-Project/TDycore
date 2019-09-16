@@ -5,7 +5,7 @@
 #include <petsc/private/petscimpl.h>
 
 PETSC_EXTERN PetscErrorCode TDySaveClosures(DM,PetscInt*,PetscInt**,PetscInt);
-PETSC_EXTERN PetscInt GetNumberOfCellVertices(DM,PetscInt*,PetscInt**);
+PETSC_EXTERN PetscInt GetNumberOfCellVerticesWithClosures(DM,PetscInt*,PetscInt**);
 PETSC_EXTERN PetscInt GetNumberOfFaceVertices(DM dm);
 PETSC_EXTERN PetscErrorCode ComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim, PetscReal *length);
 PETSC_EXTERN PetscErrorCode CrossProduct(PetscReal vect_A[3], PetscReal vect_B[3], PetscReal cross_P[3]);

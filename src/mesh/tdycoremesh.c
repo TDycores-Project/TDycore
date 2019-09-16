@@ -632,7 +632,7 @@ PetscErrorCode AllocateMemoryForMesh(TDy tdy) {
   ierr = TDySaveClosures(dm, tdy->closureSize, tdy->closure, tdy->maxClosureSize); CHKERRQ(ierr);
 
   /* compute number of vertices per grid cell */
-  nverts_per_cell = GetNumberOfCellVertices(dm, tdy->closureSize, tdy->closure);
+  nverts_per_cell = GetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
   tdy->ncv = nverts_per_cell;
   cell_type = GetCellType(dim, nverts_per_cell);
 
