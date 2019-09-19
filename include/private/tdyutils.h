@@ -6,7 +6,6 @@
 
 PETSC_EXTERN PetscErrorCode TDySaveClosures(DM,PetscInt*,PetscInt**,PetscInt);
 PETSC_EXTERN PetscInt TDyGetNumberOfCellVerticesWithClosures(DM,PetscInt*,PetscInt**);
-PETSC_EXTERN PetscInt TDyGetNumberOfFaceVertices(DM dm);
 PETSC_EXTERN PetscErrorCode TDyComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim, PetscReal *length);
 PETSC_EXTERN PetscErrorCode TDyCrossProduct(PetscReal vect_A[3], PetscReal vect_B[3], PetscReal cross_P[3]);
 PETSC_EXTERN PetscErrorCode TDyDotProduct(PetscReal vect_A[3], PetscReal vect_B[3], PetscReal *dot_P);

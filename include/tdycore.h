@@ -102,7 +102,7 @@ PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P);
 PETSC_EXTERN PetscErrorCode Pullback(PetscScalar *K,PetscScalar *DFinv,
                                      PetscScalar *Kappa,PetscScalar J,PetscInt nn);
 PETSC_EXTERN PetscInt TDyGetNumberOfCellVertices(DM dm);
-PETSC_EXTERN PetscInt TDyTDyGetNumberOfFaceVertices(DM dm);
+PETSC_EXTERN PetscInt TDyGetNumberOfFaceVertices(DM dm);
 PETSC_EXTERN PetscReal TDyL1norm(PetscReal *x,PetscReal *y,PetscInt dim);
 PETSC_EXTERN PetscReal TDyADotBMinusC(PetscReal *a,PetscReal *b,PetscReal *c,
                                       PetscInt dim);

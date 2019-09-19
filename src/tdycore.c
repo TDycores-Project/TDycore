@@ -401,7 +401,7 @@ PetscInt TDyGetNumberOfCellVertices(DM dm) {
   PetscFunctionReturn(nq);
 }
 
-PetscInt TDyTDyGetNumberOfFaceVertices(DM dm) {
+PetscInt TDyGetNumberOfFaceVertices(DM dm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   MPI_Comm       comm;

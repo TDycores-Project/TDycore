@@ -994,6 +994,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   ndim      = 3;
   vertex_id = vertex->id;
   faces = tdy->mesh->faces;
+  printf("vertex_id = %d\n",vertex_id);
 
   // Determine:
   //  (1) number of internal and boudnary fluxes,
@@ -1158,6 +1159,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
 
   }
   /*
+    Upwind/Downwind
       Flux     =         F            *     Pcenter      +                         C                         *      P_interface
     _       _     _                  _   _           _       _                                             _    _               _
    |         |   |                    | |             |     |                                               |  |  P_(nptif_in,1) |
