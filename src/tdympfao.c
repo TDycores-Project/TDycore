@@ -932,8 +932,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   PetscInt icell, isubcell;
 
   PetscReal **Fup, **Cup, **Fdn, **Cdn;
-  PetscReal **FupInxIn, **FdnInxIn; // InxIn: Internal flux with contribution from unknown internal pressure values
-  PetscReal **FupBcxIn, **FdnBcxIn; // BcxIn: Boundary flux with contribution from unknown internal pressure values
+  PetscReal **FupInxCen, **FdnInxCen; // InxIn: Internal flux with contribution from unknown internal pressure values
+  PetscReal **FupBcxCen, **FdnBcxCen; // BcxIn: Boundary flux with contribution from unknown internal pressure values
   PetscReal **CupInxIn, **CdnInxIn; // InxIn: Internal flux with contribution from unknown internal pressure values
   PetscReal **CupInxBc, **CdnInxBc; // Inxbc: Internal flux with contribution from known boundary pressure values
   PetscReal **CupBcxIn, **CdnBcxIn; // BcxIn: Boundary flux with contribution from unknown internal pressure values
@@ -996,10 +996,10 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   ierr = Allocate_RealArray_2D(&Fdn, nflux, npcen);
   ierr = Allocate_RealArray_2D(&Cdn, nflux, npitf);
 
-  ierr = Allocate_RealArray_2D(&FupInxIn, nflux_in, npcen);
-  ierr = Allocate_RealArray_2D(&FupBcxIn, nflux_bc, npcen);
-  ierr = Allocate_RealArray_2D(&FdnInxIn, nflux_in, npcen);
-  ierr = Allocate_RealArray_2D(&FdnBcxIn, nflux_bc, npcen);
+  ierr = Allocate_RealArray_2D(&FupInxCen, nflux_in, npcen);
+  ierr = Allocate_RealArray_2D(&FupBcxCen, nflux_bc, npcen);
+  ierr = Allocate_RealArray_2D(&FdnInxCen, nflux_in, npcen);
+  ierr = Allocate_RealArray_2D(&FdnBcxCen, nflux_bc, npcen);
 
   ierr = Allocate_RealArray_2D(&CupInxIn, nflux_in, npitf_in);
   ierr = Allocate_RealArray_2D(&CupInxBc, nflux_in, npitf_bc);
@@ -1141,12 +1141,12 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
 
   for (j=0; j<npcen; j++) {
     for (i=0; i<nflux_in; i++) {
-      FupInxIn[i][j] = Fup[i][j];
-      FdnInxIn[i][j] = Fdn[i][j];
+      FupInxCen[i][j] = Fup[i][j];
+      FdnInxCen[i][j] = Fdn[i][j];
     }
     for (i=0; i<nflux_bc; i++) {
-      FupBcxIn[i][j] = Fup[i+nflux_in][j];
-      FdnBcxIn[i][j] = Fdn[i+nflux_in][j];
+      FupBcxCen[i][j] = Fup[i+nflux_in][j];
+      FdnBcxCen[i][j] = Fdn[i+nflux_in][j];
     }
   }
 
@@ -1197,8 +1197,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   idx = 0;
   for (j=0; j<npcen; j++) {
     for (i=0; i<nflux_in; i++) {
-      BInxIn[i][j]   = -FupInxIn[i][j] + FdnInxIn[i][j];
-      BInxIn_1d[idx] = -FupInxIn[i][j] + FdnInxIn[i][j];
+      BInxIn[i][j]   = -FupInxCen[i][j] + FdnInxCen[i][j];
+      BInxIn_1d[idx] = -FupInxCen[i][j] + FdnInxCen[i][j];
       idx++;
     }
   }
@@ -1266,7 +1266,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   idx = 0;
   for (j=0; j<npcen; j++) {
     for (i=0; i<nflux_in; i++) {
-      tdy->Trans[vertex_id][i][j] = -FupInxIn[i][j] + CupInxIntimesAInxIninvBInxIn_1d[idx];
+      tdy->Trans[vertex_id][i][j] = -FupInxCen[i][j] + CupInxIntimesAInxIninvBInxIn_1d[idx];
       idx++;
     }
   }
@@ -1282,8 +1282,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   idx = 0;
   for (j=0; j<npcen; j++) {
     for (i=0; i<nflux_bc; i++) {
-      tdy->Trans[vertex_id][i+nflux_in         ][j] = -FupBcxIn[i][j] + CupBcxIntimesAInxIninvBInxIn_1d[idx];
-      tdy->Trans[vertex_id][i+nflux_in+nflux_bc][j] = -FdnBcxIn[i][j] + CdnBcxIntimesAInxIninvBInxIn_1d[idx];
+      tdy->Trans[vertex_id][i+nflux_in         ][j] = -FupBcxCen[i][j] + CupBcxIntimesAInxIninvBInxIn_1d[idx];
+      tdy->Trans[vertex_id][i+nflux_in+nflux_bc][j] = -FdnBcxCen[i][j] + CdnBcxIntimesAInxIninvBInxIn_1d[idx];
       idx++;
     }
   }
@@ -1303,10 +1303,10 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   ierr = Deallocate_RealArray_2D(Fdn, nflux); CHKERRQ(ierr);
   ierr = Deallocate_RealArray_2D(Cdn, nflux); CHKERRQ(ierr);
 
-  ierr = Deallocate_RealArray_2D(FupInxIn, nflux_in); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(FupBcxIn, nflux_bc); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(FdnInxIn, nflux_in); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(FdnBcxIn, nflux_bc); CHKERRQ(ierr);
+  ierr = Deallocate_RealArray_2D(FupInxCen, nflux_in); CHKERRQ(ierr);
+  ierr = Deallocate_RealArray_2D(FupBcxCen, nflux_bc); CHKERRQ(ierr);
+  ierr = Deallocate_RealArray_2D(FdnInxCen, nflux_in); CHKERRQ(ierr);
+  ierr = Deallocate_RealArray_2D(FdnBcxCen, nflux_bc); CHKERRQ(ierr);
 
   ierr = Deallocate_RealArray_2D(CupInxIn, nflux_in); CHKERRQ(ierr);
   ierr = Deallocate_RealArray_2D(CupInxBc, nflux_in); CHKERRQ(ierr);
