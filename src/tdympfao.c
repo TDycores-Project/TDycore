@@ -753,6 +753,55 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex(TDy tdy,
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode ComputeAinvB(PetscInt A_nrow, PetscReal *A,
+    PetscInt B_ncol, PetscReal *B, PetscReal *AinvB) {
+
+  PetscFunctionBegin;
+
+  PetscInt m, n;
+  PetscBLASInt info, *pivots;
+  PetscErrorCode ierr;
+
+  m = A_nrow; n = A_nrow;
+  ierr = PetscMalloc((n+1)*sizeof(PetscBLASInt), &pivots); CHKERRQ(ierr);
+
+  LAPACKgetrf_(&m, &n, A, &m, pivots, &info);
+  if (info<0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB,
+                        "Bad argument to LU factorization");
+  if (info>0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_MAT_LU_ZRPVT,
+                        "Bad LU factorization");
+
+  ierr = PetscMemcpy(AinvB,B,sizeof(PetscScalar)*(A_nrow*B_ncol));
+  CHKERRQ(ierr); // AinvB in col major
+
+  // Solve AinvB = (A^-1 * B) by back-substitution
+  m = A_nrow; n = B_ncol;
+  LAPACKgetrs_("N", &m, &n, A, &m, pivots, AinvB, &m, &info);
+  if (info) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"GETRS - Bad solve");
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode ComputeCtimesAinvB(PetscInt A_nrow, PetscInt B_ncol, PetscInt C_nrow,
+    PetscReal *C, PetscReal *AinvB, PetscReal *CtimesAinvB) {
+
+  PetscFunctionBegin;
+
+  PetscInt m, n, k;
+  PetscScalar zero = 0.0, one = 1.0;
+
+  // Compute (C * AinvB)
+  m = C_nrow; n = B_ncol; k = A_nrow;
+  BLASgemm_("N","N", &m, &n, &k, &one, C, &m, AinvB, &m, &zero,
+            CtimesAinvB, &m);
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
     TDy_vertex *vertex, TDy_cell *cells) {
 
@@ -769,9 +818,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   PetscReal **Gmatrix;
   PetscInt idx, vertex_id;
   PetscErrorCode ierr;
-  PetscBLASInt info, *pivots;
-  PetscInt i, j, k, n, m, ndim, nfluxes;
-  PetscScalar zero = 0.0, one = 1.0;
+  PetscInt i, j, ndim, nfluxes;
 
   PetscFunctionBegin;
 
@@ -869,32 +916,16 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
     }
   }
 
-  m = nfluxes; n = nfluxes;
-  ierr = PetscMalloc((n+1)*sizeof(PetscBLASInt), &pivots); CHKERRQ(ierr);
+  // Solve A^-1 * B
+  ierr = ComputeAinvB(nfluxes, A1d, ncells, B1d, AinvB1d);
 
-  LAPACKgetrf_(&m, &n, A1d, &m, pivots, &info);
-  if (info<0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB,
-                        "Bad argument to LU factorization");
-  if (info>0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_MAT_LU_ZRPVT,
-                        "Bad LU factorization");
+  // Solve C * (A^-1 * B)
+  ierr = ComputeCtimesAinvB(nfluxes, ncells, nfluxes, Cup1d, AinvB1d, CuptimesAinvB1d);
 
-  ierr = PetscMemcpy(AinvB1d,B1d,sizeof(PetscScalar)*(nfluxes*ncells));
-  CHKERRQ(ierr); // AinvB in col major
-
-  // Solve AinvB = (A^-1 * B) by back-substitution
-  m = nfluxes; n = ncells;
-  LAPACKgetrs_("N", &m, &n, A1d, &m, pivots, AinvB1d, &m, &info);
-  if (info) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"GETRS - Bad solve");
-
-  // Compute (C * AinvB)
-  m = nfluxes; n = ncells; k = nfluxes;
-  BLASgemm_("N","N", &m, &n, &k, &one, Cup1d, &m, AinvB1d, &m, &zero,
-            CuptimesAinvB1d, &m);
-
+  // Save Transmissibility matrix
   idx = 0;
   for (j=0; j<ncells; j++) {
     for (i=0; i<nfluxes; i++) {
-      AinvB[i][j] = AinvB1d[idx];
       tdy->Trans[vertex_id][i][j] = CuptimesAinvB1d[idx] - Fup[i][j];
       idx++;
     }
@@ -909,12 +940,10 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   ierr = Deallocate_RealArray_2D(A      , nfluxes ); CHKERRQ(ierr);
   ierr = Deallocate_RealArray_2D(B      , nfluxes ); CHKERRQ(ierr);
   ierr = Deallocate_RealArray_2D(AinvB  , nfluxes ); CHKERRQ(ierr);
-  ierr = PetscFree(pivots                         ); CHKERRQ(ierr);
 
   free(A1d             );
   free(B1d             );
   free(Cup1d           );
-  free(AinvB1d         );
   free(CuptimesAinvB1d );
 
   PetscFunctionReturn(0);
