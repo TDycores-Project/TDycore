@@ -179,18 +179,18 @@ struct _TDy_mesh {
 
 };
 
-PETSC_EXTERN PetscErrorCode OutputMesh(TDy);
-PETSC_EXTERN PetscErrorCode BuildTwoDimMesh(TDy);
-PETSC_EXTERN PetscErrorCode BuildMesh(TDy);
-PETSC_EXTERN PetscErrorCode AllocateMemoryForMesh(TDy);
-PETSC_EXTERN PetscErrorCode SubCell_GetIthNuVector(TDy_subcell*,PetscInt,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode SubCell_GetIthFaceCentroid(TDy_subcell*,PetscInt,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode Subcell_GetFaceIndexForAFace(TDy_subcell*,PetscInt,PetscInt *);
-PETSC_EXTERN PetscErrorCode Edge_GetCentroid(TDy_edge*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode Edge_GetNormal(TDy_edge*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode Face_GetNormal(TDy_face*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode Face_GetCentroid(TDy_face*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode Vertex_GetCoordinate(TDy_vertex*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode Cell_GetCentroid(TDy_cell*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode FindSubcellOfACellThatIncludesAVertex(TDy_cell*,TDy_vertex*,TDy_subcell**);
+PETSC_EXTERN PetscErrorCode TDyOutputMesh(TDy);
+PETSC_EXTERN PetscErrorCode TDyBuildTwoDimMesh(TDy);
+PETSC_EXTERN PetscErrorCode TDyBuildMesh(TDy);
+PETSC_EXTERN PetscErrorCode TDyAllocateMemoryForMesh(TDy);
+PETSC_EXTERN PetscErrorCode TDySubCell_GetIthNuVector(TDy_subcell*,PetscInt,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDySubCell_GetIthFaceCentroid(TDy_subcell*,PetscInt,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDySubCell_GetFaceIndexForAFace(TDy_subcell*,PetscInt,PetscInt *);
+PETSC_EXTERN PetscErrorCode TDyEdge_GetCentroid(TDy_edge*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyEdge_GetNormal(TDy_edge*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyFace_GetNormal(TDy_face*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyFace_GetCentroid(TDy_face*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyCell_GetCentroid(TDy_cell*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,TDy_vertex*,TDy_subcell**);
 #endif

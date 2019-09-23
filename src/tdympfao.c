@@ -117,22 +117,22 @@ PetscErrorCode ComputeGMatrixFor2DMesh(TDy tdy) {
       edge_dn = &edges[e_idx_dn];
 
       // extract nu-vectors
-      ierr = SubCell_GetIthNuVector(subcell, 0, dim, &nu_up[0]); CHKERRQ(ierr);
-      ierr = SubCell_GetIthNuVector(subcell, 1, dim, &nu_dn[0]); CHKERRQ(ierr);
+      ierr = TDySubCell_GetIthNuVector(subcell, 0, dim, &nu_up[0]); CHKERRQ(ierr);
+      ierr = TDySubCell_GetIthNuVector(subcell, 1, dim, &nu_dn[0]); CHKERRQ(ierr);
 
       // extract centroid of edges
-      ierr = Edge_GetCentroid(edge_dn, dim, &e_cen_dn[0]); CHKERRQ(ierr);
-      ierr = Edge_GetCentroid(edge_up, dim, &e_cen_up[0]); CHKERRQ(ierr);
+      ierr = TDyEdge_GetCentroid(edge_dn, dim, &e_cen_dn[0]); CHKERRQ(ierr);
+      ierr = TDyEdge_GetCentroid(edge_up, dim, &e_cen_up[0]); CHKERRQ(ierr);
 
       // extract normal to edges
-      ierr = Edge_GetNormal(edge_dn, dim, &n_dn[0]); CHKERRQ(ierr);
-      ierr = Edge_GetNormal(edge_up, dim, &n_up[0]); CHKERRQ(ierr);
+      ierr = TDyEdge_GetNormal(edge_dn, dim, &n_dn[0]); CHKERRQ(ierr);
+      ierr = TDyEdge_GetNormal(edge_up, dim, &n_up[0]); CHKERRQ(ierr);
 
-      ierr = Vertex_GetCoordinate(vertex, dim, &v_c[0]); CHKERRQ(ierr);
+      ierr = TDyVertex_GetCoordinate(vertex, dim, &v_c[0]); CHKERRQ(ierr);
 
       //
-      ierr = ComputeLength(v_c, e_cen_dn, dim, &e_len_dn);
-      ierr = ComputeLength(v_c, e_cen_up, dim, &e_len_up);
+      ierr = TDyComputeLength(v_c, e_cen_dn, dim, &e_len_dn);
+      ierr = TDyComputeLength(v_c, e_cen_up, dim, &e_len_up);
 
       //                               _         _   _           _
       //                              |           | |             |
@@ -211,12 +211,12 @@ PetscErrorCode ComputeGMatrixFor3DMesh(TDy tdy) {
         
         area = subcell->face_area[ii];
 
-        ierr = Face_GetNormal(face, dim, &normal[0]); CHKERRQ(ierr);
+        ierr = TDyFace_GetNormal(face, dim, &normal[0]); CHKERRQ(ierr);
 
         for (jj=0;jj<subcell->num_faces;jj++) {
           PetscReal nu[dim];
 
-          ierr = SubCell_GetIthNuVector(subcell, jj, dim, &nu[0]); CHKERRQ(ierr);
+          ierr = TDySubCell_GetIthNuVector(subcell, jj, dim, &nu[0]); CHKERRQ(ierr);
           
           ierr = ComputeEntryOfGMatrix3D(area, normal, K, nu, subcell->T, dim,
                                          &(tdy->subc_Gmatrix[icell][isubcell][ii][jj]));
@@ -319,20 +319,20 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex(TDy tdy,
   ncells    = vertex->num_internal_cells;
   vertex_id = vertex->id;
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, ndim, ndim  ); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&Fup, ncells, ncells); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&Fdn, ncells, ncells); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&Cup, ncells, ncells); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&Cdn, ncells, ncells); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&A, ncells, ncells); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&B, ncells, ncells); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&AinvB, ncells, ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, ndim, ndim  ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Fup, ncells, ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Fdn, ncells, ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Cup, ncells, ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Cdn, ncells, ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&A, ncells, ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&B, ncells, ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&AinvB, ncells, ncells); CHKERRQ(ierr);
 
-  ierr = Allocate_RealArray_1D(&A1d, ncells*ncells); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_1D(&B1d, ncells*ncells); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_1D(&Cup1d, ncells*ncells); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_1D(&AinvB1d, ncells*ncells); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_1D(&CuptimesAinvB1d, ncells*ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&A1d, ncells*ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&B1d, ncells*ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&Cup1d, ncells*ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&AinvB1d, ncells*ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&CuptimesAinvB1d, ncells*ncells); CHKERRQ(ierr);
 
   for (i=0; i<ncells; i++) {
     icell    = vertex->internal_cell_ids[i];
@@ -398,14 +398,14 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex(TDy tdy,
   }
 
   // Free up the memory
-  ierr = Deallocate_RealArray_2D(Gmatrix, ndim   ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(Fup, ncells ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(Fdn, ncells ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(Cup, ncells ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(Cdn, ncells ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(A, ncells ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(B, ncells ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(AinvB, ncells ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Gmatrix, ndim   ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fup, ncells ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fdn, ncells ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup, ncells ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn, ncells ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(A, ncells ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(B, ncells ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(AinvB, ncells ); CHKERRQ(ierr);
   ierr = PetscFree(pivots                         ); CHKERRQ(ierr);
 
   free(A1d             );
@@ -466,55 +466,55 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex(TDy tdy,
   ncells_bc = vertex->num_boundary_cells;
   vertex_id = vertex->id;
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, ndim, ndim);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, ndim, ndim);
 
-  ierr = Allocate_RealArray_2D(&Fup, ncells_in+ncells_bc, ncells_in+ncells_bc);
-  ierr = Allocate_RealArray_2D(&Cup, ncells_in+ncells_bc, ncells_in+ncells_bc);
-  ierr = Allocate_RealArray_2D(&Fdn, ncells_in+ncells_bc, ncells_in+ncells_bc);
-  ierr = Allocate_RealArray_2D(&Cdn, ncells_in+ncells_bc, ncells_in+ncells_bc);
+  ierr = TDyAllocate_RealArray_2D(&Fup, ncells_in+ncells_bc, ncells_in+ncells_bc);
+  ierr = TDyAllocate_RealArray_2D(&Cup, ncells_in+ncells_bc, ncells_in+ncells_bc);
+  ierr = TDyAllocate_RealArray_2D(&Fdn, ncells_in+ncells_bc, ncells_in+ncells_bc);
+  ierr = TDyAllocate_RealArray_2D(&Cdn, ncells_in+ncells_bc, ncells_in+ncells_bc);
 
-  ierr = Allocate_RealArray_2D(&FupInxIn, ncells_in-1, ncells_in);
-  ierr = Allocate_RealArray_2D(&FupBcxIn, 1, ncells_in);
-  ierr = Allocate_RealArray_2D(&FdnInxIn, ncells_in-1, ncells_in);
-  ierr = Allocate_RealArray_2D(&FdnBcxIn, 1, ncells_in);
+  ierr = TDyAllocate_RealArray_2D(&FupInxIn, ncells_in-1, ncells_in);
+  ierr = TDyAllocate_RealArray_2D(&FupBcxIn, 1, ncells_in);
+  ierr = TDyAllocate_RealArray_2D(&FdnInxIn, ncells_in-1, ncells_in);
+  ierr = TDyAllocate_RealArray_2D(&FdnBcxIn, 1, ncells_in);
 
-  ierr = Allocate_RealArray_2D(&CupInxIn, ncells_in-1, ncells_in-1);
-  ierr = Allocate_RealArray_2D(&CupInxBc, ncells_in-1, ncells_bc  );
-  ierr = Allocate_RealArray_2D(&CupBcxIn, 1, ncells_in-1);
-  ierr = Allocate_RealArray_2D(&CupBcxBc, 1, ncells_bc  );
+  ierr = TDyAllocate_RealArray_2D(&CupInxIn, ncells_in-1, ncells_in-1);
+  ierr = TDyAllocate_RealArray_2D(&CupInxBc, ncells_in-1, ncells_bc  );
+  ierr = TDyAllocate_RealArray_2D(&CupBcxIn, 1, ncells_in-1);
+  ierr = TDyAllocate_RealArray_2D(&CupBcxBc, 1, ncells_bc  );
 
-  ierr = Allocate_RealArray_2D(&CdnInxIn, ncells_in-1, ncells_in-1);
-  ierr = Allocate_RealArray_2D(&CdnInxBc, ncells_in-1, ncells_bc  );
-  ierr = Allocate_RealArray_2D(&CdnBcxIn, 1, ncells_in-1);
-  ierr = Allocate_RealArray_2D(&CdnBcxBc, 1, ncells_bc  );
+  ierr = TDyAllocate_RealArray_2D(&CdnInxIn, ncells_in-1, ncells_in-1);
+  ierr = TDyAllocate_RealArray_2D(&CdnInxBc, ncells_in-1, ncells_bc  );
+  ierr = TDyAllocate_RealArray_2D(&CdnBcxIn, 1, ncells_in-1);
+  ierr = TDyAllocate_RealArray_2D(&CdnBcxBc, 1, ncells_bc  );
 
-  ierr = Allocate_RealArray_2D(&AInxIn, ncells_in-1, ncells_in-1);
-  ierr = Allocate_RealArray_2D(&BInxIn, ncells_in-1, ncells_in  );
+  ierr = TDyAllocate_RealArray_2D(&AInxIn, ncells_in-1, ncells_in-1);
+  ierr = TDyAllocate_RealArray_2D(&BInxIn, ncells_in-1, ncells_in  );
 
-  ierr = Allocate_RealArray_2D(&AInxIninvBInxIn, ncells_in-1, ncells_in);
+  ierr = TDyAllocate_RealArray_2D(&AInxIninvBInxIn, ncells_in-1, ncells_in);
 
-  ierr = Allocate_RealArray_1D(&AInxIn_1d, (ncells_in-1)*(ncells_in-1));
-  ierr = Allocate_RealArray_1D(&lapack_mem_1d, (ncells_in-1)*(ncells_in-1));
-  ierr = Allocate_RealArray_1D(&BInxIn_1d, (ncells_in-1)* ncells_in   );
-  ierr = Allocate_RealArray_1D(&AInxIninv_1d, (ncells_in-1)*(ncells_in-1));
-  ierr = Allocate_RealArray_1D(&AInxIninvBInxIn_1d, (ncells_in-1)* ncells_in   );
-  ierr = Allocate_RealArray_1D(&CupInxIn_1d, (ncells_in-1)*(ncells_in-1));
-  ierr = Allocate_RealArray_1D(&CupInxIntimesAInxIninvBInxIn_1d,
+  ierr = TDyAllocate_RealArray_1D(&AInxIn_1d, (ncells_in-1)*(ncells_in-1));
+  ierr = TDyAllocate_RealArray_1D(&lapack_mem_1d, (ncells_in-1)*(ncells_in-1));
+  ierr = TDyAllocate_RealArray_1D(&BInxIn_1d, (ncells_in-1)* ncells_in   );
+  ierr = TDyAllocate_RealArray_1D(&AInxIninv_1d, (ncells_in-1)*(ncells_in-1));
+  ierr = TDyAllocate_RealArray_1D(&AInxIninvBInxIn_1d, (ncells_in-1)* ncells_in   );
+  ierr = TDyAllocate_RealArray_1D(&CupInxIn_1d, (ncells_in-1)*(ncells_in-1));
+  ierr = TDyAllocate_RealArray_1D(&CupInxIntimesAInxIninvBInxIn_1d,
                                (ncells_in-1)*(ncells_in)  );
-  ierr = Allocate_RealArray_1D(&CupBcxIn_1d, (1          )*(ncells_in-1));
-  ierr = Allocate_RealArray_1D(&CdnBcxIn_1d, (1          )*(ncells_in-1));
-  ierr = Allocate_RealArray_1D(&CupBcxIntimesAInxIninvBInxIn_1d,
+  ierr = TDyAllocate_RealArray_1D(&CupBcxIn_1d, (1          )*(ncells_in-1));
+  ierr = TDyAllocate_RealArray_1D(&CdnBcxIn_1d, (1          )*(ncells_in-1));
+  ierr = TDyAllocate_RealArray_1D(&CupBcxIntimesAInxIninvBInxIn_1d,
                                (1          )*(ncells_in)  );
-  ierr = Allocate_RealArray_1D(&CdnBcxIntimesAInxIninvBInxIn_1d,
+  ierr = TDyAllocate_RealArray_1D(&CdnBcxIntimesAInxIninvBInxIn_1d,
                                (1          )*(ncells_in)  );
 
-  ierr = Allocate_RealArray_1D(&DInxBc_1d, (ncells_in-1)* ncells_bc   );
-  ierr = Allocate_RealArray_1D(&AInxIninvDInxBc_1d, (ncells_in-1)* ncells_bc   );
-  ierr = Allocate_RealArray_1D(&CupInxIntimesAInxIninvDInxBc_1d,
+  ierr = TDyAllocate_RealArray_1D(&DInxBc_1d, (ncells_in-1)* ncells_bc   );
+  ierr = TDyAllocate_RealArray_1D(&AInxIninvDInxBc_1d, (ncells_in-1)* ncells_bc   );
+  ierr = TDyAllocate_RealArray_1D(&CupInxIntimesAInxIninvDInxBc_1d,
                                (ncells_in-1)*(ncells_bc)  );
-  ierr = Allocate_RealArray_1D(&CupBcxIntimesAInxIninvDInxBc_1d,
+  ierr = TDyAllocate_RealArray_1D(&CupBcxIntimesAInxIninvDInxBc_1d,
                                (1          )*(ncells_bc)  );
-  ierr = Allocate_RealArray_1D(&CdnBcxIntimesAInxIninvDInxBc_1d,
+  ierr = TDyAllocate_RealArray_1D(&CdnBcxIntimesAInxIninvDInxBc_1d,
                                (1          )*(ncells_bc)  );
 
   for (i=0; i<ncells_in; i++) {
@@ -704,32 +704,32 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex(TDy tdy,
   }
 
 
-  ierr = Deallocate_RealArray_2D(Gmatrix, ndim);
+  ierr = TDyDeallocate_RealArray_2D(Gmatrix, ndim);
 
-  ierr = Deallocate_RealArray_2D(Fup, ncells_in+ncells_bc);
-  ierr = Deallocate_RealArray_2D(Cup, ncells_in+ncells_bc);
-  ierr = Deallocate_RealArray_2D(Fdn, ncells_in+ncells_bc);
-  ierr = Deallocate_RealArray_2D(Cdn, ncells_in+ncells_bc);
+  ierr = TDyDeallocate_RealArray_2D(Fup, ncells_in+ncells_bc);
+  ierr = TDyDeallocate_RealArray_2D(Cup, ncells_in+ncells_bc);
+  ierr = TDyDeallocate_RealArray_2D(Fdn, ncells_in+ncells_bc);
+  ierr = TDyDeallocate_RealArray_2D(Cdn, ncells_in+ncells_bc);
 
-  ierr = Deallocate_RealArray_2D(FupInxIn, ncells_in-1);
-  ierr = Deallocate_RealArray_2D(FupBcxIn, 1          );
-  ierr = Deallocate_RealArray_2D(FdnInxIn, ncells_in-1);
-  ierr = Deallocate_RealArray_2D(FdnBcxIn, 1          );
+  ierr = TDyDeallocate_RealArray_2D(FupInxIn, ncells_in-1);
+  ierr = TDyDeallocate_RealArray_2D(FupBcxIn, 1          );
+  ierr = TDyDeallocate_RealArray_2D(FdnInxIn, ncells_in-1);
+  ierr = TDyDeallocate_RealArray_2D(FdnBcxIn, 1          );
 
-  ierr = Deallocate_RealArray_2D(CupInxIn, ncells_in-1);
-  ierr = Deallocate_RealArray_2D(CupInxBc, ncells_in-1);
-  ierr = Deallocate_RealArray_2D(CupBcxIn, 1          );
-  ierr = Deallocate_RealArray_2D(CupBcxBc, 1          );
+  ierr = TDyDeallocate_RealArray_2D(CupInxIn, ncells_in-1);
+  ierr = TDyDeallocate_RealArray_2D(CupInxBc, ncells_in-1);
+  ierr = TDyDeallocate_RealArray_2D(CupBcxIn, 1          );
+  ierr = TDyDeallocate_RealArray_2D(CupBcxBc, 1          );
 
-  ierr = Deallocate_RealArray_2D(CdnInxIn, ncells_in-1);
-  ierr = Deallocate_RealArray_2D(CdnInxBc, ncells_in-1);
-  ierr = Deallocate_RealArray_2D(CdnBcxIn, 1          );
-  ierr = Deallocate_RealArray_2D(CdnBcxBc, 1          );
+  ierr = TDyDeallocate_RealArray_2D(CdnInxIn, ncells_in-1);
+  ierr = TDyDeallocate_RealArray_2D(CdnInxBc, ncells_in-1);
+  ierr = TDyDeallocate_RealArray_2D(CdnBcxIn, 1          );
+  ierr = TDyDeallocate_RealArray_2D(CdnBcxBc, 1          );
 
-  ierr = Deallocate_RealArray_2D(AInxIn, ncells_in-1);
-  ierr = Deallocate_RealArray_2D(BInxIn, ncells_in-1);
+  ierr = TDyDeallocate_RealArray_2D(AInxIn, ncells_in-1);
+  ierr = TDyDeallocate_RealArray_2D(BInxIn, ncells_in-1);
 
-  ierr = Deallocate_RealArray_2D(AInxIninvBInxIn, ncells_in-1);
+  ierr = TDyDeallocate_RealArray_2D(AInxIninvBInxIn, ncells_in-1);
 
   free(AInxIn_1d                      );
   free(lapack_mem_1d                  );
@@ -827,20 +827,20 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   vertex_id = vertex->id;
   nfluxes   = ncells * 3/2;
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, ndim   , ndim   ); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&Fup    , nfluxes, ncells ); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&Fdn    , nfluxes, ncells ); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&Cup    , nfluxes, nfluxes); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&Cdn    , nfluxes, nfluxes); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&A      , nfluxes, nfluxes); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&B      , nfluxes, ncells ); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_2D(&AinvB  , nfluxes, ncells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, ndim   , ndim   ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Fup    , nfluxes, ncells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Fdn    , nfluxes, ncells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Cup    , nfluxes, nfluxes); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Cdn    , nfluxes, nfluxes); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&A      , nfluxes, nfluxes); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&B      , nfluxes, ncells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&AinvB  , nfluxes, ncells ); CHKERRQ(ierr);
 
-  ierr = Allocate_RealArray_1D(&A1d            , nfluxes*nfluxes); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_1D(&B1d            , nfluxes*ncells ); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_1D(&Cup1d          , nfluxes*nfluxes); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_1D(&AinvB1d        , nfluxes*ncells ); CHKERRQ(ierr);
-  ierr = Allocate_RealArray_1D(&CuptimesAinvB1d, nfluxes*ncells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&A1d            , nfluxes*nfluxes); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&B1d            , nfluxes*ncells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&Cup1d          , nfluxes*nfluxes); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&AinvB1d        , nfluxes*ncells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&CuptimesAinvB1d, nfluxes*ncells ); CHKERRQ(ierr);
 
   faces = tdy->mesh->faces;
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
@@ -863,8 +863,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
     for (iface=0;iface<subcell->num_faces;iface++) {
       TDy_face *face = &faces[subcell->face_ids[iface]];
       
-      PetscInt cell_1 = ReturnIndexInList(vertex->internal_cell_ids, ncells, face->cell_ids[0]);
-      PetscInt cell_2 = ReturnIndexInList(vertex->internal_cell_ids, ncells, face->cell_ids[1]);
+      PetscInt cell_1 = TDyReturnIndexInList(vertex->internal_cell_ids, ncells, face->cell_ids[0]);
+      PetscInt cell_2 = TDyReturnIndexInList(vertex->internal_cell_ids, ncells, face->cell_ids[1]);
       PetscBool upwind_entries;
 
       upwind_entries = (subcell->is_face_up[iface]==1);
@@ -932,14 +932,14 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   }
 
   // Free up the memory
-  ierr = Deallocate_RealArray_2D(Gmatrix, ndim   ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(Fup    , nfluxes ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(Fdn    , nfluxes ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(Cup    , nfluxes ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(Cdn    , nfluxes ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(A      , nfluxes ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(B      , nfluxes ); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(AinvB  , nfluxes ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Gmatrix, ndim   ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fup    , nfluxes ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fdn    , nfluxes ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup    , nfluxes ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn    , nfluxes ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(A      , nfluxes ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(B      , nfluxes ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(AinvB  , nfluxes ); CHKERRQ(ierr);
 
   free(A1d             );
   free(B1d             );
@@ -994,6 +994,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   ndim      = 3;
   vertex_id = vertex->id;
   faces = tdy->mesh->faces;
+  printf("vertex_id = %d\n",vertex_id);
 
   // Determine:
   //  (1) number of internal and boudnary fluxes,
@@ -1018,54 +1019,54 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   nflux = nflux_in+nflux_bc;
   npitf = npitf_in+npitf_bc;
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, ndim, ndim);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, ndim, ndim);
 
-  ierr = Allocate_RealArray_2D(&Fup, nflux, npcen);
-  ierr = Allocate_RealArray_2D(&Cup, nflux, npitf);
-  ierr = Allocate_RealArray_2D(&Fdn, nflux, npcen);
-  ierr = Allocate_RealArray_2D(&Cdn, nflux, npitf);
+  ierr = TDyAllocate_RealArray_2D(&Fup, nflux, npcen);
+  ierr = TDyAllocate_RealArray_2D(&Cup, nflux, npitf);
+  ierr = TDyAllocate_RealArray_2D(&Fdn, nflux, npcen);
+  ierr = TDyAllocate_RealArray_2D(&Cdn, nflux, npitf);
 
-  ierr = Allocate_RealArray_2D(&FupInxCen, nflux_in, npcen);
-  ierr = Allocate_RealArray_2D(&FupBcxCen, nflux_bc, npcen);
-  ierr = Allocate_RealArray_2D(&FdnInxCen, nflux_in, npcen);
-  ierr = Allocate_RealArray_2D(&FdnBcxCen, nflux_bc, npcen);
+  ierr = TDyAllocate_RealArray_2D(&FupInxCen, nflux_in, npcen);
+  ierr = TDyAllocate_RealArray_2D(&FupBcxCen, nflux_bc, npcen);
+  ierr = TDyAllocate_RealArray_2D(&FdnInxCen, nflux_in, npcen);
+  ierr = TDyAllocate_RealArray_2D(&FdnBcxCen, nflux_bc, npcen);
 
-  ierr = Allocate_RealArray_2D(&CupInxIn, nflux_in, npitf_in);
-  ierr = Allocate_RealArray_2D(&CupInxBc, nflux_in, npitf_bc);
-  ierr = Allocate_RealArray_2D(&CupBcxIn, nflux_bc, npitf_in);
-  ierr = Allocate_RealArray_2D(&CupBcxBc, nflux_bc, npitf_bc);
+  ierr = TDyAllocate_RealArray_2D(&CupInxIn, nflux_in, npitf_in);
+  ierr = TDyAllocate_RealArray_2D(&CupInxBc, nflux_in, npitf_bc);
+  ierr = TDyAllocate_RealArray_2D(&CupBcxIn, nflux_bc, npitf_in);
+  ierr = TDyAllocate_RealArray_2D(&CupBcxBc, nflux_bc, npitf_bc);
 
-  ierr = Allocate_RealArray_2D(&CdnInxIn, nflux_in, npitf_in);
-  ierr = Allocate_RealArray_2D(&CdnInxBc, nflux_in, npitf_bc);
-  ierr = Allocate_RealArray_2D(&CdnBcxIn, nflux_bc, npitf_in);
-  ierr = Allocate_RealArray_2D(&CdnBcxBc, nflux_bc, npitf_bc);
+  ierr = TDyAllocate_RealArray_2D(&CdnInxIn, nflux_in, npitf_in);
+  ierr = TDyAllocate_RealArray_2D(&CdnInxBc, nflux_in, npitf_bc);
+  ierr = TDyAllocate_RealArray_2D(&CdnBcxIn, nflux_bc, npitf_in);
+  ierr = TDyAllocate_RealArray_2D(&CdnBcxBc, nflux_bc, npitf_bc);
 
-  ierr = Allocate_RealArray_2D(&AInxIn, nflux_in, npitf_in);
-  ierr = Allocate_RealArray_2D(&BInxIn, nflux_in, npcen);
-  ierr = Allocate_RealArray_2D(&AInxIninvBInxIn, nflux_in, npcen);
+  ierr = TDyAllocate_RealArray_2D(&AInxIn, nflux_in, npitf_in);
+  ierr = TDyAllocate_RealArray_2D(&BInxIn, nflux_in, npcen);
+  ierr = TDyAllocate_RealArray_2D(&AInxIninvBInxIn, nflux_in, npcen);
 
-  ierr = Allocate_RealArray_1D(&AInxIn_1d    , nflux_in*npitf_in);
-  ierr = Allocate_RealArray_1D(&lapack_mem_1d, nflux_in*npitf_in);
-  ierr = Allocate_RealArray_1D(&BInxIn_1d    , nflux_in*npcen   );
+  ierr = TDyAllocate_RealArray_1D(&AInxIn_1d    , nflux_in*npitf_in);
+  ierr = TDyAllocate_RealArray_1D(&lapack_mem_1d, nflux_in*npitf_in);
+  ierr = TDyAllocate_RealArray_1D(&BInxIn_1d    , nflux_in*npcen   );
 
-  ierr = Allocate_RealArray_1D(&AInxIninv_1d      , nflux_in*npitf_in);
-  ierr = Allocate_RealArray_1D(&AInxIninvBInxIn_1d, nflux_in*npcen   );
+  ierr = TDyAllocate_RealArray_1D(&AInxIninv_1d      , nflux_in*npitf_in);
+  ierr = TDyAllocate_RealArray_1D(&AInxIninvBInxIn_1d, nflux_in*npcen   );
 
-  ierr = Allocate_RealArray_1D(&CupInxIn_1d                    , nflux_in*npitf_in);
-  ierr = Allocate_RealArray_1D(&CupInxIntimesAInxIninvBInxIn_1d, nflux_in*npcen);
+  ierr = TDyAllocate_RealArray_1D(&CupInxIn_1d                    , nflux_in*npitf_in);
+  ierr = TDyAllocate_RealArray_1D(&CupInxIntimesAInxIninvBInxIn_1d, nflux_in*npcen);
 
-  ierr = Allocate_RealArray_1D(&CupBcxIn_1d, nflux_bc*npitf_in);
-  ierr = Allocate_RealArray_1D(&CdnBcxIn_1d, nflux_bc*npitf_in);
+  ierr = TDyAllocate_RealArray_1D(&CupBcxIn_1d, nflux_bc*npitf_in);
+  ierr = TDyAllocate_RealArray_1D(&CdnBcxIn_1d, nflux_bc*npitf_in);
 
-  ierr = Allocate_RealArray_1D(&CupBcxIntimesAInxIninvBInxIn_1d, nflux_bc*npcen);
-  ierr = Allocate_RealArray_1D(&CdnBcxIntimesAInxIninvBInxIn_1d, nflux_bc*npcen);
+  ierr = TDyAllocate_RealArray_1D(&CupBcxIntimesAInxIninvBInxIn_1d, nflux_bc*npcen);
+  ierr = TDyAllocate_RealArray_1D(&CdnBcxIntimesAInxIninvBInxIn_1d, nflux_bc*npcen);
 
-  ierr = Allocate_RealArray_1D(&DInxBc_1d, nflux_in*npitf_bc);
+  ierr = TDyAllocate_RealArray_1D(&DInxBc_1d, nflux_in*npitf_bc);
 
-  ierr = Allocate_RealArray_1D(&AInxIninvDInxBc_1d, nflux_in*npitf_bc);
-  ierr = Allocate_RealArray_1D(&CupInxIntimesAInxIninvDInxBc_1d, nflux_in*npitf_bc);
-  ierr = Allocate_RealArray_1D(&CupBcxIntimesAInxIninvDInxBc_1d, nflux_bc*npitf_bc);
-  ierr = Allocate_RealArray_1D(&CdnBcxIntimesAInxIninvDInxBc_1d, nflux_bc*npitf_bc);
+  ierr = TDyAllocate_RealArray_1D(&AInxIninvDInxBc_1d, nflux_in*npitf_bc);
+  ierr = TDyAllocate_RealArray_1D(&CupInxIntimesAInxIninvDInxBc_1d, nflux_in*npitf_bc);
+  ierr = TDyAllocate_RealArray_1D(&CupBcxIntimesAInxIninvDInxBc_1d, nflux_bc*npitf_bc);
+  ierr = TDyAllocate_RealArray_1D(&CdnBcxIntimesAInxIninvDInxBc_1d, nflux_bc*npitf_bc);
 
   PetscInt nup_bnd_flux=0, ndn_bnd_flux=0;
 
@@ -1158,6 +1159,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
 
   }
   /*
+    Upwind/Downwind
       Flux     =         F            *     Pcenter      +                         C                         *      P_interface
     _       _     _                  _   _           _       _                                             _    _               _
    |         |   |                    | |             |     |                                               |  |  P_(nptif_in,1) |
@@ -1326,30 +1328,30 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
     }
   }
 
-  ierr = Deallocate_RealArray_2D(Gmatrix, ndim); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(Fup, nflux); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(Cup, nflux); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(Fdn, nflux); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(Cdn, nflux); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Gmatrix, ndim); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fup, nflux); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup, nflux); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fdn, nflux); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn, nflux); CHKERRQ(ierr);
 
-  ierr = Deallocate_RealArray_2D(FupInxCen, nflux_in); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(FupBcxCen, nflux_bc); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(FdnInxCen, nflux_in); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(FdnBcxCen, nflux_bc); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(FupInxCen, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(FupBcxCen, nflux_bc); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(FdnInxCen, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(FdnBcxCen, nflux_bc); CHKERRQ(ierr);
 
-  ierr = Deallocate_RealArray_2D(CupInxIn, nflux_in); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(CupInxBc, nflux_in); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(CupBcxIn, nflux_bc); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(CupBcxBc, nflux_bc); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(CupInxIn, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(CupInxBc, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(CupBcxIn, nflux_bc); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(CupBcxBc, nflux_bc); CHKERRQ(ierr);
 
-  ierr = Deallocate_RealArray_2D(CdnInxIn, nflux_in); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(CdnInxBc, nflux_in); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(CdnBcxIn, nflux_bc); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(CdnBcxBc, nflux_bc); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(CdnInxIn, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(CdnInxBc, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(CdnBcxIn, nflux_bc); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(CdnBcxBc, nflux_bc); CHKERRQ(ierr);
 
-  ierr = Deallocate_RealArray_2D(AInxIn, nflux_in); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(BInxIn, nflux_in); CHKERRQ(ierr);
-  ierr = Deallocate_RealArray_2D(AInxIninvBInxIn, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(AInxIn, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(BInxIn, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(AInxIninvBInxIn, nflux_in); CHKERRQ(ierr);
 
   free(AInxIn_1d                      );
   free(lapack_mem_1d                  );
@@ -1648,20 +1650,20 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   tdy->mesh = (TDy_mesh *) malloc(sizeof(TDy_mesh));
 
-  ierr = AllocateMemoryForMesh(tdy); CHKERRQ(ierr);
+  ierr = TDyAllocateMemoryForMesh(tdy); CHKERRQ(ierr);
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   switch (dim) {
   case 2:
-    ierr = Allocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 5, 5);
+    ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 5, 5);
     CHKERRQ(ierr);
     ierr = PetscMalloc(tdy->mesh->num_edges*sizeof(PetscReal),
                      &(tdy->vel )); CHKERRQ(ierr);
-    ierr = Initialize_RealArray_1D(tdy->vel, tdy->mesh->num_edges, 0.0); CHKERRQ(ierr);
+    ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_edges, 0.0); CHKERRQ(ierr);
     ierr = PetscMalloc(tdy->mesh->num_edges*sizeof(PetscInt),
                      &(tdy->vel_count)); CHKERRQ(ierr);
-    ierr = Initialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_edges, 0); CHKERRQ(ierr);
+    ierr = TDyInitialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_edges, 0); CHKERRQ(ierr);
 
     nsubcells = 4;
     nrow = 2;
@@ -1669,14 +1671,14 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
     break;
   case 3:
-    ierr = Allocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 12, 12);
+    ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 12, 12);
     CHKERRQ(ierr);
     ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
                      &(tdy->vel )); CHKERRQ(ierr);
-    ierr = Initialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
+    ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
     ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscInt),
                      &(tdy->vel_count)); CHKERRQ(ierr);
-    ierr = Initialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_faces, 0); CHKERRQ(ierr);
+    ierr = TDyInitialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_faces, 0); CHKERRQ(ierr);
 
     nsubcells = 8;
     nrow = 3;
@@ -1688,10 +1690,10 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     break;
   }
 
-  ierr = Allocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
+  ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
                                nsubcells, nrow, ncol); CHKERRQ(ierr);
 
-  ierr = BuildMesh(tdy); CHKERRQ(ierr);
+  ierr = TDyBuildMesh(tdy); CHKERRQ(ierr);
 
   ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
 
@@ -1760,7 +1762,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -1832,7 +1834,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -1885,7 +1887,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy,Mat K,Vec F) {
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
-  ierr = Initialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_faces, 0); CHKERRQ(ierr);
+  ierr = TDyInitialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_faces, 0); CHKERRQ(ierr);
 
   switch (dim) {
   case 2:
@@ -1932,7 +1934,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     
@@ -2090,7 +2092,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
     /*
 
@@ -2328,7 +2330,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     
@@ -2447,7 +2449,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     
@@ -2644,7 +2646,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
   ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
@@ -2896,7 +2898,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   // TODO: Save localU
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
@@ -2939,8 +2941,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 
         PetscInt iface=-1;
 
-        ierr = FindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
-        ierr = Subcell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
+        ierr = TDyFindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
+        ierr = TDySubCell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
 
         factor = subcell->face_area[iface]/face->area;
         for (icol=0; icol<vertex->num_internal_cells; icol++) {
@@ -2953,7 +2955,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
         tdy->vel[face_id] += Vcomputed[irow];
         tdy->vel_count[face_id]++;
 
-        ierr = SubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
+        ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
         ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
         vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
 
@@ -3008,7 +3010,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   // TODO: Save localU
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
@@ -3109,8 +3111,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         PetscInt iface=-1;
 
-        ierr = FindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
-        ierr = Subcell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
+        ierr = TDyFindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
+        ierr = TDySubCell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
 
         // +T_00 * Pcen
         value = 0.0;
@@ -3130,7 +3132,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         tdy->vel[face_id] += value;
         tdy->vel_count[face_id]++;
 
-        ierr = SubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
+        ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
         ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
         vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
 
@@ -3143,8 +3145,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         PetscInt iface=-1;
 
-        ierr = FindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
-        ierr = Subcell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
+        ierr = TDyFindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
+        ierr = TDySubCell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
 
         // -T_00 * Pcen
         value = 0.0;
@@ -3164,7 +3166,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         tdy->vel[face_id] += value;
         tdy->vel_count[face_id]++;
 
-        ierr = SubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
+        ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
         ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
         vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
 
@@ -3189,8 +3191,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         PetscInt iface=-1;
 
-        ierr = FindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
-        ierr = Subcell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
+        ierr = TDyFindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
+        ierr = TDySubCell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
 
         // +T_10 * Pcen
         value = 0.0;
@@ -3209,7 +3211,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         }
         tdy->vel[face_id] += value;
         tdy->vel_count[face_id]++;
-        ierr = SubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
+        ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
         ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
         vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
 
@@ -3222,8 +3224,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         
         PetscInt iface=-1;
 
-        ierr = FindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
-        ierr = Subcell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
+        ierr = TDyFindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
+        ierr = TDySubCell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
 
         // -T_10 * Pcen
         value = 0.0;
@@ -3242,7 +3244,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         }
         tdy->vel[face_id] += value;
         tdy->vel_count[face_id]++;
-        ierr = SubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
+        ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
         ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
         vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
 
@@ -3297,7 +3299,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
-  ierr = Allocate_RealArray_2D(&Gmatrix, dim, dim);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   // TODO: Save localU
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
@@ -3359,7 +3361,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
       value = sign*value;
       tdy->vel[face->id] += value;
       tdy->vel_count[face->id]++;
-      ierr = SubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
+      ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
       ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
       vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
 

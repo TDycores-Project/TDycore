@@ -66,7 +66,7 @@ PetscErrorCode TDySaveClosures(DM dm, PetscInt *closureSize, PetscInt **closure,
 }
 
 /* ---------------------------------------------------------------- */
-PetscInt GetNumberOfCellVerticesWithClosures(DM dm, PetscInt *closureSize, PetscInt **closure) {
+PetscInt TDyGetNumberOfCellVerticesWithClosures(DM dm, PetscInt *closureSize, PetscInt **closure) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   MPI_Comm       comm;
@@ -87,33 +87,7 @@ PetscInt GetNumberOfCellVerticesWithClosures(DM dm, PetscInt *closureSize, Petsc
 }
 
 /* ---------------------------------------------------------------- */
-PetscInt GetNumberOfFaceVertices(DM dm) {
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  MPI_Comm       comm;
-  PetscInt nq,f,q,i,fStart,fEnd,vStart,vEnd,closureSize,*closure;
-  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
-  nq = -1;
-  for(f=fStart; f<fEnd; f++) {
-    closure = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);
-    CHKERRQ(ierr);
-    q = 0;
-    for (i=0; i<closureSize*2; i+=2) {
-      if ((closure[i] >= vStart) && (closure[i] < vEnd)) q += 1;
-    }
-    if(nq == -1) nq = q;
-    if(nq !=  q) SETERRQ(comm,PETSC_ERR_SUP,"Mesh faces must be of uniform type");
-    ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);
-    CHKERRQ(ierr);
-  }
-  PetscFunctionReturn(nq);
-}
-
-/* ---------------------------------------------------------------- */
-PetscErrorCode ComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim,
+PetscErrorCode TDyComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim,
                              PetscReal *length) {
 
   PetscFunctionBegin;
@@ -125,7 +99,7 @@ PetscErrorCode ComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim,
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode CrossProduct(PetscReal vect_A[3], PetscReal vect_B[3], PetscReal cross_P[3])
+PetscErrorCode TDyCrossProduct(PetscReal vect_A[3], PetscReal vect_B[3], PetscReal cross_P[3])
 {
   // Function to compute cross product of two vector array.
   PetscFunctionBegin;
@@ -138,7 +112,7 @@ PetscErrorCode CrossProduct(PetscReal vect_A[3], PetscReal vect_B[3], PetscReal 
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode DotProduct(PetscReal vect_A[3], PetscReal vect_B[3], PetscReal *dot_P)
+PetscErrorCode TDyDotProduct(PetscReal vect_A[3], PetscReal vect_B[3], PetscReal *dot_P)
 {
   // Function to compute cross product of two vector array.
   PetscFunctionBegin;
@@ -184,7 +158,7 @@ PetscErrorCode ConvertToUnitVector(PetscReal vec[3]) {
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode CreateVecJoiningTwoVertices(PetscReal vtx_from[3],
+PetscErrorCode TDyCreateVecJoiningTwoVertices(PetscReal vtx_from[3],
                                            PetscReal vtx_to[3],
                                            PetscReal vec[3]) {
   PetscFunctionBegin;
@@ -196,7 +170,7 @@ PetscErrorCode CreateVecJoiningTwoVertices(PetscReal vtx_from[3],
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TriangleArea(PetscReal node_1[3], PetscReal node_2[3],
+PetscErrorCode TDyTriangleArea(PetscReal node_1[3], PetscReal node_2[3],
                             PetscReal node_3[3], PetscReal *area) {
 
   PetscFunctionBegin;
@@ -204,10 +178,10 @@ PetscErrorCode TriangleArea(PetscReal node_1[3], PetscReal node_2[3],
 
   PetscReal a[3], b[3], axb[3], vec_norm;
 
-  ierr = CreateVecJoiningTwoVertices(node_1, node_2, a); CHKERRQ(ierr);
-  ierr = CreateVecJoiningTwoVertices(node_1, node_3, b); CHKERRQ(ierr);
+  ierr = TDyCreateVecJoiningTwoVertices(node_1, node_2, a); CHKERRQ(ierr);
+  ierr = TDyCreateVecJoiningTwoVertices(node_1, node_3, b); CHKERRQ(ierr);
 
-  ierr = CrossProduct(a,b,axb); CHKERRQ(ierr);
+  ierr = TDyCrossProduct(a,b,axb); CHKERRQ(ierr);
 
   ierr = Norm(axb, &vec_norm); CHKERRQ(ierr);
   
@@ -217,7 +191,7 @@ PetscErrorCode TriangleArea(PetscReal node_1[3], PetscReal node_2[3],
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode QuadrilateralArea(PetscReal node_1[3], PetscReal node_2[3],
+PetscErrorCode TDyQuadrilateralArea(PetscReal node_1[3], PetscReal node_2[3],
                             PetscReal node_3[3], PetscReal node_4[3], PetscReal *area) {
   PetscReal node_cen[3];
   PetscInt  d;
@@ -230,36 +204,36 @@ PetscErrorCode QuadrilateralArea(PetscReal node_1[3], PetscReal node_2[3],
 
   *area = 0.;
   
-  ierr = TriangleArea(node_cen, node_1, node_2, &tri_area); CHKERRQ(ierr); *area += tri_area;
-  ierr = TriangleArea(node_cen, node_2, node_3, &tri_area); CHKERRQ(ierr); *area += tri_area;
-  ierr = TriangleArea(node_cen, node_3, node_4, &tri_area); CHKERRQ(ierr); *area += tri_area;
-  ierr = TriangleArea(node_cen, node_4, node_1, &tri_area); CHKERRQ(ierr); *area += tri_area;
+  ierr = TDyTriangleArea(node_cen, node_1, node_2, &tri_area); CHKERRQ(ierr); *area += tri_area;
+  ierr = TDyTriangleArea(node_cen, node_2, node_3, &tri_area); CHKERRQ(ierr); *area += tri_area;
+  ierr = TDyTriangleArea(node_cen, node_3, node_4, &tri_area); CHKERRQ(ierr); *area += tri_area;
+  ierr = TDyTriangleArea(node_cen, node_4, node_1, &tri_area); CHKERRQ(ierr); *area += tri_area;
 
   PetscFunctionReturn(0);
 
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode NormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],
+PetscErrorCode TDyNormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],
                                 PetscReal node_3[3], PetscReal normal[3]) {
   PetscReal a[3], b[3];
   PetscErrorCode ierr;
 
-  ierr = CreateVecJoiningTwoVertices(node_1, node_2, a); CHKERRQ(ierr);
-  ierr = CreateVecJoiningTwoVertices(node_1, node_3, b); CHKERRQ(ierr);
+  ierr = TDyCreateVecJoiningTwoVertices(node_1, node_2, a); CHKERRQ(ierr);
+  ierr = TDyCreateVecJoiningTwoVertices(node_1, node_3, b); CHKERRQ(ierr);
 
-  ierr = CrossProduct(a,b,normal); CHKERRQ(ierr);
+  ierr = TDyCrossProduct(a,b,normal); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode UnitNormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],
+PetscErrorCode TDyUnitNormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],
                                     PetscReal node_3[3], PetscReal normal[3]) {
   PetscErrorCode ierr;
 
-  ierr = NormalToTriangle(node_1, node_2, node_3, normal); CHKERRQ(ierr);
+  ierr = TDyNormalToTriangle(node_1, node_2, node_3, normal); CHKERRQ(ierr);
   ierr = ConvertToUnitVector(normal); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -267,7 +241,7 @@ PetscErrorCode UnitNormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode NormalToQuadrilateral(PetscReal node_1[3], PetscReal node_2[3],
+PetscErrorCode TDyNormalToQuadrilateral(PetscReal node_1[3], PetscReal node_2[3],
                                      PetscReal node_3[3], PetscReal node_4[3],
                                      PetscReal normal[3]) {
   PetscReal node_cen[3];
@@ -279,10 +253,10 @@ PetscErrorCode NormalToQuadrilateral(PetscReal node_1[3], PetscReal node_2[3],
     node_cen[d] = (node_1[d] + node_2[d] + node_3[d] + node_4[d])/4.0;
   }
 
-  ierr = UnitNormalToTriangle(node_cen, node_1, node_2, normal_12c); CHKERRQ(ierr);
-  ierr = UnitNormalToTriangle(node_cen, node_2, node_3, normal_23c); CHKERRQ(ierr);
-  ierr = UnitNormalToTriangle(node_cen, node_3, node_4, normal_34c); CHKERRQ(ierr);
-  ierr = UnitNormalToTriangle(node_cen, node_4, node_1, normal_41c); CHKERRQ(ierr);
+  ierr = TDyUnitNormalToTriangle(node_cen, node_1, node_2, normal_12c); CHKERRQ(ierr);
+  ierr = TDyUnitNormalToTriangle(node_cen, node_2, node_3, normal_23c); CHKERRQ(ierr);
+  ierr = TDyUnitNormalToTriangle(node_cen, node_3, node_4, normal_34c); CHKERRQ(ierr);
+  ierr = TDyUnitNormalToTriangle(node_cen, node_4, node_1, normal_41c); CHKERRQ(ierr);
 
   for (d=0; d<3; d++) {
     normal[d] = (normal_12c[d] + normal_23c[d] + normal_34c[d] + normal_41c[d])/4.0;
@@ -293,7 +267,7 @@ PetscErrorCode NormalToQuadrilateral(PetscReal node_1[3], PetscReal node_2[3],
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode ComputeVolumeOfTetrahedron(PetscReal node_1[3], PetscReal node_2[3],
+PetscErrorCode TDyComputeVolumeOfTetrahedron(PetscReal node_1[3], PetscReal node_2[3],
                                           PetscReal node_3[3], PetscReal node_4[3],
                                           PetscReal *volume) {
 
@@ -302,19 +276,19 @@ PetscErrorCode ComputeVolumeOfTetrahedron(PetscReal node_1[3], PetscReal node_2[
   PetscReal a[3], b[3], c[3], axb[3], dot_prod;
   PetscErrorCode ierr;
 
-  ierr = CreateVecJoiningTwoVertices(node_1, node_2, a); CHKERRQ(ierr);
-  ierr = CreateVecJoiningTwoVertices(node_1, node_3, b); CHKERRQ(ierr);
-  ierr = CreateVecJoiningTwoVertices(node_1, node_4, c); CHKERRQ(ierr);
+  ierr = TDyCreateVecJoiningTwoVertices(node_1, node_2, a); CHKERRQ(ierr);
+  ierr = TDyCreateVecJoiningTwoVertices(node_1, node_3, b); CHKERRQ(ierr);
+  ierr = TDyCreateVecJoiningTwoVertices(node_1, node_4, c); CHKERRQ(ierr);
 
-  ierr = CrossProduct(a,b,axb); CHKERRQ(ierr);
-  ierr = DotProduct(axb,c,&dot_prod); CHKERRQ(ierr);
+  ierr = TDyCrossProduct(a,b,axb); CHKERRQ(ierr);
+  ierr = TDyDotProduct(axb,c,&dot_prod); CHKERRQ(ierr);
   *volume = PetscAbsReal(dot_prod)/6.0; CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */
-PetscInt ReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value) {
+PetscInt TDyReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value) {
 
   PetscFunctionBegin;
 
@@ -328,13 +302,13 @@ PetscInt ReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value) {
     }
   }
 
-  if (idx == -1) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "ReturnIndexInList: Did not find the value in the list");
+  if (idx == -1) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "TDyReturnIndexInList: Did not find the value in the list");
 
   PetscFunctionReturn(idx);
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode SavePetscVecAsBinary(Vec vec, const char filename[]) {
+PetscErrorCode TDySavePetscVecAsBinary(Vec vec, const char filename[]) {
 
   PetscViewer viewer;
   PetscErrorCode ierr;
