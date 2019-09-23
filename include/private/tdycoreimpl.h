@@ -66,6 +66,7 @@ struct _p_TDy {
   PetscReal *Flocal;    /* local element vectors (f,w) */
   PetscQuadrature quad; /* vertex-based quadrature rule */
   PetscReal *vel;       /* [face,local_vertex] --> velocity normal to face at vertex */
+  PetscInt *vel_count;  /* For MPFAO, the number of subfaces that are used to determine velocity at the face. For 3D+hex, vel_count = 4 */
 
   PetscInt  *LtoG;
   PetscInt  *orient;
@@ -75,6 +76,8 @@ struct _p_TDy {
   TDy_mesh *mesh;
   PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
   PetscReal ***Trans;
+
+  PetscInt *closureSize, **closure, maxClosureSize;
 
   PetscBool output_mesh;
   PetscBool regression_testing;
