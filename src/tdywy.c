@@ -698,8 +698,13 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
         PetscInt isbc;
         ierr = DMGetLabelValue(dm,"marker",global_row,&isbc); CHKERRQ(ierr);
         if(isbc == 1 && tdy->ops->computedirichletvalue) {
-          ierr = IntegrateOnFaceConstant(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
-          F[local_row] -= wgt*sign_row*pdirichlet;
+          //ierr = IntegrateOnFaceConstant(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
+          //F[local_row] -= wgt*sign_row*pdirichlet;
+	  ierr = (*tdy->ops->computedirichletvalue)(tdy,
+	  					    &(tdy->X[global_row*dim]),
+	  					    &pdirichlet,
+	  					    tdy->dirichletvaluectx);CHKERRQ(ierr);
+          F[local_row] += -wgt*sign_row*pdirichlet*tdy->V[global_row];
         }
 
         for(element_col=0; element_col<dim;
