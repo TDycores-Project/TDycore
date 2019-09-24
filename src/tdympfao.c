@@ -5,7 +5,7 @@
 #include <petscblaslapack.h>
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode ComputeEntryOfGMatrix(PetscReal edge_len, PetscReal n[3],
+PetscErrorCode ComputeEntryOfGMatrix2D(PetscReal edge_len, PetscReal n[3],
                                      PetscReal K[3][3], PetscReal v[3],
                                      PetscReal T, PetscInt dim, PetscReal *g) {
 
@@ -143,13 +143,13 @@ PetscErrorCode ComputeGMatrixFor2DMesh(TDy tdy) {
       //                              |           | |             |
       //                              |_         _| |_           _|
       //
-      ComputeEntryOfGMatrix(e_len_up, n_up, K, nu_up, subcell->T, dim,
+      ComputeEntryOfGMatrix2D(e_len_up, n_up, K, nu_up, subcell->T, dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][0][0]));
-      ComputeEntryOfGMatrix(e_len_up, n_up, K, nu_dn, subcell->T, dim,
+      ComputeEntryOfGMatrix2D(e_len_up, n_up, K, nu_dn, subcell->T, dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][0][1]));
-      ComputeEntryOfGMatrix(e_len_dn, n_dn, K, nu_up, subcell->T, dim,
+      ComputeEntryOfGMatrix2D(e_len_dn, n_dn, K, nu_up, subcell->T, dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][1][0]));
-      ComputeEntryOfGMatrix(e_len_dn, n_dn, K, nu_dn, subcell->T, dim,
+      ComputeEntryOfGMatrix2D(e_len_dn, n_dn, K, nu_dn, subcell->T, dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][1][1]));
     }
   }
@@ -297,7 +297,7 @@ PetscErrorCode ExtractSubGmatrix(TDy tdy, PetscInt cell_id,
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex(TDy tdy,
+PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex2DMesh(TDy tdy,
     TDy_vertex *vertex, TDy_cell *cells) {
 
   PetscInt       ncells, icell, isubcell;
@@ -419,7 +419,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex(TDy tdy,
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex(TDy tdy,
+PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex2DMesh(TDy tdy,
     TDy_vertex *vertex, TDy_cell *cells) {
 
   PetscInt       ncells_in, ncells_bc, icell, isubcell;
@@ -1427,11 +1427,11 @@ PetscErrorCode ComputeTransmissibilityMatrix2DMesh(TDy tdy) {
     vertex = &vertices[ivertex];
     if (vertex->num_boundary_cells == 0) {
 
-      ierr = ComputeTransmissibilityMatrixForInternalVertex(tdy, vertex, cells);
+      ierr = ComputeTransmissibilityMatrixForInternalVertex2DMesh(tdy, vertex, cells);
       CHKERRQ(ierr);
     } else {
       if (vertex->num_internal_cells > 1) {
-        ierr = ComputeTransmissibilityMatrixForBoundaryVertex(tdy, vertex, cells);
+        ierr = ComputeTransmissibilityMatrixForBoundaryVertex2DMesh(tdy, vertex, cells);
         CHKERRQ(ierr);
       }
     }
