@@ -324,15 +324,13 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   PetscErrorCode ierr;
   PetscInt ndim;
   PetscInt i,j;
-  TDy_cell  *cell;
-  TDy_face  *faces, *face;
-  TDy_subcell    *subcell;
+  TDy_cell *cell;
+  TDy_subcell *subcell;
 
   PetscFunctionBegin;
 
   ndim      = 3;
   vertex_id = vertex->id;
-  faces = tdy->mesh->faces;
 
   // Determine:
   //  (1) number of internal and boudnary fluxes,
@@ -377,8 +375,6 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   ierr = TDyAllocate_RealArray_1D(&CdnBCxCBCtimesAinvB_1d, nflux_bc*(npcen+npitf_bc)   );
   
 
-  PetscInt nup_bnd_flux=0, ndn_bnd_flux=0;
-
   for (i=0; i<npcen; i++) {
     icell    = vertex->internal_cell_ids[i];
     isubcell = vertex->subcell_ids[i];
@@ -396,63 +392,30 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
 
     PetscInt idx_flux, iface;
     for (iface=0; iface<subcell->num_faces; iface++) {
-      face = &faces[subcell->face_ids[iface]];
 
       PetscBool upwind_entries;
 
       upwind_entries = (subcell->is_face_up[iface]==1);
 
-      idx_flux = subcell->face_unknown_idx[iface];
-
       if (upwind_entries) {
         idx_flux = subcell->face_flux_idx[iface];
+
         Cup[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
         Cup[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
         Cup[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
 
-        if (npcen==4){
-          if (idx_flux<4) {
-            Fup[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-          } else if (idx_flux == 4) {
-            Fup[idx_flux][0]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-          } else {
-            Fup[idx_flux][3]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-          }
-        } else {
-          if (idx_flux==0) {
-            Fup[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-          } else if (idx_flux == 1) {
-            Fup[idx_flux][0]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-          } else {
-            Fup[idx_flux][1]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-          }
-        }
+        Fup[idx_flux][i] = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+
       } else {
         idx_flux = subcell->face_flux_idx[iface];
+
         Cdn[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
         Cdn[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
         Cdn[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
 
-        if (npcen==4){
-          if (idx_flux<4) {
-            Fdn[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-          } else if (idx_flux == 4) {
-            Fdn[idx_flux][1]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-          } else{
-            Fdn[idx_flux][2]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-          }
-        } else {
-          if (idx_flux==0) {
-            Fdn[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-          } else if (idx_flux == 1) {
-            Fdn[idx_flux][0]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-          } else {
-            Fdn[idx_flux][1]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-          }
-        }
+        Fdn[idx_flux][i] = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
 
       }
-
     }
 
   }
