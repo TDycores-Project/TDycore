@@ -64,6 +64,7 @@ struct _TDy_subcell {
   TDy_coordinate *face_centroid;    /* centroid of faces of subcell */
   PetscInt *is_face_up;             /* true if the face->cell_ids[0] is upwind of face->cell_ids[1] in cell traversal order*/
   PetscInt *face_unknown_idx;       /* index of the unknown associated with the face within the vector interface unknowns common to a vertex*/
+  PetscInt *face_flux_idx;          /* index of the fluxes (internal, up, and down) associated with the face */
 
 };
 

@@ -363,6 +363,7 @@ PetscErrorCode AllocateMemoryForASubcell(
   ierr = TDyAllocate_RealArray_1D(&subcell->face_area,num_faces); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&subcell->is_face_up,num_faces); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&subcell->face_unknown_idx,num_faces); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&subcell->face_flux_idx,num_faces); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -2175,12 +2176,15 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
       PetscInt idx_flux = subcell->face_unknown_idx[iface];
       if (face->is_internal) {
         vertex->trans_row_face_ids[idx_flux] = face->id;
+        subcell->face_flux_idx[iface] = idx_flux;
       } else {
         if (subcell->is_face_up[iface]) {
           vertex->trans_row_face_ids[nflux_in+nup_bnd_flux] = face->id;
+          subcell->face_flux_idx[iface] = nflux_in+nup_bnd_flux;
           nup_bnd_flux++;
         } else {
           vertex->trans_row_face_ids[nflux_in+nflux_bc+ndn_bnd_flux] = face->id;
+          subcell->face_flux_idx[iface] = nflux_in+ndn_bnd_flux;
           ndn_bnd_flux++;
         }
       }

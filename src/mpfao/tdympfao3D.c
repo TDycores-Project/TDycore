@@ -405,10 +405,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
       idx_flux = subcell->face_unknown_idx[iface];
 
       if (upwind_entries) {
-        if (face->is_internal==0) {
-          idx_flux = nup_bnd_flux + nflux_in;
-          nup_bnd_flux++;
-        }
+        idx_flux = subcell->face_flux_idx[iface];
         Cup[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
         Cup[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
         Cup[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
@@ -431,10 +428,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
           }
         }
       } else {
-        if (face->is_internal==0) {
-          idx_flux = ndn_bnd_flux + nflux_in;
-          ndn_bnd_flux++;
-        }
+        idx_flux = subcell->face_flux_idx[iface];
         Cdn[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
         Cdn[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
         Cdn[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
