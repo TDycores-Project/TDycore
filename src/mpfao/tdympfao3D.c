@@ -164,8 +164,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   PetscInt dim;
   PetscReal **Fup, **Fdn;
   PetscReal **Cup, **Cdn;
-  PetscReal **A, **B, **AinvB;
-  PetscReal *A1d, *B_1d, *Cup1d, *AinvB_1d, *CuptimesAinvB_1d;
+  PetscReal *A_1d, *B_1d, *Cup_1d, *AinvB_1d, *CuptimesAinvB_1d;
   PetscReal **Gmatrix;
   PetscInt idx, vertex_id;
   PetscErrorCode ierr;
@@ -183,13 +182,10 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   ierr = TDyAllocate_RealArray_2D(&Fdn    , nfluxes, ncells ); CHKERRQ(ierr);
   ierr = TDyAllocate_RealArray_2D(&Cup    , nfluxes, nfluxes); CHKERRQ(ierr);
   ierr = TDyAllocate_RealArray_2D(&Cdn    , nfluxes, nfluxes); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_2D(&A      , nfluxes, nfluxes); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_2D(&B      , nfluxes, ncells ); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_2D(&AinvB  , nfluxes, ncells ); CHKERRQ(ierr);
 
-  ierr = TDyAllocate_RealArray_1D(&A1d            , nfluxes*nfluxes); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_1D(&B_1d            , nfluxes*ncells ); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_1D(&Cup1d          , nfluxes*nfluxes); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&A_1d           , nfluxes*nfluxes); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&B_1d           , nfluxes*ncells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&Cup_1d          , nfluxes*nfluxes); CHKERRQ(ierr);
   ierr = TDyAllocate_RealArray_1D(&AinvB_1d        , nfluxes*ncells ); CHKERRQ(ierr);
   ierr = TDyAllocate_RealArray_1D(&CuptimesAinvB_1d, nfluxes*ncells ); CHKERRQ(ierr);
 
@@ -251,9 +247,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   idx = 0;
   for (j=0; j<nfluxes; j++) {
     for (i=0; i<nfluxes; i++) {
-      A[i][j] = -Cup[i][j] + Cdn[i][j];
-      A1d[idx]= -Cup[i][j] + Cdn[i][j];
-      Cup1d[idx] = Cup[i][j];
+      A_1d[idx] = -Cup[i][j] + Cdn[i][j];
+      Cup_1d[idx] = Cup[i][j];
       idx++;
     }
   }
@@ -261,17 +256,16 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   idx = 0;
   for (j=0; j<ncells; j++) {
     for (i=0; i<nfluxes; i++) {
-      B[i][j] = -Fup[i][j] + Fdn[i][j];
       B_1d[idx]= -Fup[i][j] + Fdn[i][j];
       idx++;
     }
   }
 
   // Solve A^-1 * B
-  ierr = ComputeAinvB(nfluxes, A1d, ncells, B_1d, AinvB_1d);
+  ierr = ComputeAinvB(nfluxes, A_1d, ncells, B_1d, AinvB_1d);
 
   // Solve C * (A^-1 * B)
-  ierr = ComputeCtimesAinvB(nfluxes, ncells, nfluxes, Cup1d, AinvB_1d, CuptimesAinvB_1d);
+  ierr = ComputeCtimesAinvB(nfluxes, ncells, nfluxes, Cup_1d, AinvB_1d, CuptimesAinvB_1d);
 
   // Save Transmissibility matrix
   idx = 0;
@@ -288,13 +282,10 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   ierr = TDyDeallocate_RealArray_2D(Fdn    , nfluxes ); CHKERRQ(ierr);
   ierr = TDyDeallocate_RealArray_2D(Cup    , nfluxes ); CHKERRQ(ierr);
   ierr = TDyDeallocate_RealArray_2D(Cdn    , nfluxes ); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(A      , nfluxes ); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(B      , nfluxes ); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(AinvB  , nfluxes ); CHKERRQ(ierr);
 
-  free(A1d             );
-  free(B_1d             );
-  free(Cup1d           );
+  free(A_1d            );
+  free(B_1d            );
+  free(Cup_1d           );
   free(CuptimesAinvB_1d );
 
   PetscFunctionReturn(0);
@@ -305,32 +296,29 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
 PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
     TDy_vertex *vertex, TDy_cell *cells) {
 
-  PetscInt nflux_in, nflux_bc, nflux;
-  PetscInt npitf_bc, npitf_in, npitf;
-  PetscInt npcen;
-
-  PetscInt icell, isubcell;
-
-  PetscReal **Fup, **Cup, **Fdn, **Cdn;
-  PetscReal *BInxCBC_1d;
-  PetscReal *AinvB_1d, *CupInxCBCtimesAinvB_1d, *CupBCxCBCtimesAinvB_1d, *CdnBCxCBCtimesAinvB_1d;
-
-  PetscReal *AInxIn_1d;
-  PetscReal *CupInxIn_1d;
-  PetscReal *CupBcxIn_1d, *CdnBcxIn_1d;
-
-  PetscReal **Gmatrix;
-  PetscInt idx, vertex_id;
-  PetscErrorCode ierr;
-  PetscInt ndim;
-  PetscInt i,j;
   TDy_cell *cell;
   TDy_subcell *subcell;
 
+  PetscInt nflux_in, nflux_bc, nflux;
+  PetscInt npitf_bc, npitf_in, npitf;
+  PetscInt npcen;
+  PetscInt icell, isubcell;
+  PetscReal **Gmatrix;
+  PetscReal **Fup, **Cup, **Fdn, **Cdn;
+  PetscReal *AInxIn_1d, *BInxCBC_1d;
+  PetscReal *AinvB_1d;
+  PetscReal *CupInxIn_1d, *CupBcxIn_1d, *CdnBcxIn_1d;
+  PetscReal *CupInxCBCtimesAinvB_1d, *CupBCxCBCtimesAinvB_1d, *CdnBCxCBCtimesAinvB_1d;
+  PetscInt idx, vertex_id;
+  PetscInt ndim;
+  PetscInt i,j;
+  PetscErrorCode ierr;
+
   PetscFunctionBegin;
 
-  ndim      = 3;
   vertex_id = vertex->id;
+
+  ierr = DMGetDimension(tdy->dm, &ndim); CHKERRQ(ierr);
 
   // Determine:
   //  (1) number of internal and boudnary fluxes,
