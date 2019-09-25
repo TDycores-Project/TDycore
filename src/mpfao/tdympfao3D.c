@@ -393,11 +393,6 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
     idx_interface_p0 = subcell->face_unknown_idx[0];
     idx_interface_p1 = subcell->face_unknown_idx[1];
     idx_interface_p2 = subcell->face_unknown_idx[2];
-    if (npcen == 2) {
-      if (idx_interface_p0>=npcen) idx_interface_p0--;
-      if (idx_interface_p1>=npcen) idx_interface_p1--;
-      if (idx_interface_p2>=npcen) idx_interface_p2--;
-    }
 
     PetscInt idx_flux, iface;
     for (iface=0; iface<subcell->num_faces; iface++) {

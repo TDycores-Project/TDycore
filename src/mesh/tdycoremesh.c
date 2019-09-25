@@ -2073,11 +2073,29 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
 
   PetscFunctionBegin;
 
-  PetscInt icell, isubcell, iface, ncells, cell_id;
+  PetscInt icell, isubcell, iface, ncells, cell_id, nflux_in;
   PetscInt ii, boundary_cell_count;
 
   ncells = vertex->num_internal_cells;
   boundary_cell_count = 0;
+
+  switch (vertex->num_internal_cells) {
+  case 1:
+    nflux_in = 0;
+    break;
+  case 2:
+    nflux_in = 1;
+    break;
+  case 4:
+    nflux_in = 4;
+    break;
+  case 8:
+    nflux_in = 12;
+    break;
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SetupUpwindFacesForSubcell: Unsupported vertex->num_internal_cells");
+    break;
+  }
 
   for (icell=0; icell<ncells; icell++) {
 
@@ -2099,7 +2117,7 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
 
       // Skip boundary face
       if (face->cell_ids[0] == -1 || face->cell_ids[1] == -1) {
-        subcell->face_unknown_idx[iface] = boundary_cell_count+ncells;
+        subcell->face_unknown_idx[iface] = boundary_cell_count+nflux_in;
         for (ii=0; ii<12; ii++) {
           if (cell_up2dw[ii][0] == subcell->face_unknown_idx[iface]){ subcell->is_face_up[iface] = PETSC_FALSE; break;}
           if (cell_up2dw[ii][1] == subcell->face_unknown_idx[iface]){ subcell->is_face_up[iface] = PETSC_TRUE ; break;}
@@ -2132,27 +2150,9 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
   }
 
   PetscInt nup_bnd_flux=0, ndn_bnd_flux=0;
-  PetscInt nflux_in = 0, nflux_bc = 0;
+  PetscInt nflux_bc = 0;
 
   nflux_bc = vertex->num_boundary_cells/2;
-
-  switch (vertex->num_internal_cells) {
-  case 1:
-    nflux_in = 0;
-    break;
-  case 2:
-    nflux_in = 1;
-    break;
-  case 4:
-    nflux_in = 4;
-    break;
-  case 8:
-    nflux_in = 12;
-    break;
-  default:
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SetupUpwindFacesForSubcell: Unsupported vertex->num_internal_cells");
-    break;
-  }
 
   // Save the face index that corresponds to the flux in transmissibility matrix
   for (icell=0; icell<ncells; icell++) {
