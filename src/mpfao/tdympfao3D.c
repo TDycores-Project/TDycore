@@ -145,7 +145,7 @@ PetscErrorCode ComputeCtimesAinvB(PetscInt A_nrow, PetscInt B_ncol, PetscInt C_n
 
   // Compute (C * AinvB)
   m = C_nrow; n = B_ncol; k = A_nrow;
-  BLASgemm_("N","N", &m, &n, &k, &one, C, &m, AinvB, &m, &zero,
+  BLASgemm_("N","N", &m, &n, &k, &one, C, &m, AinvB, &k, &zero,
             CtimesAinvB, &m);
 
   PetscFunctionReturn(0);
@@ -165,7 +165,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   PetscReal **Fup, **Fdn;
   PetscReal **Cup, **Cdn;
   PetscReal **A, **B, **AinvB;
-  PetscReal *A1d, *B1d, *Cup1d, *AinvB1d, *CuptimesAinvB1d;
+  PetscReal *A1d, *B_1d, *Cup1d, *AinvB_1d, *CuptimesAinvB_1d;
   PetscReal **Gmatrix;
   PetscInt idx, vertex_id;
   PetscErrorCode ierr;
@@ -188,10 +188,10 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   ierr = TDyAllocate_RealArray_2D(&AinvB  , nfluxes, ncells ); CHKERRQ(ierr);
 
   ierr = TDyAllocate_RealArray_1D(&A1d            , nfluxes*nfluxes); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_1D(&B1d            , nfluxes*ncells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&B_1d            , nfluxes*ncells ); CHKERRQ(ierr);
   ierr = TDyAllocate_RealArray_1D(&Cup1d          , nfluxes*nfluxes); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_1D(&AinvB1d        , nfluxes*ncells ); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_1D(&CuptimesAinvB1d, nfluxes*ncells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&AinvB_1d        , nfluxes*ncells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&CuptimesAinvB_1d, nfluxes*ncells ); CHKERRQ(ierr);
 
   faces = tdy->mesh->faces;
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
@@ -262,22 +262,22 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   for (j=0; j<ncells; j++) {
     for (i=0; i<nfluxes; i++) {
       B[i][j] = -Fup[i][j] + Fdn[i][j];
-      B1d[idx]= -Fup[i][j] + Fdn[i][j];
+      B_1d[idx]= -Fup[i][j] + Fdn[i][j];
       idx++;
     }
   }
 
   // Solve A^-1 * B
-  ierr = ComputeAinvB(nfluxes, A1d, ncells, B1d, AinvB1d);
+  ierr = ComputeAinvB(nfluxes, A1d, ncells, B_1d, AinvB_1d);
 
   // Solve C * (A^-1 * B)
-  ierr = ComputeCtimesAinvB(nfluxes, ncells, nfluxes, Cup1d, AinvB1d, CuptimesAinvB1d);
+  ierr = ComputeCtimesAinvB(nfluxes, ncells, nfluxes, Cup1d, AinvB_1d, CuptimesAinvB_1d);
 
   // Save Transmissibility matrix
   idx = 0;
   for (j=0; j<ncells; j++) {
     for (i=0; i<nfluxes; i++) {
-      tdy->Trans[vertex_id][i][j] = CuptimesAinvB1d[idx] - Fup[i][j];
+      tdy->Trans[vertex_id][i][j] = CuptimesAinvB_1d[idx] - Fup[i][j];
       idx++;
     }
   }
@@ -293,9 +293,9 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
   ierr = TDyDeallocate_RealArray_2D(AinvB  , nfluxes ); CHKERRQ(ierr);
 
   free(A1d             );
-  free(B1d             );
+  free(B_1d             );
   free(Cup1d           );
-  free(CuptimesAinvB1d );
+  free(CuptimesAinvB_1d );
 
   PetscFunctionReturn(0);
 
@@ -312,29 +312,17 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   PetscInt icell, isubcell;
 
   PetscReal **Fup, **Cup, **Fdn, **Cdn;
-  PetscReal **FupInxCen, **FdnInxCen; // InxIn: Internal flux with contribution from unknown internal pressure values
-  PetscReal **FupBcxCen, **FdnBcxCen; // BcxIn: Boundary flux with contribution from unknown internal pressure values
-  PetscReal **CupInxIn, **CdnInxIn; // InxIn: Internal flux with contribution from unknown internal pressure values
-  PetscReal **CupInxBc, **CdnInxBc; // Inxbc: Internal flux with contribution from known boundary pressure values
-  PetscReal **CupBcxIn, **CdnBcxIn; // BcxIn: Boundary flux with contribution from unknown internal pressure values
-  PetscReal **CupBcxBc, **CdnBcxBc; // BcxIn: Boundary flux with contribution from known boundary pressure values
+  PetscReal *BInxCBC_1d;
+  PetscReal *AinvB_1d, *CupInxCBCtimesAinvB_1d, *CupBCxCBCtimesAinvB_1d, *CdnBCxCBCtimesAinvB_1d;
 
-  PetscReal *AInxIninv_1d;
-  PetscReal **AInxIn, **BInxIn, **AInxIninvBInxIn  ;
-  PetscReal *AInxIn_1d, *BInxIn_1d, *DInxBc_1d, *AInxIninvBInxIn_1d, *AInxIninvDInxBc_1d;
-  PetscReal *CupInxIn_1d, *CupInxIntimesAInxIninvBInxIn_1d, *CupInxIntimesAInxIninvDInxBc_1d;
+  PetscReal *AInxIn_1d;
+  PetscReal *CupInxIn_1d;
   PetscReal *CupBcxIn_1d, *CdnBcxIn_1d;
 
-  PetscReal *CupBcxIntimesAInxIninvBInxIn_1d, *CdnBcxIntimesAInxIninvBInxIn_1d;
-  PetscReal *CupBcxIntimesAInxIninvDInxBc_1d, *CdnBcxIntimesAInxIninvDInxBc_1d;
-
-  PetscReal *lapack_mem_1d;
   PetscReal **Gmatrix;
   PetscInt idx, vertex_id;
   PetscErrorCode ierr;
-  PetscBLASInt info, *pivots;
-  PetscInt n,m,k,ndim;
-  PetscScalar zero = 0.0, one = 1.0;
+  PetscInt ndim;
   PetscInt i,j;
   TDy_cell  *cell;
   TDy_face  *faces, *face;
@@ -345,7 +333,6 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   ndim      = 3;
   vertex_id = vertex->id;
   faces = tdy->mesh->faces;
-  printf("vertex_id = %d\n",vertex_id);
 
   // Determine:
   //  (1) number of internal and boudnary fluxes,
@@ -377,47 +364,18 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   ierr = TDyAllocate_RealArray_2D(&Fdn, nflux, npcen);
   ierr = TDyAllocate_RealArray_2D(&Cdn, nflux, npitf);
 
-  ierr = TDyAllocate_RealArray_2D(&FupInxCen, nflux_in, npcen);
-  ierr = TDyAllocate_RealArray_2D(&FupBcxCen, nflux_bc, npcen);
-  ierr = TDyAllocate_RealArray_2D(&FdnInxCen, nflux_in, npcen);
-  ierr = TDyAllocate_RealArray_2D(&FdnBcxCen, nflux_bc, npcen);
-
-  ierr = TDyAllocate_RealArray_2D(&CupInxIn, nflux_in, npitf_in);
-  ierr = TDyAllocate_RealArray_2D(&CupInxBc, nflux_in, npitf_bc);
-  ierr = TDyAllocate_RealArray_2D(&CupBcxIn, nflux_bc, npitf_in);
-  ierr = TDyAllocate_RealArray_2D(&CupBcxBc, nflux_bc, npitf_bc);
-
-  ierr = TDyAllocate_RealArray_2D(&CdnInxIn, nflux_in, npitf_in);
-  ierr = TDyAllocate_RealArray_2D(&CdnInxBc, nflux_in, npitf_bc);
-  ierr = TDyAllocate_RealArray_2D(&CdnBcxIn, nflux_bc, npitf_in);
-  ierr = TDyAllocate_RealArray_2D(&CdnBcxBc, nflux_bc, npitf_bc);
-
-  ierr = TDyAllocate_RealArray_2D(&AInxIn, nflux_in, npitf_in);
-  ierr = TDyAllocate_RealArray_2D(&BInxIn, nflux_in, npcen);
-  ierr = TDyAllocate_RealArray_2D(&AInxIninvBInxIn, nflux_in, npcen);
-
   ierr = TDyAllocate_RealArray_1D(&AInxIn_1d    , nflux_in*npitf_in);
-  ierr = TDyAllocate_RealArray_1D(&lapack_mem_1d, nflux_in*npitf_in);
-  ierr = TDyAllocate_RealArray_1D(&BInxIn_1d    , nflux_in*npcen   );
-
-  ierr = TDyAllocate_RealArray_1D(&AInxIninv_1d      , nflux_in*npitf_in);
-  ierr = TDyAllocate_RealArray_1D(&AInxIninvBInxIn_1d, nflux_in*npcen   );
-
-  ierr = TDyAllocate_RealArray_1D(&CupInxIn_1d                    , nflux_in*npitf_in);
-  ierr = TDyAllocate_RealArray_1D(&CupInxIntimesAInxIninvBInxIn_1d, nflux_in*npcen);
+  ierr = TDyAllocate_RealArray_1D(&CupInxIn_1d  , nflux_in*npitf_in);
+  ierr = TDyAllocate_RealArray_1D(&BInxCBC_1d   , nflux_in*(npcen+npitf_bc));
 
   ierr = TDyAllocate_RealArray_1D(&CupBcxIn_1d, nflux_bc*npitf_in);
   ierr = TDyAllocate_RealArray_1D(&CdnBcxIn_1d, nflux_bc*npitf_in);
 
-  ierr = TDyAllocate_RealArray_1D(&CupBcxIntimesAInxIninvBInxIn_1d, nflux_bc*npcen);
-  ierr = TDyAllocate_RealArray_1D(&CdnBcxIntimesAInxIninvBInxIn_1d, nflux_bc*npcen);
-
-  ierr = TDyAllocate_RealArray_1D(&DInxBc_1d, nflux_in*npitf_bc);
-
-  ierr = TDyAllocate_RealArray_1D(&AInxIninvDInxBc_1d, nflux_in*npitf_bc);
-  ierr = TDyAllocate_RealArray_1D(&CupInxIntimesAInxIninvDInxBc_1d, nflux_in*npitf_bc);
-  ierr = TDyAllocate_RealArray_1D(&CupBcxIntimesAInxIninvDInxBc_1d, nflux_bc*npitf_bc);
-  ierr = TDyAllocate_RealArray_1D(&CdnBcxIntimesAInxIninvDInxBc_1d, nflux_bc*npitf_bc);
+  ierr = TDyAllocate_RealArray_1D(&AinvB_1d, nflux_in*(npcen+npitf_bc)   );
+  ierr = TDyAllocate_RealArray_1D(&CupInxCBCtimesAinvB_1d, nflux_in*(npcen+npitf_bc)   );
+  ierr = TDyAllocate_RealArray_1D(&CupBCxCBCtimesAinvB_1d, nflux_bc*(npcen+npitf_bc)   );
+  ierr = TDyAllocate_RealArray_1D(&CdnBCxCBCtimesAinvB_1d, nflux_bc*(npcen+npitf_bc)   );
+  
 
   PetscInt nup_bnd_flux=0, ndn_bnd_flux=0;
 
@@ -509,6 +467,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
     }
 
   }
+
   /*
     Upwind/Downwind
       Flux     =         F            *     Pcenter      +                         C                         *      P_interface
@@ -519,162 +478,91 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
    | Flux_bc |   | F_(nflux_bc,npcen) | |             |     | C_(nflux_bc,npitf_in)   C_(nflux_in,npitf_bc) |  |  P_(nptif_bc,1) |
    |_       _|   |_                  _| |_           _|     |_                                             _|  |_               _|
 
-  */
+                          C
+    _                                             _
+   |                                               |
+   | C_(nflux_in,npitf_in)   C_(nflux_in,npitf_bc) |
+   |                                               |
+   | C_(nflux_bc,npitf_in)   C_(nflux_in,npitf_bc) |
+   |_                                             _|
 
-  for (j=0; j<npcen; j++) {
-    for (i=0; i<nflux_in; i++) {
-      FupInxCen[i][j] = Fup[i][j];
-      FdnInxCen[i][j] = Fdn[i][j];
-    }
-    for (i=0; i<nflux_bc; i++) {
-      FupBcxCen[i][j] = Fup[i+nflux_in][j];
-      FdnBcxCen[i][j] = Fdn[i+nflux_in][j];
-    }
-  }
-
-  for (j=0; j<npitf_in; j++) {
-    for (i=0; i<nflux_in; i++) {
-      CupInxIn[i][j] = Cup[i][j];
-      CdnInxIn[i][j] = Cdn[i][j];
-    }
-    for (i=0; i<nflux_bc; i++) {
-      CupBcxIn[i][j] = Cup[i+npitf_in][j];
-      CdnBcxIn[i][j] = Cdn[i+npitf_in][j];
-    }
-  }
-
-  idx = 0;
-  for (j=0; j<nflux_bc*2; j++) {
-    for (i=0; i<nflux_in; i++) {
-      CupInxBc[i][j] = Cup[i][j+npitf_in];
-      CdnInxBc[i][j] = Cdn[i][j+npitf_in];
-      DInxBc_1d[idx]   = CupInxBc[i][j] - CdnInxBc[i][j];
-      idx++;
-    }
-    for (i=0; i<nflux_bc; i++) {
-      CupBcxBc[i][j] = Cup[i+npitf_in][j+npitf_in];
-      CdnBcxBc[i][j] = Cdn[i+npitf_in][j+npitf_in];
-    }
-  }
-
-  idx = 0;
-  for (j=0; j<npitf_in; j++) {
-    for (i=0; i<nflux_in; i++) {
-      AInxIn[i][j]     = -CupInxIn[i][j] + CdnInxIn[i][j];
-      AInxIn_1d[idx]   = -CupInxIn[i][j] + CdnInxIn[i][j];
-      CupInxIn_1d[idx] = CupInxIn[i][j];
-      idx++;
-    }
-  }
-
-  idx = 0;
-  for (j=0; j<npitf_in; j++) {
-    for (i=0; i<nflux_bc; i++) {
-      CupBcxIn_1d[idx] = CupBcxIn[i][j];
-      CdnBcxIn_1d[idx] = CdnBcxIn[i][j];
-      idx++;
-    }
-  }
-
-  idx = 0;
-  for (j=0; j<npcen; j++) {
-    for (i=0; i<nflux_in; i++) {
-      BInxIn[i][j]   = -FupInxCen[i][j] + FdnInxCen[i][j];
-      BInxIn_1d[idx] = -FupInxCen[i][j] + FdnInxCen[i][j];
-      idx++;
-    }
-  }
-
-  n = nflux_in; m = npitf_in;
-  ierr = PetscMalloc((n+1)*sizeof(PetscBLASInt), &pivots); CHKERRQ(ierr);
-
-  LAPACKgetrf_(&m, &n, AInxIn_1d, &m, pivots, &info);
-  if (info<0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB,"Bad argument to LU factorization");
-  if (info>0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_MAT_LU_ZRPVT,"Bad LU factorization");
-
-  ierr = PetscMemcpy(AInxIninvBInxIn_1d, BInxIn_1d,sizeof(PetscScalar)*(nflux_in*npcen   )); CHKERRQ(ierr);
-  ierr = PetscMemcpy(AInxIninv_1d      , AInxIn_1d,sizeof(PetscScalar)*(nflux_in*nflux_in)); CHKERRQ(ierr);
-  ierr = PetscMemcpy(AInxIninvDInxBc_1d, DInxBc_1d,sizeof(PetscScalar)*(nflux_in*npitf_bc)); CHKERRQ(ierr);
-
-  // Solve AinvB = (A^-1) by back-substitution
-  n = nflux_in;
-  PetscInt nn = n*n;
-  LAPACKgetri_(&n, AInxIninv_1d, &n, pivots, lapack_mem_1d, &nn, &info);
-
-  // Compute (Ainv*B)
-  m = npitf_in; n = npcen; k = nflux_in;
-  BLASgemm_("N","N", &m, &n, &k, &one, AInxIninv_1d, &m, BInxIn_1d, &k, &zero, AInxIninvBInxIn_1d, &m);
-
-  // Compute (Ainv*D)
-  m = npitf_in; n = npitf_bc; k = nflux_in;
-  BLASgemm_("N","N", &m, &n, &k, &one, AInxIninv_1d, &m, DInxBc_1d, &k, &zero, AInxIninvDInxBc_1d, &m);
-
-  // Compute C*(Ainv*B) for internal flux
-  m = npitf_in; n = npcen; k = nflux_in;
-  BLASgemm_("N","N", &m, &n, &k, &one, CupInxIn_1d, &m, AInxIninvBInxIn_1d, &k, &zero, CupInxIntimesAInxIninvBInxIn_1d, &m);
-
-  // Compute C*(Ainv*B) for up boundary flux
-  m = nflux_bc; n = npcen; k = nflux_in;
-  BLASgemm_("N","N", &m, &n, &k, &one, CupBcxIn_1d, &m, AInxIninvBInxIn_1d, &k, &zero, CupBcxIntimesAInxIninvBInxIn_1d, &m);
-
-  // Compute C*(Ainv*B) for down boundary flux
-  m = nflux_bc; n = npcen; k = nflux_in;
-  BLASgemm_("N","N", &m, &n, &k, &one, CdnBcxIn_1d, &m, AInxIninvBInxIn_1d, &k, &zero, CdnBcxIntimesAInxIninvBInxIn_1d, &m);
-
-  // Compute C*(Ainv*D) for internal flux
-  m = nflux_in; n = npitf_bc; k = nflux_in;
-  BLASgemm_("N","N", &m, &n, &k, &one, CupInxIn_1d, &m, AInxIninvDInxBc_1d, &k, &zero, CupInxIntimesAInxIninvDInxBc_1d, &m);
-
-  // Compute C*(Ainv*D) for up boundary flux
-  m = nflux_bc; n = npitf_bc; k = nflux_in;
-  BLASgemm_("N","N", &m, &n, &k, &one, CupBcxIn_1d, &m, AInxIninvDInxBc_1d, &k, &zero, CupBcxIntimesAInxIninvDInxBc_1d, &m);
-
-  // Compute C*(Ainv*D) for down boundary flux
-  m = nflux_bc; n = npitf_bc; k = nflux_in;
-  BLASgemm_("N","N", &m, &n, &k, &one, CdnBcxIn_1d, &m, AInxIninvDInxBc_1d, &k, &zero, CdnBcxIntimesAInxIninvDInxBc_1d, &m);
-
-  /*
-        _          _     _                                                                        _   _              _
-       |            |   |                                                                          | |                |
-       | Flux_in    |   | (-Fu^(IxI) + Cu^(IxI) x Inv(A) x B)   (Cu^(IxB) + Cu^(IxI) x Inv(A) x D) | |                |
-       |            |   |                                                                          | | P_(npcen,1)    |
-   T = | Flux_bc_up | = | (-Fu^(BxI) + Cu^(BxI) x Inv(A) x B)   (Cu^(BxB) + Cu^(BxI) x Inv(A) x D) | |                |
-       |            |   |                                                                          | | P_(nptif_bc,1) |
-       | Flux_bc_dn |   | (-Fd^(BxI) + Cu^(BxI) x Inv(A) x B)   (Cd^(BxB) + Cu^(BxI) x Inv(A) x D) | |                |
-       |_          _|   |_                                                                        _| |_              _|
+    _       _     _                                          _   _             _       _                     _    _               _
+   |         |   |                                           | |                |     |                       |  |                 |
+   | Flux_in |   | F_(nflux_in,npcen)  C_(nflux_in,npitf_bc) | | P_(npcen,1)    |     | C_(nflux_in,npitf_in) |  |                 |
+   |         | = |                                           | |                |  +  |                       |  |  P_(nptif_in,1) |
+   | Flux_bc |   | F_(nflux_bc,npcen)  C_(nflux_in,npitf_bc) | | P_(nptif_bc,1) |     | C_(nflux_bc,npitf_in) |  |                 |
+   |_       _|   |_                                         _| |_              _|     |_                     _|  |_               _|
 
   */
 
   idx = 0;
   for (j=0; j<npcen; j++) {
     for (i=0; i<nflux_in; i++) {
-      tdy->Trans[vertex_id][i][j] = -FupInxCen[i][j] + CupInxIntimesAInxIninvBInxIn_1d[idx];
+      BInxCBC_1d[idx] = -Fup[i][j]+Fdn[i][j];
       idx++;
     }
   }
 
-  idx = 0;
+  idx = npcen*nflux_in;
   for (j=0; j<npitf_bc; j++) {
     for (i=0; i<nflux_in; i++) {
-      tdy->Trans[vertex_id][i][j+npcen] = CupInxBc[i][j] + CupInxIntimesAInxIninvDInxBc_1d[idx];
+      BInxCBC_1d[idx] = Cup[i][j+npitf_in] - Cdn[i][j+npitf_in];
       idx++;
     }
   }
 
   idx = 0;
-  for (j=0; j<npcen; j++) {
-    for (i=0; i<nflux_bc; i++) {
-      tdy->Trans[vertex_id][i+nflux_in         ][j] = -FupBcxCen[i][j] + CupBcxIntimesAInxIninvBInxIn_1d[idx];
-      tdy->Trans[vertex_id][i+nflux_in+nflux_bc][j] = -FdnBcxCen[i][j] + CdnBcxIntimesAInxIninvBInxIn_1d[idx];
+  for (j=0; j<npitf_in; j++) {
+    for (i=0; i<nflux_in; i++) {
+      AInxIn_1d[idx]   = -Cup[i][j] + Cdn[i][j];
+      CupInxIn_1d[idx] = Cup[i][j];
       idx++;
     }
   }
 
   idx = 0;
-  for (j=0; j<npitf_bc; j++) {
+  for (j=0; j<npitf_in; j++) {
     for (i=0; i<nflux_bc; i++) {
-      tdy->Trans[vertex_id][i+nflux_in         ][j+npcen] = CupBcxBc[i][j] + CupBcxIntimesAInxIninvDInxBc_1d[idx];
-      tdy->Trans[vertex_id][i+nflux_in+nflux_bc][j+npcen] = CdnBcxBc[i][j] + CdnBcxIntimesAInxIninvDInxBc_1d[idx];
+      CupBcxIn_1d[idx] = Cup[i+npitf_in][j];
+      CdnBcxIn_1d[idx] = Cdn[i+npitf_in][j];
+      idx++;
+    }
+  }
+
+  // Solve A^-1 * B
+  ierr = ComputeAinvB(nflux_in, AInxIn_1d, npcen+npitf_bc, BInxCBC_1d, AinvB_1d);
+
+  // Solve C * (A^-1 * B) for internal, upwind, and downwind fluxes
+  ierr = ComputeCtimesAinvB(nflux_in, npcen+npitf_bc, nflux_in, CupInxIn_1d, AinvB_1d, CupInxCBCtimesAinvB_1d);
+  ierr = ComputeCtimesAinvB(nflux_in, npcen+npitf_bc, nflux_bc, CupBcxIn_1d, AinvB_1d, CupBCxCBCtimesAinvB_1d);
+  ierr = ComputeCtimesAinvB(nflux_in, npcen+npitf_bc, nflux_bc, CdnBcxIn_1d, AinvB_1d, CdnBCxCBCtimesAinvB_1d);
+
+  // Save transmissiblity matrix for internal fluxes including contribution from unknown P @ cell centers
+  // and known P @ boundaries
+  idx = 0;
+  for (j=0;j<npcen+npitf_bc;j++) {
+    for (i=0;i<nflux_in;i++) {
+      if (j<npcen) {
+        tdy->Trans[vertex_id][i][j] = CupInxCBCtimesAinvB_1d[idx] - Fup[i][j];
+      } else {
+        tdy->Trans[vertex_id][i][j] = CupInxCBCtimesAinvB_1d[idx] + Cup[i][j-npcen+npitf_in];
+      }
+      idx++;
+    }
+  }
+
+  // Save transmissiblity matrix for boundary fluxes (first upwind and then downwind) including
+  // contribution from unknown P @ cell centers and known P @ boundaries
+  idx = 0;
+  for (j=0;j<npcen+npitf_bc;j++) {
+    for (i=0;i<nflux_bc;i++) {
+      if (j<npcen) {
+        tdy->Trans[vertex_id][i+nflux_in         ][j] = CupBCxCBCtimesAinvB_1d[idx] - Fup[i+nflux_in][j];
+        tdy->Trans[vertex_id][i+nflux_in+nflux_bc][j] = CdnBCxCBCtimesAinvB_1d[idx] - Fdn[i+nflux_in][j];
+      } else {
+        tdy->Trans[vertex_id][i+nflux_in         ][j] = CupBCxCBCtimesAinvB_1d[idx] + Cup[i+npitf_in][j-npcen+npitf_in];
+        tdy->Trans[vertex_id][i+nflux_in+nflux_bc][j] = CdnBCxCBCtimesAinvB_1d[idx] + Cdn[i+npitf_in][j-npcen+npitf_in];
+      }
       idx++;
     }
   }
@@ -685,41 +573,14 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
   ierr = TDyDeallocate_RealArray_2D(Fdn, nflux); CHKERRQ(ierr);
   ierr = TDyDeallocate_RealArray_2D(Cdn, nflux); CHKERRQ(ierr);
 
-  ierr = TDyDeallocate_RealArray_2D(FupInxCen, nflux_in); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(FupBcxCen, nflux_bc); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(FdnInxCen, nflux_in); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(FdnBcxCen, nflux_bc); CHKERRQ(ierr);
-
-  ierr = TDyDeallocate_RealArray_2D(CupInxIn, nflux_in); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(CupInxBc, nflux_in); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(CupBcxIn, nflux_bc); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(CupBcxBc, nflux_bc); CHKERRQ(ierr);
-
-  ierr = TDyDeallocate_RealArray_2D(CdnInxIn, nflux_in); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(CdnInxBc, nflux_in); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(CdnBcxIn, nflux_bc); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(CdnBcxBc, nflux_bc); CHKERRQ(ierr);
-
-  ierr = TDyDeallocate_RealArray_2D(AInxIn, nflux_in); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(BInxIn, nflux_in); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(AInxIninvBInxIn, nflux_in); CHKERRQ(ierr);
-
-  free(AInxIn_1d                      );
-  free(lapack_mem_1d                  );
-  free(BInxIn_1d                      );
-  free(AInxIninv_1d                   );
-  free(AInxIninvBInxIn_1d             );
-  free(CupInxIn_1d                    );
-  free(CupInxIntimesAInxIninvBInxIn_1d);
-  free(CupBcxIn_1d                    );
-  free(CdnBcxIn_1d                    );
-  free(CupBcxIntimesAInxIninvBInxIn_1d);
-  free(CdnBcxIntimesAInxIninvBInxIn_1d);
-  free(DInxBc_1d                      );
-  free(AInxIninvDInxBc_1d             );
-  free(CupInxIntimesAInxIninvDInxBc_1d);
-  free(CupBcxIntimesAInxIninvDInxBc_1d);
-  free(CdnBcxIntimesAInxIninvDInxBc_1d);
+  free(AinvB_1d);
+  free(CupInxCBCtimesAinvB_1d);
+  free(CupBCxCBCtimesAinvB_1d);
+  free(CdnBCxCBCtimesAinvB_1d);
+  free(AInxIn_1d             );
+  free(CupInxIn_1d           );
+  free(CupBcxIn_1d           );
+  free(CdnBcxIn_1d           );
 
   PetscFunctionReturn(0);
 
