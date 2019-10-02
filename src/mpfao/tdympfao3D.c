@@ -153,7 +153,7 @@ PetscErrorCode ComputeCtimesAinvB(PetscInt A_nrow, PetscInt B_ncol, PetscInt C_n
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
+PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
     TDy_vertex *vertex, TDy_cell *cells) {
 
   PetscInt       ncells, icell, isubcell;
@@ -293,7 +293,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex3DMesh(TDy tdy,
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
+PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(TDy tdy,
     TDy_vertex *vertex, TDy_cell *cells) {
 
   TDy_cell *cell;
@@ -526,6 +526,56 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(TDy tdy,
 
 }
 
+/* -------------------------------------------------------------------------- */
+PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(TDy tdy,
+    TDy_vertex *vertex, TDy_cell *cells) {
+  DM             dm;
+  TDy_cell       *cell;
+  TDy_subcell    *subcell;
+  PetscInt       icell;
+  PetscInt       iface, isubcell;
+  PetscInt       vStart, vEnd;
+  PetscInt       fStart, fEnd;
+  PetscInt       dim;
+  PetscReal      **Gmatrix;
+  PetscInt       j;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  dm       = tdy->dm;
+
+  ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
+
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
+
+  // Vertex is on the boundary
+  
+  // For boundary edges, save following information:
+  //  - Dirichlet pressure value
+  //  - Cell IDs connecting the boundary edge in the direction of unit normal
+  
+  icell    = vertex->internal_cell_ids[0];
+  isubcell = vertex->subcell_ids[0];
+  
+  cell = &cells[icell];
+  subcell = &cell->subcells[isubcell];
+  
+  ierr = ExtractSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
+  
+  for (iface=0; iface<subcell->num_faces; iface++) {
+    
+    for (j=0; j<dim; j++) {
+      tdy->Trans[vertex->id][iface][j] = Gmatrix[iface][j];
+    }
+  }
+  
+  PetscFunctionReturn(0);
+
+}
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
@@ -546,12 +596,14 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
     vertex = &vertices[ivertex];
 
     if (vertex->num_boundary_cells == 0) {
-      ierr = ComputeTransmissibilityMatrixForInternalVertex3DMesh(tdy, vertex, cells);
+      ierr = ComputeTransmissibilityMatrix_ForInternalVertex(tdy, vertex, cells);
       CHKERRQ(ierr);
     } else {
       if (vertex->num_internal_cells > 1) {
-        ierr = ComputeTransmissibilityMatrixForBoundaryVertex3DMesh(tdy, vertex, cells);
+        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(tdy, vertex, cells);
         CHKERRQ(ierr);
+      } else {
+        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, vertex, cells);
       }
     }
   }
@@ -930,7 +982,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
       value = 0.0;
       for (j=0; j<dim; j++) {
-        value += sign*Gmatrix[iface][j];
+        value += sign*tdy->Trans[vertex->id][iface][j];
       }
 
       row   = cells[icell].global_id;
@@ -951,7 +1003,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
       if (cell_from>-1 && cells[cell_from].is_local) {
         row   = cells[cell_from].global_id;
         for (icol=0; icol<vertex->num_boundary_cells; icol++) {
-          value = Gmatrix[iface][icol] * pBoundary[icol];
+          value = tdy->Trans[vertex->id][iface][icol] * pBoundary[icol];
           ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
         }
 
@@ -960,7 +1012,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
       if (cell_to>-1 && cells[cell_to].is_local) {
         row   = cells[cell_to].global_id;
         for (icol=0; icol<vertex->num_boundary_cells; icol++) {
-          value = Gmatrix[iface][icol] * pBoundary[icol];
+          value = tdy->Trans[vertex->id][iface][icol] * pBoundary[icol];
           ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
         }
       }
