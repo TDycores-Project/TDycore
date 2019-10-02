@@ -969,27 +969,7 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   if (dim == 3) {
   for (v=vStart; v<vEnd; v++) {
     vertex = &vertices[v-vStart];
-
-    PetscInt nflux_in=0;
-    switch (vertex->num_internal_cells) {
-      case 1:
-        nflux_in = 0;
-        break;
-      case 2:
-        nflux_in = 1;
-        break;
-      case 4:
-        nflux_in = 4;
-        break;
-      case 8:
-        nflux_in = 12;
-        break;
-      default:
-        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "Unsupported number of internal cells.");
-        break;
-    }
     ierr = TDyAllocate_IntegerArray_1D(&vertex->boundary_face_ids,vertex->num_boundary_cells); CHKERRQ(ierr);
-    ierr = TDyAllocate_IntegerArray_1D(&vertex->trans_row_face_ids,nflux_in+vertex->num_boundary_cells); CHKERRQ(ierr); ;
   }
   }
 
@@ -2169,21 +2149,27 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
     cell    = &cells[cell_id];
     subcell = &cell->subcells[isubcell];
 
-    // Loop over all faces of the subcell
+    // Loop over all faces of the subcell and
+    // - Updates face_ids for a vertex such that first all
+    //   internal faces are listed, followed by upwind boundary
+    //   faces, and the downward boundary faces are last
+    // - Similary, the index of the flux through the faces of a
+    //   subcell are identifed. The internal fluxes are first,
+    //   followed by upwind boundary and downwind boundary faces.
     for (iface=0; iface<subcell->num_faces; iface++) {
       TDy_face *face = &faces[subcell->face_ids[iface]];
 
       PetscInt idx_flux = subcell->face_unknown_idx[iface];
       if (face->is_internal) {
-        vertex->trans_row_face_ids[idx_flux] = face->id;
+        vertex->face_ids[idx_flux] = face->id;
         subcell->face_flux_idx[iface] = idx_flux;
       } else {
         if (subcell->is_face_up[iface]) {
-          vertex->trans_row_face_ids[nflux_in+nup_bnd_flux] = face->id;
+          vertex->face_ids[nflux_in+nup_bnd_flux] = face->id;
           subcell->face_flux_idx[iface] = nflux_in+nup_bnd_flux;
           nup_bnd_flux++;
         } else {
-          vertex->trans_row_face_ids[nflux_in+nflux_bc+ndn_bnd_flux] = face->id;
+          vertex->face_ids[nflux_in+nflux_bc+ndn_bnd_flux] = face->id;
           subcell->face_flux_idx[iface] = nflux_in+ndn_bnd_flux;
           ndn_bnd_flux++;
         }

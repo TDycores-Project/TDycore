@@ -543,7 +543,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
       // F = T*P
       for (irow=0; irow<nflux_in; irow++) {
 
-        PetscInt face_id = vertex->trans_row_face_ids[irow];
+        PetscInt face_id = vertex->face_ids[irow];
         TDy_face *face = &faces[face_id];
 
         if (!face->is_local) continue;
@@ -709,7 +709,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
     for (irow=0; irow<nflux_in; irow++){
 
-      PetscInt face_id = vertex->trans_row_face_ids[irow];
+      PetscInt face_id = vertex->face_ids[irow];
       TDy_face *face = &faces[face_id];
 
       if (!face->is_local) continue;
@@ -791,7 +791,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
     // For fluxes through boundary edges, only add contribution to the vector
     for (irow=0; irow<nflux_bc*2; irow++) {
 
-      PetscInt face_id = vertex->trans_row_face_ids[irow + nflux_in];
+      PetscInt face_id = vertex->face_ids[irow + nflux_in];
       TDy_face *face = &faces[face_id];
 
       if (!face->is_local) continue;

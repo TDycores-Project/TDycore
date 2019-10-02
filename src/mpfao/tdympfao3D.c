@@ -602,7 +602,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
       
       for (irow=0; irow<nflux_in; irow++) {
         
-        PetscInt face_id = vertex->trans_row_face_ids[irow];
+        PetscInt face_id = vertex->face_ids[irow];
         TDy_face *face = &faces[face_id];
         
         icell_from = face->cell_ids[0];
@@ -748,7 +748,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
     for (irow=0; irow<nflux_in; irow++){
 
-      PetscInt face_id = vertex->trans_row_face_ids[irow];
+      PetscInt face_id = vertex->face_ids[irow];
       TDy_face *face = &faces[face_id];
 
       icell_from = face->cell_ids[0];
@@ -796,7 +796,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
       //row = cell_ids_from_to[irow][0];
 
-      PetscInt face_id = vertex->trans_row_face_ids[irow + nflux_in];
+      PetscInt face_id = vertex->face_ids[irow + nflux_in];
       TDy_face *face = &faces[face_id];
 
       icell_from = face->cell_ids[0];
