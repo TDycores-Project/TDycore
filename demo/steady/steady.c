@@ -298,6 +298,8 @@ PetscErrorCode OperatorApplicationResidual(TDy tdy,Vec U,Mat K,PetscErrorCode (*
     }
     ierr = VecSetValue(U,c,mean/volume,INSERT_VALUES); CHKERRQ(ierr);
   }
+  ierr = VecAssemblyBegin(U); CHKERRQ(ierr);
+  ierr = VecAssemblyEnd(U); CHKERRQ(ierr);
   ierr = VecScale(R,-1); CHKERRQ(ierr);
   ierr = MatMultAdd(K,U,R,R); CHKERRQ(ierr);
   ierr = VecAbs(R); CHKERRQ(ierr);
