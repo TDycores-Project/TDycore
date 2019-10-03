@@ -60,7 +60,7 @@ PetscErrorCode TDyInitializePackage(void) {
 
 PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   TDy            tdy;
-  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,cStart,cEnd,eStart,eEnd,offset,
+  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,c,cStart,cEnd,eStart,eEnd,offset,
                  nc;
   Vec            coordinates;
   PetscSection   coordSection;
@@ -112,12 +112,18 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Kr)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->S)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rho)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->mu)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Sr)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Ss)); CHKERRQ(ierr);
 
   /* problem constants FIX: add mutators */
-  tdy->rho  = 998;
-  tdy->mu   = 9.94e-4;
-  tdy->Sr   = 0.15;
-  tdy->Ss   = 1;
+  for (c=0; c<nc; c++) {
+    tdy->rho[c]  = 998.0;
+    tdy->mu[c]   = 9.94e-4;
+    tdy->Sr[c]   = 0.15;
+    tdy->Ss[c]   = 1.0;
+  }
   tdy->Pref = 101325;
   tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
   tdy->gravity[dim-1] = -9.81;
@@ -336,8 +342,8 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
     i = c-cStart;
     PressureSaturation_VanGenuchten(n,m,alpha,tdy->Pref-P[i],&Se,&dSe_dPc);
     RelativePermeability_Irmay(m,Se,&Kr,NULL);
-    tdy->S[i] = (tdy->Ss-tdy->Sr)*Se+tdy->Sr;
-    tdy->dS_dP[i] = -dSe_dPc/(tdy->Ss-tdy->Sr);
+    tdy->S[i] = (tdy->Ss[i] - tdy->Sr[i])*Se+tdy->Sr[i];
+    tdy->dS_dP[i] = -dSe_dPc/(tdy->Ss[i] - tdy->Sr[i]);
     for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
     //printf("c[%2d] %+e %+e %+e %+e\n",c,tdy->Pref-P[i],Kr,Se,dSe_dPc);
   }

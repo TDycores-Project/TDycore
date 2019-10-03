@@ -32,10 +32,10 @@ struct _p_TDy {
   PetscInt ncv,nfv; /* number of {cell|face} vertices */
   
   /* problem constants */
-  PetscReal  rho;        /* density of water [kg m-3]*/
-  PetscReal  mu;         /* viscosity of water [Pa s] */
-  PetscReal  Sr;         /* residual saturation (min) [1] */
-  PetscReal  Ss;         /* saturated saturation (max) [1] */
+  PetscReal  *rho;       /* density of water [kg m-3]*/
+  PetscReal  *mu;        /* viscosity of water [Pa s] */
+  PetscReal  *Sr;        /* residual saturation (min) [1] */
+  PetscReal  *Ss;        /* saturated saturation (max) [1] */
   PetscReal  gravity[3]; /* vector of gravity [m s-2] */
   PetscReal  Pref;       /* reference pressure */
 
