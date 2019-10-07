@@ -126,6 +126,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
     tdy->mu[c]   = 9.94e-4;
     tdy->Sr[c]   = 0.15;
     tdy->SatFuncType[c] = SAT_FUNC_GARDNER;
+    tdy->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     tdy->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
   }
   tdy->Pref = 101325;
@@ -338,7 +339,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
-  PetscReal Se,dSe_dPc,n=0.5,m=0.5,alpha=1.6717e-5,Kr; /* FIX: generalize */
+  PetscReal Se,n=0.5,m=0.5,alpha=1.6717e-5,Kr; /* FIX: generalize */
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
@@ -347,16 +348,17 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
 
     switch (tdy->SatFuncType[i]) {
     case SAT_FUNC_GARDNER :
-      PressureSaturation_Gardner(n,m,alpha,tdy->Pref-P[i],&Se,&dSe_dPc);
+      PressureSaturation_Gardner(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&(tdy->dS_dP[i]));
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      PressureSaturation_VanGenuchten(n,m,alpha,tdy->Pref-P[i],&Se,&dSe_dPc);
+      PressureSaturation_VanGenuchten(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&tdy->dS_dP[i]);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
       break;
     }
 
+    Se = (tdy->S[i] - tdy->Sr[i])/(1.0 - tdy->Sr[i]);
     switch (tdy->RelPermFuncType[i]) {
     case REL_PERM_FUNC_IRMAY :
       RelativePermeability_Irmay(m,Se,&Kr,NULL);
@@ -369,8 +371,6 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
       break;
     }
 
-    tdy->S[i] = (1.0 - tdy->Sr[i])*Se+tdy->Sr[i];
-    tdy->dS_dP[i] = -dSe_dPc/(1.0 - tdy->Sr[i]);
     for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
     //printf("c[%2d] %+e %+e %+e %+e\n",c,tdy->Pref-P[i],Kr,Se,dSe_dPc);
   }
