@@ -48,6 +48,9 @@ struct _p_TDy {
   PetscReal *S,
             *dS_dP;  /* saturation and derivative wrt pressure for each cell [1] */
 
+  PetscInt *SatFuncType;     /* type of saturation function */
+  PetscInt *RelPermFuncType; /* type of relative permeability */
+
   void *permeabilityctx;
   void *residualsaturationctx;
   void *forcingctx;

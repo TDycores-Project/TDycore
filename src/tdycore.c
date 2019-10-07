@@ -1,4 +1,6 @@
 #include <private/tdycoreimpl.h>
+#include <private/tdysaturationimpl.h>
+#include <private/tdypermeabilityimpl.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -115,12 +117,16 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rho)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->mu)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Sr)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->SatFuncType)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->RelPermFuncType)); CHKERRQ(ierr);
 
   /* problem constants FIX: add mutators */
   for (c=0; c<nc; c++) {
     tdy->rho[c]  = 998.0;
     tdy->mu[c]   = 9.94e-4;
     tdy->Sr[c]   = 0.15;
+    tdy->SatFuncType[c] = SAT_FUNC_GARDNER;
+    tdy->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
   }
   tdy->Pref = 101325;
   tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
@@ -338,8 +344,31 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
-    PressureSaturation_VanGenuchten(n,m,alpha,tdy->Pref-P[i],&Se,&dSe_dPc);
-    RelativePermeability_Irmay(m,Se,&Kr,NULL);
+
+    switch (tdy->SatFuncType[i]) {
+    case SAT_FUNC_GARDNER :
+      PressureSaturation_Gardner(n,m,alpha,tdy->Pref-P[i],&Se,&dSe_dPc);
+      break;
+    case SAT_FUNC_VAN_GENUCHTEN :
+      PressureSaturation_VanGenuchten(n,m,alpha,tdy->Pref-P[i],&Se,&dSe_dPc);
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
+      break;
+    }
+
+    switch (tdy->RelPermFuncType[i]) {
+    case REL_PERM_FUNC_IRMAY :
+      RelativePermeability_Irmay(m,Se,&Kr,NULL);
+      break;
+    case REL_PERM_FUNC_MUALEM :
+      RelativePermeability_Mualem(m,Se,&Kr,NULL);
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown relative permeability function");
+      break;
+    }
+
     tdy->S[i] = (1.0 - tdy->Sr[i])*Se+tdy->Sr[i];
     tdy->dS_dP[i] = -dSe_dPc/(1.0 - tdy->Sr[i]);
     for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
