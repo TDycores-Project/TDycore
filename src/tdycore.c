@@ -343,15 +343,16 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  PetscReal d2S_dP2;
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
 
     switch (tdy->SatFuncType[i]) {
     case SAT_FUNC_GARDNER :
-      PressureSaturation_Gardner(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&(tdy->dS_dP[i]));
+      PressureSaturation_Gardner(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&(tdy->dS_dP[i]),&d2S_dP2);
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      PressureSaturation_VanGenuchten(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&tdy->dS_dP[i]);
+      PressureSaturation_VanGenuchten(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&tdy->dS_dP[i],&d2S_dP2);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
