@@ -343,7 +343,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
     tdy->S[i] = (1.0 - tdy->Sr[i])*Se+tdy->Sr[i];
     tdy->dS_dP[i] = -dSe_dPc/(1.0 - tdy->Sr[i]);
     for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
-    //printf("c[%2d] %+e %+e %+e %+e\n",c,tdy->Pref-P[i],Kr,Se,dSe_dPc);
+    printf("c[%2d] %+e %+e %+e %+e\n",c,tdy->Pref-P[i],Kr,Se,dSe_dPc);
   }
   PetscFunctionReturn(0);
 }

@@ -19,6 +19,8 @@
 #define tdysetforcingfunction_         TDYSETFORCINGFUNCTION
 #define tdysetdirichletvaluefunction_  TDYSETDIRICHLETVALUEFUNCTION
 #define tdysetdirichletfluxfunction_   TDYSETDIRICHLETFLUXFUNCTION
+#define tdysetresidualsaturationvalueslocal0_       TDYSETRESIDUALSATURATIONVALUESLOCAL0
+#define tdysetresidualsaturationvalueslocal11_      TDYSETRESIDUALSATURATIONVALUESLOCAL11
 #define tdyoutputregression_           TDYOUTPUTREGRESSION
 #define tdydestroy_                    TDYDESTROY
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
@@ -32,6 +34,8 @@
 #define tdysetforcingfunction_         tdysetforcingfunction
 #define tdysetdirichletvaluefunction_  tdysetdirichletvaluefunction
 #define tdysetdirichletfluxfunction_   tdysetdirichletfluxfunction
+#define tdysetresidualsaturationvalueslocal0_       tdysetresidualsaturationvalueslocal0
+#define tdysetresidualsaturationvalueslocal0_      tdysetresidualsaturationvalueslocal1
 #define tdyoutputregression_           tdyoutputregression
 #define tdydestroy_                    tdydestroy
 #endif
@@ -220,4 +224,19 @@ PETSC_EXTERN void PETSC_STDCALL tdysetdirichletfluxfunction_(TDy *tdy, void (PET
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
 #endif
   *ierr = TDySetDirichletFluxFunction(*tdy,ourtdydirichletfluxfunction,NULL);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetresidualsaturationvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  *ierr = TDySetResidualSaturationValuesLocal(*tdy,*ni,ix,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL vecsetvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetresidualsaturationvalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL vecsetvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetresidualsaturationvalueslocal_(tdy,ni,ix,y,ierr);
 }

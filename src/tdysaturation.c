@@ -28,3 +28,17 @@ void PressureSaturation_VanGenuchten(PetscReal n,PetscReal m,PetscReal alpha,
     }
   }
 }
+
+PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+
+  PetscInt i;
+
+  PetscFunctionBegin;
+  if (!ni) PetscFunctionReturn(0);
+
+  for(i=0; i<ni; i++) {
+    tdy->Sr[ix[i]] = y[i];
+  }
+
+  PetscFunctionReturn(0);
+}

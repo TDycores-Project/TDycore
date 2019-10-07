@@ -43,4 +43,24 @@ subroutine TDyComputeSystem(a,b,c,z)
  integer z
 end subroutine TDyComputeSystem
         end interface
+
+      Interface TDySetResidualSaturationValuesLocal
+        subroutine TDySetResidualSaturationValuesLocal0(a,b,c,d,z)
+          use tdycoredef
+          TDy a ! Vec
+          PetscInt b ! PetscInt
+          PetscInt c (*) ! PetscInt
+          PetscScalar d (*) ! PetscScalar
+          integer z
+        end subroutine
+        subroutine TDySetResidualSaturationValuesLocal11(a,b,c,d,e,z)
+          use tdycoredef
+          TDy a ! TDy
+          PetscInt b ! PetscInt
+          PetscInt c ! PetscInt
+          PetscScalar d ! PetscScalar
+          integer z
+        end subroutine
+      end interface TDySetResidualSaturationValuesLocal
+
 end module tdycore
