@@ -15,6 +15,7 @@ struct _TDyOps {
   PetscErrorCode (*setup)(TDy);
   PetscErrorCode (*setfromoptions)(TDy);
   PetscErrorCode (*computepermeability)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computeresidualsaturation)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeforcing)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computedirichletvalue)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computedirichletflux)(TDy,PetscReal*,PetscReal*,void*);
@@ -48,6 +49,7 @@ struct _p_TDy {
             *dS_dP;  /* saturation and derivative wrt pressure for each cell [1] */
 
   void *permeabilityctx;
+  void *residualsaturationctx;
   void *forcingctx;
   void *dirichletvaluectx;
   void *dirichletfluxctx;

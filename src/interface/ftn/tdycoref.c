@@ -15,6 +15,7 @@
 #define tdycomputesystem_              TDYCOMPUTESYSTEM
 #define tdycomputeerrornorms_          TDYCOMPUTEERRORNORMS
 #define tdysetpermeabilityfunction_    TDYSETPERMEABILITYFUNCTION
+#define tdysetresidualsaturationfunction_    TDYSETRESIDUALSATURATIONFUNCTION
 #define tdysetforcingfunction_         TDYSETFORCINGFUNCTION
 #define tdysetdirichletvaluefunction_  TDYSETDIRICHLETVALUEFUNCTION
 #define tdysetdirichletfluxfunction_   TDYSETDIRICHLETFLUXFUNCTION
@@ -27,6 +28,7 @@
 #define tdycomputesystem_              tdycomputesystem
 #define tdycomputeerrornorms_          tdycomputeerrornorms
 #define tdysetpermeabilityfunction_    tdysetpermeabilityfunction
+#define tdysetresidualsaturationfunction_    tdysetresidualsaturationfunction
 #define tdysetforcingfunction_         tdysetforcingfunction
 #define tdysetdirichletvaluefunction_  tdysetdirichletvaluefunction
 #define tdysetdirichletfluxfunction_   tdysetdirichletfluxfunction
@@ -36,6 +38,7 @@
 
 static struct {
   PetscFortranCallbackId permeability;
+  PetscFortranCallbackId residualsaturation;
   PetscFortranCallbackId forcing;
   PetscFortranCallbackId dirichletvalue;
   PetscFortranCallbackId dirichletflux;
@@ -140,6 +143,26 @@ PETSC_EXTERN void PETSC_STDCALL tdysetpermeabilityfunction_(TDy *tdy, void (PETS
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
 #endif
   *ierr = TDySetPermeabilityFunction(*tdy,ourtdypermeabilityfunction,NULL);
+}
+
+static PetscErrorCode ourtdysetresidualfunction(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
+{
+#if defined(PETSC_HAVE_F90_2PTR_ARG)
+  void* ptr;
+  PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,_cb.function_pgiptr,NULL,&ptr);
+#endif
+  PetscObjectUseFortranCallback(tdy,_cb.residualsaturation,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
+}
+
+
+PETSC_EXTERN void PETSC_STDCALL tdysetresidualsaturationfunction_(TDy *tdy, void (PETSC_STDCALL *func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+{
+  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.residualsaturation,(PetscVoidFunction)func,ctx);
+  if (*ierr) return;
+#if defined(PETSC_HAVE_F90_2PTR_ARG)
+  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
+#endif
+  *ierr = TDySetResidualSaturationFunction(*tdy,ourtdysetresidualfunction,NULL);
 }
 
 static PetscErrorCode ourtdyforcingfunction2(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)

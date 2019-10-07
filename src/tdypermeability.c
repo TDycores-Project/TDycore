@@ -7,6 +7,13 @@ PetscErrorCode TDySetPermeabilityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscR
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetResidualSaturationFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  if (f) tdy->ops->computeresidualsaturation = f;
+  if (ctx) tdy->residualsaturationctx = ctx;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetForcingFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
   if (f) tdy->ops->computeforcing = f;
