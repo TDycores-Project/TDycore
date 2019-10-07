@@ -114,6 +114,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Kr)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->S)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2S_dP2)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rho)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->mu)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Sr)); CHKERRQ(ierr);
@@ -158,6 +159,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->Kr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->S); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dS_dP); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->d2S_dP2); CHKERRQ(ierr);
   ierr = PetscFree(tdy->K); CHKERRQ(ierr);
   ierr = PetscFree(tdy->K0); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
@@ -343,16 +345,15 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  PetscReal d2S_dP2;
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
 
     switch (tdy->SatFuncType[i]) {
     case SAT_FUNC_GARDNER :
-      PressureSaturation_Gardner(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&(tdy->dS_dP[i]),&d2S_dP2);
+      PressureSaturation_Gardner(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&(tdy->dS_dP[i]),&(tdy->d2S_dP2[i]));
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      PressureSaturation_VanGenuchten(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&tdy->dS_dP[i],&d2S_dP2);
+      PressureSaturation_VanGenuchten(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&tdy->dS_dP[i],&(tdy->d2S_dP2[i]));
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
@@ -373,7 +374,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
     }
 
     for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
-    //printf("c[%2d] %+e %+e %+e %+e\n",c,tdy->Pref-P[i],Kr,Se,dSe_dPc);
+    //printf("c[%2d] Pc=%+e Kr=%+e Se=%+e S=%+e dS_dP=%+e d2S_dP2=%+e\n",c,tdy->Pref-P[i],Kr,Se,tdy->S[i],tdy->dS_dP[i],tdy->dS_dP[i]);
   }
   PetscFunctionReturn(0);
 }
