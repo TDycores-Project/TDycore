@@ -1176,3 +1176,38 @@ PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
 
   PetscFunctionReturn(norm_sum);
 }
+
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
+  
+  TDy      tdy = (TDy)ctx;
+  DM       dm;
+  Vec      Ul;
+  PetscReal *p,*dp_dt,*r,wgt,sign,div;
+  //PetscInt c,cStart,cEnd,nv,gref,nf,f,fStart,fEnd,i,j,dim;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
+
+  ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
+
+  ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
+  ierr = VecGetArray(R,&r); CHKERRQ(ierr);
+
+  ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
+
+  /* Cleanup */
+  ierr = VecRestoreArray(U_t,&dp_dt); CHKERRQ(ierr);
+  ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
+  ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
