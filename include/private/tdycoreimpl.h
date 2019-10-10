@@ -43,7 +43,7 @@ struct _p_TDy {
   /* material parameters */
   PetscReal *K,
             *K0;     /* permeability tensor (cell,intrinsic) for each cell [m2] */
-  PetscReal *Kr;        /* relative permeability for each cell [1] */
+  PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
   PetscReal *porosity;  /* porosity for each cell [1] */
   PetscReal *S,
             *dS_dP,  /* saturation and derivative wrt pressure for each cell [1] */
@@ -81,6 +81,8 @@ struct _p_TDy {
   TDy_mesh *mesh;
   PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
   PetscReal ***Trans;
+
+  Mat J, Jpre;
 
   PetscInt *closureSize, **closure, maxClosureSize;
 

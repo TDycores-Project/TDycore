@@ -483,7 +483,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 
   DM             dm;
   TDy_mesh       *mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells, *cell;
   TDy_vertex     *vertices, *vertex;
   TDy_face       *faces;
   TDy_subcell    *subcell;
@@ -532,9 +532,19 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
       PetscScalar Vcomputed[nflux_in];
 
       // Save local pressure stencil and initialize veloctiy
-      PetscInt icell;
+      PetscInt icell, cell_id;
       for (icell=0; icell<vertex->num_internal_cells; icell++) {
-        Pcomputed[icell] = u[vertex->internal_cell_ids[icell]];
+        cell_id = vertex->internal_cell_ids[icell];
+        cell = &cells[cell_id];
+        PetscReal gz = 0.0;
+        
+        if (dim == 3) {
+          PetscInt d;
+          for (d=0;d<dim;d++) gz += tdy->gravity[d]*cell->centroid.X[d];
+        }
+        gz = 0.0;
+        
+        Pcomputed[icell] = u[cell_id] + tdy->rho[cell_id]*gz;
       }
       for (irow=0; irow<nflux_in; irow++) {
         Vcomputed[irow] = 0.0;
@@ -569,11 +579,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
         tdy->vel_count[face_id]++;
 
         ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
-        ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-        vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
+        if (tdy->ops->computedirichletflux) {
+          ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
 
-        *vel_error += PetscPowReal( (Vcomputed[icell] - vel_normal), 2.0);
-        (*count)++;
+          *vel_error += PetscPowReal( (Vcomputed[icell] - vel_normal), 2.0);
+          (*count)++;
+        }
 
       }
     }
@@ -608,6 +620,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
   PetscInt npcen, npitf_bc, nflux_bc, nflux_in;
   PetscReal       vel_normal;
   PetscReal       X[3], vel[3], factor;
+  PetscReal       gz=0.0;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -658,7 +671,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
     if (ncells_bnd == 0) continue;
     if (ncells < 2)  continue;
-    
+
     npcen    = vertex->num_internal_cells;
     npitf_bc = vertex->num_boundary_cells;
     nflux_bc = npitf_bc/2;
@@ -701,7 +714,18 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         if (face->is_internal == 0) {
           PetscInt f;
           f = face->id + fStart;
-          ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
+          if (tdy->ops->computedirichletvalue) {
+            ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
+          } else {
+            // compute gz
+            gz = 0.0;
+            if (dim == 3) {
+              PetscInt d;
+              for (d=0;d<dim;d++) gz += tdy->gravity[d]*cell->centroid.X[d];
+            }
+            gz = 0.0;
+            pBoundary[numBoundary] = u[icell] + tdy->rho[icell]*gz;
+          }
           numBoundary++;
         }
       }
@@ -731,9 +755,16 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         value = 0.0;
         factor = subcell->face_area[iface]/face->area;
         for (icol=0; icol<npcen; icol++) {
-          value += tdy->Trans[vertex_id][irow][icol] *
-                  u[cells[vertex->internal_cell_ids[icol]].id] /
-                  subcell->face_area[iface]*factor;
+          // Compute gz
+          gz = 0.0;
+          if (dim == 3) {
+              PetscInt d;
+              for (d=0;d<dim;d++) gz += tdy->gravity[d]*cells[vertex->internal_cell_ids[icol]].centroid.X[d];
+          }
+            gz = 0.0;
+          PetscReal Pcomputed = u[cells[vertex->internal_cell_ids[icol]].id] + tdy->rho[vertex->internal_cell_ids[icol]]*gz;
+
+          value += tdy->Trans[vertex_id][irow][icol]*Pcomputed/subcell->face_area[iface]*factor;
           //ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
         }
 
@@ -746,11 +777,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         tdy->vel_count[face_id]++;
 
         ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
-        ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-        vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
+        if (tdy->ops->computedirichletflux) {
+          ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
 
-        *vel_error += PetscPowReal( (value - vel_normal), 2.0);
-        (*count)++;
+          *vel_error += PetscPowReal( (value - vel_normal), 2.0);
+          (*count)++;
+        }
 
       } else {
       
@@ -765,9 +798,16 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         value = 0.0;
         factor = subcell->face_area[iface]/face->area;
         for (icol=0; icol<npcen; icol++) {
-          value += tdy->Trans[vertex_id][irow][icol] *
-                  u[cells[vertex->internal_cell_ids[icol]].id] /
-                  subcell->face_area[iface]*factor;
+          // Compute gz
+          gz = 0.0;
+          if (dim == 3) {
+              PetscInt d;
+              for (d=0;d<dim;d++) gz += tdy->gravity[d]*cells[vertex->internal_cell_ids[icol]].centroid.X[d];
+          }
+            gz = 0.0;
+          PetscReal Pcomputed = u[cells[vertex->internal_cell_ids[icol]].id] + tdy->rho[vertex->internal_cell_ids[icol]]*gz;
+
+          value += tdy->Trans[vertex_id][irow][icol]*Pcomputed/subcell->face_area[iface]*factor;
           //ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
         }
 
@@ -780,11 +820,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         tdy->vel_count[face_id]++;
 
         ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
-        ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-        vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
+        if (tdy->ops->computedirichletflux) {
+          ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
 
-        *vel_error += PetscPowReal( (value - vel_normal), 2.0);
-        (*count)++;
+          *vel_error += PetscPowReal( (value - vel_normal), 2.0);
+          (*count)++;
+        }
       }
     }
     
@@ -811,9 +853,15 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         value = 0.0;
         factor = subcell->face_area[iface]/face->area;
         for (icol=0; icol<npcen; icol++) {
-          value += tdy->Trans[vertex_id][irow+nflux_in][icol]*
-                  u[cells[vertex->internal_cell_ids[icol]].id] /
-                  subcell->face_area[iface]*factor;
+          // Compute gz
+          gz = 0.0;
+          if (dim == 3) {
+              PetscInt d;
+              for (d=0;d<dim;d++) gz += tdy->gravity[d]*cells[vertex->internal_cell_ids[icol]].centroid.X[d];
+          }
+            gz = 0.0;
+          PetscReal Pcomputed = u[cells[vertex->internal_cell_ids[icol]].id] + tdy->rho[vertex->internal_cell_ids[icol]]*gz;
+          value += tdy->Trans[vertex_id][irow+nflux_in][icol]*Pcomputed/subcell->face_area[iface]*factor;
           //ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
         }
 
@@ -825,11 +873,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         tdy->vel[face_id] += value;
         tdy->vel_count[face_id]++;
         ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
-        ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-        vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
+        if (tdy->ops->computedirichletflux) {
+          ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
 
-        *vel_error += PetscPowReal( (value - vel_normal), 2.0);
-        (*count)++;
+          *vel_error += PetscPowReal( (value - vel_normal), 2.0);
+          (*count)++;
+        }
 
       } else {
       
@@ -844,9 +894,15 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         value = 0.0;
         factor = subcell->face_area[iface]/face->area;
         for (icol=0; icol<npcen; icol++) {
-          value += tdy->Trans[vertex_id][irow+nflux_in][icol]*
-                  u[cells[vertex->internal_cell_ids[icol]].id] /
-                  subcell->face_area[iface]*factor;
+          // Compute gz
+          gz = 0.0;
+          if (dim == 3) {
+              PetscInt d;
+              for (d=0;d<dim;d++) gz += tdy->gravity[d]*cells[vertex->internal_cell_ids[icol]].centroid.X[d];
+          }
+            gz = 0.0;
+          PetscReal Pcomputed = u[cells[vertex->internal_cell_ids[icol]].id] + tdy->rho[vertex->internal_cell_ids[icol]]*gz;
+          value += tdy->Trans[vertex_id][irow+nflux_in][icol]*Pcomputed/subcell->face_area[iface]*factor;
           //ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
         }
 
@@ -858,11 +914,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         tdy->vel[face_id] += value;
         tdy->vel_count[face_id]++;
         ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
-        ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-        vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
+        if (tdy->ops->computedirichletflux) {
+          ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
 
-        *vel_error += PetscPowReal( (value - vel_normal), 2.0);
-        (*count)++;
+          *vel_error += PetscPowReal( (value - vel_normal), 2.0);
+          (*count)++;
+        }
 
       }
     }
@@ -949,7 +1007,11 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
 
       PetscInt f;
       f = face->id + fStart;
-      ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[iface], tdy->dirichletvaluectx);CHKERRQ(ierr);
+      if (tdy->ops->computedirichletvalue) {
+        ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[iface], tdy->dirichletvaluectx);CHKERRQ(ierr);
+      } else {
+        pBoundary[iface] = u[icell];
+      }
 
     }
 
@@ -975,11 +1037,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
       tdy->vel[face->id] += value;
       tdy->vel_count[face->id]++;
       ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
-      ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-      vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
+      if (tdy->ops->computedirichletflux) {
+        ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+        vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
 
-      *vel_error += PetscPowReal( (value - vel_normal), 2.0);
-      (*count)++;
+        *vel_error += PetscPowReal( (value - vel_normal), 2.0);
+        (*count)++;
+      }
     }
 
   }
@@ -1182,13 +1246,20 @@ PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
 PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   
   TDy      tdy = (TDy)ctx;
+  TDy_mesh       *mesh;
+  TDy_cell       *cells, *cell;
+  TDy_face       *faces, *face;
   DM       dm;
   Vec      Ul;
-  PetscReal *p,*dp_dt,*r,wgt,sign,div;
+  PetscReal *p,*dp_dt,*r;
   //PetscInt c,cStart,cEnd,nv,gref,nf,f,fStart,fEnd,i,j,dim;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+  faces    = mesh->faces;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
@@ -1196,18 +1267,285 @@ PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx
   ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
 
+  ierr = VecZeroEntries(R); CHKERRQ(ierr);
+
+  // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
+
+  PetscReal vel_error = 0.0;
+  PetscInt count = 0;
+  ierr = TDyMPFAORecoverVelocity_InternalVertices_3DMesh(tdy, Ul, &vel_error, &count); CHKERRQ(ierr);
+  ierr = TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(tdy, Ul, &vel_error, &count); CHKERRQ(ierr);
+  ierr = TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices_3DMesh(tdy, Ul, &vel_error, &count); CHKERRQ(ierr);
+
   ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
 
-  ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
+  PetscInt iface, cell_id_up, cell_id_dn;
+  PetscReal ukvr, den, v_darcy, fluxm;
+
+  for (iface=0; iface<mesh->num_faces; iface++) {
+    face = &(faces[iface]);
+    cell_id_up = face->cell_ids[0];
+    cell_id_dn = face->cell_ids[1];
+
+    if (fabs(tdy->vel[iface])<PETSC_MACHINE_EPSILON) tdy->vel[iface] = 0.0;
+
+    if (face->is_internal) {
+
+      if (tdy->vel[iface] > 0.0) {
+        ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
+      } else {
+        ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
+      }
+      den = 0.5*(tdy->rho[cell_id_up] + tdy->rho[cell_id_dn]);
+      
+      v_darcy = ukvr * tdy->vel[iface];
+      fluxm = v_darcy * den *face->area;
+
+      if (cells[cell_id_up].is_local) r[cell_id_up] += fluxm;
+      if (cells[cell_id_dn].is_local) r[cell_id_dn] -= fluxm;
+
+    } else {
+
+      if (cell_id_up>-1) {
+        den = tdy->rho[cell_id_up];
+        ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
+      } else {
+        den = tdy->rho[cell_id_dn];
+        ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
+      }
+
+      v_darcy = ukvr * tdy->vel[iface];
+      fluxm = v_darcy * den *face->area;
+
+      if (cell_id_up>-1) r[cell_id_up] += fluxm;
+      if (cell_id_dn>-1) r[cell_id_dn] -= fluxm;
+
+    }
+  }
+
+  PetscReal dporosity_dP = 0.0;
+  PetscReal drho_dP = 0.0;
+  PetscReal dmass_dP;
+  PetscInt icell;
+
+  for (icell=0;icell<mesh->num_cells;icell++){
+
+    cell = &cells[icell];
+
+    if (!cell->is_local) continue;
+
+    // d(rho*phi*s)/dP * dP/dt * Vol
+    dmass_dP = tdy->rho[icell] * dporosity_dP         * tdy->S[icell] +
+               drho_dP         * tdy->porosity[icell] * tdy->S[icell] +
+               tdy->rho[icell] * tdy->porosity[icell] * tdy->dS_dP[icell];
+    r[icell] += dmass_dP * dp_dt[icell] * cell->volume;
+  }
 
   /* Cleanup */
-  ierr = VecRestoreArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
-
+  
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAOIJacobian(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal shift,Mat A,Mat B,void *ctx) {
+
+  TDy      tdy = (TDy)ctx;
+  TDy_mesh       *mesh;
+  TDy_cell       *cells, *cell;
+  TDy_face       *faces, *face;
+  PetscReal *dp_dt;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+  faces    = mesh->faces;
+
+  ierr = MatZeroEntries(A); CHKERRQ(ierr);
+
+  PetscInt iface, cell_id_up, cell_id_dn;
+  PetscReal ukvr, den, v_darcy, fluxm;
+  PetscReal dukvr_dPup, dukvr_dPdn, Jup, Jdn;
+  PetscReal dden_dPup, dden_dPdn;
+  PetscReal dvel_dPup, dvel_dPdn;
+  PetscReal dv_darcy_dPup, dv_darcy_dPdn;
+
+  ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
+
+  for (iface=0; iface<mesh->num_faces; iface++) {
+    face = &(faces[iface]);
+    cell_id_up = face->cell_ids[0];
+    cell_id_dn = face->cell_ids[1];
+
+    if (face->is_internal) {
+
+      dukvr_dPup = 0.0;
+      dukvr_dPdn = 0.0;
+
+      if (tdy->vel[iface] > 0.0) {
+        ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
+        dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->mu[cell_id_up];
+      } else {
+        ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
+        dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->mu[cell_id_dn];
+      }
+      den = 0.5*(tdy->rho[cell_id_up] + tdy->rho[cell_id_dn]);
+      dden_dPup = 0.0;
+      dden_dPdn = 0.0;
+      
+      v_darcy = ukvr * tdy->vel[iface];
+      fluxm = v_darcy * den *face->area;
+      
+      dvel_dPup =  1.e-10*3.0;
+      dvel_dPdn = -1.e-10*3.0;
+
+      dv_darcy_dPup =dvel_dPup*ukvr + dukvr_dPup*tdy->vel[iface];
+      dv_darcy_dPdn =dvel_dPdn*ukvr + dukvr_dPdn*tdy->vel[iface];
+
+      // d(fluxm_ij)/dP_k = d(v_darcy_ij*den_ij)/dP_k * area
+      //                  = d(ukvr_ij*vel_ij*den_ij)/dP_k * area
+      //                  = d(ukvr_ij)/dP_k * vel_ij         * den_ij         * area +
+      //                    ukvr_ij         * d(vel_ij)/dP_k * den_ij         * area +
+      //                    ukvr_ij         * vel_ij         * d(den_ij)/dP_k * area
+      //
+      // If 'k' is not 'i' or 'j' then
+      //  - d(ukvr_ij)/dP_k = 0, and
+      //  - d(den_ij)/dP_k  = 0.
+      //
+      Jup = (dukvr_dPup * tdy->vel[iface]       * den +
+             ukvr       * dvel_dPup * den +
+             ukvr       * tdy->vel[iface]       * dden_dPup) * face->area;
+
+      Jdn = (dukvr_dPdn * tdy->vel[iface]       * den +
+             ukvr       * dvel_dPdn * den +
+             ukvr       * tdy->vel[iface]       * dden_dPdn) * face->area;
+
+      if (cells[cell_id_up].is_local) {
+        ierr = MatSetValuesLocal(A,1,&cell_id_up,1,&cell_id_up,&Jup,ADD_VALUES);CHKERRQ(ierr);
+        ierr = MatSetValuesLocal(A,1,&cell_id_up,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
+      }
+
+      if (cells[cell_id_dn].is_local) {
+        Jup = -Jup;
+        Jdn = -Jdn;
+        ierr = MatSetValuesLocal(A,1,&cell_id_dn,1,&cell_id_up,&Jup,ADD_VALUES);CHKERRQ(ierr);
+        ierr = MatSetValuesLocal(A,1,&cell_id_dn,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
+      }
+
+    } else {
+
+      dukvr_dPup = 0.0;
+      dukvr_dPdn = 0.0;
+      dvel_dPup = 0.0;
+      dvel_dPdn = 0.0;
+
+      if (tdy->vel[iface] >= 0.0) {
+        // up ---> dn
+        if (cell_id_up>-1) {
+          //     up   --->    dn
+          // (interal)     (boundary)
+          ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
+          dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->mu[cell_id_up];
+          den = tdy->rho[cell_id_up];
+        } else {
+          //     up   --->    dn
+          // (boundary)     (internal)
+          ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
+          den = tdy->rho[cell_id_dn];
+        }
+      } else {
+        // up <--- dn
+        if (cell_id_up>-1) {
+          //     up   <---    dn
+          // (interal)     (boundary)
+          ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
+          den = tdy->rho[cell_id_up];
+        } else {
+          //     up   <---    dn
+          // (boundary)     (internal)
+          ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
+          dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->mu[cell_id_dn];
+          den = tdy->rho[cell_id_dn];
+        }
+      }
+
+      dden_dPup = 0.0;
+      dden_dPdn = 0.0;
+
+      v_darcy = ukvr * tdy->vel[iface];
+      fluxm = v_darcy * den *face->area;
+
+
+      Jup = (dukvr_dPup * tdy->vel[iface]   * den +
+             ukvr       * dvel_dPup * den +
+             ukvr       * tdy->vel[iface]   * dden_dPup) * face->area;
+
+      Jdn = (dukvr_dPdn * tdy->vel[iface]   * den +
+             ukvr       * dvel_dPdn * den +
+             ukvr       * tdy->vel[iface]   * dden_dPdn) * face->area;
+
+      if (cell_id_up>-1) {
+        ierr = MatSetValuesLocal(A,1,&cell_id_up,1,&cell_id_up,&Jup,ADD_VALUES);CHKERRQ(ierr);
+      }
+      if (cell_id_dn>-1) {
+        Jdn = -Jdn;
+        ierr = MatSetValuesLocal(A,1,&cell_id_dn,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
+      }
+    }
+
+  }
+
+  PetscReal dporosity_dP = 0.0, d2porosity_dP2 = 0.0;
+  PetscReal drho_dP = 0.0, d2rho_dP2=0.0;
+  PetscReal dmass_dP, d2mass_dP2;
+  PetscInt icell;
+
+  for (icell=0;icell<mesh->num_cells;icell++){
+
+    cell = &cells[icell];
+
+    if (!cell->is_local) continue;
+
+    // d(rho*phi*s)/dP * dP/dt * Vol
+    dmass_dP = tdy->rho[icell] * dporosity_dP         * tdy->S[icell] +
+               drho_dP         * tdy->porosity[icell] * tdy->S[icell] +
+               tdy->rho[icell] * tdy->porosity[icell] * tdy->dS_dP[icell];
+
+    d2mass_dP2 = (
+      tdy->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP         +
+      tdy->S[icell]       * drho_dP                * dporosity_dP         +
+      tdy->S[icell]       * tdy->rho[icell]        * d2porosity_dP2       +
+      tdy->dS_dP[icell]   * drho_dP                * tdy->porosity[icell] +
+      tdy->S[icell]       * d2rho_dP2              * tdy->porosity[icell] +
+      tdy->S[icell]       * drho_dP                * dporosity_dP         +
+      tdy->d2S_dP2[icell] * tdy->rho[icell]        * tdy->porosity[icell] +
+      tdy->dS_dP[icell]   * drho_dP                * tdy->porosity[icell] +
+      tdy->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP
+       );
+
+    PetscReal value = (shift*dmass_dP + d2mass_dP2*dp_dt[icell])*cell->volume;
+
+    ierr = MatSetValuesLocal(A,1,&icell,1,&icell,&value,ADD_VALUES);CHKERRQ(ierr);
+
+  }
+
+  ierr = VecRestoreArray(U_t,&dp_dt); CHKERRQ(ierr);
+
+  ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+
+  if (A !=B ) {
+    ierr = MatAssemblyBegin(B,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(B,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+}

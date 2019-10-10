@@ -112,6 +112,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K )); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->porosity)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Kr)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dKr_dS)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->S)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2S_dP2)); CHKERRQ(ierr);
@@ -157,6 +158,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->N); CHKERRQ(ierr);
   ierr = PetscFree(tdy->porosity); CHKERRQ(ierr);
   ierr = PetscFree(tdy->Kr); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->dKr_dS); CHKERRQ(ierr);
   ierr = PetscFree(tdy->S); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dS_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->d2S_dP2); CHKERRQ(ierr);
@@ -313,6 +315,43 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
+  MPI_Comm       comm;
+  PetscErrorCode ierr;
+  PetscValidPointer( ts,1);
+  PetscValidPointer(tdy,2);
+  PetscFunctionBegin;
+  ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
+  switch (tdy->method) {
+  case TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for TPF");
+    break;
+  case MPFA_O:
+    ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
+    ierr = DMCreateMatrix(tdy->dm,&tdy->Jpre); CHKERRQ(ierr);
+
+    ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->J,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->J,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+
+    ierr = MatSetOption(tdy->Jpre,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+
+    //ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian,tdy); CHKERRQ(ierr);
+    break;
+  case BDM:
+    SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for BDM");
+    break;
+  case WY:
+    SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for WY");
+    break;
+  }
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
   MPI_Comm       comm;
   PetscErrorCode ierr;
@@ -341,7 +380,8 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
-  PetscReal Se,n=0.5,m=0.5,alpha=1.6717e-5,Kr; /* FIX: generalize */
+  //PetscReal Se,dSe_dS,dKr_dSe,n=0.5,m=0.5,alpha=1.6717e-5,Kr; /* FIX: generalize */
+  PetscReal Se,dSe_dS,dKr_dSe,n=0.5,m=0.8,alpha=1.e-4,Kr; /* FIX: generalize */
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
@@ -361,20 +401,23 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
     }
 
     Se = (tdy->S[i] - tdy->Sr[i])/(1.0 - tdy->Sr[i]);
+    dSe_dS = 1.0/(1.0 - tdy->Sr[i]);
+
     switch (tdy->RelPermFuncType[i]) {
     case REL_PERM_FUNC_IRMAY :
       RelativePermeability_Irmay(m,Se,&Kr,NULL);
       break;
     case REL_PERM_FUNC_MUALEM :
-      RelativePermeability_Mualem(m,Se,&Kr,NULL);
+      RelativePermeability_Mualem(m,Se,&Kr,&dKr_dSe);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown relative permeability function");
       break;
     }
+    tdy->Kr[i] = Kr;
+    tdy->dKr_dS[i] = dKr_dSe * dSe_dS;
 
     for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
-    //printf("c[%2d] Pc=%+e Kr=%+e Se=%+e S=%+e dS_dP=%+e d2S_dP2=%+e\n",c,tdy->Pref-P[i],Kr,Se,tdy->S[i],tdy->dS_dP[i],tdy->dS_dP[i]);
   }
   PetscFunctionReturn(0);
 }

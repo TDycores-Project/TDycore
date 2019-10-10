@@ -71,6 +71,7 @@ PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
 
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS ts,TDy tdy);
+PETSC_EXTERN PetscErrorCode TDySetIJacobian(TS ts,TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     PetscReal *normv);
 
@@ -128,6 +129,7 @@ PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy, Vec);
 PETSC_EXTERN PetscReal TDyMPFAOVelocityNorm(TDy);
 PETSC_EXTERN PetscReal TDyMPFAOPressureNorm(TDy tdy,Vec U);
 PETSC_EXTERN PetscErrorCode TDyMPFAOIFunction(TS,PetscReal,Vec,Vec,Vec,void*);
+PETSC_EXTERN PetscErrorCode TDyMPFAOIJacobian(TS,PetscReal,Vec,Vec,PetscReal,Mat,Mat,void*);
 
 /* ---------------------------------------------------------------- */
 
