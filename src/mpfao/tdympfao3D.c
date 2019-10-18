@@ -1047,7 +1047,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
   PetscScalar    *u;
   Vec            localU;
   PetscReal      vel_normal;
-  PetscReal      X[3], vel[3], factor;
+  PetscReal      X[3], vel[3];
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -1117,12 +1117,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
         ierr = TDyFindSubcellOfACellThatIncludesAVertex(cell, vertex, &subcell); CHKERRQ(ierr);
         ierr = TDySubCell_GetFaceIndexForAFace(subcell, face_id, &iface); CHKERRQ(ierr);
 
-        factor = subcell->face_area[iface]/face->area;
         for (icol=0; icol<vertex->num_internal_cells; icol++) {
 
-          Vcomputed[irow] += tdy->Trans[vertex_id][irow][icol] *
-                            Pcomputed[icol]                    /
-                            subcell->face_area[iface]*factor;
+          Vcomputed[irow] += tdy->Trans[vertex_id][irow][icol]*Pcomputed[icol];
           
         }
         tdy->vel[face_id] += Vcomputed[irow];
@@ -1131,7 +1128,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
         ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
         if (tdy->ops->computedirichletflux) {
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
+          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*subcell->face_area[iface];
 
           *vel_error += PetscPowReal( (Vcomputed[icell] - vel_normal), 2.0);
           (*count)++;
@@ -1169,7 +1166,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
   PetscScalar    *u;
   PetscInt npcen, npitf_bc, nflux_bc, nflux_in;
   PetscReal       vel_normal;
-  PetscReal       X[3], vel[3], factor;
+  PetscReal       X[3], vel[3];
   PetscReal       gz=0.0;
   PetscErrorCode ierr;
 
@@ -1302,7 +1299,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         // +T_00 * Pcen
         value = 0.0;
-        factor = subcell->face_area[iface]/face->area;
         for (icol=0; icol<npcen; icol++) {
           // Compute gz
           gz = 0.0;
@@ -1312,13 +1308,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
           }
           PetscReal Pcomputed = u[cells[vertex->internal_cell_ids[icol]].id] + tdy->rho[vertex->internal_cell_ids[icol]]*gz;
 
-          value += tdy->Trans[vertex_id][irow][icol]*Pcomputed/subcell->face_area[iface]*factor;
+          value += tdy->Trans[vertex_id][irow][icol]*Pcomputed;
           //ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
         }
 
         // -T_01 * Pbc
         for (icol=0; icol<npitf_bc; icol++) {
-          value += tdy->Trans[vertex_id][irow][icol + npcen] * pBoundary[icol]/subcell->face_area[iface]*factor;
+          value += tdy->Trans[vertex_id][irow][icol + npcen] * pBoundary[icol];
           //ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
         }
         tdy->vel[face_id] += value;
@@ -1327,7 +1323,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
         if (tdy->ops->computedirichletflux) {
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
+          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*subcell->face_area[iface];
 
           *vel_error += PetscPowReal( (value - vel_normal), 2.0);
           (*count)++;
@@ -1344,7 +1340,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         // -T_00 * Pcen
         value = 0.0;
-        factor = subcell->face_area[iface]/face->area;
         for (icol=0; icol<npcen; icol++) {
           // Compute gz
           gz = 0.0;
@@ -1354,13 +1349,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
           }
           PetscReal Pcomputed = u[cells[vertex->internal_cell_ids[icol]].id] + tdy->rho[vertex->internal_cell_ids[icol]]*gz;
 
-          value += tdy->Trans[vertex_id][irow][icol]*Pcomputed/subcell->face_area[iface]*factor;
+          value += tdy->Trans[vertex_id][irow][icol]*Pcomputed;
           //ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
         }
 
         // +T_01 * Pbc
         for (icol=0; icol<npitf_bc; icol++) {
-          value += tdy->Trans[vertex_id][irow][icol + npcen] * pBoundary[icol]/subcell->face_area[iface]*factor;
+          value += tdy->Trans[vertex_id][irow][icol + npcen] * pBoundary[icol];
           //ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
         }
         tdy->vel[face_id] += value;
@@ -1369,7 +1364,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
         if (tdy->ops->computedirichletflux) {
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
+          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*subcell->face_area[iface];
 
           *vel_error += PetscPowReal( (value - vel_normal), 2.0);
           (*count)++;
@@ -1398,7 +1393,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         // +T_10 * Pcen
         value = 0.0;
-        factor = subcell->face_area[iface]/face->area;
         for (icol=0; icol<npcen; icol++) {
           // Compute gz
           gz = 0.0;
@@ -1407,13 +1401,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
               for (d=0;d<dim;d++) gz += tdy->gravity[d]*cells[vertex->internal_cell_ids[icol]].centroid.X[d];
           }
           PetscReal Pcomputed = u[cells[vertex->internal_cell_ids[icol]].id] + tdy->rho[vertex->internal_cell_ids[icol]]*gz;
-          value += tdy->Trans[vertex_id][irow+nflux_in][icol]*Pcomputed/subcell->face_area[iface]*factor;
+          value += tdy->Trans[vertex_id][irow+nflux_in][icol]*Pcomputed;
           //ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
         }
 
         //  -T_11 * Pbc
         for (icol=0; icol<npitf_bc; icol++) {
-          value += tdy->Trans[vertex_id][irow+nflux_in][icol+npcen] * pBoundary[icol]/subcell->face_area[iface]*factor;
+          value += tdy->Trans[vertex_id][irow+nflux_in][icol+npcen] * pBoundary[icol];
           //ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
         }
         tdy->vel[face_id] += value;
@@ -1421,7 +1415,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
         if (tdy->ops->computedirichletflux) {
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
+          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*subcell->face_area[iface];
 
           *vel_error += PetscPowReal( (value - vel_normal), 2.0);
           (*count)++;
@@ -1438,7 +1432,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         // -T_10 * Pcen
         value = 0.0;
-        factor = subcell->face_area[iface]/face->area;
         for (icol=0; icol<npcen; icol++) {
           // Compute gz
           gz = 0.0;
@@ -1447,13 +1440,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
               for (d=0;d<dim;d++) gz += tdy->gravity[d]*cells[vertex->internal_cell_ids[icol]].centroid.X[d];
           }
           PetscReal Pcomputed = u[cells[vertex->internal_cell_ids[icol]].id] + tdy->rho[vertex->internal_cell_ids[icol]]*gz;
-          value += tdy->Trans[vertex_id][irow+nflux_in][icol]*Pcomputed/subcell->face_area[iface]*factor;
+          value += tdy->Trans[vertex_id][irow+nflux_in][icol]*Pcomputed;
           //ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
         }
 
         //  +T_11 * Pbc
         for (icol=0; icol<vertex->num_boundary_cells; icol++) {
-          value += tdy->Trans[vertex_id][irow+nflux_in][icol+npcen] * pBoundary[icol]/subcell->face_area[iface]*factor;
+          value += tdy->Trans[vertex_id][irow+nflux_in][icol+npcen] * pBoundary[icol];
           //ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
         }
         tdy->vel[face_id] += value;
@@ -1461,7 +1454,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
         if (tdy->ops->computedirichletflux) {
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
+          vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*subcell->face_area[iface];
 
           *vel_error += PetscPowReal( (value - vel_normal), 2.0);
           (*count)++;
@@ -1499,7 +1492,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
   PetscScalar    *u;
   Vec            localU;
   PetscReal      vel_normal;
-  PetscReal      X[3], vel[3], factor;
+  PetscReal      X[3], vel[3];
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -1571,9 +1564,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
       else        sign = +1.0;
 
       value = 0.0;
-      factor = subcell->face_area[iface]/face->area;
       for (j=0; j<dim; j++) {
-        value -= sign*Gmatrix[iface][j]*(pBoundary[j] - u[icell])/subcell->face_area[iface]*factor;
+        value -= sign*Gmatrix[iface][j]*(pBoundary[j] - u[icell])/subcell->face_area[iface];
       }
 
       //ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
@@ -1584,7 +1576,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
       ierr = TDySubCell_GetIthFaceCentroid(subcell, iface, dim, X); CHKERRQ(ierr);
       if (tdy->ops->computedirichletflux) {
         ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-        vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*factor;
+        vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim)*subcell->face_area[iface];
 
         *vel_error += PetscPowReal( (value - vel_normal), 2.0);
         (*count)++;
