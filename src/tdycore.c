@@ -1,6 +1,7 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdysaturationimpl.h>
 #include <private/tdypermeabilityimpl.h>
+#include <private/tdympfao3Dimpl.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -306,18 +307,29 @@ PetscErrorCode TDySetQuadratureType(TDy tdy,TDyQuadratureType qtype) {
 }
 
 PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
+  PetscInt       dim;
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscValidPointer( ts,1);
   PetscValidPointer(tdy,2);
+
   PetscFunctionBegin;
   ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+
   switch (tdy->method) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TPF");
     break;
   case MPFA_O:
-    ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction,tdy); CHKERRQ(ierr);
+    switch (dim) {
+    case 3:
+      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh,tdy); CHKERRQ(ierr);
+      break;
+    default :
+      SETERRQ(comm,PETSC_ERR_SUP,"IFunction only implemented for 3D problem MPFA-O");
+      break;
+    }
     break;
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM");
@@ -354,7 +366,7 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
     ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
     ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
 
-    //ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian,tdy); CHKERRQ(ierr);
+    //ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_3DMesh,tdy); CHKERRQ(ierr);
     break;
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for BDM");
