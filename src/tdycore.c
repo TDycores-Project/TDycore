@@ -145,6 +145,20 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetGravityVector(TDy tdy, PetscReal *gravity) {
+
+  PetscInt d, dim;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  for (d=0;d<dim;d++) tdy->gravity[d] = gravity[d];
+
+  PetscFunctionReturn(0);
+
+}
+
 PetscErrorCode TDyDestroy(TDy *_tdy) {
   TDy            tdy;
   PetscErrorCode ierr;

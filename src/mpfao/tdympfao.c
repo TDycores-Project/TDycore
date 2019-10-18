@@ -542,7 +542,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
           PetscInt d;
           for (d=0;d<dim;d++) gz += tdy->gravity[d]*cell->centroid.X[d];
         }
-        gz = 0.0;
         
         Pcomputed[icell] = u[cell_id] + tdy->rho[cell_id]*gz;
       }
@@ -723,7 +722,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
               PetscInt d;
               for (d=0;d<dim;d++) gz += tdy->gravity[d]*cell->centroid.X[d];
             }
-            gz = 0.0;
             pBoundary[numBoundary] = u[icell] + tdy->rho[icell]*gz;
           }
           numBoundary++;
@@ -761,7 +759,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
               PetscInt d;
               for (d=0;d<dim;d++) gz += tdy->gravity[d]*cells[vertex->internal_cell_ids[icol]].centroid.X[d];
           }
-            gz = 0.0;
           PetscReal Pcomputed = u[cells[vertex->internal_cell_ids[icol]].id] + tdy->rho[vertex->internal_cell_ids[icol]]*gz;
 
           value += tdy->Trans[vertex_id][irow][icol]*Pcomputed/subcell->face_area[iface]*factor;
@@ -804,7 +801,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
               PetscInt d;
               for (d=0;d<dim;d++) gz += tdy->gravity[d]*cells[vertex->internal_cell_ids[icol]].centroid.X[d];
           }
-            gz = 0.0;
           PetscReal Pcomputed = u[cells[vertex->internal_cell_ids[icol]].id] + tdy->rho[vertex->internal_cell_ids[icol]]*gz;
 
           value += tdy->Trans[vertex_id][irow][icol]*Pcomputed/subcell->face_area[iface]*factor;
@@ -859,7 +855,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
               PetscInt d;
               for (d=0;d<dim;d++) gz += tdy->gravity[d]*cells[vertex->internal_cell_ids[icol]].centroid.X[d];
           }
-            gz = 0.0;
           PetscReal Pcomputed = u[cells[vertex->internal_cell_ids[icol]].id] + tdy->rho[vertex->internal_cell_ids[icol]]*gz;
           value += tdy->Trans[vertex_id][irow+nflux_in][icol]*Pcomputed/subcell->face_area[iface]*factor;
           //ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
@@ -900,7 +895,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
               PetscInt d;
               for (d=0;d<dim;d++) gz += tdy->gravity[d]*cells[vertex->internal_cell_ids[icol]].centroid.X[d];
           }
-            gz = 0.0;
           PetscReal Pcomputed = u[cells[vertex->internal_cell_ids[icol]].id] + tdy->rho[vertex->internal_cell_ids[icol]]*gz;
           value += tdy->Trans[vertex_id][irow+nflux_in][icol]*Pcomputed/subcell->face_area[iface]*factor;
           //ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);

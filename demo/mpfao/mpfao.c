@@ -244,7 +244,13 @@ int main(int argc, char **argv) {
 
   // Setup problem parameters
   TDy  tdy;
+  PetscReal gravity[3];
+
   ierr = TDyCreate(dm,&tdy); CHKERRQ(ierr);
+
+  gravity[0] = 0.0; gravity[1] = 0.0; gravity[2] = 0.0;
+  ierr = TDySetGravityVector(tdy,gravity);
+
   if (dim == 2) {
 
     ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction,NULL); CHKERRQ(ierr);

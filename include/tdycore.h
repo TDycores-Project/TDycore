@@ -48,6 +48,8 @@ PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,PetscErrorCode(*)(TDy,Pets
 PETSC_EXTERN PetscErrorCode TDySetDirichletValueFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetDirichletFluxFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 
+PETSC_EXTERN PetscErrorCode TDySetGravityVector(TDy,PetscReal*);
+
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (TDy tdy,
     SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy tdy,
