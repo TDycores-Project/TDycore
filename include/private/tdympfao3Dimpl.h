@@ -10,6 +10,11 @@ PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInt
 PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(TDy,Mat,Vec);
 PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity_3DMesh(TDy,Vec);
 PETSC_EXTERN PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy);
+PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy,Vec,PetscReal*,PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(TDy,Vec,PetscReal*,PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices_3DMesh(TDy,Vec,PetscReal*,PetscInt*);
+
+
 
 #endif
 
