@@ -620,7 +620,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
   TDy_cell       *cells;
   TDy_vertex     *vertices, *vertex;
   TDy_face       *faces;
-  PetscInt       ivertex, icell_from, icell_to;
+  PetscInt       ivertex, cell_id_up, cell_id_dn;
   PetscInt       irow, icol, row, col, vertex_id;
   PetscReal      value;
   PetscInt       vStart, vEnd;
@@ -657,8 +657,8 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
         PetscInt face_id = vertex->face_ids[irow];
         TDy_face *face = &faces[face_id];
         
-        icell_from = face->cell_ids[0];
-        icell_to   = face->cell_ids[1];
+        cell_id_up = face->cell_ids[0];
+        cell_id_dn = face->cell_ids[1];
         
         for (icol=0; icol<vertex->num_internal_cells; icol++) {
           col   = vertex->internal_cell_ids[icol];
@@ -667,11 +667,11 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
           
           value = -tdy->Trans[vertex_id][irow][icol];
           
-          row = cells[icell_from].global_id;
-          if (cells[icell_from].is_local) {ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);}
+          row = cells[cell_id_up].global_id;
+          if (cells[cell_id_up].is_local) {ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);}
           
-          row = cells[icell_to].global_id;
-          if (cells[icell_to].is_local) {ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);}
+          row = cells[cell_id_dn].global_id;
+          if (cells[cell_id_dn].is_local) {ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);}
         }
       }
     }
@@ -695,7 +695,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   TDy_vertex     *vertices, *vertex;
   TDy_face       *faces;
   TDy_subcell    *subcell;
-  PetscInt       ivertex, icell, isubcell, icell_from, icell_to;
+  PetscInt       ivertex, icell, isubcell, cell_id_up, cell_id_dn;
   PetscInt       irow, icol, row, col, vertex_id;
   PetscInt       ncells, ncells_bnd;
   PetscReal      value;
@@ -786,8 +786,8 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
       for (iface=0;iface<subcell->num_faces;iface++) {
 
         TDy_face *face = &faces[subcell->face_ids[iface]];
-        icell_from = face->cell_ids[0];
-        icell_to   = face->cell_ids[1];
+        cell_id_up = face->cell_ids[0];
+        cell_id_dn = face->cell_ids[1];
 
         if (face->is_internal == 0) {
           PetscInt f;
@@ -803,11 +803,11 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
       PetscInt face_id = vertex->face_ids[irow];
       TDy_face *face = &faces[face_id];
 
-      icell_from = face->cell_ids[0];
-      icell_to   = face->cell_ids[1];
+      cell_id_up = face->cell_ids[0];
+      cell_id_dn = face->cell_ids[1];
 
-      if (cells[icell_from].is_local) {
-        row   = cells[icell_from].global_id;
+      if (cells[cell_id_up].is_local) {
+        row   = cells[cell_id_up].global_id;
 
         // +T_00
         for (icol=0; icol<npcen; icol++) {
@@ -823,9 +823,9 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         }
       }
       
-      if (cells[icell_to].is_local) {
+      if (cells[cell_id_dn].is_local) {
 
-        row   = cells[icell_to].global_id;
+        row   = cells[cell_id_dn].global_id;
 
         // -T_00
         for (icol=0; icol<npcen; icol++) {
@@ -851,12 +851,12 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
       PetscInt face_id = vertex->face_ids[irow + nflux_in];
       TDy_face *face = &faces[face_id];
 
-      icell_from = face->cell_ids[0];
-      icell_to   = face->cell_ids[1];
+      cell_id_up = face->cell_ids[0];
+      cell_id_dn = face->cell_ids[1];
 
-      if (icell_from>-1 && cells[icell_from].is_local) {
+      if (cell_id_up>-1 && cells[cell_id_up].is_local) {
 
-        row   = cells[icell_from].global_id;
+        row   = cells[cell_id_up].global_id;
 
         // +T_10
         for (icol=0; icol<npcen; icol++) {
@@ -873,8 +873,8 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         
       }
       
-      if (icell_to>-1 && cells[icell_to].is_local) {
-        row   = cells[icell_to].global_id;
+      if (cell_id_dn>-1 && cells[cell_id_dn].is_local) {
+        row   = cells[cell_id_dn].global_id;
         
         // -T_10
         for (icol=0; icol<npcen; icol++) {
@@ -1038,7 +1038,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
   TDy_vertex     *vertices, *vertex;
   TDy_face       *faces;
   TDy_subcell    *subcell;
-  PetscInt       ivertex, icell_from;
+  PetscInt       ivertex, cell_id_up;
   PetscInt       irow, icol, vertex_id;
   PetscInt       vStart, vEnd;
   PetscInt       fStart, fEnd;
@@ -1108,9 +1108,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 
         if (!face->is_local) continue;
 
-        icell_from = face->cell_ids[0];
+        cell_id_up = face->cell_ids[0];
 
-        TDy_cell *cell = &cells[icell_from];
+        TDy_cell *cell = &cells[cell_id_up];
 
         PetscInt iface=-1;
 
@@ -1154,7 +1154,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
   TDy_vertex     *vertices, *vertex;
   TDy_face       *faces;
   TDy_subcell    *subcell;
-  PetscInt       ivertex, icell, icell_from, icell_to;
+  PetscInt       ivertex, icell, cell_id_up, cell_id_dn;
   PetscInt       irow, icol, vertex_id;
   PetscInt       ncells, ncells_bnd;
   PetscReal      value;
@@ -1255,8 +1255,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       for (iface=0;iface<subcell->num_faces;iface++) {
 
         TDy_face *face = &faces[subcell->face_ids[iface]];
-        icell_from = face->cell_ids[0];
-        icell_to   = face->cell_ids[1];
+        cell_id_up = face->cell_ids[0];
+        cell_id_dn = face->cell_ids[1];
 
         if (face->is_internal == 0) {
           PetscInt f;
@@ -1284,13 +1284,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
       if (!face->is_local) continue;
 
-      icell_from = face->cell_ids[0];
-      icell_to   = face->cell_ids[1];
+      cell_id_up = face->cell_ids[0];
+      cell_id_dn = face->cell_ids[1];
       icell = vertex->internal_cell_ids[irow];
 
-      if (cells[icell_from].is_local) {
+      if (cells[cell_id_up].is_local) {
 
-        cell = &cells[icell_from];
+        cell = &cells[cell_id_up];
 
         PetscInt iface=-1;
 
@@ -1331,7 +1331,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
       } else {
       
-        cell = &cells[icell_to];
+        cell = &cells[cell_id_dn];
 
         PetscInt iface=-1;
 
@@ -1380,11 +1380,11 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
       if (!face->is_local) continue;
 
-      icell_from = face->cell_ids[0];
-      icell_to   = face->cell_ids[1];
+      cell_id_up = face->cell_ids[0];
+      cell_id_dn = face->cell_ids[1];
 
-      if (icell_from>-1 && cells[icell_from].is_local) {
-        cell = &cells[icell_from];
+      if (cell_id_up>-1 && cells[cell_id_up].is_local) {
+        cell = &cells[cell_id_up];
 
         PetscInt iface=-1;
 
@@ -1423,7 +1423,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
       } else {
       
-        cell = &cells[icell_to];
+        cell = &cells[cell_id_dn];
         
         PetscInt iface=-1;
 
