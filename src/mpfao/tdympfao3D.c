@@ -1622,12 +1622,270 @@ PetscErrorCode TDyMPFAORecoverVelocity_3DMesh(TDy tdy, Vec U) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAOIFunction_InternalVertices_3DMesh(Vec Ul, Vec R, void *ctx) {
+
+  TDy tdy = (TDy)ctx;
+  TDy_mesh *mesh;
+  TDy_cell *cells, *cell;
+  TDy_face *faces, *face;
+  TDy_vertex *vertices, *vertex;
+  DM dm;
+  PetscReal *p,*r;
+  PetscInt ivertex, vertex_id;
+  PetscInt dim,d;
+  PetscInt irow, icol;
+  PetscInt cell_id_up, cell_id_dn, cell_id, icell;
+  PetscReal gz,den,fluxm,ukvr;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+  faces    = mesh->faces;
+  vertices = mesh->vertices;
+  dm       = tdy->dm;
+
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecGetArray(R,&r); CHKERRQ(ierr);
+
+  for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+
+    vertex = &vertices[ivertex];
+    vertex_id = vertex->id;
+
+    if (vertex->num_boundary_cells != 0) continue;
+
+    PetscInt nflux_in = 12;
+    PetscScalar P[vertex->num_internal_cells];
+    PetscScalar TtimesP[nflux_in];
+
+    // Build the P vector
+    for (icell=0; icell<vertex->num_internal_cells; icell++) {
+      cell_id = vertex->internal_cell_ids[icell];
+      cell = &cells[cell_id];
+      gz = 0.0;
+      for (d=0;d<dim;d++) gz += fabs(tdy->gravity[d])*cell->centroid.X[d];
+      
+      P[icell] = p[cell_id] + tdy->rho[cell_id]*gz;
+    }
+
+    // Compute = T*P
+    for (irow=0; irow<nflux_in; irow++) {
+      
+      PetscInt face_id = vertex->face_ids[irow];
+      face = &faces[face_id];
+      
+      if (!face->is_local) continue;
+      
+      TtimesP[irow] = 0.0;
+
+      for (icol=0; icol<vertex->num_internal_cells; icol++) {
+        TtimesP[irow] += tdy->Trans[vertex_id][irow][icol]*P[icol];
+      }
+      if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
+    }
+
+    //
+    // fluxm_ij = rho_ij * (kr/mu)_{ij,upwind} * [ T ] *  [ P+rho*g*z ]^T
+    // where
+    //      rho_ij = 0.5*(rho_i + rho_j)
+    //      (kr/mu)_{ij,upwind} = (kr/mu)_{i} if velocity is from i to j
+    //                          = (kr/mu)_{j} otherwise
+    //      T includes product of K and A_{ij}
+    for (irow=0; irow<nflux_in; irow++) {
+      
+      PetscInt face_id = vertex->face_ids[irow];
+      TDy_face *face = &faces[face_id];
+      
+      cell_id_up = face->cell_ids[0];
+      cell_id_dn = face->cell_ids[1];
+      
+      if (TtimesP[irow] < 0.0) ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
+      else                     ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
+      
+      den = 0.5*(tdy->rho[cell_id_up] + tdy->rho[cell_id_dn]);
+      fluxm = den*ukvr*(-TtimesP[irow]);
+      
+      // fluxm > 0 implies flow is from 'up' to 'dn'
+      if (cells[cell_id_up].is_local) r[cell_id_up] += fluxm;
+      if (cells[cell_id_dn].is_local) r[cell_id_dn] -= fluxm;
+    }
+  }
+
+  ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DMesh(Vec Ul, Vec R, void *ctx) {
+
+  TDy tdy = (TDy)ctx;
+  TDy_mesh *mesh;
+  TDy_cell *cells, *cell;
+  TDy_face *faces, *face;
+  TDy_vertex *vertices, *vertex;
+  DM dm;
+  PetscReal *p,*r;
+  PetscInt ivertex, vertex_id;
+  PetscInt dim,d;
+  PetscInt ncells, ncells_bnd;
+  PetscInt npcen, npitf_bc, nflux_bc, nflux_in;
+  TDy_subcell    *subcell;
+  PetscInt irow, icol;
+  PetscInt cell_id_up, cell_id_dn, cell_id, icell;
+  PetscReal gz,den,fluxm,ukvr;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+  faces    = mesh->faces;
+  vertices = mesh->vertices;
+  dm       = tdy->dm;
+
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecGetArray(R,&r); CHKERRQ(ierr);
+
+  for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+
+    vertex    = &vertices[ivertex];
+    vertex_id = vertex->id;
+
+    ncells    = vertex->num_internal_cells;
+    ncells_bnd= vertex->num_boundary_cells;
+
+    if (ncells_bnd == 0) continue;
+    if (ncells     <  2) continue;
+
+    npcen    = vertex->num_internal_cells;
+    npitf_bc = vertex->num_boundary_cells;
+    nflux_bc = npitf_bc/2;
+
+    switch (ncells) {
+    case 2:
+      nflux_in = 1;
+      break;
+    case 4:
+      nflux_in = 4;
+      break;
+    default:
+      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "Unsupported number of internal cells.");
+      break;
+    }
+
+    PetscScalar pBoundary[4];
+    PetscInt numBoundary;
+    
+    // For boundary edges, save following information:
+    //  - Dirichlet pressure value
+    numBoundary = 0;
+
+    for (irow=0; irow<ncells; irow++){
+      icell = vertex->internal_cell_ids[irow];
+      PetscInt isubcell = vertex->subcell_ids[irow];
+
+      cell = &cells[icell];
+      subcell = &cell->subcells[isubcell];
+
+      PetscInt iface;
+      for (iface=0;iface<subcell->num_faces;iface++) {
+
+        face = &faces[subcell->face_ids[iface]];
+
+        if (face->is_internal == 0) {
+          if (tdy->ops->computedirichletvalue) {
+            //f = face->id + fStart;
+            //ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
+            SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "TDyMPFAOIJacobian_3DMesh does not support dirichlet boundary condition.");
+          } else {
+            // compute gz
+            gz = 0.0;
+            if (dim == 3) {
+              for (d=0;d<dim;d++) gz += fabs(tdy->gravity[d])*cell->centroid.X[d];
+            }
+            pBoundary[numBoundary] = p[icell] + tdy->rho[icell]*gz;
+          }
+          numBoundary++;
+        }
+      }
+    }
+    
+    PetscReal P[npcen + npitf_bc];
+
+    // Save intenral pressure values
+    for (icell=0;icell<npcen;icell++) {
+      cell_id = vertex->internal_cell_ids[icell];
+      cell = &cells[cell_id];
+      gz = 0.0;
+      for (d=0;d<dim;d++) gz += fabs(tdy->gravity[d])*cell->centroid.X[d];
+      P[icell] = p[cell_id] + tdy->rho[cell_id]*gz;
+    }
+
+    // Save boundary pressure values
+    for (icell=0;icell<numBoundary;icell++) {
+      P[icell+npcen] = pBoundary[icell];
+    }
+
+    // Compute T*P
+    PetscScalar TtimesP[nflux_in + 2*nflux_bc];
+    for (irow=0; irow<nflux_in + 2*nflux_bc; irow++) {
+
+      TtimesP[irow] = 0.0;
+
+      for (icol=0; icol<npcen + npitf_bc; icol++) {
+        TtimesP[irow] += tdy->Trans[vertex_id][irow][icol]*P[icol];
+      }
+      if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
+    }
+
+    for (irow=0; irow<nflux_in + 2*nflux_bc; irow++) {
+
+      PetscInt face_id = vertex->face_ids[irow];
+      TDy_face *face = &faces[face_id];
+
+      if (!face->is_local) continue;
+
+      cell_id_up = face->cell_ids[0];
+      cell_id_dn = face->cell_ids[1];
+
+      if (TtimesP[irow] < 0.0) { // up ---> dn
+        if (cell_id_up>0) ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
+        else              ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
+      } else {
+        if (cell_id_dn>0) ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
+        else              ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
+      }
+
+      den = 0.5*(tdy->rho[cell_id_up] + tdy->rho[cell_id_dn]);
+      fluxm = den*ukvr*(-TtimesP[irow]);
+      
+      // fluxm > 0 implies flow is from 'up' to 'dn'
+      if (cell_id_up>-1 && cells[cell_id_up].is_local) r[cell_id_up] += fluxm;
+      if (cell_id_dn>-1 && cells[cell_id_dn].is_local) r[cell_id_dn] -= fluxm;
+
+    }
+  }
+
+  ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   
   TDy      tdy = (TDy)ctx;
   TDy_mesh       *mesh;
   TDy_cell       *cells, *cell;
-  TDy_face       *faces, *face;
   DM       dm;
   Vec      Ul;
   PetscReal *p,*dp_dt,*r;
@@ -1637,7 +1895,6 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
 
   mesh     = tdy->mesh;
   cells    = mesh->cells;
-  faces    = mesh->faces;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
@@ -1650,11 +1907,11 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
 
   PetscReal vel_error = 0.0;
   PetscInt count = 0;
-  PetscInt iface, cell_id_up, cell_id_dn;
-  PetscReal ukvr, den, v_darcy, fluxm;
+  PetscInt iface;
 
   for (iface=0;iface<mesh->num_faces;iface++) tdy->vel[iface] = 0.0;
   
@@ -1662,59 +1919,11 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   ierr = TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(tdy, Ul, &vel_error, &count); CHKERRQ(ierr);
   ierr = TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices_3DMesh(tdy, Ul, &vel_error, &count); CHKERRQ(ierr);
 
+  ierr = TDyMPFAOIFunction_InternalVertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
+
   ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
-
-
-  for (iface=0; iface<mesh->num_faces; iface++) {
-    face = &(faces[iface]);
-    cell_id_up = face->cell_ids[0];
-    cell_id_dn = face->cell_ids[1];
-
-    if (fabs(tdy->vel[iface])<PETSC_MACHINE_EPSILON) tdy->vel[iface] = 0.0;
-
-    //
-    // fluxm_ij = rho_ij * (kr/mu)_{ij,upwind} * [ T ] *  [ P+rho*g*z ]^T
-    // where
-    //      rho_ij = 0.5*(rho_i + rho_j)
-    //      (kr/mu)_{ij,upwind} = (kr/mu)_{i} if velocity is from i to j
-    //                          = (kr/mu)_{j} otherwise
-    //      T includes product of K and A_{ij}
-    //
-    if (face->is_internal) {
-      
-      if (tdy->vel[iface] > 0.0) {
-        ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
-      } else {
-        ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
-      }
-      den = 0.5*(tdy->rho[cell_id_up] + tdy->rho[cell_id_dn]);
-      
-      v_darcy = ukvr * tdy->vel[iface];
-      fluxm = v_darcy * den;
-
-      // fluxm > 0 implies flow is from 'up' to 'dn'
-      if (cells[cell_id_up].is_local) r[cell_id_up] += fluxm;
-      if (cells[cell_id_dn].is_local) r[cell_id_dn] -= fluxm;
-
-    } else {
-
-      if (cell_id_up>-1) {
-        den = tdy->rho[cell_id_up];
-        ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
-      } else {
-        den = tdy->rho[cell_id_dn];
-        ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
-      }
-
-      v_darcy = ukvr * tdy->vel[iface];
-      fluxm = v_darcy * den;
-
-      if (cell_id_up>-1) r[cell_id_up] += fluxm;
-      if (cell_id_dn>-1) r[cell_id_dn] -= fluxm;
-
-    }
-  }
 
   PetscReal dporosity_dP = 0.0;
   PetscReal drho_dP = 0.0;
@@ -1735,7 +1944,6 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   }
 
   /* Cleanup */
-  ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecRestoreArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
