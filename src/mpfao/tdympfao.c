@@ -35,6 +35,7 @@ PetscErrorCode ComputeGMatrix(TDy tdy) {
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
           tdy->K[icell*dim*dim + ii*dim + jj] = localK[count];
+          tdy->K0[icell*dim*dim + ii*dim + jj] = localK[count];
           count++;
         }
       }
