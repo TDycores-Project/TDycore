@@ -992,11 +992,11 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
       TDy_face *face = &faces[subcell->face_ids[iface]];
 
       row = face->cell_ids[0];
-      PetscInt cell_from = face->cell_ids[0];
-      PetscInt cell_to   = face->cell_ids[1];
+      PetscInt cell_id_up = face->cell_ids[0];
+      PetscInt cell_id_dn = face->cell_ids[1];
 
-      if (cell_from>-1 && cells[cell_from].is_local) {
-        row   = cells[cell_from].global_id;
+      if (cell_id_up>-1 && cells[cell_id_up].is_local) {
+        row   = cells[cell_id_up].global_id;
         for (icol=0; icol<vertex->num_boundary_cells; icol++) {
           value = -tdy->Trans[vertex->id][iface][icol] * pBoundary[icol];
           ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
@@ -1004,8 +1004,8 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
       }
 
-      if (cell_to>-1 && cells[cell_to].is_local) {
-        row   = cells[cell_to].global_id;
+      if (cell_id_dn>-1 && cells[cell_id_dn].is_local) {
+        row   = cells[cell_id_dn].global_id;
         for (icol=0; icol<vertex->num_boundary_cells; icol++) {
           value = -tdy->Trans[vertex->id][iface][icol] * pBoundary[icol];
           ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
