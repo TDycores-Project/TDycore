@@ -916,7 +916,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   PetscInt       vStart, vEnd;
   PetscInt       fStart, fEnd;
   PetscInt       dim;
-  PetscReal      **Gmatrix;
   PetscReal      sign;
   PetscInt       j;
   PetscErrorCode ierr;
@@ -933,8 +932,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-
-  ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     
@@ -957,8 +954,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
     cell = &cells[icell];
     subcell = &cell->subcells[isubcell];
-
-    ierr = ExtractSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
 
     numBoundary = 0;
     for (iface=0; iface<subcell->num_faces; iface++) {
