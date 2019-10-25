@@ -841,7 +841,7 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
         PetscInt iface = tdy->closure[icell][i] - fStart;
         cells[icell].face_ids[c2fCount] = iface;
         for (j=0; j<2; j++) {
-          if (faces[iface].cell_ids[j] == -1) {
+          if (faces[iface].cell_ids[j] < 0) {
             faces[iface].cell_ids[j] = icell;
             faces[iface].num_cells++;
             break;
@@ -1732,10 +1732,10 @@ PetscErrorCode SetupCell2CellConnectivity(TDy_vertex *vertex, TDy_cell *cells, T
       TDy_face *face = &faces[subcell->face_ids[iface]];
 
       // Skip boundary face
-      if (face->cell_ids[0] == -1 || face->cell_ids[1] == -1) {
+      if (face->cell_ids[0] < 0 || face->cell_ids[1] < 0) {
         PetscInt cell_1, cell_2;
-        if (face->cell_ids[0] == -1) cell_1 = TDyReturnIndexInList(vertex->internal_cell_ids, ncells, face->cell_ids[1]);
-        else                         cell_1 = TDyReturnIndexInList(vertex->internal_cell_ids, ncells, face->cell_ids[0]);
+        if (face->cell_ids[0] < 0) cell_1 = TDyReturnIndexInList(vertex->internal_cell_ids, ncells, face->cell_ids[1]);
+        else                       cell_1 = TDyReturnIndexInList(vertex->internal_cell_ids, ncells, face->cell_ids[0]);
       
         cell_2 = ncells + bnd_count;
         vertex->boundary_face_ids[bnd_count] = face->id;
@@ -2097,7 +2097,7 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
       TDy_face *face = &faces[subcell->face_ids[iface]];
 
       // Skip boundary face
-      if (face->cell_ids[0] == -1 || face->cell_ids[1] == -1) {
+      if (face->cell_ids[0] < 0 || face->cell_ids[1] < 0) {
         subcell->face_unknown_idx[iface] = boundary_cell_count+nflux_in;
         for (ii=0; ii<12; ii++) {
           if (cell_up2dw[ii][0] == subcell->face_unknown_idx[iface]){ subcell->is_face_up[iface] = PETSC_FALSE; break;}

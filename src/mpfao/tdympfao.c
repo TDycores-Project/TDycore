@@ -211,13 +211,22 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
   cells = mesh->cells;
   faces = mesh->faces;
 
+  mesh->num_boundary_faces = 0;
+
   for (iface=0; iface<mesh->num_faces; iface++) {
 
     if (!faces[iface].is_internal) { // Is it a boundary face?
 
+      mesh->num_boundary_faces++;
+
       // Determine the cell ID for the boundary edge
-      if (faces[iface].cell_ids[0] != -1) icell_1 = faces[iface].cell_ids[0];
-      else                                icell_1 = faces[iface].cell_ids[1];
+      if (faces[iface].cell_ids[0] >= 0) {
+        icell_1 = faces[iface].cell_ids[0];
+        faces[iface].cell_ids[1] = -mesh->num_boundary_faces;
+      } else {
+        icell_1 = faces[iface].cell_ids[1];
+        faces[iface].cell_ids[0] = -mesh->num_boundary_faces;
+      }
 
       // Is the cell locally owned?
       if (cells[icell_1].is_local) faces[iface].is_local = PETSC_TRUE;
@@ -248,6 +257,36 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
 
   PetscFunctionReturn(0);
 
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
+
+  TDy_mesh *mesh;
+  PetscInt nbnd_faces;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  mesh  = tdy->mesh;
+  nbnd_faces = mesh->num_boundary_faces;
+
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->P_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->rho_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->mu_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->Kr_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->dKr_dS_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->S_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->dS_dP_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->d2S_dP2_BND)); CHKERRQ(ierr);
+
+  PetscInt i;
+  for (i=0;i<nbnd_faces;i++) {
+    tdy->rho_BND[i] = 998.0;
+    tdy->mu_BND[i] = 9.9e-4;
+  }
+
+  PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -344,6 +383,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
   if (dim == 3) {
     ierr = IdentifyLocalFaces(tdy); CHKERRQ(ierr);
+    ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);

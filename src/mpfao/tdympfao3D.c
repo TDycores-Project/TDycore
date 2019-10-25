@@ -4,6 +4,8 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
+#include <private/tdysaturationimpl.h>
+#include <private/tdypermeabilityimpl.h>
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyComputeEntryOfGMatrix3D(PetscReal area, PetscReal n[3],
@@ -1039,6 +1041,83 @@ PetscErrorCode ComputeGtimesZ(PetscReal *gravity, PetscReal *X, PetscInt dim, Pe
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
+
+  TDy_mesh *mesh;
+  TDy_face *faces, *face;
+  PetscErrorCode ierr;
+  PetscReal Se,dSe_dS,dKr_dSe,n=0.5,m=0.8,alpha=1.e-4,Kr; /* FIX: generalize */
+  PetscInt dim;
+  PetscInt p_bnd_idx, cell_id, iface;
+  PetscReal Sr,S,dS_dP,d2S_dP2,P;
+
+  PetscFunctionBegin;
+
+  mesh = tdy->mesh;
+  faces = mesh->faces;
+
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+
+  for (iface=0; iface<mesh->num_faces; iface++) {
+
+    face = &faces[iface];
+
+    if (face->is_internal) continue;
+
+    if (face->cell_ids[0] >= 0) {
+      cell_id = face->cell_ids[0];
+      p_bnd_idx = -face->cell_ids[1] - 1;
+    } else {
+      cell_id = face->cell_ids[1];
+      p_bnd_idx = -face->cell_ids[0] - 1;
+    }
+
+    switch (tdy->SatFuncType[cell_id]) {
+    case SAT_FUNC_GARDNER :
+      Sr = tdy->Sr[cell_id];
+      P = tdy->Pref - tdy->P_BND[p_bnd_idx];
+
+      PressureSaturation_Gardner(n,m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
+      break;
+    case SAT_FUNC_VAN_GENUCHTEN :
+      Sr = tdy->Sr[cell_id];
+      P = tdy->Pref - tdy->P_BND[p_bnd_idx];
+
+      PressureSaturation_VanGenuchten(n,m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
+      break;
+    }
+
+    Se = (S - Sr)/(1.0 - Sr);
+    dSe_dS = 1.0/(1.0 - Sr);
+
+    switch (tdy->RelPermFuncType[cell_id]) {
+    case REL_PERM_FUNC_IRMAY :
+      RelativePermeability_Irmay(m,Se,&Kr,NULL);
+      break;
+    case REL_PERM_FUNC_MUALEM :
+      RelativePermeability_Mualem(m,Se,&Kr,&dKr_dSe);
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown relative permeability function");
+      break;
+    }
+
+    tdy->S_BND[p_bnd_idx] = S;
+    tdy->dS_dP_BND[p_bnd_idx] = dS_dP;
+    tdy->d2S_dP2_BND[p_bnd_idx] = d2S_dP2;
+    tdy->Kr_BND[p_bnd_idx] = Kr;
+    tdy->dKr_dS_BND[p_bnd_idx] = dKr_dSe * dSe_dS;
+
+    //for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
+  }
+  
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 
 PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
@@ -1780,14 +1859,14 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
         face = &faces[subcell->face_ids[iface]];
 
         if (face->is_internal == 0) {
-          if (tdy->ops->computedirichletvalue) {
-            //f = face->id + fStart;
-            //ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
-            SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "TDyMPFAOIJacobian_3DMesh does not support dirichlet boundary condition.");
-          } else {
-            ierr = ComputeGtimesZ(tdy->gravity,cell->centroid.X,dim,&gz); CHKERRQ(ierr);
-            pBoundary[numBoundary] = p[icell] + tdy->rho[icell]*gz;
-          }
+
+          // Extract pressure value at the boundary
+          PetscInt p_bnd_idx;
+          if (face->cell_ids[0] >= 0) p_bnd_idx = -face->cell_ids[1] - 1;
+          else                        p_bnd_idx = -face->cell_ids[0] - 1;
+
+          pBoundary[numBoundary] = tdy->P_BND[p_bnd_idx];
+
           numBoundary++;
         }
       }
@@ -1831,14 +1910,20 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
       cell_id_dn = face->cell_ids[1];
 
       if (TtimesP[irow] < 0.0) { // up ---> dn
-        if (cell_id_up>0) ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
-        else              ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
+        if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
+        else               ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->mu_BND[-cell_id_up-1];
       } else {
-        if (cell_id_dn>0) ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
-        else              ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
+        if (cell_id_dn>=0) ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
+        else               ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->mu_BND[-cell_id_dn-1];
       }
 
-      den = 0.5*(tdy->rho[cell_id_up] + tdy->rho[cell_id_dn]);
+      den = 0.0;
+      if (cell_id_up>=0) den += tdy->rho[cell_id_up];
+      else               den += tdy->rho_BND[-cell_id_up-1];
+      if (cell_id_dn>=0) den += tdy->rho[cell_id_dn];
+      else               den += tdy->rho_BND[-cell_id_dn-1];
+      den *= 0.5;
+
       fluxm = den*ukvr*(-TtimesP[irow]);
       
       // fluxm > 0 implies flow is from 'up' to 'dn'
@@ -1850,6 +1935,57 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
 
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
+
+  TDy_mesh *mesh;
+  TDy_cell *cells, *cell;
+  TDy_face *faces, *face;
+  PetscErrorCode ierr;
+  PetscInt dim;
+  PetscInt p_bnd_idx, cell_id, iface;
+  PetscReal *p, gz;
+
+  PetscFunctionBegin;
+
+  ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+
+  mesh = tdy->mesh;
+  cells = mesh->cells;
+  faces = mesh->faces;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  for (iface=0; iface<mesh->num_faces; iface++) {
+
+    face = &faces[iface];
+
+    if (face->is_internal) continue;
+
+    if (face->cell_ids[0] >= 0) {
+      cell_id = face->cell_ids[0];
+      p_bnd_idx = -face->cell_ids[1] - 1;
+    } else {
+      cell_id = face->cell_ids[1];
+      p_bnd_idx = -face->cell_ids[0] - 1;
+    }
+
+    if (tdy->ops->computedirichletvalue) {
+      ierr = (*tdy->ops->computedirichletvalue)(tdy, (face->centroid.X), &(tdy->P_BND[p_bnd_idx]), tdy->dirichletvaluectx);CHKERRQ(ierr);
+      ierr = ComputeGtimesZ(tdy->gravity,cell->centroid.X,dim,&gz); CHKERRQ(ierr);
+      tdy->P_BND[p_bnd_idx] += tdy->rho[cell_id]*gz;
+    } else {
+      cell = &cells[cell_id];
+      ierr = ComputeGtimesZ(tdy->gravity,cell->centroid.X,dim,&gz); CHKERRQ(ierr);
+      tdy->P_BND[p_bnd_idx] = p[cell_id] + tdy->rho[cell_id]*gz;
+    }
+  }
+
+  ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1882,6 +2018,9 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+
+  ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
+  ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
 
   PetscReal vel_error = 0.0;
   PetscInt count = 0;
@@ -2169,14 +2308,14 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
         TDy_face *face = &faces[subcell->face_ids[iface]];
 
         if (face->is_internal == 0) {
-          if (tdy->ops->computedirichletvalue) {
-            //f = face->id + fStart;
-            //ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
-            SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "TDyMPFAOIJacobian_3DMesh does not support dirichlet boundary condition.");
-          } else {
-            ierr = ComputeGtimesZ(tdy->gravity,cell->centroid.X,dim,&gz); CHKERRQ(ierr);
-            pBoundary[numBoundary] = p[icell] + tdy->rho[icell]*gz;
-          }
+
+          // Extract pressure value at the boundary
+          PetscInt p_bnd_idx;
+          if (face->cell_ids[0] >= 0) p_bnd_idx = -face->cell_ids[1] - 1;
+          else                        p_bnd_idx = -face->cell_ids[0] - 1;
+
+          pBoundary[numBoundary] = tdy->P_BND[p_bnd_idx];
+
           numBoundary++;
         }
       }
@@ -2218,22 +2357,46 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
 
       cell_id_up = face->cell_ids[0];
       cell_id_dn = face->cell_ids[1];
-
-      if (cell_id_up<0) cell_id_up = cell_id_dn;
-      if (cell_id_dn<0) cell_id_dn = cell_id_up;
+      printf("\ncell_id_up = %02d; cell_id_dn = %02d\n",cell_id_up,cell_id_dn);
 
       dukvr_dPup = 0.0;
       dukvr_dPdn = 0.0;
 
       if (TtimesP[irow] < 0.0) {
-        ukvr       = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
-        dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->mu[cell_id_up];
+        // Flow: up --> dn
+        if (cell_id_up>=0) {
+          // "up" is an internal cell
+          ukvr       = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
+          dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->mu[cell_id_up];
+        } else {
+          // "up" is boundary cell
+          ukvr       = tdy->Kr_BND[-cell_id_up-1]/tdy->mu_BND[-cell_id_up-1];
+          dukvr_dPup = tdy->dKr_dS[-cell_id_up-1]*tdy->dS_dP_BND[-cell_id_up-1]/tdy->mu_BND[-cell_id_up-1];
+        }
+
       } else {
-        ukvr       = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
-        dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->mu[cell_id_dn];
+        // Flow: up <--- dn
+        if (cell_id_dn>=0) {
+          // "dn" is an internal cell
+          ukvr       = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
+          dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->mu[cell_id_dn];
+        } else {
+          // "dn" is a boundary cell
+          ukvr       = tdy->Kr_BND[-cell_id_dn-1]/tdy->mu_BND[-cell_id_dn-1];
+          dukvr_dPdn = tdy->dKr_dS_BND[-cell_id_dn-1]*tdy->dS_dP_BND[-cell_id_dn-1]/tdy->mu_BND[-cell_id_dn-1];
+        }
       }
 
-      den = 0.5*(tdy->rho[cell_id_up] + tdy->rho[cell_id_dn]);
+      den = 0.0;
+      if (cell_id_up>=0) den += tdy->rho[cell_id_up];
+      else               den += tdy->rho_BND[-cell_id_up-1];
+      if (cell_id_dn>=0) den += tdy->rho[cell_id_dn];
+      else               den += tdy->rho_BND[-cell_id_dn-1];
+      den *= 0.5;
+
+      if (cell_id_up<0) cell_id_up = cell_id_dn;
+      if (cell_id_dn<0) cell_id_dn = cell_id_up;
+
       dden_dPup = 0.0;
       dden_dPdn = 0.0;
 
@@ -2247,12 +2410,12 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
         PetscReal dden_dP = 0.0;
         ierr = ComputeGtimesZ(tdy->gravity,cell->centroid.X,dim,&gz); CHKERRQ(ierr);
 
-        if (cell_id == cell_id_up) {
+        if (cell_id_up>-1 && cell_id == cell_id_up) {
           Jac =
             dden_dPup * ukvr       * TtimesP[irow] +
             den       * dukvr_dPup * TtimesP[irow] +
             den       * ukvr       * T * (1.0 + dden_dP*gz) ;
-        } else if (cell_id == cell_id_dn) {
+        } else if (cell_id_dn>-1 && cell_id == cell_id_dn) {
           Jac =
             dden_dPdn * ukvr       * TtimesP[irow] +
             den       * dukvr_dPdn * TtimesP[irow] +
@@ -2265,11 +2428,11 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
         // Changing sign when bringing the term from RHS to LHS of the equation
         Jac = -Jac;
 
-        if (cells[cell_id_up].is_local) {
+        if (cell_id_up >-1 && cells[cell_id_up].is_local) {
           ierr = MatSetValuesLocal(A,1,&cell_id_up,1,&cell_id,&Jac,ADD_VALUES);CHKERRQ(ierr);
         }
 
-        if (cells[cell_id_dn].is_local) {
+        if (cell_id_dn >-1 && cells[cell_id_dn].is_local) {
           Jac = -Jac;
           ierr = MatSetValuesLocal(A,1,&cell_id_dn,1,&cell_id,&Jac,ADD_VALUES);CHKERRQ(ierr);
         }

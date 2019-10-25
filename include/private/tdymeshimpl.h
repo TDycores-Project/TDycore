@@ -170,6 +170,7 @@ struct _TDy_mesh {
   PetscInt   num_faces;
   PetscInt   num_edges;
   PetscInt   num_vertices;
+  PetscInt num_boundary_faces;
 
   TDy_cell   *cells;
   TDy_vertex *vertices;

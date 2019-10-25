@@ -52,6 +52,14 @@ struct _p_TDy {
   PetscInt *SatFuncType;     /* type of saturation function */
   PetscInt *RelPermFuncType; /* type of relative permeability */
 
+  /* boundary pressure and auxillary variables that depend on boundary pressure */
+  PetscReal *P_BND;
+  PetscReal  *rho_BND;            /* density of water [kg m-3]*/
+  PetscReal  *mu_BND;             /* viscosity of water [Pa s] */
+  PetscReal *Kr_BND, *dKr_dS_BND; /* relative permeability for each cell [1] */
+  PetscReal *S_BND,  *dS_dP_BND,  /* saturation, first derivative wrt boundary pressure, and */
+            *d2S_dP2_BND;         /* second derivative of saturation wrt boundary pressure */
+
   void *permeabilityctx;
   void *residualsaturationctx;
   void *forcingctx;
