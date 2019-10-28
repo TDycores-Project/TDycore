@@ -1763,8 +1763,8 @@ PetscErrorCode TDyMPFAOIFunction_InternalVertices_3DMesh(Vec Ul, Vec R, void *ct
       cell_id_up = face->cell_ids[0];
       cell_id_dn = face->cell_ids[1];
       
-      if (TtimesP[irow] < 0.0) ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
-      else                     ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
+      if (TtimesP[irow] < 0.0) ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
+      else                     ukvr = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
       
       den = 0.5*(tdy->rho[cell_id_up] + tdy->rho[cell_id_dn]);
       fluxm = den*ukvr*(-TtimesP[irow]);
@@ -1912,11 +1912,11 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
       cell_id_dn = face->cell_ids[1];
 
       if (TtimesP[irow] < 0.0) { // up ---> dn
-        if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
-        else               ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->mu_BND[-cell_id_up-1];
+        if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
+        else               ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
       } else {
-        if (cell_id_dn>=0) ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
-        else               ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->mu_BND[-cell_id_dn-1];
+        if (cell_id_dn>=0) ukvr = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+        else               ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
       }
 
       den = 0.0;
@@ -2041,11 +2041,11 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
 
 
       if (TtimesP[irow] < 0.0) { // up ---> dn
-        if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
-        else               ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->mu_BND[-cell_id_up-1];
+        if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
+        else               ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
       } else {
-        if (cell_id_dn>=0) ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
-        else               ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->mu_BND[-cell_id_dn-1];
+        if (cell_id_dn>=0) ukvr = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+        else               ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
       }
 
       den = 0.0;
@@ -2294,11 +2294,11 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh(Vec Ul, Mat A, void *ct
       dukvr_dPdn = 0.0;
 
       if (TtimesP[irow] < 0.0) {
-        ukvr       = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
-        dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->mu[cell_id_up];
+        ukvr       = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
+        dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->vis[cell_id_up];
       } else {
-        ukvr       = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
-        dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->mu[cell_id_dn];
+        ukvr       = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+        dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn];
       }
 
       den = 0.5*(tdy->rho[cell_id_up] + tdy->rho[cell_id_dn]);
@@ -2497,24 +2497,24 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
         // Flow: up --> dn
         if (cell_id_up>=0) {
           // "up" is an internal cell
-          ukvr       = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
-          dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->mu[cell_id_up];
+          ukvr       = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
+          dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->vis[cell_id_up];
         } else {
           // "up" is boundary cell
-          ukvr       = tdy->Kr_BND[-cell_id_up-1]/tdy->mu_BND[-cell_id_up-1];
-          dukvr_dPup = tdy->dKr_dS[-cell_id_up-1]*tdy->dS_dP_BND[-cell_id_up-1]/tdy->mu_BND[-cell_id_up-1];
+          ukvr       = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          dukvr_dPup = tdy->dKr_dS[-cell_id_up-1]*tdy->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
         }
 
       } else {
         // Flow: up <--- dn
         if (cell_id_dn>=0) {
           // "dn" is an internal cell
-          ukvr       = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
-          dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->mu[cell_id_dn];
+          ukvr       = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+          dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn];
         } else {
           // "dn" is a boundary cell
-          ukvr       = tdy->Kr_BND[-cell_id_dn-1]/tdy->mu_BND[-cell_id_dn-1];
-          dukvr_dPdn = tdy->dKr_dS_BND[-cell_id_dn-1]*tdy->dS_dP_BND[-cell_id_dn-1]/tdy->mu_BND[-cell_id_dn-1];
+          ukvr       = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          dukvr_dPdn = tdy->dKr_dS_BND[-cell_id_dn-1]*tdy->dS_dP_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
         }
       }
 
@@ -2688,19 +2688,19 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
 
       if (TtimesP[irow] < 0.0) { // up ---> dn
         if (cell_id_up>=0) {
-          ukvr = tdy->Kr[cell_id_up]/tdy->mu[cell_id_up];
-          dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->mu[cell_id_up];
+          ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
+          dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->vis[cell_id_up];
         } else {
-          ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->mu_BND[-cell_id_up-1];
-          dukvr_dPup = tdy->dKr_dS[-cell_id_up-1]*tdy->dS_dP_BND[-cell_id_up-1]/tdy->mu_BND[-cell_id_up-1];
+          ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          dukvr_dPup = tdy->dKr_dS[-cell_id_up-1]*tdy->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
         }
       } else {
         if (cell_id_dn>=0) {
-          ukvr = tdy->Kr[cell_id_dn]/tdy->mu[cell_id_dn];
-          dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->mu[cell_id_dn];
+          ukvr = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+          dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn];
         } else {
-          ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->mu_BND[-cell_id_dn-1];
-          dukvr_dPdn = tdy->dKr_dS_BND[-cell_id_dn-1]*tdy->dS_dP_BND[-cell_id_dn-1]/tdy->mu_BND[-cell_id_dn-1];
+          ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          dukvr_dPdn = tdy->dKr_dS_BND[-cell_id_dn-1]*tdy->dS_dP_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
         }
       }
 

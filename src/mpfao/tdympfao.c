@@ -335,7 +335,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
 
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->P_BND)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->rho_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->mu_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->vis_BND)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->Kr_BND)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->dKr_dS_BND)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->S_BND)); CHKERRQ(ierr);
@@ -346,7 +346,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
   PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
   for (i=0;i<nbnd_faces;i++) {
     ierr = ComputeWaterDensity(tdy->Pref, tdy->rho_type, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
-    ierr = ComputeWaterViscosity(tdy->Pref, tdy->mu_type, &(tdy->mu_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
+    ierr = ComputeWaterViscosity(tdy->Pref, tdy->mu_type, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);

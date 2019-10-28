@@ -37,7 +37,7 @@ struct _p_TDy {
   PetscInt rho_type;
   PetscInt mu_type;
   PetscReal  *rho;       /* density of water [kg m-3]*/
-  PetscReal  *mu;        /* viscosity of water [Pa s] */
+  PetscReal  *vis;       /* viscosity of water [Pa s] */
 
   /* problem constants */
   PetscReal  gravity[3]; /* vector of gravity [m s-2] */
@@ -60,7 +60,7 @@ struct _p_TDy {
   /* boundary pressure and auxillary variables that depend on boundary pressure */
   PetscReal *P_BND;
   PetscReal  *rho_BND;            /* density of water [kg m-3]*/
-  PetscReal  *mu_BND;             /* viscosity of water [Pa s] */
+  PetscReal  *vis_BND;             /* viscosity of water [Pa s] */
   PetscReal *Kr_BND, *dKr_dS_BND; /* relative permeability for each cell [1] */
   PetscReal *S_BND,  *dS_dP_BND,  /* saturation, first derivative wrt boundary pressure, and */
             *d2S_dP2_BND;         /* second derivative of saturation wrt boundary pressure */
