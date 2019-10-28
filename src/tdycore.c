@@ -128,10 +128,16 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Sr)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->SatFuncType)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->RelPermFuncType)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_m)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_n)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_alpha)); CHKERRQ(ierr);
 
   /* problem constants FIX: add mutators */
   for (c=0; c<nc; c++) {
     tdy->Sr[c]   = 0.15;
+    tdy->matprop_n[c] = 0.5;
+    tdy->matprop_m[c] = 0.8;
+    tdy->matprop_alpha[c] = 1.e-4;
     tdy->SatFuncType[c] = SAT_FUNC_GARDNER;
     tdy->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     tdy->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
@@ -424,13 +430,16 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
-  //PetscReal Se,dSe_dS,dKr_dSe,n=0.5,m=0.5,alpha=1.6717e-5,Kr; /* FIX: generalize */
-  PetscReal Se,dSe_dS,dKr_dSe,n=0.5,m=0.8,alpha=1.e-4,Kr; /* FIX: generalize */
+  PetscReal Se,dSe_dS,dKr_dSe,n,m,alpha,Kr; /* FIX: generalize */
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
+
+    m = tdy->matprop_m[c];
+    n = tdy->matprop_n[c];
+    alpha = tdy->matprop_alpha[c];
 
     switch (tdy->SatFuncType[i]) {
     case SAT_FUNC_GARDNER :

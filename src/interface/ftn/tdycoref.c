@@ -24,6 +24,12 @@
 #define tdysetdirichletfluxfunction_   TDYSETDIRICHLETFLUXFUNCTION
 #define tdysetresidualsaturationvalueslocal0_       TDYSETRESIDUALSATURATIONVALUESLOCAL0
 #define tdysetresidualsaturationvalueslocal11_      TDYSETRESIDUALSATURATIONVALUESLOCAL11
+#define tdysetmaterialpropertymvalueslocal0_       TDYSETMATERIALPROPERTYMVALUESLOCAL0
+#define tdysetmaterialpropertymvalueslocal11_      TDYSETMATERIALPROPERTYMVALUESLOCAL11
+#define tdysetmaterialpropertynvalueslocal0_       TDYSETMATERIALPROPERTYNVALUESLOCAL0
+#define tdysetmaterialpropertynvalueslocal11_      TDYSETMATERIALPROPERTYNVALUESLOCAL11
+#define tdysetmaterialpropertyalphavalueslocal0_       TDYSETMATERIALPROPERTYALPHAVALUESLOCAL0
+#define tdysetmaterialpropertyalphavalueslocal11_      TDYSETMATERIALPROPERTYALPHAVALUESLOCAL11
 #define tdyoutputregression_           TDYOUTPUTREGRESSION
 #define tdydestroy_                    TDYDESTROY
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
@@ -42,6 +48,12 @@
 #define tdysetdirichletfluxfunction_   tdysetdirichletfluxfunction
 #define tdysetresidualsaturationvalueslocal0_       tdysetresidualsaturationvalueslocal0
 #define tdysetresidualsaturationvalueslocal11_      tdysetresidualsaturationvalueslocal11
+#define tdysetmaterialpropertymvalueslocal0_       tdysetmaterialpropertymvalueslocal0
+#define tdysetmaterialpropertymvalueslocal11_       tdysetmaterialpropertymvalueslocal11
+#define tdysetmaterialpropertynvalueslocal0_       tdysetmaterialpropertynvalueslocal0
+#define tdysetmaterialpropertynvalueslocal11_       tdysetmaterialpropertynvalueslocal11
+#define tdysetmaterialpropertyalphavalueslocal0_       tdysetmaterialpropertyalphavalueslocal0
+#define tdysetmaterialpropertyalphavalueslocal11_       tdysetmaterialpropertyalphavalueslocal11
 #define tdyoutputregression_           tdyoutputregression
 #define tdydestroy_                    tdydestroy
 #endif
@@ -289,4 +301,49 @@ PETSC_EXTERN void PETSC_STDCALL tdysetresidualsaturationvalueslocal0_(TDy *tdy,P
 PETSC_EXTERN void PETSC_STDCALL tdysetresidualsaturationvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetresidualsaturationvalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertymvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  *ierr = TDySetMaterialPropertyMValuesLocal(*tdy,*ni,ix,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertymvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetmaterialpropertymvalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertymvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetmaterialpropertymvalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertynvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  *ierr = TDySetMaterialPropertyNValuesLocal(*tdy,*ni,ix,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertynvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetmaterialpropertynvalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertynvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetmaterialpropertynvalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertyalphavalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  *ierr = TDySetMaterialPropertyAlphaValuesLocal(*tdy,*ni,ix,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertyalphavalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetmaterialpropertyalphavalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertyalphavalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetmaterialpropertyalphavalueslocal_(tdy,ni,ix,y,ierr);
 }

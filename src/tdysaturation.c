@@ -60,3 +60,45 @@ PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const P
 
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode TDySetMaterialPropertyMValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+
+  PetscInt i;
+
+  PetscFunctionBegin;
+  if (!ni) PetscFunctionReturn(0);
+
+  for(i=0; i<ni; i++) {
+    tdy->matprop_m[ix[i]] = y[i];
+  }
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetMaterialPropertyNValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+
+  PetscInt i;
+
+  PetscFunctionBegin;
+  if (!ni) PetscFunctionReturn(0);
+
+  for(i=0; i<ni; i++) {
+    tdy->matprop_n[ix[i]] = y[i];
+  }
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetMaterialPropertyAlphaValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+
+  PetscInt i;
+
+  PetscFunctionBegin;
+  if (!ni) PetscFunctionReturn(0);
+
+  for(i=0; i<ni; i++) {
+    tdy->matprop_alpha[ix[i]] = y[i];
+  }
+
+  PetscFunctionReturn(0);
+}

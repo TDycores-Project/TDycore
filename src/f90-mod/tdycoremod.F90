@@ -64,6 +64,62 @@ module tdycore
      end subroutine TDySetResidualSaturationValuesLocal11
   end interface TDySetResidualSaturationValuesLocal
 
+  Interface TDySetMaterialPropertyMValuesLocal
+     subroutine TDySetMaterialPropertyMValuesLocal0(a,b,c,d,z)
+       use tdycoredef
+       TDy a ! Vec
+       PetscInt b ! PetscInt
+       PetscInt c (*) ! PetscInt
+       PetscScalar d (*) ! PetscScalar
+       integer z
+     end subroutine TDySetMaterialPropertyMValuesLocal0
+     subroutine TDySetMaterialPropertyMValuesLocal11(a,b,c,d,e,z)
+       use tdycoredef
+       TDy a ! TDy
+       PetscInt b ! PetscInt
+       PetscInt c ! PetscInt
+       PetscScalar d ! PetscScalar
+       integer z
+     end subroutine TDySetMaterialPropertyMValuesLocal11
+  end interface TDySetMaterialPropertyMValuesLocal
+
+  Interface TDySetMaterialPropertyNValuesLocal
+     subroutine TDySetMaterialPropertyNValuesLocal0(a,b,c,d,z)
+       use tdycoredef
+       TDy a ! Vec
+       PetscInt b ! PetscInt
+       PetscInt c (*) ! PetscInt
+       PetscScalar d (*) ! PetscScalar
+       integer z
+     end subroutine TDySetMaterialPropertyNValuesLocal0
+     subroutine TDySetMaterialPropertyNValuesLocal11(a,b,c,d,e,z)
+       use tdycoredef
+       TDy a ! TDy
+       PetscInt b ! PetscInt
+       PetscInt c ! PetscInt
+       PetscScalar d ! PetscScalar
+       integer z
+     end subroutine TDySetMaterialPropertyNValuesLocal11
+  end interface TDySetMaterialPropertyNValuesLocal
+
+  Interface TDySetMaterialPropertyAlphaValuesLocal
+     subroutine TDySetMaterialPropertyAlphaValuesLocal0(a,b,c,d,z)
+       use tdycoredef
+       TDy a ! Vec
+       PetscInt b ! PetscInt
+       PetscInt c (*) ! PetscInt
+       PetscScalar d (*) ! PetscScalar
+       integer z
+     end subroutine TDySetMaterialPropertyAlphaValuesLocal0
+     subroutine TDySetMaterialPropertyAlphaValuesLocal11(a,b,c,d,e,z)
+       use tdycoredef
+       TDy a ! TDy
+       PetscInt b ! PetscInt
+       PetscInt c ! PetscInt
+       PetscScalar d ! PetscScalar
+       integer z
+     end subroutine TDySetMaterialPropertyAlphaValuesLocal11
+  end interface TDySetMaterialPropertyAlphaValuesLocal
   interface
      subroutine TDySetIFunction(a,b,z)
        use tdycoredef
