@@ -64,7 +64,8 @@ implicit none
   PetscReal, pointer :: residualSat(:)
   PetscInt :: c, cStart, cEnd
 
-  call PetscInitialize(PETSC_NULL_CHARACTER,ierr);CHKERRA(ierr);
+  call PetscInitialize(PETSC_NULL_CHARACTER,ierr);
+  CHKERRA(ierr);
 
   nx = 3; ny = 3; nz = 3;
   dim = 3
@@ -89,13 +90,19 @@ implicit none
      CHKERRA(ierr);
      dm = dmDist;
   end if
-  call DMSetUp(dm,ierr); CHKERRA(ierr)
-  call DMSetFromOptions(dm, ierr); CHKERRA(ierr);
+  call DMSetUp(dm,ierr);
+  CHKERRA(ierr)
 
-  call TDyCreate(dm, tdy, ierr); CHKERRA(ierr);
+  call DMSetFromOptions(dm, ierr);
+  CHKERRA(ierr);
+
+  call TDyCreate(dm, tdy, ierr);
+  CHKERRA(ierr);
 
 
-  call DMPlexGetHeightStratum(dm,0,cStart,cEnd,ierr); CHKERRA(ierr);
+  call DMPlexGetHeightStratum(dm,0,cStart,cEnd,ierr);
+  CHKERRA(ierr);
+
   allocate(residualSat(cEnd-cStart));
   allocate(index(cEnd-cStart));
 
@@ -104,35 +111,74 @@ implicit none
     residualSat(c) = 0.115d0;
   enddo
 
-  call TDySetPorosityFunction(tdy,PorosityFunction,0,ierr); CHKERRA(ierr);
-  call TDySetPermeabilityFunction(tdy,PermeabilityFunction,0,ierr); CHKERRA(ierr);
+  call TDySetPorosityFunction(tdy,PorosityFunction,0,ierr);
+  CHKERRA(ierr);
+  call TDySetPermeabilityFunction(tdy,PermeabilityFunction,0,ierr);
+  CHKERRA(ierr);
   call TDySetResidualSaturationValuesLocal(tdy,cEnd-cStart,index,residualSat,ierr);
-  call TDySetDiscretizationMethod(tdy,MPFA_O,ierr); CHKERRA(ierr);
-  call TDySetFromOptions(tdy,ierr); CHKERRA(ierr);
+  CHKERRA(ierr);
+  call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
+  CHKERRA(ierr);
+  call TDySetFromOptions(tdy,ierr);
+  CHKERRA(ierr);
 
   ! Set initial condition
-  call DMCreateGlobalVector(dm,U,ierr); CHKERRA(ierr);
-  call VecSet(U,91325.d0,ierr); CHKERRA(ierr);
+  call DMCreateGlobalVector(dm,U,ierr);
+  CHKERRA(ierr);
+  CHKERRA(ierr);
+  call VecSet(U,91325.d0,ierr);
+  CHKERRA(ierr);
 
-  call TSCreate(PETSC_COMM_WORLD,ts,ierr); CHKERRA(ierr);
-  call TSSetEquationType(ts,TS_EQ_IMPLICIT,ierr); CHKERRA(ierr);
-  call TSSetType(ts,TSBEULER,ierr); CHKERRA(ierr);
-  call TDySetIFunction(ts,tdy,ierr); CHKERRA(ierr);
-  call TDySetIJacobian(ts,tdy,ierr); CHKERRA(ierr);
-  call TSSetDM(ts,dm,ierr); CHKERRA(ierr);
-  call TSSetSolution(ts,U,ierr); CHKERRA(ierr);
-  call TSSetMaxSteps(ts,1,ierr); CHKERRA(ierr);
-  call TSSetMaxTime(ts,1.d0,ierr); CHKERRA(ierr);
-  call TSSetExactFinalTime(ts,TS_EXACTFINALTIME_STEPOVER,ierr); CHKERRA(ierr);
-  call TSSetFromOptions(ts,ierr); CHKERRA(ierr);
-  call TSSetUp(ts,ierr); CHKERRA(ierr);
-  call TSSolve(ts,U,ierr); CHKERRA(ierr);
+  call TSCreate(PETSC_COMM_WORLD,ts,ierr);
+  CHKERRA(ierr);
 
-  call TDyOutputRegression(tdy,U,ierr); CHKERRA(ierr);
+  call TSSetEquationType(ts,TS_EQ_IMPLICIT,ierr);
+  CHKERRA(ierr);
 
-  call TDyDestroy(tdy,ierr);CHKERRA(ierr);
-  call DMDestroy(dm,ierr); CHKERRA(ierr);
-  call PetscFinalize(ierr); CHKERRA(ierr);
+  call TSSetType(ts,TSBEULER,ierr);
+  CHKERRA(ierr);
+
+  call TDySetIFunction(ts,tdy,ierr);
+  CHKERRA(ierr);
+
+  call TDySetIJacobian(ts,tdy,ierr);
+  CHKERRA(ierr);
+
+  call TSSetDM(ts,dm,ierr);
+  CHKERRA(ierr);
+
+  call TSSetSolution(ts,U,ierr);
+  CHKERRA(ierr);
+
+  call TSSetMaxSteps(ts,1,ierr);
+  CHKERRA(ierr);
+
+  call TSSetMaxTime(ts,1.d0,ierr);
+  CHKERRA(ierr);
+
+  call TSSetExactFinalTime(ts,TS_EXACTFINALTIME_STEPOVER,ierr);
+  CHKERRA(ierr);
+
+  call TSSetFromOptions(ts,ierr);
+  CHKERRA(ierr);
+
+  call TSSetUp(ts,ierr);
+  CHKERRA(ierr);
+
+  call TSSolve(ts,U,ierr);
+  CHKERRA(ierr);
+
+  call TDyOutputRegression(tdy,U,ierr);
+  CHKERRA(ierr);
+
+  call TDyDestroy(tdy,ierr);
+  CHKERRA(ierr);
+
+  call DMDestroy(dm,ierr);
+  CHKERRA(ierr);
+
+  call PetscFinalize(ierr);
+  CHKERRA(ierr);
 
   call exit(successful_exit_code)
 
