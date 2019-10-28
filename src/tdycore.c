@@ -430,7 +430,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
-  PetscReal Se,dSe_dS,dKr_dSe,n,m,alpha,Kr; /* FIX: generalize */
+  PetscReal Se,dSe_dS,dKr_dSe,n,m,alpha,Kr;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
