@@ -437,7 +437,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
       PressureSaturation_Gardner(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&(tdy->dS_dP[i]),&(tdy->d2S_dP2[i]));
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      PressureSaturation_VanGenuchten(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&tdy->dS_dP[i],&(tdy->d2S_dP2[i]));
+      PressureSaturation_VanGenuchten(m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&tdy->dS_dP[i],&(tdy->d2S_dP2[i]));
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");

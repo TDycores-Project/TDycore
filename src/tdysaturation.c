@@ -21,9 +21,9 @@ void PressureSaturation_Gardner(PetscReal n,PetscReal m,PetscReal alpha, PetscRe
   }
 }
 
-void PressureSaturation_VanGenuchten(PetscReal n,PetscReal m,PetscReal alpha,  PetscReal Sr,
+void PressureSaturation_VanGenuchten(PetscReal m,PetscReal alpha,  PetscReal Sr,
 				     PetscReal Pc,PetscReal *S,PetscReal *dS_dP,PetscReal *d2S_dP2) {
-  PetscReal pc_alpha,pc_alpha_n,one_plus_pc_alpha_n;
+  PetscReal pc_alpha,pc_alpha_n,one_plus_pc_alpha_n,n;
   if(Pc <= 0) { 
     *S = 1;
     if(dS_dP) *dS_dP = 0;

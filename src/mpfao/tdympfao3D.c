@@ -1085,7 +1085,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
       Sr = tdy->Sr[cell_id];
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
 
-      PressureSaturation_VanGenuchten(n,m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
+      PressureSaturation_VanGenuchten(m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
