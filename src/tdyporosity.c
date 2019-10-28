@@ -14,4 +14,9 @@ PetscErrorCode TDySetPorosity(TDy tdy,SpatialFunction f) {
   PetscFunctionReturn(0);
 }
 
-
+PetscErrorCode TDySetPorosityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  if (f) tdy->ops->computeporosity = f;
+  if (ctx) tdy->porosityctx = ctx;
+  PetscFunctionReturn(0);
+}

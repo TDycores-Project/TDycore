@@ -14,6 +14,7 @@ struct _TDyOps {
   PetscErrorCode (*view)(TDy);
   PetscErrorCode (*setup)(TDy);
   PetscErrorCode (*setfromoptions)(TDy);
+  PetscErrorCode (*computeporosity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computepermeability)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeresidualsaturation)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeforcing)(TDy,PetscReal*,PetscReal*,void*);
@@ -60,6 +61,7 @@ struct _p_TDy {
   PetscReal *S_BND,  *dS_dP_BND,  /* saturation, first derivative wrt boundary pressure, and */
             *d2S_dP2_BND;         /* second derivative of saturation wrt boundary pressure */
 
+  void *porosityctx;
   void *permeabilityctx;
   void *residualsaturationctx;
   void *forcingctx;

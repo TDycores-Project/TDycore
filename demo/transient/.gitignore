@@ -1,6 +1,8 @@
 .DS_Store
 *dSYM
 transient
+transient_mpfao
+transient_mpfaof90
 *.bin*
 *.regression
 *.stdout*

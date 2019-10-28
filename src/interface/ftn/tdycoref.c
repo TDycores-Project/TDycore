@@ -11,9 +11,12 @@
 #ifdef PETSC_HAVE_FORTRAN_CAPS
 #define tdycreate_                     TDYCREATE
 #define tdysetdiscretizationmethod_    TDYSETDISCRETIZATIONMETHOD
+#define tdysetifunction_               TDYSETIFUNCTION
+#define tdysetifunction_               TDYSETIJACOBIAN
 #define tdysetfromoption_              TDYSETFROMOPTIONS
 #define tdycomputesystem_              TDYCOMPUTESYSTEM
 #define tdycomputeerrornorms_          TDYCOMPUTEERRORNORMS
+#define tdysetporosityfunction_        TDYSETPOROSITYFUNCTION
 #define tdysetpermeabilityfunction_    TDYSETPERMEABILITYFUNCTION
 #define tdysetresidualsaturationfunction_    TDYSETRESIDUALSATURATIONFUNCTION
 #define tdysetforcingfunction_         TDYSETFORCINGFUNCTION
@@ -26,21 +29,25 @@
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
 #define tdycreate_                     tdycreate
 #define tdysetdiscretizationmethod_    tdysetdiscretizationmethod
+#define tdysetifunction_               tdysetifunction
+#define tdysetijacobian_               tdysetijacobian
 #define tdysetfromoptions_             tdysetfromoptions
 #define tdycomputesystem_              tdycomputesystem
 #define tdycomputeerrornorms_          tdycomputeerrornorms
+#define tdysetporosityfunction_        tdysetporosityfunction
 #define tdysetpermeabilityfunction_    tdysetpermeabilityfunction
 #define tdysetresidualsaturationfunction_    tdysetresidualsaturationfunction
 #define tdysetforcingfunction_         tdysetforcingfunction
 #define tdysetdirichletvaluefunction_  tdysetdirichletvaluefunction
 #define tdysetdirichletfluxfunction_   tdysetdirichletfluxfunction
 #define tdysetresidualsaturationvalueslocal0_       tdysetresidualsaturationvalueslocal0
-#define tdysetresidualsaturationvalueslocal0_      tdysetresidualsaturationvalueslocal1
+#define tdysetresidualsaturationvalueslocal11_      tdysetresidualsaturationvalueslocal11
 #define tdyoutputregression_           tdyoutputregression
 #define tdydestroy_                    tdydestroy
 #endif
 
 static struct {
+  PetscFortranCallbackId porosity;
   PetscFortranCallbackId permeability;
   PetscFortranCallbackId residualsaturation;
   PetscFortranCallbackId forcing;
@@ -67,6 +74,30 @@ extern "C" {
 #endif
 PETSC_EXTERN void PETSC_STDCALL  tdysetdiscretizationmethod_(TDy tdy, PetscInt *method, int *__ierr){
 *__ierr = TDySetDiscretizationMethod((TDy)PetscToPointer((tdy)), *method);
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void PETSC_STDCALL  tdysetifunction_(TS ts, TDy tdy, int *__ierr){
+*__ierr = TDySetIFunction(
+  (TS)PetscToPointer((ts)),
+  (TDy)PetscToPointer((tdy)));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void PETSC_STDCALL  tdysetijacobian_(TS ts, TDy tdy, int *__ierr){
+*__ierr = TDySetIJacobian(
+  (TS)PetscToPointer((ts)),
+  (TDy)PetscToPointer((tdy)));
 }
 #if defined(__cplusplus)
 }
@@ -130,6 +161,15 @@ PETSC_EXTERN void PETSC_STDCALL  tdydestroy_(TDy *_tdy, int *__ierr){
 }
 #endif
 
+static PetscErrorCode ourtdyporosityfunction(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
+{
+#if defined(PETSC_HAVE_F90_2PTR_ARG)
+  void* ptr;
+  PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,_cb.function_pgiptr,NULL,&ptr);
+#endif
+  PetscObjectUseFortranCallback(tdy,_cb.porosity,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
+}
+
 static PetscErrorCode ourtdypermeabilityfunction(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
 {
 #if defined(PETSC_HAVE_F90_2PTR_ARG)
@@ -137,6 +177,16 @@ static PetscErrorCode ourtdypermeabilityfunction(TDy tdy,PetscReal *x,PetscReal 
   PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,_cb.function_pgiptr,NULL,&ptr);
 #endif
   PetscObjectUseFortranCallback(tdy,_cb.permeability,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetporosityfunction_(TDy *tdy, void (PETSC_STDCALL *func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+{
+  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.porosity,(PetscVoidFunction)func,ctx);
+  if (*ierr) return;
+#if defined(PETSC_HAVE_F90_2PTR_ARG)
+  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
+#endif
+  *ierr = TDySetPorosityFunction(*tdy,ourtdyporosityfunction,NULL);
 }
 
 PETSC_EXTERN void PETSC_STDCALL tdysetpermeabilityfunction_(TDy *tdy, void (PETSC_STDCALL *func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
@@ -231,12 +281,12 @@ PETSC_EXTERN void PETSC_STDCALL tdysetresidualsaturationvalueslocal_(TDy *tdy,Pe
   *ierr = TDySetResidualSaturationValuesLocal(*tdy,*ni,ix,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL vecsetvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void PETSC_STDCALL tdysetresidualsaturationvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetresidualsaturationvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL vecsetvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void PETSC_STDCALL tdysetresidualsaturationvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetresidualsaturationvalueslocal_(tdy,ni,ix,y,ierr);
 }

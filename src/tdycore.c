@@ -2,6 +2,7 @@
 #include <private/tdysaturationimpl.h>
 #include <private/tdypermeabilityimpl.h>
 #include <private/tdympfao3Dimpl.h>
+#include <private/tdympfaoimpl.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -268,6 +269,18 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-tdy_output_mesh only supported for MPFA-O method");
     }
     ierr = TDyOutputMesh(tdy); CHKERRQ(ierr);
+  }
+
+  switch (tdy->method) {
+  case TPF:
+    break;
+  case MPFA_O:
+    ierr = TDyMPFAOSetFromOptions(tdy); CHKERRQ(ierr);
+    break;
+  case BDM:
+    break;
+  case WY:
+    break;
   }
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);

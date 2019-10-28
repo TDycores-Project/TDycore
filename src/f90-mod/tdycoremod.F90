@@ -1,5 +1,6 @@
 module tdycoredefdummy
 #include <../src/f90-mod/tdycore.h>
+#include <petsc/finclude/petscts.h>
 end module tdycoredefdummy
 
 module tdycoredef
@@ -62,5 +63,25 @@ end subroutine TDyComputeSystem
           integer z
         end subroutine
       end interface TDySetResidualSaturationValuesLocal
+
+        interface
+subroutine TDySetIFunction(a,b,z)
+ use tdycoredef
+ use petscts
+ TS a
+ TDy b
+ integer z
+end subroutine TDySetIFunction
+        end interface
+
+        interface
+subroutine TDySetIJacobian(a,b,z)
+ use tdycoredef
+ use petscts
+ TS a
+ TDy b
+ integer z
+end subroutine TDySetIJacobian
+        end interface
 
 end module tdycore

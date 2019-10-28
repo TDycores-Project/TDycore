@@ -9,7 +9,7 @@
 
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeGMatrix(TDy tdy) {
+PetscErrorCode SetPermeabilityFromFunction(TDy tdy) {
 
   PetscFunctionBegin;
   PetscInt dim;
@@ -43,6 +43,67 @@ PetscErrorCode ComputeGMatrix(TDy tdy) {
     ierr = PetscFree(localK); CHKERRQ(ierr);
   }
 
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode SetPorosityFromFunction(TDy tdy) {
+
+  PetscInt dim;
+  PetscInt c,cStart,cEnd;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscMemzero(tdy->porosity,sizeof(PetscReal)*(cEnd-cStart));CHKERRQ(ierr);
+
+  for(c=cStart; c<cEnd; c++) {
+    ierr = (*tdy->ops->computeporosity)(tdy, &(tdy->X[c*dim]), &(tdy->porosity[c]), tdy->porosityctx);CHKERRQ(ierr);
+  }
+
+  /*
+  if (tdy->ops->computepermeability) {
+
+    PetscReal *localK;
+    PetscInt icell, ii, jj;
+    TDy_mesh *mesh;
+
+    mesh = tdy->mesh;
+
+    // If peremeability function is set, use it instead.
+    // Will need to consolidate this code with code in tdypermeability.c
+    ierr = PetscMalloc(9*sizeof(PetscReal),&localK); CHKERRQ(ierr);
+    for (icell=0; icell<mesh->num_cells; icell++) {
+      ierr = (*tdy->ops->computepermeability)(tdy, &(tdy->X[icell*dim]), localK, tdy->permeabilityctx);CHKERRQ(ierr);
+
+      PetscInt count = 0;
+      for (ii=0; ii<dim; ii++) {
+        for (jj=0; jj<dim; jj++) {
+          tdy->K[icell*dim*dim + ii*dim + jj] = localK[count];
+          tdy->K0[icell*dim*dim + ii*dim + jj] = localK[count];
+          count++;
+        }
+      }
+    }
+    ierr = PetscFree(localK); CHKERRQ(ierr);
+  }
+  */
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode ComputeGMatrix(TDy tdy) {
+
+  PetscFunctionBegin;
+  PetscInt dim;
+  PetscErrorCode ierr;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+ 
   switch (dim) {
   case 2:
     ierr = TDyComputeGMatrixFor2DMesh(tdy); CHKERRQ(ierr);
@@ -352,6 +413,8 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   ierr = TDyBuildMesh(tdy); CHKERRQ(ierr);
 
+  if (tdy->ops->computepermeability) { ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
+
   ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
 
   ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
@@ -390,7 +453,18 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
 }
 
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAOSetFromOptions(TDy tdy) {
 
+  PetscFunctionBegin;
+  PetscInt dim;
+  PetscErrorCode ierr;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  if (tdy->ops->computeporosity) { ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr); }
+
+  PetscFunctionReturn(0);
+}
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy,Mat K,Vec F) {

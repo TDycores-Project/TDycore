@@ -42,6 +42,7 @@ PETSC_EXTERN PetscErrorCode TDyGetDimension(TDy tdy,PetscInt *dim);
 PETSC_EXTERN PetscErrorCode TDyGetDM(TDy tdy,DM *dm);
 PETSC_EXTERN PetscErrorCode TDyGetCentroidArray(TDy tdy,PetscReal **X);
 
+PETSC_EXTERN PetscErrorCode TDySetPorosityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetResidualSaturationFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
@@ -125,7 +126,6 @@ PETSC_EXTERN void HdivBasisHex(const PetscReal *x,PetscReal *B);
 PETSC_EXTERN PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
     PetscReal *integral);
 
-PETSC_EXTERN PetscErrorCode TDyMPFAOInitialize(TDy);
 PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy, Mat, Vec);
 PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy, Vec);
 PETSC_EXTERN PetscReal TDyMPFAOVelocityNorm(TDy);
