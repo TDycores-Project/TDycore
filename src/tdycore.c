@@ -3,6 +3,7 @@
 #include <private/tdypermeabilityimpl.h>
 #include <private/tdympfao3Dimpl.h>
 #include <private/tdympfaoimpl.h>
+#include <private/tdyeosimpl.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -126,8 +127,6 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
 
   /* problem constants FIX: add mutators */
   for (c=0; c<nc; c++) {
-    tdy->rho[c]  = 998.0;
-    tdy->mu[c]   = 9.94e-4;
     tdy->Sr[c]   = 0.15;
     tdy->SatFuncType[c] = SAT_FUNC_GARDNER;
     tdy->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
@@ -136,6 +135,8 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   tdy->Pref = 101325;
   tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
   tdy->gravity[dim-1] = -9.81;
+  tdy->rho_type = WATER_DENSITY_CONSTANT;
+  tdy->mu_type = WATER_VISCOSITY_CONSTANT;
 
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
@@ -457,7 +458,14 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
     tdy->dKr_dS[i] = dKr_dSe * dSe_dS;
 
     for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
+
+    PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
+    ierr = ComputeWaterDensity(P[i], tdy->rho_type, &(tdy->rho[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
+    ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->mu[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
+  
   }
+
+
   PetscFunctionReturn(0);
 }
 

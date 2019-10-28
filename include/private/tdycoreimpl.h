@@ -33,15 +33,19 @@ struct _p_TDy {
   PetscReal *N; /* normal of point (if applicable) */
   PetscInt ncv,nfv; /* number of {cell|face} vertices */
   
-  /* problem constants */
+  /* non-linear function of liquid pressure */
+  PetscInt rho_type;
+  PetscInt mu_type;
   PetscReal  *rho;       /* density of water [kg m-3]*/
   PetscReal  *mu;        /* viscosity of water [Pa s] */
-  PetscReal  *Sr;        /* residual saturation (min) [1] */
+
+  /* problem constants */
   PetscReal  gravity[3]; /* vector of gravity [m s-2] */
   PetscReal  Pref;       /* reference pressure */
 
 
   /* material parameters */
+  PetscReal  *Sr;        /* residual saturation (min) [1] */
   PetscReal *K,
             *K0;     /* permeability tensor (cell,intrinsic) for each cell [m2] */
   PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */

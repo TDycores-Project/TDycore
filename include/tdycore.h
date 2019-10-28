@@ -104,8 +104,6 @@ PETSC_EXTERN void RelativePermeability_Mualem(PetscReal m,PetscReal Se,
     PetscReal *Kr,PetscReal *dKr_dSe);
 PETSC_EXTERN void RelativePermeability_Irmay(PetscReal m,PetscReal Se,
     PetscReal *Kr,PetscReal *dKr_dSe);
-PETSC_EXTERN void PressureSaturation_VanGenuchten(PetscReal,PetscReal,PetscReal,PetscReal,PetscReal,PetscReal*,PetscReal*,PetscReal*);
-PETSC_EXTERN void PressureSaturation_Gardner(PetscReal,PetscReal,PetscReal,PetscReal,PetscReal,PetscReal*,PetscReal*,PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P);
 
 PETSC_EXTERN PetscErrorCode Pullback(PetscScalar *K,PetscScalar *DFinv,

@@ -5,6 +5,7 @@
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdympfao2Dimpl.h>
 #include <private/tdympfao3Dimpl.h>
+#include <private/tdyeosimpl.h>
 #include <petscblaslapack.h>
 
 
@@ -342,9 +343,10 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->d2S_dP2_BND)); CHKERRQ(ierr);
 
   PetscInt i;
+  PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
   for (i=0;i<nbnd_faces;i++) {
-    tdy->rho_BND[i] = 998.0;
-    tdy->mu_BND[i] = 9.9e-4;
+    ierr = ComputeWaterDensity(tdy->Pref, tdy->rho_type, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
+    ierr = ComputeWaterViscosity(tdy->Pref, tdy->mu_type, &(tdy->mu_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
