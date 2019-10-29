@@ -1,1 +1,10 @@
 *xcode/*
+arch-*
+*~
+*.pdf
+*.png
+*.vtu
+*.bak
+*.jou
+*.log
+*Logs*
