@@ -116,3 +116,47 @@ PetscErrorCode TDySetMaterialPropertyAlphaValuesLocal(TDy tdy, PetscInt ni, cons
 
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode TDyGetSaturationValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
+
+  PetscInt c,cStart,cEnd;
+  PetscInt junkInt, gref;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  *ni = 0;
+
+  for (c=cStart; c<cEnd; c++) {
+    ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
+    if (gref>=0) {
+      y[*ni] = tdy->S[c-cStart];
+      *ni += 1;
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyGetLiquidMassValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
+
+  PetscInt c,cStart,cEnd;
+  PetscInt junkInt, gref;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  *ni = 0;
+
+  for (c=cStart; c<cEnd; c++) {
+    ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
+    if (gref>=0) {
+      y[*ni] = tdy->rho[c-cStart]*tdy->porosity[c-cStart]*tdy->S[c-cStart]*tdy->V[c];
+      *ni += 1;
+    }
+  }
+
+  PetscFunctionReturn(0);
+}

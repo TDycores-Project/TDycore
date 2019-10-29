@@ -158,6 +158,27 @@ module tdycore
        integer z
      end subroutine TDySetMaterialPropertyAlphaValuesLocal11
   end interface TDySetMaterialPropertyAlphaValuesLocal
+
+  Interface TDyGetSaturationValuesLocal
+     subroutine TDyGetSaturationValuesLocal(a,b,c,z)
+       use tdycoredef
+       TDy a ! tdy
+       PetscInt b ! PetscInt
+       PetscScalar c (*) ! PetscScalar
+       integer z
+     end subroutine TDyGetSaturationValuesLocal
+  end interface TDyGetSaturationValuesLocal
+
+  Interface TDyGetLiquidMassValuesLocal
+     subroutine TDyGetLiquidMassValuesLocal(a,b,c,z)
+       use tdycoredef
+       TDy a ! tdy
+       PetscInt b ! PetscInt
+       PetscScalar c (*) ! PetscScalar
+       integer z
+     end subroutine TDyGetLiquidMassValuesLocal
+  end interface TDyGetLiquidMassValuesLocal
+
   interface
      subroutine TDySetIFunction(a,b,z)
        use tdycoredef

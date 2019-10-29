@@ -36,6 +36,8 @@
 #define tdysetmaterialpropertynvalueslocal11_       TDYSETMATERIALPROPERTYNVALUESLOCAL11
 #define tdysetmaterialpropertyalphavalueslocal0_    TDYSETMATERIALPROPERTYALPHAVALUESLOCAL0
 #define tdysetmaterialpropertyalphavalueslocal11_   TDYSETMATERIALPROPERTYALPHAVALUESLOCAL11
+#define tdygetsatruationvalueslocal_                TDYGETSATURATIONVALUESLOCAL
+#define tdygetliquidmassvalueslocal_                TDYGETLIQUIDMASSVALUESLOCAL
 #define tdyoutputregression_                        TDYOUTPUTREGRESSION
 #define tdydestroy_                                 TDYDESTROY
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
@@ -64,6 +66,8 @@
 #define tdysetmaterialpropertynvalueslocal11_       tdysetmaterialpropertynvalueslocal11
 #define tdysetmaterialpropertyalphavalueslocal0_    tdysetmaterialpropertyalphavalueslocal0
 #define tdysetmaterialpropertyalphavalueslocal11_   tdysetmaterialpropertyalphavalueslocal11
+#define tdygetsatruationvalueslocal_                tdygetsaturationvalueslocal
+#define tdygetliquidmassvalueslocal_                tdygetliquidmassvalueslocal
 #define tdyoutputregression_                        tdyoutputregression
 #define tdydestroy_                                 tdydestroy
 #endif
@@ -386,4 +390,14 @@ PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertyalphavalueslocal0_(TDy *td
 PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertyalphavalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetmaterialpropertyalphavalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdygetsaturationvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+{
+  *ierr = TDyGetSaturationValuesLocal(*tdy,ni,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdygetliquidmassvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+{
+  *ierr = TDyGetLiquidMassValuesLocal(*tdy,ni,y);
 }

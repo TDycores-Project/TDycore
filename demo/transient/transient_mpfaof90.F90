@@ -67,9 +67,9 @@ implicit none
   PetscErrorCode :: ierr
   PetscInt       :: nx, ny, nz
   PetscInt, pointer :: index(:)
-  PetscReal, pointer :: residualSat(:), blockPerm(:)
+  PetscReal, pointer :: residualSat(:), blockPerm(:), liquid_sat(:), liquid_mass(:)
   PetscReal ::  perm(9)
-  PetscInt :: c, cStart, cEnd, j
+  PetscInt :: c, cStart, cEnd, j, nvalues
 
   call PetscInitialize(PETSC_NULL_CHARACTER,ierr);
   CHKERRA(ierr);
@@ -112,6 +112,8 @@ implicit none
 
   allocate(blockPerm((cEnd-cStart)*dim*dim));
   allocate(residualSat(cEnd-cStart));
+  allocate(liquid_mass(cEnd-cStart));
+  allocate(liquid_sat(cEnd-cStart));
   allocate(index(cEnd-cStart));
 
   call Permeability(perm);
@@ -186,6 +188,12 @@ implicit none
   CHKERRA(ierr);
 
   call TSSolve(ts,U,ierr);
+  CHKERRA(ierr);
+
+  call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)
+  CHKERRA(ierr);
+
+  call TDyGetSaturationValuesLocal(tdy,nvalues,liquid_sat,ierr)
   CHKERRA(ierr);
 
   call TDyOutputRegression(tdy,U,ierr);
