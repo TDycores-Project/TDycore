@@ -18,6 +18,14 @@ contains
      ierr = 0
    end subroutine PorosityFunction
 
+   subroutine Permeability(K)
+     implicit none
+     PetscReal, intent(out) :: K(9)
+      K(1) = 1.0d-10; K(2) = 0.0    ; K(3) = 0.0    ;
+      K(4) = 0.0    ; K(5) = 1.0d-10; K(6) = 0.0    ;
+      K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 1.0d-10;
+   end subroutine
+
    subroutine PermeabilityFunction(tdy,x,K,dummy,ierr)
       implicit none
       TDy                    :: tdy
@@ -26,9 +34,7 @@ contains
       integer                :: dummy(*)
       PetscErrorCode         :: ierr
 
-      K(1) = 1.0d-10; K(2) = 0.0    ; K(3) = 0.0    ;
-      K(4) = 0.0    ; K(5) = 1.0d-10; K(6) = 0.0    ;
-      K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 1.0d-10;
+      call Permeability(K)
 
       ierr = 0
   end subroutine PermeabilityFunction
@@ -61,8 +67,9 @@ implicit none
   PetscErrorCode :: ierr
   PetscInt       :: nx, ny, nz
   PetscInt, pointer :: index(:)
-  PetscReal, pointer :: residualSat(:)
-  PetscInt :: c, cStart, cEnd
+  PetscReal, pointer :: residualSat(:), blockPerm(:)
+  PetscReal ::  perm(9)
+  PetscInt :: c, cStart, cEnd, j
 
   call PetscInitialize(PETSC_NULL_CHARACTER,ierr);
   CHKERRA(ierr);
@@ -103,22 +110,35 @@ implicit none
   call DMPlexGetHeightStratum(dm,0,cStart,cEnd,ierr);
   CHKERRA(ierr);
 
+  allocate(blockPerm((cEnd-cStart)*dim*dim));
   allocate(residualSat(cEnd-cStart));
   allocate(index(cEnd-cStart));
+
+  call Permeability(perm);
 
   do c=1,cEnd-cStart+1
     index(c) = c-1;
     residualSat(c) = 0.115d0;
+    do j = 1,dim*dim
+      blockPerm((c-1)*dim*dim+j) = perm(j)
+    enddo
   enddo
 
   call TDySetPorosityFunction(tdy,PorosityFunction,0,ierr);
   CHKERRA(ierr);
+
   call TDySetPermeabilityFunction(tdy,PermeabilityFunction,0,ierr);
   CHKERRA(ierr);
+
+  call TDySetBlockPermeabilityValuesLocal(tdy,cEnd-cStart,index,blockPerm,ierr);
+  CHKERRA(ierr);
+
   call TDySetResidualSaturationValuesLocal(tdy,cEnd-cStart,index,residualSat,ierr);
   CHKERRA(ierr);
+
   call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
   CHKERRA(ierr);
+
   call TDySetFromOptions(tdy,ierr);
   CHKERRA(ierr);
 
@@ -179,6 +199,10 @@ implicit none
 
   call PetscFinalize(ierr);
   CHKERRA(ierr);
+
+  deallocate(blockPerm)
+  deallocate(residualSat)
+  deallocate(index)
 
   call exit(successful_exit_code)
 

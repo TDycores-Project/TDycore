@@ -22,6 +22,12 @@
 #define tdysetforcingfunction_                      TDYSETFORCINGFUNCTION
 #define tdysetdirichletvaluefunction_               TDYSETDIRICHLETVALUEFUNCTION
 #define tdysetdirichletfluxfunction_                TDYSETDIRICHLETFLUXFUNCTION
+#define tdysetporosityvalueslocal0_                 TDYSETPOROSITYVALUESLOCAL0
+#define tdysetporosityvalueslocal11_                TDYSETPOROSITYVALUESLOCAL11
+#define tdysetblockpermeabilityueslocal0_           TDYSETBLOCKPERMEABILITYVALUESLOCAL0
+#define tdysetblockpermeabilityvalueslocal11_       TDYSETBLOCKPERMEABILITYVALUESLOCAL11
+#define tdysetresidualsaturationvalueslocal0_       TDYSETRESIDUALSATURATIONVALUESLOCAL0
+#define tdysetresidualsaturationvalueslocal11_      TDYSETRESIDUALSATURATIONVALUESLOCAL11
 #define tdysetresidualsaturationvalueslocal0_       TDYSETRESIDUALSATURATIONVALUESLOCAL0
 #define tdysetresidualsaturationvalueslocal11_      TDYSETRESIDUALSATURATIONVALUESLOCAL11
 #define tdysetmaterialpropertymvalueslocal0_        TDYSETMATERIALPROPERTYMVALUESLOCAL0
@@ -46,6 +52,10 @@
 #define tdysetforcingfunction_                      tdysetforcingfunction
 #define tdysetdirichletvaluefunction_               tdysetdirichletvaluefunction
 #define tdysetdirichletfluxfunction_                tdysetdirichletfluxfunction
+#define tdysetporosityvalueslocal0_                 tdysetporosityvalueslocal0
+#define tdysetporosityvalueslocal11_                tdysetporosityvalueslocal11
+#define tdysetblockpermeabilityueslocal0_           tdysetblockpermeabilityvalueslocal0
+#define tdysetblockpermeabilityvalueslocal11_       tdysetblockpermeabilityvalueslocal11
 #define tdysetresidualsaturationvalueslocal0_       tdysetresidualsaturationvalueslocal0
 #define tdysetresidualsaturationvalueslocal11_      tdysetresidualsaturationvalueslocal11
 #define tdysetmaterialpropertymvalueslocal0_        tdysetmaterialpropertymvalueslocal0
@@ -286,6 +296,36 @@ PETSC_EXTERN void PETSC_STDCALL tdysetdirichletfluxfunction_(TDy *tdy, void (PET
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
 #endif
   *ierr = TDySetDirichletFluxFunction(*tdy,ourtdydirichletfluxfunction,NULL);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetporosityvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  *ierr = TDySetPorosityValuesLocal(*tdy,*ni,ix,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetporosityvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetporosityvalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetporosityvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetporosityvalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetblockpermeabilityvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  *ierr = TDySetBlockPermeabilityValuesLocal(*tdy,*ni,ix,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetblockpermeabilityvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetblockpermeabilityvalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetblockpermeabilityvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetblockpermeabilityvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
 PETSC_EXTERN void PETSC_STDCALL tdysetresidualsaturationvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )

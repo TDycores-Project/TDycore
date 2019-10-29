@@ -45,6 +45,44 @@ module tdycore
      end subroutine TDyComputeSystem
   end interface
 
+  Interface TDySetBlockPermeabilityValuesLocal
+     subroutine TDySetBlockPermeabilityValuesLocal0(a,b,c,d,z)
+       use tdycoredef
+       TDy a ! Vec
+       PetscInt b ! PetscInt
+       PetscInt c (*) ! PetscInt
+       PetscScalar d (*) ! PetscScalar
+       integer z
+     end subroutine TDySetBlockPermeabilityValuesLocal0
+     subroutine TDySetBlockPermeabilityValuesLocal11(a,b,c,d,e,z)
+       use tdycoredef
+       TDy a ! TDy
+       PetscInt b ! PetscInt
+       PetscInt c ! PetscInt
+       PetscScalar d ! PetscScalar
+       integer z
+     end subroutine TDySetBlockPermeabilityValuesLocal11
+  end interface TDySetBlockPermeabilityValuesLocal
+
+  Interface TDySetPorosityValuesLocal
+     subroutine TDySetPorosityValuesLocal0(a,b,c,d,z)
+       use tdycoredef
+       TDy a ! Vec
+       PetscInt b ! PetscInt
+       PetscInt c (*) ! PetscInt
+       PetscScalar d (*) ! PetscScalar
+       integer z
+     end subroutine TDySetPorosityValuesLocal0
+     subroutine TDySetPorosityValuesLocal11(a,b,c,d,e,z)
+       use tdycoredef
+       TDy a ! TDy
+       PetscInt b ! PetscInt
+       PetscInt c ! PetscInt
+       PetscScalar d ! PetscScalar
+       integer z
+     end subroutine TDySetPorosityValuesLocal11
+  end interface TDySetPorosityValuesLocal
+
   Interface TDySetResidualSaturationValuesLocal
      subroutine TDySetResidualSaturationValuesLocal0(a,b,c,d,z)
        use tdycoredef

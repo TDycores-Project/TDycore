@@ -76,6 +76,25 @@ PetscErrorCode TDySetPermeabilityDiagonal(TDy tdy,SpatialFunction f) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+
+  PetscInt i,j;
+  PetscInt dim,dim2;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  if (!ni) PetscFunctionReturn(0);
+
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  dim2 = dim*dim;
+
+  for(i=0; i<ni; i++) {
+    for(j=0; j<dim2; j++) tdy->K[ix[i]*dim2 + j] = y[i*dim2+j];
+  }
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetPermeabilityTensor(TDy tdy,SpatialFunction f) {
   PetscInt dim,dim2,c,cStart,cEnd;
   PetscErrorCode ierr;

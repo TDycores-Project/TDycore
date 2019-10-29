@@ -61,6 +61,8 @@ PETSC_EXTERN PetscErrorCode TDySetCellPermeability(TDy,PetscInt,PetscReal*);
 PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy tdy,
     SpatialFunction f);
 
+PETSC_EXTERN PetscErrorCode TDySetPorosityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
+PETSC_EXTERN PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetResidualSaturationValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetMaterialPropertyMValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetMaterialPropertyNValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
