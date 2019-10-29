@@ -2871,7 +2871,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
   TDy_vertex     *vertices, *vertex;
   TDy_face       *faces;
   TDy_subcell    *subcell;
-  PetscInt       ivertex, icell_from, icell_to;
+  PetscInt       ivertex, icell_from; //, icell_to;
   PetscInt       irow, icol, vertex_id;
   PetscInt       vStart, vEnd;
   PetscInt       fStart, fEnd;
@@ -2933,7 +2933,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
         if (!face->is_local) continue;
 
         icell_from = face->cell_ids[0];
-        icell_to   = face->cell_ids[1];
+        //icell_to   = face->cell_ids[1];
 
         TDy_cell *cell = &cells[icell_from];
 
@@ -3270,7 +3270,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
   TDy_face       *faces;
   TDy_subcell    *subcell;
   PetscInt       ivertex, icell;
-  PetscInt       icol, row, iface, isubcell;
+  PetscInt       row, iface, isubcell;
   PetscReal      value;
   PetscInt       vStart, vEnd;
   PetscInt       fStart, fEnd;
