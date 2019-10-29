@@ -89,7 +89,7 @@ PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy tdy, PetscInt ni, const Pe
   dim2 = dim*dim;
 
   for(i=0; i<ni; i++) {
-    for(j=0; j<dim2; j++) tdy->K[ix[i]*dim2 + j] = y[i*dim2+j];
+    for(j=0; j<dim2; j++) tdy->K0[ix[i]*dim2 + j] = y[i*dim2+j];
   }
 
   PetscFunctionReturn(0);
