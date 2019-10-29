@@ -23,6 +23,6 @@ include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 build:
 	@cd ../; make
 
-transient: transient.o chkopts
+transient: transient.o
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<

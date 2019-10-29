@@ -23,6 +23,6 @@ include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 build:
 	@cd ../; make
 
-steadyf90: steadyf90.o chkopts
+steadyf90: steadyf90.o
 	$(FLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
