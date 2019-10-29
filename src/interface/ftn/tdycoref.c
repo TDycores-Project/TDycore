@@ -38,6 +38,7 @@
 #define tdysetmaterialpropertyalphavalueslocal11_   TDYSETMATERIALPROPERTYALPHAVALUESLOCAL11
 #define tdygetsatruationvalueslocal_                TDYGETSATURATIONVALUESLOCAL
 #define tdygetliquidmassvalueslocal_                TDYGETLIQUIDMASSVALUESLOCAL
+#define tdyupdatestate_                             TDYUPDATESTATE
 #define tdyoutputregression_                        TDYOUTPUTREGRESSION
 #define tdydestroy_                                 TDYDESTROY
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
@@ -68,6 +69,7 @@
 #define tdysetmaterialpropertyalphavalueslocal11_   tdysetmaterialpropertyalphavalueslocal11
 #define tdygetsatruationvalueslocal_                tdygetsaturationvalueslocal
 #define tdygetliquidmassvalueslocal_                tdygetliquidmassvalueslocal
+#define tdyupdatestate_                             tdyupdatestate
 #define tdyoutputregression_                        tdyoutputregression
 #define tdydestroy_                                 tdydestroy
 #endif
@@ -400,4 +402,9 @@ PETSC_EXTERN void PETSC_STDCALL tdygetsaturationvalueslocal_(TDy *tdy,PetscInt *
 PETSC_EXTERN void PETSC_STDCALL tdygetliquidmassvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
 {
   *ierr = TDyGetLiquidMassValuesLocal(*tdy,ni,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdyupdatestate_(TDy *tdy,PetscScalar y[], int *ierr )
+{
+  *ierr = TDyUpdateState(*tdy,y);
 }

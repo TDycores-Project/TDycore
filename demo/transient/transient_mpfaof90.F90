@@ -68,6 +68,7 @@ implicit none
   PetscInt       :: nx, ny, nz
   PetscInt, pointer :: index(:)
   PetscReal, pointer :: residualSat(:), blockPerm(:), liquid_sat(:), liquid_mass(:)
+  PetscReal, pointer :: p_loc(:)
   PetscReal ::  perm(9)
   PetscInt :: c, cStart, cEnd, j, nvalues
 
@@ -186,6 +187,19 @@ implicit none
 
   call TSSetUp(ts,ierr);
   CHKERRA(ierr);
+
+  call VecSet(U,90325.d0,ierr);
+
+  call VecGetArrayF90(U,p_loc,ierr);
+  CHKERRA(ierr);
+
+  call TDyUpdateState(tdy,p_loc,ierr);
+  CHKERRA(ierr);
+
+  call VecRestoreArrayF90(U,p_loc,ierr);
+  CHKERRA(ierr);
+
+  call VecSet(U,91325.d0,ierr);
 
   call TSSolve(ts,U,ierr);
   CHKERRA(ierr);

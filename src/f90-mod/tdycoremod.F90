@@ -179,6 +179,15 @@ module tdycore
      end subroutine TDyGetLiquidMassValuesLocal
   end interface TDyGetLiquidMassValuesLocal
 
+  Interface TDyUpdateState
+     subroutine TDyUpdateState(a,b,z)
+       use tdycoredef
+       TDy a ! tdy
+       PetscScalar b (*) ! PetscScalar
+       integer z
+     end subroutine TDyUpdateState
+  end interface TDyUpdateState
+
   interface
      subroutine TDySetIFunction(a,b,z)
        use tdycoredef
