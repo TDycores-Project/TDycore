@@ -1714,12 +1714,10 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     ierr = PetscSectionSetDof(sec,p,1); CHKERRQ(ierr);
   }
   ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
-  ierr = DMSetDefaultSection(dm,sec); CHKERRQ(ierr);
+  ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
   ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view"); CHKERRQ(ierr);
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
   ierr = DMSetBasicAdjacency(dm,PETSC_TRUE,PETSC_TRUE); CHKERRQ(ierr);
-  //ierr = DMPlexSetAdjacencyUseCone(dm,PETSC_TRUE);CHKERRQ(ierr);
-  //ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_TRUE);CHKERRQ(ierr);
 
   ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
   ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);

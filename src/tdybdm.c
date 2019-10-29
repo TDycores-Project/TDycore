@@ -113,14 +113,9 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
     ierr = PetscSectionSetDof     (sec,f,dofs_per_face); CHKERRQ(ierr);
   }
   ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
-  ierr = DMSetDefaultSection(dm,sec); CHKERRQ(ierr);
+  ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
-  ierr = DMGetDefaultGlobalSection(dm,&sec); CHKERRQ(ierr);
-
-  /* I am not sure what we want here, but this seems to be a
-     conservative estimate on the sparsity we need. */
-  //ierr = DMPlexSetAdjacencyUseCone   (dm,PETSC_TRUE); CHKERRQ(ierr);
-  //ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_TRUE); CHKERRQ(ierr);
+  ierr = DMGetGlobalSection(dm,&sec); CHKERRQ(ierr);
 
   /* Build vmap and emap */
   ierr = TDyCreateCellVertexMap(tdy,&(tdy->vmap)); CHKERRQ(ierr);
@@ -379,7 +374,7 @@ PetscReal TDyBDMPressureNorm(TDy tdy,Vec U) {
   norm = 0;
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = DMGetDefaultSection(dm,&sec); CHKERRQ(ierr);
+  ierr = DMGetSection(dm,&sec); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
