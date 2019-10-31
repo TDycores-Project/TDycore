@@ -70,6 +70,10 @@ PETSC_EXTERN PetscErrorCode TDySetMaterialPropertyAlphaValuesLocal(TDy,PetscInt,
 
 PETSC_EXTERN PetscErrorCode TDyGetSaturationValuesLocal(TDy,PetscInt*,PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDyGetLiquidMassValuesLocal(TDy,PetscInt*,PetscScalar[]);
+PETSC_EXTERN PetscErrorCode TDyGetMaterialPropertyMValuesLocal(TDy,PetscInt*,PetscScalar[]);
+PETSC_EXTERN PetscErrorCode TDyGetMaterialPropertyAlphaValuesLocal(TDy,PetscInt*,PetscScalar[]);
+PETSC_EXTERN PetscErrorCode TDyGetPorosityValuesLocal(TDy,PetscInt*,PetscScalar[]);
+PETSC_EXTERN PetscErrorCode TDyGetBlockPermeabilityValuesLocal(TDy,PetscInt*,PetscScalar[]);
 
 
 PETSC_EXTERN PetscErrorCode TDySetDirichletFlux    (TDy tdy,SpatialFunction f);

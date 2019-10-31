@@ -38,6 +38,10 @@
 #define tdysetmaterialpropertyalphavalueslocal11_   TDYSETMATERIALPROPERTYALPHAVALUESLOCAL11
 #define tdygetsatruationvalueslocal_                TDYGETSATURATIONVALUESLOCAL
 #define tdygetliquidmassvalueslocal_                TDYGETLIQUIDMASSVALUESLOCAL
+#define tdygetmaterialpropertymvalueslocal_         TDYGETMATERIALPROPERTYMVALUESLOCAL
+#define tdygetmaterialpropertyalphavalueslocal_     TDYGETMATERIALPROPERTYALPHAVALUESLOCAL
+#define tdygetporosityalueslocal_                   TDYGETPOROSITYVALUESLOCAL
+#define tdygetblockpermeabilityueslocal_            TDYGETBLOCKPERMEABILITYVALUESLOCAL
 #define tdyupdatestate_                             TDYUPDATESTATE
 #define tdyoutputregression_                        TDYOUTPUTREGRESSION
 #define tdydestroy_                                 TDYDESTROY
@@ -69,6 +73,10 @@
 #define tdysetmaterialpropertyalphavalueslocal11_   tdysetmaterialpropertyalphavalueslocal11
 #define tdygetsatruationvalueslocal_                tdygetsaturationvalueslocal
 #define tdygetliquidmassvalueslocal_                tdygetliquidmassvalueslocal
+#define tdygetmaterialpropertymvalueslocal_         tdygetmaterialpropertymvalueslocal
+#define tdygetmaterialpropertyalphavalueslocal_     tdygetmaterialpropertyalphavalueslocal
+#define tdygetporosityvalueslocal_                  tdygetporosityvalueslocal
+#define tdygetblockpermeabilityueslocal_            tdygetblockpermeabilityvalueslocal
 #define tdyupdatestate_                             tdyupdatestate
 #define tdyoutputregression_                        tdyoutputregression
 #define tdydestroy_                                 tdydestroy
@@ -402,6 +410,26 @@ PETSC_EXTERN void PETSC_STDCALL tdygetsaturationvalueslocal_(TDy *tdy,PetscInt *
 PETSC_EXTERN void PETSC_STDCALL tdygetliquidmassvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
 {
   *ierr = TDyGetLiquidMassValuesLocal(*tdy,ni,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdygetmaterialpropertymvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+{
+  *ierr = TDyGetMaterialPropertyMValuesLocal(*tdy,ni,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdygetmaterialpropertyalphavalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+{
+  *ierr = TDyGetMaterialPropertyAlphaValuesLocal(*tdy,ni,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdygetporosityvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+{
+  *ierr = TDyGetPorosityValuesLocal(*tdy,ni,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdygetblockpermeabilityvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+{
+  *ierr = TDyGetBlockPermeabilityValuesLocal(*tdy,ni,y);
 }
 
 PETSC_EXTERN void PETSC_STDCALL tdyupdatestate_(TDy *tdy,PetscScalar y[], int *ierr )

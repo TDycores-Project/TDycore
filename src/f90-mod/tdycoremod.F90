@@ -179,6 +179,46 @@ module tdycore
      end subroutine TDyGetLiquidMassValuesLocal
   end interface TDyGetLiquidMassValuesLocal
 
+  Interface TDyGetMaterialPropertyMValuesLocal
+     subroutine TDyGetMaterialPropertyMValuesLocal(a,b,c,z)
+       use tdycoredef
+       TDy a ! tdy
+       PetscInt b ! PetscInt
+       PetscScalar c (*) ! PetscScalar
+       integer z
+     end subroutine TDyGetMaterialPropertyMValuesLocal
+  end interface TDyGetMaterialPropertyMValuesLocal
+
+  Interface TDyGetMaterialPropertyAlphaValuesLocal
+     subroutine TDyGetMaterialPropertyAlphaValuesLocal(a,b,c,z)
+       use tdycoredef
+       TDy a ! tdy
+       PetscInt b ! PetscInt
+       PetscScalar c (*) ! PetscScalar
+       integer z
+     end subroutine TDyGetMaterialPropertyAlphaValuesLocal
+  end interface TDyGetMaterialPropertyAlphaValuesLocal
+
+  Interface TDyGetPorosityValuesLocal
+     subroutine TDyGetPorosityValuesLocal(a,b,c,z)
+       use tdycoredef
+       TDy a ! tdy
+       PetscInt b ! PetscInt
+       PetscScalar c (*) ! PetscScalar
+       integer z
+     end subroutine TDyGetPorosityValuesLocal
+  end interface TDyGetPorosityValuesLocal
+
+  Interface TDyGetBlockPermeabilityValuesLocal
+     subroutine TDyGetBlockPermeabilityValuesLocal(a,b,c,z)
+       use tdycoredef
+       TDy a ! tdy
+       PetscInt b ! PetscInt
+       PetscScalar c (*) ! PetscScalar
+       integer z
+     end subroutine TDyGetBlockPermeabilityValuesLocal
+  end interface TDyGetBlockPermeabilityValuesLocal
+
   Interface TDyUpdateState
      subroutine TDyUpdateState(a,b,z)
        use tdycoredef

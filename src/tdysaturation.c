@@ -47,20 +47,6 @@ void PressureSaturation_VanGenuchten(PetscReal m,PetscReal alpha,  PetscReal Sr,
   }
 }
 
-PetscErrorCode TDySetPorosityValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
-
-  PetscInt i;
-
-  PetscFunctionBegin;
-  if (!ni) PetscFunctionReturn(0);
-
-  for(i=0; i<ni; i++) {
-    tdy->porosity[ix[i]] = y[i];
-  }
-
-  PetscFunctionReturn(0);
-}
-
 PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
 
   PetscInt i;
@@ -160,3 +146,48 @@ PetscErrorCode TDyGetLiquidMassValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[
 
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode TDyGetMaterialPropertyMValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
+
+  PetscInt c,cStart,cEnd;
+  PetscInt junkInt, gref;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  *ni = 0;
+
+  for (c=cStart; c<cEnd; c++) {
+    ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
+    if (gref>=0) {
+      y[*ni] = tdy->matprop_m[c-cStart];
+      *ni += 1;
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyGetMaterialPropertyAlphaValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
+
+  PetscInt c,cStart,cEnd;
+  PetscInt junkInt, gref;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  *ni = 0;
+
+  for (c=cStart; c<cEnd; c++) {
+    ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
+    if (gref>=0) {
+      y[*ni] = tdy->matprop_alpha[c-cStart];
+      *ni += 1;
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
