@@ -2563,7 +2563,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     vertex = &vertices[ivertex];
-    if (vertex->num_internal_cells > 1) {
+    if (vertex->num_internal_cells > 1 && vertex->is_local) {
       ierr = DetermineUpwindFacesForSubcell(tdy, vertex );
     }
   }
@@ -2961,6 +2961,212 @@ PetscErrorCode TDyOutputMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode IdentifyLocalCells(TDy tdy) {
+
+  PetscErrorCode ierr;
+  DM             dm;
+  Vec            junkVec;
+  PetscInt       junkInt;
+  PetscInt       gref;
+  PetscInt       cStart, cEnd, c;
+  TDy_cell       *cells;
+
+  PetscFunctionBegin;
+
+  dm = tdy->dm;
+  cells = tdy->mesh->cells;
+
+  // Once needs to atleast haved called a DMCreateXYZ() before using DMPlexGetPointGlobal()
+  ierr = DMCreateGlobalVector(dm, &junkVec); CHKERRQ(ierr);
+  ierr = VecDestroy(&junkVec); CHKERRQ(ierr);
+
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+  for (c=cStart; c<cEnd; c++) {
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
+    if (gref>=0) {
+      cells[c].is_local = PETSC_TRUE;
+      cells[c].global_id = gref;
+    } else {
+      cells[c].is_local = PETSC_FALSE;
+      cells[c].global_id = -gref-1;
+    }
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode IdentifyLocalVertices(TDy tdy) {
+
+  PetscInt       ivertex, icell, c;
+  TDy_mesh       *mesh;
+  TDy_cell       *cells;
+  TDy_vertex     *vertices;
+  PetscInt       vStart, vEnd, junkInt, gref;
+  DM             dm;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  dm       = tdy->dm;
+  mesh     = tdy->mesh;
+  cells    = mesh->cells;
+  vertices = mesh->vertices;
+  
+  ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
+
+  for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+    for (c=0; c<vertices[ivertex].num_internal_cells; c++) {
+      icell = vertices[ivertex].internal_cell_ids[c];
+      if (cells[icell].is_local) vertices[ivertex].is_local = PETSC_TRUE;
+    }
+
+    ierr = DMPlexGetPointGlobal(dm,ivertex+vStart,&gref,&junkInt); CHKERRQ(ierr);
+    if (gref>=0) vertices[ivertex].global_id = gref;
+    else         vertices[ivertex].global_id = -gref-1;
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode IdentifyLocalEdges(TDy tdy) {
+
+  PetscInt iedge, icell_1, icell_2;
+  TDy_mesh *mesh;
+  TDy_cell *cells;
+  TDy_edge *edges;
+  PetscInt       eStart, eEnd, junkInt, gref;
+  DM             dm;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  dm    = tdy->dm;
+  mesh  = tdy->mesh;
+  cells = mesh->cells;
+  edges = mesh->edges;
+
+  ierr = DMPlexGetDepthStratum(dm, 1, &eStart, &eEnd); CHKERRQ(ierr);
+
+  for (iedge=0; iedge<mesh->num_edges; iedge++) {
+
+    ierr = DMPlexGetPointGlobal(dm,iedge+eStart,&gref,&junkInt); CHKERRQ(ierr);
+    if (gref>=0) edges[iedge].global_id = gref;
+    else         edges[iedge].global_id = -gref-1;
+
+    if (!edges[iedge].is_internal) { // Is it a boundary edge?
+
+      // Determine the cell ID for the boundary edge
+      if (edges[iedge].cell_ids[0] != -1) icell_1 = edges[iedge].cell_ids[0];
+      else                                icell_1 = edges[iedge].cell_ids[1];
+
+      // Is the cell locally owned?
+      if (cells[icell_1].is_local) edges[iedge].is_local = PETSC_TRUE;
+
+    } else { // An internal edge
+
+      // Save the two cell ID
+      icell_1 = edges[iedge].cell_ids[0];
+      icell_2 = edges[iedge].cell_ids[1];
+
+      if (cells[icell_1].is_local && cells[icell_2].is_local) { // Are both cells locally owned?
+
+        edges[iedge].is_local = PETSC_TRUE;
+
+      } else if (cells[icell_1].is_local && !cells[icell_2].is_local) { // Is icell_1 locally owned?
+
+        // Is the global ID of icell_1 lower than global ID of icell_2?
+        if (cells[icell_1].global_id < cells[icell_2].global_id) edges[iedge].is_local = PETSC_TRUE;
+
+      } else if (!cells[icell_1].is_local && cells[icell_2].is_local) { // Is icell_2 locally owned
+
+        // Is the global ID of icell_2 lower than global ID of icell_1?
+        if (cells[icell_2].global_id < cells[icell_1].global_id) edges[iedge].is_local = PETSC_TRUE;
+
+      }
+    }
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode IdentifyLocalFaces(TDy tdy) {
+
+  PetscInt iface, icell_1, icell_2;
+  TDy_mesh *mesh;
+  TDy_cell *cells;
+  TDy_face *faces;
+  PetscInt       fStart, fEnd, junkInt, gref;
+  DM             dm;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  dm    = tdy->dm;
+  mesh  = tdy->mesh;
+  cells = mesh->cells;
+  faces = mesh->faces;
+
+  mesh->num_boundary_faces = 0;
+
+  ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
+
+  for (iface=0; iface<mesh->num_faces; iface++) {
+
+    ierr = DMPlexGetPointGlobal(dm,iface+fStart,&gref,&junkInt); CHKERRQ(ierr);
+    if (gref>=0) faces[iface].global_id = gref;
+    else         faces[iface].global_id = -gref-1;
+
+    if (!faces[iface].is_internal) { // Is it a boundary face?
+
+      mesh->num_boundary_faces++;
+
+      // Determine the cell ID for the boundary edge
+      if (faces[iface].cell_ids[0] >= 0) {
+        icell_1 = faces[iface].cell_ids[0];
+        faces[iface].cell_ids[1] = -mesh->num_boundary_faces;
+      } else {
+        icell_1 = faces[iface].cell_ids[1];
+        faces[iface].cell_ids[0] = -mesh->num_boundary_faces;
+      }
+
+      // Is the cell locally owned?
+      if (cells[icell_1].is_local) faces[iface].is_local = PETSC_TRUE;
+
+    } else { // An internal face
+
+      // Save the two cell ID
+      icell_1 = faces[iface].cell_ids[0];
+      icell_2 = faces[iface].cell_ids[1];
+
+      if (cells[icell_1].is_local && cells[icell_2].is_local) { // Are both cells locally owned?
+
+        faces[iface].is_local = PETSC_TRUE;
+
+      } else if (cells[icell_1].is_local && !cells[icell_2].is_local) { // Is icell_1 locally owned?
+
+        // Is the global ID of icell_1 lower than global ID of icell_2?
+        if (cells[icell_1].global_id < cells[icell_2].global_id) faces[iface].is_local = PETSC_TRUE;
+
+      } else if (!cells[icell_1].is_local && cells[icell_2].is_local) { // Is icell_2 locally owned
+
+        // Is the global ID of icell_2 lower than global ID of icell_1?
+        if (cells[icell_2].global_id < cells[icell_1].global_id) faces[iface].is_local = PETSC_TRUE;
+
+      }
+    }
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyBuildMesh(TDy tdy) {
 
   PetscInt dim;
@@ -2978,6 +3184,9 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
     ierr = UpdateCellOrientationAroundAVertex2DMesh(tdy); CHKERRQ(ierr);
     ierr = SetupSubcellsFor2DMesh     (  tdy->dm, tdy); CHKERRQ(ierr);
     ierr = UpdateCellOrientationAroundAEdge2DMesh(  tdy); CHKERRQ(ierr);
+    ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
+    ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);
+    ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
     break;
 
   case 3:
@@ -2985,6 +3194,10 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
     ierr = SaveMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
     ierr = UpdateFaceOrderAroundAVertex3DMesh(tdy); CHKERRQ(ierr);
     ierr = UpdateCellOrientationAroundAFace3DMesh(  tdy); CHKERRQ(ierr);
+    ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
+    ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);
+    ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
+    ierr = IdentifyLocalFaces(tdy); CHKERRQ(ierr);
     ierr = SetupSubcellsFor3DMesh     (tdy); CHKERRQ(ierr);
     break;
 

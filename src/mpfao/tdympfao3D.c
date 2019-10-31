@@ -599,6 +599,8 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     vertex = &vertices[ivertex];
 
+    if (!vertex->is_local) continue;
+
     if (vertex->num_boundary_cells == 0) {
       ierr = ComputeTransmissibilityMatrix_ForInternalVertex(tdy, vertex, cells);
       CHKERRQ(ierr);

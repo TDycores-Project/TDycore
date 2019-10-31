@@ -98,6 +98,7 @@ struct _TDy_cell {
 struct _TDy_vertex {
 
   PetscInt  id;                 /* id of the vertex in local numbering                  */
+  PetscInt  global_id;          /* global id of the vertex in local numbering */
 
   PetscBool is_local;           /* true if the vertex is shared by a local cell         */
 
@@ -119,6 +120,7 @@ struct _TDy_vertex {
 struct _TDy_edge {
 
   PetscInt  id;            /* id of the edge in local numbering         */
+  PetscInt  global_id;     /* global id of the edge in local numbering */
 
   PetscBool is_local;      /* true if the edge : (1) */
                            /* 1. Is shared by locally owned cells, or   */
@@ -142,6 +144,8 @@ struct _TDy_edge {
 
 struct _TDy_face {
   PetscInt id;             /* id of the face in local numbering */
+  PetscInt global_id;      /* global id of the face in local numbering */
+
   PetscBool is_local;      /* true if the face :  */
                            /* 1. Is shared by locally owned cells, or   */
                            /* 2. Is shared by local cell and non-local  */

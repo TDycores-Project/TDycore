@@ -146,182 +146,6 @@ PetscErrorCode ComputeTransmissibilityMatrix(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode IdentifyLocalCells(TDy tdy) {
-
-  PetscErrorCode ierr;
-  DM             dm;
-  Vec            junkVec;
-  PetscInt       junkInt;
-  PetscInt       gref;
-  PetscInt       cStart, cEnd, c;
-  TDy_cell       *cells;
-
-  PetscFunctionBegin;
-
-  dm = tdy->dm;
-  cells = tdy->mesh->cells;
-
-  // Once needs to atleast haved called a DMCreateXYZ() before using DMPlexGetPointGlobal()
-  ierr = DMCreateGlobalVector(dm, &junkVec); CHKERRQ(ierr);
-  ierr = VecDestroy(&junkVec); CHKERRQ(ierr);
-
-  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
-  for (c=cStart; c<cEnd; c++) {
-    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
-    if (gref>=0) {
-      cells[c].is_local = PETSC_TRUE;
-      cells[c].global_id = gref;
-    } else {
-      cells[c].is_local = PETSC_FALSE;
-      cells[c].global_id = -gref-1;
-    }
-  }
-
-  PetscFunctionReturn(0);
-
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode IdentifyLocalVertices(TDy tdy) {
-
-  PetscInt       ivertex, icell, c;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
-  TDy_vertex     *vertices;
-
-  PetscFunctionBegin;
-
-  mesh     = tdy->mesh;
-  cells    = mesh->cells;
-  vertices = mesh->vertices;
-
-  for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
-    for (c=0; c<vertices[ivertex].num_internal_cells; c++) {
-      icell = vertices[ivertex].internal_cell_ids[c];
-      if (cells[icell].is_local) vertices[ivertex].is_local = PETSC_TRUE;
-    }
-  }
-
-  PetscFunctionReturn(0);
-
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode IdentifyLocalEdges(TDy tdy) {
-
-  PetscInt iedge, icell_1, icell_2;
-  TDy_mesh *mesh;
-  TDy_cell *cells;
-  TDy_edge *edges;
-
-  PetscFunctionBegin;
-
-  mesh  = tdy->mesh;
-  cells = mesh->cells;
-  edges = mesh->edges;
-
-  for (iedge=0; iedge<mesh->num_edges; iedge++) {
-
-    if (!edges[iedge].is_internal) { // Is it a boundary edge?
-
-      // Determine the cell ID for the boundary edge
-      if (edges[iedge].cell_ids[0] != -1) icell_1 = edges[iedge].cell_ids[0];
-      else                                icell_1 = edges[iedge].cell_ids[1];
-
-      // Is the cell locally owned?
-      if (cells[icell_1].is_local) edges[iedge].is_local = PETSC_TRUE;
-
-    } else { // An internal edge
-
-      // Save the two cell ID
-      icell_1 = edges[iedge].cell_ids[0];
-      icell_2 = edges[iedge].cell_ids[1];
-
-      if (cells[icell_1].is_local && cells[icell_2].is_local) { // Are both cells locally owned?
-
-        edges[iedge].is_local = PETSC_TRUE;
-
-      } else if (cells[icell_1].is_local && !cells[icell_2].is_local) { // Is icell_1 locally owned?
-
-        // Is the global ID of icell_1 lower than global ID of icell_2?
-        if (cells[icell_1].global_id < cells[icell_2].global_id) edges[iedge].is_local = PETSC_TRUE;
-
-      } else if (!cells[icell_1].is_local && cells[icell_2].is_local) { // Is icell_2 locally owned
-
-        // Is the global ID of icell_2 lower than global ID of icell_1?
-        if (cells[icell_2].global_id < cells[icell_1].global_id) edges[iedge].is_local = PETSC_TRUE;
-
-      }
-    }
-  }
-
-  PetscFunctionReturn(0);
-
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode IdentifyLocalFaces(TDy tdy) {
-
-  PetscInt iface, icell_1, icell_2;
-  TDy_mesh *mesh;
-  TDy_cell *cells;
-  TDy_face *faces;
-
-  PetscFunctionBegin;
-
-  mesh  = tdy->mesh;
-  cells = mesh->cells;
-  faces = mesh->faces;
-
-  mesh->num_boundary_faces = 0;
-
-  for (iface=0; iface<mesh->num_faces; iface++) {
-
-    if (!faces[iface].is_internal) { // Is it a boundary face?
-
-      mesh->num_boundary_faces++;
-
-      // Determine the cell ID for the boundary edge
-      if (faces[iface].cell_ids[0] >= 0) {
-        icell_1 = faces[iface].cell_ids[0];
-        faces[iface].cell_ids[1] = -mesh->num_boundary_faces;
-      } else {
-        icell_1 = faces[iface].cell_ids[1];
-        faces[iface].cell_ids[0] = -mesh->num_boundary_faces;
-      }
-
-      // Is the cell locally owned?
-      if (cells[icell_1].is_local) faces[iface].is_local = PETSC_TRUE;
-
-    } else { // An internal face
-
-      // Save the two cell ID
-      icell_1 = faces[iface].cell_ids[0];
-      icell_2 = faces[iface].cell_ids[1];
-
-      if (cells[icell_1].is_local && cells[icell_2].is_local) { // Are both cells locally owned?
-
-        faces[iface].is_local = PETSC_TRUE;
-
-      } else if (cells[icell_1].is_local && !cells[icell_2].is_local) { // Is icell_1 locally owned?
-
-        // Is the global ID of icell_1 lower than global ID of icell_2?
-        if (cells[icell_1].global_id < cells[icell_2].global_id) faces[iface].is_local = PETSC_TRUE;
-
-      } else if (!cells[icell_1].is_local && cells[icell_2].is_local) { // Is icell_2 locally owned
-
-        // Is the global ID of icell_2 lower than global ID of icell_1?
-        if (cells[icell_2].global_id < cells[icell_1].global_id) faces[iface].is_local = PETSC_TRUE;
-
-      }
-    }
-  }
-
-  PetscFunctionReturn(0);
-
-}
-
-/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
 
   TDy_mesh *mesh;
@@ -413,14 +237,6 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
                                nsubcells, nrow, ncol); CHKERRQ(ierr);
 
-  ierr = TDyBuildMesh(tdy); CHKERRQ(ierr);
-
-  if (tdy->ops->computepermeability) { ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
-
-  ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
-
-  ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
-
   /* Setup the section, 1 dof per cell */
   PetscSection sec;
   PetscInt p, pStart, pEnd;
@@ -443,11 +259,15 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   //ierr = DMPlexSetAdjacencyUseCone(dm,PETSC_TRUE);CHKERRQ(ierr);
   //ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_TRUE);CHKERRQ(ierr);
 
-  ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
-  ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);
-  ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
+  ierr = TDyBuildMesh(tdy); CHKERRQ(ierr);
+
+  if (tdy->ops->computepermeability) { ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
+
+  ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
+
+  ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
+
   if (dim == 3) {
-    ierr = IdentifyLocalFaces(tdy); CHKERRQ(ierr);
     ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
   }
 
