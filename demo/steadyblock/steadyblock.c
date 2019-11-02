@@ -22,6 +22,17 @@ void PermeabilityBlockX(PetscInt dim,PetscReal *x,PetscReal *K) {
     for (int i=0; i<dim*dim; i+=(dim+1))
       K[i] = low_K;
   }
+
+  K[0] = high_perm; K[1] = 0.0;
+  K[2] = 0.0     ; K[3] = high_perm;
+  if (x[0]>0.0 && x[0]<0.5 && x[1]>0.0 && x[1]<0.5) {
+    K[0] = low_perm;
+    K[3] = low_perm;
+  }
+  if (x[0]>0.5 && x[0]<1.0 && x[1]>0.5 && x[1]<1.0) {
+    K[0] = low_perm;
+    K[3] = low_perm;
+  }
 }
 
 void PermeabilityBlock1(PetscReal *x,PetscReal *K) {
@@ -48,16 +59,24 @@ PetscErrorCode PressureConstant(TDy tdy,double *x,double *p,void *ctx) {
 
   (*p) = -999.;
   if (xx < 1.e-40) {
-    if (yy <= end/2.) (*p) = 3.e6; 
+    //if (yy <= end)
+    // south
+    (*p) = 3.e6;
   }
   else if (yy < 1.e-40) {
-    if (xx <= end/2.) (*p) = 3.e6; 
+    //if (xx <= end)
+    // west
+    (*p) = 3.e6;
   }
   else if (fabs(end-xx) < 1.e-40) {
-    if (yy >= end/2.) (*p) = 1.e6; 
+    //if (yy >= end)
+    // north
+    (*p) = 1.e6;
   }
   else if (fabs(end-yy) < 1.e-40) {
-    if (xx >= end/2.) (*p) = 1.e6; 
+    //if (xx >= end)
+    // east
+    (*p) = 1.e6;
   }
   PetscFunctionReturn(0);
 }
