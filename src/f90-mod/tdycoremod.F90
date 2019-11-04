@@ -159,6 +159,25 @@ module tdycore
      end subroutine TDySetMaterialPropertyAlphaValuesLocal11
   end interface TDySetMaterialPropertyAlphaValuesLocal
 
+  Interface TDySetSourceSinkValuesLocal
+     subroutine TDySetSourceSinkValuesLocal0(a,b,c,d,z)
+       use tdycoredef
+       TDy a ! Vec
+       PetscInt b ! PetscInt
+       PetscInt c (*) ! PetscInt
+       PetscScalar d (*) ! PetscScalar
+       integer z
+     end subroutine TDySetSourceSinkValuesLocal0
+     subroutine TDySetSourceSinkValuesLocal11(a,b,c,d,e,z)
+       use tdycoredef
+       TDy a ! TDy
+       PetscInt b ! PetscInt
+       PetscInt c ! PetscInt
+       PetscScalar d ! PetscScalar
+       integer z
+     end subroutine TDySetSourceSinkValuesLocal11
+  end interface TDySetSourceSinkValuesLocal
+
   Interface TDyGetSaturationValuesLocal
      subroutine TDyGetSaturationValuesLocal(a,b,c,z)
        use tdycoredef

@@ -177,6 +177,26 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
+
+  TDy_mesh *mesh;
+  PetscInt ncells;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  mesh  = tdy->mesh;
+  ncells = mesh->num_cells;
+
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(tdy->source_sink)); CHKERRQ(ierr);
+
+  PetscInt i;
+  for (i=0;i<ncells;i++) tdy->source_sink[i] = 0.0;
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 
 PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
@@ -269,6 +289,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   if (dim == 3) {
     ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
+    ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(tdy); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);

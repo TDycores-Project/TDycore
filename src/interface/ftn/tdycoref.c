@@ -36,6 +36,8 @@
 #define tdysetmaterialpropertynvalueslocal11_       TDYSETMATERIALPROPERTYNVALUESLOCAL11
 #define tdysetmaterialpropertyalphavalueslocal0_    TDYSETMATERIALPROPERTYALPHAVALUESLOCAL0
 #define tdysetmaterialpropertyalphavalueslocal11_   TDYSETMATERIALPROPERTYALPHAVALUESLOCAL11
+#define tdysetsourcesinkvalueslocal0_               TDYSETSOURCESINKVALUESLOCAL0
+#define tdysetsourcesinkvalueslocal11_              TDYSETSOURCESINKVALUESLOCAL11
 #define tdygetsatruationvalueslocal_                TDYGETSATURATIONVALUESLOCAL
 #define tdygetliquidmassvalueslocal_                TDYGETLIQUIDMASSVALUESLOCAL
 #define tdygetmaterialpropertymvalueslocal_         TDYGETMATERIALPROPERTYMVALUESLOCAL
@@ -71,6 +73,8 @@
 #define tdysetmaterialpropertynvalueslocal11_       tdysetmaterialpropertynvalueslocal11
 #define tdysetmaterialpropertyalphavalueslocal0_    tdysetmaterialpropertyalphavalueslocal0
 #define tdysetmaterialpropertyalphavalueslocal11_   tdysetmaterialpropertyalphavalueslocal11
+#define tdysetsourcesinkvalueslocal0_               tdysetsourcesinkvalueslocal0
+#define tdysetsourcesinkvalueslocal11_              tdysetsourcesinkvalueslocal11
 #define tdygetsatruationvalueslocal_                tdygetsaturationvalueslocal
 #define tdygetliquidmassvalueslocal_                tdygetliquidmassvalueslocal
 #define tdygetmaterialpropertymvalueslocal_         tdygetmaterialpropertymvalueslocal
@@ -400,6 +404,21 @@ PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertyalphavalueslocal0_(TDy *td
 PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertyalphavalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetmaterialpropertyalphavalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetsourcesinkvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  *ierr = TDySetSourceSinkValuesLocal(*tdy,*ni,ix,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetsourcesinkvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetsourcesinkvalueslocal_(tdy,ni,ix,y,ierr);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdysetsourcesinkvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+{
+  tdysetsourcesinkvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
 PETSC_EXTERN void PETSC_STDCALL tdygetsaturationvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )

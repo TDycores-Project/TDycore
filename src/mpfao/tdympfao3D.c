@@ -2188,6 +2188,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
                drho_dP         * tdy->porosity[icell] * tdy->S[icell] +
                tdy->rho[icell] * tdy->porosity[icell] * tdy->dS_dP[icell];
     r[icell] += dmass_dP * dp_dt[icell] * cell->volume;
+    r[icell] -= tdy->source_sink[icell] * cell->volume;
   }
 
   /* Cleanup */
