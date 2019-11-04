@@ -1,11 +1,10 @@
 #include "tdycore.h"
 #include <stdio.h>
 
-void PermeabilityBlockX(PetscInt dim,PetscReal *x,PetscReal *K) {
+void PermeabilityBlockX(PetscInt dim,PetscReal *x,PetscReal *K,
+                        PetscReal high_perm,PetscReal low_perm) {
   const PetscReal xbegin = 0.0;
   const PetscReal xend = 0.5;
-  const PetscReal high_perm = 1.e-12;
-  const PetscReal low_perm = 1.e-13;
 //  const PetscReal perm_to_K = 9.8068*1000./1.e-3;
   const PetscReal perm_to_K = 1.;
   PetscReal high_K = high_perm*perm_to_K;
@@ -26,39 +25,89 @@ void PermeabilityBlockX(PetscInt dim,PetscReal *x,PetscReal *K) {
 
 void PermeabilityBlock1(PetscReal *x,PetscReal *K) {
   const PetscInt dim = 1;
-  PermeabilityBlockX(dim,x,K);
+  const PetscReal high_perm = 1.e-12;
+  const PetscReal low_perm = 1.e-13;
+  PermeabilityBlockX(dim,x,K,high_perm,low_perm);
 }
 
 void PermeabilityBlock2(PetscReal *x,PetscReal *K) {
   const PetscInt dim = 2;
-  PermeabilityBlockX(dim,x,K);
+  const PetscReal high_perm = 1.e-12;
+  const PetscReal low_perm = 1.e-13;
+  PermeabilityBlockX(dim,x,K,high_perm,low_perm);
 }
 
 void PermeabilityBlock3(PetscReal *x,PetscReal *K) {
   const PetscInt dim = 3;
-  PermeabilityBlockX(dim,x,K);
+  const PetscReal high_perm = 1.e-12;
+  const PetscReal low_perm = 1.e-13;
+  PermeabilityBlockX(dim,x,K,high_perm,low_perm);
+}
+
+void PermeabilityUni2(PetscReal *x,PetscReal *K) {
+  const PetscInt dim = 2;
+  const PetscReal perm = 1.e-12;
+  PermeabilityBlockX(dim,x,K,perm,perm);
 }
 
 /*--- -dim {2} -problem 1 ---------------------------------------------------------------*/
 
-PetscErrorCode PressureConstant(TDy tdy,double *x,double *p,void *ctx) {
+PetscErrorCode PressureBlock(TDy tdy,double *x,double *p,void *ctx) {
   const PetscInt begin = 0.0;
   const PetscInt end = 1.;
   PetscReal xx=x[0], yy=x[1], zz=x[2];
 
   (*p) = -999.;
+  // west
   if (xx < 1.e-40) {
     if (yy <= end/2.) (*p) = 3.e6; 
   }
+  // south
   else if (yy < 1.e-40) {
     if (xx <= end/2.) (*p) = 3.e6; 
   }
+  // east
   else if (fabs(end-xx) < 1.e-40) {
     if (yy >= end/2.) (*p) = 1.e6; 
   }
+  // north
   else if (fabs(end-yy) < 1.e-40) {
     if (xx >= end/2.) (*p) = 1.e6; 
   }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode PressureGradual(TDy tdy,double *x,double *p,void *ctx) {
+  const PetscInt begin = 0.0;
+  const PetscInt end = 1.;
+  const PetscReal high = 3.e6;
+  const PetscReal low = 1.e6;
+  
+  PetscReal xx=x[0], yy=x[1], zz=x[2];
+  PetscReal range = high-low;
+  PetscReal mid = 0.5*(high+low);
+
+  // west
+  if (xx < 1.e-40) {
+    (*p) = high-yy*0.5*range;
+  }
+  // south
+  else if (yy < 1.e-40) {
+    (*p) = high-xx*0.5*range;
+  }
+  // east
+  else if (fabs(end-xx) < 1.e-40) {
+    (*p) = low+(1.-yy)*0.5*range;
+  }
+  // north
+  else if (fabs(end-yy) < 1.e-40) {
+    (*p) = low+(1.-xx)*0.5*range;
+  }
+  else {
+    printf("Unknown location in PressureGradual: %f %f %f\n",xx,yy,zz);
+    exit(1);
+  }
+//  printf("%f %f %f : %f\n",xx,yy,zz,*p);
   PetscFunctionReturn(0);
 }
 
@@ -69,18 +118,18 @@ int main(int argc, char **argv) {
 
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt N = 4, dim = 2, problem = 2;
+  PetscInt N = 4, dim = 2, problem = -999;
   PetscInt successful_exit_code=0;
   FILE *fp;
   char string[128];
+  char algorithm[32];
 
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
 
   strcpy(string,"tdycore.in");
+  strcpy(algorithm,"TPF");
 
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
-  CHKERRQ(ierr);
-  ierr = PetscOptionsInt ("-dim","Problem dimension","",dim,&dim,NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-dim","Problem dimension","",dim,&dim,NULL);
   CHKERRQ(ierr);
@@ -88,17 +137,26 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-problem","Problem number","",problem,&problem,NULL);
   CHKERRQ(ierr);
+  ierr = PetscOptionsString ("-algorithm","Algorithm","",algorithm,algorithm,32,NULL);
+  CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
   ierr = PetscOptionsString("-input","Input filename","",string,string,128,NULL);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  printf("Reading input.\n");
-  fp = fopen(string,"r");
-  fscanf(fp,"%d",&problem);
-  fscanf(fp,"%d",&dim);
-  fscanf(fp,"%d",&N);
-  fclose(fp);
+  if (problem > 0) {
+    strcpy(string,"");
+  }
+
+  if (strlen(string) > 1) {
+    printf("Reading input.\n");
+    fp = fopen(string,"r");
+    fscanf(fp,"%d",&problem);
+    fscanf(fp,"%d",&dim);
+    fscanf(fp,"%d",&N);
+    fscanf(fp,"%s",algorithm);
+    fclose(fp);
+  }
 
   printf("\n");
   printf("Problem        : %d\n",problem);
@@ -128,25 +186,40 @@ int main(int argc, char **argv) {
   if (dim == 1) {
     ierr = TDySetPermeabilityTensor(tdy,PermeabilityBlock1); CHKERRQ(ierr);
     switch(problem) {
-    case 1:
-//      ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
-//      ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
-      break;
+      case 1:
+        ierr = TDySetDirichletValueFunction(tdy,PressureBlock,NULL); CHKERRQ(ierr);
+        break;
     }
   } else if (dim == 2) {
-    ierr = TDySetPermeabilityTensor(tdy,PermeabilityBlock2); CHKERRQ(ierr);
     switch(problem) {
-    case 1:
-//      ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
-//      ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
-      break;
-      break;
+      case 1:
+        // block boundary pressures
+        ierr = TDySetPermeabilityTensor(tdy,PermeabilityBlock2); CHKERRQ(ierr);
+        ierr = TDySetDirichletValueFunction(tdy,PressureBlock,NULL); CHKERRQ(ierr);
+        break;
+      case 2:
+        // gradual boundary pressures
+        ierr = TDySetPermeabilityTensor(tdy,PermeabilityBlock2); CHKERRQ(ierr);
+        ierr = TDySetDirichletValueFunction(tdy,PressureGradual,NULL); CHKERRQ(ierr);
+        break;
+      case 3:
+        // gradual boundary pressure + uniform perm
+        ierr = TDySetPermeabilityTensor(tdy,PermeabilityUni2); CHKERRQ(ierr);
+        ierr = TDySetDirichletValueFunction(tdy,PressureGradual,NULL); CHKERRQ(ierr);
+        break;
     }
   }
 
-  ierr = TDySetDiscretizationMethod(tdy,TPF); CHKERRQ(ierr);
+  if (!strcmp(algorithm,"TPF")) {
+    ierr = TDySetDiscretizationMethod(tdy,TPF); CHKERRQ(ierr);
+  } else if (!strcmp(algorithm,"WY")) {
+    ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
+  } else if (!strcmp(algorithm,"MPFOA")) {
+    ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
+  } else {
+    printf("Unrecognized algorithm for TDySetDiscretizationMethod\n");
+    exit(1);
+  }
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   /* Compute system */
