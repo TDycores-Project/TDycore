@@ -216,35 +216,54 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
 PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nv,vi,vj,di,dj,
-           local_row,local_col,isbc,f,nq1d=2;
+  PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nfq,nv,vi,vj,di,dj,
+    local_row,local_col,isbc,f,nq1d=2,lside[24];
   PetscScalar x[81],DF[243],DFinv[243],J[27],Kinv[9],Klocal[MAX_LOCAL_SIZE],
-              Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[24],pressure,ehat,wgt;
-  const PetscScalar *quad_x;
-  const PetscScalar *quad_w;
+              Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[24],pressure;
+  const PetscScalar *quad_x,*fquad_x;
+  const PetscScalar *quad_w,*fquad_w;
   PetscQuadrature quadrature;
+  PetscQuadrature face_quadrature;
   DM dm = tdy->dm;
 
   /* Get domain constants */
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr); dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   nv = tdy->ncv;
-  ehat = PetscPowReal(2,dim-1);
-
+  nlocal = dim*nv + 1;
+  if(dim==2) {
+    lside[0] = 0; lside[1] = 0;
+    lside[2] = 1; lside[3] = 0;
+    lside[4] = 0; lside[5] = 1;
+    lside[6] = 1; lside[7] = 1;
+  } else {
+    lside[0]  = 0; lside[1]  = 0; lside[2]  = 0;
+    lside[3]  = 1; lside[4]  = 0; lside[5]  = 0;
+    lside[6]  = 0; lside[7]  = 1; lside[8]  = 0;
+    lside[9]  = 1; lside[10] = 1; lside[11] = 0;
+    lside[12] = 0; lside[13] = 0; lside[14] = 1;
+    lside[15] = 1; lside[16] = 0; lside[17] = 1;
+    lside[18] = 0; lside[19] = 1; lside[20] = 1;
+    lside[21] = 1; lside[22] = 1; lside[23] = 1;
+  }
+  
   /* Get quadrature */
   switch(tdy->qtype) {
   case FULL:
-    ierr = PetscDTGaussTensorQuadrature(dim,1,nq1d,-1,+1,&quadrature);
-    CHKERRQ(ierr);
+    ierr = PetscDTGaussTensorQuadrature(dim  ,1,nq1d,-1,+1,&     quadrature); CHKERRQ(ierr);
+    ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&face_quadrature); CHKERRQ(ierr);
+    
     break;
   case LUMPED:
     ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature); CHKERRQ(ierr);
-    ierr = TDyQuadrature(quadrature,dim); CHKERRQ(ierr);
+    ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&face_quadrature); CHKERRQ(ierr);
+    ierr = TDyQuadrature(     quadrature,dim  ); CHKERRQ(ierr);
+    ierr = TDyQuadrature(face_quadrature,dim-1); CHKERRQ(ierr);
     break;
   }
-  ierr = PetscQuadratureGetData(quadrature,NULL,NULL,
-                                &nq,&quad_x,&quad_w); CHKERRQ(ierr);
-  nlocal = dim*nv + 1;
+  ierr = PetscQuadratureGetData(     quadrature,NULL,NULL,&nq ,& quad_x,& quad_w); CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(face_quadrature,NULL,NULL,&nfq,&fquad_x,&fquad_w); CHKERRQ(ierr);
+  
 
   for(c=cStart; c<cEnd; c++) {
 
@@ -253,8 +272,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     if (pStart < 0) continue;
     const PetscInt *LtoG = &(tdy->LtoG[(c-cStart)*nlocal]);
     const PetscInt *orient = &(tdy->orient[(c-cStart)*nlocal]);
-    ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,
-                                        x,DF,DFinv,J); CHKERRQ(ierr);
+    ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,x,DF,DFinv,J); CHKERRQ(ierr);
     ierr = PetscMemzero(Klocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
     ierr = PetscMemzero(Flocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
 
@@ -283,14 +301,10 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
               local_col = vj*dim+dj;
 
               /* (K u, v) */
-              wgt  = quad_w[q];
-              wgt *= tdy->V[PetscAbsInt(tdy->emap[(c-cStart)*nv*dim + vi*dim + di])];
-              wgt *= tdy->V[PetscAbsInt(tdy->emap[(c-cStart)*nv*dim + vj*dim + dj])];
-              wgt /= (ehat*ehat);
               Klocal[local_col*nlocal+local_row] +=
                 Kinv[dj*dim+di]*
                 basis_hdiv[local_row]*
-                basis_hdiv[local_col]*wgt;
+                basis_hdiv[local_col]*quad_w[q]*J[q];
 
             }
           } /* end directions */
@@ -301,37 +315,89 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
       /* Integrate forcing if present */
       if (tdy->ops->computeforcing) {
         ierr = (*tdy->ops->computeforcing)(tdy,&(x[q*dim]),&force,tdy->forcingctx);CHKERRQ(ierr);
-        Flocal[nlocal-1] += -force*J[q]*quad_w[q];
+        Flocal[nlocal-1] += -force*quad_w[q]*J[q];
       }
 
     } /* end quadrature */
 
-    /* <p, v_j.n> */
-    for(vi=0; vi<nv; vi++) {
-      for(di=0; di<dim; di++) {
-        f = PetscAbsInt(tdy->emap[(c-cStart)*nv*dim + vi*dim + di]);
-        local_col = vi*dim + di;
-        Klocal[local_col *nlocal + (nlocal-1)] = -tdy->V[f]/ehat;
-        Klocal[(nlocal-1)*nlocal + local_col ] = -tdy->V[f]/ehat;
-      }
-    }
 
-    /* <g, v_j.n> */
-    if(tdy->ops->computedirichletvalue) {
-      /* loop over all possible v_j's for this cell, integrating with
-      Gauss-Lobotto */
-      for(vi=0; vi<nv; vi++) {
-        for(di=0; di<dim; di++) {
-          f = PetscAbsInt(tdy->emap[(c-cStart)*nv*dim + vi*dim + di]);
-          ierr = DMGetLabelValue(dm,"marker",f,&isbc); CHKERRQ(ierr);
-          if(isbc == 1) {
-            local_row = vi*dim+di;
-            ierr = IntegrateOnFace(tdy,c,f,&pressure); CHKERRQ(ierr);
-            Flocal[local_row] += -pressure/ehat*((PetscScalar)orient[vi*dim+di]);
-          }
-        }
+    /* loop over the cells faces */
+    PetscInt coneSize,i;
+    const PetscInt *cone;
+    ierr = DMPlexGetConeSize(dm,c,&coneSize); CHKERRQ(ierr);
+    ierr = DMPlexGetCone    (dm,c,&cone); CHKERRQ(ierr);
+    for(f=0;f<coneSize;f++){
+
+      ierr = DMPlexComputeCellGeometryFEM(dm,cone[f],face_quadrature,x,DF,DFinv,J); CHKERRQ(ierr);
+      ierr = DMGetLabelValue(dm,"marker",cone[f],&isbc); CHKERRQ(ierr);
+      
+      /* relative to this cell, where is this face? */
+      PetscInt face_side,face_dir,v,d;
+      face_side = -1;
+      face_dir  = -1;
+      for(v=0; v<nv; v++) {
+	for(d=0; d<dim; d++) {
+	  if(PetscAbsInt(tdy->emap[c*nv*dim+v*dim+d]) == cone[f]) {
+	    face_side = lside[v*dim+d];
+	    face_dir  = d;
+	    break;
+	  }
+	}
+      }
+
+      /* loop over face quadrature, need to extend the dim-1 point to
+	 dim to evaluate basis */
+      for(q=0;q<nfq;q++){
+	
+	/* extend the dim-1 quadrature point to dim */
+	PetscInt j;
+	PetscReal xq[3];
+	j = 0;
+	xq[0] = 0; xq[1] = 0; xq[2] = 0;
+	for(i=0; i<dim; i++) {
+	  if(i == face_dir) {
+	    xq[i] = PetscPowInt(-1,face_side+1);
+	  } else {
+	    xq[i] = fquad_x[q*(dim-1)+j];
+	    j += 1;
+	  }
+	}
+
+	/* evaluate the basis */
+	PetscReal N[24];
+	if(dim==2) {
+	  HdivBasisQuad(xq,N);
+	} else {
+	  HdivBasisHex(xq,N);
+	}
+
+	/* will need basis dotted with this face's outward normal */
+	for(vi=0; vi<nv; vi++) {
+	  for(j=0; j<dim; j++) {
+	    if(j == face_dir)
+	      N[vi*dim+j] *= PetscPowInt(-1,face_side+1);
+	    else
+	      N[vi*dim+j]  = 0;
+	  }
+	}
+	    
+	/* - < p, v.n > and possibly - < g, v.n >*/
+	for(vi=0; vi<nv; vi++) {
+	  for(di=0; di<dim; di++) {
+	    local_col = vi*dim + di;
+	    Klocal[local_col *nlocal + (nlocal-1)] += -N[local_col]*fquad_w[q]*J[q];
+	    Klocal[(nlocal-1)*nlocal + local_col ] += -N[local_col]*fquad_w[q]*J[q];
+	    if(isbc && tdy->ops->computedirichletvalue){
+	      //ierr = (*tdy->ops->computedirichletvalue)(tdy, &(x[dim*q]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
+	      ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[cone[f]*dim]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
+	      Flocal[local_col] +=-pressure*N[local_col]*fquad_w[q]*J[q];
+	    }
+	  }
+	}
+    
       }
     }
+    
 
     /* apply orientation flips */
     for(vi=0; vi<nlocal-1; vi++) {
@@ -344,6 +410,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     }
 
     /* assembly */
+    //CheckSymmetric(Klocal,nlocal);
     //PrintMatrix(Klocal,nlocal,nlocal,PETSC_TRUE);
     //PrintMatrix(Flocal,1,nlocal,PETSC_TRUE);
     ierr = MatSetValues(K,nlocal,LtoG,nlocal,LtoG,Klocal,ADD_VALUES); CHKERRQ(ierr);
@@ -356,7 +423,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
-  ierr = PetscQuadratureDestroy(&quadrature); CHKERRQ(ierr);
+  ierr = PetscQuadratureDestroy(&face_quadrature); CHKERRQ(ierr);
+  ierr = PetscQuadratureDestroy(&     quadrature); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
