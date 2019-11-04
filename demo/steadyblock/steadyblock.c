@@ -123,6 +123,8 @@ int main(int argc, char **argv) {
   FILE *fp;
   char string[128];
   char algorithm[32];
+  char filename[32];
+  char prefix[32];
 
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
 
@@ -165,6 +167,7 @@ int main(int argc, char **argv) {
   for (int i=0; i<dim-1; i++)
     temp_int *= N;
   printf("Number of Cells: %d\n",temp_int);
+  printf("      Algorithm: %s\n",algorithm);
   printf("\n");
 
   /* Create and distribute the mesh */
@@ -214,12 +217,14 @@ int main(int argc, char **argv) {
     ierr = TDySetDiscretizationMethod(tdy,TPF); CHKERRQ(ierr);
   } else if (!strcmp(algorithm,"WY")) {
     ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
-  } else if (!strcmp(algorithm,"MPFOA")) {
-    ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
+  } else if (!strcmp(algorithm,"MPF")) {
+    ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
   } else {
-    printf("Unrecognized algorithm for TDySetDiscretizationMethod\n");
+    printf("Unrecognized algorithm for TDySetDiscretizationMethod: %s\n",algorithm);
     exit(1);
   }
+  sprintf(prefix,"tdycore_p%d_%s",problem,algorithm);
+  printf("Output prefix: %s\n",prefix);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   /* Compute system */
@@ -233,10 +238,14 @@ int main(int argc, char **argv) {
   ierr = TDyComputeSystem(tdy,K,F); CHKERRQ(ierr);
 
   PetscViewer viewer;
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"tdycore.mat",&viewer); CHKERRQ(ierr);
+  strcpy(filename,prefix);
+  strcat(filename,".mat");
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
   ierr = MatView(K,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"tdycore.rhs",&viewer); CHKERRQ(ierr);
+  strcpy(filename,prefix);
+  strcat(filename,".rhs");
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
   ierr = VecView(F,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
@@ -250,12 +259,16 @@ int main(int argc, char **argv) {
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
 
   printf("Outputing results.\n");
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"tdycore.sol",&viewer); CHKERRQ(ierr);
+  strcpy(filename,prefix);
+  strcat(filename,".sol");
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   
   /* Output solution */
-  PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"tdycore.vtk",FILE_MODE_WRITE,&viewer);
+  strcpy(filename,prefix);
+  strcat(filename,".vtk");
+  PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),filename,FILE_MODE_WRITE,&viewer);
   ierr = DMView(dm,viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer); CHKERRQ(ierr); // the approximate solution
   ierr = VecView(F,viewer); CHKERRQ(ierr); // the residual K*Ue-F
