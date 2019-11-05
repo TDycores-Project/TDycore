@@ -5,10 +5,15 @@ void PermeabilityBlockX(PetscInt dim,PetscReal *x,PetscReal *K,
                         PetscReal high_perm,PetscReal low_perm) {
   const PetscReal xbegin = 0.0;
   const PetscReal xend = 0.5;
-//  const PetscReal perm_to_K = 9.8068*1000./1.e-3;
-  const PetscReal perm_to_K = 1.;
-  PetscReal high_K = high_perm*perm_to_K;
-  PetscReal low_K = low_perm*perm_to_K;
+  const PetscReal density = 1000.;
+  const PetscReal viscosity = 1.e-3;
+  PetscReal conversion = -999.;
+  // to get PFLOTRAN equations
+  conversion  = 1./viscosity;
+  // to get exact PFLOTRAN coefficients, uncomment
+  //perm_to_K = density/18.01534;
+  PetscReal high_coef = high_perm*conversion;
+  PetscReal low_coef = low_perm*conversion;
   PetscInt flag = 0;
   for(int i=0; i<dim; i++)
     if (x[i] >= xbegin && x[i] <= xend) flag++;
@@ -16,10 +21,10 @@ void PermeabilityBlockX(PetscInt dim,PetscReal *x,PetscReal *K,
     K[i] = 0.;
   if (flag%2 != 0) {
     for (int i=0; i<dim*dim; i+=(dim+1))
-      K[i] = high_K;
+      K[i] = high_coef;
   } else {
     for (int i=0; i<dim*dim; i+=(dim+1))
-      K[i] = low_K;
+      K[i] = low_coef;
   }
 }
 
