@@ -252,7 +252,6 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   case FULL:
     ierr = PetscDTGaussTensorQuadrature(dim  ,1,nq1d,-1,+1,&     quadrature); CHKERRQ(ierr);
     ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&face_quadrature); CHKERRQ(ierr);
-    
     break;
   case LUMPED:
     ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature); CHKERRQ(ierr);
@@ -330,7 +329,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
 
       ierr = DMPlexComputeCellGeometryFEM(dm,cone[f],face_quadrature,x,DF,DFinv,J); CHKERRQ(ierr);
       ierr = DMGetLabelValue(dm,"marker",cone[f],&isbc); CHKERRQ(ierr);
-      
+
       /* relative to this cell, where is this face? */
       PetscInt face_side,face_dir,v,d;
       face_side = -1;
@@ -387,18 +386,20 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
 	    local_col = vi*dim + di;
 	    Klocal[local_col *nlocal + (nlocal-1)] += -N[local_col]*fquad_w[q]*J[q];
 	    Klocal[(nlocal-1)*nlocal + local_col ] += -N[local_col]*fquad_w[q]*J[q];
-	    if(isbc && tdy->ops->computedirichletvalue){
-	      //ierr = (*tdy->ops->computedirichletvalue)(tdy, &(x[dim*q]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
-	      ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[cone[f]*dim]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
-	      Flocal[local_col] +=-pressure*N[local_col]*fquad_w[q]*J[q];
+	    if(isbc == 1 && tdy->ops->computedirichletvalue){
+	      if(tdy->qtype == FULL){
+		ierr = (*tdy->ops->computedirichletvalue)(tdy, &(x[dim*q]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
+	      }else{
+		ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[cone[f]*dim]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
+	      }
+	      Flocal[local_col] += -pressure*N[local_col]*fquad_w[q]*J[q];
 	    }
 	  }
 	}
-    
-      }
-    }
-    
 
+      } /* end quadrature */
+    } /* end faces */
+    
     /* apply orientation flips */
     for(vi=0; vi<nlocal-1; vi++) {
       Flocal[vi] *= (PetscScalar)orient[vi];
