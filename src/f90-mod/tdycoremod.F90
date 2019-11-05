@@ -267,4 +267,61 @@ module tdycore
      end subroutine TDySetIJacobian
   end interface
 
+  interface
+     subroutine TDySetSNESFunction(a,b,z)
+       use tdycoredef
+       use petscsnes
+       SNES a
+       TDy b
+       integer z
+     end subroutine TDySetSNESFunction
+  end interface
+
+  interface
+     subroutine TDySetSNESJacobian(a,b,z)
+       use tdycoredef
+       use petscsnes
+       SNES a
+       TDy b
+       integer z
+     end subroutine TDySetSNESJacobian
+  end interface
+
+  interface
+     subroutine TDySetDtimeForSNESSolver(a,b,z)
+       use tdycoredef
+       TDy a
+       PetscReal b
+       integer z
+     end subroutine TDySetDtimeForSNESSolver
+  end interface
+
+  interface
+     subroutine TDySetInitialSolutionForSNESSolver(a,b,z)
+       use tdycoredef
+       use petscvec
+       TDy a
+       Vec b
+       integer z
+     end subroutine TDySetInitialSolutionForSNESSolver
+  end interface
+
+  interface
+     subroutine TDyPreSolveSNESSolver(a,z)
+       use tdycoredef
+       TDy a
+       integer z
+     end subroutine TDyPreSolveSNESSolver
+  end interface
+
+  interface
+     subroutine TDyPostSolveSNESSolver(a,b,z)
+       use tdycoredef
+       use petscvec
+       TDy a
+       Vec b
+       integer z
+     end subroutine TDyPostSolveSNESSolver
+  end interface
+
 end module tdycore

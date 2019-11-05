@@ -101,6 +101,12 @@ struct _p_TDy {
 
   Mat J, Jpre;
 
+  /* For SNES based timestepping */
+  PetscReal dtime;
+  Vec soln_prev;
+  Vec accumulation_prev;
+  Vec residual;
+
   PetscInt *closureSize, **closure, maxClosureSize;
 
   PetscBool output_mesh;

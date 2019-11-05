@@ -12,7 +12,13 @@
 #define tdycreate_                                  TDYCREATE
 #define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
 #define tdysetifunction_                            TDYSETIFUNCTION
-#define tdysetifunction_                            TDYSETIJACOBIAN
+#define tdysetijacobian_                            TDYSETIJACOBIAN
+#define tdysetsnesfunction_                         TDYSETSNESFUNCTION
+#define tdysetsnesjacobian_                         TDYSETSNESJACOBIAN
+#define tdysetdtimeforsnessolver_                   TDYSETDTIMEFORSNESSOLVER
+#define tdysetinitialsolutionforsnessolver_         TDYSETINITIALSOLUTIONFORSNESSOLVER
+#define tdypresolvesnessolver_                      TDYSETPRESOLVESNESSOLVER
+#define tdypostsolvesnessolver_                     TDYSETPOSTSOLVESNESSOLVER
 #define tdysetfromoption_                           TDYSETFROMOPTIONS
 #define tdycomputesystem_                           TDYCOMPUTESYSTEM
 #define tdycomputeerrornorms_                       TDYCOMPUTEERRORNORMS
@@ -52,6 +58,12 @@
 #define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
 #define tdysetifunction_                            tdysetifunction
 #define tdysetijacobian_                            tdysetijacobian
+#define tdysetsnesfunction_                         tdysetsnesfunction
+#define tdysetsnesjacobian_                         tdysetsnesjacobian
+#define tdysetdtimeforsnessolver_                   tdysetdtimeforsnessolver
+#define tdysetinitialsolutionforsnessolver_         tdysetinitialsolutionforsnessolver
+#define tdypresolvesnessolver_                      tdypresolvesnessolver
+#define tdypostsolvesnessolver_                     tdypostsolvesnessolver
 #define tdysetfromoptions_                          tdysetfromoptions
 #define tdycomputesystem_                           tdycomputesystem
 #define tdycomputeerrornorms_                       tdycomputeerrornorms
@@ -138,6 +150,74 @@ PETSC_EXTERN void PETSC_STDCALL  tdysetijacobian_(TS ts, TDy tdy, int *__ierr){
 *__ierr = TDySetIJacobian(
   (TS)PetscToPointer((ts)),
   (TDy)PetscToPointer((tdy)));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void PETSC_STDCALL  tdysetsnesfunction_(SNES snes, TDy tdy, int *__ierr){
+*__ierr = TDySetSNESFunction(
+  (SNES)PetscToPointer((snes)),
+  (TDy)PetscToPointer((tdy)));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void PETSC_STDCALL  tdysetsnesjacobian_(SNES snes, TDy tdy, int *__ierr){
+*__ierr = TDySetSNESJacobian(
+  (SNES)PetscToPointer((snes)),
+  (TDy)PetscToPointer((tdy)));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void PETSC_STDCALL  tdysetdtimeforsnessolver_(TDy tdy, PetscReal dtime, int *__ierr){
+*__ierr = TDySetDtimeForSNESSolver((TDy)PetscToPointer(tdy), dtime);
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void PETSC_STDCALL  tdysetinitialsolutionforsnessolver_(TDy tdy, Vec solution, int *__ierr){
+*__ierr = TDySetInitialSolutionForSNESSolver(
+  (TDy)PetscToPointer(tdy),
+  (Vec)PetscToPointer(solution));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void PETSC_STDCALL  tdypresolvesnessolver_(TDy tdy, int *__ierr){
+*__ierr = TDyPreSolveSNESSolver((TDy)PetscToPointer(tdy));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void PETSC_STDCALL  tdypostsolvesnessolver_(TDy tdy, Vec solution, int *__ierr){
+*__ierr = TDyPostSolveSNESSolver(
+  (TDy)PetscToPointer(tdy),
+  (Vec)PetscToPointer(solution));
 }
 #if defined(__cplusplus)
 }

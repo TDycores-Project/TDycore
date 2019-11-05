@@ -89,8 +89,15 @@ PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS ts,TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetIJacobian(TS ts,TDy tdy);
+PETSC_EXTERN PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy);
+PETSC_EXTERN PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     PetscReal *normv);
+
+PETSC_EXTERN PetscErrorCode TDySetDtimeForSNESSolver(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDySetInitialSolutionForSNESSolver(TDy,Vec);
+PETSC_EXTERN PetscErrorCode TDyPreSolveSNESSolver(TDy);
+PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
 
 PETSC_EXTERN PetscErrorCode TDyOutputRegression(TDy,Vec);
 

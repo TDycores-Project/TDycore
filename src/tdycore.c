@@ -402,6 +402,94 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
+  PetscInt       dim;
+  MPI_Comm       comm;
+  PetscErrorCode ierr;
+
+  PetscValidPointer(snes,1);
+  PetscValidPointer(tdy,2);
+
+  PetscFunctionBegin;
+  ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+
+  switch (tdy->method) {
+  case TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for TPF");
+    break;
+  case MPFA_O:
+    switch (dim) {
+    case 3:
+      ierr = DMCreateGlobalVector(tdy->dm,&tdy->accumulation_prev); CHKERRQ(ierr);
+      ierr = DMCreateGlobalVector(tdy->dm,&tdy->soln_prev); CHKERRQ(ierr);
+      ierr = DMCreateGlobalVector(tdy->dm,&tdy->residual); CHKERRQ(ierr);
+      ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction_3DMesh,tdy); CHKERRQ(ierr);
+      break;
+    default :
+      SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction only implemented for 3D problem MPFA-O");
+      break;
+    }
+    break;
+  case BDM:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for BDM");
+    break;
+  case WY:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for WY");
+    break;
+  }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
+  PetscInt       dim;
+  MPI_Comm       comm;
+  PetscErrorCode ierr;
+
+  PetscValidPointer(snes,1);
+  PetscValidPointer(tdy,2);
+
+  PetscFunctionBegin;
+  ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+
+  switch (tdy->method) {
+  case TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for TPF");
+    break;
+  case MPFA_O:
+    switch (dim) {
+    case 3:
+        ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
+        ierr = DMCreateMatrix(tdy->dm,&tdy->Jpre); CHKERRQ(ierr);
+        
+        ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
+        ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
+        ierr = MatSetOption(tdy->J,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
+        ierr = MatSetOption(tdy->J,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+        
+        ierr = MatSetOption(tdy->Jpre,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
+        ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
+        ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
+        ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+
+      ierr = SNESSetJacobian(snes,tdy->J,tdy->J,TDyMPFAOSNESJacobian_3DMesh,tdy); CHKERRQ(ierr);
+      break;
+    default :
+      SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian only implemented for 3D problem MPFA-O");
+      break;
+    }
+    break;
+  case BDM:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for BDM");
+    break;
+  case WY:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for WY");
+    break;
+  }
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
   MPI_Comm       comm;
   PetscErrorCode ierr;
@@ -787,3 +875,62 @@ PetscErrorCode TDyOutputRegression(TDy tdy, Vec U) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
+
+  PetscFunctionBegin;
+  tdy->dtime = dtime;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetInitialSolutionForSNESSolver(TDy tdy, Vec soln) {
+
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = VecCopy(soln,tdy->soln_prev); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
+  PetscInt dim;
+  PetscErrorCode ierr;
+  MPI_Comm       comm;
+
+  PetscFunctionBegin;
+
+  ierr = PetscObjectGetComm((PetscObject)tdy->dm,&comm); CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+
+  switch (tdy->method) {
+  case TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for TPF");
+    break;
+  case MPFA_O:
+    switch (dim) {
+    case 3:
+      ierr = TDyMPFAOSNESPreSolve_3DMesh(tdy); CHKERRQ(ierr);
+      break;
+    default :
+      SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver only implemented for 3D problem MPFA-O");
+      break;
+    }
+    break;
+  case BDM:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for BDM");
+    break;
+  case WY:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for WY");
+    break;
+  }
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyPostSolveSNESSolver(TDy tdy, Vec soln) {
+
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = VecCopy(soln,tdy->soln_prev); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}

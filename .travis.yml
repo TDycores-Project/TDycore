@@ -37,6 +37,7 @@ script:
   - (cd regression_tests; make test-transient)
   - (cd regression_tests; make test-transient-mpfao)
   - (cd regression_tests; make test-transient-mpfaof90)
+  - (cd regression_tests; make test-transient-snes-mpfaof90)
   - cat regression_tests/*testlog
   - ls $PETSC_ARCH/obj/src/
 
