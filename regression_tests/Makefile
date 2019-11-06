@@ -61,7 +61,7 @@ test-transient-mpfaof90 :
 		--config-files ../demo/transient/transient_mpfaof90.cfg \
 		--logfile_prefix transient_mpfaof90
 
-test-snes-transient-mpfaof90 :
+test-transient-snes-mpfaof90 :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/transient_snes_mpfaof90 $(TEST_OPTIONS) \
 		--suite standard standard_parallel \
 		--config-files ../demo/transient/transient_snes_mpfaof90.cfg \
