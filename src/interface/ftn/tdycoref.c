@@ -182,8 +182,8 @@ PETSC_EXTERN void PETSC_STDCALL  tdysetsnesjacobian_(SNES snes, TDy tdy, int *__
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdysetdtimeforsnessolver_(TDy tdy, PetscReal dtime, int *__ierr){
-*__ierr = TDySetDtimeForSNESSolver((TDy)PetscToPointer(tdy), dtime);
+PETSC_EXTERN void PETSC_STDCALL  tdysetdtimeforsnessolver_(TDy tdy, PetscReal *dtime, int *__ierr){
+*__ierr = TDySetDtimeForSNESSolver((TDy)PetscToPointer(tdy), *dtime);
 }
 #if defined(__cplusplus)
 }
