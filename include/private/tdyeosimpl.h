@@ -4,11 +4,6 @@
 #include <petsc.h>
 
 typedef enum {
-  WATER_DENSITY_CONSTANT=0,
-  Water_DENSITY_EXPONENTIAL=1
-} TDyWaterDensityType;
-
-typedef enum {
   WATER_VISCOSITY_CONSTANT=0,
 } TDyWaterViscosityType;
 

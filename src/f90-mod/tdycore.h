@@ -19,3 +19,13 @@
       ! the C code (i.e. include/tdycore.h)
       parameter (TPF=0,MPFA_O=1)
       parameter (BDM=2,WY=3)
+
+!
+!  Types of TDy water densities
+!
+      PetscEnum WATER_DENSITY_CONSTANT
+      PetscEnum WATER_DENSITY_EXPONENTIAL
+
+      ! The parameters values need to match those defined in
+      ! the C code (i.e. include/tdycore.h)
+      parameter (WATER_DENSITY_CONSTANT=0,WATER_DENSITY_EXPONENTIAL=1)

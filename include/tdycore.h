@@ -26,6 +26,12 @@ typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */
 
 typedef struct _p_TDy *TDy;
 
+typedef enum {
+  WATER_DENSITY_CONSTANT=0,
+  WATER_DENSITY_EXPONENTIAL=1
+} TDyWaterDensityType;
+
+PETSC_EXTERN const char *const TDyWaterDensityTypes[];
 
 PETSC_EXTERN PetscClassId TDY_CLASSID;
 
@@ -85,6 +91,7 @@ PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,
     TDyMethod method);
 PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
     TDyQuadratureType qtype);
+PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
 
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS ts,TDy tdy);

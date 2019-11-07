@@ -21,6 +21,13 @@ const char *const TDyQuadratureTypes[] = {
   "TDyQuadratureType","TDY_QUAD_",NULL
 };
 
+const char *const TDyWaterDensityTypes[] = {
+  "CONSTANT",
+  "EXPONENTIAL",
+  /* */
+  "TDyWaterDensityType","TDY_DENSITY_",NULL
+};
+
 PetscClassId TDY_CLASSID = 0;
 
 PETSC_EXTERN PetscBool TDyPackageInitialized;
@@ -248,6 +255,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscBool flg;
   TDyMethod method = WY;
   TDyQuadratureType qtype = FULL;
+  TDyWaterDensityType densitytype = WATER_DENSITY_CONSTANT;
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   ierr = PetscObjectOptionsBegin((PetscObject)tdy); CHKERRQ(ierr);
@@ -270,6 +278,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsBool("-tdy_output_mesh",
                           "Enable output of mesh attributes","",tdy->output_mesh,
                           &(tdy->output_mesh),NULL); CHKERRQ(ierr);
+
+  ierr = PetscOptionsEnum("-tdy_water_density","Water density type",
+                          "TDySetWaterDensityType",TDyWaterDensityTypes,(PetscEnum)densitytype,(PetscEnum *)&densitytype,
+                          &flg); CHKERRQ(ierr);
+  if (flg) {ierr = TDySetWaterDensityType(tdy,densitytype); CHKERRQ(ierr);}
 
   if (tdy->regression_testing) {
     ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
@@ -327,6 +340,20 @@ PetscErrorCode TDySetQuadratureType(TDy tdy,TDyQuadratureType qtype) {
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
   tdy->qtype = qtype;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetWaterDensityType(TDy tdy,TDyWaterDensityType dentype) {
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  switch (dentype) {
+  case WATER_DENSITY_CONSTANT:
+    tdy->rho_type = WATER_DENSITY_CONSTANT;
+    break;
+  case WATER_DENSITY_EXPONENTIAL:
+    tdy->rho_type = WATER_DENSITY_EXPONENTIAL;
+    break;
+  }
   PetscFunctionReturn(0);
 }
 

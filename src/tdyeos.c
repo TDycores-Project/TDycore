@@ -40,7 +40,7 @@ PetscErrorCode ComputeWaterDensity(PetscReal p, PetscInt density_type, PetscReal
   case WATER_DENSITY_CONSTANT :
     ierr = ComputeWaterDensity_Constant(p,den,dden_dP,d2den_dP2); CHKERRQ(ierr);
     break;
-  case Water_DENSITY_EXPONENTIAL :
+  case WATER_DENSITY_EXPONENTIAL :
     ierr = ComputeWaterDensity_Exponential(p,den,dden_dP,d2den_dP2); CHKERRQ(ierr);
     break;
   default:
