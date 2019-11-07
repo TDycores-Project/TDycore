@@ -2991,7 +2991,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
     ierr = TDyMPFAOSNESAccumulation(tdy,icell,&accum_current); CHKERRQ(ierr);
 
     r[icell] += accum_current - accum_prev[icell];
-    r[icell] -= tdy->source_sink[icell] * cell->volume * dtInv;
+    r[icell] -= tdy->source_sink[icell];
   }
 
   /* Cleanup */
