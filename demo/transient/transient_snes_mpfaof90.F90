@@ -122,7 +122,7 @@ implicit none
 
   call Permeability(perm);
 
-  do c=1,cEnd-cStart+1
+  do c=1,cEnd-cStart
     index(c) = c-1;
     residualSat(c) = 0.115d0;
     do j = 1,dim*dim
