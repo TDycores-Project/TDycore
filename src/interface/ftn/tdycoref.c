@@ -11,6 +11,7 @@
 #ifdef PETSC_HAVE_FORTRAN_CAPS
 #define tdycreate_                                  TDYCREATE
 #define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
+#define tdysetwaterdensitytype_                     TDYWATERDENSITYTYPE
 #define tdysetifunction_                            TDYSETIFUNCTION
 #define tdysetijacobian_                            TDYSETIJACOBIAN
 #define tdysetsnesfunction_                         TDYSETSNESFUNCTION
@@ -56,6 +57,7 @@
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
 #define tdycreate_                                  tdycreate
 #define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
+#define tdysetwaterdensitytype_                     tdysetwaterdensitytype
 #define tdysetifunction_                            tdysetifunction
 #define tdysetijacobian_                            tdysetijacobian
 #define tdysetsnesfunction_                         tdysetsnesfunction
@@ -126,6 +128,16 @@ extern "C" {
 #endif
 PETSC_EXTERN void PETSC_STDCALL  tdysetdiscretizationmethod_(TDy tdy, PetscInt *method, int *__ierr){
 *__ierr = TDySetDiscretizationMethod((TDy)PetscToPointer((tdy)), *method);
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void PETSC_STDCALL  tdysetwaterdensitytype_(TDy tdy, PetscInt *method, int *__ierr){
+*__ierr = TDySetWaterDensityType((TDy)PetscToPointer((tdy)), *method);
 }
 #if defined(__cplusplus)
 }
