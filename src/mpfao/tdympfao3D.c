@@ -274,6 +274,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
   for (j=0; j<ncells; j++) {
     for (i=0; i<nfluxes; i++) {
       tdy->Trans[vertex_id][i][j] = CuptimesAinvB_1d[idx] - Fup[i][j];
+      if (fabs(tdy->Trans[vertex_id][i][j])<PETSC_MACHINE_EPSILON) tdy->Trans[vertex_id][i][j] = 0.0;
       idx++;
     }
   }
@@ -489,6 +490,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
       } else {
         tdy->Trans[vertex_id][i][j] = CupInxCBCtimesAinvB_1d[idx] + Cup[i][j-npcen+npitf_in];
       }
+      if (fabs(tdy->Trans[vertex_id][i][j])<PETSC_MACHINE_EPSILON) tdy->Trans[vertex_id][i][j] = 0.0;
       idx++;
     }
   }
@@ -505,6 +507,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
         tdy->Trans[vertex_id][i+nflux_in         ][j] = CupBCxCBCtimesAinvB_1d[idx] + Cup[i+npitf_in][j-npcen+npitf_in];
         tdy->Trans[vertex_id][i+nflux_in+nflux_bc][j] = CdnBCxCBCtimesAinvB_1d[idx] + Cdn[i+npitf_in][j-npcen+npitf_in];
       }
+      if (fabs(tdy->Trans[vertex_id][i+nflux_in         ][j])<PETSC_MACHINE_EPSILON) tdy->Trans[vertex_id][i+nflux_in         ][j] = 0.0;
+      if (fabs(tdy->Trans[vertex_id][i+nflux_in+nflux_bc][j])<PETSC_MACHINE_EPSILON) tdy->Trans[vertex_id][i+nflux_in+nflux_bc][j] = 0.0;
       idx++;
     }
   }
@@ -572,6 +576,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     
     for (j=0; j<dim; j++) {
       tdy->Trans[vertex->id][iface][j] = Gmatrix[iface][j];
+      if (fabs(tdy->Trans[vertex->id][iface][j])<PETSC_MACHINE_EPSILON) tdy->Trans[vertex->id][iface][j] = 0.0;
     }
     tdy->Trans[vertex->id][iface][dim] = 0.0;
     for (j=0; j<dim; j++) tdy->Trans[vertex->id][iface][dim] -= (Gmatrix[iface][j]);
@@ -1912,6 +1917,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
 
       cell_id_up = face->cell_ids[0];
       cell_id_dn = face->cell_ids[1];
+      if (cell_id_up<0 || cell_id_dn<0) continue;
 
       if (TtimesP[irow] < 0.0) { // up ---> dn
         if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
@@ -2998,7 +3004,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
   ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
-  
+
   PetscFunctionReturn(0);
 }
 
