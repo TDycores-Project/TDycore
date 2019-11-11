@@ -72,6 +72,11 @@ implicit none
   PetscReal ::  perm(9)
   PetscInt :: c, cStart, cEnd, j, nvalues,g, max_steps, step
   PetscReal :: dtime, mass_pre, mass_post
+  character (len=256) :: mesh_filename, ic_filename
+  character(len=256) :: string
+  PetscBool :: mesh_file_flg, ic_file_flg
+  PetscViewer :: viewer
+  PetscInt :: step_mod
 
   call PetscInitialize(PETSC_NULL_CHARACTER,ierr);
   CHKERRA(ierr);
@@ -87,14 +92,24 @@ implicit none
   CHKERRA(ierr)
   call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr);
   CHKERRA(ierr)
-
-  faces(1) = nx; faces(2) = ny; faces(3) = nz;
-  lower(:) = 0.d0;
-  upper(:) = 1.d0;
-
-  call DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, faces, lower, upper, &
-       PETSC_NULL_INTEGER, PETSC_TRUE, dm, ierr);
+  call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-mesh_filename", mesh_filename, mesh_file_flg,ierr);
   CHKERRA(ierr);
+  call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-ic_filename", ic_filename, ic_file_flg,ierr);
+  CHKERRA(ierr);
+
+  if (.not.mesh_file_flg) then
+    faces(1) = nx; faces(2) = ny; faces(3) = nz;
+    lower(:) = 0.d0;
+    upper(:) = 1.d0;
+
+    call DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, faces, lower, upper, &
+         PETSC_NULL_INTEGER, PETSC_TRUE, dm, ierr);
+    CHKERRA(ierr);
+  else
+    call DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE, dm, ierr);
+    CHKERRA(ierr);
+  endif
+
   call DMPlexDistribute(dm, 1, PETSC_NULL_SF, dmDist, ierr);
   CHKERRA(ierr);
   if (dmDist /= PETSC_NULL_DM) then
@@ -105,11 +120,15 @@ implicit none
   call DMSetUp(dm,ierr);
   CHKERRA(ierr)
 
+
   call DMSetFromOptions(dm, ierr);
   CHKERRA(ierr);
 
   call TDyCreate(dm, tdy, ierr);
   CHKERRA(ierr);
+
+  !call TDySetWaterDensityType(tdy,WATER_DENSITY_EXPONENTIAL,ierr);
+  !CHKERRA(ierr)
 
   call DMPlexGetHeightStratum(dm,0,cStart,cEnd,ierr);
   CHKERRA(ierr);
@@ -151,9 +170,15 @@ implicit none
   ! Set initial condition
   call DMCreateGlobalVector(dm,U,ierr);
   CHKERRA(ierr);
-  CHKERRA(ierr);
-  call VecSet(U,91325.d0,ierr);
-  CHKERRA(ierr);
+
+  if (ic_file_flg) then
+    call PetscViewerBinaryOpen(PETSC_COMM_WORLD, ic_filename, FILE_MODE_READ, viewer, ierr); CHKERRQ(ierr)
+    call VecLoad(U, viewer, ierr); CHKERRQ(ierr)
+    call PetscViewerDestroy(viewer, ierr); CHKERRQ(ierr)
+  else
+    call VecSet(U,102325.d0,ierr);
+    CHKERRA(ierr);
+  endif
 
   call SNESCreate(PETSC_COMM_WORLD,snes,ierr);
   CHKERRA(ierr);
@@ -175,6 +200,7 @@ implicit none
   CHKERRA(ierr);
 
   do step = 1,max_steps
+
     call TDyPreSolveSNESSolver(tdy,ierr);
     CHKERRA(ierr);
 
@@ -198,6 +224,17 @@ implicit none
     mass_post = mass_post + liquid_mass(g)
     enddo
     write(*,*)'Liquid mass pre,post,diff ',step,mass_pre,mass_post,mass_pre-mass_post
+
+    step_mod = mod(step,48);
+    write(string,*) step
+    string = 'solution_' // trim(adjustl(string)) // '.bin'
+    if (step_mod == 0) then
+      write(*,*)'Writing output: ',trim(string)
+      call PetscViewerBinaryOpen(PETSC_COMM_WORLD, trim(string), FILE_MODE_WRITE, viewer, ierr); CHKERRQ(ierr)
+      call VecView(U, viewer, ierr); CHKERRQ(ierr)
+      call PetscViewerDestroy(viewer, ierr); CHKERRQ(ierr)
+    endif
+
   end do
 
   call TDyGetSaturationValuesLocal(tdy,nvalues,liquid_sat,ierr)
