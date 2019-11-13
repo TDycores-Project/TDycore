@@ -89,7 +89,6 @@ void PermWheeler2006_2(double *x,double *K) {
   K[2] = K[1];
   K[3] = 2;
 }
-
 PetscErrorCode PressureWheeler2006_2(TDy tdy,double *x,double *f,void *ctx) {
   PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
   PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
@@ -366,9 +365,9 @@ PetscErrorCode GeometryWheeler2006_2(DM dm, PetscInt n){
     x = coords[offset  ];
     y = coords[offset+1];
     if(x < 0.5){
-      coords[offset+1] = (-3.225*x*x + 1.41*x + 0.5)*y ;
+      coords[offset+1] = (-4.8*x*x + 2.*x + 0.7)*y ;
     }else{
-      coords[offset+1] = (0.3963964*x + 0.20045045)*y ;
+      coords[offset+1] = (0.75*x + 0.125)*y ;
     }
   }
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
