@@ -127,8 +127,8 @@ implicit none
   call TDyCreate(dm, tdy, ierr);
   CHKERRA(ierr);
 
-  !call TDySetWaterDensityType(tdy,WATER_DENSITY_EXPONENTIAL,ierr);
-  !CHKERRA(ierr)
+  call TDySetWaterDensityType(tdy,WATER_DENSITY_EXPONENTIAL,ierr);
+  CHKERRA(ierr)
 
   call DMPlexGetHeightStratum(dm,0,cStart,cEnd,ierr);
   CHKERRA(ierr);
