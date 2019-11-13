@@ -172,9 +172,12 @@ implicit none
   CHKERRA(ierr);
 
   if (ic_file_flg) then
-    call PetscViewerBinaryOpen(PETSC_COMM_WORLD, ic_filename, FILE_MODE_READ, viewer, ierr); CHKERRQ(ierr)
-    call VecLoad(U, viewer, ierr); CHKERRQ(ierr)
-    call PetscViewerDestroy(viewer, ierr); CHKERRQ(ierr)
+    call PetscViewerBinaryOpen(PETSC_COMM_WORLD, ic_filename, FILE_MODE_READ, viewer, ierr);
+    CHKERRA(ierr)
+    call VecLoad(U, viewer, ierr);
+    CHKERRA(ierr)
+    call PetscViewerDestroy(viewer, ierr);
+    CHKERRA(ierr)
   else
     call VecSet(U,102325.d0,ierr);
     CHKERRA(ierr);
@@ -230,9 +233,12 @@ implicit none
     string = 'solution_' // trim(adjustl(string)) // '.bin'
     if (step_mod == 0) then
       write(*,*)'Writing output: ',trim(string)
-      call PetscViewerBinaryOpen(PETSC_COMM_WORLD, trim(string), FILE_MODE_WRITE, viewer, ierr); CHKERRQ(ierr)
-      call VecView(U, viewer, ierr); CHKERRQ(ierr)
-      call PetscViewerDestroy(viewer, ierr); CHKERRQ(ierr)
+      call PetscViewerBinaryOpen(PETSC_COMM_WORLD, trim(string), FILE_MODE_WRITE, viewer, ierr);
+      CHKERRA(ierr)
+      call VecView(U, viewer, ierr);
+      CHKERRA(ierr)
+      call PetscViewerDestroy(viewer, ierr);
+      CHKERRA(ierr)
     endif
 
   end do
