@@ -3003,7 +3003,7 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
   TDy_mesh       *mesh;
   TDy_cell       *cells;
   TDy_vertex     *vertices;
-  PetscInt       vStart, vEnd, junkInt, gref;
+  PetscInt       vStart, vEnd;
   DM             dm;
   PetscErrorCode ierr;
 
@@ -3022,9 +3022,6 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
       if (cells[icell].is_local) vertices[ivertex].is_local = PETSC_TRUE;
     }
 
-    ierr = DMPlexGetPointGlobal(dm,ivertex+vStart,&gref,&junkInt); CHKERRQ(ierr);
-    if (gref>=0) vertices[ivertex].global_id = gref;
-    else         vertices[ivertex].global_id = -gref-1;
   }
 
   PetscFunctionReturn(0);
@@ -3038,7 +3035,7 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
   TDy_mesh *mesh;
   TDy_cell *cells;
   TDy_edge *edges;
-  PetscInt       eStart, eEnd, junkInt, gref;
+  PetscInt       eStart, eEnd;
   DM             dm;
   PetscErrorCode ierr;
 
@@ -3052,10 +3049,6 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
   ierr = DMPlexGetDepthStratum(dm, 1, &eStart, &eEnd); CHKERRQ(ierr);
 
   for (iedge=0; iedge<mesh->num_edges; iedge++) {
-
-    ierr = DMPlexGetPointGlobal(dm,iedge+eStart,&gref,&junkInt); CHKERRQ(ierr);
-    if (gref>=0) edges[iedge].global_id = gref;
-    else         edges[iedge].global_id = -gref-1;
 
     if (!edges[iedge].is_internal) { // Is it a boundary edge?
 
@@ -3101,7 +3094,7 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
   TDy_mesh *mesh;
   TDy_cell *cells;
   TDy_face *faces;
-  PetscInt       fStart, fEnd, junkInt, gref;
+  PetscInt       fStart, fEnd;
   DM             dm;
   PetscErrorCode ierr;
 
@@ -3117,10 +3110,6 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
 
   for (iface=0; iface<mesh->num_faces; iface++) {
-
-    ierr = DMPlexGetPointGlobal(dm,iface+fStart,&gref,&junkInt); CHKERRQ(ierr);
-    if (gref>=0) faces[iface].global_id = gref;
-    else         faces[iface].global_id = -gref-1;
 
     if (!faces[iface].is_internal) { // Is it a boundary face?
 
