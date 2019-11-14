@@ -12,13 +12,14 @@
 !
       PetscEnum TPF
       PetscEnum MPFA_O
+      PetscEnum MPFA_O_DAE
       PetscEnum BDM
       PetscEnum WY
 
       ! The parameters values need to match those defined in
       ! the C code (i.e. include/tdycore.h)
-      parameter (TPF=0,MPFA_O=1)
-      parameter (BDM=2,WY=3)
+      parameter (TPF=0,MPFA_O=1,MPFA_O_DAE=2)
+      parameter (BDM=3,WY=4)
 
 !
 !  Types of TDy water densities

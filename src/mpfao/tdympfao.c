@@ -260,16 +260,32 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   /* Setup the section, 1 dof per cell */
   PetscSection sec;
   PetscInt p, pStart, pEnd;
+  PetscBool use_dae;
+  
+  use_dae = (tdy->method == MPFA_O_DAE);
   ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
-  ierr = PetscSectionSetNumFields(sec, 1); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldComponents(sec,0, 1); CHKERRQ(ierr);
+  if (!use_dae) {
+    ierr = PetscSectionSetNumFields(sec, 1); CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldComponents(sec,0, 1); CHKERRQ(ierr);
+  } else {
+    ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldComponents(sec,0, 1); CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldName(sec, 1, "LiquidMass"); CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldComponents(sec,1, 1); CHKERRQ(ierr);
+  }
+
   ierr = DMPlexGetChart(dm, &pStart, &pEnd); CHKERRQ(ierr);
   ierr = PetscSectionSetChart(sec,pStart,pEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&pStart,&pEnd); CHKERRQ(ierr);
   for(p=pStart; p<pEnd; p++) {
     ierr = PetscSectionSetFieldDof(sec,p,0,1); CHKERRQ(ierr);
     ierr = PetscSectionSetDof(sec,p,1); CHKERRQ(ierr);
+    if (use_dae) {
+      ierr = PetscSectionSetFieldDof(sec,p,1,1); CHKERRQ(ierr);
+      ierr = PetscSectionSetDof(sec,p,2); CHKERRQ(ierr);
+    }
   }
   ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
   ierr = DMSetDefaultSection(dm,sec); CHKERRQ(ierr);

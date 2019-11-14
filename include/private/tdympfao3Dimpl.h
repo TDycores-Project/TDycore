@@ -15,6 +15,7 @@ PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWi
 PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices_3DMesh(TDy,Vec,PetscReal*,PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyMPFAOIFunction_3DMesh(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_EXTERN PetscErrorCode TDyMPFAOIJacobian_3DMesh(TS,PetscReal,Vec,Vec,PetscReal,Mat,Mat,void*);
+PETSC_EXTERN PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_EXTERN PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES,Vec,Vec,void*);
 PETSC_EXTERN PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES,Vec,Mat,Mat,void*);
 PETSC_EXTERN PetscErrorCode TDyMPFAOSetFromOptions(TDy);

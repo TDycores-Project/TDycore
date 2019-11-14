@@ -132,7 +132,38 @@ int main(int argc, char **argv) {
   Vec U;
   ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
   ierr = VecSet(U,91325); CHKERRQ(ierr);
-  
+  //VecView(U,PETSC_VIEWER_STDOUT_WORLD);
+
+  PetscSection   sec;
+  PetscInt num_fields;
+  PetscReal total_mass_beg, total_mass_end;
+  ierr = DMGetDefaultSection(dm, &sec);
+  ierr = PetscSectionGetNumFields(sec, &num_fields);
+
+  PetscReal *mass_p,*pres_p, *u_p;
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&pres_p);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&mass_p);CHKERRQ(ierr);
+
+  if (num_fields == 2) {
+    ierr = VecGetArray(U,&u_p); CHKERRQ(ierr);
+    for (c=0;c<cEnd-cStart;c++) pres_p[c] = u_p[c*2];
+    ierr = TDyUpdateState(tdy,pres_p); CHKERRQ(ierr);
+    ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
+    total_mass_beg = 0;
+    for (c=0;c<cEnd-cStart;c++) {
+      u_p[c*2+1] = mass_p[c];
+      total_mass_beg += mass_p[c];
+    }
+    ierr = VecRestoreArray(U,&u_p); CHKERRQ(ierr);
+  } else {
+    ierr = VecGetArray(U,&pres_p); CHKERRQ(ierr);
+    ierr = TDyUpdateState(tdy,pres_p); CHKERRQ(ierr);
+    ierr = VecRestoreArray(U,&pres_p); CHKERRQ(ierr);
+    ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
+    total_mass_beg = 0;
+    for (c=0;c<cEnd-cStart;c++) total_mass_beg += mass_p[c];
+  }
+
   /* Create time stepping and solve */
   TS  ts;
   ierr = TSCreate(PETSC_COMM_WORLD,&ts); CHKERRQ(ierr);
@@ -148,6 +179,14 @@ int main(int argc, char **argv) {
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
   ierr = TSSetUp(ts); CHKERRQ(ierr);
   ierr = TSSolve(ts,U); CHKERRQ(ierr);
+
+  ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
+  total_mass_end = 0;
+  for (c=0;c<cEnd-cStart;c++) total_mass_end += mass_p[c];
+  
+  if (num_fields == 1) printf("TS ODE ");
+  else printf("TS DAE ");
+  printf("Mass balance: beg = %e; end = %e; change %e\n",total_mass_beg,total_mass_end,total_mass_end-total_mass_beg);
 
   /* Save regression file */
   ierr = TDyOutputRegression(tdy,U); CHKERRQ(ierr);
