@@ -40,7 +40,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   DM             dm;
   TDy_mesh       *mesh;
   TDy_cell       *cells, *cell;
-  TDy_subcell    *subcell;
+  TDy_subcell    *subcells, *subcell;
   TDy_vertex     *vertices, *vertex;
   TDy_edge       *edges, *edge_up, *edge_dn;
   PetscInt       num_subcells;
@@ -59,6 +59,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   cells    = mesh->cells;
   edges    = mesh->edges;
   vertices = mesh->vertices;
+  subcells = mesh->subcells;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
@@ -79,7 +80,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
     for (isubcell=0; isubcell<num_subcells; isubcell++) {
 
       vertex  = &vertices[cell->vertex_ids[isubcell]];
-      subcell = &cell->subcells[isubcell];
+      subcell = &subcells[icell*cell->num_subcells+isubcell];
 
       // determine ids of up & down edges
       e_idx_up = cells[icell].edge_ids[isubcell];

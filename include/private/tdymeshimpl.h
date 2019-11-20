@@ -90,8 +90,6 @@ struct _TDy_cell {
 
   PetscReal volume;        /* volume of the cell                */
 
-  TDy_subcell *subcells;   /* subcells that form the cell       */
-
 };
 
 
@@ -176,10 +174,11 @@ struct _TDy_mesh {
   PetscInt   num_vertices;
   PetscInt num_boundary_faces;
 
-  TDy_cell   *cells;
-  TDy_vertex *vertices;
-  TDy_edge   *edges;
-  TDy_face   *faces;
+  TDy_cell    *cells;
+  TDy_subcell *subcells;
+  TDy_vertex  *vertices;
+  TDy_edge    *edges;
+  TDy_face    *faces;
 
 };
 
@@ -196,5 +195,5 @@ PETSC_EXTERN PetscErrorCode TDyFace_GetNormal(TDy_face*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyFace_GetCentroid(TDy_face*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyCell_GetCentroid(TDy_cell*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,TDy_vertex*,TDy_subcell**);
+PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,TDy_vertex*,TDy_subcell*,TDy_subcell**);
 #endif
