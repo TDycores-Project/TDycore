@@ -369,6 +369,7 @@ PetscErrorCode AllocateMemoryForASubcell(
 }
 
 /* -------------------------------------------------------------------------- */
+/*
 PetscErrorCode AllocateMemoryForACell(
   TDy_cell       *cell,
   TDyCellType cell_type
@@ -408,6 +409,7 @@ PetscErrorCode AllocateMemoryForACell(
 
   PetscFunctionReturn(0);
 }
+*/
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode AllocateMemoryForCells(
@@ -417,14 +419,69 @@ PetscErrorCode AllocateMemoryForCells(
 
   PetscFunctionBegin;
 
-  PetscInt icell;
+  PetscInt       icell;
+  PetscInt       num_vertices;
+  PetscInt       num_edges;
+  PetscInt       num_neighbors;
+  PetscInt       num_faces;
+  PetscInt       num_subcells;
+  TDySubcellType subcell_type;
   PetscErrorCode ierr;
 
+  num_vertices  = GetNumVerticesForCellType(cell_type);
+  num_edges     = GetNumEdgesForCellType(cell_type);
+  num_neighbors = GetNumNeighborsForCellType(cell_type);
+  num_faces     = GetNumFacesForCellType(cell_type);
+
+  subcell_type  = GetSubcellTypeForCellType(cell_type);
+  num_subcells  = GetNumSubcellsForSubcellType(subcell_type);
+
+  ierr = TDyAllocate_IntegerArray_1D(&cells->id,num_cells); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&cells->global_id,num_cells); CHKERRQ(ierr);
+
+  cells->is_local = (PetscBool *)malloc(num_cells*sizeof(PetscBool));
+
+  ierr = TDyAllocate_IntegerArray_1D(&cells->num_vertices,num_cells); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&cells->num_edges,num_cells); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&cells->num_faces,num_cells); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&cells->num_neighbors,num_cells); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&cells->num_subcells,num_cells); CHKERRQ(ierr);
+
+  ierr = TDyAllocate_IntegerArray_1D(&cells->offsets_for_vertex_ids  ,num_cells); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&cells->offsets_for_edge_ids    ,num_cells); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&cells->offsets_for_face_ids    ,num_cells); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&cells->offsets_for_neighbor_ids,num_cells); CHKERRQ(ierr);
+
+  ierr = TDyAllocate_IntegerArray_1D(&cells->vertex_ids  ,num_cells*num_vertices); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&cells->edge_ids    ,num_cells*num_edges); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&cells->neighbor_ids,num_cells*num_neighbors); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&cells->face_ids    ,num_cells*num_faces); CHKERRQ(ierr);
+
+  ierr = TDyAllocate_TDyCoordinate_1D(num_cells,&cells->centroid); CHKERRQ(ierr);
+
+  ierr = TDyAllocate_RealArray_1D(&cells->volume,num_cells); CHKERRQ(ierr);
+
+  for (icell=0; icell<num_cells; icell++) {
+    cells->id[icell]            = icell;
+    cells->num_vertices[icell]  = num_vertices;
+    cells->num_edges[icell]     = num_edges;
+    cells->num_faces[icell]     = num_faces;
+    cells->num_neighbors[icell] = num_neighbors;
+    cells->num_subcells[icell]  = num_subcells;
+
+    cells->offsets_for_vertex_ids[icell]   = icell*num_vertices;
+    cells->offsets_for_edge_ids[icell]     = icell*num_edges;
+    cells->offsets_for_face_ids[icell]     = icell*num_faces;
+    cells->offsets_for_neighbor_ids[icell] = icell*num_neighbors;
+
+  }
   /* allocate memory for cells within the mesh*/
+  /*
   for (icell=0; icell<num_cells; icell++) {
     cells[icell].id = icell;
     ierr = AllocateMemoryForACell(&cells[icell], cell_type); CHKERRQ(ierr);
   }
+  */
 
   PetscFunctionReturn(0);
 
@@ -646,12 +703,12 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
   tdy->ncv = nverts_per_cell;
   cell_type = GetCellType(dim, nverts_per_cell);
 
-  ierr = TDyAllocate_TDyCell_1D(cNum, &mesh->cells); CHKERRQ(ierr);
+  //ierr = TDyAllocate_TDyCell_1D(cNum, &mesh->cells); CHKERRQ(ierr);
   ierr = TDyAllocate_TDyFace_1D(fNum, &mesh->faces); CHKERRQ(ierr);
   ierr = TDyAllocate_TDyEdge_1D(eNum, &mesh->edges); CHKERRQ(ierr);
   ierr = TDyAllocate_TDyVertex_1D(vNum, &mesh->vertices); CHKERRQ(ierr);
 
-  ierr = AllocateMemoryForCells(cNum, cell_type, mesh->cells); CHKERRQ(ierr);
+  ierr = AllocateMemoryForCells(cNum, cell_type, &mesh->cells); CHKERRQ(ierr);
   ierr = AllocateMemoryForVertices(vNum, cell_type, mesh->vertices); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForEdges(eNum, cell_type, mesh->edges); CHKERRQ(ierr);
@@ -723,7 +780,7 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
   }
 
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
   edges    = mesh->edges;
   vertices = mesh->vertices;
   faces    = mesh->faces;
@@ -746,7 +803,7 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
                                      cEnd)) { // is the elment a cell?
       icell = ielement - cStart;
       for (d=0; d<dim; d++) {
-        cells[icell].centroid.X[d] = tdy->X[ielement*dim + d];
+        cells->centroid[icell].X[d] = tdy->X[ielement*dim + d];
       }
     } else if (IsClosureWithinBounds(ielement, fStart,
                                      fEnd)) { // is the elment a face?
@@ -770,7 +827,7 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
 
   DM             dm;
   TDy_mesh       *mesh;
-  TDy_cell       *cells, *cell;
+  TDy_cell       *cells;
   TDy_vertex     *vertices;
   TDy_edge       *edges;
   TDy_face       *faces, *face;
@@ -809,7 +866,7 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   }
 
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
   edges    = mesh->edges;
   vertices = mesh->vertices;
   faces    = mesh->faces;
@@ -829,7 +886,8 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
       if (IsClosureWithinBounds(tdy->closure[icell][i], vStart,
                                 vEnd)) { /* Is the closure a vertex? */
         PetscInt ivertex = tdy->closure[icell][i] - vStart;
-        cells[icell].vertex_ids[c2vCount] = ivertex ;
+        PetscInt vOffset = cells->offsets_for_vertex_ids[icell];
+        cells->vertex_ids[vOffset + c2vCount] = ivertex ;
         for (j=0; j<nverts_per_cell; j++) {
           if (vertices[ivertex].internal_cell_ids[j] == -1) {
             vertices[ivertex].num_internal_cells++;
@@ -842,7 +900,8 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
       } else if (IsClosureWithinBounds(tdy->closure[icell][i], eStart,
                                        eEnd)) { /* Is the closure an edge? */
         PetscInt iedge = tdy->closure[icell][i] - eStart;
-        cells[icell].edge_ids[c2eCount] = iedge;
+        PetscInt eOffset = cells->offsets_for_edge_ids[icell];
+        cells->edge_ids[eOffset + c2eCount] = iedge;
         for (j=0; j<2; j++) {
           if (edges[iedge].cell_ids[j] == -1) {
             edges[iedge].cell_ids[j] = icell;
@@ -853,7 +912,8 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
       } else if (IsClosureWithinBounds(tdy->closure[icell][i], fStart,
                                        fEnd)) { /* Is the closure a face? */
         PetscInt iface = tdy->closure[icell][i] - fStart;
-        cells[icell].face_ids[c2fCount] = iface;
+        PetscInt fOffset = cells->offsets_for_face_ids[icell];
+        cells->face_ids[fOffset + c2fCount] = iface;
         for (j=0; j<2; j++) {
           if (faces[iface].cell_ids[j] < 0) {
             faces[iface].cell_ids[j] = icell;
@@ -952,18 +1012,19 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
 
     for (s=0; s<supportSize; s++) {
       icell = support[s] - cStart;
-      cell = &cells[icell];
+      //cell = &cells[icell];
         PetscBool found = PETSC_FALSE;
         PetscInt ii;
-        for (ii=0; ii<cell->num_faces; ii++) {
-          if (cell->face_ids[ii] == f-fStart) {
+        PetscInt faceStart = cells->offsets_for_face_ids[icell];
+        for (ii=0; ii<cells->num_faces[icell]; ii++) {
+          if (cells->face_ids[faceStart+ii] == f-fStart) {
             found = PETSC_TRUE;
             break;
           }
         }
         if (!found) {
-          cell->face_ids[cell->num_faces] = f-fStart;
-          cell->num_faces++;
+          cells->face_ids[faceStart + cells->num_faces[icell]] = f-fStart;
+          cells->num_faces[icell]++;
           found = PETSC_TRUE;
         }
     }
@@ -1037,7 +1098,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   PetscErrorCode ierr;
 
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
   edges    = mesh->edges;
   vertex   = &(mesh->vertices[ivertex]);
 
@@ -1049,8 +1110,8 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   for (i=0; i<ncells; i++) {
     icell = vertex->internal_cell_ids[i];
 
-    x = cells[icell].centroid.X[0] - vertex->coordinate.X[0];
-    y = cells[icell].centroid.X[1] - vertex->coordinate.X[1];
+    x = cells->centroid[icell].X[0] - vertex->coordinate.X[0];
+    y = cells->centroid[icell].X[1] - vertex->coordinate.X[1];
 
     ids[count]              = icell;
     idx[count]              = count;
@@ -1288,13 +1349,13 @@ PetscErrorCode UpdateCellOrientationAroundAEdge2DMesh(TDy tdy) {
   PetscReal      dot_product;
   PetscInt       eStart, eEnd;
   PetscInt       iedge;
-  TDy_cell       *cells, *cell_from, *cell_to;
+  TDy_cell       *cells;
   TDy_edge       *edges, *edge;
   PetscErrorCode ierr;
 
   dm    = tdy->dm;
   mesh  = tdy->mesh;
-  cells = mesh->cells;
+  cells = &mesh->cells;
   edges = mesh->edges;
 
   ierr = DMPlexGetHeightStratum(dm, 1, &eStart, &eEnd); CHKERRQ(ierr);
@@ -1302,25 +1363,30 @@ PetscErrorCode UpdateCellOrientationAroundAEdge2DMesh(TDy tdy) {
   for (iedge=0; iedge<eEnd-eStart; iedge++) {
     edge = &(edges[iedge]);
     if (edge->is_internal) {
-      cell_from = &cells[edge->cell_ids[0]];
-      cell_to   = &cells[edge->cell_ids[1]];
+      //cell_from = &cells[edge->cell_ids[0]];
+      //cell_to   = &cells[edge->cell_ids[1]];
+      TDy_coordinate *cell_from_centroid = &cells->centroid[edge->cell_ids[0]];
+      TDy_coordinate *cell_to_centroid   = &cells->centroid[edge->cell_ids[1]];
 
-      dot_product = (cell_to->centroid.X[0] - cell_from->centroid.X[0]) *
+      dot_product = (cell_to_centroid->X[0] - cell_from_centroid->X[0]) *
                     edge->normal.V[0] +
-                    (cell_to->centroid.X[1] - cell_from->centroid.X[1]) * edge->normal.V[1];
+                    (cell_to_centroid->X[1] - cell_from_centroid->X[1]) * edge->normal.V[1];
       if (dot_product < 0.0) {
-        edge->cell_ids[0] = cell_to->id;
-        edge->cell_ids[1] = cell_from->id;
+        PetscInt tmp = edge->cell_ids[0];
+        edge->cell_ids[0] = edge->cell_ids[1];
+        edge->cell_ids[1] = tmp;
       }
     } else {
-      cell_from = &cells[edge->cell_ids[0]];
+      //cell_from = &cells[edge->cell_ids[0]];
+      TDy_coordinate *cell_from_centroid = &cells->centroid[edge->cell_ids[0]];
 
-      dot_product = (edge->centroid.X[0] - cell_from->centroid.X[0]) *
+      dot_product = (edge->centroid.X[0] - cell_from_centroid->X[0]) *
                     edge->normal.V[0] +
-                    (edge->centroid.X[1] - cell_from->centroid.X[1]) * edge->normal.V[1];
+                    (edge->centroid.X[1] - cell_from_centroid->X[1]) * edge->normal.V[1];
       if (dot_product < 0.0) {
+        PetscInt tmp = edge->cell_ids[0];
         edge->cell_ids[0] = -1;
-        edge->cell_ids[1] = cell_from->id;
+        edge->cell_ids[1] = tmp;
       }
 
     }
@@ -1475,10 +1541,20 @@ PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex *vertex, PetscInt dim, PetscRe
 }
 
 /* -------------------------------------------------------------------------- */
+/*
 PetscErrorCode TDyCell_GetCentroid(TDy_cell *cell, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) centroid[d] = cell->centroid.X[d];
+  PetscFunctionReturn(0);
+}
+*/
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyCell_GetCentroid2(TDy_cell *cells, PetscInt icell, PetscInt dim, PetscReal *centroid) {
+  PetscFunctionBegin;
+  PetscInt d;
+  for (d=0; d<dim; d++) centroid[d] = cells->centroid[icell].X[d];
   PetscFunctionReturn(0);
 }
 
@@ -1489,7 +1565,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
   PetscFunctionBegin;
 
   TDy_mesh       *mesh;
-  TDy_cell       *cells, *cell;
+  TDy_cell       *cells;
   TDy_subcell    *subcells, *subcell;
   TDy_vertex     *vertices, *vertex;
   TDy_edge       *edges, *edge_up, *edge_dn;
@@ -1505,7 +1581,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
   PetscErrorCode ierr;
 
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
   edges    = mesh->edges;
   vertices = mesh->vertices;
   subcells = mesh->subcells;
@@ -1519,26 +1595,30 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
   for (icell=0; icell<cEnd-cStart; icell++) {
 
     // set pointer to cell
-    cell = &cells[icell];
+    //cell = &cells[icell];
 
     // save cell centroid
-    ierr = TDyCell_GetCentroid(cell, dim, &cell_cen[0]); CHKERRQ(ierr);
+    ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen[0]); CHKERRQ(ierr);
 
-    num_subcells = cell->num_subcells;
+    num_subcells = cells->num_subcells[icell];
 
     for (isubcell=0; isubcell<num_subcells; isubcell++) {
 
       // set pointer to vertex and subcell
-      vertex  = &vertices[cell->vertex_ids[isubcell]];
+      PetscInt vertexStart = cells->offsets_for_vertex_ids[icell];
+
+      vertex  = &vertices[cells->vertex_ids[vertexStart+isubcell]];
       subcell = &subcells[icell*num_subcells+isubcell];
 
       // save coorindates of vertex that is part of the subcell
       ierr = TDyVertex_GetCoordinate(vertex, dim, &v_c[0]); CHKERRQ(ierr);
 
       // determine ids of up & down edges
-      e_idx_up = cells[icell].edge_ids[isubcell];
-      if (isubcell == 0) e_idx_dn = cells[icell].edge_ids[num_subcells-1];
-      else               e_idx_dn = cells[icell].edge_ids[isubcell    -1];
+      PetscInt edgeStart = cells->offsets_for_edge_ids[icell];
+      e_idx_up = cells->edge_ids[edgeStart + isubcell];
+
+      if (isubcell == 0) e_idx_dn = cells->edge_ids[edgeStart + num_subcells-1];
+      else               e_idx_dn = cells->edge_ids[edgeStart + isubcell    -1];
 
       // set points to up/down edges
       edge_up = &edges[e_idx_up];
@@ -1581,7 +1661,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
       subcell->T = 2.0*area;
 
     }
-    ierr = DMPlexComputeCellGeometryFVM(dm, icell, &(cell->volume), &centroid,
+    ierr = DMPlexComputeCellGeometryFVM(dm, icell, &(cells->volume[icell]), &centroid,
                                         &normal[0]); CHKERRQ(ierr);
   }
 
@@ -1635,14 +1715,14 @@ PetscErrorCode FindNeighboringVerticesOfAFace(TDy_face *face, PetscInt vertex_id
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode FindFaceIDsOfACellCommonToAVertex(TDy_cell *cell, TDy_face *faces,
+PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDy_face *faces,
                                                  TDy_vertex *vertex, PetscInt f_idx[3],
                                                  PetscInt *num_shared_faces) {
   
   PetscFunctionBegin;
   
   PetscInt iface;
-  PetscInt cell_id = cell->id;
+  //PetscInt cell_id = cell->id;
   
   *num_shared_faces = 0;
   
@@ -1674,7 +1754,7 @@ PetscErrorCode FindFaceIDsOfACellCommonToAVertex(TDy_cell *cell, TDy_face *faces
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode UpdateFaceOrientationAroundAVertex(TDy_cell *cell, TDy_face *faces,
+PetscErrorCode UpdateFaceOrientationAroundAVertex(TDy_coordinate *cell_centroid, TDy_face *faces,
                                                   TDy_vertex *vertex, PetscInt dim,
                                                   PetscInt f_idx[3]) {
   
@@ -1688,7 +1768,7 @@ PetscErrorCode UpdateFaceOrientationAroundAVertex(TDy_cell *cell, TDy_face *face
   for (d=0; d<dim; d++) {
     a[d] = faces[f_idx[1]].centroid.X[d] - faces[f_idx[0]].centroid.X[d];
     b[d] = faces[f_idx[2]].centroid.X[d] - faces[f_idx[0]].centroid.X[d];
-    c[d] = cell->centroid.X[d] - vertex->coordinate.X[d];
+    c[d] = cell_centroid->X[d] - vertex->coordinate.X[d];
   }
   
   ierr = TDyCrossProduct(a,b,axb); CHKERRQ(ierr);
@@ -1730,7 +1810,7 @@ PetscErrorCode SetupCell2CellConnectivity(TDy_vertex *vertex, TDy_cell *cells, T
 
   for (icell=0; icell<ncells; icell++) {
 
-    TDy_cell    *cell;
+    //TDy_cell    *cell;
     TDy_subcell *subcell;
 
     // Determine the cell and subcell id
@@ -1738,8 +1818,8 @@ PetscErrorCode SetupCell2CellConnectivity(TDy_vertex *vertex, TDy_cell *cells, T
     isubcell = vertex->subcell_ids[icell];
 
     // Get access to the cell and subcell
-    cell    = &cells[cell_id];
-    subcell = &subcells[cell_id*cell->num_subcells+isubcell];
+    //cell    = &cells[cell_id];
+    subcell = &subcells[cell_id*cells->num_subcells[icell]+isubcell];
 
     // Loop over all faces of the subcell
     for (iface=0;iface<subcell->num_faces;iface++) {
@@ -1797,11 +1877,9 @@ PetscErrorCode ExtractCentroidForIthJthTraversalOrder(TDy_vertex *vertex, TDy_fa
 
   if (cell_traversal_ij>=0) { // Is a cell?
     PetscInt cell_id;
-    TDy_cell *cell;
 
     cell_id = vertex->internal_cell_ids[cell_traversal_ij];
-    cell = &cells[cell_id];
-    ierr = TDyCell_GetCentroid(cell, dim, &cen[0]); CHKERRQ(ierr);
+    ierr = TDyCell_GetCentroid2(cells, cell_id, dim, &cen[0]); CHKERRQ(ierr);
 
   } else { // is a face
   
@@ -2095,7 +2173,6 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
 
   for (icell=0; icell<ncells; icell++) {
 
-    TDy_cell    *cell;
     TDy_subcell *subcell;
 
     // Determine the cell and subcell id
@@ -2103,8 +2180,8 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
     isubcell = vertex->subcell_ids[icell];
 
     // Get access to the cell and subcell
-    cell    = &cells[cell_id];
-    subcell = &subcells[cell_id*cell->num_subcells+isubcell];
+    //cell    = &cells[cell_id];
+    subcell = &subcells[cell_id*cells->num_subcells[cell_id]+isubcell];
 
     // Loop over all faces of the subcell
     for (iface=0;iface<subcell->num_faces;iface++) {
@@ -2131,13 +2208,13 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
         if (cell_up2dw[ii][0] == cell_1 && cell_up2dw[ii][1] == cell_2) {
 
           subcell->face_unknown_idx[iface] = ii;
-          if (cell->id == face->cell_ids[0])  subcell->is_face_up[iface] = PETSC_TRUE;
+          if (cells->id[cell_id] == face->cell_ids[0])  subcell->is_face_up[iface] = PETSC_TRUE;
           else                                subcell->is_face_up[iface] = PETSC_FALSE;
           break;
         } else if (cell_up2dw[ii][0] == cell_2 && cell_up2dw[ii][1] == cell_1) {
 
           subcell->face_unknown_idx[iface] = ii;
-          if (cell->id == face->cell_ids[1]) subcell->is_face_up[iface] = PETSC_TRUE;
+          if (cells->id[cell_id] == face->cell_ids[1]) subcell->is_face_up[iface] = PETSC_TRUE;
           else                               subcell->is_face_up[iface] = PETSC_FALSE;
           break;
         }
@@ -2153,7 +2230,6 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
   // Save the face index that corresponds to the flux in transmissibility matrix
   for (icell=0; icell<ncells; icell++) {
 
-    TDy_cell    *cell;
     TDy_subcell *subcell;
 
     // Determine the cell and subcell id
@@ -2161,8 +2237,8 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertex, TDy_cell *cells, T
     isubcell = vertex->subcell_ids[icell];
 
     // Get access to the cell and subcell
-    cell    = &cells[cell_id];
-    subcell = &subcells[cell_id*cell->num_subcells+isubcell];
+    //cell    = &cells[cell_id];
+    subcell = &subcells[cell_id*cells->num_subcells[cell_id]+isubcell];
 
     // Loop over all faces of the subcell and
     // - Updates face_ids for a vertex such that first all
@@ -2243,7 +2319,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell(TDy tdy, TDy_vertex *vertex) {
   PetscInt **cell_up2dw;
   PetscErrorCode ierr;
 
-  cells = tdy->mesh->cells;
+  cells = &tdy->mesh->cells;
   faces = tdy->mesh->faces;
   subcells = tdy->mesh->subcells;
 
@@ -2440,7 +2516,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
   DM dm;
   TDy_mesh       *mesh;
-  TDy_cell       *cells, *cell;
+  TDy_cell       *cells;
   TDy_subcell    *subcells, *subcell;
   TDy_vertex     *vertices, *vertex;
   TDy_face       *faces, *face;
@@ -2452,7 +2528,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
   dm       = tdy->dm;
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
   faces    = mesh->faces;
   vertices = mesh->vertices;
   subcells = mesh->subcells;
@@ -2464,18 +2540,19 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
   for (icell=0; icell<cEnd-cStart; icell++) {
 
     // set pointer to cell
-    cell = &cells[icell];
+    //cell = &cells[icell];
 
     // save cell centroid
-    ierr = TDyCell_GetCentroid(cell, dim, &cell_cen[0]); CHKERRQ(ierr);
+    ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen[0]); CHKERRQ(ierr);
 
-    num_subcells = cell->num_subcells;
+    num_subcells = cells->num_subcells[icell];
 
     for (isubcell=0; isubcell<num_subcells; isubcell++) {
 
       // set pointer to vertex and subcell
-      vertex  = &vertices[cell->vertex_ids[isubcell]];
-      subcell = &subcells[icell*cell->num_subcells+isubcell];
+      PetscInt vStart = cells->offsets_for_vertex_ids[icell];
+      vertex  = &vertices[cells->vertex_ids[vStart+isubcell]];
+      subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
 
       // save coorindates of vertex that is part of the subcell
       ierr = TDyVertex_GetCoordinate(vertex, dim, &v_c[0]); CHKERRQ(ierr);
@@ -2483,11 +2560,11 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
       PetscInt num_shared_faces;
 
       // For a given cell, find all face ids that are share a vertex
-      ierr = FindFaceIDsOfACellCommonToAVertex(cell, faces, vertex, subcell->face_ids, &num_shared_faces);
+      ierr = FindFaceIDsOfACellCommonToAVertex(cells->id[icell], faces, vertex, subcell->face_ids, &num_shared_faces);
 
       // Update order of faces in f_idx so (face_ids[0], face_ids[1], face_ids[2])
       // form a plane such that normal to plane points toward the cell centroid
-      ierr = UpdateFaceOrientationAroundAVertex(cell, faces, vertex, dim, subcell->face_ids);
+      ierr = UpdateFaceOrientationAroundAVertex(&cells->centroid[icell], faces, vertex, dim, subcell->face_ids);
       
       PetscReal face_cen[3][3];
 
@@ -2574,7 +2651,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
       subcell->T = volume*6.0;
     }
     PetscReal normal[3], centroid;
-    ierr = DMPlexComputeCellGeometryFVM(dm, icell, &(cell->volume), &centroid,
+    ierr = DMPlexComputeCellGeometryFVM(dm, icell, &(cells->volume[icell]), &centroid,
                                         &normal[0]); CHKERRQ(ierr);
 
   }
@@ -2607,13 +2684,13 @@ PetscErrorCode UpdateCellOrientationAroundAFace3DMesh(TDy tdy) {
   TDy_mesh       *mesh;
   PetscInt       iface, dim;
   TDy_vertex     *vertices, *vertex;
-  TDy_cell       *cells, *cell;
+  TDy_cell       *cells;
   TDy_face       *faces, *face;
   PetscErrorCode ierr;
 
   dm    = tdy->dm;
   mesh  = tdy->mesh;
-  cells = mesh->cells;
+  cells = &mesh->cells;
   faces = mesh->faces;
   vertices = mesh->vertices;
 
@@ -2633,8 +2710,7 @@ PetscErrorCode UpdateCellOrientationAroundAFace3DMesh(TDy tdy) {
 
     ierr = TDyFace_GetCentroid(face, dim, &f_cen[0]); CHKERRQ(ierr);
 
-    cell = &cells[face->cell_ids[0]];
-    ierr = TDyCell_GetCentroid(cell, dim, &c_cen[0]); CHKERRQ(ierr);
+    ierr = TDyCell_GetCentroid2(cells, face->cell_ids[0], dim, &c_cen[0]); CHKERRQ(ierr);
 
     ierr = TDyNormalToQuadrilateral(v1, v2, v3, v4, normal); CHKERRQ(ierr);
     for (d=0; d<dim; d++){ face->normal.V[d] = normal[d];}
@@ -2660,7 +2736,7 @@ PetscErrorCode OutputCells2DMesh(TDy tdy) {
 
   DM             dm;
   TDy_mesh       *mesh;
-  TDy_cell       *cells, *cell;
+  TDy_cell       *cells;
   TDy_subcell    *subcells, *subcell;
   PetscInt       dim;
   PetscInt       icell, d, k;
@@ -2671,7 +2747,7 @@ PetscErrorCode OutputCells2DMesh(TDy tdy) {
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
   subcells = mesh->subcells;
 
   Vec cell_cen, cell_vol;
@@ -2714,21 +2790,22 @@ PetscErrorCode OutputCells2DMesh(TDy tdy) {
   PetscInt count = 0;
   for (icell = 0; icell < mesh->num_cells; icell++) {
 
-    // set pointer to cell
-    cell = &cells[icell];
-
     // save centroid
-    ierr = TDyCell_GetCentroid(cell, dim, &cell_cen_v[icell*dim]); CHKERRQ(ierr);
+    ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen_v[icell*dim]); CHKERRQ(ierr);
 
     // save volume
-    cell_vol_v[icell] = cell->volume;
+    cell_vol_v[icell] = cells->volume[icell];
+
+    PetscInt nStart = cells->offsets_for_neighbor_ids[icell];
+    PetscInt vStart = cells->offsets_for_vertex_ids[icell];
+    PetscInt eStart = cells->offsets_for_edge_ids[icell];
 
     for (k=0; k<4; k++) {
-      neigh_id_v [icell*4 + k] = cell->neighbor_ids[k];
-      vertex_id_v[icell*4 + k] = cell->vertex_ids[k];
-      edge_id_v  [icell*4 + k] = cell->edge_ids[k];
+      neigh_id_v [icell*4 + k] = cells->neighbor_ids[nStart+k];
+      vertex_id_v[icell*4 + k] = cells->vertex_ids[vStart+k];
+      edge_id_v  [icell*4 + k] = cells->edge_ids[eStart+k];
 
-      subcell = &subcells[icell*cell->num_subcells+k];
+      subcell = &subcells[icell*cells->num_subcells[icell]+k];
 
       scell_vol_v[icell*4 + k] = subcell->T;
 
@@ -2993,7 +3070,7 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
   PetscFunctionBegin;
 
   dm = tdy->dm;
-  cells = tdy->mesh->cells;
+  cells = &tdy->mesh->cells;
 
   // Once needs to atleast haved called a DMCreateXYZ() before using DMPlexGetPointGlobal()
   ierr = DMCreateGlobalVector(dm, &junkVec); CHKERRQ(ierr);
@@ -3003,11 +3080,11 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      cells[c].is_local = PETSC_TRUE;
-      cells[c].global_id = gref;
+      cells->is_local[c] = PETSC_TRUE;
+      cells->global_id[c] = gref;
     } else {
-      cells[c].is_local = PETSC_FALSE;
-      cells[c].global_id = -gref-1;
+      cells->is_local[c] = PETSC_FALSE;
+      cells->global_id[c] = -gref-1;
     }
   }
 
@@ -3030,7 +3107,7 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
 
   dm       = tdy->dm;
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
   vertices = mesh->vertices;
   
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
@@ -3038,7 +3115,7 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     for (c=0; c<vertices[ivertex].num_internal_cells; c++) {
       icell = vertices[ivertex].internal_cell_ids[c];
-      if (cells[icell].is_local) vertices[ivertex].is_local = PETSC_TRUE;
+      if (cells->is_local[icell]) vertices[ivertex].is_local = PETSC_TRUE;
     }
 
   }
@@ -3062,7 +3139,7 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
 
   dm    = tdy->dm;
   mesh  = tdy->mesh;
-  cells = mesh->cells;
+  cells = &mesh->cells;
   edges = mesh->edges;
 
   ierr = DMPlexGetDepthStratum(dm, 1, &eStart, &eEnd); CHKERRQ(ierr);
@@ -3076,7 +3153,7 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
       else                                icell_1 = edges[iedge].cell_ids[1];
 
       // Is the cell locally owned?
-      if (cells[icell_1].is_local) edges[iedge].is_local = PETSC_TRUE;
+      if (cells->is_local[icell_1]) edges[iedge].is_local = PETSC_TRUE;
 
     } else { // An internal edge
 
@@ -3084,19 +3161,19 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
       icell_1 = edges[iedge].cell_ids[0];
       icell_2 = edges[iedge].cell_ids[1];
 
-      if (cells[icell_1].is_local && cells[icell_2].is_local) { // Are both cells locally owned?
+      if (cells->is_local[icell_1] && cells->is_local[icell_2]) { // Are both cells locally owned?
 
         edges[iedge].is_local = PETSC_TRUE;
 
-      } else if (cells[icell_1].is_local && !cells[icell_2].is_local) { // Is icell_1 locally owned?
+      } else if (cells->is_local[icell_1] && !cells->is_local[icell_2]) { // Is icell_1 locally owned?
 
         // Is the global ID of icell_1 lower than global ID of icell_2?
-        if (cells[icell_1].global_id < cells[icell_2].global_id) edges[iedge].is_local = PETSC_TRUE;
+        if (cells->global_id[icell_1] < cells->global_id[icell_2]) edges[iedge].is_local = PETSC_TRUE;
 
-      } else if (!cells[icell_1].is_local && cells[icell_2].is_local) { // Is icell_2 locally owned
+      } else if (!cells->is_local[icell_1] && cells->is_local[icell_2]) { // Is icell_2 locally owned
 
         // Is the global ID of icell_2 lower than global ID of icell_1?
-        if (cells[icell_2].global_id < cells[icell_1].global_id) edges[iedge].is_local = PETSC_TRUE;
+        if (cells->global_id[icell_2] < cells->global_id[icell_1]) edges[iedge].is_local = PETSC_TRUE;
 
       }
     }
@@ -3121,7 +3198,7 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
 
   dm    = tdy->dm;
   mesh  = tdy->mesh;
-  cells = mesh->cells;
+  cells = &mesh->cells;
   faces = mesh->faces;
 
   mesh->num_boundary_faces = 0;
@@ -3144,7 +3221,7 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
       }
 
       // Is the cell locally owned?
-      if (cells[icell_1].is_local) faces[iface].is_local = PETSC_TRUE;
+      if (cells->is_local[icell_1]) faces[iface].is_local = PETSC_TRUE;
 
     } else { // An internal face
 
@@ -3152,19 +3229,19 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
       icell_1 = faces[iface].cell_ids[0];
       icell_2 = faces[iface].cell_ids[1];
 
-      if (cells[icell_1].is_local && cells[icell_2].is_local) { // Are both cells locally owned?
+      if (cells->is_local[icell_1] && cells->is_local[icell_2]) { // Are both cells locally owned?
 
         faces[iface].is_local = PETSC_TRUE;
 
-      } else if (cells[icell_1].is_local && !cells[icell_2].is_local) { // Is icell_1 locally owned?
+      } else if (cells->is_local[icell_1] && !cells->is_local[icell_2]) { // Is icell_1 locally owned?
 
         // Is the global ID of icell_1 lower than global ID of icell_2?
-        if (cells[icell_1].global_id < cells[icell_2].global_id) faces[iface].is_local = PETSC_TRUE;
+        if (cells->global_id[icell_1] < cells->global_id[icell_2]) faces[iface].is_local = PETSC_TRUE;
 
-      } else if (!cells[icell_1].is_local && cells[icell_2].is_local) { // Is icell_2 locally owned
+      } else if (!cells->is_local[icell_1] && cells->is_local[icell_2]) { // Is icell_2 locally owned
 
         // Is the global ID of icell_2 lower than global ID of icell_1?
-        if (cells[icell_2].global_id < cells[icell_1].global_id) faces[iface].is_local = PETSC_TRUE;
+        if (cells->global_id[icell_2] < cells->global_id[icell_1]) faces[iface].is_local = PETSC_TRUE;
 
       }
     }
@@ -3219,14 +3296,14 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell *cell, TDy_vertex *vertex, TDy_subcell *subcells, TDy_subcell** subcell) {
+PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell *cells, PetscInt cell_id, TDy_vertex *vertex, TDy_subcell *subcells, TDy_subcell** subcell) {
 
   PetscFunctionBegin;
 
   PetscInt i, isubcell = -1;
 
   for (i=0; i<vertex->num_internal_cells;i++){
-    if (vertex->internal_cell_ids[i] == cell->id) {
+    if (vertex->internal_cell_ids[i] == cells->id[cell_id]) {
       isubcell = vertex->subcell_ids[i];
       break;
     }
@@ -3236,7 +3313,7 @@ PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell *cell, TDy_vert
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a subcell of a given cell that includes the given vertex");
   }
   
-  *subcell = &subcells[cell->id*cell->num_subcells+isubcell];
+  *subcell = &subcells[cells->id[cell_id]*cells->num_subcells[cell_id]+isubcell];
 
   PetscFunctionReturn(0);
 }

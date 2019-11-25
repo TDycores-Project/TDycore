@@ -70,25 +70,30 @@ struct _TDy_subcell {
 
 struct _TDy_cell {
 
-  PetscInt  id;            /* id of the cell in local numbering */
-  PetscInt  global_id;     /* global id of the cell in local numbering */
+  PetscInt  *id;            /* id of the cell in local numbering */
+  PetscInt  *global_id;     /* global id of the cell in local numbering */
 
-  PetscBool is_local;
+  PetscBool *is_local;
 
-  PetscInt  num_vertices;  /* number of vertices of the cell    */
-  PetscInt  num_edges;     /* number of edges of the cell       */
-  PetscInt  num_faces;     /* number of faces of the cell       */
-  PetscInt  num_neighbors; /* number of neigbors of the cell    */
-  PetscInt  num_subcells;  /* number of subcells within the cell*/
+  PetscInt  *num_vertices;  /* number of vertices of the cell    */
+  PetscInt  *num_edges;     /* number of edges of the cell       */
+  PetscInt  *num_faces;     /* number of faces of the cell       */
+  PetscInt  *num_neighbors; /* number of neigbors of the cell    */
+  PetscInt  *num_subcells;  /* number of subcells within the cell*/
+
+  PetscInt *offsets_for_vertex_ids;    /* vertice IDs that form the cell    */
+  PetscInt *offsets_for_edge_ids;      /* vertice IDs that form the cell    */
+  PetscInt *offsets_for_face_ids;      /* vertice IDs that form the cell    */
+  PetscInt *offsets_for_neighbor_ids;  /* vertice IDs that form the cell    */
 
   PetscInt *vertex_ids;    /* vertice IDs that form the cell    */
   PetscInt *edge_ids;      /* edge IDs that form the cell       */
   PetscInt *face_ids;      /* face IDs that form the cell       */
   PetscInt *neighbor_ids;  /* neighbor IDs that form the cell   */
 
-  TDy_coordinate centroid; /* cell centroid                     */
+  TDy_coordinate *centroid; /* cell centroid                     */
 
-  PetscReal volume;        /* volume of the cell                */
+  PetscReal *volume;        /* volume of the cell                */
 
 };
 
@@ -174,7 +179,7 @@ struct _TDy_mesh {
   PetscInt   num_vertices;
   PetscInt num_boundary_faces;
 
-  TDy_cell    *cells;
+  TDy_cell    cells;
   TDy_subcell *subcells;
   TDy_vertex  *vertices;
   TDy_edge    *edges;
@@ -195,5 +200,5 @@ PETSC_EXTERN PetscErrorCode TDyFace_GetNormal(TDy_face*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyFace_GetCentroid(TDy_face*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyCell_GetCentroid(TDy_cell*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,TDy_vertex*,TDy_subcell*,TDy_subcell**);
+PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,PetscInt,TDy_vertex*,TDy_subcell*,TDy_subcell**);
 #endif

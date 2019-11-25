@@ -39,7 +39,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
 
   DM             dm;
   TDy_mesh       *mesh;
-  TDy_cell       *cells, *cell;
+  TDy_cell       *cells;
   TDy_subcell    *subcells, *subcell;
   TDy_vertex     *vertices, *vertex;
   TDy_edge       *edges, *edge_up, *edge_dn;
@@ -56,7 +56,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
 
   dm       = tdy->dm;
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
   edges    = mesh->edges;
   vertices = mesh->vertices;
   subcells = mesh->subcells;
@@ -65,9 +65,6 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
 
   for (icell=0; icell<mesh->num_cells; icell++) {
 
-    // set pointer to cell
-    cell = &cells[icell];
-
     // extract permeability tensor
     for (ii=0; ii<dim; ii++) {
       for (jj=0; jj<dim; jj++) {
@@ -75,17 +72,19 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
       }
     }
 
-    num_subcells = cell->num_subcells;
+    num_subcells = cells->num_subcells[icell];
 
     for (isubcell=0; isubcell<num_subcells; isubcell++) {
 
-      vertex  = &vertices[cell->vertex_ids[isubcell]];
-      subcell = &subcells[icell*cell->num_subcells+isubcell];
+      PetscInt vStart = cells->offsets_for_vertex_ids[icell];
+      vertex  = &vertices[cells->vertex_ids[vStart+isubcell]];
+      subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
 
       // determine ids of up & down edges
-      e_idx_up = cells[icell].edge_ids[isubcell];
-      if (isubcell == 0) e_idx_dn = cells[icell].edge_ids[num_subcells-1];
-      else               e_idx_dn = cells[icell].edge_ids[isubcell    -1];
+      PetscInt eStart = cells->offsets_for_edge_ids[icell];
+      e_idx_up = cells->edge_ids[eStart + isubcell];
+      if (isubcell == 0) e_idx_dn = cells->edge_ids[eStart + num_subcells-1];
+      else               e_idx_dn = cells->edge_ids[eStart + isubcell    -1];
 
       // set points to up/down edges
       edge_up = &edges[e_idx_up];
@@ -602,7 +601,7 @@ PetscErrorCode TDyComputeTransmissibilityMatrix2DMesh(TDy tdy) {
   PetscFunctionBegin;
 
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
   vertices = mesh->vertices;
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
@@ -644,7 +643,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
 
   dm       = tdy->dm;
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
   vertices = mesh->vertices;
   edges    = mesh->edges;
 
@@ -674,13 +673,13 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
 
         for (icol=0; icol<vertex->num_internal_cells; icol++) {
           col   = vertex->internal_cell_ids[icol];
-          col   = cells[vertex->internal_cell_ids[icol]].global_id;
+          col   = cells->global_id[vertex->internal_cell_ids[icol]];
           if (col<0) col = -col - 1;
           value = tdy->Trans[vertex_id][icell][icol];
-          row = cells[icell_from].global_id;
-          if (cells[icell_from].is_local) {ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);}
-          row = cells[icell_to].global_id;
-          if (cells[icell_to].is_local) {ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);}
+          row = cells->global_id[icell_from];
+          if (cells->is_local[icell_from]) {ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);}
+          row = cells->global_id[icell_to];
+          if (cells->is_local[icell_to]) {ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);}
         }
       }
     }
@@ -716,7 +715,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
   dm       = tdy->dm;
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
   vertices = mesh->vertices;
   edges    = mesh->edges;
 
@@ -771,11 +770,11 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
       
       icell_from = edge->cell_ids[0];
       icell_to   = edge->cell_ids[1];
-      
-      if (cells[icell_from].is_local) {
-        row   = cells[icell_from].global_id;
+
+      if (cells->is_local[icell_from]) {
+        row   = cells->global_id[icell_from];
         for (icol=0; icol<vertex->num_internal_cells; icol++) {
-          col   = cells[vertex->internal_cell_ids[icol]].global_id;
+          col   = cells->global_id[vertex->internal_cell_ids[icol]];
           value = tdy->Trans[vertex_id][icell][icol];
           ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
         }
@@ -787,10 +786,10 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         }
       }
       
-      if (cells[icell_to].is_local) {
-        row   = cells[icell_to].global_id;
+      if (cells->is_local[icell_to]) {
+        row   = cells->global_id[icell_to];
         for (icol=0; icol<vertex->num_internal_cells; icol++) {
-          col   = cells[vertex->internal_cell_ids[icol]].global_id;
+          col   = cells->global_id[vertex->internal_cell_ids[icol]];
           value = tdy->Trans[vertex_id][icell][icol];
           ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);
         }
@@ -807,8 +806,8 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
     for (icell=0; icell<vertex->num_boundary_cells; icell++) {
       row = cell_ids_from_to[icell][0];
       
-      if (cell_ids_from_to[icell][0]>-1 && cells[cell_ids_from_to[icell][0]].is_local) {
-        row   = cells[cell_ids_from_to[icell][0]].global_id;
+      if (cell_ids_from_to[icell][0]>-1 && cells->is_local[cell_ids_from_to[icell][0]]) {
+        row   = cells->global_id[cell_ids_from_to[icell][0]];
         
         for (icol=0; icol<vertex->num_boundary_cells; icol++) {
           value = tdy->Trans[vertex_id][icell+vertex->num_internal_cells-1][icol +
@@ -817,14 +816,14 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         }
         
         for (icol=0; icol<vertex->num_internal_cells; icol++) {
-          col   = cells[vertex->internal_cell_ids[icol]].global_id;
+          col   = cells->global_id[vertex->internal_cell_ids[icol]];
           value = tdy->Trans[vertex_id][icell+vertex->num_internal_cells-1][icol];
           ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);
         }
       }
       
-      if (cell_ids_from_to[icell][1]>-1 && cells[cell_ids_from_to[icell][1]].is_local) {
-        row   = cells[cell_ids_from_to[icell][1]].global_id;
+      if (cell_ids_from_to[icell][1]>-1 && cells->is_local[cell_ids_from_to[icell][1]]) {
+        row   = cells->global_id[cell_ids_from_to[icell][1]];
         
         for (icol=0; icol<vertex->num_boundary_cells; icol++) {
           value = tdy->Trans[vertex_id][icell+vertex->num_internal_cells-1][icol +
@@ -833,7 +832,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         }
         
         for (icol=0; icol<vertex->num_internal_cells; icol++) {
-          col   = cells[vertex->internal_cell_ids[icol]].global_id;
+          col   = cells->global_id[vertex->internal_cell_ids[icol]];
           value = tdy->Trans[vertex_id][icell+vertex->num_internal_cells-1][icol];
           {ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);}
         }
@@ -873,7 +872,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
   dm       = tdy->dm;
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
   vertices = mesh->vertices;
   edges    = mesh->edges;
 
@@ -931,24 +930,24 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
         value += sign*Gmatrix[i][j];
       }
     }
-    row   = cells[vertex->internal_cell_ids[0]].global_id;
-    col   = cells[vertex->internal_cell_ids[0]].global_id;
-    if (cells[icell].is_local) {ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);}
+    row   = cells->global_id[vertex->internal_cell_ids[0]];
+    col   = cells->global_id[vertex->internal_cell_ids[0]];
+    if (cells->is_local[icell]) {ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);}
     
     
     // For fluxes through boundary edges, only add contribution to the vector
     for (icell=0; icell<vertex->num_boundary_cells; icell++) {
       
-      if (cell_ids_from_to[icell][0]>-1 && cells[cell_ids_from_to[icell][0]].is_local) {
-        row   = cells[cell_ids_from_to[icell][0]].global_id;
+      if (cell_ids_from_to[icell][0]>-1 && cells->is_local[cell_ids_from_to[icell][0]]) {
+        row   = cells->global_id[cell_ids_from_to[icell][0]];
         for (icol=0; icol<vertex->num_boundary_cells; icol++) {
           value = Gmatrix[icell][icol] * pBoundary[icol];
           ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
         }
       }
       
-      if (cell_ids_from_to[icell][1]>-1 && cells[cell_ids_from_to[icell][1]].is_local) {
-        row   = cells[cell_ids_from_to[icell][1]].global_id;
+      if (cell_ids_from_to[icell][1]>-1 && cells->is_local[cell_ids_from_to[icell][1]]) {
+        row   = cells->global_id[cell_ids_from_to[icell][1]];
         for (icol=0; icol<vertex->num_boundary_cells; icol++) {
           value = Gmatrix[icell][icol] * pBoundary[icol];
           ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
@@ -1221,7 +1220,7 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
   DM             dm;
   TDy_mesh       *mesh;
   TDy_edge       *edges, *edge;
-  TDy_cell       *cells, *cell;
+  TDy_cell       *cells;
   PetscInt       dim;
   PetscInt       icell, iedge, edge_id;
   PetscInt       fStart, fEnd;
@@ -1233,7 +1232,7 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
 
   dm    = tdy->dm;
   mesh  = tdy->mesh;
-  cells = mesh->cells;
+  cells = &mesh->cells;
   edges = mesh->edges;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -1244,12 +1243,11 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
 
   for (icell=0; icell<mesh->num_cells; icell++) {
 
-    cell = &(cells[icell]);
+    if (!cells->is_local[icell]) continue;
 
-    if (!cell->is_local) continue;
-
-    for (iedge=0; iedge<cell->num_edges; iedge++) {
-      edge_id = cell->edge_ids[iedge];
+    for (iedge=0; iedge<cells->num_edges[icell]; iedge++) {
+      PetscInt eStart = cells->offsets_for_edge_ids[icell];
+      edge_id = cells->edge_ids[eStart+iedge];
       edge    = &(edges[edge_id]);
 
       ierr = (*tdy->ops->computedirichletflux)(tdy, &(tdy->X[(edge_id + fStart)*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);

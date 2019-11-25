@@ -416,7 +416,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 
   dm       = tdy->dm;
   mesh     = tdy->mesh;
-  cells    = mesh->cells;
+  cells    = &mesh->cells;
 
   ierr = MatZeroEntries(K);
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
@@ -431,10 +431,10 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscReal f;
   if (tdy->ops->computeforcing) {
     for (icell=0; icell<tdy->mesh->num_cells; icell++) {
-      if (cells[icell].is_local) {
+      if (cells->is_local[icell]) {
         ierr = (*tdy->ops->computeforcing)(tdy, &(tdy->X[icell*dim]), &f, tdy->forcingctx);CHKERRQ(ierr);
-        value = f * cells[icell].volume;
-        row = cells[icell].global_id;
+        value = f * cells->volume[icell];
+        row = cells->global_id[icell];
         ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
       }
     }
@@ -481,7 +481,7 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 
   DM             dm;
   TDy_mesh       *mesh;
-  TDy_cell       *cells, *cell;
+  TDy_cell       *cells;
   PetscScalar    *u;
   Vec            localU;
   PetscInt       dim;
@@ -493,7 +493,7 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 
   dm    = tdy->dm;
   mesh  = tdy->mesh;
-  cells = mesh->cells;
+  cells = &mesh->cells;
 
   if (! tdy->ops->computedirichletvalue) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
@@ -512,11 +512,10 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 
   for (icell=0; icell<mesh->num_cells; icell++) {
 
-    cell = &(cells[icell]);
-    if (!cell->is_local) continue;
+    if (!cells->is_local[icell]) continue;
 
     ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[icell*dim]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
-    norm += (PetscSqr(pressure - u[icell])) * cell->volume;
+    norm += (PetscSqr(pressure - u[icell])) * cells->volume[icell];
   }
 
   ierr = VecRestoreArray(localU, &u); CHKERRQ(ierr);
@@ -537,7 +536,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
   DM             dm;
   TDy_mesh       *mesh;
   TDy_face       *faces, *face;
-  TDy_cell       *cells, *cell;
+  TDy_cell       *cells;
   PetscInt       dim;
   PetscInt       icell, iface, face_id;
   PetscInt       fStart, fEnd;
@@ -549,7 +548,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
 
   dm    = tdy->dm;
   mesh  = tdy->mesh;
-  cells = mesh->cells;
+  cells = &mesh->cells;
   faces = mesh->faces;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -560,19 +559,18 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
 
   for (icell=0; icell<mesh->num_cells; icell++) {
 
-    cell = &(cells[icell]);
+    if (!cells->is_local[icell]) continue;
 
-    if (!cell->is_local) continue;
-
-    for (iface=0; iface<cell->num_faces; iface++) {
-      face_id = cell->face_ids[iface];
+    for (iface=0; iface<cells->num_faces[icell]; iface++) {
+      PetscInt faceStart = cells->offsets_for_face_ids[icell];
+      face_id = cells->face_ids[faceStart + iface];
       face    = &(faces[face_id]);
 
       ierr = (*tdy->ops->computedirichletflux)(tdy, &(tdy->X[(face_id + fStart)*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);
       vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim);
       if (tdy->vel_count[face_id] != 4) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->vel_count != 4");
 
-      norm += PetscSqr((vel_normal - tdy->vel[face_id]))*cell->volume;
+      norm += PetscSqr((vel_normal - tdy->vel[face_id]))*cells->volume[icell];
     }
   }
 
