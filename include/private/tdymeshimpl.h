@@ -100,15 +100,21 @@ struct _TDy_cell {
 
 struct _TDy_vertex {
 
-  PetscInt  id;                 /* id of the vertex in local numbering                  */
-  PetscInt  global_id;          /* global id of the vertex in local numbering */
+  PetscInt  *id;                 /* id of the vertex in local numbering                  */
+  PetscInt  *global_id;          /* global id of the vertex in local numbering */
 
-  PetscBool is_local;           /* true if the vertex is shared by a local cell         */
+  PetscBool *is_local;           /* true if the vertex is shared by a local cell         */
 
-  PetscInt  num_internal_cells; /* number of internal cells sharing the vertex          */
-  PetscInt  num_edges;          /* number of edges sharing the vertex                   */
-  PetscInt  num_faces;          /* number of faces sharing the vartex                   */
-  PetscInt  num_boundary_cells; /* number of boundary cells sharing the vertex          */
+  PetscInt  *num_internal_cells; /* number of internal cells sharing the vertex          */
+  PetscInt  *num_edges;          /* number of edges sharing the vertex                   */
+  PetscInt  *num_faces;          /* number of faces sharing the vartex                   */
+  PetscInt  *num_boundary_cells; /* number of boundary cells sharing the vertex          */
+
+  PetscInt *offset_edge_ids;           /* offset for edge IDs that share the vertex                       */
+  PetscInt *offset_face_ids;           /* offset for face IDs that share the vertex                       */
+  PetscInt *offset_internal_cell_ids;  /* offset for internal cell IDs that share the vertex              */
+  PetscInt *offset_subcell_ids;        /* offset for subcell IDs of internal cells that share the vertex  */
+  PetscInt *offset_boundary_face_ids;  /* offset for IDs of the faces that are on the boundary            */
 
   PetscInt *edge_ids;           /* edge IDs that share the vertex                       */
   PetscInt *face_ids;           /* face IDs that share the vertex                       */
@@ -116,8 +122,7 @@ struct _TDy_vertex {
   PetscInt *subcell_ids;        /* subcell IDs of internal cells that share the vertex  */
   PetscInt *boundary_face_ids;  /* IDs of the faces that are on the boundary            */
 
-  TDy_coordinate
-  coordinate;    /* (x,y,z) location of the vertex                       */
+  TDy_coordinate  *coordinate;    /* (x,y,z) location of the vertex                       */
 };
 
 struct _TDy_edge {
@@ -181,7 +186,7 @@ struct _TDy_mesh {
 
   TDy_cell    cells;
   TDy_subcell *subcells;
-  TDy_vertex  *vertices;
+  TDy_vertex  vertices;
   TDy_edge    *edges;
   TDy_face    *faces;
 
@@ -198,7 +203,7 @@ PETSC_EXTERN PetscErrorCode TDyEdge_GetCentroid(TDy_edge*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyEdge_GetNormal(TDy_edge*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyFace_GetNormal(TDy_face*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyFace_GetCentroid(TDy_face*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex*, PetscInt, PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyCell_GetCentroid(TDy_cell*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,PetscInt,TDy_vertex*,TDy_subcell*,TDy_subcell**);
+PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,PetscInt,TDy_vertex*,PetscInt,TDy_subcell*,TDy_subcell**);
 #endif
