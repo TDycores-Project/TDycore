@@ -2014,7 +2014,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
     cell_id  = vertices->internal_cell_ids[offsetCell + 0];
     isubcell = vertices->subcell_ids[offsetSubcell + 0];
 
-    subcell = &subcells[icell*cells->num_subcells[cell_id]+isubcell];
+    subcell = &subcells[cell_id*cells->num_subcells[cell_id]+isubcell];
 
     numBoundary = 0;
     for (iface=0; iface<subcell->num_faces; iface++) {
@@ -2662,7 +2662,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
     cell_id  = vertices->internal_cell_ids[offsetCell + 0];
     isubcell = vertices->subcell_ids[offsetSubcell + 0];
 
-    subcell = &subcells[icell*cells->num_subcells[cell_id]+isubcell];
+    subcell = &subcells[cell_id*cells->num_subcells[cell_id]+isubcell];
 
     numBoundary = 0;
     for (iface=0; iface<subcell->num_faces; iface++) {
