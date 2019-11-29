@@ -127,26 +127,28 @@ struct _TDy_vertex {
 
 struct _TDy_edge {
 
-  PetscInt  id;            /* id of the edge in local numbering         */
-  PetscInt  global_id;     /* global id of the edge in local numbering */
+  PetscInt  *id;            /* id of the edge in local numbering         */
+  PetscInt  *global_id;     /* global id of the edge in local numbering */
 
-  PetscBool is_local;      /* true if the edge : (1) */
+  PetscBool *is_local;      /* true if the edge : (1) */
                            /* 1. Is shared by locally owned cells, or   */
                            /* 2. Is shared by local cell and non-local  */
                            /*    cell such that global ID of local cell */
                            /*    is smaller than the global ID of       */
                            /*    non-local cell */
 
-  PetscInt num_cells;      /* number of faces that form the edge        */
-  PetscInt vertex_ids[2];  /* ids of vertices that form the edge        */
+  PetscInt *num_cells;      /* number of faces that form the edge        */
+  PetscInt *vertex_ids;     /* ids of vertices that form the edge        */
+
+  PetscInt *offset_cell_ids; /* offset for ids of cell that share the edge */
   PetscInt *cell_ids;      /* ids of cells that share the edge          */
 
-  PetscBool is_internal;   /* false if the edge is on the mesh boundary */
+  PetscBool *is_internal;   /* false if the edge is on the mesh boundary */
 
-  TDy_vector     normal;   /* unit normal vector                        */
-  TDy_coordinate centroid; /* edge centroid                             */
+  TDy_vector     *normal;   /* unit normal vector                        */
+  TDy_coordinate *centroid; /* edge centroid                             */
 
-  PetscReal length;        /* length of the edge                        */
+  PetscReal *length;        /* length of the edge                        */
 
 };
 
@@ -187,7 +189,7 @@ struct _TDy_mesh {
   TDy_cell    cells;
   TDy_subcell *subcells;
   TDy_vertex  vertices;
-  TDy_edge    *edges;
+  TDy_edge    edges;
   TDy_face    *faces;
 
 };
@@ -199,8 +201,8 @@ PETSC_EXTERN PetscErrorCode TDyAllocateMemoryForMesh(TDy);
 PETSC_EXTERN PetscErrorCode TDySubCell_GetIthNuVector(TDy_subcell*,PetscInt,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDySubCell_GetIthFaceCentroid(TDy_subcell*,PetscInt,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDySubCell_GetFaceIndexForAFace(TDy_subcell*,PetscInt,PetscInt *);
-PETSC_EXTERN PetscErrorCode TDyEdge_GetCentroid(TDy_edge*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyEdge_GetNormal(TDy_edge*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyEdge_GetCentroid(TDy_edge*,PetscInt, PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyEdge_GetNormal(TDy_edge*,PetscInt,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyFace_GetNormal(TDy_face*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyFace_GetCentroid(TDy_face*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex*, PetscInt, PetscInt, PetscReal*);

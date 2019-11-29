@@ -42,7 +42,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   TDy_cell       *cells;
   TDy_subcell    *subcells, *subcell;
   TDy_vertex     *vertices;
-  TDy_edge       *edges, *edge_up, *edge_dn;
+  TDy_edge       *edges;
   PetscInt       num_subcells;
   PetscInt       icell, isubcell;
   PetscInt       ii,jj;
@@ -57,7 +57,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   dm       = tdy->dm;
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
-  edges    = mesh->edges;
+  edges    = &mesh->edges;
   vertices = &mesh->vertices;
   subcells = mesh->subcells;
 
@@ -87,20 +87,20 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
       else               e_idx_dn = cells->edge_ids[eStart + isubcell    -1];
 
       // set points to up/down edges
-      edge_up = &edges[e_idx_up];
-      edge_dn = &edges[e_idx_dn];
+      //edge_up = &edges[e_idx_up];
+      //edge_dn = &edges[e_idx_dn];
 
       // extract nu-vectors
       ierr = TDySubCell_GetIthNuVector(subcell, 0, dim, &nu_up[0]); CHKERRQ(ierr);
       ierr = TDySubCell_GetIthNuVector(subcell, 1, dim, &nu_dn[0]); CHKERRQ(ierr);
 
       // extract centroid of edges
-      ierr = TDyEdge_GetCentroid(edge_dn, dim, &e_cen_dn[0]); CHKERRQ(ierr);
-      ierr = TDyEdge_GetCentroid(edge_up, dim, &e_cen_up[0]); CHKERRQ(ierr);
+      ierr = TDyEdge_GetCentroid(edges, e_idx_dn, dim, &e_cen_dn[0]); CHKERRQ(ierr);
+      ierr = TDyEdge_GetCentroid(edges, e_idx_up, dim, &e_cen_up[0]); CHKERRQ(ierr);
 
       // extract normal to edges
-      ierr = TDyEdge_GetNormal(edge_dn, dim, &n_dn[0]); CHKERRQ(ierr);
-      ierr = TDyEdge_GetNormal(edge_up, dim, &n_up[0]); CHKERRQ(ierr);
+      ierr = TDyEdge_GetNormal(edges, e_idx_dn, dim, &n_dn[0]); CHKERRQ(ierr);
+      ierr = TDyEdge_GetNormal(edges, e_idx_up, dim, &n_up[0]); CHKERRQ(ierr);
 
       ierr = TDyVertex_GetCoordinate(vertices, ivertex, dim, &v_c[0]); CHKERRQ(ierr);
 
@@ -640,7 +640,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
   TDy_vertex     *vertices;
   TDy_edge       *edges;
   PetscInt       ivertex, icell, icell_from, icell_to;
-  PetscInt       icol, row, col, vertex_id;
+  PetscInt       icol, row, col, vertex_id, edge_id;
   PetscReal      value;
   PetscInt       vStart, vEnd;
   PetscInt       fStart, fEnd;
@@ -654,7 +654,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
   vertices = &mesh->vertices;
-  edges    = mesh->edges;
+  edges    = &mesh->edges;
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -673,14 +673,12 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
 
       for (icell=0; icell<vertices->num_internal_cells[ivertex]; icell++) {
 
-        TDy_edge *edge;
+        if (icell==0) edge_id = vertices->edge_ids[offsetEdge + vertices->num_internal_cells[ivertex]-1];
+        else          edge_id = vertices->edge_ids[offsetEdge + icell-1];
 
-        if (icell==0) edge = &edges[vertices->edge_ids[offsetEdge + vertices->num_internal_cells[ivertex]-1]];
-        else          edge = &edges[vertices->edge_ids[offsetEdge + icell-1]];
-
-        icell_from = edge->cell_ids[0];
-        icell_to   = edge->cell_ids[1];
-
+        PetscInt eOffsetCell = edges->offset_cell_ids[edge_id];
+        icell_from = edges->cell_ids[eOffsetCell + 0];
+        icell_to   = edges->cell_ids[eOffsetCell + 1];
 
         for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
           col   = vertices->internal_cell_ids[offsetCell + icol];
@@ -714,7 +712,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   TDy_vertex     *vertices;
   TDy_edge       *edges;
   PetscInt       ivertex, icell, icell_from, icell_to;
-  PetscInt       icol, row, col, vertex_id, iedge;
+  PetscInt       icol, row, col, vertex_id, iedge, edge_id;
   PetscReal      value;
   PetscInt       vStart, vEnd;
   PetscInt       fStart, fEnd;
@@ -728,7 +726,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
   vertices = &mesh->vertices;
-  edges    = mesh->edges;
+  edges    = &mesh->edges;
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -759,29 +757,29 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
     numBoundary = 0;
     for (iedge=0; iedge<vertices->num_edges[ivertex]; iedge++) {
       
-      TDy_edge *edge;
-      if (iedge==0) edge = &edges[vertices->edge_ids[offsetEdge + vertices->num_edges[ivertex]-1]];
-      else          edge = &edges[vertices->edge_ids[offsetEdge + iedge-1]];
+      if (iedge==0) edge_id = vertices->edge_ids[offsetEdge + vertices->num_edges[ivertex]-1];
+      else          edge_id = vertices->edge_ids[offsetEdge + iedge-1];
       
-      if (edge->is_internal == 0) {
+      if (edges->is_internal[edge_id] == 0) {
         
         PetscInt f;
-        f = edge->id + fStart;
+        f = edges->id[edge_id] + fStart;
         ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
-        cell_ids_from_to[numBoundary][0] = edge->cell_ids[0];
-        cell_ids_from_to[numBoundary][1] = edge->cell_ids[1];
+
+        PetscInt eOffsetCell = edges->offset_cell_ids[edge_id];
+        cell_ids_from_to[numBoundary][0] = edges->cell_ids[eOffsetCell + 0];
+        cell_ids_from_to[numBoundary][1] = edges->cell_ids[eOffsetCell + 1];
         numBoundary++;
       }
     }
     
     for (icell=0; icell<vertices->num_internal_cells[ivertex]-1; icell++) {
-      iedge = vertices->edge_ids[offsetEdge + icell];
+      edge_id = vertices->edge_ids[offsetEdge + icell];
       
-      TDy_edge *edge;
-      edge = &edges[vertices->edge_ids[offsetEdge + icell]];
-      
-      icell_from = edge->cell_ids[0];
-      icell_to   = edge->cell_ids[1];
+      PetscInt eOffsetCell = edges->offset_cell_ids[edge_id];
+
+      icell_from = edges->cell_ids[eOffsetCell + 0];
+      icell_to   = edges->cell_ids[eOffsetCell + 1];
 
       if (cells->is_local[icell_from]) {
         row   = cells->global_id[icell_from];
@@ -850,6 +848,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         }
       }
     }
+    //if (ivertex == 070) exit(0);
   }
 
   ierr = VecAssemblyBegin(F); CHKERRQ(ierr);
@@ -870,7 +869,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   TDy_vertex     *vertices;
   TDy_edge       *edges;
   PetscInt       ivertex, icell, isubcell;
-  PetscInt       icol, row, col, iedge;
+  PetscInt       icol, row, col, iedge, edge_id;
   PetscReal      value;
   PetscInt       vStart, vEnd;
   PetscInt       fStart, fEnd;
@@ -886,7 +885,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
   vertices = &mesh->vertices;
-  edges    = mesh->edges;
+  edges    = &mesh->edges;
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -917,17 +916,17 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
     numBoundary = 0;
     for (iedge=0; iedge<vertices->num_edges[ivertex]; iedge++) {
       
-      TDy_edge *edge;
-      if (iedge==0) edge = &edges[vertices->edge_ids[offsetEdge + vertices->num_edges[ivertex]-1]];
-      else          edge = &edges[vertices->edge_ids[offsetEdge + iedge-1]];
+      if (iedge==0) edge_id = vertices->edge_ids[offsetEdge + vertices->num_edges[ivertex]-1];
+      else          edge_id = vertices->edge_ids[offsetEdge + iedge-1];
       
-      if (edge->is_internal == 0) {
+      if (edges->is_internal[edge_id] == 0) {
         
+        PetscInt eOffsetCell = edges->offset_cell_ids[edge_id];
         PetscInt f;
-        f = edge->id + fStart;
+        f = edges->id[edge_id] + fStart;
         ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
-        cell_ids_from_to[numBoundary][0] = edge->cell_ids[0];
-        cell_ids_from_to[numBoundary][1] = edge->cell_ids[1];
+        cell_ids_from_to[numBoundary][0] = edges->cell_ids[eOffsetCell + 0];
+        cell_ids_from_to[numBoundary][1] = edges->cell_ids[eOffsetCell + 1];
         numBoundary++;
       }
     }
@@ -988,7 +987,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
   DM             dm;
   TDy_mesh       *mesh;
   TDy_vertex     *vertices;
-  TDy_edge       *edges, *edge;
+  TDy_edge       *edges;
   PetscInt       ivertex, icell, isubcell;
   PetscInt       icol, row, col, vertex_id, iedge;
   PetscInt       fStart, fEnd;
@@ -1005,7 +1004,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
   dm       = tdy->dm;
   mesh     = tdy->mesh;
   vertices = &mesh->vertices;
-  edges    = mesh->edges;
+  edges    = &mesh->edges;
   row = -1;
 
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -1050,21 +1049,18 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
         if (icell==0) edge_id = vertices->edge_ids[offsetEdge + vertices->num_internal_cells[ivertex]-1];
         else          edge_id = vertices->edge_ids[offsetEdge + icell-1];
 
-        edge = &(edges[edge_id]);
-
         for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
-          Vcomputed[icell] += tdy->Trans[vertex_id][icell][icol] * Pcomputed[icol] *2.0/edge->length/2.0;
-        }
+          Vcomputed[icell] += tdy->Trans[vertex_id][icell][icol] * Pcomputed[icol] *2.0/edges->length[edge_id]/2.0;        }
 
         tdy->vel[edge_id] += Vcomputed[icell];
 
-        if (edges[edge_id].is_local){
+        if (edges->is_local[edge_id]){
           X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertices->coordinate[ivertex].X[0])/2.0;
           X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertices->coordinate[ivertex].X[1])/2.0;
           
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
 
-          vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
+          vel_normal = (vel[0]*edges->normal[edge_id].V[0] + vel[1]*edges->normal[edge_id].V[1])/2.0;
 
           vel_error += PetscPowReal( (Vcomputed[icell] - vel_normal), 2.0);
           count++;
@@ -1087,11 +1083,11 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
       PetscInt numBoundary = 0;
       for (iedge=0; iedge<vertices->num_edges[ivertex]; iedge++) {
 
-        if (iedge==0) edge = &edges[vertices->edge_ids[offsetEdge + vertices->num_edges[ivertex]-1]];
-        else          edge = &edges[vertices->edge_ids[offsetEdge + iedge-1]];
+        if (iedge==0) edge_id = vertices->edge_ids[offsetEdge + vertices->num_edges[ivertex]-1];
+        else          edge_id = vertices->edge_ids[offsetEdge + iedge-1];
 
-        if (edge->is_internal == 0) {
-          PetscInt f = edge->id + fStart;
+        if (edges->is_internal[edge_id] == 0) {
+          PetscInt f = edges->id[edge_id] + fStart;
           ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &Pboundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
           Vcomputed[vertices->num_internal_cells[ivertex] + numBoundary] = 0.0;
           numBoundary++;
@@ -1105,30 +1101,29 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
         // Flux through internal edges
         for (icell=0; icell<vertices->num_internal_cells[ivertex]-1; icell++) {
           edge_id = vertices->edge_ids[offsetEdge + icell];
-          edge = &edges[edge_id];
 
           // T_in * P_in
           for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
             row = icell;
             col = icol;
-            Vcomputed[row] += tdy->Trans[vertex_id][row][col] * Pcomputed[icol] *2.0/edge->length/2.0;
+            Vcomputed[row] += tdy->Trans[vertex_id][row][col] * Pcomputed[icol] *2.0/edges->length[edge_id]/2.0;
           }
 
           // T_bc * P_bc
           for (icol=0; icol<vertices->num_boundary_cells[ivertex]; icol++) {
             row = icell;
             col = icol+vertices->num_internal_cells[ivertex];
-            Vcomputed[row] += tdy->Trans[vertex_id][row][col] * Pboundary[icol] *2.0/edge->length/2.0;
+            Vcomputed[row] += tdy->Trans[vertex_id][row][col] * Pboundary[icol] *2.0/edges->length[edge_id]/2.0;
           }
 
           tdy->vel[edge_id] += Vcomputed[row];
 
-          if (edges[edge_id].is_local){
+          if (edges->is_local[edge_id]){
             X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertices->coordinate[ivertex].X[0])/2.0;
             X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertices->coordinate[ivertex].X[1])/2.0;
   
             ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-            vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
+            vel_normal = (vel[0]*edges->normal[edge_id].V[0] + vel[1]*edges->normal[edge_id].V[1])/2.0;
   
             vel_error += PetscPowReal( (Vcomputed[row] - vel_normal), 2.0);
             count++;
@@ -1140,13 +1135,12 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
 
           if (icell == 0) edge_id = vertices->edge_ids[offsetEdge + icell + vertices->num_internal_cells[ivertex]  ];
           else            edge_id = vertices->edge_ids[offsetEdge + icell + vertices->num_internal_cells[ivertex]-2];
-          edge = &edges[edge_id];
 
           // T_in * P_in
           for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
             row = icell+vertices->num_internal_cells[ivertex]-1;
             col = icol;
-            Vcomputed[row] += tdy->Trans[vertex_id][row][col] * Pcomputed[icol] *2.0/edge->length/2.0;
+            Vcomputed[row] += tdy->Trans[vertex_id][row][col] * Pcomputed[icol] *2.0/edges->length[edge_id]/2.0;
           }
 
           // T_bc * P_bc
@@ -1154,17 +1148,17 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
           for (icol=0; icol<vertices->num_boundary_cells[ivertex]; icol++) {
             row = icell+vertices->num_internal_cells[ivertex]-1;
             col = icol+vertices->num_internal_cells[ivertex];
-            Vcomputed[row] += tdy->Trans[vertex_id][row][col] * Pboundary[icol] *2.0/edge->length/2.0;
+            Vcomputed[row] += tdy->Trans[vertex_id][row][col] * Pboundary[icol] *2.0/edges->length[edge_id]/2.0;
           }
 
           tdy->vel[edge_id] += Vcomputed[row];
 
-          if (edges[edge_id].is_local){
+          if (edges->is_local[edge_id]){
             X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertices->coordinate[ivertex].X[0])/2.0;
             X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertices->coordinate[ivertex].X[1])/2.0;
 
             ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-            vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
+            vel_normal = (vel[0]*edges->normal[edge_id].V[0] + vel[1]*edges->normal[edge_id].V[1])/2.0;
 
             vel_error += PetscPowReal( (Vcomputed[row] - vel_normal), 2.0);
             count++;
@@ -1180,24 +1174,23 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
 
         for (iedge=0; iedge<vertices->num_edges[ivertex]; iedge++) {
 
-          if (iedge==0) edge = &edges[vertices->edge_ids[offsetEdge + vertices->num_edges[ivertex]-1]];
-          else          edge = &edges[vertices->edge_ids[offsetEdge + iedge-1]];
+          if (iedge==0) edge_id = vertices->edge_ids[offsetEdge + vertices->num_edges[ivertex]-1];
+          else          edge_id = vertices->edge_ids[offsetEdge + iedge-1];
 
-          edge_id = edge->id;
           Vcomputed[0] = 0.0;
           for (icol=0; icol<vertices->num_boundary_cells[ivertex]; icol++) {
-            Vcomputed[0]      += -(Gmatrix[iedge][icol]*Pcomputed[0] - Gmatrix[iedge][icol]*Pboundary[icol])*2.0/edge->length/2.0;
+            Vcomputed[0]      += -(Gmatrix[iedge][icol]*Pcomputed[0] - Gmatrix[iedge][icol]*Pboundary[icol])*2.0/edges->length[edge_id]/2.0;
           }
 
           tdy->vel[edge_id] += Vcomputed[0];
 
-          if (edges[edge_id].is_local){
+          if (edges->is_local[edge_id]){
             X[0] = (tdy->X[(edge_id + fStart)*dim]     + vertices->coordinate[ivertex].X[0])/2.0;
             X[1] = (tdy->X[(edge_id + fStart)*dim + 1] + vertices->coordinate[ivertex].X[1])/2.0;
 
             ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
 
-            vel_normal = (vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1])/2.0;
+            vel_normal = (vel[0]*edges->normal[edge_id].V[0] + vel[1]*edges->normal[edge_id].V[1])/2.0;
 
             vel_error += PetscPowReal( (Vcomputed[0] - vel_normal), 2.0);
             count++;
@@ -1235,7 +1228,7 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
 
   DM             dm;
   TDy_mesh       *mesh;
-  TDy_edge       *edges, *edge;
+  TDy_edge       *edges;
   TDy_cell       *cells;
   PetscInt       dim;
   PetscInt       icell, iedge, edge_id;
@@ -1249,7 +1242,7 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
   dm    = tdy->dm;
   mesh  = tdy->mesh;
   cells = &mesh->cells;
-  edges = mesh->edges;
+  edges = &mesh->edges;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -1264,10 +1257,9 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
     for (iedge=0; iedge<cells->num_edges[icell]; iedge++) {
       PetscInt eStart = cells->offsets_for_edge_ids[icell];
       edge_id = cells->edge_ids[eStart+iedge];
-      edge    = &(edges[edge_id]);
 
       ierr = (*tdy->ops->computedirichletflux)(tdy, &(tdy->X[(edge_id + fStart)*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);
-      vel_normal = vel[0]*edge->normal.V[0] + vel[1]*edge->normal.V[1];
+      vel_normal = vel[0]*edges->normal[edge_id].V[0] + vel[1]*edges->normal[edge_id].V[1];
 
       norm += PetscSqr((vel_normal - tdy->vel[edge_id]))*tdy->V[icell];
     }
