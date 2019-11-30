@@ -153,29 +153,33 @@ struct _TDy_edge {
 };
 
 struct _TDy_face {
-  PetscInt id;             /* id of the face in local numbering */
-  PetscInt global_id;      /* global id of the face in local numbering */
+  PetscInt *id;             /* id of the face in local numbering */
+  PetscInt *global_id;      /* global id of the face in local numbering */
 
-  PetscBool is_local;      /* true if the face :  */
+  PetscBool *is_local;      /* true if the face :  */
                            /* 1. Is shared by locally owned cells, or   */
                            /* 2. Is shared by local cell and non-local  */
                            /*    cell such that global ID of local cell */
                            /*    is smaller than the global ID of       */
                            /*    non-local cell */
 
-  PetscBool is_internal;   /* false if the face is on the mesh boundary */
+  PetscBool *is_internal;   /* false if the face is on the mesh boundary */
 
-  PetscInt num_vertices;   /* number of vertices that form the face */
-  PetscInt num_edges;      /* number of edges that form the face */
-  PetscInt num_cells;      /* number of cells that share the face */
+  PetscInt *num_vertices;   /* number of vertices that form the face */
+  PetscInt *num_edges;      /* number of edges that form the face */
+  PetscInt *num_cells;      /* number of cells that share the face */
+
+  PetscInt *offset_vertex_ids;    /* offset for id of vertices that form the face */
+  PetscInt *offset_edge_ids;      /* offset for id of edges that form the face */
+  PetscInt *offset_cell_ids;      /* offset for id of cells that share the face */
 
   PetscInt *vertex_ids;    /* id of vertices that form the face */
   PetscInt *edge_ids;      /* id of edges that form the face */
   PetscInt *cell_ids;      /* id of cells that share the face */
 
-  TDy_coordinate centroid; /* centroid of the face */
-  TDy_vector normal;       /* unit normal to the face */
-  PetscReal area;          /* area of the face */
+  TDy_coordinate *centroid; /* centroid of the face */
+  TDy_vector *normal;       /* unit normal to the face */
+  PetscReal *area;          /* area of the face */
 };
 
 struct _TDy_mesh {
@@ -190,7 +194,7 @@ struct _TDy_mesh {
   TDy_subcell *subcells;
   TDy_vertex  vertices;
   TDy_edge    edges;
-  TDy_face    *faces;
+  TDy_face    faces;
 
 };
 
@@ -203,8 +207,8 @@ PETSC_EXTERN PetscErrorCode TDySubCell_GetIthFaceCentroid(TDy_subcell*,PetscInt,
 PETSC_EXTERN PetscErrorCode TDySubCell_GetFaceIndexForAFace(TDy_subcell*,PetscInt,PetscInt *);
 PETSC_EXTERN PetscErrorCode TDyEdge_GetCentroid(TDy_edge*,PetscInt, PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyEdge_GetNormal(TDy_edge*,PetscInt,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyFace_GetNormal(TDy_face*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyFace_GetCentroid(TDy_face*,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyFace_GetNormal(TDy_face*,PetscInt,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyFace_GetCentroid(TDy_face*,PetscInt,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex*, PetscInt, PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyCell_GetCentroid(TDy_cell*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,PetscInt,TDy_vertex*,PetscInt,TDy_subcell*,TDy_subcell**);

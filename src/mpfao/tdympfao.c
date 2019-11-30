@@ -535,7 +535,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
 
   DM             dm;
   TDy_mesh       *mesh;
-  TDy_face       *faces, *face;
+  TDy_face       *faces;
   TDy_cell       *cells;
   PetscInt       dim;
   PetscInt       icell, iface, face_id;
@@ -549,7 +549,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
   dm    = tdy->dm;
   mesh  = tdy->mesh;
   cells = &mesh->cells;
-  faces = mesh->faces;
+  faces = &mesh->faces;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -564,10 +564,10 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
     for (iface=0; iface<cells->num_faces[icell]; iface++) {
       PetscInt faceStart = cells->offsets_for_face_ids[icell];
       face_id = cells->face_ids[faceStart + iface];
-      face    = &(faces[face_id]);
+      //face    = &(faces[face_id]);
 
       ierr = (*tdy->ops->computedirichletflux)(tdy, &(tdy->X[(face_id + fStart)*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);
-      vel_normal = TDyADotB(vel,&(face->normal.V[0]),dim);
+      vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim);
       if (tdy->vel_count[face_id] != 4) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->vel_count != 4");
 
       norm += PetscSqr((vel_normal - tdy->vel[face_id]))*cells->volume[icell];
