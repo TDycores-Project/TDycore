@@ -562,7 +562,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
     if (!cells->is_local[icell]) continue;
 
     for (iface=0; iface<cells->num_faces[icell]; iface++) {
-      PetscInt faceStart = cells->offsets_for_face_ids[icell];
+      PetscInt faceStart = cells->face_offset[icell];
       face_id = cells->face_ids[faceStart + iface];
       //face    = &(faces[face_id]);
 

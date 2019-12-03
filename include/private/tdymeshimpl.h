@@ -44,19 +44,19 @@ struct _TDy_subcell {
   PetscInt *cell_id;                               /* cell id in local numbering to which the subcell belongs to */
 
   PetscInt       *num_nu_vectors;                  /* number of nu vectors of the subcell                        */
-  PetscInt       *offset_nu_vectors;
+  PetscInt       *nu_vector_offset;
   TDy_vector     *nu_vector;                       /* nu vectors used to compute transmissibility                */
   TDy_coordinate *variable_continuity_coordinates; /* coordinates at which variable continuity is enforced       */
   TDy_coordinate *face_centroid;                   /* centroid of faces of subcell */
 
   PetscInt        *num_vertices;                   /* number of vertices that form the subcell                   */
-  PetscInt        *offset_vertices;
+  PetscInt        *vertex_offset;
   TDy_coordinate  *vertices_coordinates;           /* vertex coordinates that form the subcell                   */
 
   PetscReal *T;                                    /* Double product for 2D and triple product 3D subcell        */
 
   PetscInt *num_faces;                             /* number of faces */
-  PetscInt *offset_faces;
+  PetscInt *face_offset;
   PetscInt *face_ids;                              /* ids of faces */
   PetscReal *face_area;                            /* area of faces */
   PetscInt *is_face_up;                            /* true if the face->cell_ids[0] is upwind of face->cell_ids[1] in cell traversal order*/
@@ -78,10 +78,10 @@ struct _TDy_cell {
   PetscInt  *num_neighbors; /* number of neigbors of the cell    */
   PetscInt  *num_subcells;  /* number of subcells within the cell*/
 
-  PetscInt *offsets_for_vertex_ids;    /* vertice IDs that form the cell    */
-  PetscInt *offsets_for_edge_ids;      /* vertice IDs that form the cell    */
-  PetscInt *offsets_for_face_ids;      /* vertice IDs that form the cell    */
-  PetscInt *offsets_for_neighbor_ids;  /* vertice IDs that form the cell    */
+  PetscInt *vertex_offset;    /* vertice IDs that form the cell    */
+  PetscInt *edge_offset;      /* vertice IDs that form the cell    */
+  PetscInt *face_offset;      /* vertice IDs that form the cell    */
+  PetscInt *neighbor_offset;  /* vertice IDs that form the cell    */
 
   PetscInt *vertex_ids;    /* vertice IDs that form the cell    */
   PetscInt *edge_ids;      /* edge IDs that form the cell       */
@@ -107,11 +107,11 @@ struct _TDy_vertex {
   PetscInt  *num_faces;          /* number of faces sharing the vartex                   */
   PetscInt  *num_boundary_cells; /* number of boundary cells sharing the vertex          */
 
-  PetscInt *offset_edge_ids;           /* offset for edge IDs that share the vertex                       */
-  PetscInt *offset_face_ids;           /* offset for face IDs that share the vertex                       */
-  PetscInt *offset_internal_cell_ids;  /* offset for internal cell IDs that share the vertex              */
-  PetscInt *offset_subcell_ids;        /* offset for subcell IDs of internal cells that share the vertex  */
-  PetscInt *offset_boundary_face_ids;  /* offset for IDs of the faces that are on the boundary            */
+  PetscInt *edge_offset;           /* offset for edge IDs that share the vertex                       */
+  PetscInt *face_offset;           /* offset for face IDs that share the vertex                       */
+  PetscInt *internal_cell_offset;  /* offset for internal cell IDs that share the vertex              */
+  PetscInt *subcell_offset;        /* offset for subcell IDs of internal cells that share the vertex  */
+  PetscInt *boundary_face_offset;  /* offset for IDs of the faces that are on the boundary            */
 
   PetscInt *edge_ids;           /* edge IDs that share the vertex                       */
   PetscInt *face_ids;           /* face IDs that share the vertex                       */
@@ -137,7 +137,7 @@ struct _TDy_edge {
   PetscInt *num_cells;      /* number of faces that form the edge        */
   PetscInt *vertex_ids;     /* ids of vertices that form the edge        */
 
-  PetscInt *offset_cell_ids; /* offset for ids of cell that share the edge */
+  PetscInt *cell_offset; /* offset for ids of cell that share the edge */
   PetscInt *cell_ids;      /* ids of cells that share the edge          */
 
   PetscBool *is_internal;   /* false if the edge is on the mesh boundary */
@@ -166,9 +166,9 @@ struct _TDy_face {
   PetscInt *num_edges;      /* number of edges that form the face */
   PetscInt *num_cells;      /* number of cells that share the face */
 
-  PetscInt *offset_vertex_ids;    /* offset for id of vertices that form the face */
-  PetscInt *offset_edge_ids;      /* offset for id of edges that form the face */
-  PetscInt *offset_cell_ids;      /* offset for id of cells that share the face */
+  PetscInt *vertex_offset;    /* offset for id of vertices that form the face */
+  PetscInt *edge_offset;      /* offset for id of edges that form the face */
+  PetscInt *cell_offset;      /* offset for id of cells that share the face */
 
   PetscInt *vertex_ids;    /* id of vertices that form the face */
   PetscInt *edge_ids;      /* id of edges that form the face */
