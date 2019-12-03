@@ -40,7 +40,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   DM             dm;
   TDy_mesh       *mesh;
   TDy_cell       *cells;
-  TDy_subcell    *subcells, *subcell;
+  TDy_subcell    *subcells;
   TDy_vertex     *vertices;
   TDy_edge       *edges;
   PetscInt       num_subcells;
@@ -59,7 +59,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   cells    = &mesh->cells;
   edges    = &mesh->edges;
   vertices = &mesh->vertices;
-  subcells = mesh->subcells;
+  subcells = &mesh->subcells;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
@@ -78,7 +78,8 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
 
       PetscInt vStart = cells->offsets_for_vertex_ids[icell];
       PetscInt ivertex = cells->vertex_ids[vStart+isubcell];
-      subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
+      //subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
+      PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
 
       // determine ids of up & down edges
       PetscInt eStart = cells->offsets_for_edge_ids[icell];
@@ -91,8 +92,8 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
       //edge_dn = &edges[e_idx_dn];
 
       // extract nu-vectors
-      ierr = TDySubCell_GetIthNuVector(subcell, 0, dim, &nu_up[0]); CHKERRQ(ierr);
-      ierr = TDySubCell_GetIthNuVector(subcell, 1, dim, &nu_dn[0]); CHKERRQ(ierr);
+      ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, 0, dim, &nu_up[0]); CHKERRQ(ierr);
+      ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, 1, dim, &nu_dn[0]); CHKERRQ(ierr);
 
       // extract centroid of edges
       ierr = TDyEdge_GetCentroid(edges, e_idx_dn, dim, &e_cen_dn[0]); CHKERRQ(ierr);
@@ -117,13 +118,13 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
       //                              |           | |             |
       //                              |_         _| |_           _|
       //
-      ComputeEntryOfGMatrix2D(e_len_up, n_up, K, nu_up, subcell->T, dim,
+      ComputeEntryOfGMatrix2D(e_len_up, n_up, K, nu_up, subcells->T[isubcell], dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][0][0]));
-      ComputeEntryOfGMatrix2D(e_len_up, n_up, K, nu_dn, subcell->T, dim,
+      ComputeEntryOfGMatrix2D(e_len_up, n_up, K, nu_dn, subcells->T[isubcell], dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][0][1]));
-      ComputeEntryOfGMatrix2D(e_len_dn, n_dn, K, nu_up, subcell->T, dim,
+      ComputeEntryOfGMatrix2D(e_len_dn, n_dn, K, nu_up, subcells->T[isubcell], dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][1][0]));
-      ComputeEntryOfGMatrix2D(e_len_dn, n_dn, K, nu_dn, subcell->T, dim,
+      ComputeEntryOfGMatrix2D(e_len_dn, n_dn, K, nu_dn, subcells->T[isubcell], dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][1][1]));
     }
   }

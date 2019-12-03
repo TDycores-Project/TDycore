@@ -38,33 +38,30 @@ struct _TDy_vector {
 
 struct _TDy_subcell {
 
-  PetscInt
-  id;                               /* id of the subcell                                          */
-  TDySubcellType
-  type;                             /* triangle or tetrahedron                                    */
+  PetscInt       *id;                              /* id of the subcell                                          */
+  TDySubcellType *type;                            /* triangle or tetrahedron                                    */
 
-  PetscInt cell_id;                                /* cell id in local numbering to which the subcell belongs to */
+  PetscInt *cell_id;                               /* cell id in local numbering to which the subcell belongs to */
 
-  PetscInt num_vertices;                           /* number of vertices that form the subcell                   */
-  PetscInt num_nu_vectors;                         /* number of nu vectors of the subcell                        */
+  PetscInt       *num_nu_vectors;                  /* number of nu vectors of the subcell                        */
+  PetscInt       *offset_nu_vectors;
+  TDy_vector     *nu_vector;                       /* nu vectors used to compute transmissibility                */
+  TDy_coordinate *variable_continuity_coordinates; /* coordinates at which variable continuity is enforced       */
+  TDy_coordinate *face_centroid;                   /* centroid of faces of subcell */
 
-  TDy_vector
-  *nu_vector;                       /* nu vectors used to compute transmissibility                */
+  PetscInt        *num_vertices;                   /* number of vertices that form the subcell                   */
+  PetscInt        *offset_vertices;
+  TDy_coordinate  *vertices_coordinates;           /* vertex coordinates that form the subcell                   */
 
-  TDy_coordinate
-  *variable_continuity_coordinates; /* coordinates at which variable continuity is enforced       */
-  TDy_coordinate
-  *vertices_cordinates;             /* vertex coordinates that form the subcell                   */
+  PetscReal *T;                                    /* Double product for 2D and triple product 3D subcell        */
 
-  PetscReal T;                      /* Double product for 2D and triple product 3D subcell        */
-
-  PetscInt num_faces;               /* number of faces */
-  PetscInt *face_ids;               /* ids of faces */
-  PetscReal *face_area;             /* area of faces */
-  TDy_coordinate *face_centroid;    /* centroid of faces of subcell */
-  PetscInt *is_face_up;             /* true if the face->cell_ids[0] is upwind of face->cell_ids[1] in cell traversal order*/
-  PetscInt *face_unknown_idx;       /* index of the unknown associated with the face within the vector interface unknowns common to a vertex*/
-  PetscInt *face_flux_idx;          /* index of the fluxes (internal, up, and down) associated with the face */
+  PetscInt *num_faces;                             /* number of faces */
+  PetscInt *offset_faces;
+  PetscInt *face_ids;                              /* ids of faces */
+  PetscReal *face_area;                            /* area of faces */
+  PetscInt *is_face_up;                            /* true if the face->cell_ids[0] is upwind of face->cell_ids[1] in cell traversal order*/
+  PetscInt *face_unknown_idx;                      /* index of the unknown associated with the face within the vector interface unknowns common to a vertex*/
+  PetscInt *face_flux_idx;                         /* index of the fluxes (internal, up, and down) associated with the face */
 
 };
 
@@ -191,7 +188,7 @@ struct _TDy_mesh {
   PetscInt num_boundary_faces;
 
   TDy_cell    cells;
-  TDy_subcell *subcells;
+  TDy_subcell subcells;
   TDy_vertex  vertices;
   TDy_edge    edges;
   TDy_face    faces;
@@ -202,14 +199,14 @@ PETSC_EXTERN PetscErrorCode TDyOutputMesh(TDy);
 PETSC_EXTERN PetscErrorCode TDyBuildTwoDimMesh(TDy);
 PETSC_EXTERN PetscErrorCode TDyBuildMesh(TDy);
 PETSC_EXTERN PetscErrorCode TDyAllocateMemoryForMesh(TDy);
-PETSC_EXTERN PetscErrorCode TDySubCell_GetIthNuVector(TDy_subcell*,PetscInt,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDySubCell_GetIthFaceCentroid(TDy_subcell*,PetscInt,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDySubCell_GetFaceIndexForAFace(TDy_subcell*,PetscInt,PetscInt *);
+PETSC_EXTERN PetscErrorCode TDySubCell_GetIthNuVector(TDy_subcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDySubCell_GetIthFaceCentroid(TDy_subcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDySubCell_GetFaceIndexForAFace(TDy_subcell*,PetscInt,PetscInt,PetscInt *);
 PETSC_EXTERN PetscErrorCode TDyEdge_GetCentroid(TDy_edge*,PetscInt, PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyEdge_GetNormal(TDy_edge*,PetscInt,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyFace_GetNormal(TDy_face*,PetscInt,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyFace_GetCentroid(TDy_face*,PetscInt,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex*, PetscInt, PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyCell_GetCentroid(TDy_cell*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,PetscInt,TDy_vertex*,PetscInt,TDy_subcell*,TDy_subcell**);
+PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,PetscInt,TDy_vertex*,PetscInt,TDy_subcell*,PetscInt*);
 #endif
