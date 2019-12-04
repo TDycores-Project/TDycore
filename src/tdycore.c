@@ -387,17 +387,7 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   case MPFA_O:
     switch (dim) {
     case 3:
-      switch (num_fields){
-      case 1:
-        ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh,tdy); CHKERRQ(ierr);
-        break;
-      case 2:
-        ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_DAE_3DMesh,tdy); CHKERRQ(ierr);
-        break;
-      default:
-        SETERRQ(comm,PETSC_ERR_SUP,"Unsupported num. of fields for IFunction MPFA-O");
-        break;
-      }
+      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh,tdy); CHKERRQ(ierr);
     break;
     default :
       SETERRQ(comm,PETSC_ERR_SUP,"IFunction only implemented for 3D problem MPFA-O");
