@@ -942,7 +942,6 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
     PetscInt iface = f-fStart;
     PetscInt fOffsetEdge = faces->edge_offset[iface];
     PetscInt fOffsetVertex = faces->vertex_offset[iface];
-    //face = &faces[iface];
 
     // face--to--edge
     ierr = DMPlexGetConeSize(dm, f, &coneSize); CHKERRQ(ierr);
@@ -986,7 +985,6 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
 
     for (s=0; s<supportSize; s++) {
       icell = support[s] - cStart;
-      //cell = &cells[icell];
         PetscBool found = PETSC_FALSE;
         PetscInt ii;
         PetscInt cOffsetFace = cells->face_offset[icell];
@@ -1355,7 +1353,6 @@ PetscErrorCode UpdateCellOrientationAroundAEdge2DMesh(TDy tdy) {
         edges->cell_ids[eOffsetCell + 1] = tmp;
       }
     } else {
-      //cell_from = &cells[edge->cell_ids[0]];
       TDy_coordinate *cell_from_centroid = &cells->centroid[edges->cell_ids[eOffsetCell + 0]];
 
       dot_product = (edges->centroid[iedge].X[0] - cell_from_centroid->X[0]) *
@@ -1574,9 +1571,6 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   for (icell=0; icell<cEnd-cStart; icell++) {
-
-    // set pointer to cell
-    //cell = &cells[icell];
 
     // save cell centroid
     ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen[0]); CHKERRQ(ierr);
@@ -2163,8 +2157,6 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
     isubcell = vertices->subcell_ids[vOffsetSubcell + icell];
 
     // Get access to the cell and subcell
-    //cell    = &cells[cell_id];
-    //subcell = &subcells[cell_id*cells->num_subcells[cell_id]+isubcell];
     PetscInt subcell_id = cell_id*cells->num_subcells[cell_id]+isubcell;
     PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
@@ -2221,8 +2213,6 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
     isubcell = vertices->subcell_ids[vOffsetSubcell+icell];
 
     // Get access to the cell and subcell
-    //cell    = &cells[cell_id];
-    //subcell = &subcells[cell_id*cells->num_subcells[cell_id]+isubcell];
     PetscInt subcell_id = cell_id*cells->num_subcells[cell_id]+isubcell;
     PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
@@ -2527,9 +2517,6 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
   for (icell=0; icell<cEnd-cStart; icell++) {
 
-    // set pointer to cell
-    //cell = &cells[icell];
-
     // save cell centroid
     ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen[0]); CHKERRQ(ierr);
 
@@ -2577,8 +2564,6 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
   
         PetscReal f_normal[3];
 
-        //face = &faces[subcell->face_ids[iface]];
-        //PetscInt face_id = subcell->face_ids[iface];
         PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
 
         ierr = TDyFace_GetCentroid(faces, face_id, dim, &face_cen[iface][0]); CHKERRQ(ierr);
@@ -2691,18 +2676,11 @@ PetscErrorCode UpdateCellOrientationAroundAFace3DMesh(TDy tdy) {
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   for (iface=0; iface<mesh->num_faces; iface++) {
-    //face = &(faces[iface]);
 
     PetscReal v1[3], v2[3], v3[3], v4[3], normal[3];
     PetscReal f_cen[3], c_cen[3], f2c[3], dot_prod;
     PetscInt d;
 
-    /*
-    vertex = &vertices[face->vertex_ids[0]];
-    vertex = &vertices[face->vertex_ids[1]];
-    vertex = &vertices[face->vertex_ids[2]];
-    vertex = &vertices[face->vertex_ids[3]];
-    */
     PetscInt fOffsetVertex = faces->vertex_offset[iface];
     PetscInt fOffsetCell = faces->cell_offset[iface];
 
