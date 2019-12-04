@@ -4,7 +4,7 @@
 #include <private/tdymemoryimpl.h>
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdympfao2Dimpl.h>
-#include <private/tdympfao3Dimpl.h>
+#include <private/tdympfao3Dcoreimpl.h>
 #include <private/tdyeosimpl.h>
 #include <petscblaslapack.h>
 
