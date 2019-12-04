@@ -337,6 +337,36 @@ PetscInt GetNumFacesForSubcellType(TDySubcellType subcell_type) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscInt TDyMeshGetNumberOfLocalCells(TDy_mesh *mesh) {
+
+  PetscInt nLocalCells = 0;
+  PetscInt icell;
+
+  PetscFunctionBegin;
+
+  for (icell = 0; icell<mesh->num_cells; icell++) {
+    if (mesh->cells.is_local[icell]) nLocalCells++;
+  }
+
+  PetscFunctionReturn(nLocalCells);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscInt TDyMeshGetNumberOfLocalFacess(TDy_mesh *mesh) {
+
+  PetscInt nLocalFaces = 0;
+  PetscInt iface;
+
+  PetscFunctionBegin;
+
+  for (iface = 0; iface<mesh->num_cells; iface++) {
+    if (mesh->faces.is_local[iface]) nLocalFaces++;
+  }
+
+  PetscFunctionReturn(nLocalFaces);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode AllocateMemoryForCells(
   PetscInt    num_cells,
   TDyCellType cell_type,

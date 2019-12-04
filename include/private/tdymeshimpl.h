@@ -209,4 +209,6 @@ PETSC_EXTERN PetscErrorCode TDyFace_GetCentroid(TDy_face*,PetscInt,PetscInt, Pet
 PETSC_EXTERN PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex*, PetscInt, PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyCell_GetCentroid(TDy_cell*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,PetscInt,TDy_vertex*,PetscInt,TDy_subcell*,PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetNumberOfLocalCells(TDy_mesh*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetNumberOfLocalFacess(TDy_mesh*);
 #endif
