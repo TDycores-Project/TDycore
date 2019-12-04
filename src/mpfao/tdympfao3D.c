@@ -69,8 +69,6 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
 
     for (isubcell=0; isubcell<cells->num_subcells[icell]; isubcell++) {
 
-      //TDy_subcell *subcell;
-      //subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
       PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
@@ -81,7 +79,6 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
         PetscReal area;
         PetscReal normal[3];
 
-        //TDy_face *face = &faces[subcell->face_ids[ii]];
         PetscInt face_id = subcells->face_ids[sOffsetFace + ii];
 
         area = subcells->face_area[sOffsetFace + ii];
@@ -202,7 +199,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
     icell    = vertices->internal_cell_ids[offsetCell + i];
     isubcell = vertices->subcell_ids[offsetSubcell + i];
 
-    //subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
     PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
@@ -215,7 +211,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
 
     PetscInt iface;
     for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
-      //TDy_face *face = &faces[subcells->face_ids[sOffsetFace + iface]];
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
@@ -381,7 +376,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
     icell    = vertices->internal_cell_ids[offsetCell + i];
     isubcell = vertices->subcell_ids[offsetSubcell + i];
 
-    //subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
     PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
@@ -584,7 +578,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   icell    = vertices->internal_cell_ids[offsetCell + 0];
   isubcell = vertices->subcell_ids[offsetSubcell + 0];
   
-  //subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
   PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
 
   ierr = ExtractSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
@@ -683,7 +676,6 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
       for (irow=0; irow<nflux_in; irow++) {
         
         PetscInt face_id = vertices->face_ids[offsetFace + irow];
-        //TDy_face *face = &faces[face_id];
         PetscInt fOffsetCell = faces->cell_offset[face_id];
         
         cell_id_up = faces->cell_ids[fOffsetCell + 0];
@@ -812,14 +804,12 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
       icell = vertices->internal_cell_ids[offsetCell + irow];
       isubcell = vertices->subcell_ids[offsetSubcell + irow];
 
-      //subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
       PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
       PetscInt iface;
       for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
-        //TDy_face *face = &faces[subcells->face_ids[sOffsetFace + iface]];
         PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
         PetscInt fOffsetCell = faces->cell_offset[face_id];
         cell_id_up = faces->cell_ids[fOffsetCell + 0];
@@ -837,7 +827,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
     for (irow=0; irow<nflux_in; irow++){
 
       PetscInt face_id = vertices->face_ids[offsetFace + irow];
-      //TDy_face *face = &faces[face_id];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
@@ -886,7 +875,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
       //row = cell_ids_from_to[irow][0];
 
       PetscInt face_id = vertices->face_ids[offsetFace + irow + nflux_in];
-      //TDy_face *face = &faces[face_id];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
@@ -992,14 +980,12 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
     icell    = vertices->internal_cell_ids[offsetCell + 0];
     isubcell = vertices->subcell_ids[offsetSubcell + 0];
 
-    //subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
     PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
     numBoundary = 0;
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
       
-      //TDy_face *face = &faces[subcells->face_ids[sOffsetFace + iface]];
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
 
       PetscInt f;
@@ -1011,7 +997,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
-      //TDy_face *face = &faces[subcells->face_ids[sOffsetFace + iface]];
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
@@ -1033,7 +1018,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
     // For fluxes through boundary edges, only add contribution to the vector
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
-      //TDy_face *face = &faces[subcells->face_ids[sOffsetFace + iface]];
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
@@ -1235,7 +1219,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
       for (irow=0; irow<nflux_in; irow++) {
 
         PetscInt face_id = vertices->face_ids[offsetFace + irow];
-        //TDy_face *face = &faces[face_id];
         PetscInt fOffsetCell = faces->cell_offset[face_id];
 
         if (!faces->is_local[face_id]) continue;
@@ -1384,14 +1367,12 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       icell = vertices->internal_cell_ids[offsetCell + irow];
       PetscInt isubcell = vertices->subcell_ids[offsetSubcell + irow];
 
-      //subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
       PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
       PetscInt iface;
       for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
-        //TDy_face *face = &faces[subcells->face_ids[sOffsetFace + iface]];
         PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
         PetscInt fOffsetCell = faces->cell_offset[face_id];
 
@@ -1415,7 +1396,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
     for (irow=0; irow<nflux_in; irow++){
 
       PetscInt face_id = vertices->face_ids[offsetFace + irow];
-      //TDy_face *face = &faces[face_id];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       if (!faces->is_local[face_id]) continue;
@@ -1502,7 +1482,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
     for (irow=0; irow<nflux_bc*2; irow++) {
 
       PetscInt face_id = vertices->face_ids[offsetFace + irow + nflux_in];
-      //TDy_face *face = &faces[face_id];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       if (!faces->is_local[face_id]) continue;
@@ -1652,7 +1631,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
     icell    = vertices->internal_cell_ids[offsetCell + 0];
     isubcell = vertices->subcell_ids[offsetSubcell + 0];
 
-    //subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
     PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
@@ -1662,7 +1640,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
 
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
       
-      //TDy_face *face = &faces[subcells->face_ids[sOffsetFace + iface]];
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
 
       PetscInt f;
@@ -1677,7 +1654,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
 
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
-      //TDy_face *face = &faces[subcells->face_ids[sOffsetFace + iface]];
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
@@ -1820,7 +1796,6 @@ PetscErrorCode TDyMPFAOIFunction_InternalVertices_3DMesh(Vec Ul, Vec R, void *ct
     for (irow=0; irow<nflux_in; irow++) {
       
       PetscInt face_id = vertices->face_ids[offsetFace + irow];
-      //TDy_face *face = &faces[face_id];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
@@ -1919,14 +1894,12 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
       icell = vertices->internal_cell_ids[offsetCell + irow];
       PetscInt isubcell = vertices->subcell_ids[offsetSubcell + irow];
 
-      //subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
       PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
       PetscInt iface;
       for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
-        //face = &faces[subcell->face_ids[iface]];
         PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
         PetscInt fOffsetCell = faces->cell_offset[face_id];
 
@@ -1973,7 +1946,6 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
     for (irow=0; irow<nflux_in + 2*nflux_bc; irow++) {
 
       PetscInt face_id = vertices->face_ids[offsetFace + irow];
-      //TDy_face *face = &faces[face_id];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       if (!faces->is_local[face_id]) continue;
@@ -2066,14 +2038,12 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
     cell_id  = vertices->internal_cell_ids[offsetCell + 0];
     isubcell = vertices->subcell_ids[offsetSubcell + 0];
 
-    //subcell = &subcells[cell_id*cells->num_subcells[cell_id]+isubcell];
     PetscInt subcell_id = cell_id*cells->num_subcells[cell_id]+isubcell;
     PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
     numBoundary = 0;
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
-      //face = &faces[subcell->face_ids[iface]];
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
@@ -2111,7 +2081,6 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
 
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
-      //face = &faces[subcell->face_ids[iface]];
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
@@ -2333,7 +2302,6 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh(Vec Ul, Mat A, void *ct
     for (irow=0; irow<nflux_in; irow++) {
       
       PetscInt face_id = vertices->face_ids[offsetFace + irow];
-      //TDy_face *face = &faces[face_id];
       
       if (!faces->is_local[face_id]) continue;
       
@@ -2364,7 +2332,6 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh(Vec Ul, Mat A, void *ct
     for (irow=0; irow<nflux_in; irow++) {
       
       PetscInt face_id = vertices->face_ids[offsetFace + irow];
-      //TDy_face *face = &faces[face_id];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
@@ -2521,7 +2488,6 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
       PetscInt iface;
       for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
-        //TDy_face *face = &faces[subcells->face_ids[sOffsetFace + iface]];
         PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
         PetscInt fOffsetCell = faces->cell_offset[face_id];
 
@@ -2568,7 +2534,6 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
     for (irow=0; irow<nflux_in + 2*nflux_bc; irow++) {
 
       PetscInt face_id = vertices->face_ids[offsetFace + irow];
-      //TDy_face *face = &faces[face_id];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       if (!faces->is_local[face_id]) continue;

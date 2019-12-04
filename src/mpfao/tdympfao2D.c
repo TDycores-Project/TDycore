@@ -78,7 +78,6 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
 
       PetscInt vStart = cells->vertex_offset[icell];
       PetscInt ivertex = cells->vertex_ids[vStart+isubcell];
-      //subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
 
       // determine ids of up & down edges
@@ -86,10 +85,6 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
       e_idx_up = cells->edge_ids[eStart + isubcell];
       if (isubcell == 0) e_idx_dn = cells->edge_ids[eStart + num_subcells-1];
       else               e_idx_dn = cells->edge_ids[eStart + isubcell    -1];
-
-      // set points to up/down edges
-      //edge_up = &edges[e_idx_up];
-      //edge_dn = &edges[e_idx_dn];
 
       // extract nu-vectors
       ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, 0, dim, &nu_up[0]); CHKERRQ(ierr);

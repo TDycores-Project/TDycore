@@ -1719,7 +1719,6 @@ PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDy_face *fac
     
     PetscInt offsetFace = vertices->face_offset[ivertex];
     PetscInt face_id = vertices->face_ids[offsetFace + iface];
-    //TDy_face *face = &faces[face_id];
     PetscInt fOffsetCell = faces->cell_offset[face_id];
     
     if (faces->cell_ids[fOffsetCell + 0] == cell_id || faces->cell_ids[fOffsetCell + 1] == cell_id){
@@ -1804,9 +1803,6 @@ PetscErrorCode SetupCell2CellConnectivity(TDy_vertex *vertices, PetscInt ivertex
 
   for (icell=0; icell<ncells; icell++) {
 
-    //TDy_cell    *cell;
-    //TDy_subcell *subcell;
-
     // Determine the cell and subcell id
     cell_id  = vertices->internal_cell_ids[offsetCell + icell];
     isubcell = vertices->subcell_ids[offsetSubcell + icell];
@@ -1820,7 +1816,6 @@ PetscErrorCode SetupCell2CellConnectivity(TDy_vertex *vertices, PetscInt ivertex
     // Loop over all faces of the subcell
     for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
-      //TDy_face *face = &faces[subcell->face_ids[iface]];
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
@@ -2174,8 +2169,6 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
 
   for (icell=0; icell<ncells; icell++) {
 
-    //TDy_subcell *subcell;
-
     // Determine the cell and subcell id
     cell_id  = vertices->internal_cell_ids[offsetCell + icell];
     isubcell = vertices->subcell_ids[offsetSubcell + icell];
@@ -2189,7 +2182,6 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
     // Loop over all faces of the subcell
     for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
-      //TDy_face *face = &faces[subcell->face_ids[iface]];
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
@@ -2235,8 +2227,6 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
   // Save the face index that corresponds to the flux in transmissibility matrix
   for (icell=0; icell<ncells; icell++) {
 
-    //TDy_subcell *subcell;
-
     // Determine the cell and subcell id
     cell_id  = vertices->internal_cell_ids[offsetCell+icell];
     isubcell = vertices->subcell_ids[offsetSubcell+icell];
@@ -2255,7 +2245,6 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
     //   subcell are identifed. The internal fluxes are first,
     //   followed by upwind boundary and downwind boundary faces.
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-      //TDy_face *face = &faces[subcell->face_ids[iface]];
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
 
       PetscInt idx_flux = subcells->face_unknown_idx[sOffsetFace + iface];
@@ -2561,9 +2550,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
       // set pointer to vertex and subcell
       PetscInt vStart = cells->vertex_offset[icell];
-      //vertex  = &vertices[cells->vertex_ids[vStart+isubcell]];
       ivertex = cells->vertex_ids[vStart+isubcell];
-      //subcell = &subcells[icell*cells->num_subcells[icell]+isubcell];
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
       PetscInt sOffsetFace = subcells->face_offset[subcell_id];
       PetscInt sOffsetNuVec = subcells->nu_vector_offset[subcell_id];
@@ -2651,9 +2638,6 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         }
         
         // Save x_{f1_idx } and x_{f2_idx }
-        //TDy_face *face1, *face2;
-        //face1 = &faces[subcell->face_ids[f1_idx]];
-        //face2 = &faces[subcell->face_ids[f2_idx]];
         PetscInt face_id_1 = subcells->face_ids[sOffsetFace + f1_idx];
         PetscInt face_id_2 = subcells->face_ids[sOffsetFace + f2_idx];
 
@@ -2835,7 +2819,6 @@ PetscErrorCode OutputCells2DMesh(TDy tdy) {
       vertex_id_v[icell*4 + k] = cells->vertex_ids[vStart+k];
       edge_id_v  [icell*4 + k] = cells->edge_ids[eStart+k];
 
-      //subcell = &subcells[icell*cells->num_subcells[icell]+k];
       PetscInt subcell_id = icell*cells->num_subcells[icell]+k;
 
       scell_vol_v[icell*4 + k] = subcells->T[subcell_id];
