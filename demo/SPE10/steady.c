@@ -131,9 +131,9 @@ int main(int argc, char **argv) {
   PetscPrintf(PETSC_COMM_WORLD,"grid: %d %d %d = %d\n",faces[0],faces[1],faces[2],faces[0]*faces[1]*faces[2]);
   ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
                              NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
   if (dmDist) {DMDestroy(&dm); dm = dmDist;}
+  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
   /* Setup problem parameters */
