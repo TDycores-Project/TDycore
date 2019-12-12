@@ -125,20 +125,28 @@ int main(int argc, char **argv) {
   PetscErrorCode ierr;
   PetscInt N = 4, dim = 2, problem = -999;
   PetscInt successful_exit_code=0;
+  PetscBool verbose;
+  PetscBool qa;
+  PetscInt i;
   FILE *fp;
-  char string[128];
+  char input_filename[128];
+  char output_filename[128];
   char algorithm[32];
   char filename[32];
   char prefix[32];
 
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
 
-  strcpy(string,"tdycore.in");
+  strcpy(input_filename,"tdycore.in");
   strcpy(algorithm,"TPF");
 
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
   CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-dim","Problem dimension","",dim,&dim,NULL);
+  CHKERRQ(ierr);
+  ierr = PetscOptionsBool ("-verbose","Verbose output","",verbose,&verbose,NULL);
+  CHKERRQ(ierr);
+  ierr = PetscOptionsBool ("-qa","QA output","",qa,&qa,NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-N","Number of elements in 1D","",N,&N,NULL);
   CHKERRQ(ierr);
@@ -148,21 +156,26 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
-  ierr = PetscOptionsString("-input","Input filename","",string,string,128,NULL);
+  ierr = PetscOptionsString("-input","Input filename","",input_filename,input_filename,128,NULL);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
+  strcpy(prefix,"");
   if (problem > 0) {
-    strcpy(string,"");
+    // nullify input_filename so that command line options override the input file
+    strcpy(input_filename,"");
   }
 
-  if (strlen(string) > 1) {
+  if (strlen(input_filename) > 1) {
     printf("Reading input.\n");
-    fp = fopen(string,"r");
+    fp = fopen(input_filename,"r");
     fscanf(fp,"%d",&problem);
     fscanf(fp,"%d",&dim);
     fscanf(fp,"%d",&N);
     fscanf(fp,"%s",algorithm);
     fclose(fp);
+    for (i=strlen(input_filename); i > -1; i--) 
+      if (input_filename[i] == '.') break;
+    if (i > -1) strncpy(prefix,input_filename,i);
   }
 
   printf("\n");
@@ -228,7 +241,10 @@ int main(int argc, char **argv) {
     printf("Unrecognized algorithm for TDySetDiscretizationMethod: %s\n",algorithm);
     exit(1);
   }
-  sprintf(prefix,"tdycore_p%d_%s",problem,algorithm);
+
+  if (strlen(prefix) == 0) {
+    sprintf(prefix,"tdycore_p%d_%s",problem,algorithm);
+  }
   printf("Output prefix: %s\n",prefix);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
@@ -243,16 +259,18 @@ int main(int argc, char **argv) {
   ierr = TDyComputeSystem(tdy,K,F); CHKERRQ(ierr);
 
   PetscViewer viewer;
-  strcpy(filename,prefix);
-  strcat(filename,".mat");
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
-  ierr = MatView(K,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  strcpy(filename,prefix);
-  strcat(filename,".rhs");
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
-  ierr = VecView(F,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  if (verbose) {
+    strcpy(filename,prefix);
+    strcat(filename,".mat");
+    ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
+    ierr = MatView(K,viewer);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+    strcpy(filename,prefix);
+    strcat(filename,".rhs");
+    ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
+    ierr = VecView(F,viewer);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  }
 
   /* Solve system */
   printf("Solving system.\n");
@@ -263,12 +281,13 @@ int main(int argc, char **argv) {
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
 
-  printf("Outputing results.\n");
-  strcpy(filename,prefix);
-  strcat(filename,".sol");
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
-  ierr = VecView(U,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  if (verbose || qa) {
+    strcpy(filename,prefix);
+    strcat(filename,".sol");
+    ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
+    ierr = VecView(U,viewer);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  }
   
   /* Output solution */
   strcpy(filename,prefix);
