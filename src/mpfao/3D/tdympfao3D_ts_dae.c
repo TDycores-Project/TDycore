@@ -48,6 +48,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec 
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,P); CHKERRQ(ierr);
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
+  ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
 
   PetscReal vel_error = 0.0;
   PetscInt count = 0;

@@ -682,17 +682,19 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
   TDy_cell *cells;
   TDy_face *faces;
   PetscErrorCode ierr;
-  PetscInt dim;
+  PetscInt dim, ncells;
   PetscInt p_bnd_idx, cell_id, iface;
-  PetscReal *p, gz;
+  PetscReal *p, gz, *p_vec_ptr;
 
   PetscFunctionBegin;
 
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
 
   mesh = tdy->mesh;
   cells = &mesh->cells;
   faces = &mesh->faces;
+  ncells = mesh->num_cells;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
@@ -718,9 +720,12 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
       ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
       tdy->P_BND[p_bnd_idx] = p[cell_id] + tdy->rho[cell_id]*gz;
     }
+
+    p_vec_ptr[p_bnd_idx + ncells] = tdy->P_BND[p_bnd_idx];
   }
 
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

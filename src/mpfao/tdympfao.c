@@ -297,6 +297,25 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   ierr = TDyBuildMesh(tdy); CHKERRQ(ierr);
 
+  if (dim == 3) {
+    PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
+    PetscInt nrow, ncol, nz;
+
+    nFaces = tdy->mesh->num_faces;
+    nLocalCells = TDyMeshGetNumberOfLocalCells(tdy->mesh);
+    nNonLocalFaces = TDyMeshGetNumberOfNonLocalFacess(tdy->mesh);
+    nNonInternalFaces = TDyMeshGetNumberOfNonInternalFacess(tdy->mesh);
+
+    nrow = 4*nFaces;
+    ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
+    nz   = 8;
+    ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&tdy->Trans_mat); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&tdy->P_vec);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->TtimesP_vec);
+
+  }
+
   if (tdy->ops->computepermeability) { ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
 
   ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);

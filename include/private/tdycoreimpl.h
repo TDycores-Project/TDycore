@@ -98,6 +98,8 @@ struct _p_TDy {
   TDy_mesh *mesh;
   PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
   PetscReal ***Trans;
+  Mat Trans_mat;
+  Vec P_vec, TtimesP_vec;
 
   Mat J, Jpre;
 

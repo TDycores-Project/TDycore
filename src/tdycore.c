@@ -4,6 +4,7 @@
 #include <private/tdympfao3Dcoreimpl.h>
 #include <private/tdympfaoimpl.h>
 #include <private/tdyeosimpl.h>
+#include <private/tdympfao3Dutilsimpl.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -635,8 +636,22 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
 
     ierr = ComputeWaterDensity(P[i], tdy->rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
+
   }
 
+  if ( (tdy->method == MPFA_O || tdy->method == MPFA_O_DAE) && dim == 3) {
+    PetscReal *p_vec_ptr, gz;
+    TDy_cell *cells;
+
+    cells = &(tdy->mesh->cells);
+    ierr = VecGetArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+    for (c=cStart; c<cEnd; c++) {
+      i = c-cStart;
+      ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[i].X,dim,&gz);
+      p_vec_ptr[i] = P[i] + tdy->rho[i]*gz;
+    }
+    ierr = VecRestoreArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+  }
 
   PetscFunctionReturn(0);
 }

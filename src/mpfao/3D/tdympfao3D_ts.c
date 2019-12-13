@@ -18,11 +18,12 @@ PetscErrorCode TDyMPFAOIFunction_InternalVertices_3DMesh(Vec Ul, Vec R, void *ct
   TDy_vertex *vertices;
   DM dm;
   PetscReal *p,*r;
-  PetscInt ivertex, vertex_id;
+  PetscInt ivertex;
   PetscInt dim;
-  PetscInt irow, icol;
-  PetscInt cell_id_up, cell_id_dn, cell_id, icell;
-  PetscReal gz,den,fluxm,ukvr;
+  PetscInt irow;
+  PetscInt cell_id_up, cell_id_dn;
+  PetscReal den,fluxm,ukvr;
+  PetscScalar *TtimesP_vec_ptr;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -37,38 +38,26 @@ PetscErrorCode TDyMPFAOIFunction_InternalVertices_3DMesh(Vec Ul, Vec R, void *ct
 
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
-    vertex_id = ivertex;
-
     if (vertices->num_boundary_cells[ivertex] != 0) continue;
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
-    PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
 
     PetscInt nflux_in = 12;
-    PetscScalar P[vertices->num_internal_cells[ivertex]];
     PetscScalar TtimesP[nflux_in];
-
-    // Build the P vector
-    for (icell=0; icell<vertices->num_internal_cells[ivertex]; icell++) {
-      cell_id = vertices->internal_cell_ids[vOffsetCell + icell];
-      ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
-      P[icell] = p[cell_id] + tdy->rho[cell_id]*gz;
-    }
 
     // Compute = T*P
     for (irow=0; irow<nflux_in; irow++) {
       
       PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
+      PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
+      PetscInt num_subfaces = 4;
 
       if (!faces->is_local[face_id]) continue;
-      
-      TtimesP[irow] = 0.0;
 
-      for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
-        TtimesP[irow] += tdy->Trans[vertex_id][irow][icol]*P[icol];
-      }
+      TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
     }
 
@@ -101,6 +90,7 @@ PetscErrorCode TDyMPFAOIFunction_InternalVertices_3DMesh(Vec Ul, Vec R, void *ct
 
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -119,10 +109,10 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
   PetscInt dim;
   PetscInt ncells, ncells_bnd;
   PetscInt npcen, npitf_bc, nflux_bc, nflux_in;
-  TDy_subcell    *subcells;
-  PetscInt irow, icol;
-  PetscInt cell_id_up, cell_id_dn, cell_id, icell;
-  PetscReal gz,den,fluxm,ukvr;
+  PetscInt irow;
+  PetscInt cell_id_up, cell_id_dn;
+  PetscReal den,fluxm,ukvr;
+  PetscScalar *TtimesP_vec_ptr, *p_vec_ptr;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -131,13 +121,14 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
   cells    = &mesh->cells;
   faces    = &mesh->faces;
   vertices = &mesh->vertices;
-  subcells = &mesh->subcells;
   dm       = tdy->dm;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->P_vec,&p_vec_ptr);CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -149,8 +140,6 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
     if (ncells_bnd == 0) continue;
     if (ncells     <  2) continue;
 
-    PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
-    PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
     npcen    = vertices->num_internal_cells[ivertex];
@@ -169,63 +158,16 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
       break;
     }
 
-    PetscScalar pBoundary[4];
-    PetscInt numBoundary;
-    
-    // For boundary edges, save following information:
-    //  - Dirichlet pressure value
-    numBoundary = 0;
-
-    for (irow=0; irow<ncells; irow++){
-      icell = vertices->internal_cell_ids[vOffsetCell + irow];
-      PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + irow];
-
-      PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-      PetscInt sOffsetFace = subcells->face_offset[subcell_id];
-
-      PetscInt iface;
-      for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
-
-        PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
-        PetscInt fOffsetCell = faces->cell_offset[face_id];
-
-        if (faces->is_internal[face_id] == 0) {
-
-          // Extract pressure value at the boundary
-          PetscInt p_bnd_idx;
-          if (faces->cell_ids[fOffsetCell + 0] >= 0) p_bnd_idx = -faces->cell_ids[fOffsetCell + 1] - 1;
-          else                        p_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
-
-          pBoundary[numBoundary] = tdy->P_BND[p_bnd_idx];
-
-          numBoundary++;
-        }
-      }
-    }
-    
-    PetscReal P[npcen + npitf_bc];
-
-    // Save intenral pressure values
-    for (icell=0;icell<npcen;icell++) {
-      cell_id = vertices->internal_cell_ids[vOffsetCell + icell];
-      ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
-      P[icell] = p[cell_id] + tdy->rho[cell_id]*gz;
-    }
-
-    // Save boundary pressure values
-    for (icell=0;icell<numBoundary;icell++) {
-      P[icell+npcen] = pBoundary[icell];
-    }
-
     // Compute T*P
     PetscScalar TtimesP[nflux_in + 2*nflux_bc];
     for (irow=0; irow<nflux_in + 2*nflux_bc; irow++) {
 
-      TtimesP[irow] = 0.0;
+      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
+      PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
+      PetscInt num_subfaces = 4;
 
-      for (icol=0; icol<npcen + npitf_bc; icol++) {
-        TtimesP[irow] += tdy->Trans[vertex_id][irow][icol]*P[icol];
-      }
+      TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
+
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
     }
 
@@ -266,6 +208,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
 
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -287,6 +230,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
   PetscInt isubcell, iface;
   PetscInt cell_id_up, cell_id_dn, cell_id, icell;
   PetscReal gz,den,fluxm,ukvr;
+  PetscReal *TtimesP_vec_ptr;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -302,6 +246,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
 
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -312,6 +257,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
 
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
     PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
+    PetscInt vOffsetFace = vertices->face_offset[ivertex];
 
     // Vertex is on the boundary
     PetscScalar pBoundary[3];
@@ -357,11 +303,11 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
     PetscScalar TtimesP[numBoundary];
     for (irow=0; irow<numBoundary; irow++) {
 
-      TtimesP[irow] = 0.0;
+      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
+      PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
+      PetscInt num_subfaces = 4;
 
-      for (icol=0; icol<numBoundary+1; icol++) {
-        TtimesP[irow] += tdy->Trans[vertex_id][irow][icol]*P[icol];
-      }
+      TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
     }
 
@@ -399,6 +345,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
 
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -435,6 +382,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
+  ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
 
   PetscReal vel_error = 0.0;
   PetscInt count = 0;
@@ -496,6 +444,7 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh(Vec Ul, Mat A, void *ct
   PetscReal dukvr_dPup, dukvr_dPdn, Jac;
   PetscReal dden_dPup, dden_dPdn;
   PetscReal T;
+  PetscScalar *TtimesP_vec_ptr;
 
   PetscErrorCode ierr;
 
@@ -510,6 +459,7 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh(Vec Ul, Mat A, void *ct
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -521,29 +471,18 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh(Vec Ul, Mat A, void *ct
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
     PetscInt nflux_in = 12;
-    PetscScalar P[vertices->num_internal_cells[ivertex]];
     PetscScalar TtimesP[nflux_in];
-
-    // Build the P vector
-    for (icell=0; icell<vertices->num_internal_cells[ivertex]; icell++) {
-      cell_id = vertices->internal_cell_ids[vOffsetCell + icell];
-      ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
-
-      P[icell] = p[cell_id] + tdy->rho[cell_id]*gz;
-    }
 
     // Compute = T*P
     for (irow=0; irow<nflux_in; irow++) {
       
       PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
-      
+      PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
+      PetscInt num_subfaces = 4;
+
       if (!faces->is_local[face_id]) continue;
       
-      TtimesP[irow] = 0.0;
-
-      for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
-        TtimesP[irow] += tdy->Trans[vertex_id][irow][icol]*P[icol];
-      }
+      TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
     }
 
@@ -626,6 +565,7 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh(Vec Ul, Mat A, void *ct
   }
 
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
   ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
@@ -657,6 +597,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
   PetscReal dden_dPup, dden_dPdn;
   PetscReal *p;
   PetscReal gz;
+  PetscScalar *TtimesP_vec_ptr;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -671,6 +612,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
   ierr = DMPlexGetDepthStratum( dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -729,7 +671,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
           // Extract pressure value at the boundary
           PetscInt p_bnd_idx;
           if (faces->cell_ids[fOffsetCell + 0] >= 0) p_bnd_idx = -faces->cell_ids[fOffsetCell + 1] - 1;
-          else                        p_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
+          else                                       p_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
 
           pBoundary[numBoundary] = tdy->P_BND[p_bnd_idx];
 
@@ -756,11 +698,19 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
     PetscScalar TtimesP[nflux_in + 2*nflux_bc];
     for (irow=0; irow<nflux_in + 2*nflux_bc; irow++) {
 
+      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
+      PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
+      PetscInt num_subfaces = 4;
+
+      /*
       TtimesP[irow] = 0.0;
 
       for (icol=0; icol<npcen + npitf_bc; icol++) {
         TtimesP[irow] += tdy->Trans[vertex_id][irow][icol]*P[icol];
       }
+      */
+      TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
+
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
     }
 
@@ -858,6 +808,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
     }
   }
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
   ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
@@ -888,6 +839,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   PetscReal dden_dPup, dden_dPdn;
   PetscReal *p;
   PetscReal gz;
+  PetscScalar *TtimesP_vec_ptr;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -902,6 +854,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
   ierr = DMPlexGetDepthStratum( dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -914,6 +867,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
 
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
     PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
+    PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
     // Vertex is on the boundary
     PetscScalar pBoundary[3];
@@ -959,11 +913,18 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
     PetscScalar TtimesP[numBoundary];
     for (irow=0; irow<numBoundary; irow++) {
 
+      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+      PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
+      PetscInt num_subfaces = 4;
+
+      /*
       TtimesP[irow] = 0.0;
 
       for (icol=0; icol<numBoundary+1; icol++) {
         TtimesP[irow] += tdy->Trans[vertex_id][irow][icol]*P[icol];
       }
+      */
+      TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
     }
 
@@ -1055,6 +1016,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   }
 
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
   ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
