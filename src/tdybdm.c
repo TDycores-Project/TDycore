@@ -110,7 +110,7 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
   for(d=0; d<(dim-1); d++) dofs_per_face *= 2;
   for(f=fStart; f<fEnd; f++) {
     ierr = PetscSectionSetFieldDof(sec,f,1,dofs_per_face); CHKERRQ(ierr);
-    ierr = PetscSectionSetDof     (sec,f,dofs_per_face); CHKERRQ(ierr);
+    ierr = PetscSectionSetDof     (sec,f,  dofs_per_face); CHKERRQ(ierr);
   }
   ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
   ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
@@ -192,8 +192,7 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
     for(d=0; d<dim; d++) {
       for(s=0; s<2; s++) {
         v = s*PetscPowInt(2,d);
-        tdy->faces[(c-cStart)*dim*2+d*2+s] = PetscAbsInt(tdy->emap[(c-cStart)*ncv*dim
-                                             +v*dim+d]);
+        tdy->faces[(c-cStart)*dim*2+d*2+s] = PetscAbsInt(tdy->emap[(c-cStart)*ncv*dim+v*dim+d]);
       }
     }
   }
@@ -347,7 +346,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
       /* loop over face quadrature, need to extend the dim-1 point to
 	 dim to evaluate basis */
       for(q=0;q<nfq;q++){
-	
+
 	/* extend the dim-1 quadrature point to dim */
 	PetscInt j;
 	PetscReal xq[3];
@@ -387,18 +386,23 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
 	    Klocal[local_col *nlocal + (nlocal-1)] += -N[local_col]*fquad_w[q]*J[q];
 	    Klocal[(nlocal-1)*nlocal + local_col ] += -N[local_col]*fquad_w[q]*J[q];
 	    if(isbc == 1 && tdy->ops->computedirichletvalue){
-	      if(tdy->qtype == FULL){
-		ierr = (*tdy->ops->computedirichletvalue)(tdy, &(x[dim*q]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
-	      }else{
-		ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[cone[f]*dim]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
-	      }
+	      //if(tdy->qtype == FULL){
+	      ierr = (*tdy->ops->computedirichletvalue)(tdy, &(x[dim*q]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
+	      //}else{
+	      //ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[cone[f]*dim]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
+	      //}
+	      //if(N[local_col] > 1e-12) printf("%d %d %d %d %f %f %f %f %d\n",cone[f],q,vi,di,-pressure,N[local_col],fquad_w[q],J[q],local_col);
 	      Flocal[local_col] += -pressure*N[local_col]*fquad_w[q]*J[q];
 	    }
 	  }
 	}
 
       } /* end quadrature */
+      
+      //printf("c:%2d f:%2d\n",c,cone[f]); 
+      //PrintMatrix(Flocal,1,nlocal,PETSC_TRUE);
     } /* end faces */
+
     
     /* apply orientation flips */
     for(vi=0; vi<nlocal-1; vi++) {
@@ -424,6 +428,9 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
+  //ierr = MatView(K,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+  //ierr = VecView(F,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+  
   ierr = PetscQuadratureDestroy(&face_quadrature); CHKERRQ(ierr);
   ierr = PetscQuadratureDestroy(&     quadrature); CHKERRQ(ierr);
   PetscFunctionReturn(0);
@@ -491,8 +498,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
   ncv  = tdy->ncv;
   ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quad); CHKERRQ(ierr);
-  ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w);
-  CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w); CHKERRQ(ierr);
   nlocal = dim*ncv + 1;
 
   /* loop cells */
