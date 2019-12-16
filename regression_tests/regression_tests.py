@@ -225,7 +225,7 @@ class RegressionTest(object):
         if self._np is not None:
             if mpiexec:
                 command += shlex.split(mpiexec)
-                command.append("-np")
+                command.append("-n")
                 command.append(self._np)
             else:
                 # parallel test, but don't have mpiexec, we mark the
