@@ -28,7 +28,7 @@ ifdef TIMEOUT
 endif
 
 ifneq ($(strip $(MPIEXEC)),)
-	TEST_OPTIONS += --mpiexec $(MPIEXEC)
+	TEST_OPTIONS += --mpiexec "$(MPIEXEC)"
 endif
 
 #

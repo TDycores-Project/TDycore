@@ -23,6 +23,7 @@ import hashlib
 import os
 import pprint
 import re
+import shlex
 import shutil
 import subprocess
 import textwrap
@@ -223,7 +224,7 @@ class RegressionTest(object):
         command = []
         if self._np is not None:
             if mpiexec:
-                command.append(mpiexec)
+                command += shlex.split(mpiexec)
                 command.append("-np")
                 command.append(self._np)
             else:
@@ -1846,7 +1847,7 @@ def check_for_mpiexec(options, testlog):
         print("MPI information :", file=testlog)
         print("-----------------", file=testlog)
         tempfile = "{0}/tmp-executable-regression-test-info.txt".format(os.getcwd())
-        command = [mpiexec, "--version"]
+        command = shlex.split(mpiexec) + ["--version"]
         append_command_to_log(command, testlog, tempfile)
         print("\n\n", file=testlog)
         os.remove(tempfile)
