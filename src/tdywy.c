@@ -327,7 +327,7 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
     ierr = PetscSectionSetDof(sec,p,1); CHKERRQ(ierr);
   }
   ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
-  ierr = DMSetDefaultSection(dm,sec); CHKERRQ(ierr);
+  ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
   ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view"); CHKERRQ(ierr);
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
   ierr = DMSetBasicAdjacency(dm,PETSC_TRUE,PETSC_TRUE); CHKERRQ(ierr);
@@ -633,7 +633,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
-  ierr = DMGetDefaultSection(dm, &section); CHKERRQ(ierr);
+  ierr = DMGetSection(dm, &section); CHKERRQ(ierr);
   nq   = tdy->ncv;
   nv   = tdy->nfv;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -773,7 +773,7 @@ PetscReal TDyWYPressureNorm(TDy tdy,Vec U) {
   norm = 0;
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = DMGetDefaultSection(dm,&sec); CHKERRQ(ierr);
+  ierr = DMGetSection(dm,&sec); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
