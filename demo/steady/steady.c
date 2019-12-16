@@ -22,14 +22,14 @@ PetscErrorCode ForcingConstant(TDy tdy,double *x,double *f,void *ctx) { (*f) = 0
 
 /* -problem 2 */
 
-PetscErrorCode PressureQuadratic2D(TDy tdy,double *x,double *p,void *ctx) { (*p) = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1]); PetscFunctionReturn(0);}
+PetscErrorCode PressureQuadratic2D(TDy tdy,double *x,double *p,void *ctx) { (*p) = 3.14+x[0]+x[1]; PetscFunctionReturn(0);}
 PetscErrorCode VelocityQuadratic2D(TDy tdy,double *x,double *v,void *ctx) {
   double K[4]; PermTest2D(x,K);
-  v[0] = -K[0]*(1-2*x[0]) - K[1]*(1-2*x[1]);
-  v[1] = -K[2]*(1-2*x[0]) - K[3]*(1-2*x[1]);
+  v[0] = -K[0]*(1) - K[1]*(1);
+  v[1] = -K[2]*(1) - K[3]*(1);
   PetscFunctionReturn(0);
 }
-PetscErrorCode ForcingQuadratic2D(TDy tdy,double *x,double *f,void *ctx) { double K[4]; PermTest2D(x,K); (*f) = 2*K[0]+2*K[3]; PetscFunctionReturn(0);}
+PetscErrorCode ForcingQuadratic2D(TDy tdy,double *x,double *f,void *ctx) { double K[4]; PermTest2D(x,K); (*f) = 0; PetscFunctionReturn(0);}
 
 PetscErrorCode PressureQuadratic3D(TDy tdy,double *x,double *p,void *ctx) { (*p) = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1])+x[2]*(1-x[2]); PetscFunctionReturn(0);}
 PetscErrorCode VelocityQuadratic3D(TDy tdy,double *x,double *v,void *ctx) {
@@ -40,6 +40,21 @@ PetscErrorCode VelocityQuadratic3D(TDy tdy,double *x,double *v,void *ctx) {
   PetscFunctionReturn(0);
 }
 PetscErrorCode ForcingQuadratic3D(TDy tdy,double *x,double *f,void *ctx) { double K[4]; PermTest3D(x,K); (*f) = 2*(K[0]+K[3]+K[8]); PetscFunctionReturn(0);}
+
+/* -problem 4 */
+
+void PermTestEye(double *x,double *K) {
+  K[0] = 1; K[1] = 0;
+  K[2] = 0; K[3] = 1;
+}
+PetscErrorCode PressureQuadraticEye(TDy tdy,double *x,double *p,void *ctx) { (*p) = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1]); PetscFunctionReturn(0);}
+PetscErrorCode VelocityQuadraticEye(TDy tdy,double *x,double *v,void *ctx) {
+  double K[4]; PermTestEye(x,K);
+  v[0] = -K[0]*(1-2*x[0]) - K[1]*(1-2*x[1]);
+  v[1] = -K[2]*(1-2*x[0]) - K[3]*(1-2*x[1]);
+  PetscFunctionReturn(0);
+}
+PetscErrorCode ForcingQuadraticEye(TDy tdy,double *x,double *f,void *ctx) { double K[4]; PermTestEye(x,K); (*f) = 2*K[0]+2*K[3]; PetscFunctionReturn(0);}
 
 /*--- -paper Wheeler2006 -------------------------------------------------------*/
 
@@ -293,6 +308,45 @@ PetscErrorCode PerturbVerticesSmooth(DM dm) {
   PetscFunctionReturn(0);
 }
 
+
+PetscErrorCode GetGlobalIndexFaceVertex(TDy tdy,PetscInt f,PetscInt v,PetscInt *ind){
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscInt c,nlocal,dim,vl,dl;
+  PetscBool found;
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+
+  /* get a cell c connected to this face */
+  const PetscInt *support;
+  ierr = DMPlexGetSupport(tdy->dm,f,&support); CHKERRQ(ierr);
+  c = support[0];
+  
+  /* which local vertex vl is the input vertex v */
+  found = PETSC_FALSE;
+  for(vl=0; vl<tdy->ncv; vl++){
+    if(tdy->vmap[c*tdy->ncv+vl]==v) {
+      found = PETSC_TRUE;
+      break;
+    }
+  }
+  if(!found) printf("Local vertex not found!\n");
+  
+  /* which dimension does the face point */
+  found = PETSC_FALSE;
+  for(dl=0; dl<dim; dl++){
+    if(PetscAbsInt(tdy->emap[c*tdy->ncv*dim+vl*dim+dl])==f) {
+      found = PETSC_TRUE;
+      break;
+    }
+  }
+  if(!found) printf("Local dimension not found!\n");
+
+  /* tdy->LtoG  [(c-cStart)*nlocal + v*dim + d] */
+  nlocal = dim*tdy->ncv + 1;
+  (*ind) = tdy->LtoG[c*nlocal + vl*dim + dl];
+  PetscFunctionReturn(0);
+}
+
 /*
   For debugging purposes, it can be helpful to locate sources of
   bugs/errors by looking at the error in applying the operator. To do
@@ -313,34 +367,91 @@ PetscErrorCode PerturbVerticesSmooth(DM dm) {
   - R, the residual formed by taking R=abs(K*U-R)
 
 */
-PetscErrorCode OperatorApplicationResidual(TDy tdy,Vec U,Mat K,PetscErrorCode (*f)(TDy,PetscReal*,PetscReal*,void*),Vec R){
+PetscErrorCode OperatorApplicationResidual(TDy tdy,Vec U,Mat K,PetscErrorCode (*fcn)(TDy,PetscReal*,PetscReal*,void*),Vec R){
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  PetscInt dim,c,cStart,cEnd,q,nq1d=3,nq=27;
+  PetscInt i,dim,c,cStart,cEnd,f,fStart,fEnd,vStart,vEnd,q,nq1d=3,nq=27;
+  PetscInt closureSize,*closure;
   PetscQuadrature quadrature;
   PetscReal x[81],J[27],DF[243],DFinv[243],value,mean,volume;
   const PetscScalar *quad_x,*quad_w;
+  PetscScalar vel[3],vn;
   DM dm;
   ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   ierr = PetscDTGaussTensorQuadrature(dim,1,nq1d,-1,+1,&quadrature); CHKERRQ(ierr);
   ierr = PetscQuadratureGetData(quadrature,NULL,NULL,&nq,&quad_x,&quad_w); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     mean = 0; volume = 0;
     ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,x,DF,DFinv,J); CHKERRQ(ierr);
     for(q=0;q<nq;q++){
-      (*f)(NULL,&(x[q*dim]),&value,NULL);
+      (*fcn)(NULL,&(x[q*dim]),&value,NULL);
       mean   += value*quad_w[q]*J[q];
       volume +=       quad_w[q]*J[q];
     }
+    //printf("c:%2d  %e  %e  %e\n",c,tdy->V[c],volume,(tdy->V[c]-volume)/tdy->V[c]*100);
     ierr = VecSetValue(U,c,mean/volume,INSERT_VALUES); CHKERRQ(ierr);
+  }
+  if(tdy->method == BDM) {
+    for(f=fStart; f<fEnd; f++) {
+      closure = NULL;
+      ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure); CHKERRQ(ierr);
+      for(i=0; i<closureSize*2; i+=2) {
+	if ((closure[i] < vStart) || (closure[i] >= vEnd)) continue;	
+	ierr = (*tdy->ops->computedirichletflux)(tdy,&(tdy->X[closure[i]*dim]),vel,NULL);CHKERRQ(ierr);
+	vn = TDyADotB(vel,&(tdy->N[f*dim]),dim);
+
+	PetscInt ind;
+	ierr = GetGlobalIndexFaceVertex(tdy,f,closure[i],&ind); CHKERRQ(ierr);
+	ierr = VecSetValue(U,ind,vn,INSERT_VALUES); CHKERRQ(ierr);
+	//printf("ind: %d (%f %f) val: %f %f n: %.1f %.1f\n",ind,
+	//       0.95*tdy->X[closure[i]*dim  ]+0.05*tdy->X[f*dim  ],
+	//       0.95*tdy->X[closure[i]*dim+1]+0.05*tdy->X[f*dim+1],
+	//       vel[0],vel[1],tdy->N[f*dim],tdy->N[f*dim+1]);
+      }
+      ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure); CHKERRQ(ierr);
+    }
   }
   ierr = VecAssemblyBegin(U); CHKERRQ(ierr);
   ierr = VecAssemblyEnd(U); CHKERRQ(ierr);
   ierr = VecScale(R,-1); CHKERRQ(ierr);
   ierr = MatMultAdd(K,U,R,R); CHKERRQ(ierr);
   ierr = VecAbs(R); CHKERRQ(ierr);
+  ierr = VecAssemblyBegin(R); CHKERRQ(ierr);
+  ierr = VecAssemblyEnd(R); CHKERRQ(ierr);
+  if(tdy->method == BDM) {
+    for(c=cStart; c<cEnd; c++) {
+  	ierr = VecGetValues(R,1,&c,&vn); CHKERRQ(ierr);
+	if(0){
+	  printf("%f, %f, %e\n",
+		 tdy->X[c*dim  ],
+		 tdy->X[c*dim+1],
+		 vn);
+	}
+    }
+    for(f=fStart; f<fEnd; f++) {
+      closure = NULL;
+      ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure); CHKERRQ(ierr);
+      for(i=0; i<closureSize*2; i+=2) {
+  	if ((closure[i] < vStart) || (closure[i] >= vEnd)) continue;
+  	PetscInt ind;
+  	ierr = GetGlobalIndexFaceVertex(tdy,f,closure[i],&ind); CHKERRQ(ierr);
+  	ierr = VecGetValues(R,1,&ind,&vn); CHKERRQ(ierr);
+  	if(0){
+	  printf("%f, %f, %e\n",
+		 0.8*tdy->X[closure[i]*dim  ]+0.2*tdy->X[f*dim  ],
+		 0.8*tdy->X[closure[i]*dim+1]+0.2*tdy->X[f*dim+1],
+		 vn);
+	}
+	//printf("%f, %f, %f\n",tdy->X[closure[i]*dim],tdy->X[closure[i]*dim+1],2.);
+      }
+      ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure); CHKERRQ(ierr);
+    }
+  }
+  //ierr = VecView(R,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);  
   ierr = PetscQuadratureDestroy(&quadrature); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -408,24 +519,15 @@ int main(int argc, char **argv) {
   PetscBool exo = PETSC_FALSE;
   alpha = 1;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,
-			   "Sample Options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-dim","Problem dimension","",
-			 dim,&dim,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-N","Number of elements in 1D","",
-			 N,&N,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-problem","Problem number","",
-			 problem,&problem,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-perturb","Perturb interior vertices","",
-			  perturb,&perturb,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-alpha","Permeability scaling","",
-			  alpha,&alpha,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
-                         successful_exit_code,&successful_exit_code,NULL);
-  ierr = PetscOptionsString("-exo","Mesh file in exodus format","",
-			    exofile,exofile,256,&exo); CHKERRQ(ierr);
-  ierr = PetscOptionsString("-paper","Select paper","",
-			    paper,paper,256,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-problem","Problem number","",problem,&problem,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-perturb","Perturb interior vertices","",perturb,&perturb,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-alpha","Permeability scaling","",alpha,&alpha,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",successful_exit_code,&successful_exit_code,NULL);
+  ierr = PetscOptionsString("-exo","Mesh file in exodus format","",exofile,exofile,256,&exo); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-paper","Select paper","",paper,paper,256,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   PetscBool wheeler2006,wheeler2012,column;
@@ -560,6 +662,13 @@ int main(int argc, char **argv) {
 	ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2006_2,NULL); CHKERRQ(ierr);
       }
       break;
+    case 4:
+      if(dim==2){
+	ierr = TDySetPermeabilityTensor(tdy,PermTestEye); CHKERRQ(ierr);
+	ierr = TDySetForcingFunction(tdy,ForcingQuadraticEye,NULL); CHKERRQ(ierr);
+	ierr = TDySetDirichletValueFunction(tdy,PressureQuadraticEye,NULL); CHKERRQ(ierr);
+	ierr = TDySetDirichletFluxFunction(tdy,VelocityQuadraticEye,NULL); CHKERRQ(ierr);
+      }
     }
   }
   ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
@@ -587,9 +696,9 @@ int main(int argc, char **argv) {
   PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"sol.vtk",FILE_MODE_WRITE,&viewer);
   ierr = DMView(dm,viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer); CHKERRQ(ierr); // the approximate solution
-  ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F); 
-  ierr = VecView(F,viewer); CHKERRQ(ierr); // the residual K*Ue-F
-  ierr = VecView(Ue,viewer); CHKERRQ(ierr);  // the exact solution
+  ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F);
+  //ierr = VecView(F,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr); // the residual K*Ue-F
+  //ierr = VecView(Ue,viewer); CHKERRQ(ierr);  // the exact solution
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   /* Evaluate error norms */
