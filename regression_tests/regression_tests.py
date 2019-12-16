@@ -441,7 +441,7 @@ class RegressionTest(object):
                         status.fail = 1
                         return
                     else:
-                        with open(current_filename, 'rU') as current_file:
+                        with open(current_filename, 'r') as current_file:
                             current_output = current_file.readlines()
 
                     gold_filename = current_filename + ".gold"
@@ -453,7 +453,7 @@ class RegressionTest(object):
                         status.fail = 1
                         return
                     else:
-                        with open(gold_filename, 'rU') as gold_file:
+                        with open(gold_filename, 'r') as gold_file:
                             gold_output = gold_file.readlines()
 
                     print("    diff {0} {1}".format(gold_filename, 
@@ -483,7 +483,7 @@ class RegressionTest(object):
                 status.fail = 1
                 return
             else:
-                with open(gold_filename, 'rU') as gold_file:
+                with open(gold_filename, 'r') as gold_file:
                     gold_output = gold_file.readlines()
     
             if not os.path.isfile(current_filename):
@@ -495,7 +495,7 @@ class RegressionTest(object):
                 status.fail = 1
                 return
             else:
-                with open(current_filename, 'rU') as current_file:
+                with open(current_filename, 'r') as current_file:
                     current_output = current_file.readlines()
     
             print("    diff {0} {1}".format(gold_filename, current_filename),
