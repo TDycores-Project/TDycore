@@ -94,7 +94,7 @@ class RegressionTest(object):
         self._TOL_TYPE = 1
         self._TOL_MIN_THRESHOLD = 2
         self._TOL_MAX_THRESHOLD = 3
-        self._EXEC_SUCCESS = 86
+        self._EXEC_SUCCESS = 0
         self._RESTART_PREFIX = "tmp-restart"
         # misc test parameters
         self._pprint = pprint.PrettyPrinter(indent=2)
