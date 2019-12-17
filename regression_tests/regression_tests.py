@@ -23,6 +23,7 @@ import hashlib
 import os
 import pprint
 import re
+import shlex
 import shutil
 import subprocess
 import textwrap
@@ -223,8 +224,8 @@ class RegressionTest(object):
         command = []
         if self._np is not None:
             if mpiexec:
-                command.append(mpiexec)
-                command.append("-np")
+                command += shlex.split(mpiexec)
+                command.append("-n")
                 command.append(self._np)
             else:
                 # parallel test, but don't have mpiexec, we mark the
@@ -441,7 +442,7 @@ class RegressionTest(object):
                         status.fail = 1
                         return
                     else:
-                        with open(current_filename, 'rU') as current_file:
+                        with open(current_filename, 'r') as current_file:
                             current_output = current_file.readlines()
 
                     gold_filename = current_filename + ".gold"
@@ -453,7 +454,7 @@ class RegressionTest(object):
                         status.fail = 1
                         return
                     else:
-                        with open(gold_filename, 'rU') as gold_file:
+                        with open(gold_filename, 'r') as gold_file:
                             gold_output = gold_file.readlines()
 
                     print("    diff {0} {1}".format(gold_filename, 
@@ -483,7 +484,7 @@ class RegressionTest(object):
                 status.fail = 1
                 return
             else:
-                with open(gold_filename, 'rU') as gold_file:
+                with open(gold_filename, 'r') as gold_file:
                     gold_output = gold_file.readlines()
     
             if not os.path.isfile(current_filename):
@@ -495,7 +496,7 @@ class RegressionTest(object):
                 status.fail = 1
                 return
             else:
-                with open(current_filename, 'rU') as current_file:
+                with open(current_filename, 'r') as current_file:
                     current_output = current_file.readlines()
     
             print("    diff {0} {1}".format(gold_filename, current_filename),
@@ -1846,7 +1847,7 @@ def check_for_mpiexec(options, testlog):
         print("MPI information :", file=testlog)
         print("-----------------", file=testlog)
         tempfile = "{0}/tmp-executable-regression-test-info.txt".format(os.getcwd())
-        command = [mpiexec, "--version"]
+        command = shlex.split(mpiexec) + ["--version"]
         append_command_to_log(command, testlog, tempfile)
         print("\n\n", file=testlog)
         os.remove(tempfile)
