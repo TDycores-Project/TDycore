@@ -105,10 +105,10 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
   TDy_vertex *vertices;
   DM dm;
   PetscReal *p,*r;
-  PetscInt ivertex, vertex_id;
+  PetscInt ivertex;
   PetscInt dim;
   PetscInt ncells, ncells_bnd;
-  PetscInt npcen, npitf_bc, nflux_bc, nflux_in;
+  PetscInt npitf_bc, nflux_bc, nflux_in;
   PetscInt irow;
   PetscInt cell_id_up, cell_id_dn;
   PetscReal den,fluxm,ukvr;
@@ -132,8 +132,6 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
-    vertex_id = ivertex;
-
     ncells    = vertices->num_internal_cells[ivertex];
     ncells_bnd= vertices->num_boundary_cells[ivertex];
 
@@ -142,7 +140,6 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
 
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
-    npcen    = vertices->num_internal_cells[ivertex];
     npitf_bc = vertices->num_boundary_cells[ivertex];
     nflux_bc = npitf_bc/2;
 
@@ -223,13 +220,13 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
   TDy_vertex *vertices;
   DM dm;
   PetscReal *p,*r;
-  PetscInt ivertex, vertex_id;
+  PetscInt ivertex;
   PetscInt dim;
   TDy_subcell    *subcells;
-  PetscInt irow, icol;
+  PetscInt irow;
   PetscInt isubcell, iface;
-  PetscInt cell_id_up, cell_id_dn, cell_id, icell;
-  PetscReal gz,den,fluxm,ukvr;
+  PetscInt cell_id_up, cell_id_dn, cell_id;
+  PetscReal den,fluxm,ukvr;
   PetscReal *TtimesP_vec_ptr;
   PetscErrorCode ierr;
 
@@ -250,8 +247,6 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
-    vertex_id = ivertex;
-
     if (vertices->num_boundary_cells[ivertex] == 0) continue;
     if (vertices->num_internal_cells[ivertex] > 1)  continue;
 
@@ -260,7 +255,6 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
 
     // Vertex is on the boundary
-    PetscScalar pBoundary[3];
     PetscInt numBoundary;
 
     // For boundary edges, save following information:
@@ -273,31 +267,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
     PetscInt subcell_id = cell_id*cells->num_subcells[cell_id]+isubcell;
     PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
-    numBoundary = 0;
-    for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
-
-      // Extract pressure value at the boundary
-      PetscInt p_bnd_idx;
-      if (faces->cell_ids[fOffsetCell + 0] >= 0) p_bnd_idx = -faces->cell_ids[fOffsetCell + 1] - 1;
-      else                        p_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
-
-      pBoundary[numBoundary] = tdy->P_BND[p_bnd_idx];
-      numBoundary++;
-
-    }
-
-    PetscReal P[numBoundary+1];
-
-    // Save boundary pressure values
-    for (icell=0;icell<numBoundary;icell++) P[icell] = pBoundary[icell];
-
-    // Save internal pressure value
-    gz = 0.0;
-    ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
-    P[numBoundary] = p[cell_id] + tdy->rho[cell_id]*gz;
+    numBoundary = subcells->num_faces[subcell_id];
 
     // Compute T*P
     PetscScalar TtimesP[numBoundary];
@@ -435,7 +405,7 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh(Vec Ul, Mat A, void *ct
   TDy_vertex *vertices;
   DM dm;
   PetscInt ivertex, vertex_id;
-  PetscInt icell, cell_id, cell_id_up, cell_id_dn;
+  PetscInt cell_id, cell_id_up, cell_id_dn;
   PetscInt irow, icol;
   PetscInt dim;
   PetscReal gz;
@@ -584,7 +554,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
   TDy_vertex *vertices;
   DM dm;
   PetscInt ncells, ncells_bnd;
-  PetscInt npcen, npitf_bc, nflux_bc, nflux_in;
+  PetscInt npitf_bc, nflux_bc, nflux_in;
   PetscInt fStart, fEnd;
   TDy_subcell    *subcells;
   PetscInt dim;
@@ -630,7 +600,6 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
     PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
-    npcen    = vertices->num_internal_cells[ivertex];
     npitf_bc = vertices->num_boundary_cells[ivertex];
     nflux_bc = npitf_bc/2;
 
@@ -646,7 +615,6 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
       break;
     }
 
-    PetscScalar pBoundary[4];
     PetscInt numBoundary;
     
     // For boundary edges, save following information:
@@ -664,36 +632,14 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
       for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
         PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
-        PetscInt fOffsetCell = faces->cell_offset[face_id];
 
         if (faces->is_internal[face_id] == 0) {
-
-          // Extract pressure value at the boundary
-          PetscInt p_bnd_idx;
-          if (faces->cell_ids[fOffsetCell + 0] >= 0) p_bnd_idx = -faces->cell_ids[fOffsetCell + 1] - 1;
-          else                                       p_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
-
-          pBoundary[numBoundary] = tdy->P_BND[p_bnd_idx];
 
           numBoundary++;
         }
       }
     }
     
-    PetscReal P[npcen + npitf_bc];
-
-    // Save intenral pressure values
-    for (icell=0;icell<npcen;icell++) {
-      cell_id = vertices->internal_cell_ids[vOffsetCell + icell];
-      ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
-      P[icell] = p[cell_id] + tdy->rho[cell_id]*gz;
-    }
-
-    // Save boundary pressure values
-    for (icell=0;icell<numBoundary;icell++) {
-      P[icell+npcen] = pBoundary[icell];
-    }
-
     // Compute T*P
     PetscScalar TtimesP[nflux_in + 2*nflux_bc];
     for (irow=0; irow<nflux_in + 2*nflux_bc; irow++) {
@@ -702,13 +648,6 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
       PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
       PetscInt num_subfaces = 4;
 
-      /*
-      TtimesP[irow] = 0.0;
-
-      for (icol=0; icol<npcen + npitf_bc; icol++) {
-        TtimesP[irow] += tdy->Trans[vertex_id][irow][icol]*P[icol];
-      }
-      */
       TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
 
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
@@ -829,7 +768,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   PetscInt fStart, fEnd;
   TDy_subcell    *subcells;
   PetscInt dim;
-  PetscInt icell, ivertex;
+  PetscInt ivertex;
   PetscInt isubcell, iface;
   PetscInt cell_id, cell_id_up, cell_id_dn, vertex_id;
   PetscInt irow, icol;
@@ -870,7 +809,6 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
     // Vertex is on the boundary
-    PetscScalar pBoundary[3];
     PetscInt numBoundary;
 
     // For boundary edges, save following information:
@@ -883,31 +821,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
     PetscInt subcell_id = cell_id*cells->num_subcells[cell_id]+isubcell;
     PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
-    numBoundary = 0;
-    for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
-
-      // Extract pressure value at the boundary
-      PetscInt p_bnd_idx;
-      if (faces->cell_ids[fOffsetCell + 0] >= 0) p_bnd_idx = -faces->cell_ids[fOffsetCell + 1] - 1;
-      else                        p_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
-
-      pBoundary[numBoundary] = tdy->P_BND[p_bnd_idx];
-      numBoundary++;
-
-    }
-
-    PetscReal P[numBoundary+1];
-
-    // Save boundary pressure values
-    for (icell=0;icell<numBoundary;icell++) P[icell] = pBoundary[icell];
-
-    // Save internal pressure value
-    gz = 0.0;
-    ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
-    P[numBoundary] = p[cell_id] + tdy->rho[cell_id]*gz;
+    numBoundary = subcells->num_faces[subcell_id];
 
     // Compute T*P
     PetscScalar TtimesP[numBoundary];
@@ -917,13 +831,6 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
       PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
       PetscInt num_subfaces = 4;
 
-      /*
-      TtimesP[irow] = 0.0;
-
-      for (icol=0; icol<numBoundary+1; icol++) {
-        TtimesP[irow] += tdy->Trans[vertex_id][irow][icol]*P[icol];
-      }
-      */
       TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
     }
