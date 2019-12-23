@@ -3303,21 +3303,9 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
       icell_1 = faces->cell_ids[fOffsetCell + 0];
       icell_2 = faces->cell_ids[fOffsetCell + 1];
 
-      if (cells->is_local[icell_1] && cells->is_local[icell_2]) { // Are both cells locally owned?
+      // Is either cell locally owned?
+      if (cells->is_local[icell_1] || cells->is_local[icell_2]) faces->is_local[iface] = PETSC_TRUE;
 
-        faces->is_local[iface] = PETSC_TRUE;
-
-      } else if (cells->is_local[icell_1] && !cells->is_local[icell_2]) { // Is icell_1 locally owned?
-
-        // Is the global ID of icell_1 lower than global ID of icell_2?
-        if (cells->global_id[icell_1] < cells->global_id[icell_2]) faces->is_local[iface] = PETSC_TRUE;
-
-      } else if (!cells->is_local[icell_1] && cells->is_local[icell_2]) { // Is icell_2 locally owned
-
-        // Is the global ID of icell_2 lower than global ID of icell_1?
-        if (cells->global_id[icell_2] < cells->global_id[icell_1]) faces->is_local[iface] = PETSC_TRUE;
-
-      }
     }
   }
 
