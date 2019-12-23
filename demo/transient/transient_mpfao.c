@@ -137,6 +137,7 @@ int main(int argc, char **argv) {
   PetscSection   sec;
   PetscInt num_fields;
   PetscReal total_mass_beg, total_mass_end;
+  PetscInt gref, junkInt;
   ierr = DMGetDefaultSection(dm, &sec);
   ierr = PetscSectionGetNumFields(sec, &num_fields);
 
@@ -149,10 +150,11 @@ int main(int argc, char **argv) {
     for (c=0;c<cEnd-cStart;c++) pres_p[c] = u_p[c*2];
     ierr = TDyUpdateState(tdy,pres_p); CHKERRQ(ierr);
     ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
-    total_mass_beg = 0;
+    total_mass_beg = 0.0;
     for (c=0;c<cEnd-cStart;c++) {
       u_p[c*2+1] = mass_p[c];
-      total_mass_beg += mass_p[c];
+      ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
+      if (gref>=0) total_mass_beg += mass_p[c];
     }
     ierr = VecRestoreArray(U,&u_p); CHKERRQ(ierr);
   } else {
@@ -160,8 +162,11 @@ int main(int argc, char **argv) {
     ierr = TDyUpdateState(tdy,pres_p); CHKERRQ(ierr);
     ierr = VecRestoreArray(U,&pres_p); CHKERRQ(ierr);
     ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
-    total_mass_beg = 0;
-    for (c=0;c<cEnd-cStart;c++) total_mass_beg += mass_p[c];
+    total_mass_beg = 0.0;
+    for (c=0;c<cEnd-cStart;c++) {
+      ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
+      if (gref>=0) total_mass_beg += mass_p[c];
+    }
   }
 
   /* Create time stepping and solve */
@@ -181,12 +186,25 @@ int main(int argc, char **argv) {
   ierr = TSSolve(ts,U); CHKERRQ(ierr);
 
   ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
-  total_mass_end = 0;
-  for (c=0;c<cEnd-cStart;c++) total_mass_end += mass_p[c];
+  total_mass_end = 0.0;
+  for (c=0;c<cEnd-cStart;c++) {
+    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
+    if (gref>=0) {
+      total_mass_end += mass_p[c];
+    }
+  }
   
-  if (num_fields == 1) printf("TS ODE ");
-  else printf("TS DAE ");
-  printf("Mass balance: beg = %e; end = %e; change %e\n",total_mass_beg,total_mass_end,total_mass_end-total_mass_beg);
+  PetscReal total_mass_beg_glb, total_mass_end_glb;
+  PetscInt rank;
+  ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+  ierr = MPI_Reduce(&total_mass_beg,&total_mass_beg_glb,1,MPI_DOUBLE,MPI_SUM,0,PETSC_COMM_WORLD);
+  ierr = MPI_Reduce(&total_mass_end,&total_mass_end_glb,1,MPI_DOUBLE,MPI_SUM,0,PETSC_COMM_WORLD);
+
+  if (rank == 0) {
+    if (num_fields == 1) printf("TS ODE ");
+    else printf("TS DAE ");
+    printf("Mass balance: beg = %e; end = %e; change %e\n",total_mass_beg_glb,total_mass_end_glb,total_mass_end_glb-total_mass_beg_glb);
+  }
 
   /* Save regression file */
   ierr = TDyOutputRegression(tdy,U); CHKERRQ(ierr);
