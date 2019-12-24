@@ -137,6 +137,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
 
     if (ncells_bnd == 0) continue;
     if (ncells     <  2) continue;
+    if (!vertices->is_local[ivertex]) continue;
 
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
@@ -595,6 +596,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
 
     if (ncells_bnd == 0) continue;
     if (ncells     <  2) continue;
+    if (!vertices->is_local[ivertex]) continue;
 
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
     PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];

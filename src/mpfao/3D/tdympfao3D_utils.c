@@ -287,6 +287,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
     if (ncells_bnd == 0) continue;
     if (ncells < 2)  continue;
+    if (!vertices->is_local[ivertex]) continue;
 
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
     PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
