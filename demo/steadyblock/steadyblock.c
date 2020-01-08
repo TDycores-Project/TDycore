@@ -160,6 +160,7 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   strcpy(prefix,"");
+  printf("prefix1 = '%s'\n",prefix);
   if (problem > 0) {
     // nullify input_filename so that command line options override the input file
     strcpy(input_filename,"");
@@ -175,9 +176,11 @@ int main(int argc, char **argv) {
     fclose(fp);
     for (i=strlen(input_filename); i > -1; i--) 
       if (input_filename[i] == '.') break;
+    printf("prefix2 = '%s'\n",prefix);
     if (i > -1) strncpy(prefix,input_filename,i);
   }
-
+  
+  printf("prefix3 = '%s'\n",prefix);
   printf("\n");
   printf("Problem        : %d\n",problem);
   printf("Dimension      : %d\n",dim);
@@ -245,6 +248,8 @@ int main(int argc, char **argv) {
   if (strlen(prefix) == 0) {
     sprintf(prefix,"tdycore_p%d_%s",problem,algorithm);
   }
+  printf("prefix4 = '%s'\n",prefix);
+
   printf("Output prefix: %s\n",prefix);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
@@ -266,6 +271,7 @@ int main(int argc, char **argv) {
     ierr = MatView(K,viewer);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
     strcpy(filename,prefix);
+    printf("prefix5 = '%s'\n",prefix);
     strcat(filename,".rhs");
     ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
     ierr = VecView(F,viewer);
@@ -283,6 +289,8 @@ int main(int argc, char **argv) {
 
   if (verbose || qa) {
     strcpy(filename,prefix);
+    printf("prefix6 = '%s'\n",prefix);
+
     strcat(filename,".sol");
     ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
     ierr = VecView(U,viewer);
@@ -291,6 +299,8 @@ int main(int argc, char **argv) {
   
   /* Output solution */
   strcpy(filename,prefix);
+  printf("prefix7 = '%s'\n",prefix);
+
   strcat(filename,".vtk");
   PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),filename,FILE_MODE_WRITE,&viewer);
   ierr = DMView(dm,viewer); CHKERRQ(ierr);
