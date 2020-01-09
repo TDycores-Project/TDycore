@@ -181,10 +181,9 @@ int main(int argc, char **argv) {
     printf("input_filename = %s'\n",input_filename);
     printf("i = %d'\n",i);
     if (i > -1) {strncpy(prefix,input_filename,i);
-      prefix[i] = '\0'; 
     printf("prefixtest1 = '%s'\n",prefix);
     int ii;
-    for (ii=0;ii<i+1;ii++)
+    for (ii=0;ii<i;ii++)
       prefix[ii] = input_filename[ii];
     prefix[ii] = '\0';
     printf("prefixtest2 = '%s'\n",prefix);
