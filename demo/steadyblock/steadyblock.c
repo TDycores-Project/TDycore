@@ -177,6 +177,8 @@ int main(int argc, char **argv) {
     for (i=strlen(input_filename); i > -1; i--) 
       if (input_filename[i] == '.') break;
     printf("prefix2 = '%s'\n",prefix);
+    printf("input_filename = %s'\n",input_filename)
+    printf("i = %ld",i)
     if (i > -1) strncpy(prefix,input_filename,i);
   }
   
