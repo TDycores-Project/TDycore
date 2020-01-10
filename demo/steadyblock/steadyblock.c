@@ -176,13 +176,15 @@ int main(int argc, char **argv) {
     fclose(fp);
     for (i=strlen(input_filename); i > -1; i--) 
       if (input_filename[i] == '.') break;
-
-    if (i > -1) {strncpy(prefix,input_filename,i);
-      prefix[i+1] = '\0'; 
+    printf("prefix1 = '%s'\n",prefix);
+    printf("i = '%d'\n",i);
+    printf("input_filename = '%s'\n",input_filename);
+    if (i > -1) {strncpy(prefix,input_filename,i-1);
+      prefix[i] = '\0'; 
       }
   }
   
-
+  printf("prefix2 = '%s'\n",prefix);
   printf("\n");
   printf("Problem        : %d\n",problem);
   printf("Dimension      : %d\n",dim);
