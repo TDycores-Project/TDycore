@@ -177,8 +177,8 @@ int main(int argc, char **argv) {
     for (i=strlen(input_filename); i > -1; i--) 
       if (input_filename[i] == '.') break;
 
-    if (i > -1) {strncpy(prefix,input_filename,i-1);
-      prefix[i] = '\0'; 
+    if (i > -1) {strncpy(prefix,input_filename,i);
+      prefix[i+1] = '\0'; 
       }
   }
   
