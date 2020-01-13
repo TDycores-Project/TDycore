@@ -182,9 +182,9 @@ int main(int argc, char **argv) {
     if (i > -1) {//{strncpy(prefix,input_filename,i);
       //      prefix[i+1] = '\0';
     int ii;
-    for (ii=0; ii<i+1; ii++) {
+    for (ii=0; ii<i; ii++) {
       prefix[ii] = input_filename[ii];}
-     prefix[ii] = '\0';
+     prefix[ii+1] = '\0';
       }
   }
   
