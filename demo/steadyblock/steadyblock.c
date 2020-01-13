@@ -179,8 +179,8 @@ int main(int argc, char **argv) {
     printf("prefix1 = '%s'\n",prefix);
     printf("i = '%d'\n",i);
     printf("input_filename = '%s'\n",input_filename);
-    if (i > -1) {strncpy(prefix,input_filename,i-1);
-      prefix[i] = '\0'; 
+    if (i > -1) {strncpy(prefix,input_filename,i);
+      prefix[i+1] = '\0'; 
       }
   }
   
