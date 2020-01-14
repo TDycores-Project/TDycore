@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
     int ii;
     for (ii=0; ii<i; ii++) {
       prefix[ii] = input_filename[ii];}
-     prefix[ii+1] = '\0';
+     prefix[ii] = '\0';
       }
   }
   
