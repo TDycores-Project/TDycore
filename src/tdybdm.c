@@ -273,9 +273,98 @@ PetscErrorCode Inverse(PetscScalar *K,PetscInt nn) {
   PetscFunctionReturn(0);
 }
 
-/* x:  dim  *nq = 3*27 = 81
+/*
+
+  <g,w>
+
+ */
+PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal *gvdotn) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscQuadrature quadrature,face_quadrature;
+  const PetscScalar *fquad_x,*fquad_w;
+  PetscReal *single_point,*single_weight,lside[24],x[3],DF[9],DFinv[9],J[1],basis[72],g;
+  PetscReal fJ[9],dummy[200],normal[3];
+  PetscInt i,j,q,v,d,dim,ncv,nfq,nq1d,face_side,face_dir;
+  DM dm = tdy->dm;
+  ncv = tdy->ncv;
+  nq1d = 2;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  /* relative to this cell, where is this face on the reference element? */
+  if(dim==2) {
+    lside[0] = 0; lside[1] = 0;
+    lside[2] = 1; lside[3] = 0;
+    lside[4] = 0; lside[5] = 1;
+    lside[6] = 1; lside[7] = 1;
+  } else {
+    lside[0]  = 0; lside[1]  = 0; lside[2]  = 0;
+    lside[3]  = 1; lside[4]  = 0; lside[5]  = 0;
+    lside[6]  = 0; lside[7]  = 1; lside[8]  = 0;
+    lside[9]  = 1; lside[10] = 1; lside[11] = 0;
+    lside[12] = 0; lside[13] = 0; lside[14] = 1;
+    lside[15] = 1; lside[16] = 0; lside[17] = 1;
+    lside[18] = 0; lside[19] = 1; lside[20] = 1;
+    lside[21] = 1; lside[22] = 1; lside[23] = 1;
+  }
+  face_side = -1; face_dir = -1;
+  for(v=0; v<ncv; v++) {
+    for(d=0; d<dim; d++) {
+      normal[d] = tdy->N[f*dim+d];
+      if(PetscAbsInt(tdy->emap[c*ncv*dim+v*dim+d]) == f) {
+        face_side = lside[v*dim+d];
+        face_dir  = d;
+      }
+    }
+  }
+  if(TDyADotBMinusC(normal,&(tdy->X[f*dim]),&(tdy->X[c*dim]),dim) < 0){
+    for(d=0; d<dim; d++) normal[d] *= -1;
+  }
+  
+  /* face quadrature setup */
+  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&face_quadrature); CHKERRQ(ierr);
+  ierr = PetscQuadratureGetData(face_quadrature,NULL,NULL,&nfq,&fquad_x,&fquad_w); CHKERRQ(ierr);
+  ierr = DMPlexComputeCellGeometryFEM(dm,f,face_quadrature,dummy,dummy,dummy,fJ); CHKERRQ(ierr);
+  
+  /* dummy 1 point quadrature to get the mapping information */
+  ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature); CHKERRQ(ierr);
+  ierr = PetscMalloc1(3,&single_point); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1,&single_weight); CHKERRQ(ierr);
+
+  /* integrate on the face */
+  for(q=0;q<nfq;q++){
+    
+    /* extend the dim-1 quadrature point to dim */
+    j = 0;
+    single_point[0] = 0; single_point[1] = 0; single_point[2] = 0;
+    for(i=0; i<dim; i++) {
+      if(i == face_dir) {
+	single_point[i] = PetscPowInt(-1,face_side+1);
+      } else {
+	single_point[i] = fquad_x[q*(dim-1)+j];
+	j += 1;
+      }
+    }
+      
+    /* get volumetric mapping information and the basis */
+    ierr = PetscQuadratureSetData(quadrature,dim,1,1,single_point,single_weight); CHKERRQ(ierr);
+    ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,x,DF,DFinv,J); CHKERRQ(ierr);
+    HdivBasisQuad(single_point,basis,DF,J[0]);
+
+    /* -<g,v.n>|_q */
+    ierr = (*tdy->ops->computedirichletvalue)(tdy,x,&g,NULL);CHKERRQ(ierr);
+    for(i=0; i<ncv*dim; i++) gvdotn[i] -= g*TDyADotB(&(basis[i*dim]),normal,dim)*fquad_w[q]*fJ[q];
+  }
+
+  ierr = PetscQuadratureDestroy(&quadrature); CHKERRQ(ierr);
+  ierr = PetscQuadratureDestroy(&face_quadrature); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/* 
+    x: dim  *nq = 3*27 = 81
    DF: dim^2*nq = 9*27 = 243
-   J:        nq =   27 = 27
+    J:       nq =   27 = 27
 */
 PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
@@ -372,15 +461,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     for(f=0;f<coneSize;f++){
       ierr = DMGetLabelValue(dm,"marker",cone[f],&isbc); CHKERRQ(ierr);
       if(isbc == 1 && tdy->ops->computedirichletvalue){
-	ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[cone[f]*dim]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
-	for(v=0; v<nv; v++) {
-	  for(d=0; d<dim; d++) {
-	    local_col = dim*v + d;
-	    if(PetscAbsInt(tdy->emap[c*nv*dim+v*dim+d]) == cone[f]) {
-	      Flocal[local_col] = -pressure;
-	    }
-	  }
-	}
+	ierr = IntegratePressureBoundary(tdy,cone[f],c,Flocal);
       }
     } /* end faces */
     
@@ -523,7 +604,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
 	    points[0] = xq[0]; points[1] = xq[1];
 	    ierr = PetscQuadratureSetData(cquad,dim,1,1,points,weights); CHKERRQ(ierr);
 	    ierr = DMPlexComputeCellGeometryFEM(dm,c,cquad,cx,cDF,cDFinv,cJ); CHKERRQ(ierr);
-            HdivBasisQuad(xq,N,NULL,cJ[0]);
+            HdivBasisQuad(xq,N,cDF,cJ[0]);
           } else {
             HdivBasisHex(xq,N);
           }
@@ -531,16 +612,13 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
           vel[0] = 0; vel[1] = 0; vel[2] = 0;
 	  for(i=0;i<nlocal-1;i++) {
 	    for(dd=0;dd<dim;dd++) {
-	      //printf("%d %d %f %f\n",i,dd,N[dim*i+dd],u[LtoG[i]]);
 	      vel[dd] += ((PetscReal)orient[i])*N[dim*i+dd]*u[LtoG[i]];
 	    }
 	  }
-	  //printf("\n%f %f  %f %f ",x[q*dim],x[q*dim+1],vel[0],vel[1]);
           va = TDyADotB(vel,&(tdy->N[dim*f]),dim);
 	  
           /* exact value normal to this point/face */
           ierr = (*tdy->ops->computedirichletflux)(tdy,&(x[q*dim]),vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-	  //printf(" %f %f\n",vel[0],vel[1]);
           ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
 	  
           /* quadrature */
