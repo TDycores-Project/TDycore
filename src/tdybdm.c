@@ -1,7 +1,23 @@
 #include <private/tdycoreimpl.h>
+#include <petscblaslapack.h>
 
 /* (dim*vertices_per_cell+1)^2 */
 #define MAX_LOCAL_SIZE 625
+
+/*
+  u <-- 1/J DF u
+*/
+void TDyPiola(PetscReal *u,PetscReal *DF,PetscReal J,PetscInt dim){
+  PetscInt i,j;
+  PetscReal v[3];
+  for(i=0;i<dim;i++){
+    v[i] = 0;
+    for(j=0;j<dim;j++){
+      v[i] += DF[i*dim+j]*u[j];
+    }
+  }
+  for(i=0;i<dim;i++) u[i] = v[i]/J;
+}
 
 /*
   BDM1 basis functions on [-1,1] with degrees of freedom chosen to
@@ -12,7 +28,8 @@
   0---1
 
  */
-void HdivBasisQuad(const PetscReal *x,PetscReal *B) {
+void HdivBasisQuad(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J) {
+  PetscInt i;
   B[ 0] = (-x[0]*x[1] + x[0] + x[1] - 1)*0.25;
   B[ 1] = (x[1]*x[1] - 1)*0.125;
   B[ 2] = (x[0]*x[0] - 1)*0.125;
@@ -29,6 +46,9 @@ void HdivBasisQuad(const PetscReal *x,PetscReal *B) {
   B[13] = (-x[1]*x[1] + 1)*0.125;
   B[14] = (-x[0]*x[0] + 1)*0.125;
   B[15] = (x[0]*x[1] + x[0] + x[1] + 1)*0.25;
+  if(DF){
+    for(i=0;i<8;i++) TDyPiola(&(B[2*i]),DF,J,2);
+  }
 }
 
 void HdivBasisHex(const PetscReal *x,PetscReal *B) {
@@ -229,6 +249,30 @@ PetscReal TDyKDotADotB(PetscReal *K,PetscReal *A,PetscReal *B,PetscInt dim) {
   return outer;
 }
 
+PetscErrorCode Inverse(PetscScalar *K,PetscInt nn) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  PetscBLASInt n,lwork=nn*nn;
+  ierr = PetscBLASIntCast(nn,&n); CHKERRQ(ierr);
+  PetscBLASInt info,*pivots;
+  ierr = PetscMalloc((n+1)*sizeof(PetscBLASInt),&pivots); CHKERRQ(ierr);
+  PetscScalar work[n*n];
+
+  // Find LU factors of K
+  LAPACKgetrf_(&n,&n,&K[0],&n,pivots,&info);
+  if (info<0) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"Bad argument to LU factorization");
+  if (info>0) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_MAT_LU_ZRPVT,"Bad LU factorization");
+
+  // Find inverse
+  LAPACKgetri_(&n,&K[0],&n,pivots,work,&lwork,&info);
+  if (info<0) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"illegal argument value");
+  if (info>0) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_MAT_LU_ZRPVT,"singular matrix");
+
+  ierr = PetscFree(pivots); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 /* x:  dim  *nq = 3*27 = 81
    DF: dim^2*nq = 9*27 = 243
    J:        nq =   27 = 27
@@ -237,8 +281,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nfq,nv,vi,vj,di,dj,
-    local_row,local_col,isbc,f,nq1d=3,lside[24];
-  PetscScalar x[81],DF[243],DFinv[243],J[27],Kinv[9],Klocal[MAX_LOCAL_SIZE],
+    local_row,local_col,isbc,f,nq1d=3;
+  PetscScalar x[81],DF[243],DFinv[243],J[27],Klocal[MAX_LOCAL_SIZE],
               Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[72],pressure;
   const PetscScalar *quad_x,*fquad_x;
   const PetscScalar *quad_w,*fquad_w;
@@ -251,21 +295,6 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   nv = tdy->ncv;
   nlocal = dim*nv + 1;
-  if(dim==2) {
-    lside[0] = 0; lside[1] = 0;
-    lside[2] = 1; lside[3] = 0;
-    lside[4] = 0; lside[5] = 1;
-    lside[6] = 1; lside[7] = 1;
-  } else {
-    lside[0]  = 0; lside[1]  = 0; lside[2]  = 0;
-    lside[3]  = 1; lside[4]  = 0; lside[5]  = 0;
-    lside[6]  = 0; lside[7]  = 1; lside[8]  = 0;
-    lside[9]  = 1; lside[10] = 1; lside[11] = 0;
-    lside[12] = 0; lside[13] = 0; lside[14] = 1;
-    lside[15] = 1; lside[16] = 0; lside[17] = 1;
-    lside[18] = 0; lside[19] = 1; lside[20] = 1;
-    lside[21] = 1; lside[22] = 1; lside[23] = 1;
-  }
   
   /* Get quadrature */
   switch(tdy->qtype) {
@@ -283,7 +312,6 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = PetscQuadratureGetData(     quadrature,NULL,NULL,&nq ,& quad_x,& quad_w); CHKERRQ(ierr);
   ierr = PetscQuadratureGetData(face_quadrature,NULL,NULL,&nfq,&fquad_x,&fquad_w); CHKERRQ(ierr);
   
-
   for(c=cStart; c<cEnd; c++) {
 
     /* Only assemble the cells that this processor owns */
@@ -295,16 +323,15 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     ierr = PetscMemzero(Klocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
     ierr = PetscMemzero(Flocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
 
+    /* Invert permeability, in place */
+    Inverse(&(tdy->K[dim2*(c-cStart)]),dim);
+    
     /* Integrate (Kappa^-1 u_i, v_j) */
     for(q=0; q<nq; q++) {
 
-      /* Compute (J DF^-1 K DF^-T )^-1 */
-      ierr = Pullback(&(tdy->K[dim2*(c-cStart)]),
-                      &DFinv[dim2*q],Kinv,J[q],dim); CHKERRQ(ierr);
-
       /* Evaluate the H-div basis */
       if(dim==2) {
-        HdivBasisQuad(&(quad_x[dim*q]),basis_hdiv);
+        HdivBasisQuad(&(quad_x[dim*q]),basis_hdiv,&DF[dim2*q],J[q]);
       } else {
         HdivBasisHex(&(quad_x[dim*q]),basis_hdiv);
       }
@@ -319,7 +346,9 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
             for(dj=0; dj<dim; dj++) {
               local_col = vj*dim+dj;
               /* (K^-1 u, v) */
-              Klocal[local_col*nlocal+local_row] += TDyKDotADotB(Kinv,&(basis_hdiv[dim*local_row]),&(basis_hdiv[dim*local_col]),dim)*quad_w[q]*J[q];
+              Klocal[local_col*nlocal+local_row] += TDyKDotADotB(&(tdy->K[dim2*(c-cStart)]),
+								 &(basis_hdiv[dim*local_row]),
+								 &(basis_hdiv[dim*local_col]),dim)*quad_w[q]*J[q];
             }
           } /* end directions */
 
@@ -333,81 +362,26 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
       }
 
     } /* end quadrature */
+
     
-    /* loop over the cells faces */
-    PetscInt coneSize,i;
+    /* < g,div(v) > on boundaries, uses mean value of g with 1 point quadrature */
+    PetscInt coneSize,v,d;
     const PetscInt *cone;
     ierr = DMPlexGetConeSize(dm,c,&coneSize); CHKERRQ(ierr);
     ierr = DMPlexGetCone    (dm,c,&cone); CHKERRQ(ierr);
     for(f=0;f<coneSize;f++){
-
-      ierr = DMPlexComputeCellGeometryFEM(dm,cone[f],face_quadrature,x,DF,DFinv,J); CHKERRQ(ierr);
       ierr = DMGetLabelValue(dm,"marker",cone[f],&isbc); CHKERRQ(ierr);
-
-      /* relative to this cell, where is this face? */
-      PetscInt face_side,face_dir,v,d;
-      PetscReal normal[3] = {0,0,0};
-      face_side = -1;
-      face_dir  = -1;
-      for(v=0; v<nv; v++) {
-	for(d=0; d<dim; d++) {
-	  if(PetscAbsInt(tdy->emap[c*nv*dim+v*dim+d]) == cone[f]) {
-	    face_side = lside[v*dim+d];
-	    face_dir  = d;
-	    break;
-	  }
-	}
-      }
-      normal[face_dir] = PetscPowInt(-1,face_side+1);
-	
-      /* loop over face quadrature, need to extend the dim-1 point to
-	 dim to evaluate basis */
-      for(q=0;q<nfq;q++){
-
-	/* extend the dim-1 quadrature point to dim */
-	PetscInt j;
-	PetscReal xq[3];
-	j = 0;
-	xq[0] = 0; xq[1] = 0; xq[2] = 0;
-	for(i=0; i<dim; i++) {
-	  if(i == face_dir) {
-	    xq[i] = PetscPowInt(-1,face_side+1);
-	  } else {
-	    xq[i] = fquad_x[q*(dim-1)+j];
-	    j += 1;
-	  }
-	}
-	
-	/* evaluate the basis */
-	PetscReal N[72];
-	if(dim==2) {
-	  HdivBasisQuad(xq,N);
-	} else {
-	  HdivBasisHex(xq,N);
-	}
-	    
-	/* - < p, v.n > and possibly - < g, v.n > */
-	for(vi=0; vi<nv; vi++) {
-	  for(di=0; di<dim; di++) {
-	    local_col = vi*dim + di;
-	    PetscReal entry = -TDyADotB(&(N[dim*local_col]),normal,dim)*fquad_w[q]*J[q];
-	    Klocal[local_col *nlocal + (nlocal-1)] += entry;
-	    Klocal[(nlocal-1)*nlocal + local_col ] += entry;
-	    if(isbc == 1 && tdy->ops->computedirichletvalue){
-	      if(tdy->qtype == FULL){
-		ierr = (*tdy->ops->computedirichletvalue)(tdy, &(x[dim*q]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
-	      }else{
-		/* if using lumped integration, the dirichlet
-		   condition is not integrated well enough and so we
-		   evaluate at the midpoint instead. */
-		ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[cone[f]*dim]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
-	      }
-	      Flocal[local_col] += -pressure*TDyADotB(&(N[dim*local_col]),normal,dim)*fquad_w[q]*J[q];
+      if(isbc == 1 && tdy->ops->computedirichletvalue){
+	ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[cone[f]*dim]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
+	for(v=0; v<nv; v++) {
+	  for(d=0; d<dim; d++) {
+	    local_col = dim*v + d;
+	    if(PetscAbsInt(tdy->emap[c*nv*dim+v*dim+d]) == cone[f]) {
+	      Flocal[local_col] = -pressure;
 	    }
 	  }
 	}
-
-      } /* end quadrature */
+      }
     } /* end faces */
     
     /* apply orientation flips */
@@ -416,10 +390,13 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
       for(vj=0; vj<nlocal-1; vj++) {
         Klocal[vj*nlocal+vi] *= (PetscScalar)(orient[vi]*orient[vj]);
       }
-      Klocal[(nlocal-1)*nlocal+vi] *= (PetscScalar)orient[vi];
-      Klocal[vi*nlocal+nlocal-1  ] *= (PetscScalar)orient[vi];
+      Klocal[(nlocal-1)*nlocal+vi] = -(PetscScalar)orient[vi]; /* < div(u), w > */
+      Klocal[vi*nlocal+nlocal-1  ] = -(PetscScalar)orient[vi]; /* < p, div(v) > */
     }
 
+    //PrintMatrix(Klocal,nlocal,nlocal,PETSC_TRUE);
+    //PrintMatrix(Flocal,1,nlocal,PETSC_TRUE);
+    
     /* assembly */
     ierr = MatSetValues(K,nlocal,LtoG,nlocal,LtoG,Klocal,ADD_VALUES); CHKERRQ(ierr);
     ierr = VecSetValues(F,nlocal,LtoG,Flocal,ADD_VALUES); CHKERRQ(ierr);
@@ -488,7 +465,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
-  PetscInt i,j,ncv,q,nlocal,nq,vv,dd,nq1d=3;
+  PetscInt i,j,ncv,q,nlocal,nq,dd,nq1d=2;
   const PetscScalar *quad_x,*quad_w;
   PetscReal xq[3],x[100],DF[100],DFinv[100],J[100],N[72],vel[3],ve,va,flux0,flux,
             norm,norm_sum;
@@ -500,6 +477,14 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w); CHKERRQ(ierr);
   nlocal = dim*ncv + 1;
 
+  PetscQuadrature cquad;
+  PetscReal *points,*weights;
+  ierr = PetscMalloc1(dim,&points); CHKERRQ(ierr);
+  ierr = PetscMalloc1(1,&weights); CHKERRQ(ierr);
+
+  PetscReal cx[2],cDF[4],cDFinv[4],cJ[1];  
+  ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&cquad); CHKERRQ(ierr);
+  
   /* loop cells */
   norm = 0; norm_sum = 0;
   for(c=cStart; c<cEnd; c++) {
@@ -514,6 +499,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
     for(d=0; d<dim; d++) {
       for(s=0; s<2; s++) {
         f = tdy->faces[(c-cStart)*dim*2+d*2+s];
+	
         ierr = DMPlexComputeCellGeometryFEM(dm,f,quad,x,DF,DFinv,J); CHKERRQ(ierr);
 
         /* loop quadrature */
@@ -534,7 +520,10 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
 
           /* interpolate normal component at this point/face */
           if(dim==2) {
-            HdivBasisQuad(xq,N);
+	    points[0] = xq[0]; points[1] = xq[1];
+	    ierr = PetscQuadratureSetData(cquad,dim,1,1,points,weights); CHKERRQ(ierr);
+	    ierr = DMPlexComputeCellGeometryFEM(dm,c,cquad,cx,cDF,cDFinv,cJ); CHKERRQ(ierr);
+            HdivBasisQuad(xq,N,NULL,cJ[0]);
           } else {
             HdivBasisHex(xq,N);
           }
@@ -542,13 +531,16 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
           vel[0] = 0; vel[1] = 0; vel[2] = 0;
 	  for(i=0;i<nlocal-1;i++) {
 	    for(dd=0;dd<dim;dd++) {
-	      vel[dd] += ((PetscScalar)orient[i])*N[dim*i+dd]*u[LtoG[i]];
+	      //printf("%d %d %f %f\n",i,dd,N[dim*i+dd],u[LtoG[i]]);
+	      vel[dd] += ((PetscReal)orient[i])*N[dim*i+dd]*u[LtoG[i]];
 	    }
 	  }
+	  //printf("\n%f %f  %f %f ",x[q*dim],x[q*dim+1],vel[0],vel[1]);
           va = TDyADotB(vel,&(tdy->N[dim*f]),dim);
 	  
           /* exact value normal to this point/face */
           ierr = (*tdy->ops->computedirichletflux)(tdy,&(x[q*dim]),vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+	  //printf(" %f %f\n",vel[0],vel[1]);
           ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
 	  
           /* quadrature */
@@ -560,6 +552,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
     }
 
   }
+  ierr = PetscQuadratureDestroy(&cquad); CHKERRQ(ierr);  
   ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
                        PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);

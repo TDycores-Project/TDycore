@@ -116,7 +116,7 @@ PETSC_EXTERN PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,
     PetscInt **_map);
 PETSC_EXTERN PetscErrorCode TDyQuadrature(PetscQuadrature q,PetscInt dim);
 
-PETSC_EXTERN void HdivBasisQuad(const PetscReal *x,PetscReal *B);
+PETSC_EXTERN void HdivBasisQuad(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J);
 PETSC_EXTERN void HdivBasisHex(const PetscReal *x,PetscReal *B);
 PETSC_EXTERN PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
     PetscReal *integral);

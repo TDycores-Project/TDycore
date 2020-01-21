@@ -6,6 +6,7 @@
 void PermTest2D(double *x,double *K) {
   K[0] = 4.321; K[1] = 1;
   K[2] = 1    ; K[3] = 1.234;
+  K[0] = 1; K[1] = 0; K[2] = 0; K[3] = 1;
 }
 
 void PermTest3D(double *x,double *K) {
@@ -251,6 +252,12 @@ PetscErrorCode PerturbVerticesRandom(DM dm,PetscReal h) {
   ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  if(vEnd-vStart==4){
+    coords[0] = 2.1; coords[1] = 1.1;
+    coords[2] = 3.2; coords[3] = 2.5;
+    coords[4] = 1.7; coords[5] = 2.0;
+    coords[6] = 2.5; coords[7] = 3.0;
+  }else{
   for(v=vStart; v<vEnd; v++) {
     ierr = PetscSectionGetOffset(coordSection,v,&o); CHKERRQ(ierr);
     ierr = DMLabelGetValue(label,v,&value); CHKERRQ(ierr);
@@ -271,7 +278,7 @@ PetscErrorCode PerturbVerticesRandom(DM dm,PetscReal h) {
       if(coords[o+1] > 0 && coords[o+1] < 1) coords[o+1] += r*PetscSinReal(t)*PetscSinReal(a);
       if(coords[o+2] > 0 && coords[o+2] < 1) coords[o+2] += r*PetscCosReal(t);
     }
-  }
+  }}
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -692,14 +699,14 @@ int main(int argc, char **argv) {
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
   
   /* Output solution */
-  PetscViewer viewer;
-  PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"sol.vtk",FILE_MODE_WRITE,&viewer);
-  ierr = DMView(dm,viewer); CHKERRQ(ierr);
-  ierr = VecView(U,viewer); CHKERRQ(ierr); // the approximate solution
-  ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F);
+  //PetscViewer viewer;
+  //PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"sol.vtk",FILE_MODE_WRITE,&viewer);
+  //ierr = DMView(dm,viewer); CHKERRQ(ierr);
+  //ierr = VecView(U,viewer); CHKERRQ(ierr); // the approximate solution
+  //ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F);
   //ierr = VecView(F,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr); // the residual K*Ue-F
   //ierr = VecView(Ue,viewer); CHKERRQ(ierr);  // the exact solution
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  //ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   /* Evaluate error norms */
   PetscReal normp,normv;
