@@ -423,6 +423,7 @@ PetscErrorCode AllocateMemoryForCells(
 
   ierr = TDyAllocate_IntegerArray_1D(&cells->id,num_cells); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&cells->global_id,num_cells); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&cells->natural_id,num_cells); CHKERRQ(ierr);
 
    cells->is_local = (PetscBool *)malloc(num_cells*sizeof(PetscBool));
 
@@ -840,6 +841,53 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
       }
       faces->area[iface] = tdy->V[ielement];
     }
+  }
+
+  PetscBool useNatural;
+  ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);
+  if (useNatural) {
+    Vec            global, local, natural;
+    PetscScalar   *p;
+    PetscInt       size_natural, cumsize_natural, size_local, ii;
+    PetscInt num_fields;
+
+    ierr = DMGetNumFields(dm, &num_fields); CHKERRQ(ierr);
+
+    // Create the natural vector
+    ierr = DMCreateGlobalVector(dm, &natural);
+    ierr = VecGetLocalSize(natural, &size_natural);
+    ierr = MPI_Scan(&size_natural, &cumsize_natural, 1, MPI_INT, MPI_SUM, PETSC_COMM_WORLD);CHKERRQ(ierr);
+
+    // Add entries in the natural vector
+    ierr = VecGetArray(natural, &p); CHKERRQ(ierr);
+    for (ii = 0; ii < size_natural; ++ii) {
+      if (ii % num_fields == 0)
+        p[ii] = ii + cumsize_natural/num_fields - size_natural/num_fields;
+      else
+        p[ii] = 0;
+    }
+    ierr = VecRestoreArray(natural, &p); CHKERRQ(ierr);
+
+    // Map natural IDs in global order
+    ierr = DMCreateGlobalVector(dm, &global);CHKERRQ(ierr);
+    ierr = DMPlexNaturalToGlobalBegin(dm, natural, global);CHKERRQ(ierr);
+    ierr = DMPlexNaturalToGlobalEnd(dm, natural, global);CHKERRQ(ierr);
+
+    // Map natural IDs in local order
+    ierr = DMCreateLocalVector(dm, &local);CHKERRQ(ierr);
+    ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, local); CHKERRQ(ierr);
+    ierr = DMGlobalToLocalEnd(dm, global, INSERT_VALUES, local); CHKERRQ(ierr);
+
+    // Save natural IDs
+    ierr = VecGetLocalSize(local, &size_local);
+    ierr = VecGetArray(local, &p); CHKERRQ(ierr);
+    for (ii = 0; ii < size_local/num_fields; ++ii) cells->natural_id[ii] = p[ii*num_fields];
+    ierr = VecRestoreArray(local, &p); CHKERRQ(ierr);
+
+    // Cleanup
+    ierr = VecDestroy(&natural); CHKERRQ(ierr);
+    ierr = VecDestroy(&global); CHKERRQ(ierr);
+    ierr = VecDestroy(&local); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);

@@ -69,6 +69,7 @@ struct _TDy_cell {
 
   PetscInt  *id;            /* id of the cell in local numbering */
   PetscInt  *global_id;     /* global id of the cell in local numbering */
+  PetscInt  *natural_id;    /* natural id of the cell in local numbering */
 
   PetscBool *is_local;
 
