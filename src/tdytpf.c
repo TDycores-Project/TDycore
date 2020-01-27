@@ -32,7 +32,7 @@ PetscErrorCode TDyTPFInitialize(TDy tdy) {
     ierr = PetscSectionSetDof(sec,c,1); CHKERRQ(ierr);
   }
   ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
-  ierr = DMSetDefaultSection(dm,sec); CHKERRQ(ierr);
+  ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
   ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view"); CHKERRQ(ierr);
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
   //ierr = DMPlexSetAdjacencyUseCone(dm,PETSC_TRUE); CHKERRQ(ierr);
@@ -143,7 +143,7 @@ PetscReal TDyTPFPressureNorm(TDy tdy,Vec U) {
   norm = 0;
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = DMGetDefaultSection(dm,&sec); CHKERRQ(ierr);
+  ierr = DMGetSection(dm,&sec); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);

@@ -288,7 +288,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     }
   }
   ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
-  ierr = DMSetDefaultSection(dm,sec); CHKERRQ(ierr);
+  ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
   ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view"); CHKERRQ(ierr);
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
   ierr = DMSetBasicAdjacency(dm,PETSC_TRUE,PETSC_TRUE); CHKERRQ(ierr);

@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   PetscInt num_fields;
   PetscReal total_mass_beg, total_mass_end;
   PetscInt gref, junkInt;
-  ierr = DMGetDefaultSection(dm, &sec);
+  ierr = DMGetSection(dm, &sec);
   ierr = PetscSectionGetNumFields(sec, &num_fields);
 
   PetscReal *mass_p,*pres_p, *u_p;

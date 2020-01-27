@@ -378,7 +378,7 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
-  ierr = DMGetDefaultSection(tdy->dm, &sec);
+  ierr = DMGetSection(tdy->dm, &sec);
   ierr = PetscSectionGetNumFields(sec, &num_fields);
 
   switch (tdy->method) {
