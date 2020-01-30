@@ -82,6 +82,9 @@ PETSC_EXTERN PetscErrorCode TDyGetMaterialPropertyMValuesLocal(TDy,PetscInt*,Pet
 PETSC_EXTERN PetscErrorCode TDyGetMaterialPropertyAlphaValuesLocal(TDy,PetscInt*,PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDyGetPorosityValuesLocal(TDy,PetscInt*,PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDyGetBlockPermeabilityValuesLocal(TDy,PetscInt*,PetscScalar[]);
+PETSC_EXTERN PetscErrorCode TDyGetNumCellsLocal(TDy,PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyGetCellNaturalIDsLocal(TDy,PetscInt*,PetscInt[]);
+PETSC_EXTERN PetscErrorCode TDyGetCellIsLocal(TDy,PetscInt*,PetscInt[]);
 
 
 PETSC_EXTERN PetscErrorCode TDySetDirichletFlux    (TDy tdy,SpatialFunction f);
@@ -90,6 +93,7 @@ PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy tdy);
 
 PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,
     TDyMethod method);
+PETSC_EXTERN PetscErrorCode TDySetup(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
     TDyQuadratureType qtype);
 PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);

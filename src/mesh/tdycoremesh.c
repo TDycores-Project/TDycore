@@ -3189,6 +3189,9 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
   dm = tdy->dm;
   cells = &tdy->mesh->cells;
 
+  PetscMPIInt rank;
+  ierr = MPI_Comm_rank(PetscObjectComm((PetscObject) dm), &rank);CHKERRQ(ierr);
+
   // Once needs to atleast haved called a DMCreateXYZ() before using DMPlexGetPointGlobal()
   ierr = DMCreateGlobalVector(dm, &junkVec); CHKERRQ(ierr);
   ierr = VecDestroy(&junkVec); CHKERRQ(ierr);
@@ -3429,3 +3432,60 @@ PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell *cells, PetscIn
   
   PetscFunctionReturn(0);
 }
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyGetNumCellsLocal(TDy tdy, PetscInt *num_cells) {
+
+  PetscFunctionBegin;
+
+  *num_cells = tdy->mesh->num_cells;
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyGetCellNaturalIDsLocal(TDy tdy, PetscInt *ni, PetscInt nat_ids[]) {
+
+  TDy_mesh *mesh;
+  TDy_cell *cells;
+  PetscInt icell;
+
+  PetscFunctionBegin;
+  *ni = 0;
+
+  mesh = tdy->mesh;
+  cells = &mesh->cells;
+
+  for (icell=0; icell<mesh->num_cells; icell++) {
+    nat_ids[*ni] = cells->natural_id[icell];
+    *ni += 1;
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyGetCellIsLocal(TDy tdy, PetscInt *ni, PetscInt is_local[]) {
+
+  TDy_mesh *mesh;
+  TDy_cell *cells;
+  PetscInt icell;
+
+  PetscFunctionBegin;
+  *ni = 0;
+
+  mesh = tdy->mesh;
+  cells = &mesh->cells;
+
+  for (icell=0; icell<mesh->num_cells; icell++) {
+    if (cells->is_local[icell]) is_local[*ni] = 1;
+    else                        is_local[*ni] = 0;
+    *ni += 1;
+  }
+
+  PetscFunctionReturn(0);
+}
+

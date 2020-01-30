@@ -318,10 +318,6 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   if (tdy->ops->computepermeability) { ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
 
-  ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
-
-  ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
-
   if (dim == 3) {
     ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
     ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(tdy); CHKERRQ(ierr);
@@ -329,6 +325,19 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   PetscFunctionReturn(0);
 
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAOSetup(TDy tdy) {
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
+
+  ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */

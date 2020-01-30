@@ -11,6 +11,7 @@
 #ifdef PETSC_HAVE_FORTRAN_CAPS
 #define tdycreate_                                  TDYCREATE
 #define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
+#define tdysetup_                                   TDYSETUP
 #define tdysetwaterdensitytype_                     TDYWATERDENSITYTYPE
 #define tdysetifunction_                            TDYSETIFUNCTION
 #define tdysetijacobian_                            TDYSETIJACOBIAN
@@ -51,12 +52,15 @@
 #define tdygetmaterialpropertyalphavalueslocal_     TDYGETMATERIALPROPERTYALPHAVALUESLOCAL
 #define tdygetporosityalueslocal_                   TDYGETPOROSITYVALUESLOCAL
 #define tdygetblockpermeabilityueslocal_            TDYGETBLOCKPERMEABILITYVALUESLOCAL
+#define tdygetnumcellslocal_                        TDYGETNUMCELLSLOCAL
+#define tdygetcellnaturalidslocal_                  TDYGETCELLNATURALIDSLOCAL
 #define tdyupdatestate_                             TDYUPDATESTATE
 #define tdyoutputregression_                        TDYOUTPUTREGRESSION
 #define tdydestroy_                                 TDYDESTROY
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
 #define tdycreate_                                  tdycreate
 #define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
+#define tdysetup_                                   tdysetup
 #define tdysetwaterdensitytype_                     tdysetwaterdensitytype
 #define tdysetifunction_                            tdysetifunction
 #define tdysetijacobian_                            tdysetijacobian
@@ -95,6 +99,8 @@
 #define tdygetmaterialpropertyalphavalueslocal_     tdygetmaterialpropertyalphavalueslocal
 #define tdygetporosityvalueslocal_                  tdygetporosityvalueslocal
 #define tdygetblockpermeabilityueslocal_            tdygetblockpermeabilityvalueslocal
+#define tdygetnumcellslocal_                        tdygetnumcellslocal
+#define tdygetcellnaturalidslocal_                  tdygetcellnaturalidslocal
 #define tdyupdatestate_                             tdyupdatestate
 #define tdyoutputregression_                        tdyoutputregression
 #define tdydestroy_                                 tdydestroy
@@ -128,6 +134,16 @@ extern "C" {
 #endif
 PETSC_EXTERN void PETSC_STDCALL  tdysetdiscretizationmethod_(TDy tdy, PetscInt *method, int *__ierr){
 *__ierr = TDySetDiscretizationMethod((TDy)PetscToPointer((tdy)), *method);
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void PETSC_STDCALL  tdysetup_(TDy tdy, int *__ierr){
+*__ierr = TDySetup((TDy)PetscToPointer((tdy)) );
 }
 #if defined(__cplusplus)
 }
@@ -541,6 +557,21 @@ PETSC_EXTERN void PETSC_STDCALL tdygetporosityvalueslocal_(TDy *tdy,PetscInt *ni
 PETSC_EXTERN void PETSC_STDCALL tdygetblockpermeabilityvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
 {
   *ierr = TDyGetBlockPermeabilityValuesLocal(*tdy,ni,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdygetnumcellslocal_(TDy *tdy,PetscInt *ni, int *ierr )
+{
+  *ierr = TDyGetNumCellsLocal(*tdy,ni);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdygetcellnaturalidslocal_(TDy *tdy,PetscInt *ni, PetscInt y[], int *ierr )
+{
+  *ierr = TDyGetCellNaturalIDsLocal(*tdy,ni,y);
+}
+
+PETSC_EXTERN void PETSC_STDCALL tdygetcellislocal_(TDy *tdy,PetscInt *ni, PetscInt y[], int *ierr )
+{
+  *ierr = TDyGetCellIsLocal(*tdy,ni,y);
 }
 
 PETSC_EXTERN void PETSC_STDCALL tdyupdatestate_(TDy *tdy,PetscScalar y[], int *ierr )

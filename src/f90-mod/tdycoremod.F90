@@ -27,6 +27,13 @@ module tdycore
      end subroutine TDySetDiscretizationMethod
   end interface
   interface
+     subroutine TDySetup(a,z)
+       use tdycoredef
+       TDy a
+       integer z
+     end subroutine TDySetup
+  end interface
+  interface
      subroutine TDySetFromOptions(a,z)
        use tdycoredef
        TDy a
@@ -237,6 +244,35 @@ module tdycore
        integer z
      end subroutine TDyGetBlockPermeabilityValuesLocal
   end interface TDyGetBlockPermeabilityValuesLocal
+
+  Interface TDyGetNumCellsLocal
+     subroutine TDyGetNumCellsLocal(a,b,z)
+       use tdycoredef
+       TDy a ! tdy
+       PetscInt b ! PetscInt
+       integer z
+     end subroutine TDyGetNumCellsLocal
+  end interface TDyGetNumCellsLocal
+
+  Interface TDyGetCellNaturalIDsLocal
+     subroutine TDyGetCellNaturalIDsLocal(a,b,c,z)
+       use tdycoredef
+       TDy a ! tdy
+       PetscInt b ! PetscInt
+       PetscInt c (*) ! PetscInt
+       integer z
+     end subroutine TDyGetCellNaturalIDsLocal
+  end interface TDyGetCellNaturalIDsLocal
+
+  Interface TDyGetCellIsLocal
+     subroutine TDyGetCellIsLocal(a,b,c,z)
+       use tdycoredef
+       TDy a
+       PetscInt b
+       PetscInt c (*)
+       integer z
+     end subroutine TDyGetCellIsLocal
+  end interface TDyGetCellIsLocal
 
   Interface TDyUpdateState
      subroutine TDyUpdateState(a,b,z)

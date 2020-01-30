@@ -302,9 +302,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   case TPF:
     break;
   case MPFA_O:
+    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
     ierr = TDyMPFAOSetFromOptions(tdy); CHKERRQ(ierr);
     break;
   case MPFA_O_DAE:
+    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
     ierr = TDyMPFAOSetFromOptions(tdy); CHKERRQ(ierr);
     break;
   case BDM:
@@ -340,6 +342,25 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
     break;
   case WY:
     ierr = TDyWYInitialize(tdy); CHKERRQ(ierr);
+    break;
+  }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetup(TDy tdy) {
+  PetscErrorCode ierr;
+  switch (tdy->method) {
+  case TPF:
+    break;
+  case MPFA_O:
+    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
+    break;
+  case MPFA_O_DAE:
+    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
+    break;
+  case BDM:
+    break;
+  case WY:
     break;
   }
   PetscFunctionReturn(0);
