@@ -41,7 +41,9 @@ PetscErrorCode VelocityQuadratic3D(TDy tdy,double *x,double *v,void *ctx) {
 }
 PetscErrorCode ForcingQuadratic3D(TDy tdy,double *x,double *f,void *ctx) { double K[4]; PermTest3D(x,K); (*f) = 2*(K[0]+K[3]+K[8]); PetscFunctionReturn(0);}
 
-/*--- -dim 2 -problem 3 ---------------------------------------------------------------*/
+/*--- -paper Wheeler2006 -------------------------------------------------------*/
+
+/* -problem 1 */
 
 PetscErrorCode PressureWheeler2006_1(TDy tdy,double *x,double *f,void *ctx) {
   (*f)  = PetscPowReal(1-x[0],4);
@@ -74,53 +76,102 @@ PetscErrorCode ForcingWheeler2006_1(TDy tdy,double *x,double *f, void *ctx) {
   PetscFunctionReturn(0);
 }
 
-/*--- -dim 2 -problem 4 ---------------------------------------------------------------*/
+/* -problem 2 */
 
-void PermeabilitySine(double *x,double *K) {
+void PermWheeler2006_2(double *x,double *K) {
+  K[0] = 4 + PetscSqr(x[0]+2) + PetscSqr(x[1]);
+  K[1] = 1 + PetscSinReal(x[0]*x[1]);
+  K[2] = K[1];
+  K[3] = 2;
+}
+PetscErrorCode PressureWheeler2006_2(TDy tdy,double *x,double *f,void *ctx) {
+  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
+  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
+  (*f) = sx*sx*sy*sy;
+  PetscFunctionReturn(0);
+}
+PetscErrorCode VelocityWheeler2006_2(TDy tdy,double *x,double *v,void *ctx) {
+  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
+  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
+  PetscReal cx = PetscCosReal(3*PETSC_PI*x[0]);
+  PetscReal cy = PetscCosReal(3*PETSC_PI*x[1]);
+  v[0] = -6*PETSC_PI*((sin(x[0]*x[1]) + 1)*sx*cy + (x[1]*x[1] + PetscSqr(x[0]+2) + 4)*sy*cx)*sx*sy;
+  v[1] = -6*PETSC_PI*((sin(x[0]*x[1]) + 1)*sy*cx + 2*sx*cy)*sx*sy;
+  PetscFunctionReturn(0);
+}
+PetscErrorCode ForcingWheeler2006_2(TDy tdy,double *x,double *f, void *ctx) {
+  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
+  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
+  PetscReal cx = PetscCosReal(3*PETSC_PI*x[0]);
+  PetscReal cy = PetscCosReal(3*PETSC_PI*x[1]);
+  (*f)  = -12*PETSC_PI*(PetscSinReal(x[0]*x[1]) + 1)*sx*sy*cx*cy;
+  (*f) +=  3*PETSC_PI*(x[1]*x[1] + PetscSqr(x[0] + 2) + 4)*sx*sx*sy*sy;
+  (*f) -=  3*PETSC_PI*(x[1]*x[1] + PetscSqr(x[0] + 2) + 4)*sy*sy*cx*cx;
+  (*f) +=  6*PETSC_PI*sx*sx*sy*sy;
+  (*f) -=  6*PETSC_PI*sx*sx*cy*cy;
+  (*f) -=  x[0]*sx*sy*sy*cx*PetscCosReal(x[0]*x[1]);
+  (*f) -=  x[1]*sx*sx*sy*cy*PetscCosReal(x[0]*x[1]);
+  (*f) -=  2*(x[0] + 2)*sx*sy*sy*cx;
+  (*f) *= 6*PETSC_PI;
+  PetscFunctionReturn(0);
+}
+
+
+/*--- -paper Wheeler2012 -------------------------------------------------------*/
+
+/* -problem 1 */
+
+void PermWheeler2012_1(double *x,double *K) {
   K[0] = 2   ; K[1] = 1.25;
   K[2] = 1.25; K[3] = 3;
 }
-PetscErrorCode PressureSine(TDy tdy,double *x,double *p,void *ctx) {
-  PetscReal s = PetscSinReal(3*PETSC_PI*x[0]);
-  PetscReal t = PetscSinReal(3*PETSC_PI*x[1]);
-  (*p) = s*s*t*t;
+
+PetscErrorCode PressureWheeler2012_1(TDy tdy,double *x,double *f,void *ctx) {
+  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
+  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
+  (*f) = sx*sx*sy*sy;
   PetscFunctionReturn(0);
 }
-PetscErrorCode VelocitySine(TDy tdy,double *x,double *v,void *ctx) {
-  double K[4]; PermeabilitySine(x,K);
-  double pi = PETSC_PI;
-  double s3pX = PetscSinReal(3*pi*x[0]);
-  double s3pY = PetscSinReal(3*pi*x[1]);
-  double c3pX = PetscCosReal(3*pi*x[0]);
-  double c3pY = PetscCosReal(3*pi*x[1]);
-  v[0] = -6*K[0]*pi*s3pX*s3pY*s3pY*c3pX - 6*K[1]*pi*s3pX*s3pX*s3pY*c3pY;
-  v[1] = -6*K[2]*pi*s3pX*s3pY*s3pY*c3pX - 6*K[3]*pi*s3pX*s3pX*s3pY*c3pY;
+
+PetscErrorCode VelocityWheeler2012_1(TDy tdy,double *x,double *v,void *ctx) {
+  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
+  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
+  PetscReal cx = PetscCosReal(3*PETSC_PI*x[0]);
+  PetscReal cy = PetscCosReal(3*PETSC_PI*x[1]);
+  double px,py,K[4];
+  PermWheeler2012_1(x,K);
+  px = 6*PETSC_PI*sx*sy*sy*cx;
+  py = 6*PETSC_PI*sx*sx*sy*cy;
+  v[0] = -(K[0]*px+K[1]*py);
+  v[1] = -(K[2]*px+K[3]*py);
   PetscFunctionReturn(0);
 }
-PetscErrorCode ForcingSine(TDy tdy,double *x,double *f,void *ctx) {
-  double K[4]; PermeabilitySine(x,K);
-  double pi = PETSC_PI;
-  double s3pX = PetscSinReal(3*pi*x[0]);
-  double s3pY = PetscSinReal(3*pi*x[1]);
-  double c3pX = PetscCosReal(3*pi*x[0]);
-  double c3pY = PetscCosReal(3*pi*x[1]);
-  (*f) =  18*pi*pi*(K[0]*s3pX*s3pX*s3pY*s3pY - K[0]*s3pY*s3pY*c3pX*c3pX - K[1]*
-                    (PetscCosReal(6*pi*(x[0] - x[1])) - PetscCosReal(6*pi*(x[0] + x[1])))/4 - K[2]*
-                    (PetscCosReal(6*pi*(x[0] - x[1])) - PetscCosReal(6*pi*(x[0] + x[1])))/4 +
-                    K[3]*s3pX*s3pX*s3pY*s3pY - K[3]*s3pX*s3pX*c3pY*c3pY);
- PetscFunctionReturn(0);
-
+PetscErrorCode ForcingWheeler2012_1(TDy tdy,double *x,double *f, void *ctx) {
+  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
+  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
+  PetscReal cx = PetscCosReal(3*PETSC_PI*x[0]);
+  PetscReal cy = PetscCosReal(3*PETSC_PI*x[1]);
+  double K[4];
+  PermWheeler2012_1(x,K);
+  (*f)  = K[0]*sx*sx*sy*sy;
+  (*f) -= K[0]*sy*sy*cx*cx;
+  (*f) -= K[1]*(PetscCosReal(6*PETSC_PI*(x[0]-x[1]))-PetscCosReal(6*PETSC_PI*(x[0]+x[1])))*0.25;
+  (*f) -= K[2]*(PetscCosReal(6*PETSC_PI*(x[0]-x[1]))-PetscCosReal(6*PETSC_PI*(x[0]+x[1])))*0.25;
+  (*f) += K[3]*sx*sx*sy*sy;
+  (*f) -= K[3]*sx*sx*cy*cy;
+  (*f) *= 18*PETSC_PI*PETSC_PI;
+  PetscFunctionReturn(0);
 }
 
-/*--- -dim 3 -problem 2 ---------------------------------------------------------------*/
+/* -problem 2 */
 
-void Permeability3D(double *x,double *K) {
+void PermWheeler2012_2(double *x,double *K) {
   K[0] = alpha; K[1] = 1; K[2] = 1;
   K[3] = 1    ; K[4] = 2; K[5] = 1;
   K[6] = 1    ; K[7] = 1; K[8] = 2;
 }
 
-PetscErrorCode Pressure3D(TDy tdy,double *x,double *f,void *ctx) {
+PetscErrorCode PressureWheeler2012_2(TDy tdy,double *x,double *f,void *ctx) {
   PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
   PetscReal xm12 = PetscSqr(x[0]-1);
   PetscReal ym12 = PetscSqr(x[1]-1);
@@ -129,7 +180,7 @@ PetscErrorCode Pressure3D(TDy tdy,double *x,double *f,void *ctx) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode Velocity3D(TDy tdy,double *x,double *v,void *ctx) {
+PetscErrorCode VelocityWheeler2012_2(TDy tdy,double *x,double *v,void *ctx) {
   PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
   PetscReal xm12 = PetscSqr(x[0]-1);
   PetscReal ym12 = PetscSqr(x[1]-1);
@@ -137,14 +188,14 @@ PetscErrorCode Velocity3D(TDy tdy,double *x,double *v,void *ctx) {
   PetscReal px = (x2*y2*z2*(2*x[0] - 2)*ym12*zm12 + 2*x[0]*y2*z2*xm12*ym12*zm12);
   PetscReal py = (x2*y2*z2*xm12*(2*x[1] - 2)*zm12 + 2*x2*x[1]*z2*xm12*ym12*zm12);
   PetscReal pz = (x2*y2*z2*xm12*ym12*(2*x[2] - 2) + 2*x2*y2*x[2]*xm12*ym12*zm12);
-  double K[9]; Permeability3D(x,K);
+  double K[9]; PermWheeler2012_2(x,K);
   v[0] = -K[0]*px - K[1]*py - K[2]*pz;
   v[1] = -K[3]*px - K[4]*py - K[5]*pz;
   v[2] = -K[6]*px - K[7]*py - K[8]*pz;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode Forcing3D(TDy tdy,double *x,double *f, void *ctx) {
+PetscErrorCode ForcingWheeler2012_2(TDy tdy,double *x,double *f, void *ctx) {
   PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
   PetscReal xm1  = (x[0]-1);
   PetscReal ym1  = (x[1]-1);
@@ -152,7 +203,7 @@ PetscErrorCode Forcing3D(TDy tdy,double *x,double *f, void *ctx) {
   PetscReal xm12 = PetscSqr(x[0]-1);
   PetscReal ym12 = PetscSqr(x[1]-1);
   PetscReal zm12 = PetscSqr(x[2]-1);
-  double K[9]; Permeability3D(x,K);
+  double K[9]; PermWheeler2012_2(x,K);
   (*f) = -2*K[0]*y2*z2*ym12*zm12*(x2 + 4*x[0]*xm1 + xm12) -
          4*K[1]*x[0]*x[1]*z2*xm1*ym1*zm12*(x[0]*x[1] + x[0]*ym1 + x[1]*xm1 + xm1*ym1) -
          4*K[2]*x[0]*y2*x[2]*xm1*ym12*zm1*(x[0]*x[2] + x[0]*zm1 + x[2]*xm1 + xm1*zm1) -
@@ -173,7 +224,7 @@ PetscErrorCode Pressure3(TDy tdy,double *x,double *f,void *ctx) {
 }
 
 PetscErrorCode Velocity3(TDy tdy,double *x,double *v,void *ctx) {
-  double K[9]; Permeability3D(x,K);
+  double K[9]; PermWheeler2012_2(x,K);
   v[0]  =  K[0]*PetscSinReal(x[0])*PetscCosReal(x[1])*PetscCosReal(
              x[2]) + K[1]*PetscSinReal(x[1])*PetscCosReal(x[0])*PetscCosReal(
              x[2]) + K[2]*PetscSinReal(x[2])*PetscCosReal(x[0])*PetscCosReal(x[1]);
@@ -187,7 +238,7 @@ PetscErrorCode Velocity3(TDy tdy,double *x,double *v,void *ctx) {
 }
 
 PetscErrorCode Forcing3(TDy tdy,double *x,double *f,void *ctx) {
-  double K[9]; Permeability3D(x,K);
+  double K[9]; PermWheeler2012_2(x,K);
   (*f) = K[0]*PetscCosReal(x[0])*PetscCosReal(x[1])*PetscCosReal(
            x[2]) - K[1]*PetscSinReal(x[0])*PetscSinReal(x[1])*PetscCosReal(
            x[2]) - K[2]*PetscSinReal(x[0])*PetscSinReal(x[2])*PetscCosReal(
@@ -199,6 +250,7 @@ PetscErrorCode Forcing3(TDy tdy,double *x,double *f,void *ctx) {
            x[0]) + K[8]*PetscCosReal(x[0])*PetscCosReal(x[1])*PetscCosReal(x[2]);
   PetscFunctionReturn(0);
 }
+
 
 PetscErrorCode PerturbVerticesRandom(DM dm,PetscReal h) {
   PetscErrorCode ierr;
@@ -238,7 +290,6 @@ PetscErrorCode PerturbVerticesRandom(DM dm,PetscReal h) {
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
-
 PetscErrorCode PerturbVerticesSmooth(DM dm) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -379,51 +430,61 @@ int main(int argc, char **argv) {
   /* Setup problem parameters */
   TDy  tdy;
   ierr = TDyCreate(dm,&tdy); CHKERRQ(ierr);
-  if(dim == 2) {
-    ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
-    switch(problem) {
-    case 1:
+
+
+  switch(problem) {
+      case 1:
+      if (dim == 2) {
+        ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
+      } else {
+        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
+      }
       ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
       ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
       ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
       break;
-    case 2:
-      ierr = TDySetForcingFunction(tdy,ForcingQuadratic2D,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureQuadratic2D,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletFluxFunction(tdy,VelocityQuadratic2D,NULL); CHKERRQ(ierr);
+
+      case 2:
+
+      if (dim == 2) {
+        ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingQuadratic2D,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletValueFunction(tdy,PressureQuadratic2D,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletFluxFunction(tdy,VelocityQuadratic2D,NULL); CHKERRQ(ierr);
+      } else {
+        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_2,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2012_2,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_2,NULL); CHKERRQ(ierr);
+      }
       break;
-    case 3:
-      ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_1,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2006_1,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2006_1,NULL); CHKERRQ(ierr);
+
+      case 3:
+      if (dim == 2) {
+        ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_1,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2006_1,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2006_1,NULL); CHKERRQ(ierr);
+      } else {
+        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,Forcing3,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletValueFunction(tdy,Pressure3,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletFluxFunction(tdy,Velocity3,NULL); CHKERRQ(ierr);
+      }
       break;
-    case 4:
-      ierr = TDySetPermeabilityTensor(tdy,PermeabilitySine); CHKERRQ(ierr);
-      ierr = TDySetForcingFunction(tdy,ForcingSine,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureSine,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletFluxFunction(tdy,VelocitySine,NULL); CHKERRQ(ierr);
+
+      case 4:
+      if (dim == 2) {
+        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_1); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_1,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2012_1,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_1,NULL); CHKERRQ(ierr);
+      } else {
+      
+      }
       break;
-    }
-  } else {
-    ierr = TDySetPermeabilityTensor(tdy,Permeability3D); CHKERRQ(ierr);
-    switch(problem) {
-    case 1:
-      ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
-      break;
-    case 2:
-      ierr = TDySetForcingFunction(tdy,Forcing3D,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,Pressure3D,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletFluxFunction(tdy,Velocity3D,NULL); CHKERRQ(ierr);
-      break;
-    case 3:
-      ierr = TDySetForcingFunction(tdy,Forcing3,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,Pressure3,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletFluxFunction(tdy,Velocity3,NULL); CHKERRQ(ierr);
-      break;
-    }
   }
+
   ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
