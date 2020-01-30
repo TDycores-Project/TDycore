@@ -45,6 +45,11 @@ PetscErrorCode ForcingQuadratic3D(TDy tdy,double *x,double *f,void *ctx) { doubl
 
 /* -problem 1 */
 
+void PermWheeler2006_1(double *x,double *K) {
+  K[0] = 5; K[1] = 1;
+  K[2] = 1; K[3] = 2;
+}
+
 PetscErrorCode PressureWheeler2006_1(TDy tdy,double *x,double *f,void *ctx) {
   (*f)  = PetscPowReal(1-x[0],4);
   (*f) += PetscPowReal(1-x[1],3)*(1-x[0]);
@@ -53,7 +58,7 @@ PetscErrorCode PressureWheeler2006_1(TDy tdy,double *x,double *f,void *ctx) {
 }
 PetscErrorCode VelocityWheeler2006_1(TDy tdy,double *x,double *v,void *ctx) {
   double vx,vy,K[4];
-  PermTest2D(x,K);
+  PermWheeler2006_1(x,K);
   vx  = -4*PetscPowReal(1-x[0],3);
   vx += -PetscPowReal(1-x[1],3);
   vx += +PetscSinReal(x[1]-1)*PetscSinReal(x[0]-1);
@@ -65,7 +70,7 @@ PetscErrorCode VelocityWheeler2006_1(TDy tdy,double *x,double *v,void *ctx) {
 }
 PetscErrorCode ForcingWheeler2006_1(TDy tdy,double *x,double *f, void *ctx) {
   double K[4];
-  PermTest2D(x,K);
+  PermWheeler2006_1(x,K);
   (*f)  = -K[0]*(12*PetscPowReal(1-x[0],
                                  2)+PetscSinReal(x[1]-1)*PetscCosReal(x[0]-1));
   (*f) += -K[1]*( 3*PetscPowReal(1-x[1],
@@ -374,32 +379,83 @@ PetscErrorCode OperatorApplicationResidual(TDy tdy,Vec U,Mat K,PetscErrorCode (*
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode GeometryWheeler2006_2(DM dm, PetscInt n){
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  DMLabel      label;
+  Vec          coordinates;
+  PetscSection coordSection;
+  PetscScalar *coords;
+  PetscInt     v,vStart,vEnd,offset,dim;
+  PetscReal    x,y;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetLabelByNum(dm,2,&label); CHKERRQ(ierr);
+  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  for(v=vStart; v<vEnd; v++) {
+    ierr = PetscSectionGetOffset(coordSection,v,&offset); CHKERRQ(ierr);
+    x = coords[offset  ];
+    y = coords[offset+1];
+    if(x < 0.5){
+      coords[offset+1] = (-4.8*x*x + 2.*x + 0.7)*y ;
+    }else{
+      coords[offset+1] = (0.75*x + 0.125)*y ;
+    }
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode GeometryColumn(DM dm){
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  DMLabel      label;
+  Vec          coordinates;
+  PetscSection coordSection;
+  PetscScalar *coords;
+  PetscInt     v,vStart,vEnd,offset,dim;
+  PetscReal    x,y;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetLabelByNum(dm,2,&label); CHKERRQ(ierr);
+  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  for(v=vStart; v<vEnd; v++) {
+    ierr = PetscSectionGetOffset(coordSection,v,&offset); CHKERRQ(ierr);
+    x = coords[offset  ]; y = coords[offset+1];
+    coords[offset+2] += 0.05*x+0.15*y;
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
   PetscInt N = 4, dim = 2, problem = 2;
   PetscInt successful_exit_code=0;
   PetscBool perturb = PETSC_FALSE;
-  char exofile[256];
+  char exofile[256],paper[256]="none";
   PetscBool exo = PETSC_FALSE;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
-  CHKERRQ(ierr);
-  ierr = PetscOptionsInt ("-dim","Problem dimension","",dim,&dim,NULL);
-  CHKERRQ(ierr);
-  ierr = PetscOptionsInt ("-N","Number of elements in 1D","",N,&N,NULL);
-  CHKERRQ(ierr);
-  ierr = PetscOptionsInt ("-problem","Problem number","",problem,&problem,NULL);
-  CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-perturb","Perturb interior vertices","",perturb,
-                          &perturb,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-alpha","Permeability scaling","",alpha,&alpha,NULL);
-  CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
-                         successful_exit_code,&successful_exit_code,NULL);
-  ierr = PetscOptionsString("-exo","Mesh file in exodus format","",
-			    exofile,exofile,256,&exo); CHKERRQ(ierr);
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-problem","Problem number","",problem,&problem,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-perturb","Perturb interior vertices","",perturb,&perturb,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-alpha","Permeability scaling","",alpha,&alpha,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",successful_exit_code,&successful_exit_code,NULL);
+  ierr = PetscOptionsString("-exo","Mesh file in exodus format","",exofile,exofile,256,&exo); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-paper","Select paper","",paper,paper,256,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  PetscBool wheeler2006,wheeler2012,column;
+  ierr = PetscStrcasecmp(paper,"wheeler2006",&wheeler2006); CHKERRQ(ierr);
+  ierr = PetscStrcasecmp(paper,"wheeler2012",&wheeler2012); CHKERRQ(ierr);
+  ierr = PetscStrcasecmp(paper,"column",&column); CHKERRQ(ierr);
 
   /* Create and distribute the mesh */
   DM dm, dmDist = NULL;
@@ -412,14 +468,29 @@ int main(int argc, char **argv) {
     ierr = DMGetLabel(dm,"marker",&marker); CHKERRQ(ierr);
     ierr = DMPlexMarkBoundaryFaces(dm,1,marker); CHKERRQ(ierr);
   }else{
-    const PetscInt  faces[3] = {N,N,N  };
+    PetscInt Nx=N,Ny=N,Nz=N;
+    PetscReal Lx=1,Ly=1,Lz=1;
+    if(column){
+      Nx = 1; Ny = 1; Nz = N;
+      Lx = 10; Ly = 10; Lz = 1;
+    }
+    const PetscInt  faces[3] = {Nx ,Ny ,Nz };
     const PetscReal lower[3] = {0.0,0.0,0.0};
-    const PetscReal upper[3] = {1.0,1.0,1.0};
+    const PetscReal upper[3] = {Lx ,Ly ,Lz };
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
 			       NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
+    if(wheeler2006 && (problem==2 || problem==0)){
+      ierr = GeometryWheeler2006_2(dm,N); CHKERRQ(ierr);
+    }
+    if(column) {
+      ierr = GeometryColumn(dm); CHKERRQ(ierr);
+    }
     if(perturb) {
-      //ierr = PerturbVerticesSmooth(dm); CHKERRQ(ierr);
       ierr = PerturbVerticesRandom(dm,1./N); CHKERRQ(ierr);
+    }else{
+      if(wheeler2012) {
+        ierr = PerturbVerticesSmooth(dm); CHKERRQ(ierr);
+      }
     }
   }
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
@@ -431,58 +502,108 @@ int main(int argc, char **argv) {
   TDy  tdy;
   ierr = TDyCreate(dm,&tdy); CHKERRQ(ierr);
 
-
-  switch(problem) {
-      case 1:
-      if (dim == 2) {
+  if(wheeler2006){
+    if(dim != 2){
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2006 is only for -dim 2 problems");
+    }
+    switch(problem) {
+        case 0: // not a problem in the paper, but want to check constants on the geometry
         ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
-      } else {
-        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
-      }
-      ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
-      break;
-
-      case 2:
-
-      if (dim == 2) {
-        ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
-        ierr = TDySetForcingFunction(tdy,ForcingQuadratic2D,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletValueFunction(tdy,PressureQuadratic2D,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletFluxFunction(tdy,VelocityQuadratic2D,NULL); CHKERRQ(ierr);
-      } else {
-        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
-        ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_2,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2012_2,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_2,NULL); CHKERRQ(ierr);
-      }
-      break;
-
-      case 3:
-      if (dim == 2) {
-        ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
+        break;
+        case 1:
+        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2006_1); CHKERRQ(ierr);
         ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_1,NULL); CHKERRQ(ierr);
         ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2006_1,NULL); CHKERRQ(ierr);
         ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2006_1,NULL); CHKERRQ(ierr);
-      } else {
-        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
-        ierr = TDySetForcingFunction(tdy,Forcing3,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletValueFunction(tdy,Pressure3,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletFluxFunction(tdy,Velocity3,NULL); CHKERRQ(ierr);
-      }
-      break;
-
-      case 4:
-      if (dim == 2) {
+        break;
+        case 2:
+        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2006_2); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_2,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2006_2,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2006_2,NULL); CHKERRQ(ierr);
+        break;
+        default:
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2006 only valid for -problem {0,1,2}");
+    }
+  }else if(wheeler2012){
+    switch(problem) {
+        case 1:
+        if(dim != 2){
+          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2012 -problem 1 is only for -dim 2");
+        }
         ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_1); CHKERRQ(ierr);
         ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_1,NULL); CHKERRQ(ierr);
         ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2012_1,NULL); CHKERRQ(ierr);
         ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_1,NULL); CHKERRQ(ierr);
-      } else {
-      
-      }
-      break;
+        break;
+        case 2:
+        if(dim != 3){
+          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2012 -problem 2 is only for -dim 3");
+        }
+        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_2,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2012_2,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_2,NULL); CHKERRQ(ierr);
+        break;
+        default:
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2012 only valid for -problem {1,2}");
+    }
+  }else{
+    switch(problem) {
+        case 1:
+        if (dim == 2) {
+          ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
+        } else {
+          ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
+        }
+        ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
+        ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
+        break;
+        
+        case 2:
+        
+        if (dim == 2) {
+          ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,ForcingQuadratic2D,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletValueFunction(tdy,PressureQuadratic2D,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletFluxFunction(tdy,VelocityQuadratic2D,NULL); CHKERRQ(ierr);
+        } else {
+          ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_2,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2012_2,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_2,NULL); CHKERRQ(ierr);
+        }
+        break;
+        
+        case 3:
+        if (dim == 2) {
+          ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_1,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2006_1,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2006_1,NULL); CHKERRQ(ierr);
+        } else {
+          ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,Forcing3,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletValueFunction(tdy,Pressure3,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletFluxFunction(tdy,Velocity3,NULL); CHKERRQ(ierr);
+        }
+        break;
+        
+        case 4:
+        if (dim == 2) {
+          ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_1); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_1,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2012_1,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_1,NULL); CHKERRQ(ierr);
+        } else {
+          
+        }
+        break;
+    }
   }
 
   ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
