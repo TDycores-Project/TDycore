@@ -113,13 +113,13 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
       //                              |           | |             |
       //                              |_         _| |_           _|
       //
-      ComputeEntryOfGMatrix2D(e_len_up, n_up, K, nu_up, subcells->T[isubcell], dim,
+      ComputeEntryOfGMatrix2D(e_len_up, n_up, K, nu_up, subcells->T[subcell_id], dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][0][0]));
-      ComputeEntryOfGMatrix2D(e_len_up, n_up, K, nu_dn, subcells->T[isubcell], dim,
+      ComputeEntryOfGMatrix2D(e_len_up, n_up, K, nu_dn, subcells->T[subcell_id], dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][0][1]));
-      ComputeEntryOfGMatrix2D(e_len_dn, n_dn, K, nu_up, subcells->T[isubcell], dim,
+      ComputeEntryOfGMatrix2D(e_len_dn, n_dn, K, nu_up, subcells->T[subcell_id], dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][1][0]));
-      ComputeEntryOfGMatrix2D(e_len_dn, n_dn, K, nu_dn, subcells->T[isubcell], dim,
+      ComputeEntryOfGMatrix2D(e_len_dn, n_dn, K, nu_dn, subcells->T[subcell_id], dim,
                             &(tdy->subc_Gmatrix[icell][isubcell][1][1]));
     }
   }
