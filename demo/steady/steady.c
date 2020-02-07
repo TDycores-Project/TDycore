@@ -734,7 +734,8 @@ int main(int argc, char **argv) {
     }
   }
 
-  ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
+  //ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
+  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   /* Compute system */
@@ -753,7 +754,7 @@ int main(int argc, char **argv) {
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
-  
+
   /* Output solution */
   PetscViewer viewer;
   PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"sol.vtk",FILE_MODE_WRITE,&viewer);
