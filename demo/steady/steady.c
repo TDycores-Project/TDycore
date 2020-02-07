@@ -190,9 +190,15 @@ PetscErrorCode VelocityWheeler2012_2(TDy tdy,double *x,double *v,void *ctx) {
   PetscReal xm12 = PetscSqr(x[0]-1);
   PetscReal ym12 = PetscSqr(x[1]-1);
   PetscReal zm12 = PetscSqr(x[2]-1);
-  PetscReal px = (x2*y2*z2*(2*x[0] - 2)*ym12*zm12 + 2*x[0]*y2*z2*xm12*ym12*zm12);
-  PetscReal py = (x2*y2*z2*xm12*(2*x[1] - 2)*zm12 + 2*x2*x[1]*z2*xm12*ym12*zm12);
-  PetscReal pz = (x2*y2*z2*xm12*ym12*(2*x[2] - 2) + 2*x2*y2*x[2]*xm12*ym12*zm12);
+
+  PetscReal a1 = 2*x[0]*(x[0]-1)*(2*x[0]-1);
+  PetscReal b1 = 2*x[1]*(x[1]-1)*(2*x[1]-1);
+  PetscReal c1 = 2*x[2]*(x[2]-1)*(2*x[2]-1);
+
+  PetscReal px = a1      *y2*ym12 *z2*zm12;
+  PetscReal py = x2*xm12*xb1      *z2*zm12;
+  PetscReal pz = x2*xm12*x*y2*ym12*c1     ;
+
   double K[9]; PermWheeler2012_2(x,K);
   v[0] = -K[0]*px - K[1]*py - K[2]*pz;
   v[1] = -K[3]*px - K[4]*py - K[5]*pz;
@@ -209,15 +215,20 @@ PetscErrorCode ForcingWheeler2012_2(TDy tdy,double *x,double *f, void *ctx) {
   PetscReal ym12 = PetscSqr(x[1]-1);
   PetscReal zm12 = PetscSqr(x[2]-1);
   double K[9]; PermWheeler2012_2(x,K);
-  (*f) = -2*K[0]*y2*z2*ym12*zm12*(x2 + 4*x[0]*xm1 + xm12) -
-         4*K[1]*x[0]*x[1]*z2*xm1*ym1*zm12*(x[0]*x[1] + x[0]*ym1 + x[1]*xm1 + xm1*ym1) -
-         4*K[2]*x[0]*y2*x[2]*xm1*ym12*zm1*(x[0]*x[2] + x[0]*zm1 + x[2]*xm1 + xm1*zm1) -
-         4*K[3]*x[0]*x[1]*z2*xm1*ym1*zm12*(x[0]*x[1] + x[0]*ym1 + x[1]*xm1 + xm1*ym1) -
-         2*K[4]*x2*z2*xm12*zm12*(y2 + 4*x[1]*ym1 + ym12) -
-         4*K[5]*x2*x[1]*x[2]*xm12*ym1*zm1*(x[1]*x[2] + x[1]*zm1 + x[2]*ym1 + ym1*zm1) -
-         4*K[6]*x[0]*y2*x[2]*xm1*ym12*zm1*(x[0]*x[2] + x[0]*zm1 + x[2]*xm1 + xm1*zm1) -
-         4*K[7]*x2*x[1]*x[2]*xm12*ym1*zm1*(x[1]*x[2] + x[1]*zm1 + x[2]*ym1 + ym1*zm1) -
-         2*K[8]*x2*y2*xm12*ym12*(z2 + 4*x[2]*zm1 + zm12);
+
+  PetscReal a1 = 2*x[0]*(x[0]-1)*(2*x[0]-1);
+  PetscReal b1 = 2*x[1]*(x[1]-1)*(2*x[1]-1);
+  PetscReal c1 = 2*x[2]*(x[2]-1)*(2*x[2]-1);
+
+  PetscReal a2 = 12*x2 - 12*x[0] + 2;
+  PetscReal b2 = 12*y2 - 12*x[1] + 2;
+  PetscReal c2 = 12*z2 - 12*x[2] + 2;
+
+  (*f) =
+    -K[0]*a2*y2*ym12*z2*zm12 -K[1]*a1     *b1*z2*zm12 -K[2]*a1     *y2*ym12*c1 +
+    -K[3]*a1*b1     *z2*zm12 -K[4]*x2*xm12*b2*z2*zm12 -K[5]*x2*xm12*b1     *c1 +
+    -K[6]*a1*y2*ym12*c1      -K[7]*x2*xm12*b1*c1      -K[8]*x2*xm12*y2*ym12*c2;
+
   PetscFunctionReturn(0);
 }
 
@@ -379,6 +390,115 @@ PetscErrorCode OperatorApplicationResidual(TDy tdy,Vec U,Mat K,PetscErrorCode (*
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode SaveVertices(DM dm, char filename[256]){
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  Vec coordinates;
+  PetscViewer viewer;
+
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
+  ierr = VecView(coordinates,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SaveCentroids(DM dm, char filename[256]){
+  PetscInt d,dim,c,cStart,cEnd;
+  PetscReal cen[3];
+  PetscScalar *centroids_p;
+  Vec centroids;
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+
+  ierr = VecCreateMPI(PETSC_COMM_WORLD,(cEnd-cStart)*dim,PETSC_DETERMINE,&centroids); CHKERRQ(ierr);
+
+  ierr = VecGetArray(centroids,&centroids_p); CHKERRQ(ierr);
+  for(c=cStart; c<cEnd; c++) {
+    ierr = DMPlexComputeCellGeometryFVM(dm, c, PETSC_NULL, &cen[0],
+                                        PETSC_NULL); CHKERRQ(ierr);
+    for (d=0;d<dim;d++) centroids_p[c*dim+d] = cen[d];
+  }
+  ierr = VecRestoreArray(centroids,&centroids_p); CHKERRQ(ierr);
+
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+  ierr = VecView(centroids,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SaveTrueSolution(TDy tdy, char filename[256]){
+  DM dm;
+  Vec coordinates,pressure;
+  PetscScalar *coords,*pres;
+  PetscInt c,cStart,cEnd;
+  PetscReal centroid[3];
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  dm = tdy->dm;
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+
+  ierr = DMCreateGlobalVector(dm,&pressure); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  ierr = VecGetArray(pressure,&pres); CHKERRQ(ierr);
+
+  for(c=cStart; c<cEnd; c++) {
+    ierr = DMPlexComputeCellGeometryFVM(dm, c, PETSC_NULL, &centroid[0],
+                                        PETSC_NULL); CHKERRQ(ierr);
+    ierr = tdy->ops->computedirichletvalue(tdy,&centroid[0],&pres[c],NULL);
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+  ierr = VecRestoreArray(pressure,&pres); CHKERRQ(ierr);
+  ierr = VecView(pressure,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  ierr = VecDestroy(&pressure); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode SaveForcing(TDy tdy, char filename[256]){
+  DM dm;
+  Vec forcing;
+  PetscScalar *f;
+  PetscInt c,cStart,cEnd;
+  PetscReal centroid[3];
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  dm = tdy->dm;
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+
+  ierr = DMCreateGlobalVector(dm,&forcing); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+  ierr = VecGetArray(forcing,&f); CHKERRQ(ierr);
+
+  for(c=cStart; c<cEnd; c++) {
+    ierr = DMPlexComputeCellGeometryFVM(dm, c, PETSC_NULL, &centroid[0],
+                                        PETSC_NULL); CHKERRQ(ierr);
+    ierr = tdy->ops->computeforcing(tdy,&centroid[0],&f[c],NULL);
+  }
+  ierr = VecRestoreArray(forcing,&f); CHKERRQ(ierr);
+  ierr = VecView(forcing,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  ierr = VecDestroy(&forcing); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode GeometryWheeler2006_2(DM dm, PetscInt n){
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -439,6 +559,10 @@ int main(int argc, char **argv) {
   PetscInt successful_exit_code=0;
   PetscBool perturb = PETSC_FALSE;
   char exofile[256],paper[256]="none";
+  char vertices_filename[256]="none";
+  char centroids_filename[256]="none";
+  char true_pres_filename[256]="none";
+  char forcing_filename[256]="none";
   PetscBool exo = PETSC_FALSE;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); CHKERRQ(ierr);
@@ -450,6 +574,10 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",successful_exit_code,&successful_exit_code,NULL);
   ierr = PetscOptionsString("-exo","Mesh file in exodus format","",exofile,exofile,256,&exo); CHKERRQ(ierr);
   ierr = PetscOptionsString("-paper","Select paper","",paper,paper,256,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-view_vertices","Filename to save vertices","",vertices_filename,vertices_filename,256,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-view_centroids","Filename to save centroids","",centroids_filename,centroids_filename,256,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-view_true_pressure","Filename to save true pressure","",true_pres_filename,true_pres_filename,256,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-view_forcing","Filename to save forcing","",forcing_filename,forcing_filename,256,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   PetscBool wheeler2006,wheeler2012,column;
@@ -640,6 +768,31 @@ int main(int argc, char **argv) {
   PetscReal normp,normv;
   ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
   ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e\n",normp,normv); CHKERRQ(ierr);
+
+  /* Save vertex coordinates */
+  PetscBool file_not_specified;
+  ierr = PetscStrcasecmp(vertices_filename,"none",&file_not_specified); CHKERRQ(ierr);
+  if (file_not_specified == 0) {
+    ierr = SaveVertices(dm,vertices_filename); CHKERRQ(ierr);
+  }
+  
+  /* Save cell centroids */
+  ierr = PetscStrcasecmp(centroids_filename,"none",&file_not_specified); CHKERRQ(ierr);
+  if (file_not_specified == 0) {
+    ierr = SaveCentroids(dm,centroids_filename); CHKERRQ(ierr);
+  }
+
+  /* Save true solution */
+  ierr = PetscStrcasecmp(true_pres_filename,"none",&file_not_specified); CHKERRQ(ierr);
+  if (file_not_specified == 0) {
+    ierr = SaveTrueSolution(tdy,true_pres_filename); CHKERRQ(ierr);
+  }
+
+  /* Save forcing */
+  ierr = PetscStrcasecmp(forcing_filename,"none",&file_not_specified); CHKERRQ(ierr);
+  if (file_not_specified == 0) {
+    ierr = SaveForcing(tdy,forcing_filename); CHKERRQ(ierr);
+  }
 
   /* Save regression file */
   ierr = TDyOutputRegression(tdy,U);
