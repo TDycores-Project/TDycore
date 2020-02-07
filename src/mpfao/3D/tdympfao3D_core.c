@@ -294,8 +294,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
       ierr = MatSetValues(tdy->Trans_mat,1,&row,1,&col,&tdy->Trans[vertex_id][i][j],ADD_VALUES); CHKERRQ(ierr);
     }
   }
-  ierr = MatAssemblyBegin(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
   // Free up the memory
   ierr = TDyDeallocate_RealArray_2D(Gmatrix, ndim   ); CHKERRQ(ierr);
@@ -586,9 +584,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
     }
   }
 
-  ierr = MatAssemblyBegin(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-
   ierr = TDyDeallocate_RealArray_2D(Gmatrix, ndim); CHKERRQ(ierr);
   ierr = TDyDeallocate_RealArray_2D(Fup, nflux); CHKERRQ(ierr);
   ierr = TDyDeallocate_RealArray_2D(Cup, nflux); CHKERRQ(ierr);
@@ -716,9 +711,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     ierr = MatSetValues(tdy->Trans_mat,1,&row,1,&col,&tdy->Trans[ivertex][i][numBnd],ADD_VALUES); CHKERRQ(ierr);
   }
 
-  ierr = MatAssemblyBegin(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-
   PetscFunctionReturn(0);
 
 }
@@ -754,6 +746,9 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
       }
     }
   }
+
+  ierr = MatAssemblyBegin(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
