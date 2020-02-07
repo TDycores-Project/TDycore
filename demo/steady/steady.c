@@ -195,9 +195,9 @@ PetscErrorCode VelocityWheeler2012_2(TDy tdy,double *x,double *v,void *ctx) {
   PetscReal b1 = 2*x[1]*(x[1]-1)*(2*x[1]-1);
   PetscReal c1 = 2*x[2]*(x[2]-1)*(2*x[2]-1);
 
-  PetscReal px = a1      *y2*ym12 *z2*zm12;
-  PetscReal py = x2*xm12*xb1      *z2*zm12;
-  PetscReal pz = x2*xm12*x*y2*ym12*c1     ;
+  PetscReal px = a1     *y2*ym12 *z2*zm12;
+  PetscReal py = x2*xm12*b1      *z2*zm12;
+  PetscReal pz = x2*xm12*y2*ym12*c1     ;
 
   double K[9]; PermWheeler2012_2(x,K);
   v[0] = -K[0]*px - K[1]*py - K[2]*pz;
