@@ -150,6 +150,16 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
     tdy->SatFuncType[c] = SAT_FUNC_GARDNER;
     tdy->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     tdy->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
+    tdy->Kr[c] = 0.0;
+    tdy->dKr_dS[c] = 0.0;
+    tdy->S[c] = 0.0;
+    tdy->dS_dP[c] = 0.0;
+    tdy->rho[c] = 0.0;
+    tdy->drho_dP[c] = 0.0;
+    tdy->vis[c] = 0.0;
+    tdy->dvis_dP[c] = 0.0;
+    tdy->d2vis_dP2[c] = 0.0;
+    tdy->porosity[c] = 0.0;
   }
   tdy->Pref = 101325;
   tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
