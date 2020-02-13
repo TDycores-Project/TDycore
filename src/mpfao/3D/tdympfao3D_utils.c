@@ -199,7 +199,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
           vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*subcells->face_area[sOffsetFace + iface];
 
-          *vel_error += PetscPowReal( (Vcomputed[icell] - vel_normal), 2.0);
+          *vel_error += PetscPowReal( (Vcomputed[irow] - vel_normal), 2.0);
           (*count)++;
         }
 
