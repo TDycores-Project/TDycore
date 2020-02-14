@@ -88,12 +88,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
 
-  PetscReal vel_error = 0.0;
-  PetscInt count = 0;
-  PetscInt iface;
   PetscReal *accum_prev;
-
-  for (iface=0;iface<mesh->num_faces;iface++) tdy->vel[iface] = 0.0;
   
   ierr = TDyMPFAOIFunction_InternalVertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
   ierr = TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
