@@ -332,10 +332,26 @@ PetscErrorCode TDyMPFAOSetup(TDy tdy) {
 
   PetscFunctionBegin;
   PetscErrorCode ierr;
+  PetscLogStage stages[1];
+  PetscClassId mpfaoId;
+  PetscLogEvent eventGMatrix, eventTMatrix;
 
+  PetscClassIdRegister("MPFAO",&mpfaoId);
+  PetscLogStageRegister("MPFAO Setup",&stages[0]);
+  PetscLogEventRegister("Gmatrix",mpfaoId,&eventGMatrix);
+  PetscLogEventRegister("Tmatrix",mpfaoId,&eventTMatrix);
+
+  PetscLogStagePush(stages[0]);
+
+  PetscLogEventBegin(eventGMatrix,0,0,0,0);
   ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
+  PetscLogEventEnd(eventGMatrix,0,0,0,0);
 
+  PetscLogEventBegin(eventTMatrix,0,0,0,0);
   ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
+  PetscLogEventEnd(eventTMatrix,0,0,0,0);
+
+  PetscLogStagePop();
 
   PetscFunctionReturn(0);
 }
