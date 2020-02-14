@@ -1,8 +1,15 @@
 #include <private/tdycoreimpl.h>
+#include <private/tdysaturationimpl.h>
+#include <private/tdypermeabilityimpl.h>
+#include <private/tdympfao3Dcoreimpl.h>
+#include <private/tdympfaoimpl.h>
+#include <private/tdyeosimpl.h>
+#include <private/tdympfao3Dutilsimpl.h>
 
 const char *const TDyMethods[] = {
   "TPF",
   "MPFA_O",
+  "MPFA_O_DAE",
   "BDM",
   "WY",
   /* */
@@ -14,6 +21,13 @@ const char *const TDyQuadratureTypes[] = {
   "FULL",
   /* */
   "TDyQuadratureType","TDY_QUAD_",NULL
+};
+
+const char *const TDyWaterDensityTypes[] = {
+  "CONSTANT",
+  "EXPONENTIAL",
+  /* */
+  "TDyWaterDensityType","TDY_DENSITY_",NULL
 };
 
 PetscClassId TDY_CLASSID = 0;
@@ -60,7 +74,7 @@ PetscErrorCode TDyInitializePackage(void) {
 
 PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   TDy            tdy;
-  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,cStart,cEnd,eStart,eEnd,offset,
+  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,c,cStart,cEnd,eStart,eEnd,offset,
                  nc;
   Vec            coordinates;
   PetscSection   coordSection;
@@ -110,17 +124,48 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K )); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->porosity)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Kr)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dKr_dS)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->S)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2S_dP2)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rho)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2rho_dP2)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->vis)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2vis_dP2)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Sr)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->SatFuncType)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->RelPermFuncType)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_m)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_n)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_alpha)); CHKERRQ(ierr);
 
   /* problem constants FIX: add mutators */
-  tdy->rho  = 998;
-  tdy->mu   = 9.94e-4;
-  tdy->Sr   = 0.15;
-  tdy->Ss   = 1;
+  for (c=0; c<nc; c++) {
+    tdy->Sr[c]   = 0.15;
+    tdy->matprop_n[c] = 0.5;
+    tdy->matprop_m[c] = 0.8;
+    tdy->matprop_alpha[c] = 1.e-4;
+    tdy->SatFuncType[c] = SAT_FUNC_GARDNER;
+    tdy->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
+    tdy->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
+    tdy->Kr[c] = 0.0;
+    tdy->dKr_dS[c] = 0.0;
+    tdy->S[c] = 0.0;
+    tdy->dS_dP[c] = 0.0;
+    tdy->rho[c] = 0.0;
+    tdy->drho_dP[c] = 0.0;
+    tdy->vis[c] = 0.0;
+    tdy->dvis_dP[c] = 0.0;
+    tdy->d2vis_dP2[c] = 0.0;
+    tdy->porosity[c] = 0.0;
+  }
   tdy->Pref = 101325;
   tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
   tdy->gravity[dim-1] = -9.81;
+  tdy->rho_type = WATER_DENSITY_CONSTANT;
+  tdy->mu_type = WATER_VISCOSITY_CONSTANT;
 
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
@@ -130,6 +175,20 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   tdy->qtype = FULL;
   
   PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetGravityVector(TDy tdy, PetscReal *gravity) {
+
+  PetscInt d, dim;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  for (d=0;d<dim;d++) tdy->gravity[d] = gravity[d];
+
+  PetscFunctionReturn(0);
+
 }
 
 PetscErrorCode TDyDestroy(TDy *_tdy) {
@@ -145,8 +204,10 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->N); CHKERRQ(ierr);
   ierr = PetscFree(tdy->porosity); CHKERRQ(ierr);
   ierr = PetscFree(tdy->Kr); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->dKr_dS); CHKERRQ(ierr);
   ierr = PetscFree(tdy->S); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dS_dP); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->d2S_dP2); CHKERRQ(ierr);
   ierr = PetscFree(tdy->K); CHKERRQ(ierr);
   ierr = PetscFree(tdy->K0); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
@@ -206,6 +267,8 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscBool flg;
   TDyMethod method = WY;
   TDyQuadratureType qtype = FULL;
+  TDyWaterDensityType densitytype = WATER_DENSITY_CONSTANT;
+
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   ierr = PetscObjectOptionsBegin((PetscObject)tdy); CHKERRQ(ierr);
@@ -229,6 +292,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           "Enable output of mesh attributes","",tdy->output_mesh,
                           &(tdy->output_mesh),NULL); CHKERRQ(ierr);
 
+  ierr = PetscOptionsEnum("-tdy_water_density","Water density type",
+                          "TDySetWaterDensityType",TDyWaterDensityTypes,(PetscEnum)densitytype,(PetscEnum *)&densitytype,
+                          &flg); CHKERRQ(ierr);
+  if (flg) {ierr = TDySetWaterDensityType(tdy,densitytype); CHKERRQ(ierr);}
+
   if (tdy->regression_testing) {
     ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
   }
@@ -238,6 +306,23 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-tdy_output_mesh only supported for MPFA-O method");
     }
     ierr = TDyOutputMesh(tdy); CHKERRQ(ierr);
+  }
+
+  switch (tdy->method) {
+  case TPF:
+    break;
+  case MPFA_O:
+    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
+    ierr = TDyMPFAOSetFromOptions(tdy); CHKERRQ(ierr);
+    break;
+  case MPFA_O_DAE:
+    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
+    ierr = TDyMPFAOSetFromOptions(tdy); CHKERRQ(ierr);
+    break;
+  case BDM:
+    break;
+  case WY:
+    break;
   }
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
@@ -259,11 +344,33 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
   case MPFA_O:
     ierr = TDyMPFAOInitialize(tdy); CHKERRQ(ierr);
     break;
+  case MPFA_O_DAE:
+    ierr = TDyMPFAOInitialize(tdy); CHKERRQ(ierr);
+    break;
   case BDM:
     ierr = TDyBDMInitialize(tdy); CHKERRQ(ierr);
     break;
   case WY:
     ierr = TDyWYInitialize(tdy); CHKERRQ(ierr);
+    break;
+  }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetup(TDy tdy) {
+  PetscErrorCode ierr;
+  switch (tdy->method) {
+  case TPF:
+    break;
+  case MPFA_O:
+    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
+    break;
+  case MPFA_O_DAE:
+    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
+    break;
+  case BDM:
+    break;
+  case WY:
     break;
   }
   PetscFunctionReturn(0);
@@ -276,7 +383,70 @@ PetscErrorCode TDySetQuadratureType(TDy tdy,TDyQuadratureType qtype) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetWaterDensityType(TDy tdy,TDyWaterDensityType dentype) {
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  switch (dentype) {
+  case WATER_DENSITY_CONSTANT:
+    tdy->rho_type = WATER_DENSITY_CONSTANT;
+    break;
+  case WATER_DENSITY_EXPONENTIAL:
+    tdy->rho_type = WATER_DENSITY_EXPONENTIAL;
+    break;
+  }
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
+  PetscInt       dim, num_fields;
+  MPI_Comm       comm;
+  PetscSection   sec;
+  PetscErrorCode ierr;
+  PetscValidPointer( ts,1);
+  PetscValidPointer(tdy,2);
+
+  PetscFunctionBegin;
+  ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+
+  ierr = DMGetSection(tdy->dm, &sec);
+  ierr = PetscSectionGetNumFields(sec, &num_fields);
+
+  switch (tdy->method) {
+  case TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TPF");
+    break;
+  case MPFA_O:
+    switch (dim) {
+    case 3:
+      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh,tdy); CHKERRQ(ierr);
+    break;
+    default :
+      SETERRQ(comm,PETSC_ERR_SUP,"IFunction only implemented for 3D problem MPFA-O");
+      break;
+    }
+    break;
+  case MPFA_O_DAE:
+    switch (dim) {
+    case 3:
+      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_DAE_3DMesh,tdy); CHKERRQ(ierr);
+      break;
+    default :
+      SETERRQ(comm,PETSC_ERR_SUP,"IFunction only implemented for 3D problem MPFA-O");
+      break;
+    }
+    break;
+  case BDM:
+    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM");
+    break;
+  case WY:
+    ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy); CHKERRQ(ierr);
+    break;
+  }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscValidPointer( ts,1);
@@ -285,16 +455,138 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
   switch (tdy->method) {
   case TPF:
-    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TPF");
+    SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for TPF");
     break;
   case MPFA_O:
-    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for MPFA_O");
+    ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
+    ierr = DMCreateMatrix(tdy->dm,&tdy->Jpre); CHKERRQ(ierr);
+
+    ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->J,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->J,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+
+    ierr = MatSetOption(tdy->Jpre,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+
+    ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_3DMesh,tdy); CHKERRQ(ierr);
+    break;
+  case MPFA_O_DAE:
+    ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
+    ierr = DMCreateMatrix(tdy->dm,&tdy->Jpre); CHKERRQ(ierr);
+
+    ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->J,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->J,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+
+    ierr = MatSetOption(tdy->Jpre,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
+    ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+
     break;
   case BDM:
-    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM");
+    SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for BDM");
     break;
   case WY:
-    ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy); CHKERRQ(ierr);
+    SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for WY");
+    break;
+  }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
+  PetscInt       dim;
+  MPI_Comm       comm;
+  PetscErrorCode ierr;
+
+  PetscValidPointer(snes,1);
+  PetscValidPointer(tdy,2);
+
+  PetscFunctionBegin;
+  ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+
+  switch (tdy->method) {
+  case TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for TPF");
+    break;
+  case MPFA_O:
+    switch (dim) {
+    case 3:
+      ierr = DMCreateGlobalVector(tdy->dm,&tdy->accumulation_prev); CHKERRQ(ierr);
+      ierr = DMCreateGlobalVector(tdy->dm,&tdy->soln_prev); CHKERRQ(ierr);
+      ierr = DMCreateGlobalVector(tdy->dm,&tdy->residual); CHKERRQ(ierr);
+      ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction_3DMesh,tdy); CHKERRQ(ierr);
+      break;
+    default :
+      SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction only implemented for 3D problem MPFA-O");
+      break;
+    }
+    break;
+  case MPFA_O_DAE:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for MPFA_O_DAE");
+    break;
+  case BDM:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for BDM");
+    break;
+  case WY:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for WY");
+    break;
+  }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
+  PetscInt       dim;
+  MPI_Comm       comm;
+  PetscErrorCode ierr;
+
+  PetscValidPointer(snes,1);
+  PetscValidPointer(tdy,2);
+
+  PetscFunctionBegin;
+  ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+
+  switch (tdy->method) {
+  case TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for TPF");
+    break;
+  case MPFA_O:
+    switch (dim) {
+    case 3:
+        ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
+        ierr = DMCreateMatrix(tdy->dm,&tdy->Jpre); CHKERRQ(ierr);
+        
+        ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
+        ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
+        ierr = MatSetOption(tdy->J,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
+        ierr = MatSetOption(tdy->J,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+        
+        ierr = MatSetOption(tdy->Jpre,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
+        ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
+        ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
+        ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+
+      ierr = SNESSetJacobian(snes,tdy->J,tdy->J,TDyMPFAOSNESJacobian_3DMesh,tdy); CHKERRQ(ierr);
+      break;
+    default :
+      SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian only implemented for 3D problem MPFA-O");
+      break;
+    }
+    break;
+  case MPFA_O_DAE:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for MPFA_O_DAE");
+    break;
+  case BDM:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for BDM");
+    break;
+  case WY:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for WY");
     break;
   }
   PetscFunctionReturn(0);
@@ -313,6 +605,9 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
   case MPFA_O:
     ierr = TDyMPFAOComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
+  case MPFA_O_DAE:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyComputeSystem not implemented for MPFA_O_DAE");
+    break;
   case BDM:
     ierr = TDyBDMComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
@@ -328,19 +623,67 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
-  PetscReal Se,dSe_dPc,n=0.5,m=0.5,alpha=1.6717e-5,Kr; /* FIX: generalize */
+  PetscReal Se,dSe_dS,dKr_dSe,n,m,alpha,Kr;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
-    PressureSaturation_VanGenuchten(n,m,alpha,tdy->Pref-P[i],&Se,&dSe_dPc);
-    RelativePermeability_Irmay(m,Se,&Kr,NULL);
-    tdy->S[i] = (tdy->Ss-tdy->Sr)*Se+tdy->Sr;
-    tdy->dS_dP[i] = -dSe_dPc/(tdy->Ss-tdy->Sr);
+
+    m = tdy->matprop_m[c];
+    n = tdy->matprop_n[c];
+    alpha = tdy->matprop_alpha[c];
+
+    switch (tdy->SatFuncType[i]) {
+    case SAT_FUNC_GARDNER :
+      PressureSaturation_Gardner(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&(tdy->dS_dP[i]),&(tdy->d2S_dP2[i]));
+      break;
+    case SAT_FUNC_VAN_GENUCHTEN :
+      PressureSaturation_VanGenuchten(m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&tdy->dS_dP[i],&(tdy->d2S_dP2[i]));
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
+      break;
+    }
+
+    Se = (tdy->S[i] - tdy->Sr[i])/(1.0 - tdy->Sr[i]);
+    dSe_dS = 1.0/(1.0 - tdy->Sr[i]);
+
+    switch (tdy->RelPermFuncType[i]) {
+    case REL_PERM_FUNC_IRMAY :
+      RelativePermeability_Irmay(m,Se,&Kr,NULL);
+      break;
+    case REL_PERM_FUNC_MUALEM :
+      RelativePermeability_Mualem(m,Se,&Kr,&dKr_dSe);
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown relative permeability function");
+      break;
+    }
+    tdy->Kr[i] = Kr;
+    tdy->dKr_dS[i] = dKr_dSe * dSe_dS;
+
     for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
-    //printf("c[%2d] %+e %+e %+e %+e\n",c,tdy->Pref-P[i],Kr,Se,dSe_dPc);
+
+    ierr = ComputeWaterDensity(P[i], tdy->rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
+    ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
+
   }
+
+  if ( (tdy->method == MPFA_O || tdy->method == MPFA_O_DAE) && dim == 3) {
+    PetscReal *p_vec_ptr, gz;
+    TDy_cell *cells;
+
+    cells = &(tdy->mesh->cells);
+    ierr = VecGetArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+    for (c=cStart; c<cEnd; c++) {
+      i = c-cStart;
+      ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[i].X,dim,&gz);
+      p_vec_ptr[i] = P[i] + tdy->rho[i]*gz;
+    }
+    ierr = VecRestoreArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+  }
+
   PetscFunctionReturn(0);
 }
 
@@ -624,6 +967,9 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     if(normp != NULL) { *normp = TDyMPFAOPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyMPFAOVelocityNorm(tdy); }
     break;
+  case MPFA_O_DAE:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyComputeErrorNorms not implemented for MPFA_O_DAE");
+    break;
   case BDM:
     if(normp != NULL) { *normp = TDyBDMPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyBDMVelocityNorm(tdy,U); }
@@ -650,3 +996,65 @@ PetscErrorCode TDyOutputRegression(TDy tdy, Vec U) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
+
+  PetscFunctionBegin;
+  tdy->dtime = dtime;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetInitialSolutionForSNESSolver(TDy tdy, Vec soln) {
+
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = VecCopy(soln,tdy->soln_prev); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
+  PetscInt dim;
+  PetscErrorCode ierr;
+  MPI_Comm       comm;
+
+  PetscFunctionBegin;
+
+  ierr = PetscObjectGetComm((PetscObject)tdy->dm,&comm); CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+
+  switch (tdy->method) {
+  case TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for TPF");
+    break;
+  case MPFA_O:
+    switch (dim) {
+    case 3:
+      ierr = TDyMPFAOSNESPreSolve_3DMesh(tdy); CHKERRQ(ierr);
+      break;
+    default :
+      SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver only implemented for 3D problem MPFA-O");
+      break;
+    }
+    break;
+  case MPFA_O_DAE:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for MPFA_O_DAE");
+    break;
+  case BDM:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for BDM");
+    break;
+  case WY:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for WY");
+    break;
+  }
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyPostSolveSNESSolver(TDy tdy, Vec soln) {
+
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = VecCopy(soln,tdy->soln_prev); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}

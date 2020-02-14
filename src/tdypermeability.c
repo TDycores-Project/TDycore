@@ -7,6 +7,13 @@ PetscErrorCode TDySetPermeabilityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscR
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetResidualSaturationFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  if (f) tdy->ops->computeresidualsaturation = f;
+  if (ctx) tdy->residualsaturationctx = ctx;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetForcingFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
   if (f) tdy->ops->computeforcing = f;
@@ -69,6 +76,25 @@ PetscErrorCode TDySetPermeabilityDiagonal(TDy tdy,SpatialFunction f) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+
+  PetscInt i,j;
+  PetscInt dim,dim2;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  if (!ni) PetscFunctionReturn(0);
+
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  dim2 = dim*dim;
+
+  for(i=0; i<ni; i++) {
+    for(j=0; j<dim2; j++) tdy->K0[ix[i]*dim2 + j] = y[i*dim2+j];
+  }
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetPermeabilityTensor(TDy tdy,SpatialFunction f) {
   PetscInt dim,dim2,c,cStart,cEnd;
   PetscErrorCode ierr;
@@ -100,6 +126,11 @@ PetscErrorCode TDySetCellPermeability(TDy tdy,PetscInt c,PetscReal *K) {
 
 void RelativePermeability_Irmay(PetscReal m,PetscReal Se,PetscReal *Kr,
                                 PetscReal *dKr_dSe) {
+  *Kr = 1.0;
+  if (dKr_dSe) *dKr_dSe = 0.0;
+
+  if (Se>=1.0) return;
+
   *Kr = PetscPowReal(Se,m);
   if(dKr_dSe) *dKr_dSe = PetscPowReal(Se,m-1)*m;
 }
@@ -107,6 +138,12 @@ void RelativePermeability_Irmay(PetscReal m,PetscReal Se,PetscReal *Kr,
 void RelativePermeability_Mualem(PetscReal m,PetscReal Se,PetscReal *Kr,
 				 PetscReal *dKr_dSe) {
   PetscReal Se_one_over_m,tmp;
+
+  *Kr = 1.0;
+  if(dKr_dSe) *dKr_dSe = 0.0;
+
+  if (Se>=1.0) return;
+
   Se_one_over_m = PetscPowReal(Se,1/m);
   tmp = PetscPowReal(1-Se_one_over_m,m);
   (*Kr)  = PetscSqrtReal(Se);
@@ -115,4 +152,32 @@ void RelativePermeability_Mualem(PetscReal m,PetscReal Se,PetscReal *Kr,
     (*dKr_dSe)  = 0.5*(*Kr)/Se;
     (*dKr_dSe) += 2*PetscPowReal(Se,1/m-0.5) * PetscPowReal(1-Se_one_over_m,m-1) * (1-PetscPowReal(1-Se_one_over_m,m));
   }
+}
+
+PetscErrorCode TDyGetBlockPermeabilityValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
+
+  PetscInt c,cStart,cEnd,j;
+  PetscInt junkInt, gref;
+  PetscInt dim,dim2;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  dim2 = dim*dim;
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  *ni = 0;
+
+  for (c=cStart; c<cEnd; c++) {
+    ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
+    if (gref>=0) {
+      for(j=0; j<dim2; j++) {
+        y[*ni] = tdy->K0[(c-cStart)*dim2 + j];
+        *ni += 1;
+      }
+    }
+  }
+
+  PetscFunctionReturn(0);
 }

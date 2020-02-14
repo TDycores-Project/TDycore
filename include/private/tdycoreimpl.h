@@ -14,7 +14,9 @@ struct _TDyOps {
   PetscErrorCode (*view)(TDy);
   PetscErrorCode (*setup)(TDy);
   PetscErrorCode (*setfromoptions)(TDy);
+  PetscErrorCode (*computeporosity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computepermeability)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computeresidualsaturation)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeforcing)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computedirichletvalue)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computedirichletflux)(TDy,PetscReal*,PetscReal*,void*);
@@ -31,24 +33,44 @@ struct _p_TDy {
   PetscReal *N; /* normal of point (if applicable) */
   PetscInt ncv,nfv; /* number of {cell|face} vertices */
   
+  /* non-linear function of liquid pressure */
+  PetscInt rho_type;
+  PetscInt mu_type;
+  PetscReal  *rho, *drho_dP, *d2rho_dP2;       /* density of water [kg m-3]*/
+  PetscReal  *vis, *dvis_dP, *d2vis_dP2;       /* viscosity of water [Pa s] */
+
   /* problem constants */
-  PetscReal  rho;        /* density of water [kg m-3]*/
-  PetscReal  mu;         /* viscosity of water [Pa s] */
-  PetscReal  Sr;         /* residual saturation (min) [1] */
-  PetscReal  Ss;         /* saturated saturation (max) [1] */
   PetscReal  gravity[3]; /* vector of gravity [m s-2] */
   PetscReal  Pref;       /* reference pressure */
 
 
   /* material parameters */
+  PetscReal  *Sr;        /* residual saturation (min) [1] */
   PetscReal *K,
             *K0;     /* permeability tensor (cell,intrinsic) for each cell [m2] */
-  PetscReal *Kr;        /* relative permeability for each cell [1] */
+  PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
   PetscReal *porosity;  /* porosity for each cell [1] */
   PetscReal *S,
-            *dS_dP;  /* saturation and derivative wrt pressure for each cell [1] */
+            *dS_dP,  /* saturation and derivative wrt pressure for each cell [1] */
+            *d2S_dP2;/* second derivative of saturation wrt pressure for each cell [1] */
 
+  PetscInt *SatFuncType;     /* type of saturation function */
+  PetscInt *RelPermFuncType; /* type of relative permeability */
+
+  PetscReal *matprop_m, *matprop_n, *matprop_alpha;
+
+  /* boundary pressure and auxillary variables that depend on boundary pressure */
+  PetscReal *P_BND;
+  PetscReal  *rho_BND;            /* density of water [kg m-3]*/
+  PetscReal  *vis_BND;             /* viscosity of water [Pa s] */
+  PetscReal *Kr_BND, *dKr_dS_BND; /* relative permeability for each cell [1] */
+  PetscReal *S_BND,  *dS_dP_BND,  /* saturation, first derivative wrt boundary pressure, and */
+            *d2S_dP2_BND;         /* second derivative of saturation wrt boundary pressure */
+  PetscReal *source_sink;
+
+  void *porosityctx;
   void *permeabilityctx;
+  void *residualsaturationctx;
   void *forcingctx;
   void *dirichletvaluectx;
   void *dirichletfluxctx;
@@ -76,6 +98,16 @@ struct _p_TDy {
   TDy_mesh *mesh;
   PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
   PetscReal ***Trans;
+  Mat Trans_mat;
+  Vec P_vec, TtimesP_vec;
+
+  Mat J, Jpre;
+
+  /* For SNES based timestepping */
+  PetscReal dtime;
+  Vec soln_prev;
+  Vec accumulation_prev;
+  Vec residual;
 
   PetscInt *closureSize, **closure, maxClosureSize;
 

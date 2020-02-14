@@ -14,4 +14,45 @@ PetscErrorCode TDySetPorosity(TDy tdy,SpatialFunction f) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetPorosityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  if (f) tdy->ops->computeporosity = f;
+  if (ctx) tdy->porosityctx = ctx;
+  PetscFunctionReturn(0);
+}
 
+PetscErrorCode TDySetPorosityValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+
+  PetscInt i;
+
+  PetscFunctionBegin;
+  if (!ni) PetscFunctionReturn(0);
+
+  for(i=0; i<ni; i++) {
+    tdy->porosity[ix[i]] = y[i];
+  }
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyGetPorosityValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
+
+  PetscInt c,cStart,cEnd;
+  PetscInt junkInt, gref;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  *ni = 0;
+
+  for (c=cStart; c<cEnd; c++) {
+    ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
+    if (gref>=0) {
+      y[*ni] = tdy->porosity[c-cStart];
+      *ni += 1;
+    }
+  }
+
+  PetscFunctionReturn(0);
+}

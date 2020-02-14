@@ -1,4 +1,4 @@
-TARGETS = transient transient_mpfao transient_mpfaof90 transient_snes_mpfaof90
+TARGETS = steadyblock
 
 ifdef codecov
   MYFLAGS += -fprofile-arcs -ftest-coverage
@@ -21,21 +21,8 @@ include $(TDYCORE_DIR)/lib/tdycore/conf/variables
 include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 
 build:
-	@cd ../; make
+	@cd ../../; make
 
-transient: transient.o chkopts
+steadyblock: steadyblock.o chkopts
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
-
-transient_mpfao: transient_mpfao.o chkopts
-	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
-	$(RM) -f $<
-
-transient_mpfaof90: transient_mpfaof90.o chkopts
-	$(FLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
-	$(RM) -f $<
-
-transient_snes_mpfaof90: transient_snes_mpfaof90.o chkopts
-	$(FLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
-	$(RM) -f $<
-

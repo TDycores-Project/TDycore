@@ -323,3 +323,25 @@ PetscErrorCode TDySavePetscVecAsBinary(Vec vec, const char filename[]) {
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+PetscErrorCode ExtractSubVectors(Vec A, PetscInt stride, Vec *Asub) {
+  
+  PetscInt local_size, block_size;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = VecGetLocalSize(A,&local_size); CHKERRQ(ierr);
+  ierr = VecGetBlockSize(A,&block_size); CHKERRQ(ierr);
+
+  if (stride>= block_size)
+    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "ExtractSubVectors: stride > block size");
+
+  ierr = VecCreate(PETSC_COMM_WORLD,Asub); CHKERRQ(ierr);
+  ierr = VecSetSizes(*Asub,local_size/block_size,PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(*Asub); CHKERRQ(ierr);
+  ierr = VecStrideGather(A,stride,*Asub,INSERT_VALUES); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+

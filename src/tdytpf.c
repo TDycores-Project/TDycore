@@ -65,13 +65,14 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
     // 00 Ki/dist
     // 0 -Ki pd / dist
     if(ss==1 && tdy->ops->computedirichletvalue) {
+      ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]),&p, tdy->dirichletvaluectx);CHKERRQ(ierr);
+      if (fabs(p+999.)<1.e-40) continue;
       ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk); CHKERRQ(ierr);
       Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[f*dim]),pnt2pnt);
       dist = Norm(dim,pnt2pnt);
       Ki = tdy->K[(supp[0]-cStart)*dim2];
       ierr = MatSetValue(K,row,row,Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);
       CHKERRQ(ierr);
-      ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]),&p, tdy->dirichletvaluectx);CHKERRQ(ierr);
       ierr = VecSetValue(F,row,p*Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);
       CHKERRQ(ierr);
       continue;
@@ -210,7 +211,6 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
         ve = TDyADotB(vel,&(tdy->N[dim*f]),dim)*tdy->V[f];
         face_error = PetscSqr((va-ve)/tdy->V[f]);
       }
-      //printf("%d %d %d %f %f %e\n",c,i,f,va,ve,face_error);
       norm += face_error*tdy->V[c];
     }
   }
