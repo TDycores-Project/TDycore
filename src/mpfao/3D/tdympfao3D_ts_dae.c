@@ -56,10 +56,6 @@ PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec 
 
   for (iface=0;iface<mesh->num_faces;iface++) tdy->vel[iface] = 0.0;
   
-  ierr = TDyMPFAORecoverVelocity_InternalVertices_3DMesh(tdy, P, &vel_error, &count); CHKERRQ(ierr);
-  ierr = TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(tdy, P, &vel_error, &count); CHKERRQ(ierr);
-  ierr = TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices_3DMesh(tdy, P, &vel_error, &count); CHKERRQ(ierr);
-
   ierr = TDyMPFAOIFunction_InternalVertices_3DMesh(P,R_P,ctx); CHKERRQ(ierr);
   ierr = TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DMesh(P,R_P,ctx); CHKERRQ(ierr);
   ierr = TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(P,R_P,ctx); CHKERRQ(ierr);
