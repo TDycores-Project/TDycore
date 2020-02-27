@@ -13,6 +13,8 @@ PETSC_EXTERN PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy);
 PETSC_EXTERN PetscErrorCode TDyMPFAOIFunction_3DMesh(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_EXTERN PetscErrorCode TDyMPFAOIJacobian_3DMesh(TS,PetscReal,Vec,Vec,PetscReal,Mat,Mat,void*);
 PETSC_EXTERN PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS,PetscReal,Vec,Vec,Vec,void*);
+PETSC_EXTERN PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS,Vec,void*);
+PETSC_EXTERN PetscErrorCode TDyMPFAOIFunction_TransientVariable_3DMesh(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_EXTERN PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES,Vec,Vec,void*);
 PETSC_EXTERN PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES,Vec,Mat,Mat,void*);
 PETSC_EXTERN PetscErrorCode TDyMPFAOSetFromOptions(TDy);
