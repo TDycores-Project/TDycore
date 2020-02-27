@@ -25,7 +25,6 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, void *ctx) {
 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
-  PetscReal totalmass = 0.0;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
@@ -45,7 +44,6 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, void *ctx) {
     if (!cells->is_local[icell]) continue;
 
     u[icell] = tdy->rho[icell] * tdy->porosity[icell] * tdy->S[icell]* cells->volume[icell];
-    totalmass += u[icell];
   }
 
   ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
