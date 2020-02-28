@@ -3269,6 +3269,7 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
 
     PetscInt eOffsetCell = edges->cell_offset[iedge];
 
+    if (edges->cell_ids[eOffsetCell] == -1 || edges->cell_ids[eOffsetCell + 1] == -1) edges->is_internal[iedge] = PETSC_FALSE;
     if (!edges->is_internal[iedge]) { // Is it a boundary edge?
 
       // Determine the cell ID for the boundary edge

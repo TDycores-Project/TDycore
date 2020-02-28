@@ -291,7 +291,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
       cell_id_dn = faces->cell_ids[fOffsetCell + 1];
 
 
-      if (TtimesP[irow] < 0.0) { // up ---> dn
+      if (TtimesP[iface] < 0.0) { // up ---> dn
         if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
         else               ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
       } else {
