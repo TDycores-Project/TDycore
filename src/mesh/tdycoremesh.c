@@ -3226,33 +3226,33 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
+  ierr = SaveMeshGeometricAttributes(tdy); CHKERRQ(ierr);
+  ierr = SaveMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
+
   switch (dim) {
   case 2:
-    ierr = SaveMeshGeometricAttributes(tdy); CHKERRQ(ierr);
-    ierr = SaveMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
     ierr = UpdateCellOrientationAroundAVertex2DMesh(tdy); CHKERRQ(ierr);
     ierr = SetupSubcellsFor2DMesh     (  tdy->dm, tdy); CHKERRQ(ierr);
     ierr = UpdateCellOrientationAroundAEdge2DMesh(  tdy); CHKERRQ(ierr);
-    ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
-    ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);
-    ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
     break;
 
   case 3:
-    ierr = SaveMeshGeometricAttributes(tdy); CHKERRQ(ierr);
-    ierr = SaveMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
     ierr = UpdateFaceOrderAroundAVertex3DMesh(tdy); CHKERRQ(ierr);
     ierr = UpdateCellOrientationAroundAFace3DMesh(  tdy); CHKERRQ(ierr);
-    ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
-    ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);
-    ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
-    ierr = IdentifyLocalFaces(tdy); CHKERRQ(ierr);
-    ierr = SetupSubcellsFor3DMesh     (tdy); CHKERRQ(ierr);
     break;
 
   default:
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in TDyBuildMesh");
     break;
+  }
+
+  ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
+  ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);
+  ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
+
+  if (dim == 3) {
+    ierr = IdentifyLocalFaces(tdy); CHKERRQ(ierr);
+    ierr = SetupSubcellsFor3DMesh(tdy); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
