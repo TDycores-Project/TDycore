@@ -1752,7 +1752,24 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
           ndn_bnd_flux++;
         }
       }
+
     }
+  }
+
+  // Since vertices->face_ids[] has been updated, now
+  // update vertices->subface_ids[]
+  for (iface=0; iface<vertices->num_faces[ivertex]; iface++) {
+    PetscInt face_id = vertices->face_ids[vOffsetFace+iface];
+    PetscInt fOffsetVertex = faces->vertex_offset[face_id];
+    PetscBool found = PETSC_FALSE;
+    for (ii=0; ii<faces->num_vertices[face_id]; ii++) {
+      if (faces->vertex_ids[fOffsetVertex + ii] == ivertex) {
+        vertices->subface_ids[vOffsetFace + iface] = ii;
+        found = PETSC_TRUE;
+        break;
+      }
+    }
+    if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a vertex within a face");
   }
 
   PetscFunctionReturn(0);
@@ -2794,27 +2811,10 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
   }
 
-  PetscInt ii,iface,face_id;
-  PetscInt fOffsetVertex,vOffsetFace;
-  PetscBool found;
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     if (vertices->num_internal_cells[ivertex] > 1 && vertices->is_local[ivertex]) {
       //ierr = DetermineUpwindFacesForSubcell(tdy, ivertex ); CHKERRQ(ierr);
       ierr = DetermineUpwindFacesForSubcell_PlanarVerticalFaces(tdy, ivertex); CHKERRQ(ierr);
-    }
-    vOffsetFace = vertices->face_offset[ivertex];
-    for (iface=0; iface<vertices->num_faces[ivertex]; iface++) {
-      face_id = vertices->face_ids[vOffsetFace+iface];
-      fOffsetVertex = faces->vertex_offset[face_id];
-      found = PETSC_FALSE;
-      for (ii=0; ii<faces->num_vertices[face_id]; ii++) {
-        if (faces->vertex_ids[fOffsetVertex + ii] == ivertex) {
-          vertices->subface_ids[vOffsetFace + iface] = ii;
-          found = PETSC_TRUE;
-          break;
-        }
-      }
-      if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a vertex within a face");
     }
   }
 
