@@ -345,3 +345,22 @@ PetscErrorCode ExtractSubVectors(Vec A, PetscInt stride, Vec *Asub) {
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode ComputeTheta(PetscReal x, PetscReal y, PetscReal *theta) {
+
+  PetscFunctionBegin;
+
+  if (x>0.0) {
+    if (y>= 0.0) *theta = atan(y/x);
+    else         *theta = atan(y/x) + 2.0*PETSC_PI;
+  } else if (x==0.0) {
+    if      (y>  0.0) *theta = 0.5*PETSC_PI;
+    else if (y ==0.0) *theta = 0.;
+    else              *theta = 1.5*PETSC_PI;
+  } else {
+    *theta = atan(y/x) + PETSC_PI;
+  }
+
+  PetscFunctionReturn(0);
+}
