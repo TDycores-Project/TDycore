@@ -37,6 +37,9 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, void *ctx) {
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
 
+  ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
+  ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
+
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
 
   for (icell=0;icell<mesh->num_cells;icell++){
