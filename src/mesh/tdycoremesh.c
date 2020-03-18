@@ -709,7 +709,11 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
     // cells by 1 for all vertices that form the face
     if (!faces->is_internal[iface]) {
       for (v=0; v<faces->num_vertices[iface]; v++) {
-        vertices->num_boundary_cells[faces->vertex_ids[fOffsetVertex + v]]++;
+        PetscInt vertex_id = faces->vertex_ids[fOffsetVertex + v];
+        PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[vertex_id];
+
+        vertices->boundary_face_ids[vOffsetBoundaryFace + vertices->num_boundary_cells[vertex_id] ] = iface;
+        vertices->num_boundary_cells[vertex_id]++;
       }
     }
 
@@ -2149,34 +2153,6 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
 
   ncells    = vertices->num_internal_cells[ivertex];
   ncells_bnd= vertices->num_boundary_cells[ivertex];
-
-  PetscInt icell, cell_id, isubcell, iface, bnd_count=0;
-  PetscInt vOffsetIntCell = vertices->internal_cell_offset[ivertex];
-  PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
-  PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
-
-  // For each vertex, determine boundary face IDs
-  for (icell=0; icell<ncells; icell++) {
-    // Determine the cell and subcell id
-    cell_id  = vertices->internal_cell_ids[vOffsetIntCell + icell];
-    isubcell = vertices->subcell_ids[vOffsetSubcell + icell];
-    // Get access to the cell and subcell
-    PetscInt subcell_id = cell_id*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
-
-    // Loop over all faces of the subcell
-    for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
-
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
-
-      // Boundary face
-      if (faces->cell_ids[fOffsetCell + 0] < 0 || faces->cell_ids[fOffsetCell + 1] < 0) {
-        vertices->boundary_face_ids[vOffsetBoundaryFace + bnd_count] = face_id;
-        bnd_count++;
-      }
-    }
-  }
 
   // 1. Determine cells above and below the given vertex.
   //    - NOTE:
