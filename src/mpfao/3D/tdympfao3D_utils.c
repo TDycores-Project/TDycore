@@ -233,7 +233,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
   PetscReal      **Gmatrix;
   Vec            localU;
   PetscScalar    *u;
-  PetscInt npcen, npitf_bc, nflux_bc, nflux_in;
+  PetscInt npcen, npitf_bc, nflux_in;
   PetscReal       vel_normal;
   PetscReal       X[3], vel[3];
   PetscReal       gz=0.0;
@@ -295,19 +295,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
     npcen    = vertices->num_internal_cells[ivertex];
     npitf_bc = vertices->num_boundary_cells[ivertex];
-    nflux_bc = npitf_bc/2;
 
-    switch (npcen) {
-    case 2:
-      nflux_in = 1;
-      break;
-    case 4:
-      nflux_in = 4;
-      break;
-    default:
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "Unsupported number of internal cells.");
-      break;
-    }
+    nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_cells[ivertex];
 
     // Vertex is on the boundary
     
@@ -434,7 +423,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
     }
     
     // For fluxes through boundary edges, only add contribution to the vector
-    for (irow=0; irow<nflux_bc*2; irow++) {
+    for (irow=0; irow<npitf_bc; irow++) {
 
       PetscInt face_id = vertices->face_ids[vOffsetFace + irow + nflux_in];
       PetscInt fOffsetCell = faces->cell_offset[face_id];

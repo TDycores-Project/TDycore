@@ -99,7 +99,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   PetscInt       fStart, fEnd;
   PetscInt       dim;
   PetscReal      **Gmatrix;
-  PetscInt npcen, npitf_bc, nflux_bc, nflux_in;
+  PetscInt npcen, npitf_bc, nflux_in;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -152,19 +152,8 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
     npcen    = vertices->num_internal_cells[ivertex];
     npitf_bc = vertices->num_boundary_cells[ivertex];
-    nflux_bc = npitf_bc/2;
-  
-    switch (npcen) {
-    case 2:
-      nflux_in = 1;
-      break;
-    case 4:
-      nflux_in = 4;
-      break;
-    default:
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "Unsupported number of internal cells.");
-      break;
-    }
+
+    nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_cells[ivertex];
 
     // Vertex is on the boundary
     
@@ -246,7 +235,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
     }
     
     // For fluxes through boundary edges, only add contribution to the vector
-    for (irow=0; irow<nflux_bc*2; irow++) {
+    for (irow=0; irow<npitf_bc; irow++) {
 
       //row = cell_ids_from_to[irow][0];
 

@@ -1622,35 +1622,25 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
 
   PetscInt icell, isubcell, iface, ncells, cell_id, nflux_in, ncells_bnd;
   PetscInt ii, boundary_cell_count;
-  PetscInt vOffsetBoundaryFace;
+  PetscInt vOffsetBoundaryFace, vOffsetFace;
   
   ncells = vertices->num_internal_cells[ivertex];
   ncells_bnd= vertices->num_boundary_cells[ivertex];
   vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
+  vOffsetFace = vertices->face_offset[ivertex];
 
   boundary_cell_count = 0;
 
-  switch (ncells) {
-  case 1:
-    nflux_in = 0;
-    break;
-  case 2:
-    nflux_in = 1;
-    break;
-  case 4:
-    nflux_in = 4;
-    break;
-  case 8:
-    nflux_in = 12;
-    break;
-  default:
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SetupUpwindFacesForSubcell: Unsupported vertex->num_internal_cells");
-    break;
+  // Compute number of fluxes through internal faces
+  nflux_in = 0;
+  for (iface=0; iface<vertices->num_faces[ivertex]; iface++) {
+    PetscInt faceID = vertices->face_ids[vOffsetFace+iface];
+    if (faces->is_internal[faceID]) nflux_in++;
   }
 
   PetscInt vOffsetIntCell = vertices->internal_cell_offset[ivertex];
   PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
-  PetscInt vOffsetFace = vertices->face_offset[ivertex];
+  vOffsetFace = vertices->face_offset[ivertex];
 
   for (icell=0; icell<ncells; icell++) {
 
@@ -1712,9 +1702,33 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
   }
 
   PetscInt nup_bnd_flux=0, ndn_bnd_flux=0;
-  PetscInt nflux_bc = 0;
 
-  nflux_bc = vertices->num_boundary_cells[ivertex]/2;
+  PetscInt nflux_bc_up = 0;
+  PetscInt nflux_bc_dn = 0;
+  PetscInt i;
+  PetscInt vOffsetCell = vertices->internal_cell_offset[ivertex];
+  for (i=0; i<ncells; i++) {
+    icell    = vertices->internal_cell_ids[vOffsetCell + i];
+    isubcell = vertices->subcell_ids[vOffsetSubcell + i];
+
+    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
+    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+    PetscInt iface;
+    for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+
+      PetscInt faceID = subcells->face_ids[sOffsetFace+iface];
+      if (faces->is_internal[faceID]) continue;
+
+      PetscBool upwind_entries;
+      upwind_entries = (subcells->is_face_up[sOffsetFace + iface]==1);
+
+      if (upwind_entries) nflux_bc_up++;
+      else                nflux_bc_dn++;
+    }
+
+  }
+
 
   // Save the face index that corresponds to the flux in transmissibility matrix
   for (icell=0; icell<ncells; icell++) {
@@ -1747,7 +1761,7 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
           subcells->face_flux_idx[sOffsetFace + iface] = nflux_in+nup_bnd_flux;
           nup_bnd_flux++;
         } else {
-          vertices->face_ids[vOffsetFace + nflux_in + nflux_bc + ndn_bnd_flux] = face_id;
+          vertices->face_ids[vOffsetFace + nflux_in + nflux_bc_up + ndn_bnd_flux] = face_id;
           subcells->face_flux_idx[sOffsetFace + iface] = nflux_in+ndn_bnd_flux;
           ndn_bnd_flux++;
         }
@@ -1842,9 +1856,13 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
 
   PetscFunctionBegin;
 
+  TDy_cell *cells;
+  TDy_face *faces;
   TDy_vertex *vertices;
   PetscInt icell, ncells_int;
 
+  cells = &tdy->mesh->cells;
+  faces = &tdy->mesh->faces;
   vertices = &tdy->mesh->vertices;
 
   ncells_int = vertices->num_internal_cells[ivertex];
@@ -1864,6 +1882,98 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
       (*ncells_blw)++;
     }
   }
+
+  // Rearrange the cells above/below the vertex such that the boundary cells are
+  // first and last cells at each level
+  PetscInt ii,iv,iface;
+  PetscInt level, ncells_level;
+
+  for (level=0; level<2; level++) {
+    if (level==0) ncells_level = *ncells_abv;
+    else          ncells_level = *ncells_blw;
+
+    // Skip if there is only one cell
+    if (ncells_level<2) continue;
+
+    PetscInt ivertexAbvBlw[ncells_level];
+    PetscInt IsBoundaryfaceIDsAbvBlw[ncells_level][2];
+
+    PetscInt maxBndFaces = 0;
+    for (ii=0; ii<ncells_level; ii++) {
+      PetscInt cellID = cellsAbvBlw[level][ii];
+      PetscInt cOffsetVert = cells->vertex_offset[cellID];
+      PetscBool found = PETSC_FALSE;
+
+      // Find the vertex that is above/below ivertex
+      for (iv=0; iv<cells->num_vertices[cellID]; iv++) {
+        ivertexAbvBlw[level] = cells->vertex_ids[cOffsetVert+iv];
+        if (ivertex != ivertexAbvBlw[level]) {
+          if (VerticesHaveSameXYCoords(tdy, ivertex, ivertexAbvBlw[level])) {
+            found = PETSC_TRUE;
+            break;
+          }
+        }
+      }
+      if (!found) {
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a vertex that has same XY coords");
+      }
+
+      // Find faces that are shared by (ivertex, ivertexAbvBlw)
+      PetscInt faceCount = 0;
+      for (iface=0; iface<cells->num_faces[cellID]; iface++) {
+        PetscInt cOffsetFace = cells->face_offset[cellID];
+        PetscInt faceID = cells->face_ids[cOffsetFace+iface];
+        PetscInt fOffsetVert = faces->vertex_offset[faceID];
+
+        // Does the faceID-th face contains vertices corresponding to ivertex and ivertexAbvBlw?
+        PetscInt count=0;
+        for (iv=0; iv<faces->num_vertices[faceID]; iv++) {
+          if (faces->vertex_ids[fOffsetVert+iv] == ivertex) count++;
+          if (faces->vertex_ids[fOffsetVert+iv] == ivertexAbvBlw[level]) count++;
+        }
+
+        if (count == 2) {
+          // The faceID-th face contains BOTH vertices corresponding to ivertex and ivertexAbvBlw,
+          // so save it
+          IsBoundaryfaceIDsAbvBlw[ii][faceCount] = (faces->is_internal[faceID] == 0);
+          faceCount++;
+        }
+
+      }
+      if (IsBoundaryfaceIDsAbvBlw[ii][0]+IsBoundaryfaceIDsAbvBlw[ii][1] > maxBndFaces)
+        maxBndFaces = IsBoundaryfaceIDsAbvBlw[ii][0]+IsBoundaryfaceIDsAbvBlw[ii][1];
+    }
+
+    // Rearrange the list only if there is a boundary face
+    if (maxBndFaces>0) {
+      PetscInt cellsAbvBlw_rearranged[ncells_level];
+      PetscInt count_bnd=0,count_int=1;
+
+      for (icell=0; icell<ncells_level; icell++) {
+
+        if ( IsBoundaryfaceIDsAbvBlw[icell][0]+IsBoundaryfaceIDsAbvBlw[icell][1] > 0) {
+          // This cell has a boundary face
+
+          if (count_bnd==0) {
+            // Since this is the first boundary cell, put it at the beginning of the list
+            cellsAbvBlw_rearranged[0] = cellsAbvBlw[level][icell];
+            count_bnd++;
+          } else {
+            // Since this is the second boundary cell, put it at the end of the list
+            cellsAbvBlw_rearranged[ncells_level-1] = cellsAbvBlw[level][icell];
+          }
+        } else {
+          // This cell does not have a boundary face, so put it in the list excluding
+          // the first and the last position
+          cellsAbvBlw_rearranged[count_int] = cellsAbvBlw[level][icell];
+          count_int++;
+        }
+      }
+
+      // Now, copy the rearranged listed
+      for (icell=0; icell<ncells_level; icell++) cellsAbvBlw[level][icell] = cellsAbvBlw_rearranged[icell];
+    } // maxBndFaces>0
+  } // for (level=0; level<2; level++)
 
   if (*ncells_abv>0 && *ncells_blw>0) {
     if (*ncells_abv != *ncells_blw) {
@@ -2308,8 +2418,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   ierr = DetermineCellsAboveAndBelow(tdy,ivertex,cell_ids_abv_blw,&ncells_abv,&ncells_blw); CHKERRQ(ierr);
   if (ncells_abv > 1) {
     ierr = RearrangeCellsInAntiClockwiseDir(tdy,ivertex,cell_ids_abv_blw,ncells_abv,ncells_blw); CHKERRQ(ierr);
-  }
-  if (ncells_blw > 1) {
+  } else if (ncells_blw > 1) {
     ierr = RearrangeCellsInAntiClockwiseDir(tdy,ivertex,cell_ids_abv_blw,ncells_abv,ncells_blw); CHKERRQ(ierr);
   }
 
