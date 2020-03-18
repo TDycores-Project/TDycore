@@ -1427,27 +1427,28 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
           if (cell_up2dw[ii][1] == face_id_local && cell_up2dw[ii][0] == icell){ subcells->is_face_up[sOffsetFace + iface] = PETSC_FALSE; break;}
         }
         boundary_cell_count++;
-        continue;
-      }
 
-      // Find the index of cells given by faces->cell_ids[fOffsetCell + 0:1] within the cell id list given
-      // vertex->internal_cell_ids
-      PetscInt cell_1 = TDyReturnIndexInList(&vertices->internal_cell_ids[vOffsetIntCell], ncells, faces->cell_ids[fOffsetCell + 0]);
-      PetscInt cell_2 = TDyReturnIndexInList(&vertices->internal_cell_ids[vOffsetIntCell], ncells, faces->cell_ids[fOffsetCell + 1]);
+      } else {
 
-      for (ii=0; ii<12; ii++) {
-        if (cell_up2dw[ii][0] == cell_1 && cell_up2dw[ii][1] == cell_2) {
+        // Find the index of cells given by faces->cell_ids[fOffsetCell + 0:1] within the cell id list given
+        // vertex->internal_cell_ids
+        PetscInt cell_1 = TDyReturnIndexInList(&vertices->internal_cell_ids[vOffsetIntCell], ncells, faces->cell_ids[fOffsetCell + 0]);
+        PetscInt cell_2 = TDyReturnIndexInList(&vertices->internal_cell_ids[vOffsetIntCell], ncells, faces->cell_ids[fOffsetCell + 1]);
 
-          subcells->face_unknown_idx[sOffsetFace + iface] = ii;
-          if (cells->id[cell_id] == faces->cell_ids[fOffsetCell + 0])  subcells->is_face_up[sOffsetFace + iface] = PETSC_TRUE;
-          else                                                         subcells->is_face_up[sOffsetFace + iface] = PETSC_FALSE;
-          break;
-        } else if (cell_up2dw[ii][0] == cell_2 && cell_up2dw[ii][1] == cell_1) {
+        for (ii=0; ii<12; ii++) {
+          if (cell_up2dw[ii][0] == cell_1 && cell_up2dw[ii][1] == cell_2) {
 
-          subcells->face_unknown_idx[sOffsetFace + iface] = ii;
-          if (cells->id[cell_id] == faces->cell_ids[fOffsetCell + 1]) subcells->is_face_up[sOffsetFace + iface] = PETSC_TRUE;
-          else                                                        subcells->is_face_up[sOffsetFace + iface] = PETSC_FALSE;
-          break;
+            subcells->face_unknown_idx[sOffsetFace + iface] = ii;
+            if (cells->id[cell_id] == faces->cell_ids[fOffsetCell + 0])  subcells->is_face_up[sOffsetFace + iface] = PETSC_TRUE;
+            else                                                         subcells->is_face_up[sOffsetFace + iface] = PETSC_FALSE;
+            break;
+          } else if (cell_up2dw[ii][0] == cell_2 && cell_up2dw[ii][1] == cell_1) {
+
+            subcells->face_unknown_idx[sOffsetFace + iface] = ii;
+            if (cells->id[cell_id] == faces->cell_ids[fOffsetCell + 1]) subcells->is_face_up[sOffsetFace + iface] = PETSC_TRUE;
+            else                                                        subcells->is_face_up[sOffsetFace + iface] = PETSC_FALSE;
+            break;
+          }
         }
       }
     }
@@ -2154,6 +2155,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
   PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
 
+  // For each vertex, determine boundary face IDs
   for (icell=0; icell<ncells; icell++) {
     // Determine the cell and subcell id
     cell_id  = vertices->internal_cell_ids[vOffsetIntCell + icell];
