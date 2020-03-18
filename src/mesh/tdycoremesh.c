@@ -719,16 +719,6 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
 
   }
 
-  // allocate memory to save ids of faces on the boundary
-  /*
-  if (dim == 3) {
-  for (v=vStart; v<vEnd; v++) {
-    vertex = &vertices[v-vStart];
-    ierr = TDyAllocate_IntegerArray_1D(&vertex->boundary_face_ids,vertex->num_boundary_cells); CHKERRQ(ierr);
-  }
-  }
-  */
-
   PetscFunctionReturn(0);
 
 }
