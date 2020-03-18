@@ -1259,89 +1259,6 @@ PetscErrorCode UpdateFaceOrientationAroundAVertex(TDy_coordinate *cell_centroid,
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode SetupCell2CellConnectivity(TDy_vertex *vertices, PetscInt ivertex, TDy_cell *cells, TDy_face *faces, TDy_subcell *subcells, PetscInt **cell2cell_conn) {
-
-  /*
-   
-    cell2cell_conn[i][j]:  0 if i-th and j-th cell are unconnected
-                        :  1 if i-th and j-th cell are connected
-                        : -1 if i-th and j-th are connected but j-th is a face (note: i-th could itself be a face)
-
-    dimensions: (0:ncells-1)               corresponds to cells, while
-                (ncells:ncells+ncells_bnd) corresponds to faces.
-   
-*/
-
-  PetscFunctionBegin;
-
-  PetscInt icell, isubcell, iface, ncells, cell_id, ncells_bnd, bnd_count;
-
-  ncells = vertices->num_internal_cells[ivertex];
-  ncells_bnd = vertices->num_boundary_cells[ivertex];
-  bnd_count = 0;
-
-  PetscInt vOffsetIntCell = vertices->internal_cell_offset[ivertex];
-  PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
-  PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
-
-  for (icell=0; icell<ncells; icell++) {
-
-    // Determine the cell and subcell id
-    cell_id  = vertices->internal_cell_ids[vOffsetIntCell + icell];
-    isubcell = vertices->subcell_ids[vOffsetSubcell + icell];
-
-    // Get access to the cell and subcell
-    PetscInt subcell_id = cell_id*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
-
-    // Loop over all faces of the subcell
-    for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
-
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
-
-      // Skip boundary face
-      if (faces->cell_ids[fOffsetCell + 0] < 0 || faces->cell_ids[fOffsetCell + 1] < 0) {
-        PetscInt cell_1, cell_2;
-        if (faces->cell_ids[fOffsetCell + 0] < 0) cell_1 = TDyReturnIndexInList(&vertices->internal_cell_ids[vOffsetIntCell], ncells, faces->cell_ids[fOffsetCell + 1]);
-        else                       cell_1 = TDyReturnIndexInList(&vertices->internal_cell_ids[vOffsetIntCell], ncells, faces->cell_ids[fOffsetCell + 0]);
-      
-        cell_2 = ncells + bnd_count;
-        vertices->boundary_face_ids[vOffsetBoundaryFace + bnd_count] = face_id;
-        bnd_count++;
-
-        // Add 1 to indicate cell_1 and cell_2 are connected
-        cell2cell_conn[cell_1][cell_2] = 1;
-        cell2cell_conn[cell_2][cell_1] = 1;
-
-      } else {
-      // Find the index of cells given by faces->cell_ids[fOffsetCell + 0:1] within the cell id list given
-      // vertex->internal_cell_ids
-      PetscInt cell_1 = TDyReturnIndexInList(&vertices->internal_cell_ids[vOffsetIntCell], ncells, faces->cell_ids[fOffsetCell + 0]);
-      PetscInt cell_2 = TDyReturnIndexInList(&vertices->internal_cell_ids[vOffsetIntCell], ncells, faces->cell_ids[fOffsetCell + 1]);
-
-      // Add 1 to indicate cell_1 and cell_2 are connected
-      cell2cell_conn[cell_1][cell_2] = 1;
-      cell2cell_conn[cell_2][cell_1] = 1;
-      }
-    }
-  }
-
-  PetscInt ii,jj;
-  for (ii=0;ii<ncells_bnd-1;ii++) {
-    for (jj=ii+1;jj<ncells_bnd;jj++) {
-      PetscInt face_id_1 = vertices->boundary_face_ids[vOffsetBoundaryFace + ii];
-      PetscInt face_id_2 = vertices->boundary_face_ids[vOffsetBoundaryFace + jj];
-      if (AreFacesNeighbors(faces,face_id_1,face_id_2)) {
-        cell2cell_conn[ncells+ii][ncells+jj] = -1;
-      }
-    }
-  }
-
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
 PetscErrorCode ExtractCentroidForIthJthTraversalOrder(TDy_vertex *vertices, PetscInt ivertex, TDy_face *faces, TDy_cell *cells, PetscInt cell_traversal_ij, PetscReal cen[3]) {
 
   PetscFunctionBegin;
@@ -1445,171 +1362,6 @@ PetscErrorCode UpdateIthTraversalOrder(TDy_vertex *vertices, PetscInt ivertex, T
       tmp[3] = cell_traversal[i][1];
       for (j=0;j<4;j++) cell_traversal[i][j] = tmp[j];
     }
-  }
-
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeFirstTraversalOrder(TDy_vertex *vertices, PetscInt ivertex, TDy_face *faces, TDy_cell *cells, PetscInt **cell2cell_conn, PetscInt **cell_traversal)
-{
-  PetscFunctionBegin;
-
-  PetscInt i, j, m, ncells, ncells_bnd;
-  PetscErrorCode ierr;
-
-  // Objective to find: c0 --> c2 --> c5 --> c4
-
-  ncells    = vertices->num_internal_cells[ivertex];
-  ncells_bnd= vertices->num_boundary_cells[ivertex];
-
-  i = 0;
-  m = 0;
-  cell_traversal[i][0] = m; // c0
-
-  // Find the first two cells that are connected to c0 (i.e. c2 and c4)
-  PetscInt count = 0;
-  for (j=0; j<ncells+ncells_bnd; j++){
-    if (cell2cell_conn[i][j] == 1) {
-      count++;
-      cell_traversal[i][count] = j;
-      if (count == 2) break;
-    }
-  }
-
-  // Find the common connecting cell for the previously found two cells
-  // that is not the c0 (i.e. c5)
-  PetscInt cell_1 = cell_traversal[i][1];
-  PetscInt cell_2 = cell_traversal[i][2];
-  PetscBool found;
-  found = PETSC_FALSE;
-  for (j=0;j<ncells+ncells_bnd;j++){
-    if (cell2cell_conn[cell_1][j] == 1 && cell2cell_conn[cell_2][j] == 1 && j != cell_traversal[i][0] ) {
-      cell_traversal[i][3] = cell_traversal[i][2];
-      cell_traversal[i][2] = j;
-      found = PETSC_TRUE;
-      break;
-    }
-  }
-
-  // If no connecting cell was found, it implies that there must a be connecting boundary face
-  if (!found) {
-    for (j=0;j<ncells+ncells_bnd;j++){
-      if (abs(cell2cell_conn[cell_1][j]) == 1 && abs(cell2cell_conn[cell_2][j]) == 1 && j != cell_traversal[i][0] ) {
-        cell_traversal[i][3] = cell_traversal[i][2];
-        cell_traversal[i][2] = j;
-        found = PETSC_TRUE;
-        break;
-      }
-    }
-    if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"ComputeFirstTraversalOrder: Did not find a common cell or a boundary face");
-  }
-
-  for (j=0;j<4;j++){
-    if (cell_traversal[i][j]>ncells-1) cell_traversal[i][j] = -cell_traversal[i][j];
-  }
-
-  // If the traversal order is "c0 --> c4 --> c5 --> c2" (i.e. the dot product of
-  // normal to the plane formed by cells points away from the vertex), update the
-  // traversal order to be "c0 --> c2 --> c5 --> c4"
-  PetscBool flip_if_dprod_is_negative;
-  flip_if_dprod_is_negative = PETSC_TRUE;
-  ierr = UpdateIthTraversalOrder(vertices, ivertex, faces, cells, i, flip_if_dprod_is_negative, cell_traversal); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeSecondTraversalOrder(TDy_vertex *vertices, PetscInt ivertex, TDy_face *faces, TDy_cell *cells, PetscInt **cell2cell_conn, PetscInt **cell_traversal) {
-
-  PetscFunctionBegin;
-
-  PetscInt i, j, k, m, ncells, count, cell_1, cell_2;
-  PetscBool found;
-  PetscErrorCode ierr;
-
-  // Objective to find: c3 <-- c7 <-- c6 <-- c1
-
-  i = 1;
-  ncells = vertices->num_internal_cells[ivertex];
-
-  // Find a cell that is not part of the cells in cell_traversal[0][:] (i.e. c3)
-  for (j=0;j<ncells;j++){
-    found = PETSC_FALSE;
-    for (k=0;k<4;k++) {
-      if (cell_traversal[i-1][k] == j) {
-        found = PETSC_TRUE;
-        break;
-      }
-    }
-    if (found == PETSC_FALSE) {
-      cell_traversal[i][0] = j;
-      break;
-    }
-  }
-
-  // Find the first two cells that are connected to c3 and
-  // are not part of the cells in cell_traversal[0][:] (i.e. c7 and c1)
-  m = cell_traversal[i][0];
-  count = 0;
-  for (j=0;j<ncells;j++) {
-    if (cell2cell_conn[m][j] == 1) { // Is m-th cell connected to j-th cell?
-      found = PETSC_FALSE;
-      for (k=0;k<4;k++) {
-        if (cell_traversal[i-1][k] == j) { // Is the j-th cell part of cell_traversal[i-1][:]
-          found = PETSC_TRUE;
-          break;
-        }
-      }
-      if (found == PETSC_FALSE) {
-        count++;
-        cell_traversal[i][count] = j;
-        if (count==2) break;
-      }
-    }
-  }
-
-  // Find the common connecting cell for the previously found two cells
-  // that is not c3 (i.e. c6)
-  cell_1 = cell_traversal[i][1];
-  cell_2 = cell_traversal[i][2];
-  for (j=0;j<ncells;j++){
-    if (cell2cell_conn[cell_1][j] == 1 && cell2cell_conn[cell_2][j] == 1 && j != cell_traversal[i][0] ) {
-      cell_traversal[i][3] = cell_traversal[i][2];
-      cell_traversal[i][2] = j;
-    }
-  }
-
-  // If the traversal order is "c3 <-- c1 <-- c6 <-- c7" (i.e. the dot product of
-  // normal to the plane formed by cells points towards from the vertex), udpate the
-  // traversal order to be "c3 <-- c7 <-- c6 <-- c1"
-  PetscBool flip_if_dprod_is_negative;
-  flip_if_dprod_is_negative = PETSC_FALSE;
-  ierr = UpdateIthTraversalOrder(vertices, ivertex, faces, cells, i, flip_if_dprod_is_negative, cell_traversal); CHKERRQ(ierr);
-
-  // Rearrange cell_traversal[1][:] such that
-  // cell_traversal[0][0] and cell_traversal[1][0] are connected
-  cell_1 = cell_traversal[0][0];
-  PetscInt idx_beg=0;
-  for (j=0;j<4;j++) {
-    cell_2 = cell_traversal[1][j];
-    if ( cell2cell_conn[cell_1][cell_2] == 1) {
-      idx_beg = j;
-      break;
-    }
-  }
-  if (idx_beg>0) {
-    PetscInt tmp[4];
-    count=0;
-    for (j=idx_beg;j<4;j++) {
-      tmp[count] = cell_traversal[1][j];
-      count++;
-    }
-    for (j=0;j<idx_beg;j++) {
-      tmp[count] = cell_traversal[1][j];
-      count++;
-    }
-    for (j=0;j<4;j++) cell_traversal[1][j] = tmp[j];
   }
 
   PetscFunctionReturn(0);
@@ -2345,6 +2097,36 @@ PetscErrorCode ComputeBoundaryFaceTraversalDirection(TDy tdy, PetscInt ivertex, 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, PetscInt ivertex) {
 
+  /*
+  
+    The "vertex" (not shown here) is shared by
+
+            8 cells
+        (internal vertex)
+         c1 ------------- c6           c1 ------------- c6           c1 ------------- c6
+        /|               /|           /|               /|           /|               /|
+       / |              / |          / |              / |          / |              / |
+      /  |             /  |         /  |             /  |         /  |             /  |
+     /   |            /   |        /   |            /   |        /   |            /   |
+    c3 --|---------- c7   |       f3   |           f7   |       c3 --|---------- c7   |
+    |    |           |    |            |                |       |    |           |    |
+    |    c4 ---------|--- c5           f4               f5      |    f4          |    f5
+    |   /            |   /                                      |                |
+    |  /             |  /                                       |                |
+    | /              | /                                        |                |
+    |/               |/                                         |                |
+    c0 ------------- c2                                        f0               f2
+
+    Traversal for above cells is given as:
+    c0 --> c2 --> c5 --> c4       c1 --> c6 --> f7 --> f3       c3 --> c1 --> c6 --> c7
+     |      ^      |      ^        |      ^                      |      ^      |      ^
+     |      |      |      |        |      |                      |      |      |      |
+     |      |      |      |        |      |                      |      |      |      |
+     v      |      v      |        v      |                      v      |      v      |
+    c3 <-- c7 <-- c6 <-- c1       f4 <-- f7                     f0 <-- f4 <-- f5 <-- f2
+
+  */
+
   PetscFunctionBegin;
 
   TDy_face *faces;
@@ -2532,236 +2314,6 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode DetermineUpwindFacesForSubcell(TDy tdy, PetscInt ivertex) {
-
-  PetscFunctionBegin;
-  /*
-  
-    The "vertex" (not shown here) is shared by
-
-            8 cells
-        (internal vertex)
-         c1 ------------- c6           c1 ------------- c6           c1 ------------- c6
-        /|               /|           /|               /|           /|               /|
-       / |              / |          / |              / |          / |              / |
-      /  |             /  |         /  |             /  |         /  |             /  |
-     /   |            /   |        /   |            /   |        /   |            /   |
-    c3 --|---------- c7   |       f3   |           f7   |       c3 --|---------- c7   |
-    |    |           |    |            |                |       |    |           |    |
-    |    c4 ---------|--- c5           f4               f5      |    f4          |    f5
-    |   /            |   /                                      |                |
-    |  /             |  /                                       |                |
-    | /              | /                                        |                |
-    |/               |/                                         |                |
-    c0 ------------- c2                                        f0               f2
-
-    Traversal for above cells is given as:
-    c0 --> c2 --> c5 --> c4       c1 --> c6 --> f7 --> f3       c3 --> c1 --> c6 --> c7
-     |      ^      |      ^        |      ^                      |      ^      |      ^
-     |      |      |      |        |      |                      |      |      |      |
-     |      |      |      |        |      |                      |      |      |      |
-     v      |      v      |        v      |                      v      |      v      |
-    c3 <-- c7 <-- c6 <-- c1       f4 <-- f7                     f0 <-- f4 <-- f5 <-- f2
-
-  */
-
-  TDy_face *faces;
-  TDy_cell *cells;
-  TDy_subcell *subcells;
-  TDy_vertex *vertices;
-
-  PetscInt ncells,ncells_bnd;
-  PetscInt i, j, k;
-  PetscInt **cell_traversal;
-  PetscInt max_faces = 2;
-  PetscInt max_cells_per_face = 4;
-  PetscInt **cell2cell_conn;
-  PetscInt count;
-  PetscInt **cell_up2dw;
-  PetscErrorCode ierr;
-
-  cells = &tdy->mesh->cells;
-  faces = &tdy->mesh->faces;
-  subcells = &tdy->mesh->subcells;
-  vertices = &tdy->mesh->vertices;
-
-  ncells    = vertices->num_internal_cells[ivertex];
-  ncells_bnd= vertices->num_boundary_cells[ivertex];
-
-  switch (ncells) {
-  case 2:
-    break;
-  case 4:
-    break;
-  case 8:
-    break;
-  default:
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"DetermineUpwindFacesForSubcell: Unsupported vertex->num_internal_cells ");
-    break;
-  }
-
-  ierr = TDyAllocate_IntegerArray_2D(&cell2cell_conn, ncells+ncells_bnd, ncells+ncells_bnd); CHKERRQ(ierr);
-  ierr = TDyInitialize_IntegerArray_2D(cell2cell_conn, ncells+ncells_bnd, ncells+ncells_bnd, 0); CHKERRQ(ierr);
-
-  // For all cells that are common to the give vertex, create a matrix (cell2cell_conn)
-  // that stores information about which cell is connected to which other cell
-  ierr = SetupCell2CellConnectivity(vertices, ivertex, cells, faces, subcells, cell2cell_conn); CHKERRQ(ierr);
-
-  ierr = TDyAllocate_IntegerArray_2D(&cell_traversal, max_faces, max_cells_per_face); CHKERRQ(ierr);
-  ierr = TDyInitialize_IntegerArray_2D(cell_traversal, max_faces, max_cells_per_face, -(ncells+ncells_bnd)); CHKERRQ(ierr);
-
-  // First traversal:
-  //   c0 --> c2 --> c5 --> c4, or
-  //   c1 --> c6 --> f7 --> f3, or
-  //   c3 --> c1 --> c6 --> c7
-  ierr = ComputeFirstTraversalOrder(vertices, ivertex, faces,cells,cell2cell_conn,cell_traversal); CHKERRQ(ierr);
-
-  // Second traversal:
-  if (ncells == 2) {
-    // f4 <--- f7
-    i = cell_traversal[0][0];
-    for (j=ncells;j<ncells+ncells_bnd;j++) {
-      if (abs(cell2cell_conn[i][j]) == 1){
-        PetscInt found = PETSC_FALSE;
-        for (k=0;k<max_cells_per_face;k++) {
-          if ( abs(cell_traversal[0][k]) == j) found = PETSC_TRUE;
-        }
-        if (!found) cell_traversal[1][0] = j;
-      }
-    }
-    
-    i = cell_traversal[0][1];
-    for (j=ncells;j<ncells+ncells_bnd;j++) {
-      if (abs(cell2cell_conn[i][j]) == 1){
-        PetscInt found = PETSC_FALSE;
-        for (k=0;k<max_cells_per_face;k++) {
-          if ( abs(cell_traversal[0][k]) == j) found = PETSC_TRUE;
-        }
-        if (!found) cell_traversal[1][1] = j;
-      }
-    }
-    
-    cell_traversal[0][2] = -cell_traversal[0][2];
-    cell_traversal[0][3] = -cell_traversal[0][3];
-  }
-
-  if (ncells == 4) {
-    // Find c3 <-- c7 <-- f5 <-- f2
-    for (j=0;j<4;j++) cell_traversal[1][j] = cell_traversal[0][j]+4;
-  }
-
-  if (ncells == 8) {
-    // Find c3 <-- c7 <-- c6 <-- c1
-    ierr = ComputeSecondTraversalOrder(vertices,ivertex,faces,cells,cell2cell_conn,cell_traversal); CHKERRQ(ierr);
-  }
-
-  ierr = TDyAllocate_IntegerArray_2D(&cell_up2dw, 12, 2); CHKERRQ(ierr);
-
-  if (ncells == 2) {
-    // c1 --> c6 --> f7 --> f3
-    // [0]    [1]    [2]    [3]
-    //  |      ^
-    //  |      |
-    //  v      |
-    // f4 <-- f7
-    // [4]    [5]
-    //
-    // Note: numbers in [*] are local indices of cells and faces
-
-    count = 0;
-
-    // c1 --> c6
-    cell_up2dw[count][0] = cell_traversal[0][0]; cell_up2dw[count][1] = cell_traversal[0][1]; count++;
-
-    // c6 --> f7
-    cell_up2dw[count][0] = cell_traversal[0][1]; cell_up2dw[count][1] = cell_traversal[0][2]; count++;
-
-    // f3 --> c1
-    cell_up2dw[count][0] = cell_traversal[0][3]; cell_up2dw[count][1] = cell_traversal[0][0]; count++;
-
-    // c1 --> f4
-    cell_up2dw[count][0] = cell_traversal[0][0]; cell_up2dw[count][1] = cell_traversal[1][0]; count++;
-
-    // f7 --> c6
-    cell_up2dw[count][0] = cell_traversal[1][1]; cell_up2dw[count][1] = cell_traversal[0][1]; count++;
-  }
-
-  // c3 --> c1 --> c6 --> c7
-  //  |      ^      |      ^
-  //  |      |      |      |
-  //  v      |      v      |
-  // f0 <-- f4 <-- f5 <-- f2
-  if (ncells >= 4) {
-
-    // c3 --> c1 --> c6 --> c7
-    i=0;
-    count=0;
-    for (j=0;j<4;j++){
-      cell_up2dw[count][0] = cell_traversal[i][j];
-      if (j<3) cell_up2dw[count][1] = cell_traversal[i][j+1];
-      else     cell_up2dw[count][1] = cell_traversal[i][0];
-      count++;
-    }
-    
-    // c3 --> f0
-    cell_up2dw[count][0] = cell_traversal[0][0]; cell_up2dw[count][1] = cell_traversal[1][0]; count++;
-
-    // f4 --> c1
-    cell_up2dw[count][0] = cell_traversal[1][1]; cell_up2dw[count][1] = cell_traversal[0][1]; count++;
-
-    // c6 --> f5
-    cell_up2dw[count][0] = cell_traversal[0][2]; cell_up2dw[count][1] = cell_traversal[1][2]; count++;
-
-    // f2 --> c7
-    cell_up2dw[count][0] = cell_traversal[1][3]; cell_up2dw[count][1] = cell_traversal[0][3]; count++;
-  }
-
-  if (ncells == 8) {
-    count=0;
-
-    // c0 --> c2 --> c5 --> c4
-    i=0;
-    for (j=0;j<4;j++){
-      cell_up2dw[count][0] = cell_traversal[i][j];
-      if (j<3) cell_up2dw[count][1] = cell_traversal[i][j+1];
-      else     cell_up2dw[count][1] = cell_traversal[i][0];
-      count++;
-    }
-
-    // c3 <-- c7 <-- c6 <-- c1
-    i=1;
-    for (j=0;j<4;j++){
-      cell_up2dw[count][1] = cell_traversal[i][j];
-      if (j<3) cell_up2dw[count][0] = cell_traversal[i][j+1];
-      else     cell_up2dw[count][0] = cell_traversal[i][0];
-      count++;
-    }
-
-    // c5 --> c6
-    cell_up2dw[count][0] = cell_traversal[0][2]; cell_up2dw[count][1] = cell_traversal[1][2]; count++;
-
-    // c7 --> c2
-    cell_up2dw[count][0] = cell_traversal[1][1]; cell_up2dw[count][1] = cell_traversal[0][1]; count++;
-
-    // c0 --> c3
-    cell_up2dw[count][0] = cell_traversal[0][0]; cell_up2dw[count][1] = cell_traversal[1][0]; count++;
-
-    // c1 --> c4
-    cell_up2dw[count][0] = cell_traversal[1][3]; cell_up2dw[count][1] = cell_traversal[0][3]; count++;
-
-  }
-  
-  ierr = SetupUpwindFacesForSubcell(vertices,ivertex,cells,faces,subcells,cell_up2dw); CHKERRQ(ierr);
-
-  ierr = TDyDeallocate_IntegerArray_2D(cell2cell_conn, ncells); CHKERRQ(ierr);
-  ierr = TDyDeallocate_IntegerArray_2D(cell_traversal, max_faces); CHKERRQ(ierr);
-  ierr = TDyDeallocate_IntegerArray_2D(cell_up2dw, 12); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-
-}
-
-/* -------------------------------------------------------------------------- */
 
 PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
@@ -2922,7 +2474,6 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     if (vertices->num_internal_cells[ivertex] > 1 && vertices->is_local[ivertex]) {
-      //ierr = DetermineUpwindFacesForSubcell(tdy, ivertex ); CHKERRQ(ierr);
       ierr = DetermineUpwindFacesForSubcell_PlanarVerticalFaces(tdy, ivertex); CHKERRQ(ierr);
     }
   }
