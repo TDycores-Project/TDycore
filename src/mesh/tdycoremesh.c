@@ -2090,6 +2090,107 @@ PetscErrorCode ComputeBoundaryFaceTraversalDirection(TDy tdy, PetscInt ivertex, 
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode SetUpToDownConnections(TDy tdy, PetscInt ivertex, PetscInt **cell_traversal, PetscInt **cell_up2dw) {
+
+  PetscFunctionBegin;
+
+  TDy_vertex *vertices;
+
+  PetscInt ncells,ncells_bnd;
+  PetscInt count, level;
+
+  vertices = &tdy->mesh->vertices;
+
+  ncells    = vertices->num_internal_cells[ivertex];
+  ncells_bnd= vertices->num_boundary_cells[ivertex];
+
+  PetscInt ii,jj,aa,bb,l2r_dir;
+  count=0;
+  // Set connection between cells that are at the same
+  // level (=above/below) w.r.t. the vertex
+  for (level=0; level<2; level++) {
+    if (level==0) l2r_dir = 1;  // x ---> y
+    else          l2r_dir = 0;  // x <--- y
+    for (ii = 0; ii<ncells+ncells_bnd; ii++) {
+      aa = cell_traversal[level][ii];
+      if (aa == -1) break;
+
+      if (ii == ncells+ncells_bnd-1) bb = cell_traversal[level][0];
+      else                           bb = cell_traversal[level][ii+1];
+
+      if (bb == -1) bb = cell_traversal[level][0];
+      if (aa>=ncells && bb>=ncells) continue;
+
+      PetscInt increase_count = PETSC_FALSE;
+
+      if (aa < ncells && bb < ncells) {
+        increase_count = PETSC_TRUE;
+      } else if (aa < ncells && bb>= ncells) {
+        increase_count = PETSC_TRUE;
+      } else if (aa >= ncells && bb<ncells) {
+        increase_count = PETSC_TRUE;
+      }
+
+      if (increase_count) {
+        if (l2r_dir) {
+          cell_up2dw[count][0] = aa;
+          cell_up2dw[count][1] = bb;
+        } else {
+          cell_up2dw[count][0] = bb;
+          cell_up2dw[count][1] = aa;
+        }
+        count++;
+      }
+    }
+  }
+
+  // Set up-to-dw connections between cells above and
+  // below the vertex
+  for (ii=0; ii<ncells+ncells_bnd; ii++) {
+    aa = cell_traversal[0][ii];
+    bb = cell_traversal[1][ii];
+    if (aa == -1 || bb == -1) break;
+    if (aa>=ncells && bb>=ncells) continue;
+
+    if (ii%2 == 0) {
+      cell_up2dw[count][0] = aa;
+      cell_up2dw[count][1] = bb;
+    } else {
+      cell_up2dw[count][0] = bb;
+      cell_up2dw[count][1] = aa;
+    }
+    count++;
+  }
+
+  // Rearrange cell_up2dw such that connections between cells are first
+  // in the list followed by connections between cells and faces
+  PetscInt tmp[count][2],found[count];
+  for (ii=0;ii<count;ii++) found[ii] = 0;
+  jj = 0;
+  for (ii=0;ii<count;ii++) {
+    if (cell_up2dw[ii][0]<ncells && cell_up2dw[ii][1]<ncells) {
+      tmp[jj][0] = cell_up2dw[ii][0];
+      tmp[jj][1] = cell_up2dw[ii][1];
+      found[ii] = 1;
+      jj++;
+    }
+  }
+  for (ii=0;ii<count;ii++) {
+    if (found[ii]==0) {
+      tmp[jj][0] = cell_up2dw[ii][0];
+      tmp[jj][1] = cell_up2dw[ii][1];
+      jj++;
+    }
+  }
+  for (ii=0;ii<count;ii++) {
+    cell_up2dw[ii][0] = tmp[ii][0];
+    cell_up2dw[ii][1] = tmp[ii][1];
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, PetscInt ivertex) {
 
   /*
@@ -2131,7 +2232,6 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
 
   PetscInt ncells,ncells_bnd;
   PetscInt **cell_traversal;
-  PetscInt count;
   PetscInt ncells_abv,ncells_blw;
   PetscInt **cell_up2dw;
   PetscErrorCode ierr;
@@ -2194,85 +2294,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
     ierr = ComputeBoundaryFaceTraversalDirection(tdy,ivertex,cell_ids_abv_blw,ncells_level,level,cell_traversal); CHKERRQ(ierr);
   }
 
-  PetscInt ii,jj,aa,bb,l2r_dir;
-  count=0;
-
-  for (level=0; level<2; level++) {
-    if (level==0) l2r_dir = 1;
-    else          l2r_dir = 0;
-    for (ii = 0; ii<ncells+ncells_bnd; ii++) {
-      aa = cell_traversal[level][ii];
-      if (aa == -1) break;
-
-      if (ii == ncells+ncells_bnd-1) bb = cell_traversal[level][0];
-      else                           bb = cell_traversal[level][ii+1];
-
-      if (bb == -1) bb = cell_traversal[level][0];
-      if (aa>=ncells && bb>=ncells) continue;
-
-      PetscInt increase_count = PETSC_FALSE;
-
-      if (aa < ncells && bb < ncells) {
-        increase_count = PETSC_TRUE;
-      } else if (aa < ncells && bb>= ncells) {
-        increase_count = PETSC_TRUE;
-      } else if (aa >= ncells && bb<ncells) {
-        increase_count = PETSC_TRUE;
-      }
-
-      if (increase_count) {
-        if (l2r_dir) {
-          cell_up2dw[count][0] = aa;
-          cell_up2dw[count][1] = bb;
-        } else {
-          cell_up2dw[count][0] = bb;
-          cell_up2dw[count][1] = aa;
-        }
-        count++;
-      }
-    }
-  }
-
-  for (ii=0; ii<ncells+ncells_bnd; ii++) {
-    aa = cell_traversal[0][ii];
-    bb = cell_traversal[1][ii];
-    if (aa == -1 || bb == -1) break;
-    if (aa>=ncells && bb>=ncells) continue;
-
-    if (ii%2 == 0) {
-      cell_up2dw[count][0] = aa;
-      cell_up2dw[count][1] = bb;
-    } else {
-      cell_up2dw[count][0] = bb;
-      cell_up2dw[count][1] = aa;
-    }
-    count++;
-  }
-  
-  // Rearrange cell_up2dw
-  PetscInt tmp[count][2],found[count];
-  for (ii=0;ii<count;ii++) found[ii] = 0;
-  jj = 0;
-  for (ii=0;ii<count;ii++) {
-    if (cell_up2dw[ii][0]<ncells && cell_up2dw[ii][1]<ncells) {
-      tmp[jj][0] = cell_up2dw[ii][0];
-      tmp[jj][1] = cell_up2dw[ii][1];
-      found[ii] = 1;
-      jj++;
-    }
-  }
-  for (ii=0;ii<count;ii++) {
-    if (found[ii]==0) {
-      tmp[jj][0] = cell_up2dw[ii][0];
-      tmp[jj][1] = cell_up2dw[ii][1];
-      jj++;
-    }
-  }
-  for (ii=0;ii<count;ii++) {
-    cell_up2dw[ii][0] = tmp[ii][0];
-    cell_up2dw[ii][1] = tmp[ii][1];
-  }
-
+  ierr = SetUpToDownConnections(tdy,ivertex,cell_traversal,cell_up2dw); CHKERRQ(ierr);
   ierr = SetupUpwindFacesForSubcell(vertices,ivertex,cells,faces,subcells,cell_up2dw); CHKERRQ(ierr);
 
   ierr = TDyDeallocate_IntegerArray_2D(cell_traversal, 2); CHKERRQ(ierr);
