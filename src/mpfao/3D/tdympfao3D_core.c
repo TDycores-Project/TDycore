@@ -233,7 +233,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
       }
 
       PetscInt idx_flux;
-      idx_flux = subcells->face_unknown_idx[sOffsetFace +iface];
+      idx_flux = subcells->face_flux_idx[sOffsetFace +iface];
 
       if (upwind_entries) {
         Cup[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
