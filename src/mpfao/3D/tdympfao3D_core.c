@@ -159,7 +159,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
 
   TDy_vertex *vertices;
   TDy_subcell    *subcells;
-  TDy_face *faces;
   PetscInt dim;
   PetscReal **Fup, **Fdn;
   PetscReal **Cup, **Cdn;
@@ -193,7 +192,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
   ierr = TDyAllocate_RealArray_1D(&AinvB_1d        , nfluxes*ncells ); CHKERRQ(ierr);
   ierr = TDyAllocate_RealArray_1D(&CuptimesAinvB_1d, nfluxes*ncells ); CHKERRQ(ierr);
 
-  faces = &tdy->mesh->faces;
   subcells = &tdy->mesh->subcells;
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
@@ -213,38 +211,24 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
 
     PetscInt iface;
     for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
 
-      PetscInt cell_1 = TDyReturnIndexInList(&vertices->internal_cell_ids[vOffsetCell], ncells, faces->cell_ids[fOffsetCell + 0]);
-      PetscInt cell_2 = TDyReturnIndexInList(&vertices->internal_cell_ids[vOffsetCell], ncells, faces->cell_ids[fOffsetCell + 1]);
       PetscBool upwind_entries;
+      PetscInt idx_flux;
 
       upwind_entries = (subcells->is_face_up[sOffsetFace + iface]==1);
 
-      if (upwind_entries && cell_1 != i) {
-        PetscInt tmp = cell_1;
-        cell_1 = cell_2;
-        cell_2 = tmp;
-      } else if (!upwind_entries && cell_2 != i) {
-        PetscInt tmp = cell_1;
-        cell_1 = cell_2;
-        cell_2 = tmp;
-      }
-
-      PetscInt idx_flux;
       idx_flux = subcells->face_flux_idx[sOffsetFace +iface];
 
       if (upwind_entries) {
         Cup[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
         Cup[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
         Cup[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
-        Fup[idx_flux][cell_1]           = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+        Fup[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
       } else {
         Cdn[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
         Cdn[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
         Cdn[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
-        Fdn[idx_flux][cell_2]           = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+        Fdn[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
       }
       
     }
@@ -503,9 +487,18 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
 
   idx = 0;
   for (j=0; j<npitf_in; j++) {
-    for (i=0; i<nflux_bc_up; i++) CupBcxIn_1d[idx] = Cup[i+npitf_in][j];
-    for (i=0; i<nflux_bc_dn; i++) CdnBcxIn_1d[idx] = Cdn[i+npitf_in][j];
-    idx++;
+    for (i=0; i<nflux_bc_up; i++) {
+      CupBcxIn_1d[idx] = Cup[i+npitf_in][j];
+      idx++;
+    }
+  }
+
+  idx = 0;
+  for (j=0; j<npitf_in; j++) {
+    for (i=0; i<nflux_bc_dn; i++) {
+      CdnBcxIn_1d[idx] = Cdn[i+npitf_in][j];
+      idx++;
+    }
   }
 
   // Solve A^-1 * B
