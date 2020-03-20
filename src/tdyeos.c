@@ -81,3 +81,34 @@ PetscErrorCode ComputeWaterViscosity(PetscReal p, PetscInt density_type, PetscRe
 
   PetscFunctionReturn(0);
 }
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode ComputeWaterEnthalpy_Constant(PetscReal p, PetscReal *hw, PetscReal *dhw_dP, PetscReal *dhw_dT) {
+
+  PetscFunctionBegin;
+
+  *hw = 1.8890; // J/mol
+  *dhw_dP = 0.0;
+  *dhw_dT = 0.0;
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode ComputeWaterEnthalpy(PetscReal p, PetscInt enthalpy_type, PetscReal *hw, PetscReal *dhw_dP, PetscReal *dhw_dT) {
+
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  switch (enthalpy_type) {
+  case WATER_ENTHALPY_CONSTANT :
+    ierr = ComputeWaterEnthalpy_Constant(p,hw,dhw_dP,dhw_dT); CHKERRQ(ierr);
+    break;
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown water enthalpy function");
+    break;
+  }
+
+  PetscFunctionReturn(0);
+}
