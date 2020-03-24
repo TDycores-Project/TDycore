@@ -45,7 +45,7 @@ PetscErrorCode TDyMPFAOIFunction_InternalVertices_3DMesh(Vec Ul, Vec R, void *ct
     if (vertices->num_boundary_cells[ivertex] != 0) continue;
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
 
-    PetscInt nflux_in = 12;
+    PetscInt nflux_in = vertices->num_faces[ivertex];
     PetscScalar TtimesP[nflux_in];
 
     // Compute = T*P
@@ -431,7 +431,7 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh(Vec Ul, Mat A, void *ct
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
-    PetscInt nflux_in = 12;
+    PetscInt nflux_in = vertices->num_faces[ivertex];
     PetscScalar TtimesP[nflux_in];
 
     // Compute = T*P

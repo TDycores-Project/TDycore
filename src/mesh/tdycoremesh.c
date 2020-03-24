@@ -2517,13 +2517,40 @@ PetscErrorCode UpdateCellOrientationAroundAFace3DMesh(TDy tdy) {
     ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 0], dim, &v1[0]); CHKERRQ(ierr);
     ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 1], dim, &v2[0]); CHKERRQ(ierr);
     ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 2], dim, &v3[0]); CHKERRQ(ierr);
-    ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 3], dim, &v4[0]); CHKERRQ(ierr);
+
+    if (faces->num_vertices[iface] == 4) {
+      ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 3], dim, &v4[0]); CHKERRQ(ierr);
+
+      // Check if v1-v2-v3-v4 are in the correct order such that
+      // normal to (v1,v2,v3) and normal (v2,v3,v4) are in pointing
+      // in the same direction
+      PetscReal normal_123[3], normal_234[3];
+      ierr = TDyUnitNormalToTriangle(v1, v2, v3, normal_123);  CHKERRQ(ierr);
+      ierr = TDyUnitNormalToTriangle(v2, v3, v4, normal_234);  CHKERRQ(ierr);
+
+      ierr = TDyDotProduct(normal_123,normal_234,&dot_prod); CHKERRQ(ierr);
+
+      if (dot_prod < 0.0) {
+        // Swap the order of vertices
+        PetscInt tmp = faces->vertex_ids[fOffsetVertex + 2];
+        faces->vertex_ids[fOffsetVertex + 2] = faces->vertex_ids[fOffsetVertex + 3];
+        faces->vertex_ids[fOffsetVertex + 3] = tmp;
+      }
+
+      ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 2], dim, &v3[0]); CHKERRQ(ierr);
+      ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 3], dim, &v4[0]); CHKERRQ(ierr);
+
+    }
 
     ierr = TDyFace_GetCentroid(faces, iface, dim, &f_cen[0]); CHKERRQ(ierr);
 
     ierr = TDyCell_GetCentroid2(cells, faces->cell_ids[fOffsetCell+0], dim, &c_cen[0]); CHKERRQ(ierr);
 
-    ierr = TDyNormalToQuadrilateral(v1, v2, v3, v4, normal); CHKERRQ(ierr);
+    if (faces->num_vertices[iface] == 3) {
+      ierr = TDyUnitNormalToTriangle(v1, v2, v3, normal);  CHKERRQ(ierr);
+    } else {
+      ierr = TDyNormalToQuadrilateral(v1, v2, v3, v4, normal); CHKERRQ(ierr);
+    }
     for (d=0; d<dim; d++){ faces->normal[iface].V[d] = normal[d];}
 
     ierr = TDyCreateVecJoiningTwoVertices(f_cen, c_cen, f2c); CHKERRQ(ierr);

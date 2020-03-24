@@ -46,7 +46,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
   
     if (vertices->num_boundary_cells[ivertex] == 0) {
-      PetscInt nflux_in = 12;
+      PetscInt nflux_in = vertices->num_faces[ivertex];
       
       for (irow=0; irow<nflux_in; irow++) {
         
