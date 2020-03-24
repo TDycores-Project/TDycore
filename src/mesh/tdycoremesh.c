@@ -36,6 +36,7 @@ PetscErrorCode AllocateMemoryForCells(
 
   subcell_type  = GetSubcellTypeForCellType(cell_type);
   num_subcells  = GetNumSubcellsForSubcellType(subcell_type);
+  num_subcells  = num_vertices;
 
   ierr = TDyAllocate_IntegerArray_1D(&cells->id,num_cells); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&cells->global_id,num_cells); CHKERRQ(ierr);
@@ -327,7 +328,7 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
   cNum = cEnd - cStart;
   eNum = eEnd - eStart;
   vNum = vEnd - vStart;
-  
+
   if (dim == 3) {
     PetscInt fStart, fEnd;
     ierr = DMPlexGetDepthStratum( dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
@@ -520,6 +521,7 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   nverts_per_cell = tdy->ncv;
+  nverts_per_cell = 16;
 
   /* Determine the number of cells, edges, and vertices of the mesh */
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
@@ -1362,7 +1364,7 @@ PetscErrorCode UpdateIthTraversalOrder(TDy_vertex *vertices, PetscInt ivertex, T
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex, TDy_cell *cells, TDy_face *faces, TDy_subcell *subcells, PetscInt **cell_up2dw) {
+PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex, TDy_cell *cells, TDy_face *faces, TDy_subcell *subcells, PetscInt **cell_up2dw, PetscInt nUp2Dw) {
 
   PetscFunctionBegin;
 
@@ -1416,7 +1418,7 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
           }
         }
 
-        for (ii=0; ii<12; ii++) {
+        for (ii=0; ii<nUp2Dw; ii++) {
           if (cell_up2dw[ii][0] == face_id_local && cell_up2dw[ii][1] == icell){ subcells->is_face_up[sOffsetFace + iface] = PETSC_TRUE; break;}
           if (cell_up2dw[ii][1] == face_id_local && cell_up2dw[ii][0] == icell){ subcells->is_face_up[sOffsetFace + iface] = PETSC_FALSE; break;}
         }
@@ -1429,7 +1431,7 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
         PetscInt cell_1 = TDyReturnIndexInList(&vertices->internal_cell_ids[vOffsetIntCell], ncells, faces->cell_ids[fOffsetCell + 0]);
         PetscInt cell_2 = TDyReturnIndexInList(&vertices->internal_cell_ids[vOffsetIntCell], ncells, faces->cell_ids[fOffsetCell + 1]);
 
-        for (ii=0; ii<12; ii++) {
+        for (ii=0; ii<nUp2Dw; ii++) {
           if (cell_up2dw[ii][0] == cell_1 && cell_up2dw[ii][1] == cell_2) {
 
             subcells->face_unknown_idx[sOffsetFace + iface] = ii;
@@ -2090,7 +2092,7 @@ PetscErrorCode ComputeBoundaryFaceTraversalDirection(TDy tdy, PetscInt ivertex, 
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode SetUpToDownConnections(TDy tdy, PetscInt ivertex, PetscInt **cell_traversal, PetscInt **cell_up2dw) {
+PetscErrorCode SetUpToDownConnections(TDy tdy, PetscInt ivertex, PetscInt **cell_traversal, PetscInt **cell_up2dw, PetscInt *nUp2Dw) {
 
   PetscFunctionBegin;
 
@@ -2186,6 +2188,7 @@ PetscErrorCode SetUpToDownConnections(TDy tdy, PetscInt ivertex, PetscInt **cell
     cell_up2dw[ii][0] = tmp[ii][0];
     cell_up2dw[ii][1] = tmp[ii][1];
   }
+  *nUp2Dw = count;
 
   PetscFunctionReturn(0);
 }
@@ -2273,7 +2276,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   }
 
   ierr = TDyAllocate_IntegerArray_2D(&cell_traversal, 2, ncells+ncells_bnd); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_2D(&cell_up2dw, 12, 2); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&cell_up2dw, 24, 2); CHKERRQ(ierr);
 
   PetscInt level, ncells_level;
 
@@ -2294,8 +2297,9 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
     ierr = ComputeBoundaryFaceTraversalDirection(tdy,ivertex,cell_ids_abv_blw,ncells_level,level,cell_traversal); CHKERRQ(ierr);
   }
 
-  ierr = SetUpToDownConnections(tdy,ivertex,cell_traversal,cell_up2dw); CHKERRQ(ierr);
-  ierr = SetupUpwindFacesForSubcell(vertices,ivertex,cells,faces,subcells,cell_up2dw); CHKERRQ(ierr);
+  PetscInt nUp2Dw;
+  ierr = SetUpToDownConnections(tdy,ivertex,cell_traversal,cell_up2dw,&nUp2Dw); CHKERRQ(ierr);
+  ierr = SetupUpwindFacesForSubcell(vertices,ivertex,cells,faces,subcells,cell_up2dw,nUp2Dw); CHKERRQ(ierr);
 
   ierr = TDyDeallocate_IntegerArray_2D(cell_traversal, 2); CHKERRQ(ierr);
   ierr = TDyDeallocate_IntegerArray_2D(cell_up2dw, ncells+ncells_bnd); CHKERRQ(ierr);

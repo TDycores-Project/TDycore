@@ -15,6 +15,7 @@ typedef struct _TDy_mesh       TDy_mesh;
 
 typedef enum {
   CELL_QUAD_TYPE=0, /* quadrilateral cell for a 2D cell */
+  CELL_WEDGE_TYPE,  /* wedge/prism cell for a 3D cell */
   CELL_HEX_TYPE     /* hexahedron cell for a 3D cell */
 } TDyCellType;
 

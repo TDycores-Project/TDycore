@@ -25,6 +25,9 @@ TDyCellType GetCellType(PetscInt dim, PetscInt nverts_per_cell) {
 
     case 3:
       switch (nverts_per_cell) {
+        case 6:
+          cell_type = CELL_WEDGE_TYPE;
+          break;
         case 8:
           cell_type = CELL_HEX_TYPE;
           break;
@@ -50,6 +53,9 @@ PetscInt GetNumVerticesForCellType(TDyCellType cell_type) {
     case CELL_QUAD_TYPE:
       value = 4;
       break;
+    case CELL_WEDGE_TYPE:
+      value = 6;
+      break;
     case CELL_HEX_TYPE:
       value = 8;
       break;
@@ -67,6 +73,9 @@ PetscInt GetNumOfCellsSharingAVertexForCellType(TDyCellType cell_type) {
   switch (cell_type) {
     case CELL_QUAD_TYPE:
       value = 4;
+      break;
+    case CELL_WEDGE_TYPE:
+      value = 16;
       break;
     case CELL_HEX_TYPE:
       value = 8;
@@ -86,6 +95,9 @@ PetscInt GetNumCellsPerEdgeForCellType(TDyCellType cell_type) {
     case CELL_QUAD_TYPE:
       value = 2;
       break;
+    case CELL_WEDGE_TYPE:
+      value = 4;
+      break;
     case CELL_HEX_TYPE:
       value = 4;
       break;
@@ -103,6 +115,9 @@ PetscInt GetNumCellsPerFaceForCellType(TDyCellType cell_type) {
   switch (cell_type) {
     case CELL_QUAD_TYPE:
       value = 0;
+      break;
+    case CELL_WEDGE_TYPE:
+      value = 2;
       break;
     case CELL_HEX_TYPE:
       value = 2;
@@ -122,6 +137,9 @@ PetscInt GetNumOfCellsSharingAFaceForCellType(TDyCellType cell_type) {
     case CELL_QUAD_TYPE:
       value = 0;
       break;
+    case CELL_WEDGE_TYPE:
+      value = 4;
+      break;
     case CELL_HEX_TYPE:
       value = 4;
       break;
@@ -139,6 +157,9 @@ PetscInt GetNumOfVerticesFormingAFaceForCellType(TDyCellType cell_type) {
   switch (cell_type) {
     case CELL_QUAD_TYPE:
       value = 0;
+      break;
+    case CELL_WEDGE_TYPE:
+      value = 4;
       break;
     case CELL_HEX_TYPE:
       value = 4;
@@ -158,6 +179,9 @@ PetscInt GetNumOfEdgesFormingAFaceForCellType(TDyCellType cell_type) {
     case CELL_QUAD_TYPE:
       value = 0;
       break;
+    case CELL_WEDGE_TYPE:
+      value = 4;
+      break;
     case CELL_HEX_TYPE:
       value = 4;
       break;
@@ -175,6 +199,9 @@ PetscInt GetNumEdgesForCellType(TDyCellType cell_type) {
   switch (cell_type) {
     case CELL_QUAD_TYPE:
       value = 4;
+      break;
+    case CELL_WEDGE_TYPE:
+      value = 9;
       break;
     case CELL_HEX_TYPE:
       value = 12;
@@ -194,6 +221,9 @@ PetscInt GetNumNeighborsForCellType(TDyCellType cell_type) {
     case CELL_QUAD_TYPE:
       value = 4;
       break;
+    case CELL_WEDGE_TYPE:
+      value = 5;
+      break;
     case CELL_HEX_TYPE:
       value = 6;
       break;
@@ -211,6 +241,9 @@ PetscInt GetNumFacesForCellType(TDyCellType cell_type) {
   switch (cell_type) {
     case CELL_QUAD_TYPE:
       value = 0;
+      break;
+    case CELL_WEDGE_TYPE:
+      value = 5;
       break;
     case CELL_HEX_TYPE:
       value = 6;
@@ -230,6 +263,9 @@ PetscInt GetNumFacesSharedByVertexForCellType(TDyCellType cell_type) {
     case CELL_QUAD_TYPE:
       value = 0;
       break;
+    case CELL_WEDGE_TYPE:
+      value = 24;
+      break;
     case CELL_HEX_TYPE:
       value = 12;
       break;
@@ -246,6 +282,9 @@ TDySubcellType GetSubcellTypeForCellType(TDyCellType cell_type) {
   switch (cell_type) {
     case CELL_QUAD_TYPE:
       value = SUBCELL_QUAD_TYPE;
+      break;
+    case CELL_WEDGE_TYPE:
+      value = SUBCELL_HEX_TYPE;
       break;
     case CELL_HEX_TYPE:
       value = SUBCELL_HEX_TYPE;
@@ -597,7 +636,7 @@ PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDy_face *fac
   }
   
   if (*num_shared_faces != 3) {
-    printf("Was expecting to find 3 faces of the cell to be shared by the vertex, but instead found %d common faces",*num_shared_faces);
+    printf("Was expecting to find 3 faces of the cell to be shared by the vertex, but instead found %d common faces\n",*num_shared_faces);
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported vertex type for 3D mesh");
   }
   

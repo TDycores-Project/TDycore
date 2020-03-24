@@ -150,7 +150,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 
     if (vertices->num_boundary_cells[ivertex] == 0) {
 
-      PetscInt    nflux_in = 12;
+      PetscInt    nflux_in = vertices->num_faces[ivertex];
       PetscScalar Pcomputed[vertices->num_internal_cells[ivertex]];
       PetscScalar Vcomputed[nflux_in];
 
