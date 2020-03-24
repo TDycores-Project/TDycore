@@ -16,6 +16,7 @@ struct _TDyOps {
   PetscErrorCode (*setfromoptions)(TDy);
   PetscErrorCode (*computeporosity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computepermeability)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computethermalconductivity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeresidualsaturation)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeforcing)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computedirichletvalue)(TDy,PetscReal*,PetscReal*,void*);
@@ -53,6 +54,8 @@ struct _p_TDy {
   PetscReal *S,
             *dS_dP,  /* saturation and derivative wrt pressure for each cell [1] */
             *d2S_dP2;/* second derivative of saturation wrt pressure for each cell [1] */
+  PetscReal *Kappa,
+            *Kappa0;     /* thermal conductivity tensor (cell,intrinsic) for each cell */
 
   PetscInt *SatFuncType;     /* type of saturation function */
   PetscInt *RelPermFuncType; /* type of relative permeability */
@@ -70,6 +73,7 @@ struct _p_TDy {
 
   void *porosityctx;
   void *permeabilityctx;
+  void *thermalconductivityctx;
   void *residualsaturationctx;
   void *forcingctx;
   void *dirichletvaluectx;
@@ -77,6 +81,7 @@ struct _p_TDy {
 
   /* method-specific information*/
   TDyMethod method;
+  TDyMode mode;
   TDyQuadratureType qtype;
   PetscBool allow_unsuitable_mesh;
 
@@ -100,6 +105,12 @@ struct _p_TDy {
   PetscReal ***Trans;
   Mat Trans_mat;
   Vec P_vec, TtimesP_vec;
+
+  /* For temperature */
+  PetscReal ****Temp_subc_Gmatrix; /* Gmatrix for subcells */
+  PetscReal ***Temp_Trans;
+  Mat Temp_Trans_mat;
+  Vec Temp_P_vec, Temp_TtimesP_vec;
 
   Mat J, Jpre;
 

@@ -212,6 +212,9 @@ int main(int argc, char **argv) {
   /* Cleanup */
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
+  ierr = PetscFree(mass_p); CHKERRQ(ierr);
+  ierr = PetscFree(u_p); CHKERRQ(ierr);
+  ierr = PetscFree(pres_p); CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
   return(successful_exit_code);
 }

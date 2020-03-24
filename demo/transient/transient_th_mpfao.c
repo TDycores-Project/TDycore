@@ -126,13 +126,14 @@ int main(int argc, char **argv) {
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
   //ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+  ierr = TDySetMode(tdy,TH); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   /* Setup initial condition */
   Vec U;
   ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
   ierr = VecSet(U,91325); CHKERRQ(ierr);
-  //VecView(U,PETSC_VIEWER_STDOUT_WORLD);
+  VecView(U,PETSC_VIEWER_STDOUT_WORLD);
 
   PetscSection   sec;
   PetscInt num_fields;
@@ -212,6 +213,9 @@ int main(int argc, char **argv) {
   /* Cleanup */
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
+  ierr = PetscFree(mass_p); CHKERRQ(ierr);
+  ierr = PetscFree(u_p); CHKERRQ(ierr);
+  ierr = PetscFree(pres_p); CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
   return(successful_exit_code);
 }

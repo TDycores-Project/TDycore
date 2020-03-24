@@ -23,6 +23,13 @@ typedef enum {
 
 PETSC_EXTERN const char *const TDyQuadratureTypes[];
 
+typedef enum {
+  RICHARDS=0,
+  TH
+} TDyMode;
+
+PETSC_EXTERN const char *const TDyModes[];
+
 typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */
 
 typedef struct _p_TDy *TDy;
@@ -93,6 +100,7 @@ PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy tdy);
 
 PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,
     TDyMethod method);
+PETSC_EXTERN PetscErrorCode TDySetMode(TDy tdy, TDyMode mode);
 PETSC_EXTERN PetscErrorCode TDySetup(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
     TDyQuadratureType qtype);

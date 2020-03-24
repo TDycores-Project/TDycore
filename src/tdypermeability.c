@@ -7,6 +7,13 @@ PetscErrorCode TDySetPermeabilityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscR
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetThermalConductivityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  if (f) tdy->ops->computethermalconductivity = f;
+  if (ctx) tdy->thermalconductivityctx = ctx;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetResidualSaturationFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
   if (f) tdy->ops->computeresidualsaturation = f;

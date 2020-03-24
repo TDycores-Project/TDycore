@@ -16,6 +16,13 @@ const char *const TDyMethods[] = {
   "TDyMethod","TDY_METHOD_",NULL
 };
 
+const char *const TDyModes[] = {
+  "RICHARDS",
+  "TH",
+  /* */
+  "TDyMode","TDY_MODE_",NULL
+};
+
 const char *const TDyQuadratureTypes[] = {
   "LUMPED",
   "FULL",
@@ -249,6 +256,20 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   if (tdy->LtoG  ) { ierr = PetscFree(tdy->LtoG  ); CHKERRQ(ierr); }
   if (tdy->orient) { ierr = PetscFree(tdy->orient); CHKERRQ(ierr); }
   if (tdy->quad  ) { ierr = PetscQuadratureDestroy(&(tdy->quad)); CHKERRQ(ierr); }
+  // Need call to destroy TDy_Mesh
+  if (tdy->subc_Gmatrix) { free(tdy->subc_Gmatrix ); } // can't use PetscFree since PetsMalloc was not used
+  if (tdy->Trans       ) { free(tdy->Trans        ); }
+  if (tdy->Trans_mat   ) { ierr = MatDestroy(&tdy->Trans_mat  ); CHKERRQ(ierr); }
+  if (tdy->P_vec       ) { ierr = VecDestroy(&tdy->P_vec      ); CHKERRQ(ierr); }
+  if (tdy->TtimesP_vec ) { ierr = VecDestroy(&tdy->TtimesP_vec); CHKERRQ(ierr); }
+  if (tdy->Temp_subc_Gmatrix) { free(tdy->Temp_subc_Gmatrix ); }
+  if (tdy->Temp_Trans       ) { free(tdy->Temp_Trans        ); }
+  if (tdy->Temp_Trans_mat   ) { ierr = MatDestroy(&tdy->Temp_Trans_mat  ); CHKERRQ(ierr); }
+  if (tdy->Temp_P_vec       ) { ierr = VecDestroy(&tdy->Temp_P_vec      ); CHKERRQ(ierr); }
+  if (tdy->Temp_TtimesP_vec ) { ierr = VecDestroy(&tdy->Temp_TtimesP_vec); CHKERRQ(ierr); }
+  if (tdy->J           ) { ierr = MatDestroy(&tdy->J   ); CHKERRQ(ierr); }
+  if (tdy->Jpre        ) { ierr = MatDestroy(&tdy->Jpre); CHKERRQ(ierr); }
+
   PetscFunctionReturn(0);
 }
 
@@ -266,6 +287,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscErrorCode ierr;
   PetscBool flg;
   TDyMethod method = WY;
+  TDyMode mode = RICHARDS;
   TDyQuadratureType qtype = FULL;
   TDyWaterDensityType densitytype = WATER_DENSITY_CONSTANT;
 
@@ -296,6 +318,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           "TDySetWaterDensityType",TDyWaterDensityTypes,(PetscEnum)densitytype,(PetscEnum *)&densitytype,
                           &flg); CHKERRQ(ierr);
   if (flg) {ierr = TDySetWaterDensityType(tdy,densitytype); CHKERRQ(ierr);}
+
+  ierr = PetscOptionsEnum("-tdy_mode","Flow mode",
+                          "TDySetMode",TDyModes,(PetscEnum)mode,(PetscEnum *)&mode,
+                          &flg); CHKERRQ(ierr);
+  if (flg && (mode != tdy->mode)) { ierr = TDySetMode(tdy,mode); CHKERRQ(ierr); }
 
   if (tdy->regression_testing) {
     ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
@@ -373,6 +400,13 @@ PetscErrorCode TDySetup(TDy tdy) {
   case WY:
     break;
   }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetMode(TDy tdy,TDyMode mode) {
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  tdy->mode = mode;
   PetscFunctionReturn(0);
 }
 
