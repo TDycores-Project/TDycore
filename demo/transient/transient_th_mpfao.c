@@ -15,6 +15,17 @@ PetscErrorCode PermeabilityFunction3D(TDy tdy, double *x, double *K, void *ctx){
   return 0;
 }
 
+void ThermalConductivity3D(double *x,double *K) {
+  K[0] = 1.0    ; K[1] = 0.0    ; K[2] = 0.0    ;
+  K[3] = 0.0    ; K[4] = 1.0    ; K[5] = 0.0    ;
+  K[6] = 0.0    ; K[7] = 0.0    ; K[8] = 1.0    ;
+}
+
+PetscErrorCode ThermalConductivityFunction3D(TDy tdy, double *x, double *K, void *ctx){
+  ThermalConductivity3D(x, K);
+  return 0;
+}
+
 PetscErrorCode Pressure(TDy tdy,double *x,double *p,void *ctx) {
   (*p) = 91325;
   PetscFunctionReturn(0);
@@ -123,6 +134,7 @@ int main(int argc, char **argv) {
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
   //ierr = TDySetPermeabilityScalar(tdy,Permeability); CHKERRQ(ierr);
   ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction3D,NULL); CHKERRQ(ierr);
+  ierr = TDySetThermalConductivityFunction(tdy,ThermalConductivityFunction3D,NULL); CHKERRQ(ierr);
   ierr = TDySetResidualSaturationValuesLocal(tdy,cEnd-cStart,index,residualSat);
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
   //ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
