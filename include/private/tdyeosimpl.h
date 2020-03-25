@@ -13,7 +13,7 @@ typedef enum {
 
 PETSC_EXTERN PetscErrorCode ComputeWaterDensity(PetscReal,PetscInt,PetscReal*,PetscReal*,PetscReal*);
 PETSC_EXTERN PetscErrorCode ComputeWaterViscosity(PetscReal,PetscInt,PetscReal*,PetscReal*,PetscReal*);
-PETSC_EXTERN PetscErrorCode ComputeWaterEnthalpy(PetscReal,PetscInt,PetscReal*,PetscReal*,PetscReal*);
+PETSC_EXTERN PetscErrorCode ComputeWaterEnthalpy(PetscReal,PetscReal,PetscInt,PetscReal*,PetscReal*,PetscReal*);
 
 #endif
 

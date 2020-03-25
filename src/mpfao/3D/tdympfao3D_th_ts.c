@@ -330,7 +330,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   TDy_cell       *cells;
   DM       dm;
   Vec      Ul;
-  PetscReal *p,*dp_dt,*r;
+  PetscReal *p,*dp_dt,*r,*temp,*u_p;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -347,19 +347,20 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
-  ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
-  ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy,u_p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
+  ierr = MatMult(tdy->Temp_Trans_mat, tdy->Temp_P_vec, tdy->Temp_TtimesP_vec);
 
   PetscInt iface;
 
-  ierr = TDyMPFAOIFunction_InternalVertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
-  ierr = TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
-  ierr = TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_InternalVertices_3DMesh_TH(Ul,R,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DMesh_TH(Ul,R,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_3DMesh_TH(Ul,R,ctx); CHKERRQ(ierr);
 
   ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
@@ -1006,10 +1007,10 @@ PetscErrorCode TDyMPFAOIJacobian_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Petsc
   ierr = DMGlobalToLocalBegin(dm,U_t,INSERT_VALUES,Udotl); CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd  (dm,U_t,INSERT_VALUES,Udotl); CHKERRQ(ierr);
 
-  ierr = TDyMPFAOIJacobian_InternalVertices_3DMesh(Ul, A, ctx);
-  ierr = TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DMesh(Ul, A, ctx);
+  ierr = TDyMPFAOIJacobian_InternalVertices_3DMesh_TH(Ul, A, ctx);
+  ierr = TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DMesh_TH(Ul, A, ctx);
   //ierr = TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(Ul, A, ctx);
-  ierr = TDyMPFAOIJacobian_Accumulation_3DMesh(Ul, Udotl, shift, A, ctx);
+  ierr = TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Ul, Udotl, shift, A, ctx);
 
   if (A !=B ) {
     ierr = MatAssemblyBegin(B,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);

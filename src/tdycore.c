@@ -147,6 +147,12 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_m)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_n)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_alpha)); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->Kappa)); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->Kappa0 )); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->h)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dP)); CHKERRQ(ierr);
+
 
   /* problem constants FIX: add mutators */
   for (c=0; c<nc; c++) {
@@ -167,12 +173,16 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
     tdy->dvis_dP[c] = 0.0;
     tdy->d2vis_dP2[c] = 0.0;
     tdy->porosity[c] = 0.0;
+    tdy->h[c] = 0.0;
+    tdy->dh_dT[c] = 0.0;
+    tdy->dh_dP[c] = 0.0;
   }
   tdy->Pref = 101325;
   tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
   tdy->gravity[dim-1] = -9.81;
   tdy->rho_type = WATER_DENSITY_CONSTANT;
   tdy->mu_type = WATER_VISCOSITY_CONSTANT;
+  tdy->enthalpy_type = WATER_ENTHALPY_CONSTANT;
 
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
@@ -453,7 +463,14 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   case MPFA_O:
     switch (dim) {
     case 3:
-      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh,tdy); CHKERRQ(ierr);
+      switch (tdy->mode) {
+      case RICHARDS:
+        ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh,tdy); CHKERRQ(ierr);
+        break;
+      case TH:  
+        ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh_TH,tdy); CHKERRQ(ierr);
+        break;
+      }
     break;
     default :
       SETERRQ(comm,PETSC_ERR_SUP,"IFunction only implemented for 3D problem MPFA-O");
@@ -505,7 +522,15 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
     ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
     ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
 
-    ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_3DMesh,tdy); CHKERRQ(ierr);
+    switch (tdy->mode) {
+    case RICHARDS:
+      ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_3DMesh,tdy); CHKERRQ(ierr);
+      break;
+    case TH:
+      ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_3DMesh_TH,tdy); CHKERRQ(ierr);
+      break;
+
+    }
     break;
   case MPFA_O_DAE:
     ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
@@ -653,14 +678,28 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
+PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
   PetscReal Se,dSe_dS,dKr_dSe,n,m,alpha,Kr;
+  PetscReal *P, *temp;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&P);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&temp);CHKERRQ(ierr);
+
+  if (tdy->mode == TH) {
+    for (c=0;c<cEnd-cStart;c++) {
+      P[c] = U[c*2];
+      temp[c] = U[c*2+1];
+    }
+  }
+  else {
+    for (c=0;c<cEnd-cStart;c++) P[c] = U[c];
+  }
+
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
 
@@ -701,7 +740,9 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
 
     ierr = ComputeWaterDensity(P[i], tdy->rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
-
+    if (tdy->mode ==  TH) {
+      tdy->Kappa[i*dim2+j] = tdy->Kappa0[i*dim2+j]; // update this based on Kersten number, etc. 
+      ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);}
   }
 
   if ( (tdy->method == MPFA_O || tdy->method == MPFA_O_DAE) && dim == 3) {

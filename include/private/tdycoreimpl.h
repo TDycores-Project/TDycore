@@ -37,8 +37,10 @@ struct _p_TDy {
   /* non-linear function of liquid pressure */
   PetscInt rho_type;
   PetscInt mu_type;
+  PetscInt enthalpy_type;
   PetscReal  *rho, *drho_dP, *d2rho_dP2;       /* density of water [kg m-3]*/
   PetscReal  *vis, *dvis_dP, *d2vis_dP2;       /* viscosity of water [Pa s] */
+  PetscReal  *h, *dh_dP, *dh_dT;               /* enthalpy of water */
 
   /* problem constants */
   PetscReal  gravity[3]; /* vector of gravity [m s-2] */

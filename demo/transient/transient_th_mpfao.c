@@ -131,6 +131,7 @@ int main(int argc, char **argv) {
   TDy  tdy;
   TDyMode mode = TH;
   ierr = TDyCreate(dm,&tdy); CHKERRQ(ierr);
+  ierr = TDySetMode(tdy,mode); CHKERRQ(ierr);
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
   //ierr = TDySetPermeabilityScalar(tdy,Permeability); CHKERRQ(ierr);
   ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction3D,NULL); CHKERRQ(ierr);
@@ -139,7 +140,6 @@ int main(int argc, char **argv) {
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
   //ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
-  ierr = TDySetMode(tdy,mode); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   PetscSection   sec;

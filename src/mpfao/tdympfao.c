@@ -293,7 +293,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
                                nsubcells, nrow, ncol); CHKERRQ(ierr);
-  if (tdy->mode == TH){ierr = TDyAllocate_RealArray_4D(&tdy->Temp_subc_Gmatrix, tdy->mesh->num_cells,
+  if (tdy->mode == TH) {ierr = TDyAllocate_RealArray_4D(&tdy->Temp_subc_Gmatrix, tdy->mesh->num_cells,
                                nsubcells, nrow, ncol); CHKERRQ(ierr);}
 
   /* Setup the section, 1 dof per cell */
@@ -304,7 +304,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   use_dae = (tdy->method == MPFA_O_DAE);
   ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
   if (!use_dae) {
-    if (tdy->method == TH){
+    if (tdy->mode == TH){
       ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
       ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
       ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
@@ -316,7 +316,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
       ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
     }
   } else {
-    if (tdy->method == TH) {SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TH unsupported with MPFA_O_DAE");}
+    if (tdy->mode == TH) {SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TH unsupported with MPFA_O_DAE");}
     ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
@@ -330,12 +330,12 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   for(p=pStart; p<pEnd; p++) {
     ierr = PetscSectionSetFieldDof(sec,p,0,1); CHKERRQ(ierr);
     ierr = PetscSectionSetDof(sec,p,1); CHKERRQ(ierr);
-    if (tdy->method == TH){
+    if (tdy->mode == TH){
       ierr = PetscSectionSetFieldDof(sec,p,1,1); CHKERRQ(ierr);
       ierr = PetscSectionSetDof(sec,p,2); CHKERRQ(ierr);
     }
     if (use_dae) {
-      if (tdy->method == TH) {SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TH unsupported with MPFA_O_DAE");}
+      if (tdy->mode == TH) {SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TH unsupported with MPFA_O_DAE");}
       ierr = PetscSectionSetFieldDof(sec,p,1,1); CHKERRQ(ierr);
       ierr = PetscSectionSetDof(sec,p,2); CHKERRQ(ierr);
     }

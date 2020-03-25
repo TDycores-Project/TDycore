@@ -83,7 +83,7 @@ PetscErrorCode ComputeWaterViscosity(PetscReal p, PetscInt density_type, PetscRe
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode ComputeWaterEnthalpy_Constant(PetscReal p, PetscReal *hw, PetscReal *dhw_dP, PetscReal *dhw_dT) {
+PetscErrorCode ComputeWaterEnthalpy_Constant(PetscReal t, PetscReal p, PetscReal *hw, PetscReal *dhw_dP, PetscReal *dhw_dT) {
 
   PetscFunctionBegin;
 
@@ -95,7 +95,7 @@ PetscErrorCode ComputeWaterEnthalpy_Constant(PetscReal p, PetscReal *hw, PetscRe
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode ComputeWaterEnthalpy(PetscReal p, PetscInt enthalpy_type, PetscReal *hw, PetscReal *dhw_dP, PetscReal *dhw_dT) {
+PetscErrorCode ComputeWaterEnthalpy(PetscReal t, PetscReal p, PetscInt enthalpy_type, PetscReal *hw, PetscReal *dhw_dP, PetscReal *dhw_dT) {
 
   PetscErrorCode ierr;
 
@@ -103,7 +103,7 @@ PetscErrorCode ComputeWaterEnthalpy(PetscReal p, PetscInt enthalpy_type, PetscRe
 
   switch (enthalpy_type) {
   case WATER_ENTHALPY_CONSTANT :
-    ierr = ComputeWaterEnthalpy_Constant(p,hw,dhw_dP,dhw_dT); CHKERRQ(ierr);
+    ierr = ComputeWaterEnthalpy_Constant(t,p,hw,dhw_dP,dhw_dT); CHKERRQ(ierr);
     break;
   default:
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown water enthalpy function");
