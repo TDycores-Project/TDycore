@@ -293,7 +293,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
                                nsubcells, nrow, ncol); CHKERRQ(ierr);
-  if (tdy->mode == TH){ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
+  if (tdy->mode == TH){ierr = TDyAllocate_RealArray_4D(&tdy->Temp_subc_Gmatrix, tdy->mesh->num_cells,
                                nsubcells, nrow, ncol); CHKERRQ(ierr);}
 
   /* Setup the section, 1 dof per cell */
