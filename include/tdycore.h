@@ -68,15 +68,13 @@ PETSC_EXTERN PetscErrorCode TDySetDirichletFluxFunction(TDy,PetscErrorCode(*)(TD
 
 PETSC_EXTERN PetscErrorCode TDySetGravityVector(TDy,PetscReal*);
 
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (TDy tdy,
-    SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy tdy,
-    SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (TDy tdy,
-    SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (TDy tdy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetCellPermeability(TDy,PetscInt,PetscReal*);
-PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy tdy,
-    SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetSpecificHeatCapacity(TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetRockDensity         (TDy tdy,SpatialFunction f);
 
 PETSC_EXTERN PetscErrorCode TDySetPorosityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);

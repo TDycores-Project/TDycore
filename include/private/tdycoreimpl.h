@@ -51,19 +51,21 @@ struct _p_TDy {
 
 
   /* material parameters */
-  PetscReal  *Sr;        /* residual saturation (min) [1] */
+  PetscReal *Sr;                 /* residual saturation (min) [1] */
   PetscReal *K,
-            *K0;     /* permeability tensor (cell,intrinsic) for each cell [m2] */
+            *K0;                 /* permeability tensor (cell,intrinsic) for each cell [m2] */
   PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
-  PetscReal *porosity;  /* porosity for each cell [1] */
+  PetscReal *porosity;           /* porosity for each cell [1] */
   PetscReal *S,
-            *dS_dP,  /* saturation and derivative wrt pressure for each cell [1] */
-            *d2S_dP2;/* second derivative of saturation wrt pressure for each cell [1] */
+            *dS_dP,              /* saturation and derivative wrt pressure for each cell [1] */
+            *d2S_dP2;            /* second derivative of saturation wrt pressure for each cell [1] */
   PetscReal *Kappa,
-            *Kappa0;     /* thermal conductivity tensor (cell,intrinsic) for each cell */
+            *Kappa0;             /* thermal conductivity tensor (cell,intrinsic) for each cell [W/(K-m)] */
+  PetscReal *Cr;                 /* specific heat capacity for rock [J/(kg-K)] */
+  PetscReal *rhor;               /* rock density [kg/m3] */
 
-  PetscInt *SatFuncType;     /* type of saturation function */
-  PetscInt *RelPermFuncType; /* type of relative permeability */
+  PetscInt *SatFuncType;         /* type of saturation function */
+  PetscInt *RelPermFuncType;     /* type of relative permeability */
 
   PetscReal *matprop_m, *matprop_n, *matprop_alpha;
 

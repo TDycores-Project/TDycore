@@ -152,6 +152,8 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->h)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Cr)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rhor)); CHKERRQ(ierr);
 
 
   /* problem constants FIX: add mutators */
@@ -176,6 +178,8 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
     tdy->h[c] = 0.0;
     tdy->dh_dT[c] = 0.0;
     tdy->dh_dP[c] = 0.0;
+    tdy->Cr[c] = 0.0;
+    tdy->rhor[c] = 0.0;
   }
   tdy->Pref = 101325;
   tdy->Tref = 25;
@@ -220,14 +224,32 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->V); CHKERRQ(ierr);
   ierr = PetscFree(tdy->X); CHKERRQ(ierr);
   ierr = PetscFree(tdy->N); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->K); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->K0); CHKERRQ(ierr);
   ierr = PetscFree(tdy->porosity); CHKERRQ(ierr);
   ierr = PetscFree(tdy->Kr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dKr_dS); CHKERRQ(ierr);
   ierr = PetscFree(tdy->S); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dS_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->d2S_dP2); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->K); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->K0); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->rho); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->d2rho_dP2); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->vis); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->dvis_dP); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->d2vis_dP2); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->Sr); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->SatFuncType); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->RelPermFuncType); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->matprop_alpha); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->matprop_n); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->matprop_m); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->Kappa); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->Kappa0); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->h); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->dh_dP); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->Cr); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->rhor); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
