@@ -330,7 +330,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   TDy_cell       *cells;
   DM       dm;
   Vec      Ul;
-  PetscReal *p,*du_dt,*r,*temp,*u_p;
+  PetscReal *p,*du_dt,*r,*temp,*u_p,*dp_dt;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
