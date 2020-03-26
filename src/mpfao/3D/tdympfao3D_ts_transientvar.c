@@ -10,14 +10,14 @@
 #include <private/tdympfao3Dtsimpl.h>
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, void *ctx) {
+PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) {
 
   TDy            tdy = (TDy)ctx;
   TDy_mesh       *mesh;
   TDy_cell       *cells;
   DM             dm;
   Vec            Ul;
-  PetscScalar    *u,*p;
+  PetscScalar    *c,*p;
   PetscInt       icell;
   PetscErrorCode ierr;
 
@@ -40,16 +40,16 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, void *ctx) {
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
 
-  ierr = VecGetArray(U,&u); CHKERRQ(ierr);
+  ierr = VecGetArray(C,&c); CHKERRQ(ierr);
 
   for (icell=0;icell<mesh->num_cells;icell++){
 
     if (!cells->is_local[icell]) continue;
 
-    u[icell] = tdy->rho[icell] * tdy->porosity[icell] * tdy->S[icell]* cells->volume[icell];
+    c[icell] = tdy->rho[icell] * tdy->porosity[icell] * tdy->S[icell]* cells->volume[icell];
   }
 
-  ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
+  ierr = VecRestoreArray(C,&c); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
