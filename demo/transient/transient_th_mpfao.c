@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
   ierr = TDySetThermalConductivityFunction(tdy,ThermalConductivityFunction3D,NULL); CHKERRQ(ierr);
   ierr = TDySetResidualSaturationValuesLocal(tdy,cEnd-cStart,index,residualSat);
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
-  ierr = TDySetForcingFunction(tdy,EnergyForcing,NULL); CHKERRQ(ierr);
+  ierr = TDySetEnergyForcingFunction(tdy,EnergyForcing,NULL); CHKERRQ(ierr);
   //ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
   //ierr = TDySetTemperatureDirichletValueFunction(tdy,Temperature,NULL); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);

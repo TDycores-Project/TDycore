@@ -330,7 +330,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   TDy_cell       *cells;
   DM       dm;
   Vec      Ul;
-  PetscReal *p,*dp_dt,*r,*temp,*u_p;
+  PetscReal *p,*du_dt,*r,*temp,*u_p;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -354,8 +354,8 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyMPFAO_SetBoundaryTemperature(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
-  ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
-  ierr = MatMult(tdy->Temp_Trans_mat, tdy->Temp_P_vec, tdy->Temp_TtimesP_vec);
+  ierr = MatMult(tdy->Trans_mat,tdy->P_vec,tdy->TtimesP_vec);
+  ierr = MatMult(tdy->Temp_Trans_mat,tdy->Temp_P_vec,tdy->Temp_TtimesP_vec);
 
 #if 0
   PetscViewer viewer;
@@ -379,7 +379,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   ierr = TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DMesh_TH(Ul,R,ctx); CHKERRQ(ierr);
   ierr = TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_3DMesh_TH(Ul,R,ctx); CHKERRQ(ierr);
 
-  ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
+  ierr = VecGetArray(U_t,&du_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
 
   PetscReal dporosity_dP = 0.0;
@@ -395,8 +395,8 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
     dmass_dP = tdy->rho[icell]     * dporosity_dP         * tdy->S[icell] +
                tdy->drho_dP[icell] * tdy->porosity[icell] * tdy->S[icell] +
                tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dP[icell];
-    r[icell] += dmass_dP * dp_dt[icell] * cells->volume[icell];
-    r[icell] -= tdy->source_sink[icell] * cells->volume[icell];
+    r[icell*2] += dmass_dP * dp_dt[icell] * cells->volume[icell];
+    r[icell*2] -= tdy->source_sink[icell] * cells->volume[icell];
   }
 
   /* Cleanup */
