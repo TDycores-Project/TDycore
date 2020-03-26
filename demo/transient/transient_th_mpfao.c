@@ -31,7 +31,17 @@ PetscErrorCode Pressure(TDy tdy,double *x,double *p,void *ctx) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode Temperature(TDy tdy,double *x,double *p,void *ctx) {
+  (*p) = 25;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode Forcing(TDy tdy,double *x,double *f,void *ctx) {
+  (*f) = 0;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode EnergyForcing(TDy tdy,double *x,double *f,void *ctx) {
   (*f) = 0;
   PetscFunctionReturn(0);
 }
@@ -138,7 +148,9 @@ int main(int argc, char **argv) {
   ierr = TDySetThermalConductivityFunction(tdy,ThermalConductivityFunction3D,NULL); CHKERRQ(ierr);
   ierr = TDySetResidualSaturationValuesLocal(tdy,cEnd-cStart,index,residualSat);
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
+  ierr = TDySetForcingFunction(tdy,EnergyForcing,NULL); CHKERRQ(ierr);
   //ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
+  //ierr = TDySetTemperatureDirichletValueFunction(tdy,Temperature,NULL); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 

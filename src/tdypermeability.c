@@ -28,6 +28,20 @@ PetscErrorCode TDySetForcingFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetEnergyForcingFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  if (f) tdy->ops->computeenergyforcing = f;
+  if (ctx) tdy->energyforcingctx = ctx;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetTemperatureDirichletValueFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  if (f) tdy->ops->computetemperaturedirichletvalue = f;
+  if (ctx) tdy->temperaturedirichletvaluectx = ctx;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetDirichletValueFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
   if (f) tdy->ops->computedirichletvalue = f;

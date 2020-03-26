@@ -19,7 +19,9 @@ struct _TDyOps {
   PetscErrorCode (*computethermalconductivity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeresidualsaturation)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeforcing)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computeenergyforcing)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computedirichletvalue)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computetemperaturedirichletvalue)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computedirichletflux)(TDy,PetscReal*,PetscReal*,void*);
 };
 
@@ -45,6 +47,7 @@ struct _p_TDy {
   /* problem constants */
   PetscReal  gravity[3]; /* vector of gravity [m s-2] */
   PetscReal  Pref;       /* reference pressure */
+  PetscReal  Tref;       /* reference temperature */
 
 
   /* material parameters */
@@ -66,8 +69,10 @@ struct _p_TDy {
 
   /* boundary pressure and auxillary variables that depend on boundary pressure */
   PetscReal *P_BND;
+  PetscReal *T_BND;               /* boundary temperature */
   PetscReal  *rho_BND;            /* density of water [kg m-3]*/
-  PetscReal  *vis_BND;             /* viscosity of water [Pa s] */
+  PetscReal  *vis_BND;            /* viscosity of water [Pa s] */
+  PetscReal  *h_BND;              /* enthalpy of water */
   PetscReal *Kr_BND, *dKr_dS_BND; /* relative permeability for each cell [1] */
   PetscReal *S_BND,  *dS_dP_BND,  /* saturation, first derivative wrt boundary pressure, and */
             *d2S_dP2_BND;         /* second derivative of saturation wrt boundary pressure */
@@ -78,7 +83,9 @@ struct _p_TDy {
   void *thermalconductivityctx;
   void *residualsaturationctx;
   void *forcingctx;
+  void *energyforcingctx;
   void *dirichletvaluectx;
+  void *temperaturedirichletvaluectx;
   void *dirichletfluxctx;
 
   /* method-specific information*/

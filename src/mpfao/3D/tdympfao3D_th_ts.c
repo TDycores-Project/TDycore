@@ -352,12 +352,29 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
+  ierr = TDyMPFAO_SetBoundaryTemperature(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
   ierr = MatMult(tdy->Temp_Trans_mat, tdy->Temp_P_vec, tdy->Temp_TtimesP_vec);
 
+#if 0
+  PetscViewer viewer;
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Temp_Trans_mat.mat",&viewer); CHKERRQ(ierr);
+  ierr = MatView(tdy->Temp_Trans_mat,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Temp_TtimesP_vec.vec",&viewer); CHKERRQ(ierr);
+  ierr = VecView(tdy->Temp_TtimesP_vec,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Temp_P_vec.vec",&viewer); CHKERRQ(ierr);
+  ierr = VecView(tdy->Temp_P_vec,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
+
   PetscInt iface;
 
+  // Fluxes
   ierr = TDyMPFAOIFunction_InternalVertices_3DMesh_TH(Ul,R,ctx); CHKERRQ(ierr);
   ierr = TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DMesh_TH(Ul,R,ctx); CHKERRQ(ierr);
   ierr = TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_3DMesh_TH(Ul,R,ctx); CHKERRQ(ierr);
@@ -369,6 +386,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   PetscReal dmass_dP;
   PetscInt icell;
 
+  // Accumulation and source/sink contributions
   for (icell=0;icell<mesh->num_cells;icell++){
 
     if (!cells->is_local[icell]) continue;

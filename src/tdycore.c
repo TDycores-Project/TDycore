@@ -178,6 +178,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
     tdy->dh_dP[c] = 0.0;
   }
   tdy->Pref = 101325;
+  tdy->Tref = 25;
   tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
   tdy->gravity[dim-1] = -9.81;
   tdy->rho_type = WATER_DENSITY_CONSTANT;
@@ -757,6 +758,18 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
       p_vec_ptr[i] = P[i] + tdy->rho[i]*gz;
     }
     ierr = VecRestoreArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+
+    if (tdy->mode == TH) {
+      PetscReal *t_vec_ptr;
+      ierr = VecGetArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
+      for (c=cStart; c<cEnd; c++) {
+        i = c-cStart;
+        t_vec_ptr[i] = temp[i];
+      }     
+      ierr = VecRestoreArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
+    }
+
+
   }
 
   PetscFunctionReturn(0);
