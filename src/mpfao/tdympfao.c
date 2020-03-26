@@ -194,10 +194,8 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
   nbnd_faces = mesh->num_boundary_faces;
 
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->P_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->T_BND)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->rho_BND)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->vis_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->h_BND)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->Kr_BND)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->dKr_dS_BND)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->S_BND)); CHKERRQ(ierr);
@@ -205,11 +203,34 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->d2S_dP2_BND)); CHKERRQ(ierr);
 
   PetscInt i;
-  PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2, dh_dP, dh_dT;
+  PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
   for (i=0;i<nbnd_faces;i++) {
     ierr = ComputeWaterDensity(tdy->Pref, tdy->rho_type, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(tdy->Pref, tdy->mu_type, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
-    ierr = ComputeWaterEnthalpy(tdy->Tref, tdy->Pref, tdy->enthalpy_type, &(tdy->h_BND[i]), &dh_dP, &dh_dT); CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy) {
+
+  TDy_mesh *mesh;
+  PetscInt nbnd_faces;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  mesh  = tdy->mesh;
+  nbnd_faces = mesh->num_boundary_faces;
+
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->T_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->h_BND)); CHKERRQ(ierr);
+
+  PetscInt i;
+  PetscReal dh_dP, dh_dT;
+  for (i=0;i<nbnd_faces;i++) {
+    ierr = ComputeWaterEnthalpy(tdy->Tref, tdy->Pref,tdy->enthalpy_type, &(tdy->h_BND[i]), &dh_dP, &dh_dT); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
@@ -231,6 +252,26 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
 
   PetscInt i;
   for (i=0;i<ncells;i++) tdy->source_sink[i] = 0.0;
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(TDy tdy) {
+
+  TDy_mesh *mesh;
+  PetscInt ncells;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  mesh  = tdy->mesh;
+  ncells = mesh->num_cells;
+
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(tdy->energy_source_sink)); CHKERRQ(ierr);
+
+  PetscInt i;
+  for (i=0;i<ncells;i++) tdy->energy_source_sink[i] = 0.0;
 
   PetscFunctionReturn(0);
 }
@@ -386,6 +427,10 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   if (dim == 3) {
     ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
     ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(tdy); CHKERRQ(ierr);
+    if (tdy->mode == TH) {
+      ierr = TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(tdy); CHKERRQ(ierr);
+      ierr = TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(tdy); CHKERRQ(ierr);
+    }
   }
 
   PetscFunctionReturn(0);

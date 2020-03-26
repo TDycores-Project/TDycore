@@ -78,7 +78,8 @@ struct _p_TDy {
   PetscReal *Kr_BND, *dKr_dS_BND; /* relative permeability for each cell [1] */
   PetscReal *S_BND,  *dS_dP_BND,  /* saturation, first derivative wrt boundary pressure, and */
             *d2S_dP2_BND;         /* second derivative of saturation wrt boundary pressure */
-  PetscReal *source_sink;
+  PetscReal *source_sink;         /* flow equation source sink */
+  PetscReal *energy_source_sink;  /* energy equation source sink */
 
   void *porosityctx;
   void *permeabilityctx;

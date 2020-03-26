@@ -83,6 +83,7 @@ PETSC_EXTERN PetscErrorCode TDySetMaterialPropertyMValuesLocal(TDy,PetscInt,cons
 PETSC_EXTERN PetscErrorCode TDySetMaterialPropertyNValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetMaterialPropertyAlphaValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetSourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
+PETSC_EXTERN PetscErrorCode TDySetEnergySourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 
 PETSC_EXTERN PetscErrorCode TDyGetSaturationValuesLocal(TDy,PetscInt*,PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDyGetLiquidMassValuesLocal(TDy,PetscInt*,PetscScalar[]);
