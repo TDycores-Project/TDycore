@@ -322,18 +322,18 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in TDyResetDiscretizationMethod");
     break;
   }
-  if (tdy->subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
-                                    nsubcells, nrow, ncol); CHKERRQ(ierr); } 
-  if (tdy->Trans       ) { ierr = TDyDeallocate_RealArray_3D(&tdy->Trans, 
-                                    tdy->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
-  if (tdy->Trans_mat   ) { ierr = MatDestroy(&tdy->Trans_mat  ); CHKERRQ(ierr); }
+  // if (tdy->subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
+  //                                   nsubcells, nrow, ncol); CHKERRQ(ierr); } 
+  // if (tdy->Trans       ) { ierr = TDyDeallocate_RealArray_3D(&tdy->Trans, 
+  //                                   tdy->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
+  // if (tdy->Trans_mat   ) { ierr = MatDestroy(&tdy->Trans_mat  ); CHKERRQ(ierr); }
   if (tdy->P_vec       ) { ierr = VecDestroy(&tdy->P_vec      ); CHKERRQ(ierr); }
   if (tdy->TtimesP_vec ) { ierr = VecDestroy(&tdy->TtimesP_vec); CHKERRQ(ierr); }
-  if (tdy->Temp_subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->Temp_subc_Gmatrix, 
-                                         tdy->mesh->num_cells,
-                                         nsubcells, nrow, ncol); CHKERRQ(ierr); } 
-  if (tdy->Temp_Trans       ) { ierr = TDyDeallocate_RealArray_3D(&tdy->Temp_Trans, 
-                                         tdy->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
+  // if (tdy->Temp_subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->Temp_subc_Gmatrix, 
+  //                                        tdy->mesh->num_cells,
+  //                                        nsubcells, nrow, ncol); CHKERRQ(ierr); } 
+  // if (tdy->Temp_Trans       ) { ierr = TDyDeallocate_RealArray_3D(&tdy->Temp_Trans, 
+  //                                        tdy->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
   if (tdy->Temp_Trans_mat   ) { ierr = MatDestroy(&tdy->Temp_Trans_mat  ); CHKERRQ(ierr); }
   if (tdy->Temp_P_vec       ) { ierr = VecDestroy(&tdy->Temp_P_vec      ); CHKERRQ(ierr); }
   if (tdy->Temp_TtimesP_vec ) { ierr = VecDestroy(&tdy->Temp_TtimesP_vec); CHKERRQ(ierr); }
