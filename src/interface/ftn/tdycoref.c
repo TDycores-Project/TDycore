@@ -11,7 +11,6 @@
 #ifdef PETSC_HAVE_FORTRAN_CAPS
 #define tdycreate_                                  TDYCREATE
 #define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
-#define tdysetmode_                                 TDYSETMODE
 #define tdysetup_                                   TDYSETUP
 #define tdysetwaterdensitytype_                     TDYWATERDENSITYTYPE
 #define tdysetifunction_                            TDYSETIFUNCTION
@@ -61,7 +60,6 @@
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
 #define tdycreate_                                  tdycreate
 #define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
-#define tdysetmode_                                 tdysetmode
 #define tdysetup_                                   tdysetup
 #define tdysetwaterdensitytype_                     tdysetwaterdensitytype
 #define tdysetifunction_                            tdysetifunction
@@ -136,16 +134,6 @@ extern "C" {
 #endif
 PETSC_EXTERN void PETSC_STDCALL  tdysetdiscretizationmethod_(TDy tdy, PetscInt *method, int *__ierr){
 *__ierr = TDySetDiscretizationMethod((TDy)PetscToPointer((tdy)), *method);
-}
-#if defined(__cplusplus)
-}
-#endif
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-PETSC_EXTERN void PETSC_STDCALL  tdysetmode_(TDy tdy, PetscInt *mode, int *__ierr){
-*__ierr = TDySetMode((TDy)PetscToPointer((tdy)), *mode);
 }
 #if defined(__cplusplus)
 }
@@ -590,3 +578,4 @@ PETSC_EXTERN void PETSC_STDCALL tdyupdatestate_(TDy *tdy,PetscScalar y[], int *i
 {
   *ierr = TDyUpdateState(*tdy,y);
 }
+
