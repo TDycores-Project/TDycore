@@ -45,7 +45,7 @@ PetscErrorCode TDyMPFAOIFunction_InternalVertices_3DMesh(Vec Ul, Vec R, void *ct
     if (vertices->num_boundary_cells[ivertex] != 0) continue;
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
 
-    PetscInt nflux_in = 12;
+    PetscInt nflux_in = vertices->num_faces[ivertex];
     PetscScalar TtimesP[nflux_in];
 
     // Compute = T*P
@@ -291,7 +291,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
       cell_id_dn = faces->cell_ids[fOffsetCell + 1];
 
 
-      if (TtimesP[irow] < 0.0) { // up ---> dn
+      if (TtimesP[iface] < 0.0) { // up ---> dn
         if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
         else               ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
       } else {
@@ -354,8 +354,6 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
-
-  PetscInt iface;
 
   ierr = TDyMPFAOIFunction_InternalVertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
   ierr = TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
@@ -433,7 +431,7 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh(Vec Ul, Mat A, void *ct
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
-    PetscInt nflux_in = 12;
+    PetscInt nflux_in = vertices->num_faces[ivertex];
     PetscScalar TtimesP[nflux_in];
 
     // Compute = T*P

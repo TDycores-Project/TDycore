@@ -760,7 +760,7 @@ int main(int argc, char **argv) {
   PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"sol.vtk",FILE_MODE_WRITE,&viewer);
   ierr = DMView(dm,viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer); CHKERRQ(ierr); // the approximate solution
-  ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F); 
+  //ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F);
   ierr = VecView(F,viewer); CHKERRQ(ierr); // the residual K*Ue-F
   ierr = VecView(Ue,viewer); CHKERRQ(ierr);  // the exact solution
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);

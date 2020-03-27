@@ -235,7 +235,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
     break;
   case 3:
-    ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 12, 12);
+    ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 24, 24);
     CHKERRQ(ierr);
     ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
                      &(tdy->vel )); CHKERRQ(ierr);
@@ -612,7 +612,9 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
 
       ierr = (*tdy->ops->computedirichletflux)(tdy, &(tdy->X[(face_id + fStart)*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);
       vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim);
-      if (tdy->vel_count[face_id] != 4) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->vel_count != 4");
+      if (tdy->vel_count[face_id] != faces->num_vertices[face_id]) {
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->vel_count != faces->num_vertices[face_id]");
+      }
 
       norm += PetscSqr((vel_normal - tdy->vel[face_id]))*cells->volume[icell];
     }

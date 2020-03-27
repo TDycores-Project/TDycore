@@ -15,7 +15,7 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdympfaorecovervelocity_(TDy tdy, Vec U, int *__ierr){
+PETSC_EXTERN void tdympfaorecovervelocity_(TDy tdy, Vec U, int *__ierr){
 *__ierr = TDyMPFAORecoverVelocity(
   (TDy)PetscToPointer((tdy) ),
   (Vec)PetscToPointer((U) ));

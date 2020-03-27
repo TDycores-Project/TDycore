@@ -5,6 +5,7 @@ void PressureSaturation_Gardner(PetscReal n,PetscReal m,PetscReal alpha, PetscRe
   if(Pc < 0) { /* if Pc < 0 then P > Pref and Se = 1 */
     *S = 1;
     if(dS_dP) *dS_dP = 0;
+    if(d2S_dP2) *d2S_dP2 =0.0;
   }else{
     PetscReal Se, dSe_dPc;
     Se = PetscExpReal(-alpha*Pc/m);
@@ -27,6 +28,7 @@ void PressureSaturation_VanGenuchten(PetscReal m,PetscReal alpha,  PetscReal Sr,
   if(Pc <= 0) { 
     *S = 1;
     if(dS_dP) *dS_dP = 0;
+    if(d2S_dP2) *d2S_dP2 =0.0;
   }else{
     PetscReal Se, dSe_dPc;
     n = 1/(1-m);
