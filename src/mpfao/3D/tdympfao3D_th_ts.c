@@ -420,7 +420,6 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = TDyUpdateState(tdy,u_p); CHKERRQ(ierr);
-  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyMPFAO_SetBoundaryTemperature(tdy,Ul); CHKERRQ(ierr);
@@ -457,15 +456,20 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&dp_dt);CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&dtemp_dt);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&p);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&temp);CHKERRQ(ierr);
 
   for (c=0;c<cEnd-cStart;c++) {
     dp_dt[c]    = du_dt[c*2];
+    p[c]        = u_p[c*2];
     dtemp_dt[c] = du_dt[c*2+1];
+    temp[c]     = u_p[c*2+1];
   }
 
 
   PetscReal dporosity_dP = 0.0;
-  PetscReal dmass_dP;
+  PetscReal dporosity_dT = 0.0;
+  PetscReal dmass_dP,dmass_dT;
   PetscInt icell;
 
   // Accumulation and source/sink contributions
@@ -473,15 +477,53 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
 
     if (!cells->is_local[icell]) break;
 
-    // d(rho*phi*s)/dP * dP/dt * Vol
+    // A_M = d(rho*phi*s)/dP * dP_dtime * Vol + d(rho*phi*s)/dT * dT_dtime * Vol
     dmass_dP = tdy->rho[icell]     * dporosity_dP         * tdy->S[icell] +
                tdy->drho_dP[icell] * tdy->porosity[icell] * tdy->S[icell] +
                tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dP[icell];
-    r[icell*2] += dmass_dP * dp_dt[icell] * cells->volume[icell];
-    r[icell*2] -= tdy->source_sink[icell] * cells->volume[icell];
+    dmass_dT = tdy->rho[icell]     * dporosity_dT         * tdy->S[icell] +
+               tdy->drho_dT[icell] * tdy->porosity[icell] * tdy->S[icell] +
+               tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dT[icell];
+
+    // A_E = [d(rho*phi*s*U)/dP + d(rho*(1-phi)*T)/dP] * dP_dtime *Vol + 
+    //       [d(rho*phi*s*U)/dT + d(rho*(1-phi)*T)/dT] * dT_dtime *Vol
+    // denergy_dP = dden_dP     * por        * sat     * u     + &
+    //              den         * dpor_dP    * sat     * u     + &
+    //              den         * por        * dsat_dP * u     + &
+    //              den         * por        * sat     * du_dP + &
+    //              rock_dencpr * (-dpor_dP) * temp
+
+    // denergy_dt = dden_dt     * por        * sat     * u     + &
+    //              den         * dpor_dt    * sat     * u     + &
+    //              den         * por        * dsat_dt * u     + &
+    //              den         * por        * sat     * du_dt + &
+    //              rock_dencpr * (-dpor_dt) * temp            + &
+    //              rock_dencpr * (1-por)
+
+    PetscReal rock_dencpr = tdy->rhor[icell]*tdy->Cr[icell];
+    PetscReal denergy_dP,denergy_dT;
+
+    denergy_dP = tdy->drho_dP[icell] * tdy->porosity[icell] * tdy->S[icell]     * tdy->u[icell]     +
+                 tdy->rho[icell]     * dporosity_dP         * tdy->S[icell]     * tdy->u[icell]     +
+                 tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dP[icell] * tdy->u[icell]     +
+                 tdy->rho[icell]     * tdy->porosity[icell] * tdy->S[icell]     * tdy->du_dP[icell] +
+                 rock_dencpr         * (-dporosity_dP)      * temp[icell];
+
+    denergy_dT = tdy->drho_dT[icell] * tdy->porosity[icell] * tdy->S[icell]     * tdy->u[icell]     +
+                 tdy->rho[icell]     * dporosity_dT         * tdy->S[icell]     * tdy->u[icell]     +
+                 tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dT[icell] * tdy->u[icell]     +
+                 tdy->rho[icell]     * tdy->porosity[icell] * tdy->S[icell]     * tdy->du_dT[icell] +
+                 rock_dencpr         * (-dporosity_dT)      * temp[icell]                           +
+                 rock_dencpr         * (1.0 - tdy->porosity[icell]);
+
+    r[icell*2]   += dmass_dP * dp_dt[icell] * cells->volume[icell] + dmass_dT * dtemp_dt[icell] * cells->volume[icell];
+    r[icell*2+1] += denergy_dP * dp_dt[icell] * cells->volume[icell] + denergy_dT * dtemp_dt[icell] * cells->volume[icell];
+    r[icell*2]   -= tdy->source_sink[icell] * cells->volume[icell];
+    r[icell*2+1] -= tdy->energy_source_sink[icell] * cells->volume[icell];
   }
 
   /* Cleanup */
+  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = VecRestoreArray(U_t,&du_dt); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);

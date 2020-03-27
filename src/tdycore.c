@@ -154,6 +154,11 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Cr)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rhor)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->u)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dT)); CHKERRQ(ierr);
 
 
   /* problem constants FIX: add mutators */
@@ -180,6 +185,11 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
     tdy->dh_dP[c] = 0.0;
     tdy->Cr[c] = 0.0;
     tdy->rhor[c] = 0.0;
+    tdy->drho_dT[c] = 0.0;
+    tdy->dS_dT[c] = 0.0;
+    tdy->u[c] = 0.0;
+    tdy->du_dP[c] = 0.0;
+    tdy->du_dT[c] = 0.0;
   }
   tdy->Pref = 101325;
   tdy->Tref = 25;
@@ -792,7 +802,9 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
     if (tdy->mode ==  TH) {
       tdy->Kappa[i*dim2+j] = tdy->Kappa0[i*dim2+j]; // update this based on Kersten number, etc. 
-      ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);}
+      ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);
+      tdy->u[i] = tdy->h[i] - P[i]/tdy->rho[i];
+    }
   }
 
   if ( (tdy->method == MPFA_O || tdy->method == MPFA_O_DAE) && dim == 3) {

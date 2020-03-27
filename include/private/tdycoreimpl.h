@@ -43,6 +43,8 @@ struct _p_TDy {
   PetscReal  *rho, *drho_dP, *d2rho_dP2;       /* density of water [kg m-3]*/
   PetscReal  *vis, *dvis_dP, *d2vis_dP2;       /* viscosity of water [Pa s] */
   PetscReal  *h, *dh_dP, *dh_dT;               /* enthalpy of water */
+  PetscReal  *u, *du_dP, *du_dT;               /* internal energy of water */
+  PetscReal  *drho_dT;
 
   /* problem constants */
   PetscReal  gravity[3]; /* vector of gravity [m s-2] */
@@ -58,7 +60,8 @@ struct _p_TDy {
   PetscReal *porosity;           /* porosity for each cell [1] */
   PetscReal *S,
             *dS_dP,              /* saturation and derivative wrt pressure for each cell [1] */
-            *d2S_dP2;            /* second derivative of saturation wrt pressure for each cell [1] */
+            *d2S_dP2,            /* second derivative of saturation wrt pressure for each cell [1] */
+            *dS_dT;
   PetscReal *Kappa,
             *Kappa0;             /* thermal conductivity tensor (cell,intrinsic) for each cell [W/(K-m)] */
   PetscReal *Cr;                 /* specific heat capacity for rock [J/(kg-K)] */
