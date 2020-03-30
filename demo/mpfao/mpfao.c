@@ -237,9 +237,9 @@ int main(int argc, char **argv) {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE, &dm); CHKERRQ(ierr);
   }
 
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
   if (dmDist) {DMDestroy(&dm); dm = dmDist;}
+  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
   // Setup problem parameters
