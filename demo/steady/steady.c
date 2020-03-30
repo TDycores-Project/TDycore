@@ -208,9 +208,6 @@ PetscErrorCode VelocityWheeler2012_2(TDy tdy,double *x,double *v,void *ctx) {
 
 PetscErrorCode ForcingWheeler2012_2(TDy tdy,double *x,double *f, void *ctx) {
   PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
-  PetscReal xm1  = (x[0]-1);
-  PetscReal ym1  = (x[1]-1);
-  PetscReal zm1  = (x[2]-1);
   PetscReal xm12 = PetscSqr(x[0]-1);
   PetscReal ym12 = PetscSqr(x[1]-1);
   PetscReal zm12 = PetscSqr(x[2]-1);
