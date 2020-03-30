@@ -122,7 +122,7 @@ static struct {
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdycreate_(DM dm,TDy *_tdy, int *__ierr){
+PETSC_EXTERN void  tdycreate_(DM dm,TDy *_tdy, int *__ierr){
 *__ierr = TDyCreate((DM)PetscToPointer((dm)), _tdy);
 }
 #if defined(__cplusplus)
@@ -132,7 +132,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdycreate_(DM dm,TDy *_tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdysetdiscretizationmethod_(TDy tdy, PetscInt *method, int *__ierr){
+PETSC_EXTERN void  tdysetdiscretizationmethod_(TDy tdy, PetscInt *method, int *__ierr){
 *__ierr = TDySetDiscretizationMethod((TDy)PetscToPointer((tdy)), *method);
 }
 #if defined(__cplusplus)
@@ -142,7 +142,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdysetdiscretizationmethod_(TDy tdy, PetscInt *
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdysetup_(TDy tdy, int *__ierr){
+PETSC_EXTERN void  tdysetup_(TDy tdy, int *__ierr){
 *__ierr = TDySetup((TDy)PetscToPointer((tdy)) );
 }
 #if defined(__cplusplus)
@@ -152,7 +152,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdysetup_(TDy tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdysetwaterdensitytype_(TDy tdy, PetscInt *method, int *__ierr){
+PETSC_EXTERN void  tdysetwaterdensitytype_(TDy tdy, PetscInt *method, int *__ierr){
 *__ierr = TDySetWaterDensityType((TDy)PetscToPointer((tdy)), *method);
 }
 #if defined(__cplusplus)
@@ -162,7 +162,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdysetwaterdensitytype_(TDy tdy, PetscInt *meth
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdysetifunction_(TS ts, TDy tdy, int *__ierr){
+PETSC_EXTERN void  tdysetifunction_(TS ts, TDy tdy, int *__ierr){
 *__ierr = TDySetIFunction(
   (TS)PetscToPointer((ts)),
   (TDy)PetscToPointer((tdy)));
@@ -174,7 +174,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdysetifunction_(TS ts, TDy tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdysetijacobian_(TS ts, TDy tdy, int *__ierr){
+PETSC_EXTERN void  tdysetijacobian_(TS ts, TDy tdy, int *__ierr){
 *__ierr = TDySetIJacobian(
   (TS)PetscToPointer((ts)),
   (TDy)PetscToPointer((tdy)));
@@ -186,7 +186,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdysetijacobian_(TS ts, TDy tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdysetsnesfunction_(SNES snes, TDy tdy, int *__ierr){
+PETSC_EXTERN void  tdysetsnesfunction_(SNES snes, TDy tdy, int *__ierr){
 *__ierr = TDySetSNESFunction(
   (SNES)PetscToPointer((snes)),
   (TDy)PetscToPointer((tdy)));
@@ -198,7 +198,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdysetsnesfunction_(SNES snes, TDy tdy, int *__
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdysetsnesjacobian_(SNES snes, TDy tdy, int *__ierr){
+PETSC_EXTERN void  tdysetsnesjacobian_(SNES snes, TDy tdy, int *__ierr){
 *__ierr = TDySetSNESJacobian(
   (SNES)PetscToPointer((snes)),
   (TDy)PetscToPointer((tdy)));
@@ -210,7 +210,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdysetsnesjacobian_(SNES snes, TDy tdy, int *__
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdysetdtimeforsnessolver_(TDy tdy, PetscReal *dtime, int *__ierr){
+PETSC_EXTERN void  tdysetdtimeforsnessolver_(TDy tdy, PetscReal *dtime, int *__ierr){
 *__ierr = TDySetDtimeForSNESSolver((TDy)PetscToPointer(tdy), *dtime);
 }
 #if defined(__cplusplus)
@@ -220,7 +220,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdysetdtimeforsnessolver_(TDy tdy, PetscReal *d
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdysetinitialsolutionforsnessolver_(TDy tdy, Vec solution, int *__ierr){
+PETSC_EXTERN void  tdysetinitialsolutionforsnessolver_(TDy tdy, Vec solution, int *__ierr){
 *__ierr = TDySetInitialSolutionForSNESSolver(
   (TDy)PetscToPointer(tdy),
   (Vec)PetscToPointer(solution));
@@ -232,7 +232,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdysetinitialsolutionforsnessolver_(TDy tdy, Ve
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdypresolvesnessolver_(TDy tdy, int *__ierr){
+PETSC_EXTERN void  tdypresolvesnessolver_(TDy tdy, int *__ierr){
 *__ierr = TDyPreSolveSNESSolver((TDy)PetscToPointer(tdy));
 }
 #if defined(__cplusplus)
@@ -242,7 +242,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdypresolvesnessolver_(TDy tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdypostsolvesnessolver_(TDy tdy, Vec solution, int *__ierr){
+PETSC_EXTERN void  tdypostsolvesnessolver_(TDy tdy, Vec solution, int *__ierr){
 *__ierr = TDyPostSolveSNESSolver(
   (TDy)PetscToPointer(tdy),
   (Vec)PetscToPointer(solution));
@@ -254,7 +254,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdypostsolvesnessolver_(TDy tdy, Vec solution, 
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdysetfromoptions_(TDy tdy, int *__ierr){
+PETSC_EXTERN void  tdysetfromoptions_(TDy tdy, int *__ierr){
 *__ierr = TDySetFromOptions((TDy)PetscToPointer((tdy)));
 }
 #if defined(__cplusplus)
@@ -264,7 +264,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdysetfromoptions_(TDy tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdycomputesystem_(TDy tdy, Mat K, Vec F, int *__ierr){
+PETSC_EXTERN void  tdycomputesystem_(TDy tdy, Mat K, Vec F, int *__ierr){
 *__ierr = TDyComputeSystem(
   (TDy)PetscToPointer((tdy) ),
   (Mat)PetscToPointer((K) ),
@@ -277,7 +277,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdycomputesystem_(TDy tdy, Mat K, Vec F, int *_
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdycomputeerrornorms_(TDy tdy, Vec U, PetscReal *normp, PetscReal *normv,  int *__ierr){
+PETSC_EXTERN void  tdycomputeerrornorms_(TDy tdy, Vec U, PetscReal *normp, PetscReal *normv,  int *__ierr){
 *__ierr = TDyComputeErrorNorms(
   (TDy)PetscToPointer((tdy) ),
   (Vec)PetscToPointer((U) ),
@@ -290,7 +290,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdycomputeerrornorms_(TDy tdy, Vec U, PetscReal
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdyoutputregression_(TDy tdy, Vec U, int *__ierr){
+PETSC_EXTERN void  tdyoutputregression_(TDy tdy, Vec U, int *__ierr){
 *__ierr = TDyOutputRegression(
   (TDy)PetscToPointer((tdy) ),
   (Vec)PetscToPointer((U) ));
@@ -302,7 +302,7 @@ PETSC_EXTERN void PETSC_STDCALL  tdyoutputregression_(TDy tdy, Vec U, int *__ier
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void PETSC_STDCALL  tdydestroy_(TDy *_tdy, int *__ierr){
+PETSC_EXTERN void  tdydestroy_(TDy *_tdy, int *__ierr){
 *__ierr = TDyDestroy(_tdy);
 }
 #if defined(__cplusplus)
@@ -327,7 +327,7 @@ static PetscErrorCode ourtdypermeabilityfunction(TDy tdy,PetscReal *x,PetscReal 
   PetscObjectUseFortranCallback(tdy,_cb.permeability,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetporosityfunction_(TDy *tdy, void (PETSC_STDCALL *func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+PETSC_EXTERN void tdysetporosityfunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
 {
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.porosity,(PetscVoidFunction)func,ctx);
   if (*ierr) return;
@@ -337,7 +337,7 @@ PETSC_EXTERN void PETSC_STDCALL tdysetporosityfunction_(TDy *tdy, void (PETSC_ST
   *ierr = TDySetPorosityFunction(*tdy,ourtdyporosityfunction,NULL);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetpermeabilityfunction_(TDy *tdy, void (PETSC_STDCALL *func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+PETSC_EXTERN void tdysetpermeabilityfunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
 {
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.permeability,(PetscVoidFunction)func,ctx);
   if (*ierr) return;
@@ -357,7 +357,7 @@ static PetscErrorCode ourtdysetresidualfunction(TDy tdy,PetscReal *x,PetscReal *
 }
 
 
-PETSC_EXTERN void PETSC_STDCALL tdysetresidualsaturationfunction_(TDy *tdy, void (PETSC_STDCALL *func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+PETSC_EXTERN void tdysetresidualsaturationfunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
 {
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.residualsaturation,(PetscVoidFunction)func,ctx);
   if (*ierr) return;
@@ -376,7 +376,7 @@ static PetscErrorCode ourtdyforcingfunction2(TDy tdy,PetscReal *x,PetscReal *f,v
   PetscObjectUseFortranCallback(tdy,_cb.forcing,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetforcingfunction_(TDy *tdy, void (PETSC_STDCALL *func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+PETSC_EXTERN void tdysetforcingfunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
 {
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.forcing,(PetscVoidFunction)func,ctx);
   if (*ierr) return;
@@ -395,7 +395,7 @@ static PetscErrorCode ourtdydirichletvaluefunction(TDy tdy,PetscReal *x,PetscRea
   PetscObjectUseFortranCallback(tdy,_cb.dirichletvalue,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetdirichletvaluefunction_(TDy *tdy, void (PETSC_STDCALL *func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+PETSC_EXTERN void tdysetdirichletvaluefunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
 {
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.dirichletvalue,(PetscVoidFunction)func,ctx);
   if (*ierr) return;
@@ -414,7 +414,7 @@ static PetscErrorCode ourtdydirichletfluxfunction(TDy tdy,PetscReal *x,PetscReal
   PetscObjectUseFortranCallback(tdy,_cb.dirichletflux,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetdirichletfluxfunction_(TDy *tdy, void (PETSC_STDCALL *func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+PETSC_EXTERN void tdysetdirichletfluxfunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
 {
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.dirichletflux,(PetscVoidFunction)func,ctx);
   if (*ierr) return;
@@ -424,157 +424,157 @@ PETSC_EXTERN void PETSC_STDCALL tdysetdirichletfluxfunction_(TDy *tdy, void (PET
   *ierr = TDySetDirichletFluxFunction(*tdy,ourtdydirichletfluxfunction,NULL);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetporosityvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetporosityvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   *ierr = TDySetPorosityValuesLocal(*tdy,*ni,ix,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetporosityvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetporosityvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetporosityvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetporosityvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetporosityvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetporosityvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetblockpermeabilityvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetblockpermeabilityvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   *ierr = TDySetBlockPermeabilityValuesLocal(*tdy,*ni,ix,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetblockpermeabilityvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetblockpermeabilityvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetblockpermeabilityvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetblockpermeabilityvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetblockpermeabilityvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetblockpermeabilityvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetresidualsaturationvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetresidualsaturationvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   *ierr = TDySetResidualSaturationValuesLocal(*tdy,*ni,ix,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetresidualsaturationvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetresidualsaturationvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetresidualsaturationvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetresidualsaturationvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetresidualsaturationvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetresidualsaturationvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertymvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetmaterialpropertymvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   *ierr = TDySetMaterialPropertyMValuesLocal(*tdy,*ni,ix,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertymvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetmaterialpropertymvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetmaterialpropertymvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertymvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetmaterialpropertymvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetmaterialpropertymvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertynvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetmaterialpropertynvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   *ierr = TDySetMaterialPropertyNValuesLocal(*tdy,*ni,ix,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertynvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetmaterialpropertynvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetmaterialpropertynvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertynvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetmaterialpropertynvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetmaterialpropertynvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertyalphavalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetmaterialpropertyalphavalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   *ierr = TDySetMaterialPropertyAlphaValuesLocal(*tdy,*ni,ix,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertyalphavalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetmaterialpropertyalphavalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetmaterialpropertyalphavalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetmaterialpropertyalphavalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetmaterialpropertyalphavalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetmaterialpropertyalphavalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetsourcesinkvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetsourcesinkvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   *ierr = TDySetSourceSinkValuesLocal(*tdy,*ni,ix,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetsourcesinkvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetsourcesinkvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetsourcesinkvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdysetsourcesinkvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetsourcesinkvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   tdysetsourcesinkvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdygetsaturationvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdygetsaturationvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
 {
   *ierr = TDyGetSaturationValuesLocal(*tdy,ni,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdygetliquidmassvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdygetliquidmassvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
 {
   *ierr = TDyGetLiquidMassValuesLocal(*tdy,ni,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdygetmaterialpropertymvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdygetmaterialpropertymvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
 {
   *ierr = TDyGetMaterialPropertyMValuesLocal(*tdy,ni,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdygetmaterialpropertyalphavalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdygetmaterialpropertyalphavalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
 {
   *ierr = TDyGetMaterialPropertyAlphaValuesLocal(*tdy,ni,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdygetporosityvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdygetporosityvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
 {
   *ierr = TDyGetPorosityValuesLocal(*tdy,ni,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdygetblockpermeabilityvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdygetblockpermeabilityvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
 {
   *ierr = TDyGetBlockPermeabilityValuesLocal(*tdy,ni,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdygetnumcellslocal_(TDy *tdy,PetscInt *ni, int *ierr )
+PETSC_EXTERN void tdygetnumcellslocal_(TDy *tdy,PetscInt *ni, int *ierr )
 {
   *ierr = TDyGetNumCellsLocal(*tdy,ni);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdygetcellnaturalidslocal_(TDy *tdy,PetscInt *ni, PetscInt y[], int *ierr )
+PETSC_EXTERN void tdygetcellnaturalidslocal_(TDy *tdy,PetscInt *ni, PetscInt y[], int *ierr )
 {
   *ierr = TDyGetCellNaturalIDsLocal(*tdy,ni,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdygetcellislocal_(TDy *tdy,PetscInt *ni, PetscInt y[], int *ierr )
+PETSC_EXTERN void tdygetcellislocal_(TDy *tdy,PetscInt *ni, PetscInt y[], int *ierr )
 {
   *ierr = TDyGetCellIsLocal(*tdy,ni,y);
 }
 
-PETSC_EXTERN void PETSC_STDCALL tdyupdatestate_(TDy *tdy,PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int *ierr )
 {
   *ierr = TDyUpdateState(*tdy,y);
 }

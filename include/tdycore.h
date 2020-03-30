@@ -7,11 +7,12 @@
 /* ---------------------------------------------------------------- */
 
 typedef enum {
-  TPF=0,                /* two point flux, classic finite volumes                  */
-  MPFA_O,               /* multipoint flux approximation - O method                */
-  MPFA_O_DAE,           /* multipoint flux approximation - O method using DAE      */
-  BDM,                  /* P0,BDM1 spaces, standard approach                       */
-  WY                    /* P0,BDM1 spaces, vertex quadrature, statically condensed */
+  TPF=0,                /* two point flux, classic finite volumes                                              */
+  MPFA_O,               /* multipoint flux approximation - O method                                            */
+  MPFA_O_DAE,           /* multipoint flux approximation - O method using DAE                                  */
+  MPFA_O_TRANSIENTVAR,  /* multipoint flux approximation - O method using TS transient (conservative) approach */
+  BDM,                  /* P0,BDM1 spaces, standard approach                                                   */
+  WY                    /* P0,BDM1 spaces, vertex quadrature, statically condensed                             */
 } TDyMethod;
 
 PETSC_EXTERN const char *const TDyMethods[];
@@ -162,8 +163,8 @@ PETSC_EXTERN PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,
     PetscInt **_map);
 PETSC_EXTERN PetscErrorCode TDyQuadrature(PetscQuadrature q,PetscInt dim);
 
-PETSC_EXTERN void HdivBasisQuad(const PetscReal *x,PetscReal *B);
-PETSC_EXTERN void HdivBasisHex(const PetscReal *x,PetscReal *B);
+PETSC_EXTERN void HdivBasisQuad(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J);
+PETSC_EXTERN void HdivBasisHex(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J);
 PETSC_EXTERN PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
     PetscReal *integral);
 

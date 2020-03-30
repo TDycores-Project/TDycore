@@ -19,5 +19,5 @@ PETSC_EXTERN PetscErrorCode TDyCreateVecJoiningTwoVertices(PetscReal vtx_from[3]
 PETSC_EXTERN PetscInt TDyReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value);
 PETSC_EXTERN PetscInt TDySavePetscVecAsBinary(Vec vec, const char filename[]);
 PETSC_EXTERN PetscErrorCode ExtractSubVectors(Vec,PetscInt,Vec *);
-
+PETSC_EXTERN PetscErrorCode ComputeTheta(PetscReal, PetscReal, PetscReal *);
 #endif

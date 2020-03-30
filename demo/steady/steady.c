@@ -208,9 +208,6 @@ PetscErrorCode VelocityWheeler2012_2(TDy tdy,double *x,double *v,void *ctx) {
 
 PetscErrorCode ForcingWheeler2012_2(TDy tdy,double *x,double *f, void *ctx) {
   PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
-  PetscReal xm1  = (x[0]-1);
-  PetscReal ym1  = (x[1]-1);
-  PetscReal zm1  = (x[2]-1);
   PetscReal xm12 = PetscSqr(x[0]-1);
   PetscReal ym12 = PetscSqr(x[1]-1);
   PetscReal zm12 = PetscSqr(x[2]-1);
@@ -621,9 +618,9 @@ int main(int argc, char **argv) {
       }
     }
   }
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
   if (dmDist) {DMDestroy(&dm); dm = dmDist;}
+  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
   /* Setup problem parameters */
@@ -760,7 +757,7 @@ int main(int argc, char **argv) {
   PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"sol.vtk",FILE_MODE_WRITE,&viewer);
   ierr = DMView(dm,viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer); CHKERRQ(ierr); // the approximate solution
-  ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F); 
+  //ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F);
   ierr = VecView(F,viewer); CHKERRQ(ierr); // the residual K*Ue-F
   ierr = VecView(Ue,viewer); CHKERRQ(ierr);  // the exact solution
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);

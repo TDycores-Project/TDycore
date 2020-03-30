@@ -430,9 +430,9 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
     }
     
     if(dim==2) {
-      HdivBasisQuad(xq,N);
+      //HdivBasisQuad(xq,N);
     } else {
-      HdivBasisHex(xq,N);
+      //HdivBasisHex(xq,N);
     }
     for(v=0; v<ncv; v++) {
       for(d=0; d<dim; d++) {
@@ -852,9 +852,9 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
             }
           }
           if(dim==2) {
-            HdivBasisQuad(xq,N);
+            //HdivBasisQuad(xq,N);
           } else {
-            HdivBasisHex(xq,N);
+            //HdivBasisHex(xq,N);
           }
           va = 0;
           for(i=0; i<ncv; i++) {

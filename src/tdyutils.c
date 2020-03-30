@@ -5,21 +5,21 @@
 PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
   PetscFunctionBegin;
 
-  PetscInt i, p, pStart, pEnd;
-  PetscInt cSize,*c;
+  PetscInt i, c, cStart, cEnd;
+  PetscInt pSize,*p;
   MPI_Comm       comm;
   PetscErrorCode ierr;
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm, 0, &pStart, &pEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
 
-  for(p=pStart; p<pEnd; p++) {
-    c = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm,p,PETSC_TRUE,&cSize,&c);CHKERRQ(ierr);
-    closureSize[p] = cSize;
-    if (cSize > maxClosureSize) SETERRQ(comm,PETSC_ERR_USER,"closureSize > maxClosureSize");
-    for (i=0;i<cSize*2;i++) closure[p][i] = c[i];
-    ierr = DMPlexRestoreTransitiveClosure(dm,p,PETSC_TRUE,&cSize,&c);CHKERRQ(ierr);
+  for(c=cStart; c<cEnd; c++) {
+    p = NULL;
+    ierr = DMPlexGetTransitiveClosure(dm,c,PETSC_TRUE,&pSize,&p);CHKERRQ(ierr);
+    closureSize[c] = pSize;
+    if (pSize > maxClosureSize) SETERRQ(comm,PETSC_ERR_USER,"closureSize > maxClosureSize");
+    for (i=0;i<pSize*2;i++) closure[c][i] = p[i];
+    ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&pSize,&p);CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
@@ -29,21 +29,21 @@ PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **cl
 PetscErrorCode TDySaveClosures_Faces(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
   PetscFunctionBegin;
 
-  PetscInt i, p, pStart, pEnd;
-  PetscInt cSize,*c;
+  PetscInt i, f, fStart, fEnd;
+  PetscInt pSize,*p;
   MPI_Comm       comm;
   PetscErrorCode ierr;
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(dm, 2, &pStart, &pEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
 
-  for(p=pStart; p<pEnd; p++) {
-    c = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm,p,PETSC_TRUE,&cSize,&c);CHKERRQ(ierr);
-    closureSize[p] = cSize;
-    if (cSize > maxClosureSize) SETERRQ(comm,PETSC_ERR_USER,"closureSize > maxClosureSize");
-    for (i=0;i<cSize*2;i++) closure[p][i] = c[i];
-    ierr = DMPlexRestoreTransitiveClosure(dm,p,PETSC_TRUE,&cSize,&c);CHKERRQ(ierr);
+  for(f=fStart; f<fEnd; f++) {
+    p = NULL;
+    ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&pSize,&p);CHKERRQ(ierr);
+    closureSize[f] = pSize;
+    if (pSize > maxClosureSize) SETERRQ(comm,PETSC_ERR_USER,"closureSize > maxClosureSize");
+    for (i=0;i<pSize*2;i++) closure[f][i] = p[i];
+    ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,&pSize,&p);CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
@@ -345,3 +345,22 @@ PetscErrorCode ExtractSubVectors(Vec A, PetscInt stride, Vec *Asub) {
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode ComputeTheta(PetscReal x, PetscReal y, PetscReal *theta) {
+
+  PetscFunctionBegin;
+
+  if (x>0.0) {
+    if (y>= 0.0) *theta = atan(y/x);
+    else         *theta = atan(y/x) + 2.0*PETSC_PI;
+  } else if (x==0.0) {
+    if      (y>  0.0) *theta = 0.5*PETSC_PI;
+    else if (y ==0.0) *theta = 0.;
+    else              *theta = 1.5*PETSC_PI;
+  } else {
+    *theta = atan(y/x) + PETSC_PI;
+  }
+
+  PetscFunctionReturn(0);
+}
