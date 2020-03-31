@@ -485,8 +485,8 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh(Vec Ul, Mat A, void *ct
       }
 
       den = 0.5*(tdy->rho[cell_id_up] + tdy->rho[cell_id_dn]);
-      dden_dPup = tdy->drho_dP[cell_id_up];
-      dden_dPdn = tdy->drho_dP[cell_id_dn];
+      dden_dPup = 0.5*tdy->drho_dP[cell_id_up];
+      dden_dPdn = 0.5*tdy->drho_dP[cell_id_dn];
 
       for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
         cell_id = vertices->internal_cell_ids[vOffsetCell + icol];
