@@ -698,8 +698,8 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
       dden_dPup = 0.0;
       dden_dPdn = 0.0;
 
-      if (cell_id_up>=0) dden_dPup = tdy->drho_dP[cell_id_up];
-      if (cell_id_dn>=0) dden_dPdn = tdy->drho_dP[cell_id_dn];
+      if (cell_id_up>=0) dden_dPup = 0.5*tdy->drho_dP[cell_id_up];
+      if (cell_id_dn>=0) dden_dPdn = 0.5*tdy->drho_dP[cell_id_dn];
 
       // Deriviates will be computed only w.r.t. internal pressure
       for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
@@ -878,25 +878,29 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
       // Deriviates will be computed only w.r.t. internal pressure
       //for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
       icol = numBoundary;
-      if (cell_id_up>-1) cell_id = cell_id_up;
-      else               cell_id = cell_id_dn;
+      if (cell_id_up>-1) {
+        cell_id = cell_id_up;
+        dden_dPup = 0.5*tdy->drho_dP[cell_id_up];
+      } else {
+        cell_id = cell_id_dn;
+        dden_dPdn = 0.5*tdy->drho_dP[cell_id_dn];
+      }
 
       irow = iface;
       T = tdy->Trans[vertex_id][irow][icol];
 
-      PetscReal dden_dP = 0.0;
       ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
 
       if (cell_id_up>-1 && cell_id == cell_id_up) {
         Jac =
           dden_dPup * ukvr       * TtimesP[irow] +
           den       * dukvr_dPup * TtimesP[irow] +
-          den       * ukvr       * T * (1.0 + dden_dP*gz) ;
+          den       * ukvr       * T * (1.0 + dden_dPup*gz) ;
       } else if (cell_id_dn>-1 && cell_id == cell_id_dn) {
         Jac =
           dden_dPdn * ukvr       * TtimesP[irow] +
           den       * dukvr_dPdn * TtimesP[irow] +
-          den       * ukvr       * T * (1.0 + dden_dP*gz) ;
+          den       * ukvr       * T * (1.0 + dden_dPdn*gz) ;
       }
       if (fabs(Jac)<PETSC_MACHINE_EPSILON) Jac = 0.0;
 
