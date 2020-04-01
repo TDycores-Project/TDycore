@@ -160,6 +160,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->u)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
 
 
   /* problem constants FIX: add mutators */
@@ -191,6 +192,7 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
     tdy->u[c] = 0.0;
     tdy->du_dP[c] = 0.0;
     tdy->du_dT[c] = 0.0;
+    tdy->dvis_dT[c] = 0.0;
   }
   tdy->Pref = 101325;
   tdy->Tref = 25;
@@ -261,6 +263,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
   ierr = PetscFree(tdy->Cr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->rhor); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

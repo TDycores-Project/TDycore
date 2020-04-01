@@ -44,7 +44,7 @@ struct _p_TDy {
   PetscReal  *vis, *dvis_dP, *d2vis_dP2;       /* viscosity of water [Pa s] */
   PetscReal  *h, *dh_dP, *dh_dT;               /* enthalpy of water */
   PetscReal  *u, *du_dP, *du_dT;               /* internal energy of water */
-  PetscReal  *drho_dT;
+  PetscReal  *drho_dT, *dvis_dT;
 
   /* problem constants */
   PetscReal  gravity[3]; /* vector of gravity [m s-2] */
