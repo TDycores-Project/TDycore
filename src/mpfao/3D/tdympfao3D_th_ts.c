@@ -571,7 +571,6 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh_TH(Vec Ul, Mat A, void 
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
-  ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->Temp_TtimesP_vec,&Temp_TtimesP_vec_ptr); CHKERRQ(ierr);
 
@@ -676,11 +675,11 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh_TH(Vec Ul, Mat A, void 
             dden_dPup * ukvr       * TtimesP[irow] +
             den       * dukvr_dPup * TtimesP[irow] +
             den       * ukvr       * T * (1.0 + dden_dPup*gz) ;
-          Jac[1] =
+          Jac[2] =
             dden_dTup * ukvr       * TtimesP[irow] +
             den       * dukvr_dTup * TtimesP[irow] +
             den       * ukvr       * T * (1.0 + dden_dTup*gz) ;
-          Jac[2] =
+          Jac[1] =
             dden_dPup * ukvr       * TtimesP[irow]            * uh +
             den       * dukvr_dPup * TtimesP[irow]            * uh +
             den       * ukvr       * T * (1.0 + dden_dPup*gz) * uh +
@@ -695,11 +694,11 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh_TH(Vec Ul, Mat A, void 
             dden_dPdn * ukvr       * TtimesP[irow] +
             den       * dukvr_dPdn * TtimesP[irow] +
             den       * ukvr       * T * (1.0 + dden_dPdn*gz) ;
-          Jac[1] =
+          Jac[2] =
             dden_dTdn * ukvr       * TtimesP[irow] +
             den       * dukvr_dTdn * TtimesP[irow] +
             den       * ukvr       * T * (1.0 + dden_dTdn*gz) ;
-          Jac[2] =
+          Jac[1] =
             dden_dPdn * ukvr       * TtimesP[irow]            * uh +
             den       * dukvr_dPdn * TtimesP[irow]            * uh +
             den       * ukvr       * T * (1.0 + dden_dPdn*gz) * uh +
@@ -711,8 +710,8 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh_TH(Vec Ul, Mat A, void 
             den       * ukvr       * TtimesP[irow]            * duh_dTdn;
         } else {
           Jac[0] = den * ukvr * T * (1.0 + 0.*gz);
-          Jac[1] = den * ukvr * T * (0.0 + 0.*gz); // derivative with temperature is zero
-          Jac[2] = den * ukvr * T * (1.0 + 0.*gz) * uh;
+          Jac[2] = den * ukvr * T * (0.0 + 0.*gz); // derivative with temperature is zero
+          Jac[1] = den * ukvr * T * (1.0 + 0.*gz) * uh;
           Jac[3] = den * ukvr * T * (0.0 + 0.*gz) * uh; // derivative with temperature is zero 
         }
 
@@ -740,19 +739,18 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh_TH(Vec Ul, Mat A, void 
     }
   }
 
-  ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecRestoreArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
   ierr = VecRestoreArray(tdy->Temp_TtimesP_vec,&Temp_TtimesP_vec_ptr); CHKERRQ(ierr);
 
   ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
-// #if 0
+#if 0
   PetscViewer viewer;
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"jac_flux.mat",&viewer); CHKERRQ(ierr);
   ierr = MatView(A,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-// #endif
+#endif
 
   PetscFunctionReturn(0);
 
@@ -969,11 +967,11 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
             dden_dPup * ukvr       * TtimesP[irow] +
             den       * dukvr_dPup * TtimesP[irow] +
             den       * ukvr       * T * (1.0 + dden_dPup*gz) ;
-          Jac[1] =
+          Jac[2] =
             dden_dTup * ukvr       * TtimesP[irow] +
             den       * dukvr_dTup * TtimesP[irow] +
             den       * ukvr       * T * (1.0 + dden_dTup*gz) ;
-          Jac[2] =
+          Jac[1] =
             dden_dPup * ukvr       * TtimesP[irow]            * uh +
             den       * dukvr_dPup * TtimesP[irow]            * uh +
             den       * ukvr       * T * (1.0 + dden_dPup*gz) * uh +
@@ -988,11 +986,11 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
             dden_dPdn * ukvr       * TtimesP[irow] +
             den       * dukvr_dPdn * TtimesP[irow] +
             den       * ukvr       * T * (1.0 + dden_dPdn*gz) ;
-          Jac[1] =
+          Jac[2] =
             dden_dTdn * ukvr       * TtimesP[irow] +
             den       * dukvr_dTdn * TtimesP[irow] +
             den       * ukvr       * T * (1.0 + dden_dTdn*gz) ;
-          Jac[2] =
+          Jac[1] =
             dden_dPdn * ukvr       * TtimesP[irow]            * uh +
             den       * dukvr_dPdn * TtimesP[irow]            * uh +
             den       * ukvr       * T * (1.0 + dden_dPdn*gz) * uh +
@@ -1004,8 +1002,8 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
             den       * ukvr       * TtimesP[irow]            * duh_dTdn;
         } else {
           Jac[0] = den * ukvr * T * (1.0 + 0.*gz);
-          Jac[1] = den * ukvr * T * (0.0 + 0.*gz); // derivative with temperature is zero
-          Jac[2] = den * ukvr * T * (1.0 + 0.*gz) * uh;
+          Jac[2] = den * ukvr * T * (0.0 + 0.*gz); // derivative with temperature is zero
+          Jac[1] = den * ukvr * T * (1.0 + 0.*gz) * uh;
           Jac[3] = den * ukvr * T * (0.0 + 0.*gz) * uh; // derivative with temperature is zero 
         }
 
@@ -1020,12 +1018,12 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
         for (ijac=0; ijac<size_jac; ijac++) {Jac[ijac] = -Jac[ijac];}
 
         if (cell_id_up >-1 && cells->is_local[cell_id_up]) {
-          ierr = MatSetValuesLocal(A,1,&cell_id_up,1,&cell_id,Jac,ADD_VALUES);CHKERRQ(ierr);
+          ierr = MatSetValuesBlockedLocal(A,1,&cell_id_up,1,&cell_id,Jac,ADD_VALUES);CHKERRQ(ierr);
         }
 
         if (cell_id_dn >-1 && cells->is_local[cell_id_dn]) {
           for (ijac=0; ijac<size_jac; ijac++) {Jac[ijac] = -Jac[ijac];}
-          ierr = MatSetValuesLocal(A,1,&cell_id_dn,1,&cell_id,Jac,ADD_VALUES);CHKERRQ(ierr);
+          ierr = MatSetValuesBlockedLocal(A,1,&cell_id_dn,1,&cell_id,Jac,ADD_VALUES);CHKERRQ(ierr);
         }
       }
     }
@@ -1037,12 +1035,12 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
   ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
-// #if 0
+#if 0
   PetscViewer viewer;
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"jac_flux_bsharedint.mat",&viewer); CHKERRQ(ierr);
   ierr = MatView(A,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-// #endif
+#endif
 
 
   PetscFunctionReturn(0);
@@ -1224,11 +1222,11 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
           dden_dPup * ukvr       * TtimesP[irow] +
           den       * dukvr_dPup * TtimesP[irow] +
           den       * ukvr       * T * (1.0 + dden_dPup*gz) ;
-        Jac[1] =
+        Jac[2] =
           dden_dTup * ukvr       * TtimesP[irow] +
           den       * dukvr_dTup * TtimesP[irow] +
           den       * ukvr       * T * (1.0 + dden_dTup*gz) ;
-        Jac[2] =
+        Jac[1] =
           dden_dPup * ukvr       * TtimesP[irow]            * uh +
           den       * dukvr_dPup * TtimesP[irow]            * uh +
           den       * ukvr       * T * (1.0 + dden_dPup*gz) * uh +
@@ -1243,11 +1241,11 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
           dden_dPdn * ukvr       * TtimesP[irow] +
           den       * dukvr_dPdn * TtimesP[irow] +
           den       * ukvr       * T * (1.0 + dden_dPdn*gz) ;
-        Jac[1] =
+        Jac[2] =
           dden_dTdn * ukvr       * TtimesP[irow] +
           den       * dukvr_dTdn * TtimesP[irow] +
           den       * ukvr       * T * (1.0 + dden_dTdn*gz) ;
-        Jac[2] =
+        Jac[1] =
           dden_dPdn * ukvr       * TtimesP[irow]            * uh +
           den       * dukvr_dPdn * TtimesP[irow]            * uh +
           den       * ukvr       * T * (1.0 + dden_dPdn*gz) * uh +
@@ -1270,12 +1268,12 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
       for (ijac=0; ijac<size_jac; ijac++) {Jac[ijac] = -Jac[ijac];}
 
       if (cell_id_up >-1 && cells->is_local[cell_id_up]) {
-        ierr = MatSetValuesLocal(A,1,&cell_id_up,1,&cell_id,Jac,ADD_VALUES);CHKERRQ(ierr);
+        ierr = MatSetValuesBlockedLocal(A,1,&cell_id_up,1,&cell_id,Jac,ADD_VALUES);CHKERRQ(ierr);
       }
 
       if (cell_id_dn >-1 && cells->is_local[cell_id_dn]) {
         for (ijac=0; ijac<size_jac; ijac++) {Jac[ijac] = -Jac[ijac];}
-        ierr = MatSetValuesLocal(A,1,&cell_id_dn,1,&cell_id,Jac,ADD_VALUES);CHKERRQ(ierr);
+        ierr = MatSetValuesBlockedLocal(A,1,&cell_id_dn,1,&cell_id,Jac,ADD_VALUES);CHKERRQ(ierr);
       }
     }
   }
@@ -1320,7 +1318,8 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
   PetscReal denergy_dP, d2energy_dP2, d2energy_dPdT;
   PetscReal denergy_dT, d2energy_dT2, d2energy_dTdP;
   PetscScalar Jac[4];
-
+  PetscInt size_jac = 4;
+  PetscInt ijac;
 
   PetscFunctionBegin;
 
@@ -1345,6 +1344,8 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
   for (icell=0;icell<mesh->num_cells;icell++){
 
     if (!cells->is_local[icell]) continue;
+
+    for (ijac=0; ijac<size_jac; ijac++) {Jac[ijac] = 0.0;}
 
     // Porosity
     porosity = tdy->porosity[icell];
@@ -1445,7 +1446,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
       sat       * rho       * d2porosity_dT2 
       );    
       
-    Jac[1] = (shift*dmass_dT + d2mass_dT2*dT_dt[icell] + d2mass_dPdT*dp_dt[icell])*cells->volume[icell];
+    Jac[2] = (shift*dmass_dT + d2mass_dT2*dT_dt[icell] + d2mass_dPdT*dp_dt[icell])*cells->volume[icell];
     
   //   A_E = [d(rho*phi*s*U)/dP + d(rock_dencpr*(1-phi)*T)/dP] * dP_dtime *Vol + 
   //        [d(rho*phi*s*U)/dT + d(rock_dencpr*(1-phi)*T)/dT] * dT_dtime *Vol
@@ -1502,7 +1503,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
     d2energy_dTdP = d2energy_dPdT;
 
 
-    Jac[2] = (shift*denergy_dP + d2energy_dP2*dp_dt[icell] + d2energy_dTdP*dT_dt[icell])*cells->volume[icell];
+    Jac[1] = (shift*denergy_dP + d2energy_dP2*dp_dt[icell] + d2energy_dTdP*dT_dt[icell])*cells->volume[icell];
 
 
   //  Jlocal(2,2) = shift*d(A_E)/d(Tdot) + d(A_E)/d(T) 
@@ -1540,7 +1541,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
 
     Jac[3] = (shift*denergy_dT + d2energy_dT2*dT_dt[icell] + d2energy_dPdT*dp_dt[icell])*cells->volume[icell];
 
-    ierr = MatSetValuesLocal(A,1,&icell,1,&icell,Jac,ADD_VALUES);CHKERRQ(ierr);
+    ierr = MatSetValuesBlockedLocal(A,1,&icell,1,&icell,Jac,ADD_VALUES);CHKERRQ(ierr);
 
   }
 
@@ -1550,12 +1551,12 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
   ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
-// #if 0
+#if 0
   PetscViewer viewer;
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"jac_accum.mat",&viewer); CHKERRQ(ierr);
   ierr = MatView(A,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-// #endif
+#endif
 
   PetscFunctionReturn(0);
 }
