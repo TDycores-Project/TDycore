@@ -94,6 +94,29 @@ PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode PostProcess(TS ts)
+{
+  PetscErrorCode ierr;
+  PetscViewer    viewer;
+  PetscInt       stepi;
+  Vec            sol;
+  DM             dm;
+  char           filename[PETSC_MAX_PATH_LEN];
+
+  PetscFunctionBegin;
+  ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
+  ierr = TSGetSolution(ts,&sol); CHKERRQ(ierr);
+  ierr = TSGetStepNumber(ts,&stepi); CHKERRQ(ierr);
+  ierr = PetscSNPrintf(filename,sizeof filename,"%s-%03D.vtk","solution",stepi); CHKERRQ(ierr);
+  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+  ierr = DMView(dm,viewer); CHKERRQ(ierr);
+  ierr = VecView(sol,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+
+}
+
+
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
@@ -168,8 +191,8 @@ int main(int argc, char **argv) {
   PetscInt num_fields;
   PetscReal total_mass_beg, total_mass_end;
   PetscInt gref, junkInt;
-  ierr = DMGetSection(dm, &sec);
-  ierr = PetscSectionGetNumFields(sec, &num_fields);
+  ierr = DMGetSection(dm,&sec);
+  ierr = PetscSectionGetNumFields(sec,&num_fields);
 
   PetscReal *mass_p,*pres_p, *u_p;
   ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&pres_p);CHKERRQ(ierr);
@@ -229,7 +252,13 @@ int main(int argc, char **argv) {
   ierr = TSSetMaxTime(ts,1); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts,TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
+
+  ierr = TSSetPostStep(ts,PostProcess);CHKERRQ(ierr);
+  ierr = PostProcess(ts);CHKERRQ(ierr); /* print the initial state */
+
   ierr = TSSetUp(ts); CHKERRQ(ierr);
+
+  ierr = PetscPrintf(MPI_COMM_SELF,"Solving.\n");CHKERRQ(ierr);
   ierr = TSSolve(ts,U); CHKERRQ(ierr);
 
   ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
@@ -262,6 +291,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(mass_p); CHKERRQ(ierr);
   ierr = PetscFree(u_p); CHKERRQ(ierr);
   ierr = PetscFree(pres_p); CHKERRQ(ierr);
+  ierr = PetscPrintf(MPI_COMM_SELF,"Done!\n");CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
   return(successful_exit_code);
 }
