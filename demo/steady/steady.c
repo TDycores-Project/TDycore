@@ -322,8 +322,8 @@ PetscErrorCode PerturbVerticesSmooth(DM dm) {
     ierr = PetscSectionGetOffset(coordSection,v,&offset); CHKERRQ(ierr);
     if(dim==2) {
       x = coords[offset]; y = coords[offset+1];
-      coords[offset]   = x + 0.03*PetscSinReal(3*PETSC_PI*x)*PetscCosReal(3*PETSC_PI*y);
-      coords[offset+1] = y - 0.04*PetscCosReal(3*PETSC_PI*x)*PetscSinReal(3*PETSC_PI*y);
+      coords[offset]   = x + 0.06*PetscSinReal(2.0*PETSC_PI*x)*PetscSinReal(2.0*PETSC_PI*y);
+      coords[offset+1] = y - 0.05*PetscSinReal(2.0*PETSC_PI*x)*PetscSinReal(2.0*PETSC_PI*y);
     } else {
       x = coords[offset]; y = coords[offset+1]; z = coords[offset+2];
       coords[offset]   = x + 0.03*PetscSinReal(3*PETSC_PI*x)*PetscCosReal(3*PETSC_PI*y)*PetscCosReal(3*PETSC_PI*z);
