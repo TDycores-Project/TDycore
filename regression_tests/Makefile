@@ -67,6 +67,12 @@ test-transient-snes-mpfaof90 :
 		--config-files ../demo/transient/transient_snes_mpfaof90.cfg \
 		--logfile_prefix transient_snes_mpfaof90
 
+test-transient-th-mpfao :
+	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/transient_th_mpfao $(TEST_OPTIONS) \
+		--suite standard standard_parallel \
+		--config-files ../demo/transient/transient_th_mpfao.cfg \
+		--logfile_prefix transient_th_mpfao
+
 test-mpfao :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/mpfao/mpfao $(TEST_OPTIONS) \
 		--suite standard standard_parallel \

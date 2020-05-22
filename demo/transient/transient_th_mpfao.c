@@ -110,7 +110,7 @@ PetscErrorCode PostProcess(TS ts)
   ierr = PetscSNPrintf(filename,sizeof filename,"%s-%03D.vtk","solution",stepi); CHKERRQ(ierr);
   ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
   ierr = DMView(dm,viewer); CHKERRQ(ierr);
-  ierr = VecView(sol,viewer); CHKERRQ(ierr);
+  //ierr = VecView(sol,viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 
@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
     }
     ierr = VecRestoreArray(U,&u_p); CHKERRQ(ierr);
   }
-  VecView(U,PETSC_VIEWER_STDOUT_WORLD);
+  //VecView(U,PETSC_VIEWER_STDOUT_WORLD);
 
   if (mode == RICHARDS){
     if (num_fields == 2) {
