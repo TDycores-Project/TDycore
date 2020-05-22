@@ -7,6 +7,9 @@
 #include <private/tdyregressionimpl.h>
 #include <tdycore.h>
 
+#define VAR_PRESSURE 0
+#define VAR_TEMPERATURE 1
+
 typedef struct _TDyOps *TDyOps;
 struct _TDyOps {
   PetscErrorCode (*create)(TDy);
