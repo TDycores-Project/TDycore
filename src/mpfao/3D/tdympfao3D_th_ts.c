@@ -442,8 +442,6 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
 
-  PetscInt iface;
-
   // Fluxes
   ierr = TDyMPFAOIFunction_InternalVertices_3DMesh_TH(Ul,R,ctx); CHKERRQ(ierr);
   ierr = TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DMesh_TH(Ul,R,ctx); CHKERRQ(ierr);
@@ -545,7 +543,6 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh_TH(Vec Ul, Mat A, void 
   PetscInt irow, icol;
   PetscInt dim;
   PetscReal gz;
-  PetscReal *p;
   PetscReal ukvr, den, uh;
   PetscReal dukvr_dPup, dukvr_dPdn;
   PetscReal duh_dPup, duh_dPdn;
