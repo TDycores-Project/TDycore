@@ -17,3 +17,19 @@ PetscErrorCode ExtractSubGmatrix(TDy tdy, PetscInt cell_id,
 
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode ExtractTempSubGmatrix(TDy tdy, PetscInt cell_id,
+                                 PetscInt sub_cell_id, PetscInt dim, PetscReal **Gmatrix) {
+
+  PetscInt i, j;
+
+  PetscFunctionBegin;
+
+  for (i=0; i<dim; i++) {
+    for (j=0; j<dim; j++) {
+      Gmatrix[i][j] = tdy->Temp_subc_Gmatrix[cell_id][sub_cell_id][i][j];
+    }
+  }
+
+  PetscFunctionReturn(0);
+}

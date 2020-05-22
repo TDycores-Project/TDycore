@@ -676,12 +676,25 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
   PetscErrorCode ierr;
   PetscInt dim, ncells;
   PetscInt p_bnd_idx, cell_id, iface;
-  PetscReal *p, gz, *p_vec_ptr;
+  PetscReal *p, gz, *p_vec_ptr, *u_p;
+  PetscInt c, cStart, cEnd;
 
   PetscFunctionBegin;
 
-  ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&p);CHKERRQ(ierr);
+
+  ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+
+  if (tdy->mode == TH) {
+    for (c=0;c<cEnd-cStart;c++) {
+      p[c] = u_p[c*2];
+    }
+  }
+  else {
+    for (c=0;c<cEnd-cStart;c++) p[c] = u_p[c];
+  }
 
   mesh = tdy->mesh;
   cells = &mesh->cells;
@@ -716,8 +729,68 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
     p_vec_ptr[p_bnd_idx + ncells] = tdy->P_BND[p_bnd_idx];
   }
 
-  ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = VecRestoreArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
+
+  TDy_mesh *mesh;
+  TDy_cell *cells;
+  TDy_face *faces;
+  PetscErrorCode ierr;
+  PetscInt dim, ncells;
+  PetscInt t_bnd_idx, cell_id, iface;
+  PetscReal *t, *t_vec_ptr, *u_p;
+  PetscInt c, cStart, cEnd;
+
+  PetscFunctionBegin;
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&t);CHKERRQ(ierr);
+
+  ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->Temp_P_vec,&t_vec_ptr); CHKERRQ(ierr);
+
+  for (c=0;c<cEnd-cStart;c++) {
+    t[c] = u_p[c*2+1];
+  }
+
+  mesh = tdy->mesh;
+  cells = &mesh->cells;
+  faces = &mesh->faces;
+  ncells = mesh->num_cells;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  for (iface=0; iface<mesh->num_faces; iface++) {
+
+    if (faces->is_internal[iface]) continue;
+
+      PetscInt fOffsetCell = faces->cell_offset[iface];
+
+    if (faces->cell_ids[fOffsetCell + 0] >= 0) {
+      cell_id = faces->cell_ids[fOffsetCell + 0];
+      t_bnd_idx = -faces->cell_ids[fOffsetCell + 1] - 1;
+    } else {
+      cell_id = faces->cell_ids[fOffsetCell + 1];
+      t_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
+    }
+
+    if (tdy->ops->computetemperaturedirichletvalue) {
+      ierr = (*tdy->ops->computetemperaturedirichletvalue)(tdy, (faces->centroid[iface].X), &(tdy->T_BND[t_bnd_idx]), tdy->temperaturedirichletvaluectx);CHKERRQ(ierr);
+    } else {
+      tdy->T_BND[t_bnd_idx] = t[cell_id];
+    }
+
+    t_vec_ptr[t_bnd_idx + ncells] = tdy->T_BND[t_bnd_idx];
+  }
+
+  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->Temp_P_vec,&t_vec_ptr); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

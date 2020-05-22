@@ -1,4 +1,4 @@
-TARGETS = transient transient_mpfao transient_mpfaof90 transient_snes_mpfaof90
+TARGETS = transient transient_mpfao transient_mpfaof90 transient_snes_mpfaof90 transient_th_mpfao
 
 ifdef codecov
   MYFLAGS += -fprofile-arcs -ftest-coverage
@@ -28,6 +28,10 @@ transient: transient.o chkopts
 	$(RM) -f $<
 
 transient_mpfao: transient_mpfao.o chkopts
+	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
+	$(RM) -f $<
+
+transient_th_mpfao: transient_th_mpfao.o chkopts
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
 

@@ -17,6 +17,13 @@ const char *const TDyMethods[] = {
   "TDyMethod","TDY_METHOD_",NULL
 };
 
+const char *const TDyModes[] = {
+  "RICHARDS",
+  "TH",
+  /* */
+  "TDyMode","TDY_MODE_",NULL
+};
+
 const char *const TDyQuadratureTypes[] = {
   "LUMPED",
   "FULL",
@@ -141,6 +148,20 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_m)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_n)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_alpha)); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->Kappa)); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->Kappa0 )); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->h)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Cr)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rhor)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->u)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
+
 
   /* problem constants FIX: add mutators */
   for (c=0; c<nc; c++) {
@@ -161,12 +182,25 @@ PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
     tdy->dvis_dP[c] = 0.0;
     tdy->d2vis_dP2[c] = 0.0;
     tdy->porosity[c] = 0.0;
+    tdy->h[c] = 0.0;
+    tdy->dh_dT[c] = 0.0;
+    tdy->dh_dP[c] = 0.0;
+    tdy->Cr[c] = 0.0;
+    tdy->rhor[c] = 0.0;
+    tdy->drho_dT[c] = 0.0;
+    tdy->dS_dT[c] = 0.0;
+    tdy->u[c] = 0.0;
+    tdy->du_dP[c] = 0.0;
+    tdy->du_dT[c] = 0.0;
+    tdy->dvis_dT[c] = 0.0;
   }
   tdy->Pref = 101325;
+  tdy->Tref = 25;
   tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
   tdy->gravity[dim-1] = -9.81;
   tdy->rho_type = WATER_DENSITY_CONSTANT;
   tdy->mu_type = WATER_VISCOSITY_CONSTANT;
+  tdy->enthalpy_type = WATER_ENTHALPY_CONSTANT;
 
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
@@ -203,14 +237,33 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->V); CHKERRQ(ierr);
   ierr = PetscFree(tdy->X); CHKERRQ(ierr);
   ierr = PetscFree(tdy->N); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->K); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->K0); CHKERRQ(ierr);
   ierr = PetscFree(tdy->porosity); CHKERRQ(ierr);
   ierr = PetscFree(tdy->Kr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dKr_dS); CHKERRQ(ierr);
   ierr = PetscFree(tdy->S); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dS_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->d2S_dP2); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->K); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->K0); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->rho); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->d2rho_dP2); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->vis); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->dvis_dP); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->d2vis_dP2); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->Sr); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->SatFuncType); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->RelPermFuncType); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->matprop_alpha); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->matprop_n); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->matprop_m); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->Kappa); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->Kappa0); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->h); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->dh_dP); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->Cr); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->rhor); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -238,8 +291,13 @@ PetscErrorCode TDyGetCentroidArray(TDy tdy,PetscReal **X) {
 
 PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   PetscErrorCode ierr;
+  PetscInt       dim;
+  PetscInt       nrow,ncol,nsubcells;
+
   PetscFunctionBegin;
   PetscValidPointer(tdy,1);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+
   if (tdy->vmap  ) { ierr = PetscFree(tdy->vmap  ); CHKERRQ(ierr); }
   if (tdy->emap  ) { ierr = PetscFree(tdy->emap  ); CHKERRQ(ierr); }
   if (tdy->Alocal) { ierr = PetscFree(tdy->Alocal); CHKERRQ(ierr); }
@@ -250,6 +308,42 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   if (tdy->LtoG  ) { ierr = PetscFree(tdy->LtoG  ); CHKERRQ(ierr); }
   if (tdy->orient) { ierr = PetscFree(tdy->orient); CHKERRQ(ierr); }
   if (tdy->quad  ) { ierr = PetscQuadratureDestroy(&(tdy->quad)); CHKERRQ(ierr); }
+  // Need call to destroy TDy_Mesh
+  switch (dim) {
+  case 2:
+    nsubcells = 4;
+    nrow = 2;
+    ncol = 2;
+
+    break;
+  case 3:
+    nsubcells = 8;
+    nrow = 3;
+    ncol = 3;
+
+    break;
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in TDyResetDiscretizationMethod");
+    break;
+  }
+  // if (tdy->subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
+  //                                   nsubcells, nrow, ncol); CHKERRQ(ierr); } 
+  // if (tdy->Trans       ) { ierr = TDyDeallocate_RealArray_3D(&tdy->Trans, 
+  //                                   tdy->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
+  // if (tdy->Trans_mat   ) { ierr = MatDestroy(&tdy->Trans_mat  ); CHKERRQ(ierr); }
+  if (tdy->P_vec       ) { ierr = VecDestroy(&tdy->P_vec      ); CHKERRQ(ierr); }
+  if (tdy->TtimesP_vec ) { ierr = VecDestroy(&tdy->TtimesP_vec); CHKERRQ(ierr); }
+  // if (tdy->Temp_subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->Temp_subc_Gmatrix, 
+  //                                        tdy->mesh->num_cells,
+  //                                        nsubcells, nrow, ncol); CHKERRQ(ierr); } 
+  // if (tdy->Temp_Trans       ) { ierr = TDyDeallocate_RealArray_3D(&tdy->Temp_Trans, 
+  //                                        tdy->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
+  if (tdy->Temp_Trans_mat   ) { ierr = MatDestroy(&tdy->Temp_Trans_mat  ); CHKERRQ(ierr); }
+  if (tdy->Temp_P_vec       ) { ierr = VecDestroy(&tdy->Temp_P_vec      ); CHKERRQ(ierr); }
+  if (tdy->Temp_TtimesP_vec ) { ierr = VecDestroy(&tdy->Temp_TtimesP_vec); CHKERRQ(ierr); }
+  if (tdy->J           ) { ierr = MatDestroy(&tdy->J   ); CHKERRQ(ierr); }
+  if (tdy->Jpre        ) { ierr = MatDestroy(&tdy->Jpre); CHKERRQ(ierr); }
+
   PetscFunctionReturn(0);
 }
 
@@ -267,6 +361,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscErrorCode ierr;
   PetscBool flg;
   TDyMethod method = WY;
+  TDyMode mode = RICHARDS;
   TDyQuadratureType qtype = FULL;
   TDyWaterDensityType densitytype = WATER_DENSITY_CONSTANT;
 
@@ -297,6 +392,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           "TDySetWaterDensityType",TDyWaterDensityTypes,(PetscEnum)densitytype,(PetscEnum *)&densitytype,
                           &flg); CHKERRQ(ierr);
   if (flg) {ierr = TDySetWaterDensityType(tdy,densitytype); CHKERRQ(ierr);}
+
+  ierr = PetscOptionsEnum("-tdy_mode","Flow mode",
+                          "TDySetMode",TDyModes,(PetscEnum)mode,(PetscEnum *)&mode,
+                          &flg); CHKERRQ(ierr);
+  if (flg && (mode != tdy->mode)) { ierr = TDySetMode(tdy,mode); CHKERRQ(ierr); }
 
   if (tdy->regression_testing) {
     ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
@@ -387,6 +487,13 @@ PetscErrorCode TDySetup(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetMode(TDy tdy,TDyMode mode) {
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  tdy->mode = mode;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetQuadratureType(TDy tdy,TDyQuadratureType qtype) {
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
@@ -432,7 +539,14 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   case MPFA_O:
     switch (dim) {
     case 3:
-      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh,tdy); CHKERRQ(ierr);
+      switch (tdy->mode) {
+      case RICHARDS:
+        ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh,tdy); CHKERRQ(ierr);
+        break;
+      case TH:  
+        ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh_TH,tdy); CHKERRQ(ierr);
+        break;
+      }
     break;
     default :
       SETERRQ(comm,PETSC_ERR_SUP,"IFunction only implemented for 3D problem MPFA-O");
@@ -495,7 +609,15 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
     ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
     ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
 
-    ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_3DMesh,tdy); CHKERRQ(ierr);
+    switch (tdy->mode) {
+    case RICHARDS:
+      ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_3DMesh,tdy); CHKERRQ(ierr);
+      break;
+    case TH:
+      ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_3DMesh_TH,tdy); CHKERRQ(ierr);
+      break;
+
+    }
     break;
   case MPFA_O_DAE:
     ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
@@ -668,14 +790,28 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
+PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
   PetscReal Se,dSe_dS,dKr_dSe,n,m,alpha,Kr;
+  PetscReal *P, *temp;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&P);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&temp);CHKERRQ(ierr);
+
+  if (tdy->mode == TH) {
+    for (c=0;c<cEnd-cStart;c++) {
+      P[c] = U[c*2];
+      temp[c] = U[c*2+1];
+    }
+  }
+  else {
+    for (c=0;c<cEnd-cStart;c++) P[c] = U[c];
+  }
+
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
 
@@ -716,7 +852,11 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
 
     ierr = ComputeWaterDensity(P[i], tdy->rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
-
+    if (tdy->mode ==  TH) {
+      tdy->Kappa[i*dim2+j] = tdy->Kappa0[i*dim2+j]; // update this based on Kersten number, etc. 
+      ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);
+      tdy->u[i] = tdy->h[i] - P[i]/tdy->rho[i];
+    }
   }
 
   if ( (tdy->method == MPFA_O || tdy->method == MPFA_O_DAE || tdy->method == MPFA_O_TRANSIENTVAR) && dim == 3) {
@@ -731,6 +871,18 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P) {
       p_vec_ptr[i] = P[i] + tdy->rho[i]*gz;
     }
     ierr = VecRestoreArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+
+    if (tdy->mode == TH) {
+      PetscReal *t_vec_ptr;
+      ierr = VecGetArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
+      for (c=cStart; c<cEnd; c++) {
+        i = c-cStart;
+        t_vec_ptr[i] = temp[i];
+      }     
+      ierr = VecRestoreArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
+    }
+
+
   }
 
   PetscFunctionReturn(0);

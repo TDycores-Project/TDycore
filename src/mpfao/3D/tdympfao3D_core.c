@@ -66,6 +66,17 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
       }
     }
 
+    // extract thermal conductivity tensor
+    PetscReal Kappa[3][3];
+
+    if (tdy->mode == TH) {
+      for (ii=0; ii<dim; ii++) {
+        for (jj=0; jj<dim; jj++) {
+          Kappa[ii][jj] = tdy->Kappa0[icell*dim*dim + ii*dim + jj];
+        }
+      }
+    }
+
     PetscInt isubcell;
 
     for (isubcell=0; isubcell<cells->num_subcells[icell]; isubcell++) {
@@ -92,8 +103,12 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
           ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
           
           ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
-                                         &(tdy->subc_Gmatrix[icell][isubcell][ii][jj]));
-          CHKERRQ(ierr);
+                                         &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+
+
+          if (tdy->mode == TH) {ierr = TDyComputeEntryOfGMatrix3D(area, normal, Kappa,
+                                nu, subcells->T[subcell_id], dim,
+                                &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);}                                         
         }
       }
     }
@@ -153,7 +168,7 @@ PetscErrorCode ComputeCtimesAinvB(PetscInt A_nrow, PetscInt B_ncol, PetscInt C_n
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
-    PetscInt ivertex, TDy_cell *cells) {
+    PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
 
   PetscInt       ncells, icell, isubcell;
 
@@ -167,6 +182,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
   PetscInt idx, vertex_id;
   PetscErrorCode ierr;
   PetscInt i, j, ndim, nfluxes;
+  PetscReal ****Trans;
+  Mat *Trans_mat;
 
   PetscFunctionBegin;
 
@@ -202,7 +219,11 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
     PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
-    ierr = ExtractSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
+    if (varID == VAR_PRESSURE) {
+      ierr = ExtractSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
+    } else if (varID == VAR_TEMPERATURE) {
+      ierr = ExtractTempSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
+    }
 
     PetscInt idx_interface_p0, idx_interface_p1, idx_interface_p2;
     idx_interface_p0 = subcells->face_unknown_idx[sOffsetFace + 0];
@@ -258,11 +279,19 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
   ierr = ComputeCtimesAinvB(nfluxes, ncells, nfluxes, Cup_1d, AinvB_1d, CuptimesAinvB_1d);
 
   // Save Transmissibility matrix
+  if (varID == VAR_PRESSURE) {
+    Trans = &tdy->Trans;
+    Trans_mat = &tdy->Trans_mat;
+  } else if (varID == VAR_TEMPERATURE){
+    Trans = &tdy->Temp_Trans;
+    Trans_mat = &tdy->Temp_Trans_mat;
+  }
+
   idx = 0;
   for (j=0; j<ncells; j++) {
     for (i=0; i<nfluxes; i++) {
-      tdy->Trans[vertex_id][i][j] = CuptimesAinvB_1d[idx] - Fup[i][j];
-      if (fabs(tdy->Trans[vertex_id][i][j])<PETSC_MACHINE_EPSILON) tdy->Trans[vertex_id][i][j] = 0.0;
+      (*Trans)[vertex_id][i][j] = CuptimesAinvB_1d[idx] - Fup[i][j];
+      if (fabs((*Trans)[vertex_id][i][j])<PETSC_MACHINE_EPSILON) (*Trans)[vertex_id][i][j] = 0.0;
       idx++;
     }
   }
@@ -275,7 +304,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
     row = face_id*num_subfaces + subface_id;
     for (j=0; j<ncells; j++) {
       col = vertices->internal_cell_ids[vOffsetCell + j];
-      ierr = MatSetValues(tdy->Trans_mat,1,&row,1,&col,&tdy->Trans[vertex_id][i][j],ADD_VALUES); CHKERRQ(ierr);
+      ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[vertex_id][i][j],ADD_VALUES); CHKERRQ(ierr);
     }
   }
 
@@ -297,7 +326,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(TDy tdy,
-    PetscInt ivertex, TDy_cell *cells) {
+    PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
 
   TDy_vertex *vertices;
   TDy_subcell *subcells;
@@ -315,6 +344,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
   PetscInt idx, vertex_id;
   PetscInt ndim;
   PetscInt i,j;
+  PetscReal ****Trans;
+  Mat *Trans_mat;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -395,7 +426,11 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
     PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
-    ierr = ExtractSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
+    if (varID == VAR_PRESSURE) {
+      ierr = ExtractSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
+    } else if (varID == VAR_TEMPERATURE){
+      ierr = ExtractTempSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
+    }
 
     PetscInt idx_interface_p0, idx_interface_p1, idx_interface_p2;
 
@@ -509,17 +544,25 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
   ierr = ComputeCtimesAinvB(nflux_in, npcen+npitf_bc, nflux_bc_up, CupBcxIn_1d, AinvB_1d, CupBCxIntimesAinvB_1d);
   ierr = ComputeCtimesAinvB(nflux_in, npcen+npitf_bc, nflux_bc_dn, CdnBcxIn_1d, AinvB_1d, CdnBCxIntimesAinvB_1d);
 
+  if (varID == VAR_PRESSURE) {
+    Trans = &tdy->Trans;
+    Trans_mat = &tdy->Trans_mat;
+  } else if (varID == VAR_TEMPERATURE) {
+    Trans = &tdy->Temp_Trans;
+    Trans_mat = &tdy->Temp_Trans_mat;
+  }
+
   // Save transmissiblity matrix for internal fluxes including contribution from unknown P @ cell centers
   // and known P @ boundaries
   idx = 0;
   for (j=0;j<npcen+npitf_bc;j++) {
     for (i=0;i<nflux_in;i++) {
       if (j<npcen) {
-        tdy->Trans[vertex_id][i][j] = CupInxIntimesAinvB_1d[idx] - Fup[i][j];
+        (*Trans)[vertex_id][i][j] = CupInxIntimesAinvB_1d[idx] - Fup[i][j];
       } else {
-        tdy->Trans[vertex_id][i][j] = CupInxIntimesAinvB_1d[idx] + Cup[i][j-npcen+npitf_in];
+        (*Trans)[vertex_id][i][j] = CupInxIntimesAinvB_1d[idx] + Cup[i][j-npcen+npitf_in];
       }
-      if (fabs(tdy->Trans[vertex_id][i][j])<PETSC_MACHINE_EPSILON) tdy->Trans[vertex_id][i][j] = 0.0;
+      if (fabs((*Trans)[vertex_id][i][j])<PETSC_MACHINE_EPSILON) (*Trans)[vertex_id][i][j] = 0.0;
       idx++;
     }
   }
@@ -530,11 +573,11 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
   for (j=0;j<npcen+npitf_bc;j++) {
     for (i=0;i<nflux_bc_up;i++) {
       if (j<npcen) {
-        tdy->Trans[vertex_id][i+nflux_in][j] = CupBCxIntimesAinvB_1d[idx] - Fup[i+nflux_in][j];
+        (*Trans)[vertex_id][i+nflux_in][j] = CupBCxIntimesAinvB_1d[idx] - Fup[i+nflux_in][j];
       } else {
-        tdy->Trans[vertex_id][i+nflux_in][j] = CupBCxIntimesAinvB_1d[idx] + Cup[i+npitf_in][j-npcen+npitf_in];
+        (*Trans)[vertex_id][i+nflux_in][j] = CupBCxIntimesAinvB_1d[idx] + Cup[i+npitf_in][j-npcen+npitf_in];
       }
-      if (fabs(tdy->Trans[vertex_id][i+nflux_in         ][j])<PETSC_MACHINE_EPSILON) tdy->Trans[vertex_id][i+nflux_in         ][j] = 0.0;
+      if (fabs((*Trans)[vertex_id][i+nflux_in         ][j])<PETSC_MACHINE_EPSILON) (*Trans)[vertex_id][i+nflux_in         ][j] = 0.0;
       idx++;
     }
   }
@@ -543,11 +586,11 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
   for (j=0;j<npcen+npitf_bc;j++) {
     for (i=0;i<nflux_bc_dn;i++) {
       if (j<npcen) {
-        tdy->Trans[vertex_id][i+nflux_in+nflux_bc_up][j] = CdnBCxIntimesAinvB_1d[idx] - Fdn[i+nflux_in][j];
+        (*Trans)[vertex_id][i+nflux_in+nflux_bc_up][j] = CdnBCxIntimesAinvB_1d[idx] - Fdn[i+nflux_in][j];
       } else {
-        tdy->Trans[vertex_id][i+nflux_in+nflux_bc_up][j] = CdnBCxIntimesAinvB_1d[idx] + Cdn[i+npitf_in][j-npcen+npitf_in];
+        (*Trans)[vertex_id][i+nflux_in+nflux_bc_up][j] = CdnBCxIntimesAinvB_1d[idx] + Cdn[i+npitf_in][j-npcen+npitf_in];
       }
-      if (fabs(tdy->Trans[vertex_id][i+nflux_in+nflux_bc_up][j])<PETSC_MACHINE_EPSILON) tdy->Trans[vertex_id][i+nflux_in+nflux_bc_up][j] = 0.0;
+      if (fabs((*Trans)[vertex_id][i+nflux_in+nflux_bc_up][j])<PETSC_MACHINE_EPSILON) (*Trans)[vertex_id][i+nflux_in+nflux_bc_up][j] = 0.0;
       idx++;
     }
   }
@@ -590,12 +633,12 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
 
     for (j=0; j<npcen; j++) {
       col = vertices->internal_cell_ids[vOffsetCell + j];
-      ierr = MatSetValues(tdy->Trans_mat,1,&row,1,&col,&tdy->Trans[vertex_id][i][j],ADD_VALUES); CHKERRQ(ierr);
+      ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[vertex_id][i][j],ADD_VALUES); CHKERRQ(ierr);
     }
 
     for (j=0; j<npitf_bc; j++) {
       col = idxBnd[j] + tdy->mesh->num_cells;
-      ierr = MatSetValues(tdy->Trans_mat,1,&row,1,&col,&tdy->Trans[vertex_id][i][j+npcen],ADD_VALUES); CHKERRQ(ierr);
+      ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[vertex_id][i][j+npcen],ADD_VALUES); CHKERRQ(ierr);
     }
   }
 
@@ -620,7 +663,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(TDy tdy,
-    PetscInt ivertex, TDy_cell *cells) {
+    PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
   DM             dm;
   TDy_vertex     *vertices;
   TDy_subcell    *subcells;
@@ -632,6 +675,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   PetscInt       dim;
   PetscReal      **Gmatrix;
   PetscInt       j;
+  PetscReal      ****Trans;
+  Mat            *Trans_mat;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -662,16 +707,24 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
   subcell_id = icell*cells->num_subcells[icell]+isubcell;
 
-  ierr = ExtractSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
-  
+  if (varID == VAR_PRESSURE) {
+    Trans = &tdy->Trans;
+    Trans_mat = &tdy->Trans_mat;
+    ierr = ExtractSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
+  } else if (varID == VAR_TEMPERATURE) {
+    ierr = ExtractTempSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
+    Trans = &tdy->Temp_Trans;
+    Trans_mat = &tdy->Temp_Trans_mat;
+  }
+
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
     for (j=0; j<dim; j++) {
-      tdy->Trans[vertices->id[ivertex]][iface][j] = Gmatrix[iface][j];
-      if (fabs(tdy->Trans[vertices->id[ivertex]][iface][j])<PETSC_MACHINE_EPSILON) tdy->Trans[vertices->id[ivertex]][iface][j] = 0.0;
+      (*Trans)[vertices->id[ivertex]][iface][j] = Gmatrix[iface][j];
+      if (fabs( (*Trans)[vertices->id[ivertex]][iface][j])<PETSC_MACHINE_EPSILON) (*Trans)[vertices->id[ivertex]][iface][j] = 0.0;
     }
-    tdy->Trans[vertices->id[ivertex]][iface][dim] = 0.0;
-    for (j=0; j<dim; j++) tdy->Trans[vertices->id[ivertex]][iface][dim] -= (Gmatrix[iface][j]);
+    (*Trans)[vertices->id[ivertex]][iface][dim] = 0.0;
+    for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] -= (Gmatrix[iface][j]);
   }
   
 
@@ -718,12 +771,12 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
     for (j=0; j<numBnd; j++) {
       col = idxBnd[j] + tdy->mesh->num_cells;
-      ierr = MatSetValues(tdy->Trans_mat,1,&row,1,&col,&tdy->Trans[ivertex][i][j],ADD_VALUES); CHKERRQ(ierr);
+      ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][j],ADD_VALUES); CHKERRQ(ierr);
     }
 
     icell  = vertices->internal_cell_ids[vOffsetCell + 0];
     col = icell;
-    ierr = MatSetValues(tdy->Trans_mat,1,&row,1,&col,&tdy->Trans[ivertex][i][numBnd],ADD_VALUES); CHKERRQ(ierr);
+    ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][numBnd],ADD_VALUES); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
@@ -750,20 +803,33 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
     if (!vertices->is_local[ivertex]) continue;
 
     if (vertices->num_boundary_cells[ivertex] == 0) {
-      ierr = ComputeTransmissibilityMatrix_ForInternalVertex(tdy, ivertex, cells);
-      CHKERRQ(ierr);
+      ierr = ComputeTransmissibilityMatrix_ForInternalVertex(tdy, ivertex, cells, 0); CHKERRQ(ierr);
+      if (tdy->mode == TH) {
+        ierr = ComputeTransmissibilityMatrix_ForInternalVertex(tdy, ivertex, cells, 1); CHKERRQ(ierr);
+      }
     } else {
       if (vertices->num_internal_cells[ivertex] > 1) {
-        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(tdy, ivertex, cells);
-        CHKERRQ(ierr);
+        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
+        if (tdy->mode == TH) {
+          ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(tdy, ivertex, cells, 1); CHKERRQ(ierr);
+        }
+
       } else {
-        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells);
+        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
+        if (tdy->mode == TH) {
+          ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 1); CHKERRQ(ierr);
+        }
       }
     }
   }
 
   ierr = MatAssemblyBegin(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+
+  if (tdy->mode == TH) {
+    ierr = MatAssemblyBegin(tdy->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(tdy->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  }
 
   PetscFunctionReturn(0);
 

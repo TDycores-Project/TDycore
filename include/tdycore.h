@@ -24,6 +24,13 @@ typedef enum {
 
 PETSC_EXTERN const char *const TDyQuadratureTypes[];
 
+typedef enum {
+  RICHARDS=0,
+  TH
+} TDyMode;
+
+PETSC_EXTERN const char *const TDyModes[];
+
 typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */
 
 typedef struct _p_TDy *TDy;
@@ -52,22 +59,23 @@ PETSC_EXTERN PetscErrorCode TDyGetCentroidArray(TDy tdy,PetscReal **X);
 
 PETSC_EXTERN PetscErrorCode TDySetPorosityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
+PETSC_EXTERN PetscErrorCode TDySetThermalConductivityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetResidualSaturationFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
+PETSC_EXTERN PetscErrorCode TDySetEnergyForcingFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetDirichletValueFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
+PETSC_EXTERN PetscErrorCode TDySetTemperatureDirichletValueFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetDirichletFluxFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 
 PETSC_EXTERN PetscErrorCode TDySetGravityVector(TDy,PetscReal*);
 
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (TDy tdy,
-    SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy tdy,
-    SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (TDy tdy,
-    SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (TDy tdy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetCellPermeability(TDy,PetscInt,PetscReal*);
-PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy tdy,
-    SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetSpecificHeatCapacity(TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetRockDensity         (TDy tdy,SpatialFunction f);
 
 PETSC_EXTERN PetscErrorCode TDySetPorosityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
@@ -76,6 +84,7 @@ PETSC_EXTERN PetscErrorCode TDySetMaterialPropertyMValuesLocal(TDy,PetscInt,cons
 PETSC_EXTERN PetscErrorCode TDySetMaterialPropertyNValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetMaterialPropertyAlphaValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetSourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
+PETSC_EXTERN PetscErrorCode TDySetEnergySourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 
 PETSC_EXTERN PetscErrorCode TDyGetSaturationValuesLocal(TDy,PetscInt*,PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDyGetLiquidMassValuesLocal(TDy,PetscInt*,PetscScalar[]);
@@ -94,6 +103,7 @@ PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy tdy);
 
 PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,
     TDyMethod method);
+PETSC_EXTERN PetscErrorCode TDySetMode(TDy tdy, TDyMode mode);
 PETSC_EXTERN PetscErrorCode TDySetup(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
     TDyQuadratureType qtype);

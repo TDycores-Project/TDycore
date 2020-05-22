@@ -26,7 +26,7 @@ PetscErrorCode SetPermeabilityFromFunction(TDy tdy) {
 
     mesh = tdy->mesh;
 
-    // If peremeability function is set, use it instead.
+    // If permeability function is set, use it instead.
     // Will need to consolidate this code with code in tdypermeability.c
     ierr = PetscMalloc(9*sizeof(PetscReal),&localK); CHKERRQ(ierr);
     for (icell=0; icell<mesh->num_cells; icell++) {
@@ -92,6 +92,42 @@ PetscErrorCode SetPorosityFromFunction(TDy tdy) {
     ierr = PetscFree(localK); CHKERRQ(ierr);
   }
   */
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
+
+  PetscFunctionBegin;
+  PetscInt dim;
+  PetscErrorCode ierr;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  if (tdy->ops->computethermalconductivity) {
+
+    PetscReal *localKappa;
+    PetscInt icell, ii, jj;
+    TDy_mesh *mesh;
+
+    mesh = tdy->mesh;
+
+    ierr = PetscMalloc(9*sizeof(PetscReal),&localKappa); CHKERRQ(ierr);
+    for (icell=0; icell<mesh->num_cells; icell++) {
+      ierr = (*tdy->ops->computethermalconductivity)(tdy, &(tdy->X[icell*dim]), localKappa, tdy->thermalconductivityctx);CHKERRQ(ierr);
+
+      PetscInt count = 0;
+      for (ii=0; ii<dim; ii++) {
+        for (jj=0; jj<dim; jj++) {
+          tdy->Kappa[icell*dim*dim + ii*dim + jj] = localKappa[count];
+          tdy->Kappa0[icell*dim*dim + ii*dim + jj] = localKappa[count];
+          count++;
+        }
+      }
+    }
+    ierr = PetscFree(localKappa); CHKERRQ(ierr);
+  }
 
   PetscFunctionReturn(0);
 }
@@ -177,6 +213,30 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy) {
+
+  TDy_mesh *mesh;
+  PetscInt nbnd_faces;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  mesh  = tdy->mesh;
+  nbnd_faces = mesh->num_boundary_faces;
+
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->T_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->h_BND)); CHKERRQ(ierr);
+
+  PetscInt i;
+  PetscReal dh_dP, dh_dT;
+  for (i=0;i<nbnd_faces;i++) {
+    ierr = ComputeWaterEnthalpy(tdy->Tref, tdy->Pref,tdy->enthalpy_type, &(tdy->h_BND[i]), &dh_dP, &dh_dT); CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
 
   TDy_mesh *mesh;
@@ -192,6 +252,26 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
 
   PetscInt i;
   for (i=0;i<ncells;i++) tdy->source_sink[i] = 0.0;
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(TDy tdy) {
+
+  TDy_mesh *mesh;
+  PetscInt ncells;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  mesh  = tdy->mesh;
+  ncells = mesh->num_cells;
+
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(tdy->energy_source_sink)); CHKERRQ(ierr);
+
+  PetscInt i;
+  for (i=0;i<ncells;i++) tdy->energy_source_sink[i] = 0.0;
 
   PetscFunctionReturn(0);
 }
@@ -235,8 +315,9 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
     break;
   case 3:
-    ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 24, 24);
-    CHKERRQ(ierr);
+    ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 24, 24); CHKERRQ(ierr);
+    if (tdy->mode == TH){ierr = TDyAllocate_RealArray_3D(&tdy->Temp_Trans, 
+                         tdy->mesh->num_vertices, 24, 24); CHKERRQ(ierr);}
     ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
                      &(tdy->vel )); CHKERRQ(ierr);
     ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
@@ -256,6 +337,8 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
                                nsubcells, nrow, ncol); CHKERRQ(ierr);
+  if (tdy->mode == TH) {ierr = TDyAllocate_RealArray_4D(&tdy->Temp_subc_Gmatrix, tdy->mesh->num_cells,
+                               nsubcells, nrow, ncol); CHKERRQ(ierr);}
 
   /* Setup the section, 1 dof per cell */
   PetscSection sec;
@@ -265,15 +348,24 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   use_dae = (tdy->method == MPFA_O_DAE);
   ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
   if (!use_dae) {
-    ierr = PetscSectionSetNumFields(sec, 1); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldComponents(sec,0, 1); CHKERRQ(ierr);
+    if (tdy->mode == TH){
+      ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldName(sec, 1, "LiquidTemperature"); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldComponents(sec, 1, 1); CHKERRQ(ierr);
+    } else {
+      ierr = PetscSectionSetNumFields(sec, 1); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
+    }
   } else {
+    if (tdy->mode == TH) {SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TH unsupported with MPFA_O_DAE");}
     ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldComponents(sec,0, 1); CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldName(sec, 1, "LiquidMass"); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldComponents(sec,1, 1); CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldComponents(sec, 1, 1); CHKERRQ(ierr);
   }
 
   ierr = DMPlexGetChart(dm, &pStart, &pEnd); CHKERRQ(ierr);
@@ -282,7 +374,12 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   for(p=pStart; p<pEnd; p++) {
     ierr = PetscSectionSetFieldDof(sec,p,0,1); CHKERRQ(ierr);
     ierr = PetscSectionSetDof(sec,p,1); CHKERRQ(ierr);
+    if (tdy->mode == TH){
+      ierr = PetscSectionSetFieldDof(sec,p,1,1); CHKERRQ(ierr);
+      ierr = PetscSectionSetDof(sec,p,2); CHKERRQ(ierr);
+    }
     if (use_dae) {
+      if (tdy->mode == TH) {SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TH unsupported with MPFA_O_DAE");}
       ierr = PetscSectionSetFieldDof(sec,p,1,1); CHKERRQ(ierr);
       ierr = PetscSectionSetDof(sec,p,2); CHKERRQ(ierr);
     }
@@ -314,13 +411,26 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&tdy->P_vec);
     ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->TtimesP_vec);
 
+    if (tdy->mode == TH){
+      ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&tdy->Temp_Trans_mat); CHKERRQ(ierr);
+      ierr = MatSetOption(tdy->Temp_Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+      ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&tdy->Temp_P_vec);
+      ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->Temp_TtimesP_vec);
+    }
   }
 
-  if (tdy->ops->computepermeability) { ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
+  if (tdy->ops->computepermeability) {ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
+  if (tdy->mode == TH){
+    if (tdy->ops->computethermalconductivity) {ierr = SetThermalConductivityFromFunction(tdy); CHKERRQ(ierr);}
+  }
 
   if (dim == 3) {
     ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
     ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(tdy); CHKERRQ(ierr);
+    if (tdy->mode == TH) {
+      ierr = TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(tdy); CHKERRQ(ierr);
+      ierr = TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(tdy); CHKERRQ(ierr);
+    }
   }
 
   PetscFunctionReturn(0);

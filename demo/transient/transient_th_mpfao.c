@@ -4,6 +4,14 @@ void Porosity(double *x,double *theta) {
   (*theta) = 0.115;
 }
 
+void SpecificHeatCapacity(double *x,double *theta) {
+  (*theta) = 1000.0;
+}
+
+void RockDensity(double *x,double *theta) {
+  (*theta) = 2650.0;
+}
+
 void Permeability3D(double *x,double *K) {
   K[0] = 1.0e-10; K[1] = 0.0    ; K[2] = 0.0    ;
   K[3] = 0.0    ; K[4] = 1.0e-10; K[5] = 0.0    ;
@@ -15,12 +23,33 @@ PetscErrorCode PermeabilityFunction3D(TDy tdy, double *x, double *K, void *ctx){
   return 0;
 }
 
+void ThermalConductivity3D(double *x,double *K) {
+  K[0] = 1.0    ; K[1] = 0.0    ; K[2] = 0.0    ;
+  K[3] = 0.0    ; K[4] = 1.0    ; K[5] = 0.0    ;
+  K[6] = 0.0    ; K[7] = 0.0    ; K[8] = 1.0    ;
+}
+
+PetscErrorCode ThermalConductivityFunction3D(TDy tdy, double *x, double *K, void *ctx){
+  ThermalConductivity3D(x, K);
+  return 0;
+}
+
 PetscErrorCode Pressure(TDy tdy,double *x,double *p,void *ctx) {
   (*p) = 91325;
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode Temperature(TDy tdy,double *x,double *p,void *ctx) {
+  (*p) = 25;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode Forcing(TDy tdy,double *x,double *f,void *ctx) {
+  (*f) = 0;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode EnergyForcing(TDy tdy,double *x,double *f,void *ctx) {
   (*f) = 0;
   PetscFunctionReturn(0);
 }
@@ -64,6 +93,29 @@ PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode PostProcess(TS ts)
+{
+  PetscErrorCode ierr;
+  PetscViewer    viewer;
+  PetscInt       stepi;
+  Vec            sol;
+  DM             dm;
+  char           filename[PETSC_MAX_PATH_LEN];
+
+  PetscFunctionBegin;
+  ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
+  ierr = TSGetSolution(ts,&sol); CHKERRQ(ierr);
+  ierr = TSGetStepNumber(ts,&stepi); CHKERRQ(ierr);
+  ierr = PetscSNPrintf(filename,sizeof filename,"%s-%03D.vtk","solution",stepi); CHKERRQ(ierr);
+  ierr = PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+  ierr = DMView(dm,viewer); CHKERRQ(ierr);
+  //ierr = VecView(sol,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+
+}
+
 
 int main(int argc, char **argv) {
   /* Initialize */
@@ -118,54 +170,72 @@ int main(int argc, char **argv) {
 
   /* Setup problem parameters */
   TDy  tdy;
+  TDyMode mode = TH;
   ierr = TDyCreate(dm,&tdy); CHKERRQ(ierr);
+  ierr = TDySetMode(tdy,mode); CHKERRQ(ierr);
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
+  ierr = TDySetSpecificHeatCapacity(tdy,SpecificHeatCapacity); CHKERRQ(ierr);
+  ierr = TDySetRockDensity(tdy,RockDensity); CHKERRQ(ierr);
   //ierr = TDySetPermeabilityScalar(tdy,Permeability); CHKERRQ(ierr);
   ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction3D,NULL); CHKERRQ(ierr);
+  ierr = TDySetThermalConductivityFunction(tdy,ThermalConductivityFunction3D,NULL); CHKERRQ(ierr);
   ierr = TDySetResidualSaturationValuesLocal(tdy,cEnd-cStart,index,residualSat);
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
+  ierr = TDySetEnergyForcingFunction(tdy,EnergyForcing,NULL); CHKERRQ(ierr);
   //ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
+  //ierr = TDySetTemperatureDirichletValueFunction(tdy,Temperature,NULL); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
-
-  /* Setup initial condition */
-  Vec U;
-  ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
-  ierr = VecSet(U,91325); CHKERRQ(ierr);
-  //VecView(U,PETSC_VIEWER_STDOUT_WORLD);
 
   PetscSection   sec;
   PetscInt num_fields;
   PetscReal total_mass_beg, total_mass_end;
   PetscInt gref, junkInt;
-  ierr = DMGetSection(dm, &sec);
-  ierr = PetscSectionGetNumFields(sec, &num_fields);
+  ierr = DMGetSection(dm,&sec);
+  ierr = PetscSectionGetNumFields(sec,&num_fields);
 
   PetscReal *mass_p,*pres_p, *u_p;
   ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&pres_p);CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&mass_p);CHKERRQ(ierr);
 
-  if (num_fields == 2) {
-    ierr = VecGetArray(U,&u_p); CHKERRQ(ierr);
-    for (c=0;c<cEnd-cStart;c++) pres_p[c] = u_p[c*2];
-    ierr = TDyUpdateState(tdy,pres_p); CHKERRQ(ierr);
-    ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
-    total_mass_beg = 0.0;
+  /* Setup initial condition */
+  Vec U;
+  PetscReal initial_temperature = 25;
+  PetscReal initial_pressure = 91325;
+  ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);  
+  if (mode == TH && num_fields == 2) {
+    ierr = VecGetArray(U, &u_p); CHKERRQ(ierr);
     for (c=0;c<cEnd-cStart;c++) {
-      u_p[c*2+1] = mass_p[c];
-      ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
-      if (gref>=0) total_mass_beg += mass_p[c];
+      u_p[c*2]   = initial_pressure;
+      u_p[c*2+1] = initial_temperature;
     }
     ierr = VecRestoreArray(U,&u_p); CHKERRQ(ierr);
-  } else {
-    ierr = VecGetArray(U,&pres_p); CHKERRQ(ierr);
-    ierr = TDyUpdateState(tdy,pres_p); CHKERRQ(ierr);
-    ierr = VecRestoreArray(U,&pres_p); CHKERRQ(ierr);
-    ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
-    total_mass_beg = 0.0;
-    for (c=0;c<cEnd-cStart;c++) {
-      ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
-      if (gref>=0) total_mass_beg += mass_p[c];
+  }
+  //VecView(U,PETSC_VIEWER_STDOUT_WORLD);
+
+  if (mode == RICHARDS){
+    if (num_fields == 2) {
+      ierr = VecGetArray(U,&u_p); CHKERRQ(ierr);
+      for (c=0;c<cEnd-cStart;c++) pres_p[c] = u_p[c*2];
+      ierr = TDyUpdateState(tdy,pres_p); CHKERRQ(ierr);
+      ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
+      total_mass_beg = 0.0;
+      for (c=0;c<cEnd-cStart;c++) {
+        u_p[c*2+1] = mass_p[c];
+        ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
+        if (gref>=0) total_mass_beg += mass_p[c];
+      }
+      ierr = VecRestoreArray(U,&u_p); CHKERRQ(ierr);
+    } else {
+      ierr = VecGetArray(U,&pres_p); CHKERRQ(ierr);
+      ierr = TDyUpdateState(tdy,pres_p); CHKERRQ(ierr);
+      ierr = VecRestoreArray(U,&pres_p); CHKERRQ(ierr);
+      ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
+      total_mass_beg = 0.0;
+      for (c=0;c<cEnd-cStart;c++) {
+        ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
+        if (gref>=0) total_mass_beg += mass_p[c];
+      }
     }
   }
 
@@ -182,7 +252,13 @@ int main(int argc, char **argv) {
   ierr = TSSetMaxTime(ts,1); CHKERRQ(ierr);
   ierr = TSSetExactFinalTime(ts,TS_EXACTFINALTIME_STEPOVER); CHKERRQ(ierr);
   ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
+
+  ierr = TSSetPostStep(ts,PostProcess);CHKERRQ(ierr);
+  ierr = PostProcess(ts);CHKERRQ(ierr); /* print the initial state */
+
   ierr = TSSetUp(ts); CHKERRQ(ierr);
+
+  ierr = PetscPrintf(MPI_COMM_SELF,"Solving.\n");CHKERRQ(ierr);
   ierr = TSSolve(ts,U); CHKERRQ(ierr);
 
   ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
@@ -215,6 +291,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(mass_p); CHKERRQ(ierr);
   ierr = PetscFree(u_p); CHKERRQ(ierr);
   ierr = PetscFree(pres_p); CHKERRQ(ierr);
+  ierr = PetscPrintf(MPI_COMM_SELF,"Done!\n");CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
   return(successful_exit_code);
 }

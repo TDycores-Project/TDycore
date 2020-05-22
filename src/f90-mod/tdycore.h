@@ -23,6 +23,16 @@
       parameter (BDM=4,WY=5)
 
 !
+!  Types of TDy modes
+!
+      PetscEnum RICHARDS
+      PetscEnum TH
+
+      ! The parameters values need to match those defined in
+      ! the C code (i.e. include/tdycore.h)
+      parameter (RICHARDS=0,TH=1)
+
+!
 !  Types of TDy water densities
 !
       PetscEnum WATER_DENSITY_CONSTANT
