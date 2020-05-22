@@ -38,7 +38,7 @@ script:
   - (cd regression_tests; make test-transient-mpfao)
   - (cd regression_tests; make test-transient-mpfaof90)
   - (cd regression_tests; make test-transient-snes-mpfaof90)
-  - (cd regression_tests; make test-transient-th-mpfao)
+#  - (cd regression_tests; make test-transient-th-mpfao)
   - cat regression_tests/*testlog
   - cat demo/transient/transient-mpfaof90.stdout
   - cat demo/transient/transient-snes-mpfaof90.stdout
