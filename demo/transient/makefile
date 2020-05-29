@@ -1,4 +1,4 @@
-TARGETS = transient transient_mpfao transient_mpfaof90 transient_snes_mpfaof90 transient_th_mpfao
+TARGETS = converging_hillslope transient transient_mpfao transient_mpfaof90 transient_snes_mpfaof90 transient_th_mpfao
 
 ifdef codecov
   MYFLAGS += -fprofile-arcs -ftest-coverage
@@ -22,6 +22,10 @@ include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 
 build:
 	@cd ../; make
+
+converging_hillslope: converging_hillslope.o chkopts
+	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
+	$(RM) -f $<
 
 transient: transient.o chkopts
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
