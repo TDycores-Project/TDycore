@@ -45,6 +45,7 @@ PetscErrorCode UpdateVertices(DM dm, PetscInt nx, PetscInt ny, PetscInt nz) {
 int main(int argc, char **argv) {
   PetscInt nx=10, ny=1, nz=5;
   PetscInt successful_exit_code=0;
+  PetscBool view_mesh = PETSC_FALSE;
   PetscErrorCode ierr;
 
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
@@ -53,6 +54,7 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsInt("-nx","Number of elements in xdir","",nx,&nx,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-ny","Number of elements in ydir","",ny,&ny,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-nz","Number of elements in zdir","",nz,&nz,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-view_mesh","Output the mesh","",view_mesh,&view_mesh,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   
   if (nx<=0) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_USER,"Bad value specified for -nx");
@@ -75,6 +77,16 @@ int main(int argc, char **argv) {
   ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
   if (dmDist) {DMDestroy(&dm); dm = dmDist;}
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+
+  if (view_mesh) {
+    PetscViewer viewer;
+    ierr = PetscViewerCreate(PETSC_COMM_WORLD, &viewer); CHKERRQ(ierr);
+    ierr = PetscViewerSetType(viewer, PETSCVIEWEREXODUSII); CHKERRQ(ierr);
+    ierr = PetscViewerFileSetMode(viewer, FILE_MODE_APPEND); CHKERRQ(ierr);
+    ierr = PetscViewerFileSetName(viewer, "converging_hillslope.exo"); CHKERRQ(ierr);
+    ierr = DMView(dm,viewer);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  }
 
   ierr = PetscFinalize(); CHKERRQ(ierr);
   return(successful_exit_code);
