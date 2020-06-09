@@ -452,10 +452,10 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
 
   PetscInt c,cStart,cEnd;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&dp_dt);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&dtemp_dt);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&p);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&temp);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&dp_dt);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&dtemp_dt);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&p);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
 
   for (c=0;c<cEnd-cStart;c++) {
     dp_dt[c]    = du_dt[c*2];
@@ -1328,9 +1328,9 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
 
   PetscInt c,cStart,cEnd;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&dp_dt);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&dT_dt);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&temp);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&dp_dt);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&dT_dt);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
 
   for (c=0;c<cEnd-cStart;c++) {
     dp_dt[c] = du_dt[c*2];
