@@ -799,8 +799,8 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&P);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&temp);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&P);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
 
   if (tdy->mode == TH) {
     for (c=0;c<cEnd-cStart;c++) {
