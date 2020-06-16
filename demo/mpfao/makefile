@@ -27,3 +27,7 @@ mpfao: mpfao.o chkopts
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
 
+streamline: mpfao_streamline.o chkopts
+	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
+	$(RM) -f $<
+
