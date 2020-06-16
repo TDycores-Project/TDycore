@@ -195,8 +195,8 @@ int main(int argc, char **argv) {
   ierr = PetscSectionGetNumFields(sec,&num_fields);
 
   PetscReal *mass_p,*pres_p, *u_p;
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&pres_p);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(Vec),&mass_p);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&pres_p);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&mass_p);CHKERRQ(ierr);
 
   /* Setup initial condition */
   Vec U;
