@@ -7,7 +7,7 @@ int main(int argc, char **argv) {
   ierr = PetscInitialize(&argc,&argv,(char *)0,0);CHKERRQ(ierr);
 
   DM dm;
-  PetscInt n = 5;
+  PetscInt n = 3;
   const PetscInt num_cells_in_direction[3] = {n,n,n};
   const PetscReal lower_bound[3] = {0.,0.,0.};
   const PetscReal upper_bound[3] = {1.,1.,1.};
