@@ -236,7 +236,22 @@ int main(int argc, char **argv) {
         ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
         if (gref>=0) total_mass_beg += mass_p[c];
       }
+      ierr = VecRestoreArray(U,&u_p); CHKERRQ(ierr);
     }
+  }
+
+  if (mode == TH && num_fields == 2){
+    ierr = VecGetArray(U,&u_p); CHKERRQ(ierr);
+    for (c=0;c<cEnd-cStart;c++) pres_p[c] = u_p[c*2];
+    ierr = TDyUpdateState(tdy,pres_p); CHKERRQ(ierr);
+    ierr = VecRestoreArray(U,&u_p); CHKERRQ(ierr);
+    ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
+    total_mass_beg = 0.0;
+    for (c=0;c<cEnd-cStart;c++) {
+      ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
+      if (gref>=0) total_mass_beg += mass_p[c];
+    }
+
   }
 
   /* Create time stepping and solve */
@@ -260,7 +275,11 @@ int main(int argc, char **argv) {
 
   ierr = PetscPrintf(MPI_COMM_SELF,"Solving.\n");CHKERRQ(ierr);
   ierr = TSSolve(ts,U); CHKERRQ(ierr);
-
+  
+  ierr = VecGetArray(U,&u_p); CHKERRQ(ierr);
+  for (c=0;c<cEnd-cStart;c++) pres_p[c] = u_p[c*2];
+  ierr = TDyUpdateState(tdy,pres_p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(U,&u_p); CHKERRQ(ierr);
   ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
   total_mass_end = 0.0;
   for (c=0;c<cEnd-cStart;c++) {
@@ -289,7 +308,6 @@ int main(int argc, char **argv) {
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFree(mass_p); CHKERRQ(ierr);
-  ierr = PetscFree(u_p); CHKERRQ(ierr);
   ierr = PetscFree(pres_p); CHKERRQ(ierr);
   ierr = PetscPrintf(MPI_COMM_SELF,"Done!\n");CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
