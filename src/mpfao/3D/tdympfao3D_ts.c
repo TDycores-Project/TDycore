@@ -59,18 +59,15 @@ PetscErrorCode TDyMPFAOIFunction_InternalVertices_3DMesh(Vec Ul, Vec R, void *ct
 
       TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
-    }
 
-    //
-    // fluxm_ij = rho_ij * (kr/mu)_{ij,upwind} * [ T ] *  [ P+rho*g*z ]^T
-    // where
-    //      rho_ij = 0.5*(rho_i + rho_j)
-    //      (kr/mu)_{ij,upwind} = (kr/mu)_{i} if velocity is from i to j
-    //                          = (kr/mu)_{j} otherwise
-    //      T includes product of K and A_{ij}
-    for (irow=0; irow<nflux_in; irow++) {
-      
-      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
+       //
+       // fluxm_ij = rho_ij * (kr/mu)_{ij,upwind} * [ T ] *  [ P+rho*g*z ]^T
+       // where
+       //      rho_ij = 0.5*(rho_i + rho_j)
+       //      (kr/mu)_{ij,upwind} = (kr/mu)_{i} if velocity is from i to j
+       //                          = (kr/mu)_{j} otherwise
+       //      T includes product of K and A_{ij}
+
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
@@ -167,11 +164,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
       TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
 
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
-    }
 
-    for (irow=0; irow<nflux_in + 2*nflux_bc; irow++) {
-
-      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       if (!faces->is_local[face_id]) continue;
@@ -225,7 +218,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
   PetscInt dim;
   TDy_subcell    *subcells;
   PetscInt irow;
-  PetscInt isubcell, iface;
+  PetscInt isubcell;
   PetscInt cell_id_up, cell_id_dn, cell_id;
   PetscReal den,fluxm,ukvr;
   PetscReal *TtimesP_vec_ptr;
@@ -280,18 +273,14 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
 
       TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
-    }
 
-    for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
       cell_id_dn = faces->cell_ids[fOffsetCell + 1];
 
 
-      if (TtimesP[iface] < 0.0) { // up ---> dn
+      if (TtimesP[irow] < 0.0) { // up ---> dn
         if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
         else               ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
       } else {
