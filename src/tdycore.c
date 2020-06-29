@@ -86,6 +86,7 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   DM             dm;
   ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
   ierr = TDyCreateWithDM(dm,_tdy); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
