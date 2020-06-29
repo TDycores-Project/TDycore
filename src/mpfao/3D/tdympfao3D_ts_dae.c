@@ -50,8 +50,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec 
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
 
-  ierr = TDyMPFAOIFunction_InternalVertices_3DMesh(P,R_P,ctx); CHKERRQ(ierr);
-  ierr = TDyMPFAOIFunction_BoundaryVertices_3DMesh(P,R_P,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_Vertices_3DMesh(P,R_P,ctx); CHKERRQ(ierr);
 
   ierr = VecGetArray(M,&m); CHKERRQ(ierr);
   ierr = VecGetArray(U_t,&u_t); CHKERRQ(ierr);

@@ -90,8 +90,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
 
   PetscReal *accum_prev;
   
-  ierr = TDyMPFAOIFunction_InternalVertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
-  ierr = TDyMPFAOIFunction_BoundaryVertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_Vertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
 
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
