@@ -139,18 +139,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
     npitf_bc = vertices->num_boundary_cells[ivertex];
-
-    switch (ncells) {
-    case 2:
-      nflux_in = 1;
-      break;
-    case 4:
-      nflux_in = 4;
-      break;
-    default:
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "Unsupported number of internal cells.");
-      break;
-    }
+    nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_cells[ivertex];
 
     // Compute T*P
     PetscScalar TtimesP[nflux_in + npitf_bc];
