@@ -124,7 +124,7 @@ implicit none
   call DMSetFromOptions(dm, ierr);
   CHKERRA(ierr);
 
-  call TDyCreate(dm, tdy, ierr);
+  call TDyCreateWithDM(dm, tdy, ierr);
   CHKERRA(ierr);
 
   call TDySetWaterDensityType(tdy,WATER_DENSITY_EXPONENTIAL,ierr);
@@ -250,9 +250,6 @@ implicit none
   CHKERRA(ierr);
 
   call TDyDestroy(tdy,ierr);
-  CHKERRA(ierr);
-
-  call DMDestroy(dm,ierr);
   CHKERRA(ierr);
 
   call PetscFinalize(ierr);
