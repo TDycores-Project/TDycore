@@ -378,44 +378,8 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
     npitf_bc = vertices->num_boundary_cells[ivertex];
+    nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_cells[ivertex];
 
-    switch (ncells) {
-    case 2:
-      nflux_in = 1;
-      break;
-    case 4:
-      nflux_in = 4;
-      break;
-    default:
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "Unsupported number of internal cells.");
-      break;
-    }
-
-    PetscInt numBoundary;
-    
-    // For boundary edges, save following information:
-    //  - Dirichlet pressure value
-    numBoundary = 0;
-
-    for (irow=0; irow<ncells; irow++){
-      icell = vertices->internal_cell_ids[vOffsetCell + irow];
-      PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + irow];
-
-      PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-      PetscInt sOffsetFace = subcells->face_offset[subcell_id];
-
-      PetscInt iface;
-      for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
-
-        PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
-
-        if (faces->is_internal[face_id] == 0) {
-
-          numBoundary++;
-        }
-      }
-    }
-    
     // Compute T*P
     PetscScalar TtimesP[nflux_in + npitf_bc];
     for (irow=0; irow<nflux_in + npitf_bc; irow++) {
