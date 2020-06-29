@@ -204,10 +204,9 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
   PetscReal *p,*r;
   PetscInt ivertex;
   PetscInt dim;
-  TDy_subcell    *subcells;
+  PetscInt npitf_bc, nflux_in;
   PetscInt irow;
-  PetscInt isubcell;
-  PetscInt cell_id_up, cell_id_dn, cell_id;
+  PetscInt cell_id_up, cell_id_dn;
   PetscReal den,fluxm,ukvr;
   PetscReal *TtimesP_vec_ptr;
   PetscErrorCode ierr;
@@ -218,7 +217,6 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
   cells    = &mesh->cells;
   faces    = &mesh->faces;
   vertices = &mesh->vertices;
-  subcells = &mesh->subcells;
   dm       = tdy->dm;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -232,41 +230,29 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
     if (vertices->num_boundary_cells[ivertex] == 0) continue;
     if (vertices->num_internal_cells[ivertex] > 1)  continue;
 
-    PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
-    PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
 
-    // Vertex is on the boundary
-    PetscInt numBoundary;
-
-    // For boundary edges, save following information:
-    //  - Dirichlet pressure value
-    //  - Cell IDs connecting the boundary edge in the direction of unit normal
-
-    cell_id  = vertices->internal_cell_ids[vOffsetCell + 0];
-    isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
-
-    PetscInt subcell_id = cell_id*cells->num_subcells[cell_id]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
-
-    numBoundary = subcells->num_faces[subcell_id];
+    npitf_bc = vertices->num_boundary_cells[ivertex];
+    nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_cells[ivertex];
 
     // Compute T*P
-    PetscScalar TtimesP[numBoundary];
-    for (irow=0; irow<numBoundary; irow++) {
+    PetscScalar TtimesP[nflux_in + npitf_bc];
+    for (irow=0; irow<nflux_in + npitf_bc; irow++) {
 
       PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
       PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
       PetscInt num_subfaces = 4;
 
       TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
+
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
 
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
+      if (!faces->is_local[face_id]) continue;
+
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
       cell_id_dn = faces->cell_ids[fOffsetCell + 1];
-
 
       if (TtimesP[irow] < 0.0) { // up ---> dn
         if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
