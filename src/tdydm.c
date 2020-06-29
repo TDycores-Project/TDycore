@@ -1,6 +1,6 @@
 #include <private/tdydmimpl.h>
 
-PetscErrorCode PerturbInteriorVerticesLocal(DM dm,PetscReal h) {
+PetscErrorCode PerturbDMInteriorVertices(DM dm,PetscReal h) {
   PetscErrorCode ierr;
   DMLabel      label;
   Vec          coordinates;
@@ -74,9 +74,9 @@ PetscErrorCode TDyCreateDM(DM *_dm) {
                                lower, upper, NULL, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
     if (perturb) {
-      ierr = PerturbInteriorVerticesLocal(dm,1./N); CHKERRQ(ierr);
+      ierr = PerturbDMInteriorVertices(dm,1./N); CHKERRQ(ierr);
     } else {
-      ierr = PerturbInteriorVerticesLocal(dm,0.); CHKERRQ(ierr);
+      ierr = PerturbDMInteriorVertices(dm,0.); CHKERRQ(ierr);
     }
   } else {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE,
