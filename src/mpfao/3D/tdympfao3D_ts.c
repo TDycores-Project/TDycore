@@ -105,7 +105,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
   PetscInt ivertex;
   PetscInt dim;
   PetscInt ncells, ncells_bnd;
-  PetscInt npitf_bc, nflux_bc, nflux_in;
+  PetscInt npitf_bc, nflux_in;
   PetscInt irow;
   PetscInt cell_id_up, cell_id_dn;
   PetscReal den,fluxm,ukvr;
@@ -139,7 +139,6 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
     npitf_bc = vertices->num_boundary_cells[ivertex];
-    nflux_bc = npitf_bc/2;
 
     switch (ncells) {
     case 2:
@@ -154,8 +153,8 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_SharedWithInternalVertices_3DM
     }
 
     // Compute T*P
-    PetscScalar TtimesP[nflux_in + 2*nflux_bc];
-    for (irow=0; irow<nflux_in + 2*nflux_bc; irow++) {
+    PetscScalar TtimesP[nflux_in + npitf_bc];
+    for (irow=0; irow<nflux_in + npitf_bc; irow++) {
 
       PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
       PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
@@ -534,7 +533,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
   TDy_vertex *vertices;
   DM dm;
   PetscInt ncells, ncells_bnd;
-  PetscInt npitf_bc, nflux_bc, nflux_in;
+  PetscInt npitf_bc, nflux_in;
   PetscInt fStart, fEnd;
   TDy_subcell    *subcells;
   PetscInt dim;
@@ -582,7 +581,6 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
     npitf_bc = vertices->num_boundary_cells[ivertex];
-    nflux_bc = npitf_bc/2;
 
     switch (ncells) {
     case 2:
@@ -622,8 +620,8 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
     }
     
     // Compute T*P
-    PetscScalar TtimesP[nflux_in + 2*nflux_bc];
-    for (irow=0; irow<nflux_in + 2*nflux_bc; irow++) {
+    PetscScalar TtimesP[nflux_in + npitf_bc];
+    for (irow=0; irow<nflux_in + npitf_bc; irow++) {
 
       PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
       PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
@@ -634,7 +632,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
     }
 
-    for (irow=0; irow<nflux_in + 2*nflux_bc; irow++) {
+    for (irow=0; irow<nflux_in + npitf_bc; irow++) {
 
       PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
