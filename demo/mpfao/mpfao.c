@@ -147,110 +147,35 @@ PetscErrorCode Forcing3D(TDy tdy, double *x,double *f, void *ctx) {
   return 0;
 }
 
-PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
-  PetscErrorCode ierr;
-  DMLabel      label;
-  Vec          coordinates;
-  PetscSection coordSection;
-  PetscScalar *coords;
-  PetscInt     v,vStart,vEnd,offset,value;
-
-  PetscFunctionBegin;
-
-  ierr = DMGetLabelByNum(dm,2,&label);
-  CHKERRQ(ierr); // this is the 'marker' label which marks boundary entities
-
-  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
-  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
-  ierr = VecGetArray(coordinates, &coords); CHKERRQ(ierr);
-
-  for(v=vStart; v<vEnd; v++) {
-    ierr = PetscSectionGetOffset(coordSection,v,&offset); CHKERRQ(ierr);
-    ierr = DMLabelGetValue(label,v,&value); CHKERRQ(ierr);
-    if(value==-1) {
-      PetscReal r = ((PetscReal)rand())/((PetscReal)RAND_MAX)*
-                    (h*0.471404); // h*sqrt(2)/3
-      PetscReal t = ((PetscReal)rand())/((PetscReal)RAND_MAX)*PETSC_PI;
-      coords[offset  ] += r*PetscCosReal(t);
-      coords[offset+1] += r*PetscSinReal(t);
-    }
-  }
-
-  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
-
-  /*
-  PetscViewer viewer;
-  PetscViewerBinaryOpen(PETSC_COMM_WORLD, "coordinates.bin", FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
-  VecView(coordinates, viewer); CHKERRQ(ierr);
-  PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  */
-
-  PetscFunctionReturn(0);
-}
-
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt N = 8, dim = 2, problem = 3;
+  PetscInt problem = 3;
   PetscInt successful_exit_code=0;
-  PetscBool perturb = PETSC_FALSE;
-  char      mesh_filename[PETSC_MAX_PATH_LEN];
 
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
   CHKERRQ(ierr);
-  ierr = PetscOptionsInt ("-dim","Problem dimension","",dim,&dim,NULL);
-  CHKERRQ(ierr);
-  ierr = PetscOptionsInt ("-N","Number of elements in 1D","",N,&N,NULL);
-  CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-problem","Problem number","",problem,&problem,NULL);
   CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-perturb","Perturb interior vertices","",perturb,
-                          &perturb,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-alpha","Permeability scaling","",alpha,&alpha,NULL);
   CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
+  ierr = PetscOptionsInt("-successful_exit_code",
+                         "Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
-  ierr = PetscOptionsString("-mesh_filename", "The mesh file", "", mesh_filename, mesh_filename, PETSC_MAX_PATH_LEN, NULL); CHKERRQ(ierr);
-
    ierr = PetscOptionsEnd(); CHKERRQ(ierr);
-
-  /* Create and distribute the mesh */
-  DM dm, dmDist = NULL;
-  size_t len;
-
-  ierr = PetscStrlen(mesh_filename, &len); CHKERRQ(ierr);
-  if (!len){
-    const PetscInt  faces[3] = {N,N,N  };
-    const PetscReal lower[3] = {0.0,0.0,0.0};
-    const PetscReal upper[3] = {1.0,1.0,1.0};
-
-    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
-                               NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
-    if (perturb) {
-      ierr = PerturbInteriorVertices(dm,1./N); CHKERRQ(ierr);
-    } else {
-      ierr = PerturbInteriorVertices(dm,0.); CHKERRQ(ierr);
-    }
-  } else {
-    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE, &dm); CHKERRQ(ierr);
-  }
-
-  ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
-  if (dmDist) {DMDestroy(&dm); dm = dmDist;}
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
   // Setup problem parameters
   TDy  tdy;
   PetscReal gravity[3];
 
-  ierr = TDyCreate(dm,&tdy); CHKERRQ(ierr);
+  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
 
   gravity[0] = 0.0; gravity[1] = 0.0; gravity[2] = 0.0;
   ierr = TDySetGravityVector(tdy,gravity);
 
+  int dim;
+  ierr = TDyGetDimension(tdy,&dim);
   if (dim == 2) {
 
     ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction,NULL); CHKERRQ(ierr);
@@ -292,6 +217,8 @@ int main(int argc, char **argv) {
   // Compute system
   Mat K;
   Vec U,F;
+  DM dm;
+  ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(dm,&F); CHKERRQ(ierr);
   ierr = DMCreateMatrix      (dm,&K); CHKERRQ(ierr);
@@ -318,7 +245,6 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&F); CHKERRQ(ierr);
   ierr = MatDestroy(&K); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = DMDestroy(&dm);CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
 
   return(successful_exit_code);

@@ -10,6 +10,7 @@
 
 #ifdef PETSC_HAVE_FORTRAN_CAPS
 #define tdycreate_                                  TDYCREATE
+#define tdycreatewithdm_                            TDYCREATEWITHDM
 #define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
 #define tdysetup_                                   TDYSETUP
 #define tdysetwaterdensitytype_                     TDYWATERDENSITYTYPE
@@ -59,6 +60,7 @@
 #define tdydestroy_                                 TDYDESTROY
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
 #define tdycreate_                                  tdycreate
+#define tdycreatewithdm_                            tdycreatewithdm
 #define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
 #define tdysetup_                                   tdysetup
 #define tdysetwaterdensitytype_                     tdysetwaterdensitytype
@@ -122,8 +124,18 @@ static struct {
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdycreate_(DM dm,TDy *_tdy, int *__ierr){
-*__ierr = TDyCreate((DM)PetscToPointer((dm)), _tdy);
+PETSC_EXTERN void  tdycreate_(TDy *_tdy, int *__ierr){
+*__ierr = TDyCreate(_tdy);
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdycreatewithdm_(DM dm,TDy *_tdy, int *__ierr){
+*__ierr = TDyCreateWithDM((DM)PetscToPointer((dm)), _tdy);
 }
 #if defined(__cplusplus)
 }
