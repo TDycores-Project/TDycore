@@ -96,6 +96,20 @@ PetscErrorCode TDySaveClosures_Faces(DM dm, PetscInt *closureSize, PetscInt **cl
 }
 
 /* ---------------------------------------------------------------- */
+PetscErrorCode TDySaveClosures_Vertices(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
+  PetscFunctionBegin;
+
+  PetscInt vStart, vEnd;
+  PetscBool use_cone = PETSC_FALSE;
+  PetscErrorCode ierr;
+
+  ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
+  ierr = TDySaveClosures_Elemnts(dm, closureSize, closure, maxClosureSize, vStart, vEnd, use_cone); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDySaveClosures(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
   PetscFunctionBegin;
 
@@ -103,6 +117,7 @@ PetscErrorCode TDySaveClosures(DM dm, PetscInt *closureSize, PetscInt **closure,
   PetscErrorCode ierr;
 
   ierr = TDySaveClosures_Cells(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
+  ierr = TDySaveClosures_Vertices(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   if (dim == 3) {
     ierr = TDySaveClosures_Faces(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
