@@ -343,8 +343,8 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
   mesh->num_vertices = vNum;
 
   tdy->maxClosureSize = 27;
-  ierr = TDyAllocate_IntegerArray_1D(&tdy->closureSize, cNum+fNum+eNum+fNum); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_2D(&tdy->closure, cNum+fNum+eNum+fNum, 2*tdy->maxClosureSize); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&tdy->closureSize, cNum+fNum+eNum+vNum); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&tdy->closure, cNum+fNum+eNum+vNum, 2*tdy->maxClosureSize); CHKERRQ(ierr);
   ierr = TDySaveClosures(dm, tdy->closureSize, tdy->closure, tdy->maxClosureSize); CHKERRQ(ierr);
 
   /* compute number of vertices per grid cell */
