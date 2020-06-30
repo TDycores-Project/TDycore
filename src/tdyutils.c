@@ -2,25 +2,38 @@
 #include <petscblaslapack.h>
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
+PetscErrorCode TDySaveClosures_Elemnts(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize, PetscInt eStart, PetscInt eEnd, PetscBool use_cone){
   PetscFunctionBegin;
 
-  PetscInt i, c, cStart, cEnd;
+  PetscInt i, e;
   PetscInt pSize,*p;
   MPI_Comm       comm;
   PetscErrorCode ierr;
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
 
-  for(c=cStart; c<cEnd; c++) {
+  for(e=eStart; e<eEnd; e++) {
     p = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm,c,PETSC_TRUE,&pSize,&p);CHKERRQ(ierr);
-    closureSize[c] = pSize;
+    ierr = DMPlexGetTransitiveClosure(dm,e,use_cone,&pSize,&p);CHKERRQ(ierr);
+    closureSize[e] = pSize;
     if (pSize > maxClosureSize) SETERRQ(comm,PETSC_ERR_USER,"closureSize > maxClosureSize");
-    for (i=0;i<pSize*2;i++) closure[c][i] = p[i];
-    ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&pSize,&p);CHKERRQ(ierr);
+    for (i=0;i<pSize*2;i++) closure[e][i] = p[i];
+    ierr = DMPlexRestoreTransitiveClosure(dm,e,use_cone,&pSize,&p);CHKERRQ(ierr);
   }
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
+  PetscFunctionBegin;
+
+  PetscInt cStart, cEnd;
+  PetscBool use_cone = PETSC_TRUE;
+  PetscErrorCode ierr;
+
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+  ierr = TDySaveClosures_Elemnts(dm, closureSize, closure, maxClosureSize, cStart, cEnd, use_cone); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -29,22 +42,12 @@ PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **cl
 PetscErrorCode TDySaveClosures_Faces(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
   PetscFunctionBegin;
 
-  PetscInt i, f, fStart, fEnd;
-  PetscInt pSize,*p;
-  MPI_Comm       comm;
+  PetscInt fStart, fEnd;
+  PetscBool use_cone = PETSC_TRUE;
   PetscErrorCode ierr;
 
-  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
-
-  for(f=fStart; f<fEnd; f++) {
-    p = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&pSize,&p);CHKERRQ(ierr);
-    closureSize[f] = pSize;
-    if (pSize > maxClosureSize) SETERRQ(comm,PETSC_ERR_USER,"closureSize > maxClosureSize");
-    for (i=0;i<pSize*2;i++) closure[f][i] = p[i];
-    ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,&pSize,&p);CHKERRQ(ierr);
-  }
+  ierr = TDySaveClosures_Elemnts(dm, closureSize, closure, maxClosureSize, fStart, fEnd, use_cone); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
