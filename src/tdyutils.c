@@ -1,8 +1,46 @@
 #include <private/tdyutils.h>
 #include <petscblaslapack.h>
+#include <private/tdymemoryimpl.h>
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDySaveClosures_Elemnts(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize, PetscInt eStart, PetscInt eEnd, PetscBool use_cone){
+PetscErrorCode Increase_Closure_Array(DM dm, PetscInt **closure, PetscInt *maxClosureSize, PetscInt newSize) {
+
+  PetscInt **tmpArray;
+  PetscInt oldSize;
+  PetscInt pStart, pEnd, i, j;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = DMPlexGetChart(dm, &pStart, &pEnd); CHKERRQ(ierr);
+
+  oldSize = *maxClosureSize;
+
+  ierr = TDyAllocate_IntegerArray_2D(&tmpArray, pEnd, 2*newSize); CHKERRQ(ierr);
+
+  for (i=pStart; i<pEnd; i++) {
+    for (j=0; j<*maxClosureSize; j++) {
+      tmpArray[i][j] = closure[i][j];
+    }
+  }
+
+  ierr = TDyDeallocate_IntegerArray_2D(closure, pEnd); CHKERRQ(ierr);
+
+  *maxClosureSize = newSize;
+  ierr = TDyAllocate_IntegerArray_2D(&closure, pEnd, 2*newSize); CHKERRQ(ierr);
+
+  for (i=pStart; i<pEnd; i++) {
+    for (j=0; j<oldSize; j++) {
+      closure[i][j] = tmpArray[i][j];
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDySaveClosures_Elemnts(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize, PetscInt eStart, PetscInt eEnd, PetscBool use_cone){
   PetscFunctionBegin;
 
   PetscInt i, e;
@@ -16,7 +54,12 @@ PetscErrorCode TDySaveClosures_Elemnts(DM dm, PetscInt *closureSize, PetscInt **
     p = NULL;
     ierr = DMPlexGetTransitiveClosure(dm,e,use_cone,&pSize,&p);CHKERRQ(ierr);
     closureSize[e] = pSize;
-    if (pSize > maxClosureSize) SETERRQ(comm,PETSC_ERR_USER,"closureSize > maxClosureSize");
+
+    if (pSize > *maxClosureSize) {
+      // Increase the column size by 2 x pSize
+      ierr = Increase_Closure_Array(dm, closure, maxClosureSize, 2*pSize); CHKERRQ(ierr);
+    }
+
     for (i=0;i<pSize*2;i++) closure[e][i] = p[i];
     ierr = DMPlexRestoreTransitiveClosure(dm,e,use_cone,&pSize,&p);CHKERRQ(ierr);
   }
@@ -25,7 +68,7 @@ PetscErrorCode TDySaveClosures_Elemnts(DM dm, PetscInt *closureSize, PetscInt **
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
+PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
   PetscFunctionBegin;
 
   PetscInt cStart, cEnd;
@@ -39,7 +82,7 @@ PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **cl
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDySaveClosures_Faces(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
+PetscErrorCode TDySaveClosures_Faces(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
   PetscFunctionBegin;
 
   PetscInt fStart, fEnd;
@@ -53,7 +96,7 @@ PetscErrorCode TDySaveClosures_Faces(DM dm, PetscInt *closureSize, PetscInt **cl
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDySaveClosures(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
+PetscErrorCode TDySaveClosures(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
   PetscFunctionBegin;
 
   PetscInt dim;
