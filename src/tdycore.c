@@ -292,7 +292,6 @@ PetscErrorCode TDyGetCentroidArray(TDy tdy,PetscReal **X) {
 PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   PetscErrorCode ierr;
   PetscInt       dim;
-  PetscInt       nrow,ncol,nsubcells;
 
   PetscFunctionBegin;
   PetscValidPointer(tdy,1);
@@ -308,19 +307,12 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   if (tdy->LtoG  ) { ierr = PetscFree(tdy->LtoG  ); CHKERRQ(ierr); }
   if (tdy->orient) { ierr = PetscFree(tdy->orient); CHKERRQ(ierr); }
   if (tdy->quad  ) { ierr = PetscQuadratureDestroy(&(tdy->quad)); CHKERRQ(ierr); }
+
   // Need call to destroy TDy_Mesh
   switch (dim) {
   case 2:
-    nsubcells = 4;
-    nrow = 2;
-    ncol = 2;
-
     break;
   case 3:
-    nsubcells = 8;
-    nrow = 3;
-    ncol = 3;
-
     break;
   default:
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in TDyResetDiscretizationMethod");
