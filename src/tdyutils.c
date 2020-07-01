@@ -148,24 +148,37 @@ PetscInt TDyGetNumberOfCellVerticesWithClosures(DM dm, PetscInt *closureSize, Pe
 }
 
 /* ---------------------------------------------------------------- */
+PetscInt TDyMaxNumOfAElmTypeSharingOtherElmType(PetscInt *closureSize, PetscInt **closure, PetscInt aStart, PetscInt aEnd, PetscInt oStart, PetscInt oEnd) {
+
+  PetscFunctionBegin;
+
+  PetscInt nElem,a,o,result; //cStart,cEnd,vStart,vEnd,result;
+
+  result = 0;
+  for(a=aStart; a<aEnd; a++) {
+    nElem = 0;
+    for (o=0; o<closureSize[a]*2; o+=2) {
+      if ((closure[a][o] >= oStart) && (closure[a][o] < oEnd)) nElem += 1;
+    }
+    result = MAX(result, nElem);
+  }
+
+  PetscFunctionReturn(result);
+}
+
+/* ---------------------------------------------------------------- */
 PetscInt TDyMaxNumberOfCellsSharingAVertex(DM dm, PetscInt *closureSize, PetscInt **closure) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   MPI_Comm       comm;
-  PetscInt nCells,v,i,cStart,cEnd,vStart,vEnd,result;
+  PetscInt cStart,cEnd,vStart,vEnd,result;
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
-  result = 0;
-  for(v=vStart; v<vEnd; v++) {
-    nCells = 0;
-    for (i=0; i<closureSize[v]*2; i+=2) {
-      if ((closure[v][i] >= cStart) && (closure[v][i] < cEnd)) nCells += 1;
-    }
-    result = MAX(result, nCells);
-  }
+  result = TDyMaxNumOfAElmTypeSharingOtherElmType(closureSize, closure, vStart, vEnd, cStart, cEnd);
+
   PetscFunctionReturn(result);
 }
 
@@ -174,20 +187,14 @@ PetscInt TDyMaxNumberOfFacesSharingAVertex(DM dm, PetscInt *closureSize, PetscIn
   PetscFunctionBegin;
   PetscErrorCode ierr;
   MPI_Comm       comm;
-  PetscInt nfaces,v,i,fStart,fEnd,vStart,vEnd,result;
+  PetscInt fStart,fEnd,vStart,vEnd,result;
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,2,&fStart,&fEnd); CHKERRQ(ierr);
 
-  result = 0;
-  for(v=vStart; v<vEnd; v++) {
-    nfaces = 0;
-    for (i=0; i<closureSize[v]*2; i+=2) {
-      if ((closure[v][i] >= fStart) && (closure[v][i] < fEnd)) nfaces += 1;
-    }
-    result = MAX(result, nfaces);
-  }
+  result = TDyMaxNumOfAElmTypeSharingOtherElmType(closureSize, closure, vStart, vEnd, fStart, fEnd);
+
   PetscFunctionReturn(result);
 }
 
