@@ -183,6 +183,22 @@ PetscInt TDyMaxNumberOfCellsSharingAVertex(DM dm, PetscInt *closureSize, PetscIn
 }
 
 /* ---------------------------------------------------------------- */
+PetscInt TDyMaxNumberOfEdgesSharingAVertex(DM dm, PetscInt *closureSize, PetscInt **closure) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  MPI_Comm       comm;
+  PetscInt eStart,eEnd,vStart,vEnd,result;
+
+  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
+
+  result = TDyMaxNumOfAElmTypeSharingOtherElmType(closureSize, closure, vStart, vEnd, eStart, eEnd);
+
+  PetscFunctionReturn(result);
+}
+
+/* ---------------------------------------------------------------- */
 PetscInt TDyMaxNumberOfFacesSharingAVertex(DM dm, PetscInt *closureSize, PetscInt **closure) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
