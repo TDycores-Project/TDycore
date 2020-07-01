@@ -142,6 +142,8 @@ PetscErrorCode AllocateMemoryForSubcells(
 /* -------------------------------------------------------------------------- */
 PetscErrorCode AllocateMemoryForVertices(
   PetscInt       num_vertices,
+  PetscInt       ncells_per_vertex,
+  PetscInt       nfaces_per_vertex,
   TDyCellType    cell_type,
   TDy_vertex     *vertices) {
 
@@ -150,7 +152,6 @@ PetscErrorCode AllocateMemoryForVertices(
   PetscInt ivertex;
   PetscErrorCode ierr;
 
-  PetscInt num_internal_cells = GetNumOfCellsSharingAVertexForCellType(cell_type);
   PetscInt num_edges          = GetNumEdgesForCellType(cell_type);
   PetscInt num_faces          = GetNumFacesSharedByVertexForCellType(cell_type);
 
@@ -174,9 +175,9 @@ PetscErrorCode AllocateMemoryForVertices(
   ierr = TDyAllocate_IntegerArray_1D(&vertices->edge_ids         ,num_vertices*num_edges ); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&vertices->face_ids         ,num_vertices*num_faces ); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&vertices->subface_ids      ,num_vertices*num_faces ); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&vertices->internal_cell_ids,num_vertices*num_internal_cells ); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&vertices->subcell_ids      ,num_vertices*num_internal_cells ); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&vertices->boundary_face_ids,num_vertices*num_internal_cells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&vertices->internal_cell_ids,num_vertices*ncells_per_vertex ); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&vertices->subcell_ids      ,num_vertices*nfaces_per_vertex ); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&vertices->boundary_face_ids,num_vertices*nfaces_per_vertex ); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<num_vertices; ivertex++) {
     vertices->id[ivertex]                 = ivertex;
@@ -188,9 +189,9 @@ PetscErrorCode AllocateMemoryForVertices(
 
     vertices->edge_offset[ivertex]          = ivertex*num_edges;
     vertices->face_offset[ivertex]          = ivertex*num_faces;
-    vertices->internal_cell_offset[ivertex] = ivertex*num_internal_cells;
-    vertices->subcell_offset[ivertex]       = ivertex*num_internal_cells;
-    vertices->boundary_face_offset[ivertex] = ivertex*num_internal_cells;
+    vertices->internal_cell_offset[ivertex] = ivertex*ncells_per_vertex;
+    vertices->subcell_offset[ivertex]       = ivertex*nfaces_per_vertex;
+    vertices->boundary_face_offset[ivertex] = ivertex*nfaces_per_vertex;
 
   }
 
@@ -353,7 +354,11 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
   cell_type = GetCellType(dim, nverts_per_cell);
 
   ierr = AllocateMemoryForCells(cNum, cell_type, &mesh->cells); CHKERRQ(ierr);
-  ierr = AllocateMemoryForVertices(vNum, cell_type, &mesh->vertices); CHKERRQ(ierr);
+  
+  PetscInt ncells_per_vertex = TDyMaxNumberOfCellsSharingAVertex(dm, tdy->closureSize, tdy->closure);
+  PetscInt nfaces_per_vertex = TDyMaxNumberOfFacesSharingAVertex(dm, tdy->closureSize, tdy->closure);
+  printf("%d %d\n",ncells_per_vertex,nfaces_per_vertex);
+  ierr = AllocateMemoryForVertices(vNum, ncells_per_vertex, nfaces_per_vertex, cell_type, &mesh->vertices); CHKERRQ(ierr);
   ierr = AllocateMemoryForEdges(eNum, cell_type, &mesh->edges); CHKERRQ(ierr);
   ierr = AllocateMemoryForFaces(fNum, cell_type, &mesh->faces); CHKERRQ(ierr);
 
