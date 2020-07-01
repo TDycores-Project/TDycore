@@ -148,6 +148,28 @@ PetscInt TDyGetNumberOfCellVerticesWithClosures(DM dm, PetscInt *closureSize, Pe
 }
 
 /* ---------------------------------------------------------------- */
+PetscInt TDyMaxNumberOfCellsSharingAVertex(DM dm, PetscInt *closureSize, PetscInt **closure) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  MPI_Comm       comm;
+  PetscInt nCells,v,i,cStart,cEnd,vStart,vEnd,result;
+
+  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+
+  result = 0;
+  for(v=vStart; v<vEnd; v++) {
+    nCells = 0;
+    for (i=0; i<closureSize[v]*2; i+=2) {
+      if ((closure[v][i] >= cStart) && (closure[v][i] < cEnd)) nCells += 1;
+    }
+    result = MAX(result, nCells);
+  }
+  PetscFunctionReturn(result);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim,
                              PetscReal *length) {
 

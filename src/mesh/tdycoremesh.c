@@ -562,13 +562,19 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
         PetscInt vOffsetCell = vertices->internal_cell_offset[ivertex];
         PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
 
+        PetscInt found = PETSC_FALSE;
         for (j=0; j<nverts_per_cell; j++) {
           if (vertices->internal_cell_ids[vOffsetCell + j] == -1) {
             vertices->num_internal_cells[ivertex]++;
             vertices->internal_cell_ids[vOffsetCell + j] = icell;
             vertices->subcell_ids[vOffsetSubcell + j]    = c2vCount;
+            found = PETSC_TRUE;
             break;
           }
+        }
+        if (!found) {
+          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,
+                  "No empty space found in the vertex to save cell");
         }
         c2vCount++;
       } else if (IsClosureWithinBounds(tdy->closure[icell][i], eStart,
