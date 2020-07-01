@@ -350,14 +350,14 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
 
   /* compute number of vertices per grid cell */
   nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
-  tdy->ncv = nverts_per_cell;
   cell_type = GetCellType(dim, nverts_per_cell);
 
   ierr = AllocateMemoryForCells(cNum, cell_type, &mesh->cells); CHKERRQ(ierr);
   
   PetscInt ncells_per_vertex = TDyMaxNumberOfCellsSharingAVertex(dm, tdy->closureSize, tdy->closure);
   PetscInt nfaces_per_vertex = TDyMaxNumberOfFacesSharingAVertex(dm, tdy->closureSize, tdy->closure);
-  printf("%d %d\n",ncells_per_vertex,nfaces_per_vertex);
+  tdy->ncv = ncells_per_vertex;
+
   ierr = AllocateMemoryForVertices(vNum, ncells_per_vertex, nfaces_per_vertex, cell_type, &mesh->vertices); CHKERRQ(ierr);
   ierr = AllocateMemoryForEdges(eNum, cell_type, &mesh->edges); CHKERRQ(ierr);
   ierr = AllocateMemoryForFaces(fNum, cell_type, &mesh->faces); CHKERRQ(ierr);
@@ -526,7 +526,6 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   nverts_per_cell = tdy->ncv;
-  nverts_per_cell = 16;
 
   /* Determine the number of cells, edges, and vertices of the mesh */
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
