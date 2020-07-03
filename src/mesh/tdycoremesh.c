@@ -1816,7 +1816,7 @@ PetscBool AreCellsNeighbors(TDy tdy, PetscInt cell_id_1, PetscInt cell_id_2) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ArrangeCellsInAnOrder(TDy tdy, PetscInt *cell_order, PetscInt *cell_used, PetscInt **cellsAbvBlw, PetscInt level, PetscInt ncells) {
+PetscErrorCode ArrangeCellsInAnOrder(TDy tdy, PetscInt *cell_order, PetscInt *cell_used, PetscInt *cellsAbvBlw, PetscInt ncells) {
 
   PetscFunctionBegin;
   PetscInt ii, jj;
@@ -1825,7 +1825,7 @@ PetscErrorCode ArrangeCellsInAnOrder(TDy tdy, PetscInt *cell_order, PetscInt *ce
   for (ii=0; ii<ncells; ii++) cell_used[ii] = 0;
 
   // First put cells in an order that could be clockwise or anticlockwise
-  cell_order[0] = cellsAbvBlw[level][0];
+  cell_order[0] = cellsAbvBlw[0];
   cell_used[0] = 1;
   
   for (ii=0; ii<ncells-1; ii++) {
@@ -1838,8 +1838,8 @@ PetscErrorCode ArrangeCellsInAnOrder(TDy tdy, PetscInt *cell_order, PetscInt *ce
     
       if (cell_used[jj] == 0) {
     
-        if (AreCellsNeighbors(tdy, cell_order[ii], cellsAbvBlw[level][jj])) {
-          cell_order[ii+1] = cellsAbvBlw[level][jj];
+        if (AreCellsNeighbors(tdy, cell_order[ii], cellsAbvBlw[jj])) {
+          cell_order[ii+1] = cellsAbvBlw[jj];
           cell_used[jj] = 1;
           found = PETSC_TRUE;
           break;
@@ -1891,6 +1891,31 @@ PetscInt IDofFaceSharedByTwoCellsForACommonVertex(TDy tdy, PetscInt ivertex, Pet
  }
 
 /* -------------------------------------------------------------------------- */
+PetscBool PointsAreInAntiClockDirInXYPlane(PetscReal a[2], PetscReal b[2], PetscReal c[2]) {
+
+  PetscFunctionBegin;
+
+  PetscInt d;
+  PetscReal ba[3],ca[3],baXca[3];
+  PetscBool result;
+  PetscErrorCode ierr;
+
+  for (d=0; d<2; d++) {
+    ba[d] = b[d] - a[d];
+    ca[d] = c[d] - a[d];
+  }
+  ba[2] = 0.0; ca[2] = 0.0;
+
+  ierr = TDyCrossProduct(ba,ca,baXca); CHKERRQ(ierr);
+
+  if (baXca[2]>0.0) result = PETSC_TRUE;
+  else              result = PETSC_FALSE;
+
+
+  PetscFunctionReturn(result);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, PetscInt **cellsAbvBlw,
                 PetscInt ncells_abv, PetscInt ncells_blw) {
 
@@ -1918,11 +1943,11 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
   PetscInt cell_order[ncells];
   PetscInt cell_used[ncells];
 
-  ierr = ArrangeCellsInAnOrder(tdy, &cell_order[0], &cell_used[0], cellsAbvBlw, aa, ncells); CHKERRQ(ierr);
+  ierr = ArrangeCellsInAnOrder(tdy, &cell_order[0], &cell_used[0], cellsAbvBlw[aa], ncells); CHKERRQ(ierr);
 
   // Find the face that is shared by cell_order[0] and cell_order[1]
   PetscInt face_id = IDofFaceSharedByTwoCellsForACommonVertex(tdy, ivertex, cell_order[0], cell_order[1]);
-
+  
   // Now rearrnge the cell order to be anticlockwise direction
   //   vec_a = (centroid_0 - ivertex)
   //   vec_b = (face_01    - ivertex)
@@ -1930,19 +1955,16 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
   // If dotprod(vec_a,vec_b) > 0, the cell_order is in anticlockwise
   // else flip the cell_order
   //
-  PetscReal a[3], b[3], axb[3];
-  PetscInt d, dim=2;
 
-  for (d=0; d<dim; d++) {
-    a[d] = cells->centroid[cell_order[0]].X[d] - vertices->coordinate[ivertex].X[d];
-    b[d] = faces->centroid[face_id      ].X[d] - vertices->coordinate[ivertex].X[d];
+  PetscReal a2d[2],b2d[2],c2d[2];
+  PetscInt d;
+  for (d=0; d<2; d++) {
+    a2d[d] = vertices->coordinate[ivertex ].X[d];
+    b2d[d] = cells->centroid[cell_order[0]].X[d];
+    c2d[d] = faces->centroid[face_id      ].X[d];
   }
-  a[2] = 0.0;
-  b[2] = 0.0;
 
-  ierr = TDyCrossProduct(a,b,axb); CHKERRQ(ierr);
-
-  if (axb[2]>0) {
+  if (PointsAreInAntiClockDirInXYPlane(a2d,b2d,c2d)) {
     // Cells are in anticlockwise direction, so copy the ids
     for (ii=0; ii<ncells; ii++) cellsAbvBlw[aa][ii] = cell_order[ii];
   } else {
