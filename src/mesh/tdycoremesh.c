@@ -1856,6 +1856,41 @@ PetscErrorCode ArrangeCellsInAnOrder(TDy tdy, PetscInt *cell_order, PetscInt *ce
 }
 
 /* -------------------------------------------------------------------------- */
+PetscInt IDofFaceSharedByTwoCellsForACommonVertex(TDy tdy, PetscInt ivertex, PetscInt icell_1, PetscInt icell_2) {
+
+  TDy_vertex *vertices;
+  TDy_face *faces;
+  PetscBool found;
+  PetscInt vOffsetFace, iface, face_id;
+
+  PetscFunctionBegin;
+
+  vertices = &tdy->mesh->vertices;
+  faces = &tdy->mesh->faces;
+  vOffsetFace = vertices->face_offset[ivertex];
+
+  for (iface=0; iface<vertices->num_faces[ivertex]; iface++) {
+    face_id = vertices->face_ids[vOffsetFace+iface];
+
+    found = PETSC_FALSE;
+    PetscInt fOffsetCell = faces->cell_offset[face_id];
+
+    if (
+        (faces->cell_ids[fOffsetCell  ] == icell_1 || faces->cell_ids[fOffsetCell  ]  == icell_2 ) &&
+        (faces->cell_ids[fOffsetCell+1] == icell_1 || faces->cell_ids[fOffsetCell+1]  == icell_2 )
+       ) {
+      found = PETSC_TRUE;
+      break;
+    }
+  }
+  
+  if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a shared face");
+
+   PetscFunctionReturn(face_id);
+ 
+ }
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, PetscInt **cellsAbvBlw,
                 PetscInt ncells_abv, PetscInt ncells_blw) {
 
@@ -1886,23 +1921,7 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
   ierr = ArrangeCellsInAnOrder(tdy, &cell_order[0], &cell_used[0], cellsAbvBlw, aa, ncells); CHKERRQ(ierr);
 
   // Find the face that is shared by cell_order[0] and cell_order[1]
-  PetscInt vOffsetFace, iface, face_id;
-  vOffsetFace = vertices->face_offset[ivertex];
-
-  for (iface=0; iface<vertices->num_faces[ivertex]; iface++) {
-    face_id = vertices->face_ids[vOffsetFace+iface];
-
-    found = PETSC_FALSE;
-    PetscInt fOffsetCell = faces->cell_offset[face_id];
-
-    if (
-        (faces->cell_ids[fOffsetCell  ] == cell_order[0] || faces->cell_ids[fOffsetCell  ]  == cell_order[1] ) &&
-        (faces->cell_ids[fOffsetCell+1] == cell_order[0] || faces->cell_ids[fOffsetCell+1]  == cell_order[1] )
-       ) {
-      found = PETSC_TRUE;
-      break;
-    }
-  }
+  PetscInt face_id = IDofFaceSharedByTwoCellsForACommonVertex(tdy, ivertex, cell_order[0], cell_order[1]);
 
   // Now rearrnge the cell order to be anticlockwise direction
   //   vec_a = (centroid_0 - ivertex)
@@ -1913,8 +1932,6 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
   //
   PetscReal a[3], b[3], axb[3];
   PetscInt d, dim=2;
-
-  if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a shared face");
 
   for (d=0; d<dim; d++) {
     a[d] = cells->centroid[cell_order[0]].X[d] - vertices->coordinate[ivertex].X[d];
