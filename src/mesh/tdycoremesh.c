@@ -341,7 +341,7 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
   mesh->num_edges    = eNum;
   mesh->num_vertices = vNum;
 
-  tdy->maxClosureSize = 27;
+  tdy->maxClosureSize = 27*4*4;
   ierr = TDyAllocate_IntegerArray_1D(&tdy->closureSize, cNum+fNum+eNum+vNum); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_2D(&tdy->closure, cNum+fNum+eNum+vNum, 2*tdy->maxClosureSize); CHKERRQ(ierr);
   ierr = TDySaveClosures(dm, tdy->closureSize, tdy->closure, &tdy->maxClosureSize); CHKERRQ(ierr);
@@ -1816,6 +1816,46 @@ PetscBool AreCellsNeighbors(TDy tdy, PetscInt cell_id_1, PetscInt cell_id_2) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode ArrangeCellsInAnOrder(TDy tdy, PetscInt *cell_order, PetscInt *cell_used, PetscInt **cellsAbvBlw, PetscInt level, PetscInt ncells) {
+
+  PetscFunctionBegin;
+  PetscInt ii, jj;
+  PetscBool found;
+
+  for (ii=0; ii<ncells; ii++) cell_used[ii] = 0;
+
+  // First put cells in an order that could be clockwise or anticlockwise
+  cell_order[0] = cellsAbvBlw[level][0];
+  cell_used[0] = 1;
+  
+  for (ii=0; ii<ncells-1; ii++) {
+    // For ii-th cell find a neighboring cell that hasn't been
+    // previously identified it's neigbhor.
+
+    found = PETSC_FALSE;
+
+    for (jj=0; jj<ncells; jj++) {
+    
+      if (cell_used[jj] == 0) {
+    
+        if (AreCellsNeighbors(tdy, cell_order[ii], cellsAbvBlw[level][jj])) {
+          cell_order[ii+1] = cellsAbvBlw[level][jj];
+          cell_used[jj] = 1;
+          found = PETSC_TRUE;
+          break;
+        }
+      }
+    }
+    if (!found) {
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a neighbor");
+    }
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, PetscInt **cellsAbvBlw,
                 PetscInt ncells_abv, PetscInt ncells_blw) {
 
@@ -1826,6 +1866,7 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
   TDy_face *faces;
   PetscInt ii,jj,aa,ncells;
   PetscBool found;
+  PetscErrorCode ierr;
 
   cells = &tdy->mesh->cells;
   vertices = &tdy->mesh->vertices;
@@ -1842,34 +1883,7 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
   PetscInt cell_order[ncells];
   PetscInt cell_used[ncells];
 
-  for (ii=0; ii<ncells; ii++) cell_used[ii] = 0;
-
-  // First put cells in an order that could be clockwise or anticlockwise
-  cell_order[0] = cellsAbvBlw[aa][0];
-  cell_used[0] = 1;
-  
-  for (ii=0; ii<ncells-1; ii++) {
-    // For ii-th cell find a neighboring cell that hasn't been
-    // previously identified it's neigbhor.
-
-    found = PETSC_FALSE;
-
-    for (jj=0; jj<ncells; jj++) {
-    
-      if (cell_used[jj] == 0) {
-    
-        if (AreCellsNeighbors(tdy, cell_order[ii], cellsAbvBlw[aa][jj])) {
-          cell_order[ii+1] = cellsAbvBlw[aa][jj];
-          cell_used[jj] = 1;
-          found = PETSC_TRUE;
-          break;
-        }
-      }
-    }
-    if (!found) {
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a neighbor");
-    }
-  }
+  ierr = ArrangeCellsInAnOrder(tdy, &cell_order[0], &cell_used[0], cellsAbvBlw, aa, ncells); CHKERRQ(ierr);
 
   // Find the face that is shared by cell_order[0] and cell_order[1]
   PetscInt vOffsetFace, iface, face_id;
@@ -1899,7 +1913,6 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
   //
   PetscReal a[3], b[3], axb[3];
   PetscInt d, dim=2;
-  PetscErrorCode ierr;
 
   if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a shared face");
 
