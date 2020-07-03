@@ -1911,8 +1911,52 @@ PetscBool PointsAreInAntiClockDirInXYPlane(PetscReal a[2], PetscReal b[2], Petsc
   if (baXca[2]>0.0) result = PETSC_TRUE;
   else              result = PETSC_FALSE;
 
-
   PetscFunctionReturn(result);
+}
+
+/* -------------------------------------------------------------------------- */
+
+  PetscErrorCode ArrangeCellsInAntiClockwiseDirection(TDy tdy, PetscInt ivertex, PetscInt *inp_cell_order, PetscInt ncells, PetscInt *out_cell_order) {
+
+  PetscFunctionBegin;
+
+  TDy_cell *cells;
+  TDy_vertex *vertices;
+  TDy_face *faces;
+
+  cells = &tdy->mesh->cells;
+  vertices = &tdy->mesh->vertices;
+  faces = &tdy->mesh->faces;
+
+  // Find the face that is shared by first and second cell
+  PetscInt face_id = IDofFaceSharedByTwoCellsForACommonVertex(tdy, ivertex, inp_cell_order[0], inp_cell_order[1]);
+  
+  // Now rearrnge the cell order to be anticlockwise direction
+  //   vec_a = (centroid_0 - ivertex)
+  //   vec_b = (face_01    - ivertex)
+  //
+  // If dotprod(vec_a,vec_b) > 0, the cell_order is in anticlockwise
+  // else flip the cell_order
+  //
+
+  PetscReal a2d[2],b2d[2],c2d[2];
+  PetscInt d;
+  for (d=0; d<2; d++) {
+    a2d[d] = vertices->coordinate[ivertex     ].X[d];
+    b2d[d] = cells->centroid[inp_cell_order[0]].X[d];
+    c2d[d] = faces->centroid[face_id          ].X[d];
+  }
+
+  PetscInt ii;
+  if (PointsAreInAntiClockDirInXYPlane(a2d,b2d,c2d)) {
+    // Cells are in anticlockwise direction, so copy the ids
+    for (ii=0; ii<ncells; ii++) out_cell_order[ii] = inp_cell_order[ii];
+  } else {
+    // Cells are in clockwise direction, so flip the order
+    for (ii=0; ii<ncells; ii++) out_cell_order[ii] = inp_cell_order[ncells-ii-1];
+  }
+
+  PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1921,16 +1965,9 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
 
   PetscFunctionBegin;
 
-  TDy_cell *cells;
-  TDy_vertex *vertices;
-  TDy_face *faces;
   PetscInt ii,jj,aa,ncells;
   PetscBool found;
   PetscErrorCode ierr;
-
-  cells = &tdy->mesh->cells;
-  vertices = &tdy->mesh->vertices;
-  faces = &tdy->mesh->faces;
 
   if (ncells_abv>0) {
     ncells = ncells_abv;
@@ -1945,32 +1982,8 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
 
   ierr = ArrangeCellsInAnOrder(tdy, &cell_order[0], &cell_used[0], cellsAbvBlw[aa], ncells); CHKERRQ(ierr);
 
-  // Find the face that is shared by cell_order[0] and cell_order[1]
-  PetscInt face_id = IDofFaceSharedByTwoCellsForACommonVertex(tdy, ivertex, cell_order[0], cell_order[1]);
-  
-  // Now rearrnge the cell order to be anticlockwise direction
-  //   vec_a = (centroid_0 - ivertex)
-  //   vec_b = (face_01    - ivertex)
-  //
-  // If dotprod(vec_a,vec_b) > 0, the cell_order is in anticlockwise
-  // else flip the cell_order
-  //
+  ierr = ArrangeCellsInAntiClockwiseDirection(tdy, ivertex, cell_order, ncells, cellsAbvBlw[aa]); CHKERRQ(ierr);
 
-  PetscReal a2d[2],b2d[2],c2d[2];
-  PetscInt d;
-  for (d=0; d<2; d++) {
-    a2d[d] = vertices->coordinate[ivertex ].X[d];
-    b2d[d] = cells->centroid[cell_order[0]].X[d];
-    c2d[d] = faces->centroid[face_id      ].X[d];
-  }
-
-  if (PointsAreInAntiClockDirInXYPlane(a2d,b2d,c2d)) {
-    // Cells are in anticlockwise direction, so copy the ids
-    for (ii=0; ii<ncells; ii++) cellsAbvBlw[aa][ii] = cell_order[ii];
-  } else {
-    // Cells are in clockwise direction, so flip the order
-    for (ii=0; ii<ncells; ii++) cellsAbvBlw[aa][ii] = cell_order[ncells-ii-1];
-  }
 
   if (ncells_abv>0 && ncells_blw>0) {
     // 1. Cells are present above and below the ivertex, and
