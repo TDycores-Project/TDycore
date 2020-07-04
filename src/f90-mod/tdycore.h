@@ -15,12 +15,13 @@
       PetscEnum MPFA_O_DAE
       PetscEnum MPFA_O_TRANSIENT_VAR
       PetscEnum BDM
+      PetscEnum Q2
       PetscEnum WY
 
       ! The parameters values need to match those defined in
       ! the C code (i.e. include/tdycore.h)
       parameter (TPF=0,MPFA_O=1,MPFA_O_DAE=2,MPFA_O_TRANSIENT_VAR=3)
-      parameter (BDM=4,WY=5)
+      parameter (BDM=4,Q2=5,WY=6)
 
 !
 !  Types of TDy modes

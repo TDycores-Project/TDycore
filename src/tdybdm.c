@@ -7,7 +7,7 @@
 /*
   u <-- 1/J DF u
 */
-void TDyPiola(PetscReal *u,PetscReal *DF,PetscReal J,PetscInt dim){
+static void TDyPiola(PetscReal *u,PetscReal *DF,PetscReal J,PetscInt dim){
   PetscInt i,j;
   PetscReal v[3];
   for(i=0;i<dim;i++){
@@ -260,7 +260,7 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscReal TDyKDotADotB(PetscReal *K,PetscReal *A,PetscReal *B,PetscInt dim) {
+static PetscReal TDyKDotADotB(PetscReal *K,PetscReal *A,PetscReal *B,PetscInt dim) {
   PetscInt i,j;
   PetscReal inner,outer=0;
   for(i=0; i<dim; i++) {
@@ -273,7 +273,7 @@ PetscReal TDyKDotADotB(PetscReal *K,PetscReal *A,PetscReal *B,PetscInt dim) {
   return outer;
 }
 
-PetscErrorCode Inverse(PetscScalar *K,PetscInt nn) {
+static PetscErrorCode Inverse(PetscScalar *K,PetscInt nn) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
@@ -302,7 +302,7 @@ PetscErrorCode Inverse(PetscScalar *K,PetscInt nn) {
   <g,w>
 
  */
-PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal *gvdotn) {
+static PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal *gvdotn) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscQuadrature quadrature,face_quadrature;

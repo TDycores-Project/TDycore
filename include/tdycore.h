@@ -12,6 +12,7 @@ typedef enum {
   MPFA_O_DAE,           /* multipoint flux approximation - O method using DAE                                  */
   MPFA_O_TRANSIENTVAR,  /* multipoint flux approximation - O method using TS transient (conservative) approach */
   BDM,                  /* P0,BDM1 spaces, standard approach                                                   */
+  Q2,                   /* P0,Q2 spaces, standard (mixed) approach                                             */
   WY                    /* P0,BDM1 spaces, vertex quadrature, statically condensed                             */
 } TDyMethod;
 
@@ -137,6 +138,11 @@ PETSC_EXTERN PetscErrorCode TDyBDMInitialize(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscReal TDyBDMPressureNorm(TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U);
+
+PETSC_EXTERN PetscErrorCode TDyQ2Initialize(TDy tdy);
+PETSC_EXTERN PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F);
+PETSC_EXTERN PetscReal TDyQ2PressureNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyQ2VelocityNorm(TDy tdy,Vec U);
 
 PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U);
 PETSC_EXTERN PetscReal TDyWYPressureNorm(TDy tdy,Vec U);
