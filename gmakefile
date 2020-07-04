@@ -107,7 +107,8 @@ $(TEST.c:%.c=%.o) : %.o : %.c
 $(TEST.c:%.c=%) : demo/% : demo/%.o $$^ $(libtdycore)
 	$(call quiet,CLINKER) -o $@ $^ $(TDYCORE_LIB) $(LIBS)
 
-$(TEST.F90:%.F90=%.o) : %.o : %.F90 | $$(@D)/.DIR $(MODDIR)/.DIR
+$(TEST.F90:%.F90=%.o) : MODDIR = $(PETSC_ARCH)/obj/demo-modules
+$(TEST.F90:%.F90=%.o) : %.o : %.F90 $(libtdycore) | $$(@D)/.DIR $$(MODDIR)/.DIR
 	$(COMPILE.fc) $(abspath $<) -o $(if $(FCMOD),$(abspath $@),$@)
 
 $(TEST.F90:%.F90=%) : demo/% : demo/%.o $$^ $(libtdycore)
