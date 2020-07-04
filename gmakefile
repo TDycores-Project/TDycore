@@ -2,7 +2,6 @@
 
 TDYCORE_DIR ?= $(CURDIR)
 include ./lib/tdycore/conf/variables
--include makefile.in
 
 OBJDIR := $(PETSC_ARCH)/obj
 MODDIR := $(PETSC_ARCH)/include
