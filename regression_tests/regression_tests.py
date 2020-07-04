@@ -1800,6 +1800,14 @@ def check_options(options):
         raise RuntimeError("ERROR: can not create new tests and update gold "
                            "regression files at the same time.")
 
+def get_test_info_file(dir):
+    """
+    Create a unique temporary test-info file path.
+    """
+    import tempfile
+    fd, path = tempfile.mkstemp(dir=dir, prefix="tmp-executable-regression-test-info.", suffix=".txt")
+    os.close(fd)
+    return path
 
 def check_for_executable(options):
     """
@@ -1846,7 +1854,7 @@ def check_for_mpiexec(options, testlog):
         # try to log some info about mpiexec
         print("MPI information :", file=testlog)
         print("-----------------", file=testlog)
-        tempfile = "{0}/tmp-executable-regression-test-info.txt".format(os.getcwd())
+        tempfile = get_test_info_file(os.getcwd())
         command = shlex.split(mpiexec) + ["--version"]
         append_command_to_log(command, testlog, tempfile)
         print("\n\n", file=testlog)
@@ -1980,7 +1988,7 @@ def setup_testlog(txtwrap,logfile_prefix):
 
     git_found = which('git')
 
-    tempfile = "{0}/tmp-executable-regression-test-info.txt".format(test_dir)
+    tempfile = get_test_info_file(test_dir)
 
     print("\nRepository status :", file=testlog)
     print("----------------------------", file=testlog)
