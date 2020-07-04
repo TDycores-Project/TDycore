@@ -1960,6 +1960,34 @@ PetscBool PointsAreInAntiClockDirInXYPlane(PetscReal a[2], PetscReal b[2], Petsc
 }
 
 /* -------------------------------------------------------------------------- */
+
+PetscErrorCode RearrangeCellsInListAsNeighbors(TDy tdy, PetscInt ncells, PetscInt *cell_list_1, PetscInt *cell_list_2) {
+ 
+  PetscFunctionBegin;
+
+  PetscInt ii,jj;
+  PetscBool found;
+  PetscInt tmp_cell_order[ncells];
+
+  for (ii=0; ii<ncells; ii++) {
+    found = PETSC_FALSE;
+    for (jj=0; jj<ncells; jj++) {
+      if (AreCellsNeighbors(tdy, cell_list_1[ii], cell_list_2[jj])) {
+        tmp_cell_order[ii] = cell_list_2[jj];
+        found = PETSC_TRUE;
+        break;
+      }
+    }
+    if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a corresponding cell below the given cell");
+  }
+
+  // Update the order of cells below the vertex
+  for (ii=0; ii<ncells; ii++) cell_list_2[ii] = tmp_cell_order[ii];
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, PetscInt **cellsAbvBlw,
                 PetscInt ncells_abv, PetscInt ncells_blw) {
 
@@ -1984,26 +2012,12 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
 
   ierr = ArrangeCellsInAntiClockwiseDirection(tdy, ivertex, cell_order, ncells, cellsAbvBlw[aa]); CHKERRQ(ierr);
 
-
   if (ncells_abv>0 && ncells_blw>0) {
-    // 1. Cells are present above and below the ivertex, and
-    // 2. Initially cells above the vertex were sorted.
-    // So, for each cell above the vertex, find the corresponding
-    // cell below the vertex
-    for (ii=0; ii<ncells_abv; ii++) {
-      found = PETSC_FALSE;
-      for (jj=0; jj<ncells_blw; jj++) {
-        if (AreCellsNeighbors(tdy, cellsAbvBlw[0][ii], cellsAbvBlw[1][jj])) {
-          cell_order[ii] = cellsAbvBlw[1][jj];
-          found = PETSC_TRUE;
-          break;
-        }
-      }
-      if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a corresponding cell below the given cell");
-    }
-
-    // Update the order of cells below the vertex
-    for (ii=0; ii<ncells_blw; ii++) cellsAbvBlw[1][ii] = cell_order[ii];
+  // Cells are present above and below the ivertex and
+  // only the cells above the vertex were sorted.
+  // So, for each cell above the vertex, find the corresponding
+  // cell below the vertex
+    ierr = RearrangeCellsInListAsNeighbors(tdy, ncells, cellsAbvBlw[0], cellsAbvBlw[1]); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
