@@ -44,7 +44,7 @@ else                   # Show the full command line
 endif
 
 pcc = $(if $(findstring CONLY,$(PETSC_LANGUAGE)),CC,CXX)
-COMPILE.cc = $(call quiet,$(pcc)) $(PCC_FLAGS) $(CFLAGS) $(CCPPFLAGS) $(C_DEPFLAGS) -c
+COMPILE.c = $(call quiet,$(pcc)) $(PCC_FLAGS) $(CFLAGS) $(CCPPFLAGS) $(C_DEPFLAGS) -c
 COMPILE.cxx = $(call quiet,CXX) $(CXX_FLAGS) $(CFLAGS) $(CCPPFLAGS) $(CXX_DEPFLAGS) -c
 ifneq ($(FC_MODULE_OUTPUT_FLAG),)
 COMPILE.fc = $(call quiet,FC) $(FC_FLAGS) $(FFLAGS) $(FCPPFLAGS) $(FC_DEPFLAGS) $(FC_MODULE_OUTPUT_FLAG)$(MODDIR) -c
@@ -81,7 +81,7 @@ else
 endif
 
 $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
-	$(COMPILE.cc) $(abspath $<) -o $@
+	$(COMPILE.c) $(abspath $<) -o $@
 
 $(OBJDIR)/%.o : %.cxx | $$(@D)/.DIR
 	$(COMPILE.cxx) $(abspath $<) -o $@
