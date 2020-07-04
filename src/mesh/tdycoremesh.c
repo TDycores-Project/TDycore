@@ -1816,11 +1816,12 @@ PetscBool AreCellsNeighbors(TDy tdy, PetscInt cell_id_1, PetscInt cell_id_2) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ArrangeCellsInAnOrder(TDy tdy, PetscInt *cell_order, PetscInt *cell_used, PetscInt *cellsAbvBlw, PetscInt ncells) {
+PetscErrorCode ArrangeCellsInAnOrder(TDy tdy, PetscInt *cellsAbvBlw, PetscInt ncells, PetscInt *cell_order) {
 
   PetscFunctionBegin;
   PetscInt ii, jj;
   PetscBool found;
+  PetscInt cell_used[ncells];
 
   for (ii=0; ii<ncells; ii++) cell_used[ii] = 0;
 
@@ -1993,37 +1994,34 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
 
   PetscFunctionBegin;
 
-  PetscInt ii,jj,aa,ncells;
-  PetscBool found;
+  PetscInt level, ncells;
   PetscErrorCode ierr;
 
   if (ncells_abv>0) {
     ncells = ncells_abv;
-    aa = 0;
+    level = 0;
   } else {
     ncells = ncells_blw;
-    aa = 1;
+    level = 1;
   }
 
   PetscInt cell_order[ncells];
-  PetscInt cell_used[ncells];
 
-  ierr = ArrangeCellsInAnOrder(tdy, &cell_order[0], &cell_used[0], cellsAbvBlw[aa], ncells); CHKERRQ(ierr);
+  ierr = ArrangeCellsInAnOrder(tdy, cellsAbvBlw[level], ncells, &cell_order[0]); CHKERRQ(ierr);
 
-  ierr = ArrangeCellsInAntiClockwiseDirection(tdy, ivertex, cell_order, ncells, cellsAbvBlw[aa]); CHKERRQ(ierr);
+  ierr = ArrangeCellsInAntiClockwiseDirection(tdy, ivertex, cell_order, ncells, cellsAbvBlw[level]); CHKERRQ(ierr);
 
   if (ncells_abv>0 && ncells_blw>0) {
-  // Cells are present above and below the ivertex and
-  // only the cells above the vertex were sorted.
-  // So, for each cell above the vertex, find the corresponding
-  // cell below the vertex
+    // Cells are present above and below the ivertex and
+    // only the cells above the vertex were sorted.
+    // So, for each cell above the vertex, find the corresponding
+    // cell below the vertex
     ierr = RearrangeCellsInListAsNeighbors(tdy, ncells, cellsAbvBlw[0], cellsAbvBlw[1]); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
 
 }
-
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **cell_ids_abv_blw,
