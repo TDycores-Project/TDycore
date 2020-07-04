@@ -12,6 +12,7 @@ const char *const TDyMethods[] = {
   "MPFA_O_DAE",
   "MPFA_O_TRANSIENTVAR",
   "BDM",
+  "Q2",
   "WY",
   /* */
   "TDyMethod","TDY_METHOD_",NULL
@@ -417,6 +418,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     ierr = TDyMPFAOSetFromOptions(tdy); CHKERRQ(ierr);
     break;
   case BDM:
+  case Q2:
     break;
   case WY:
     break;
@@ -450,6 +452,9 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
   case BDM:
     ierr = TDyBDMInitialize(tdy); CHKERRQ(ierr);
     break;
+  case Q2:
+    ierr = TDyQ2Initialize(tdy); CHKERRQ(ierr);
+    break;
   case WY:
     ierr = TDyWYInitialize(tdy); CHKERRQ(ierr);
     break;
@@ -472,6 +477,7 @@ PetscErrorCode TDySetup(TDy tdy) {
     ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
     break;
   case BDM:
+  case Q2:
     break;
   case WY:
     break;
@@ -569,6 +575,9 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM");
     break;
+  case Q2:
+    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for Q2");
+    break;
   case WY:
     ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy); CHKERRQ(ierr);
     break;
@@ -645,6 +654,9 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for BDM");
     break;
+  case Q2:
+    SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for Q2");
+    break;
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for WY");
     break;
@@ -689,6 +701,9 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
     break;
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for BDM");
+    break;
+  case Q2:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for Q2");
     break;
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for WY");
@@ -745,6 +760,9 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for BDM");
     break;
+  case Q2:
+    SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for Q2");
+    break;
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for WY");
     break;
@@ -773,6 +791,9 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
     break;
   case BDM:
     ierr = TDyBDMComputeSystem(tdy,K,F); CHKERRQ(ierr);
+    break;
+  case Q2:
+    ierr = TDyQ2ComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
   case WY:
     ierr = TDyWYComputeSystem(tdy,K,F); CHKERRQ(ierr);
@@ -1170,6 +1191,10 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     if(normp != NULL) { *normp = TDyBDMPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyBDMVelocityNorm(tdy,U); }
     break;
+  case Q2:
+    if(normp != NULL) { *normp = TDyQ2PressureNorm(tdy,U); }
+    if(normv != NULL) { *normv = TDyQ2VelocityNorm(tdy,U); }
+    break;
   case WY:
     if(normv) {
       ierr = TDyWYRecoverVelocity(tdy,U); CHKERRQ(ierr);
@@ -1240,6 +1265,9 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
     break;
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for BDM");
+    break;
+  case Q2:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for Q2");
     break;
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for WY");

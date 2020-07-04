@@ -268,6 +268,6 @@ deleteetags:
 #
 demo: all-gmake
 	@cd demo; make
-	
+
 rtest: demo
 	-@(cd regression_tests; make test)

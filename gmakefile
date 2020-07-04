@@ -42,6 +42,11 @@ else                   # Show the full command line
   quiet = $($1)
 endif
 
+ifdef codecov
+  CFLAGS += -fprofile-arcs -ftest-coverage
+  LDLIBS += -lgcov
+endif
+
 pcc = $(if $(findstring CONLY,$(PETSC_LANGUAGE)),CC,CXX)
 COMPILE.c = $(call quiet,$(pcc)) $(PCC_FLAGS) $(CFLAGS) $(CCPPFLAGS) $(C_DEPFLAGS) -c
 COMPILE.cxx = $(call quiet,CXX) $(CXX_FLAGS) $(CFLAGS) $(CCPPFLAGS) $(CXX_DEPFLAGS) -c
