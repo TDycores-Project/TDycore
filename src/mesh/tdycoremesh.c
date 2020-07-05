@@ -1816,7 +1816,7 @@ PetscBool AreCellsNeighbors(TDy tdy, PetscInt cell_id_1, PetscInt cell_id_2) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ArrangeCellsInAnOrder(TDy tdy, PetscInt *cellsAbvBlw, PetscInt ncells, PetscInt *cell_order) {
+PetscErrorCode ArrangeCellsInAnCircularOrder(TDy tdy, PetscInt *cellsAbvBlw, PetscInt ncells, PetscInt *cell_order) {
 
   PetscFunctionBegin;
   PetscInt ii, jj;
@@ -2007,7 +2007,7 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
 
   PetscInt cell_order[ncells];
 
-  ierr = ArrangeCellsInAnOrder(tdy, cellsAbvBlw[level], ncells, &cell_order[0]); CHKERRQ(ierr);
+  ierr = ArrangeCellsInAnCircularOrder(tdy, cellsAbvBlw[level], ncells, &cell_order[0]); CHKERRQ(ierr);
 
   ierr = ArrangeCellsInAntiClockwiseDirection(tdy, ivertex, cell_order, ncells, cellsAbvBlw[level]); CHKERRQ(ierr);
 
