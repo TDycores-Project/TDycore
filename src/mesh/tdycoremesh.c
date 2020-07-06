@@ -2111,8 +2111,6 @@ PetscErrorCode AddTwoBndFacesOfACellInTraversalDirection(TDy tdy, PetscInt ivert
 
   PetscInt ncells    = vertices->num_internal_cells[ivertex];
   PetscInt nfaces_bnd= vertices->num_boundary_faces[ivertex];
-
-  PetscInt vOffsetIntCell = vertices->internal_cell_offset[ivertex];
   PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
 
   PetscInt mm = 0, count=0, face_id_1, ii_1, ii_2;
@@ -2164,7 +2162,7 @@ PetscErrorCode AddTwoBndFacesOfACellInTraversalDirection(TDy tdy, PetscInt ivert
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt *cell_ids_abv_blw,
+PetscErrorCode ConvertCellsAntiClockwiseDirInTraversalDir(TDy tdy, PetscInt ivertex, PetscInt *cell_ids_abv_blw,
   PetscInt ncells_level, PetscInt *cell_traversal){
   
   PetscFunctionBegin;
@@ -2217,7 +2215,7 @@ PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt *ce
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeBoundaryFaceTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **cell_ids_abv_blw,
+PetscErrorCode AddUpDownBndFacesOfCellsInTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **cell_ids_abv_blw,
   PetscInt ncells_level, PetscInt level, PetscInt **cell_traversal){
   
   PetscFunctionBegin;
@@ -2469,10 +2467,10 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   PetscInt level, ncells_level;
 
   level = 0; ncells_level = ncells_abv;
-  ierr = ComputeTraversalDirection(tdy,ivertex,cell_ids_abv_blw[level],ncells_level,cell_traversal[level]); CHKERRQ(ierr);
+  ierr = ConvertCellsAntiClockwiseDirInTraversalDir(tdy,ivertex,cell_ids_abv_blw[level],ncells_level,cell_traversal[level]); CHKERRQ(ierr);
 
   level = 1; ncells_level = ncells_blw;
-  ierr = ComputeTraversalDirection(tdy,ivertex,cell_ids_abv_blw[level],ncells_level,cell_traversal[level]); CHKERRQ(ierr);
+  ierr = ConvertCellsAntiClockwiseDirInTraversalDir(tdy,ivertex,cell_ids_abv_blw[level],ncells_level,cell_traversal[level]); CHKERRQ(ierr);
 
   if (ncells_abv == 0 || ncells_blw == 0) {
     if (ncells_abv == 0) {
@@ -2482,7 +2480,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
       level = 0;
       ncells_level = ncells_abv;
     }
-    ierr = ComputeBoundaryFaceTraversalDirection(tdy,ivertex,cell_ids_abv_blw,ncells_level,level,cell_traversal); CHKERRQ(ierr);
+    ierr = AddUpDownBndFacesOfCellsInTraversalDirection(tdy,ivertex,cell_ids_abv_blw,ncells_level,level,cell_traversal); CHKERRQ(ierr);
   }
 
   PetscInt nUp2Dw;
