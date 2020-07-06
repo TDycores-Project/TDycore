@@ -107,7 +107,7 @@ struct _TDy_vertex {
   PetscInt  *num_internal_cells; /* number of internal cells sharing the vertex          */
   PetscInt  *num_edges;          /* number of edges sharing the vertex                   */
   PetscInt  *num_faces;          /* number of faces sharing the vartex                   */
-  PetscInt  *num_boundary_cells; /* number of boundary cells sharing the vertex          */
+  PetscInt  *num_boundary_faces; /* number of boundary faces sharing the vertex          */
 
   PetscInt *edge_offset;           /* offset for edge IDs that share the vertex                       */
   PetscInt *face_offset;           /* offset for face IDs that share the vertex                       */

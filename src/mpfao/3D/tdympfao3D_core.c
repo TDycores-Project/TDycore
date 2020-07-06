@@ -390,9 +390,9 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
   //  (1) number of internal and boudnary fluxes,
   //  (2) number of internal unknown pressure values and known boundary pressure values
   npcen = vertices->num_internal_cells[ivertex];
-  npitf_bc = vertices->num_boundary_cells[ivertex];
+  npitf_bc = vertices->num_boundary_faces[ivertex];
   
-  nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_cells[ivertex];
+  nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
 
   npitf_in = nflux_in;
   nflux_in_up = nflux_in + nflux_bc_up;
@@ -802,7 +802,7 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
 
     if (!vertices->is_local[ivertex]) continue;
 
-    if (vertices->num_boundary_cells[ivertex] == 0) {
+    if (vertices->num_boundary_faces[ivertex] == 0) {
       ierr = ComputeTransmissibilityMatrix_ForInternalVertex(tdy, ivertex, cells, 0); CHKERRQ(ierr);
       if (tdy->mode == TH) {
         ierr = ComputeTransmissibilityMatrix_ForInternalVertex(tdy, ivertex, cells, 1); CHKERRQ(ierr);

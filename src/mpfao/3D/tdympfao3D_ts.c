@@ -44,11 +44,11 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
     if (!vertices->is_local[ivertex]) continue;
-    //if (vertices->num_boundary_cells[ivertex] != 0) continue;
+    //if (vertices->num_boundary_faces[ivertex] != 0) continue;
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
 
-    npitf_bc = vertices->num_boundary_cells[ivertex];
-    nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_cells[ivertex];
+    npitf_bc = vertices->num_boundary_faces[ivertex];
+    nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
 
     // Compute = T*P
     PetscScalar TtimesP[nflux_in + npitf_bc];
@@ -212,13 +212,13 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 
     vertex_id = ivertex;
 
-    if (vertices->num_boundary_cells[ivertex] > 0 && vertices->num_internal_cells[ivertex] < 2) continue;
+    if (vertices->num_boundary_faces[ivertex] > 0 && vertices->num_internal_cells[ivertex] < 2) continue;
 
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
-    npitf_bc = vertices->num_boundary_cells[ivertex];
-    nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_cells[ivertex];
+    npitf_bc = vertices->num_boundary_faces[ivertex];
+    nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
 
     // Compute T*P
     PetscScalar TtimesP[nflux_in + npitf_bc];
@@ -397,7 +397,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
 
     vertex_id = ivertex;
 
-    if (vertices->num_boundary_cells[ivertex] == 0) continue;
+    if (vertices->num_boundary_faces[ivertex] == 0) continue;
     if (vertices->num_internal_cells[ivertex] > 1)  continue;
 
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
