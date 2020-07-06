@@ -2024,8 +2024,8 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **cell_ids_abv_blw,
-  PetscInt ncells_level, PetscInt level, PetscInt **cell_traversal){
+PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt *cell_ids_abv_blw,
+  PetscInt ncells_level, PetscInt *cell_traversal){
   
   PetscFunctionBegin;
 
@@ -2061,8 +2061,8 @@ PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **c
     found = PETSC_FALSE;
     for (jj=0; jj<ncells; jj++) {
       PetscInt cellID = vertices->internal_cell_ids[vOffsetIntCell + jj];
-      if (cellID == cell_ids_abv_blw[level][ii]) {
-        cell_traversal[level][ii] = jj;
+      if (cellID == cell_ids_abv_blw[ii]) {
+        cell_traversal[ii] = jj;
         found = PETSC_TRUE;
         break;
       }
@@ -2094,8 +2094,8 @@ PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **c
         PetscInt fOffsetCell = faces->cell_offset[face_id];
 
         // Check if the face belongs to mm-th cell
-        if ((cell_ids_abv_blw[level][mm] == faces->cell_ids[fOffsetCell]  )||
-            (cell_ids_abv_blw[level][mm] == faces->cell_ids[fOffsetCell+1])) {
+        if ((cell_ids_abv_blw[mm] == faces->cell_ids[fOffsetCell]  )||
+            (cell_ids_abv_blw[mm] == faces->cell_ids[fOffsetCell+1])) {
           PetscInt fOffsetVertex = faces->vertex_offset[face_id];
 
           // Check if the face has a vertex that is exactly above or below the
@@ -2105,7 +2105,7 @@ PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **c
                 && VerticesHaveSameXYCoords(tdy, ivertex, faces->vertex_ids[fOffsetVertex + jj])) {
               found = PETSC_TRUE;
               bnd_faces_found[ii] = 1;
-              cell_traversal[level][ncells_level+kk] = ncells+ ii;
+              cell_traversal[ncells_level+kk] = ncells+ ii;
               break;
             }
           }
@@ -2118,8 +2118,8 @@ PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **c
     for (ii=0; ii<nfaces_bnd; ii++) {
       PetscInt face_id = vertices->boundary_face_ids[vOffsetBoundaryFace + ii];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
-      if ((cell_ids_abv_blw[level][mm] == faces->cell_ids[fOffsetCell]  )||
-          (cell_ids_abv_blw[level][mm] == faces->cell_ids[fOffsetCell+1])) {
+      if ((cell_ids_abv_blw[mm] == faces->cell_ids[fOffsetCell]  )||
+          (cell_ids_abv_blw[mm] == faces->cell_ids[fOffsetCell+1])) {
         if (count==0) {
           face_id_1 = face_id;
           ii_1 = ii + ncells;
@@ -2135,11 +2135,11 @@ PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **c
     PetscReal a[3], b[3], axb[3];
     PetscInt d, dim=2;
     PetscErrorCode ierr;
-    PetscInt cellID = cell_ids_abv_blw[level][mm];
+    PetscInt cellID = cell_ids_abv_blw[mm];
 
     for (ii=0; ii<ncells; ii++) {
       if (cellID == vertices->internal_cell_ids[vOffsetIntCell + ii]) {
-        cell_traversal[level][0] = ii;
+        cell_traversal[0] = ii;
       }
     }
 
@@ -2152,11 +2152,11 @@ PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **c
 
     ierr = TDyCrossProduct(a,b,axb); CHKERRQ(ierr);
     if (axb[2]>0) {
-      cell_traversal[level][1] = ii_1;
-      cell_traversal[level][2] = ii_2;
+      cell_traversal[1] = ii_1;
+      cell_traversal[2] = ii_2;
     } else {
-      cell_traversal[level][1] = ii_2;
-      cell_traversal[level][2] = ii_1;
+      cell_traversal[1] = ii_2;
+      cell_traversal[2] = ii_1;
     }
   }
 
@@ -2416,10 +2416,10 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   PetscInt level, ncells_level;
 
   level = 0; ncells_level = ncells_abv;
-  ierr = ComputeTraversalDirection(tdy,ivertex,cell_ids_abv_blw,ncells_level,level,cell_traversal); CHKERRQ(ierr);
+  ierr = ComputeTraversalDirection(tdy,ivertex,cell_ids_abv_blw[level],ncells_level,cell_traversal[level]); CHKERRQ(ierr);
 
   level = 1; ncells_level = ncells_blw;
-  ierr = ComputeTraversalDirection(tdy,ivertex,cell_ids_abv_blw,ncells_level,level,cell_traversal); CHKERRQ(ierr);
+  ierr = ComputeTraversalDirection(tdy,ivertex,cell_ids_abv_blw[level],ncells_level,cell_traversal[level]); CHKERRQ(ierr);
 
   if (ncells_abv == 0 || ncells_blw == 0) {
     if (ncells_abv == 0) {
