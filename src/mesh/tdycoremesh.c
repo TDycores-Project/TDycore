@@ -2294,28 +2294,17 @@ PetscErrorCode SetUpToDownConnections(TDy tdy, PetscInt ivertex, PetscInt **cell
       else                           bb = cell_traversal[level][ii+1];
 
       if (bb == -1) bb = cell_traversal[level][0];
+
       if (aa>=ncells && bb>=ncells) continue;
 
-      PetscInt increase_count = PETSC_FALSE;
-
-      if (aa < ncells && bb < ncells) {
-        increase_count = PETSC_TRUE;
-      } else if (aa < ncells && bb>= ncells) {
-        increase_count = PETSC_TRUE;
-      } else if (aa >= ncells && bb<ncells) {
-        increase_count = PETSC_TRUE;
+      if (l2r_dir) {
+        cell_up2dw[count][0] = aa;
+        cell_up2dw[count][1] = bb;
+      } else {
+        cell_up2dw[count][0] = bb;
+        cell_up2dw[count][1] = aa;
       }
-
-      if (increase_count) {
-        if (l2r_dir) {
-          cell_up2dw[count][0] = aa;
-          cell_up2dw[count][1] = bb;
-        } else {
-          cell_up2dw[count][0] = bb;
-          cell_up2dw[count][1] = aa;
-        }
-        count++;
-      }
+      count++;
     }
   }
 
