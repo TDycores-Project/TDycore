@@ -2096,28 +2096,91 @@ PetscErrorCode AddTwoBndFacesOfTwoCellsInTraversalDirection(TDy tdy, PetscInt iv
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode AddTwoBndFacesOfACellInTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt *cellsAbvBlw,
+  PetscInt ncells_level, PetscInt *cell_traversal) {
+
+  PetscFunctionBegin;
+
+  TDy_cell *cells;
+  TDy_face *faces;
+  TDy_vertex *vertices;
+
+  cells = &tdy->mesh->cells;
+  faces = &tdy->mesh->faces;
+  vertices = &tdy->mesh->vertices;
+
+  PetscInt ncells    = vertices->num_internal_cells[ivertex];
+  PetscInt nfaces_bnd= vertices->num_boundary_faces[ivertex];
+
+  PetscInt vOffsetIntCell = vertices->internal_cell_offset[ivertex];
+  PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
+
+  PetscInt mm = 0, count=0, face_id_1, ii_1, ii_2;
+  PetscInt ii;
+
+  for (ii=0; ii<nfaces_bnd; ii++) {
+    PetscInt face_id = vertices->boundary_face_ids[vOffsetBoundaryFace + ii];
+    PetscInt fOffsetCell = faces->cell_offset[face_id];
+    if ((cellsAbvBlw[mm] == faces->cell_ids[fOffsetCell]  )||
+        (cellsAbvBlw[mm] == faces->cell_ids[fOffsetCell+1])) {
+      if (count==0) {
+        face_id_1 = face_id;
+        ii_1 = ii + ncells;
+        count++;
+      } else {
+        ii_2 = ii + ncells;
+        count++;
+      }
+    }
+  }
+  if (count!=2) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not two faces for the cell in the list");
+
+  // Determine if cellID --> face_id_1 is in anticlockwise direction
+
+  PetscReal a[3], b[3], axb[3];
+  PetscInt d, dim=2;
+  PetscErrorCode ierr;
+  PetscInt cellID = cellsAbvBlw[mm];
+
+  for (d=0; d<dim; d++) {
+    a[d] = cells->centroid[cellID   ].X[d] - vertices->coordinate[ivertex].X[d];
+    b[d] = faces->centroid[face_id_1].X[d] - vertices->coordinate[ivertex].X[d];
+  }
+  a[2] = 0.0;
+  b[2] = 0.0;
+
+  ierr = TDyCrossProduct(a,b,axb); CHKERRQ(ierr);
+
+  if (axb[2]>0) { // cellID --> face_id_1 is in anticlockwise direction
+    cell_traversal[1] = ii_1;
+    cell_traversal[2] = ii_2;
+  } else {
+    cell_traversal[1] = ii_2;
+    cell_traversal[2] = ii_1;
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt *cell_ids_abv_blw,
   PetscInt ncells_level, PetscInt *cell_traversal){
   
   PetscFunctionBegin;
 
-  TDy_face *faces;
-  TDy_cell *cells;
   TDy_vertex *vertices;
 
   PetscInt ncells,nfaces_bnd;
 
   if (ncells_level==0) PetscFunctionReturn(0);
 
-  cells = &tdy->mesh->cells;
-  faces = &tdy->mesh->faces;
   vertices = &tdy->mesh->vertices;
 
   ncells    = vertices->num_internal_cells[ivertex];
   nfaces_bnd= vertices->num_boundary_faces[ivertex];
 
   PetscInt vOffsetIntCell = vertices->internal_cell_offset[ivertex];
-  PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
 
   PetscInt ii,jj;
   PetscBool found;
@@ -2147,51 +2210,7 @@ PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt *ce
   if (ncells_level>1) {
     AddTwoBndFacesOfTwoCellsInTraversalDirection(tdy, ivertex, cell_ids_abv_blw, ncells_level, cell_traversal);
   } else if (ncells_level == 1) {
-
-    PetscInt mm = 0, count=0, face_id_1, ii_1, ii_2;
-    for (ii=0; ii<nfaces_bnd; ii++) {
-      PetscInt face_id = vertices->boundary_face_ids[vOffsetBoundaryFace + ii];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
-      if ((cell_ids_abv_blw[mm] == faces->cell_ids[fOffsetCell]  )||
-          (cell_ids_abv_blw[mm] == faces->cell_ids[fOffsetCell+1])) {
-        if (count==0) {
-          face_id_1 = face_id;
-          ii_1 = ii + ncells;
-          count++;
-        } else {
-          ii_2 = ii + ncells;
-          count++;
-        }
-      }
-    }
-    if (count!=2) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not two faces for the cell in the list");
-
-    PetscReal a[3], b[3], axb[3];
-    PetscInt d, dim=2;
-    PetscErrorCode ierr;
-    PetscInt cellID = cell_ids_abv_blw[mm];
-
-    for (ii=0; ii<ncells; ii++) {
-      if (cellID == vertices->internal_cell_ids[vOffsetIntCell + ii]) {
-        cell_traversal[0] = ii;
-      }
-    }
-
-    for (d=0; d<dim; d++) {
-      a[d] = cells->centroid[cellID   ].X[d] - vertices->coordinate[ivertex].X[d];
-      b[d] = faces->centroid[face_id_1].X[d] - vertices->coordinate[ivertex].X[d];
-    }
-    a[2] = 0.0;
-    b[2] = 0.0;
-
-    ierr = TDyCrossProduct(a,b,axb); CHKERRQ(ierr);
-    if (axb[2]>0) {
-      cell_traversal[1] = ii_1;
-      cell_traversal[2] = ii_2;
-    } else {
-      cell_traversal[1] = ii_2;
-      cell_traversal[2] = ii_1;
-    }
+    AddTwoBndFacesOfACellInTraversalDirection(tdy, ivertex, cell_ids_abv_blw, ncells_level, cell_traversal);
   }
 
   PetscFunctionReturn(0);
