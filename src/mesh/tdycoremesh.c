@@ -2024,6 +2024,78 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode AddTwoBndFacesOfTwoCellsInTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt *cellsAbvBlw,
+  PetscInt ncells_level, PetscInt *cell_traversal) {
+
+  // For the last and first cell in cellsAbvBlw, add the face that
+  // that includes a vertex directly above or below ivertex
+
+  PetscFunctionBegin;
+
+  TDy_face *faces;
+  TDy_vertex *vertices;
+
+  faces = &tdy->mesh->faces;
+  vertices = &tdy->mesh->vertices;
+
+  PetscInt ncells    = vertices->num_internal_cells[ivertex];
+  PetscInt nfaces_bnd= vertices->num_boundary_faces[ivertex];
+  PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
+
+  PetscInt ii,jj;
+  PetscInt kk,mm;
+  PetscBool found;
+
+  PetscInt bnd_faces_found[nfaces_bnd];  
+  for (ii=0; ii<nfaces_bnd; ii++) bnd_faces_found[ii] = 0;
+
+  // For the first and the last cell, check if there is a boundary face
+  // that corresponds to the anticlockwise traversal direction.
+
+  for (kk=0; kk<2; kk++) { // For the first and last cell
+
+    // Select the mm-th (first or last) cell
+    if (kk == 0) mm = ncells_level-1;
+    else         mm = 0;
+
+    found = PETSC_FALSE;
+    
+    // Loop through all boundary faces of ivertex
+    for (ii=0; ii<nfaces_bnd; ii++) {
+      
+      // Skip the boundary face that has been previously identified
+      if (bnd_faces_found[ii]) continue;
+      
+      PetscInt face_id = vertices->boundary_face_ids[vOffsetBoundaryFace + ii];
+      PetscInt fOffsetCell = faces->cell_offset[face_id];
+
+      // Check if the face belongs to the mm-th cell
+      if ((cellsAbvBlw[mm] == faces->cell_ids[fOffsetCell]  )||
+          (cellsAbvBlw[mm] == faces->cell_ids[fOffsetCell+1])) {
+
+        PetscInt fOffsetVertex = faces->vertex_offset[face_id];
+
+        // If the face has a vertex that is exactly above or below the
+        // ivertex, add it to the traversal direction
+        for (jj=0; jj<faces->num_vertices[face_id]; jj++) {
+          if ( (ivertex != faces->vertex_ids[fOffsetVertex + jj])
+              && VerticesHaveSameXYCoords(tdy, ivertex, faces->vertex_ids[fOffsetVertex + jj])) {
+            found = PETSC_TRUE;
+            bnd_faces_found[ii] = 1;
+            cell_traversal[ncells_level+kk] = ncells + ii;
+            break;
+          }
+        }
+        if (found) break;
+      }
+    }
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt *cell_ids_abv_blw,
   PetscInt ncells_level, PetscInt *cell_traversal){
   
@@ -2049,14 +2121,13 @@ PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt *ce
 
   PetscInt ii,jj;
   PetscBool found;
-  PetscInt bnd_faces_found[nfaces_bnd];
-  
-  for (ii=0; ii<nfaces_bnd; ii++) bnd_faces_found[ii] = 0;
 
   // Values of cell_traversal[0:1][:] should corresponds to cell/face IDs in
   // local numbering
 
-  // First find cell IDs in local numbering
+  // Add internal cells in the traversal direction.
+  // Note: The travel direction of cells in cell_ids_abv_blw is in
+  //       the local numbering corresponding to vertices->internal_cell_ids
   for (ii=0; ii<ncells_level; ii++) {
     found = PETSC_FALSE;
     for (jj=0; jj<ncells; jj++) {
@@ -2070,50 +2141,13 @@ PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt *ce
     if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a the cell in the list");
   }
 
+  if (nfaces_bnd == 0) PetscFunctionReturn(0);
 
+  // Now add boundary faces in the traversal direction
   if (ncells_level>1) {
-    PetscInt kk,mm;
-    PetscBool found;
+    AddTwoBndFacesOfTwoCellsInTraversalDirection(tdy, ivertex, cell_ids_abv_blw, ncells_level, cell_traversal);
+  } else if (ncells_level == 1) {
 
-    // For the first and the last cell, check if there is a boundary face
-    // that corresponds to the anticlockwise traversal direction.
-    for (kk=0;kk<2;kk++) {
-      // Select the mm-th (first or last) cell
-      if (kk == 0) mm = ncells_level-1;
-      else         mm = 0;
-
-      found = PETSC_FALSE;
-      
-      // Loop through all boundary face
-      for (ii=0; ii<nfaces_bnd; ii++) {
-        
-        // Skip the boundary face that has been previously identified
-        if (bnd_faces_found[ii]) continue;
-        
-        PetscInt face_id = vertices->boundary_face_ids[vOffsetBoundaryFace + ii];
-        PetscInt fOffsetCell = faces->cell_offset[face_id];
-
-        // Check if the face belongs to mm-th cell
-        if ((cell_ids_abv_blw[mm] == faces->cell_ids[fOffsetCell]  )||
-            (cell_ids_abv_blw[mm] == faces->cell_ids[fOffsetCell+1])) {
-          PetscInt fOffsetVertex = faces->vertex_offset[face_id];
-
-          // Check if the face has a vertex that is exactly above or below the
-          // ivertex
-          for (jj=0; jj<faces->num_vertices[face_id]; jj++) {
-            if ( (ivertex != faces->vertex_ids[fOffsetVertex + jj])
-                && VerticesHaveSameXYCoords(tdy, ivertex, faces->vertex_ids[fOffsetVertex + jj])) {
-              found = PETSC_TRUE;
-              bnd_faces_found[ii] = 1;
-              cell_traversal[ncells_level+kk] = ncells+ ii;
-              break;
-            }
-          }
-          if (found) break;
-        }
-      }
-    }
-  } else {
     PetscInt mm = 0, count=0, face_id_1, ii_1, ii_2;
     for (ii=0; ii<nfaces_bnd; ii++) {
       PetscInt face_id = vertices->boundary_face_ids[vOffsetBoundaryFace + ii];
