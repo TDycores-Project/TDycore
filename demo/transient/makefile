@@ -23,23 +23,23 @@ include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 build:
 	@cd ../; make
 
-transient: transient.o chkopts
+transient: transient.o
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
 
-transient_mpfao: transient_mpfao.o chkopts
+transient_mpfao: transient_mpfao.o
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
 
-transient_th_mpfao: transient_th_mpfao.o chkopts
+transient_th_mpfao: transient_th_mpfao.o
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
 
-transient_mpfaof90: transient_mpfaof90.o chkopts
+transient_mpfaof90: transient_mpfaof90.o
 	$(FLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
 
-transient_snes_mpfaof90: transient_snes_mpfaof90.o chkopts
+transient_snes_mpfaof90: transient_snes_mpfaof90.o
 	$(FLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
 

@@ -15,6 +15,6 @@ TDYCORE_DIR ?= $(topdir)
 include $(TDYCORE_DIR)/lib/tdycore/conf/variables
 include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 
-steady: steady.o chkopts
+steady: steady.o
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<

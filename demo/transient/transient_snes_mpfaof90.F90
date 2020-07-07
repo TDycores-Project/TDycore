@@ -1,4 +1,4 @@
-module f90module
+module snes_mpfaof90mod
 
   use tdycore
 #include <petsc/finclude/petsc.h>
@@ -39,7 +39,7 @@ contains
       ierr = 0
   end subroutine PermeabilityFunction
 
-end module f90module
+end module snes_mpfaof90mod
 
 program main
 
@@ -52,7 +52,7 @@ program main
   use petscdm
   use petscksp
   use petscsnes
-  use f90module
+  use snes_mpfaof90mod
 
 implicit none
 

@@ -7,8 +7,6 @@
 # command line with: make PYTHON=python3.3 test
 
 include ${PETSC_DIR}/lib/petsc/conf/variables
-include ${PETSC_DIR}/lib/petsc/conf/rules
-
 
 TEST_MANAGER = regression_tests.py
 

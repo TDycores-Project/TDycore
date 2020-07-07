@@ -15,8 +15,6 @@ FPPFLAGS = ${MYFLAGS}
 
 TDYCORE_DIR ?= $(CURDIR)
 include ${TDYCORE_DIR}/lib/tdycore/conf/variables
-include ${TDYCORE_DIR}/lib/tdycore/conf/rules
-include ${TDYCORE_DIR}/lib/tdycore/conf/test
 
 all:
 	@if [ "${MAKE_IS_GNUMAKE}" != "" ]; then \
