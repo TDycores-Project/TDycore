@@ -1,4 +1,4 @@
-module f90module
+module steadyf90mod
 
   use tdycore
 #include <petsc/finclude/petsc.h>
@@ -111,7 +111,7 @@ contains
 
   end subroutine ForcingFunction
 
-end module f90module
+end module steadyf90mod
 
 program main
 
@@ -123,7 +123,7 @@ program main
   use petscvec
   use petscdm
   use petscksp
-  use f90module
+  use steadyf90mod
 
   implicit none
 
