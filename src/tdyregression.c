@@ -56,19 +56,40 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   if (myrank == 0) {
     ierr = PetscMalloc(ncells_local*regression->num_cells_per_process*sizeof(PetscInt),&(regression->cells_per_process_natural_ids)); CHKERRQ(ierr);
   }
-  increment = floor(ncells_local/regression->num_cells_per_process);
+ 
+  if (tdy->mode == TH) {
+    increment = floor(ncells_local/regression->num_cells_per_process/2);
+  }
+  else {
+    increment = floor(ncells_local/regression->num_cells_per_process);
+  }
+  
 
   global_offset = 0;
   ierr = MPI_Exscan(&ncells_local,&global_offset,1,MPIU_INT,MPI_SUM,PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
 
 
   ierr = VecCreate(PetscObjectComm((PetscObject)dm),&temp_vec); CHKERRQ(ierr);
-  ierr = VecSetSizes(temp_vec,regression->num_cells_per_process,PETSC_DECIDE); CHKERRQ(ierr);
+  if (tdy->mode == TH) {
+    ierr = VecSetSizes(temp_vec,2*regression->num_cells_per_process,PETSC_DECIDE); CHKERRQ(ierr);
+  }
+  else {
+    ierr = VecSetSizes(temp_vec,regression->num_cells_per_process,PETSC_DECIDE); CHKERRQ(ierr);
+  }
   ierr = VecSetFromOptions(temp_vec); CHKERRQ(ierr);
   ierr = VecGetArray(temp_vec,&vec_ptr); CHKERRQ(ierr);
 
-  for (c=0; c<regression->num_cells_per_process; c++){
-    vec_ptr[c] = c*increment + global_offset;
+
+  if (tdy->mode == TH){
+    for (c=0; c<regression->num_cells_per_process; c++){
+      vec_ptr[2*c] = 2*c*increment + global_offset;
+      vec_ptr[2*c+1] = 2*c*increment + global_offset + 1;
+    }
+  }
+  else {
+    for (c=0; c<regression->num_cells_per_process; c++){
+      vec_ptr[c] = c*increment + global_offset;
+    }
   }
 
   ierr = VecRestoreArray(temp_vec,&vec_ptr); CHKERRQ(ierr);
@@ -81,12 +102,15 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   ierr = VecSetFromOptions(regression->cells_per_process_vec); CHKERRQ(ierr);
 
   ierr = PetscMalloc(global_count*sizeof(PetscInt),&(int_array)); CHKERRQ(ierr);
+
   for (c=0; c<global_count; c++){
     int_array[c] = c;
   }
-
+  
   ierr = ISCreateGeneral(PetscObjectComm((PetscObject)dm),global_count,int_array,PETSC_COPY_VALUES,&temp_is); CHKERRQ(ierr);
+
   ierr = VecScatterCreate(temp_vec,temp_is,regression->cells_per_process_vec,NULL,&temp_scatter); CHKERRQ(ierr);
+//  ierr = VecScatterView(temp_scatter,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
   ierr = ISDestroy(&temp_is); CHKERRQ(ierr);
 
   ierr = VecScatterBegin(temp_scatter,temp_vec,regression->cells_per_process_vec,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
@@ -105,7 +129,12 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   }
     
   ierr = ISCreateGeneral(PetscObjectComm((PetscObject)dm),global_count,int_array,PETSC_COPY_VALUES,&temp_is); CHKERRQ(ierr);
+
+//  ierr = ISView(temp_is,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+//  ierr = VecView(regression->cells_per_process_vec,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+//  ierr = VecView(U,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
   ierr = VecScatterCreate(U,temp_is,regression->cells_per_process_vec,NULL,&(regression->scatter_cells_per_process_gtos)); CHKERRQ(ierr);
+//  ierr = VecScatterView(regression->scatter_cells_per_process_gtos,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
   ierr = ISDestroy(&temp_is); CHKERRQ(ierr);
   
   tdy->regression = regression;
@@ -124,6 +153,8 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   TDy_regression *reg;
   PetscInt myrank, size;
   PetscErrorCode ierr;
+  PetscInt c,cStart,cEnd;
+  Vec U_pres, U_temp;
 
   PetscFunctionBegin;
 
@@ -133,18 +164,77 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   ierr = VecScatterBegin(reg->scatter_cells_per_process_gtos,U,reg->cells_per_process_vec,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
   ierr = VecScatterEnd(reg->scatter_cells_per_process_gtos,U,reg->cells_per_process_vec,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
 
+//  ierr = VecView(U,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+
   MPI_Comm_size(PetscObjectComm((PetscObject)dm),&size);
   MPI_Comm_rank(PetscObjectComm((PetscObject)dm),&myrank);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
   PetscScalar *vec_ptr;
-  PetscScalar min_val, max_val, mean_val;
-  PetscInt vec_size;
+  PetscScalar min_pres_val, max_pres_val, mean_pres_val;
+  PetscScalar min_temp_val, max_temp_val, mean_temp_val;
+  PetscInt pres_vec_size, temp_vec_size, vec_local_size;
 
-  ierr = VecMax(U,NULL,&max_val); CHKERRQ(ierr);
-  ierr = VecMin(U,NULL,&min_val); CHKERRQ(ierr);
-  ierr = VecSum(U,&mean_val); CHKERRQ(ierr);
-  ierr = VecGetSize(U,&vec_size); CHKERRQ(ierr);
-  mean_val = mean_val/vec_size;
+
+  PetscSection sec;
+  PetscInt num_fields;
+  ierr = DMGetSection(dm,&sec); CHKERRQ(ierr);
+  ierr = PetscSectionGetNumFields(sec,&num_fields); CHKERRQ(ierr);
+
+  PetscReal *temp_p, *pres_p, *u_p;
+  ierr = VecGetLocalSize(U,&vec_local_size); CHKERRQ(ierr);
+  ierr = VecCreate(PetscObjectComm((PetscObject)dm),&U_pres); CHKERRQ(ierr);
+  if (tdy->mode == TH) {
+    vec_local_size = vec_local_size/2;
+  }
+  ierr = VecSetSizes(U_pres,vec_local_size,PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(U_pres); CHKERRQ(ierr);
+  ierr = VecGetArray(U_pres,&pres_p); CHKERRQ(ierr);
+
+  if (tdy->mode == TH) {
+    ierr = VecCreate(PetscObjectComm((PetscObject)dm),&U_temp); CHKERRQ(ierr);
+    ierr = VecSetSizes(U_temp,vec_local_size,PETSC_DECIDE); CHKERRQ(ierr);
+    ierr = VecSetFromOptions(U_temp); CHKERRQ(ierr);
+    ierr = VecGetArray(U_temp,&temp_p); CHKERRQ(ierr);
+  }
+
+
+  ierr = VecGetArray(U,&u_p); CHKERRQ(ierr);
+  
+  if (tdy->mode == TH && num_fields == 2) {
+    for (c=0;c<cEnd-cStart;c++) {
+      pres_p[c] = u_p[c*2];
+      temp_p[c] = u_p[c*2+1];
+    }
+  } else {
+    for (c=0;c<cEnd-cStart;c++) {
+      pres_p[c] = u_p[c];
+    }
+  }
+
+  ierr = VecRestoreArray(U,&u_p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(U_pres,&pres_p); CHKERRQ(ierr);
+ 
+  if (tdy->mode == TH) { 
+    ierr = VecRestoreArray(U_temp,&temp_p); CHKERRQ(ierr);
+  }
+  
+  ierr = VecMax(U_pres,NULL,&max_pres_val); CHKERRQ(ierr);
+  ierr = VecMin(U_pres,NULL,&min_pres_val); CHKERRQ(ierr);
+  ierr = VecSum(U_pres,&mean_pres_val); CHKERRQ(ierr);
+  ierr = VecGetSize(U_pres,&pres_vec_size); CHKERRQ(ierr);
+  mean_pres_val = mean_pres_val/pres_vec_size;
+
+  if (tdy->mode == TH) {
+    ierr = VecMax(U_temp,NULL,&max_temp_val); CHKERRQ(ierr);
+    ierr = VecMin(U_temp,NULL,&min_temp_val); CHKERRQ(ierr);
+    ierr = VecSum(U_temp,&mean_temp_val); CHKERRQ(ierr);
+    ierr = VecGetSize(U_temp,&temp_vec_size); CHKERRQ(ierr);
+    mean_temp_val= mean_temp_val/temp_vec_size;
+  }
+
+//  ierr = VecView(U_pres,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+//  ierr = VecView(U_temp,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
   if (myrank==0) {
     FILE *fp;
@@ -156,17 +246,33 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
 
     PetscInt count, i;
 
-
     ierr = VecGetSize(reg->cells_per_process_vec,&count); CHKERRQ(ierr);
     ierr = VecGetArray(reg->cells_per_process_vec,&vec_ptr); CHKERRQ(ierr);
     fprintf(fp,"-- PRESSURE: Liquid Pressure --\n");
-    fprintf(fp,"      Max: %21.13e\n",max_val);
-    fprintf(fp,"      Min: %21.13e\n",min_val);
-    fprintf(fp,"     Mean: %21.13e\n",mean_val);
-    for (i=0; i<count; i++) {
-      fprintf(fp,"%9d: %21.13e\n",reg->cells_per_process_natural_ids[i],vec_ptr[i]);
+    fprintf(fp,"      Max: %21.13e\n",max_pres_val);
+    fprintf(fp,"      Min: %21.13e\n",min_pres_val);
+    fprintf(fp,"     Mean: %21.13e\n",mean_pres_val);
+   
+    if (tdy->mode == TH) { 
+      for (i=0; i<count/2; i++) {
+        fprintf(fp,"%9d: %21.13e\n",reg->cells_per_process_natural_ids[2*i]/2,vec_ptr[2*i]);
+      }
+    } else {
+      for (i=0; i<count; i++) {
+        fprintf(fp,"%9d: %21.13e\n",reg->cells_per_process_natural_ids[i],vec_ptr[i]);
+      }
     }
-    
+   
+    if (tdy->mode == TH) {
+      fprintf(fp,"-- GENERIC: Temperature --\n");
+      fprintf(fp,"      Max: %21.13e\n",max_temp_val);
+      fprintf(fp,"      Min: %21.13e\n",min_temp_val);
+      fprintf(fp,"     Mean: %21.13e\n",mean_temp_val);
+      for (i=0; i<count/2; i++) {
+        fprintf(fp,"%9d: %21.13e\n",reg->cells_per_process_natural_ids[2*i]/2,vec_ptr[2*i+1]);
+      }
+    }
+ 
     ierr = VecRestoreArray(reg->cells_per_process_vec,&vec_ptr); CHKERRQ(ierr);
 
     fclose(fp);
