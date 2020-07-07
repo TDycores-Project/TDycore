@@ -359,6 +359,8 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
   PetscInt nfaces_per_vertex = TDyMaxNumberOfFacesSharingAVertex(dm, tdy->closureSize, tdy->closure);
   PetscInt nedges_per_vertex = TDyMaxNumberOfEdgesSharingAVertex(dm, tdy->closureSize, tdy->closure);
   tdy->ncv = ncells_per_vertex;
+  tdy->nfv = nfaces_per_vertex;
+
   ierr = AllocateMemoryForVertices(vNum, ncells_per_vertex, nfaces_per_vertex, nedges_per_vertex, cell_type, &mesh->vertices); CHKERRQ(ierr);
 
   subcell_type  = GetSubcellTypeForCellType(cell_type);
@@ -2451,7 +2453,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   }
 
   ierr = TDyAllocate_IntegerArray_2D(&cell_traversal, 2, ncells+nfaces_bnd); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_2D(&cell_up2dw, 24, 2); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&cell_up2dw, tdy->nfv, 2); CHKERRQ(ierr);
 
   PetscInt level, ncells_level;
 
@@ -2477,7 +2479,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   ierr = SetupUpwindFacesForSubcell(vertices,ivertex,cells,faces,subcells,cell_up2dw,nUp2Dw); CHKERRQ(ierr);
 
   ierr = TDyDeallocate_IntegerArray_2D(cell_traversal, 2); CHKERRQ(ierr);
-  ierr = TDyDeallocate_IntegerArray_2D(cell_up2dw, ncells+nfaces_bnd); CHKERRQ(ierr);
+  ierr = TDyDeallocate_IntegerArray_2D(cell_up2dw, tdy->nfv); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
