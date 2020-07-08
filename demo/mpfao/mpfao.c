@@ -1,4 +1,5 @@
 #include "tdycore.h"
+#include "tdydmperturbation.h"
 
 PetscReal alpha = 1;
 
@@ -168,6 +169,8 @@ int main(int argc, char **argv) {
   // Setup problem parameters
   TDy  tdy;
   PetscReal gravity[3];
+
+  ierr = SetVertexPerturbationFunction(PerturbDMInteriorVertices);
 
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);
 

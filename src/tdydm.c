@@ -1,39 +1,6 @@
 #include <private/tdydmimpl.h>
-
-PetscErrorCode PerturbDMInteriorVertices(DM dm,PetscReal h) {
-  PetscErrorCode ierr;
-  DMLabel      label;
-  Vec          coordinates;
-  PetscSection coordSection;
-  PetscScalar *coords;
-  PetscInt     v,vStart,vEnd,offset,value;
-
-  PetscFunctionBegin;
-
-  ierr = DMGetLabelByNum(dm,2,&label);
-  CHKERRQ(ierr); // this is the 'marker' label which marks boundary entities
-
-  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
-  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
-  ierr = VecGetArray(coordinates, &coords); CHKERRQ(ierr);
-
-  for(v=vStart; v<vEnd; v++) {
-    ierr = PetscSectionGetOffset(coordSection,v,&offset); CHKERRQ(ierr);
-    ierr = DMLabelGetValue(label,v,&value); CHKERRQ(ierr);
-    if(value==-1) { 
-      PetscReal r = ((PetscReal)rand())/((PetscReal)RAND_MAX)*
-                    (h*0.471404); // h*sqrt(2)/3
-      PetscReal t = ((PetscReal)rand())/((PetscReal)RAND_MAX)*PETSC_PI;
-      coords[offset  ] += r*PetscCosReal(t);
-      coords[offset+1] += r*PetscSinReal(t);
-    }
-  }
-
-  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
+//#include <private/tdydmperturbationimpl.h>
+#include <tdydmperturbation.h>
 
 PetscErrorCode TDyCreateDM(DM *_dm) {
   PetscErrorCode ierr;
@@ -85,6 +52,8 @@ PetscErrorCode TDyCreateDM(DM *_dm) {
   ierr = PetscOptionsBool("-perturb","Perturb interior vertices","",perturb,
                           &perturb,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+//  ierr = SetVertexPerturbationFunction(PerturbDMInteriorVertices);
 
   size_t len;
   ierr = PetscStrlen(mesh_filename, &len); CHKERRQ(ierr);
@@ -151,9 +120,11 @@ PetscErrorCode TDyCreateDM(DM *_dm) {
                                lower, upper, NULL, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
     if (perturb) {
-      ierr = PerturbDMInteriorVertices(dm,1./Nx); CHKERRQ(ierr);
+      ierr = vertexperturbationfunction(dm,1./Nx); CHKERRQ(ierr);
+//      ierr = PerturbDMInteriorVertices(dm,1./Nx); CHKERRQ(ierr);
     } else {
-      ierr = PerturbDMInteriorVertices(dm,0.); CHKERRQ(ierr);
+      ierr = vertexperturbationfunction(dm,0.); CHKERRQ(ierr);
+//      ierr = PerturbDMInteriorVertices(dm,0.); CHKERRQ(ierr);
     }
   } else {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE,
