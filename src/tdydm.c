@@ -57,21 +57,25 @@ PetscErrorCode TDyCreateDM(DM *_dm) {
 
   size_t len;
   ierr = PetscStrlen(mesh_filename, &len); CHKERRQ(ierr);
+
+
   if (!len){
     if (dim == 1) {
-      printf("ERROR: Only two or three dimensions currently supported.\n");
-      exit(0);
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Only two or three dimensions currently supported.");
       int i = 0;
       if (Nx > 0) i++;
       if (Ny > 0) i++;
       if (Nz > 0) i++;
       if (i > 1) {
-        printf("ERROR: Number of grid cells must be defined in only one ");
-        printf("dimension for a 1D problem:");
-        if (Nx > 0) printf(" %d",Nx); else printf(" ?");
-        if (Ny > 0) printf(" %d",Ny); else printf(" ?");
-        if (Nz > 0) printf(" %d\n",Nz); else printf(" ?\n");
-        exit(0);
+        char word[32];
+        char string[512] = "Number of grid cells must be defined in only one dimension for a 1D problem:";
+        if (Nx > 0) sprintf(word," %d",Nx); else sprintf(word," ?");
+        strcat(string,word);
+        if (Ny > 0) sprintf(word," %d",Ny); else sprintf(word," ?");
+        strcat(string,word);
+        if (Nz > 0) sprintf(word," %d\n",Nz); else sprintf(word," ?");
+        strcat(string,word);
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,string);
       }
       if (Nx > 0) {Ny = 1; Nz = 1;}
       else if (Ny > 0) {Nx = 1; Nz = 1;}
@@ -83,12 +87,15 @@ PetscErrorCode TDyCreateDM(DM *_dm) {
             (Ny > 0 && Nz > 0) ||
             (Nx > 0 && Ny < 0 && Nz < 0) ||
             (Nx < 0 && Ny < 0 && Nz < 0))) {
-        printf("ERROR: Number of grid cells must be defined in one (-N #) ");
-        printf("or two dimensions for a 2D problem:");
-        if (Nx > 0) printf(" %d",Nx); else printf(" ?");
-        if (Ny > 0) printf(" %d",Ny); else printf(" ?");
-        if (Nz > 0) printf(" %d\n",Nz); else printf(" ?\n");
-        exit(0);
+        char word[32];
+        char string[512] = "Number of grid cells must be defined in one (-N #) or two dimensions for a 2D problem:";
+        if (Nx > 0) sprintf(word," %d",Nx); else sprintf(word," ?");
+        strcat(string,word);
+        if (Ny > 0) sprintf(word," %d",Ny); else sprintf(word," ?");
+        strcat(string,word);
+        if (Nz > 0) sprintf(word," %d\n",Nz); else sprintf(word," ?");
+        strcat(string,word);
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,string);
       }
       if (Nx > 0 && Ny > 0) Nz = 1;
       else if (Nx > 0 && Nz > 0) Ny = 1;
@@ -98,12 +105,15 @@ PetscErrorCode TDyCreateDM(DM *_dm) {
     else if (dim == 3) {
       if ((Nx < 0 && (Ny > 0 || Nz > 0)) || 
           (Nx > 0 && ((Ny > 0 && Nz < 0) || (Ny < 0 && Nz > 0)))) {
-        printf("ERROR: Number of grid cells must be defined in one (-N #) ");
-        printf("or three dimensions for a 3D problem:");
-        if (Nx > 0) printf(" %d",Nx); else printf(" ?");
-        if (Ny > 0) printf(" %d",Ny); else printf(" ?");
-        if (Nz > 0) printf(" %d\n",Nz); else printf(" ?\n");
-        exit(0);
+        char word[32];
+        char string[512] = "Number of grid cells must be defined in one (-N #) or three dimensions for a 3D problem:";
+        if (Nx > 0) sprintf(word," %d",Nx); else sprintf(word," ?");
+        strcat(string,word);
+        if (Ny > 0) sprintf(word," %d",Ny); else sprintf(word," ?");
+        strcat(string,word);
+        if (Nz > 0) sprintf(word," %d\n",Nz); else sprintf(word," ?");
+        strcat(string,word);
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,string);
       }
       if (Nx < 0) Nx = 8;
       if (Ny < 0) Ny = Nx;
@@ -120,11 +130,13 @@ PetscErrorCode TDyCreateDM(DM *_dm) {
                                lower, upper, NULL, PETSC_TRUE, &dm);
     CHKERRQ(ierr);
     if (perturb) {
-      ierr = vertexperturbationfunction(dm,1./Nx); CHKERRQ(ierr);
-//      ierr = PerturbDMInteriorVertices(dm,1./Nx); CHKERRQ(ierr);
-    } else {
-      ierr = vertexperturbationfunction(dm,0.); CHKERRQ(ierr);
-//      ierr = PerturbDMInteriorVertices(dm,0.); CHKERRQ(ierr);
+      if (vertexperturbationfunction) {
+        ierr = vertexperturbationfunction(dm,1./Nx); CHKERRQ(ierr);
+      }
+      else {
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-perturb specified on command line, but no perturbation function defined");
+       // add error message
+      }
     }
   } else {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE,
