@@ -22,48 +22,21 @@ PetscErrorCode Forcing(TDy tdy,double *x,double *f,void *ctx) {
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt N = 4, dim = 3;
   PetscInt successful_exit_code=0;
-  char exofile[256];
-  PetscBool exo = PETSC_FALSE;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,
 			   "Transient Options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-N","Number of elements in 1D",
-			 "",N,&N,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
-  ierr = PetscOptionsString("-exo","Mesh file in exodus format","",
-			    exofile,exofile,256,&exo); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  /* Create and distribute the mesh */
-  DM dm, dmDist = NULL;
-  DMLabel marker;
-  if(exo){
-    ierr = DMPlexCreateExodusFromFile(PETSC_COMM_WORLD,exofile,
-				      PETSC_TRUE,&dm); CHKERRQ(ierr);
-    //ierr = DMPlexOrient(dm); CHKERRQ(ierr);
-    ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-    ierr = DMCreateLabel(dm,"marker"); CHKERRQ(ierr);
-    ierr = DMGetLabel(dm,"marker",&marker); CHKERRQ(ierr);
-    ierr = DMPlexMarkBoundaryFaces(dm,1,marker); CHKERRQ(ierr);
-  }else{
-    const PetscInt  faces[3] = {N,N,N  };
-    const PetscReal lower[3] = {-0.5,-0.5,-0.5};
-    const PetscReal upper[3] = {+0.5,+0.5,+0.5};
-    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
-			       NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
-    ierr = PerturbVerticesRandom(dm,1./N); CHKERRQ(ierr);
-  }
-  ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
-  if (dmDist) {DMDestroy(&dm); dm = dmDist;}
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
+  ierr = SetVertexPerturbationFunction(PerturbVerticesRandom); CHKERRQ(ierr);
 
   /* Setup problem parameters */
   TDy  tdy;
-  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
+  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
   ierr = TDySetPermeabilityScalar(tdy,Permeability); CHKERRQ(ierr);
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);

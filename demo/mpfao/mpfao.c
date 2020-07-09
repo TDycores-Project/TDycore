@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
   TDy  tdy;
   PetscReal gravity[3];
 
-  ierr = SetVertexPerturbationFunction(PerturbDMInteriorVertices);
+  ierr = SetVertexPerturbationFunction(PerturbDMInteriorVertices); CHKERRQ(ierr);
 
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);
 

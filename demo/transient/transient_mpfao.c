@@ -29,10 +29,7 @@ PetscErrorCode Forcing(TDy tdy,double *x,double *f,void *ctx) {
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt nx = 3, ny = 3, nz = 3, dim = 3;
   PetscInt successful_exit_code=0;
-  char exofile[256];
-  PetscBool exo = PETSC_FALSE;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,
 			   "Transient Options",""); CHKERRQ(ierr);

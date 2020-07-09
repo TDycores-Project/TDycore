@@ -77,49 +77,23 @@ PetscErrorCode PostProcess(TS ts)
 
 }
 
-
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt nx = 3, ny = 3, nz = 3, dim = 3;
   PetscInt successful_exit_code=0;
-  char exofile[256];
-  PetscBool exo = PETSC_FALSE;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,
 			   "Transient Options",""); CHKERRQ(ierr);
-  //ierr = PetscOptionsInt("-N","Number of elements in 1D",
-	//		 "",N,&N,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
-  ierr = PetscOptionsString("-exo","Mesh file in exodus format","",
-			    exofile,exofile,256,&exo); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  /* Create and distribute the mesh */
-  DM dm, dmDist = NULL;
-  DMLabel marker;
-  if(exo){
-    ierr = DMPlexCreateExodusFromFile(PETSC_COMM_WORLD,exofile,
-				      PETSC_TRUE,&dm); CHKERRQ(ierr);
-    //ierr = DMPlexOrient(dm); CHKERRQ(ierr);
-    ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-    ierr = DMCreateLabel(dm,"marker"); CHKERRQ(ierr);
-    ierr = DMGetLabel(dm,"marker",&marker); CHKERRQ(ierr);
-    ierr = DMPlexMarkBoundaryFaces(dm,1,marker); CHKERRQ(ierr);
-  }else{
-    const PetscInt  faces[3] = {nx,ny,nz};
-    const PetscReal lower[3] = {0.0,0.0,0.0};
-    const PetscReal upper[3] = {1.0,1.0,1.0};
-    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
-			       NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
-    //ierr = PerturbVerticesRandom(dm,1./nx); CHKERRQ(ierr);
-  }
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
-  if (dmDist) {DMDestroy(&dm); dm = dmDist;}
-  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
-
+  /* Setup problem parameters */
+  TDy  tdy;
+  TDyMode mode = TH;
+  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
   PetscInt c,cStart,cEnd;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   PetscReal residualSat[cEnd-cStart];
@@ -128,11 +102,6 @@ int main(int argc, char **argv) {
     index[c] = c;
     residualSat[c] = 0.115;
   }
-
-  /* Setup problem parameters */
-  TDy  tdy;
-  TDyMode mode = TH;
-  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
   ierr = TDySetMode(tdy,mode); CHKERRQ(ierr);
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
   ierr = TDySetSpecificHeatCapacity(tdy,SpecificHeatCapacity); CHKERRQ(ierr);

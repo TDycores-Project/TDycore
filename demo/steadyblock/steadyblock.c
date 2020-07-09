@@ -99,51 +99,41 @@ int main(int argc, char **argv) {
 
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
   CHKERRQ(ierr);
-  ierr = PetscOptionsInt ("-dim","Problem dimension","",dim,&dim,NULL);
-  CHKERRQ(ierr);
-  ierr = PetscOptionsInt ("-dim","Problem dimension","",dim,&dim,NULL);
-  CHKERRQ(ierr);
-  ierr = PetscOptionsInt ("-N","Number of elements in 1D","",N,&N,NULL);
-  CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-problem","Problem number","",problem,&problem,NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
+  CHKERRQ(ierr);
   ierr = PetscOptionsString("-input","Input filename","",string,string,128,NULL);
+  CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  printf("Reading input.\n");
+  PetscPrintf(PETSC_COMM_WORLD,"Reading input.\n");
   fp = fopen(string,"r");
   fscanf(fp,"%d",&problem);
   fscanf(fp,"%d",&dim);
+  sprintf(string,"-dim %d",dim);
+  ierr = PetscOptionsInsertString(NULL,string); CHKERRQ(ierr);
   fscanf(fp,"%d",&N);
+  sprintf(string,"-N %d",N);
+  ierr = PetscOptionsInsertString(NULL,string); CHKERRQ(ierr);
   fclose(fp);
 
-  printf("\n");
-  printf("Problem        : %d\n",problem);
-  printf("Dimension      : %d\n",dim);
+  PetscPrintf(PETSC_COMM_WORLD,"\n");
+  PetscPrintf(PETSC_COMM_WORLD,"Problem        : %d\n",problem);
+  PetscPrintf(PETSC_COMM_WORLD,"Dimension      : %d\n",dim);
   PetscInt temp_int = N;
   for (int i=0; i<dim-1; i++)
     temp_int *= N;
-  printf("Number of Cells: %d\n",temp_int);
-  printf("\n");
-
-  /* Create and distribute the mesh */
-  DM dm, dmDist = NULL;
-  const PetscInt  faces[3] = {N,N,N  };
-  const PetscReal lower[3] = {0.0,0.0,0.0};
-  const PetscReal upper[3] = {1.0,1.0,1.0};
-  ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
-                             NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
-  if (dmDist) {DMDestroy(&dm); dm = dmDist;}
-  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
+  PetscPrintf(PETSC_COMM_WORLD,"Number of Cells: %d\n",temp_int);
+  PetscPrintf(PETSC_COMM_WORLD,"\n");
 
   /* Setup problem parameters */
-  printf("Creating TDycore.\n");
+  PetscPrintf(PETSC_COMM_WORLD,"Creating TDycore.\n");
   TDy  tdy;
-  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
+  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
   if (dim == 1) {
     ierr = TDySetPermeabilityTensor(tdy,PermeabilityBlock1); CHKERRQ(ierr);
     switch(problem) {
@@ -175,7 +165,7 @@ int main(int argc, char **argv) {
   ierr = DMCreateGlobalVector(dm,&F); CHKERRQ(ierr);
   ierr = DMCreateMatrix      (dm,&K); CHKERRQ(ierr);
   ierr = MatSetOption(K,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
-  printf("Creating system.\n");
+  PetscPrintf(PETSC_COMM_WORLD,"Creating system.\n");
   ierr = TDyComputeSystem(tdy,K,F); CHKERRQ(ierr);
 
   PetscViewer viewer;
@@ -187,7 +177,7 @@ int main(int argc, char **argv) {
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   /* Solve system */
-  printf("Solving system.\n");
+  PetscPrintf(PETSC_COMM_WORLD,"Solving system.\n");
   KSP ksp;
   ierr = KSPCreate(PETSC_COMM_WORLD,&ksp); CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp,K,K); CHKERRQ(ierr);
@@ -195,7 +185,7 @@ int main(int argc, char **argv) {
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
 
-  printf("Outputing results.\n");
+  PetscPrintf(PETSC_COMM_WORLD,"Outputing results.\n");
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"tdycore.sol",&viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -217,15 +207,15 @@ int main(int argc, char **argv) {
   ierr = TDyOutputRegression(tdy,U);
 
   /* Cleanup */
-  printf("Cleaning up.\n");
+  PetscPrintf(PETSC_COMM_WORLD,"Cleaning up.\n");
   ierr = KSPDestroy(&ksp); CHKERRQ(ierr);
   ierr = VecDestroy(&U); CHKERRQ(ierr);
  // ierr = VecDestroy(&Ue); CHKERRQ(ierr);
   ierr = VecDestroy(&F); CHKERRQ(ierr);
   ierr = MatDestroy(&K); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
+  PetscPrintf(PETSC_COMM_WORLD,"Done.\n");
   ierr = PetscFinalize(); CHKERRQ(ierr);
 
-  printf("Done.\n");
   return(successful_exit_code);
 }
