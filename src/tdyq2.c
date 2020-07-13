@@ -69,8 +69,36 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
 }
 
 PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
+  SNES            snes;                 /* nonlinear solver */
+  DM dm = tdy->dm;
+  Vec             u,r;                  /* solution, residual vectors */
+  PetscErrorCode  ierr;
+  MPI_Comm       comm = PETSC_COMM_WORLD;
 
   PetscFunctionBegin;
+  ierr = SNESCreate(comm, &snes);CHKERRQ(ierr);
+  ierr = SNESSetDM(snes, dm);CHKERRQ(ierr);
+
+  ierr = TDyQ2Initialize(&dm);CHKERRQ(ierr);
+
+
+  ierr = DMCreateGlobalVector(dm, &u);CHKERRQ(ierr);
+  ierr = VecDuplicate(u, &r);CHKERRQ(ierr);
+  
+  ierr = SNESSetFromOptions(snes);CHKERRQ(ierr);
+
+  ierr = SNESSolve(snes, F, u);CHKERRQ(ierr);
+
+  PetscReal res = 0.0;
+  ierr = SNESComputeFunction(snes, u, r);CHKERRQ(ierr);
+  ierr = PetscPrintf(comm, "Initial Residual\n");CHKERRQ(ierr);
+  ierr = VecChop(r, 1.0e-10);CHKERRQ(ierr);
+  ierr = VecView(r, PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
+  ierr = VecNorm(r, NORM_2, &res);CHKERRQ(ierr);
+  ierr = PetscPrintf(comm, "L_2 Residual: %g\n", (double)res);CHKERRQ(ierr);
+    
+
+
   PetscFunctionReturn(0);
 }
 
