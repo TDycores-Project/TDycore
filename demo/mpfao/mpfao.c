@@ -1,4 +1,5 @@
 #include "tdycore.h"
+#include "/home/rosie/software/petsc/arch-linux2-c-opt/externalpackages/git.exodusii/packages/seacas/libraries/exodus/include/exodusII.h"
 
 PetscReal alpha = 1;
 
@@ -235,6 +236,7 @@ int main(int argc, char **argv) {
     }
   } else {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE, &dm); CHKERRQ(ierr);
+    printf("here");
   }
 
   ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
@@ -304,6 +306,174 @@ int main(int argc, char **argv) {
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
+
+  //
+  //Actually export mesh
+  int CPU_word_size, IO_word_size, exoid;
+
+   CPU_word_size = sizeof(PetscReal);
+  IO_word_size  = sizeof(PetscReal);
+  exoid = ex_create("out.exo",EX_CLOBBER, &CPU_word_size, &IO_word_size);CHKERRQ(ierr);
+  ierr = DMPlexView_ExodusII_Internal(dm,exoid,1);CHKERRQ(ierr);
+
+  
+  /*
+//working
+  int CPU_word_size, IO_word_size, exoid;
+  int num_dim,num_nodes,num_elem,num_elem_blk,num_elem_blk1,num_node_sets,num_side_sets, block_id, num_nodes_per_elem,num_elem_var;
+  float *x, *y, *z;
+  int nx,ny,nz,nt;
+  int i,j,k,*connect,id,count;
+  int ss_id,num_sides_in_ss,*elem_list,*side_list;
+  char *coord_names[3], *varname[1];
+  float time_value, *elem_var_vals;
+  CPU_word_size = sizeof(float);
+  IO_word_size  = sizeof(float);
+  nx=3;ny=2;nz=2;
+  num_dim = 3;
+  num_nodes = (nx+1)*(ny+1)*(nz+1);
+  num_elem = nx*ny*nz;
+  num_elem_blk=1;
+  num_elem_blk1=12;
+    num_node_sets=0;  //??
+   num_side_sets=0;  //?? 65
+   num_nodes_per_elem =8;
+  num_elem_var = 11;
+  
+  block_id =10;
+  
+    x = (float *) calloc (num_nodes, CPU_word_size);
+   y = (float *) calloc (num_nodes, CPU_word_size);
+   z = (float *) calloc (num_nodes, CPU_word_size);
+
+
+   id = 0 ;
+
+   for (k=0;k<nz+1; k++) {
+     
+     for (j=0; j<ny+1; j++) {
+       for (i=0; i<nx+1; i++) {
+	 
+	 x[id] = i;
+	 y[id] = j;
+	 z[id] = k;
+
+	 	   id += 1;
+       }
+     }
+   }
+      
+ 
+   
+   coord_names[0] = "Xcoord";
+   coord_names[1] = "Ycoord";
+   coord_names[2] = "Zcoord";
+
+   //     exoid = ex_create("rosie.exo",EX_CLOBBER, &CPU_word_size, &IO_word_size);CHKERRQ(ierr);
+   
+   connect = (int *) calloc(8*num_elem, sizeof(int));
+
+   //nxXny(3*3) nxp1Xnyp1 (4*4) nxp1
+   for (k=0;k<nz; k++) {
+     for (j=0; j<ny; j++) {
+       for (i=0; i<nx; i++) {
+	
+	 id = (k*nx*ny+j*nx+i)*8;
+	 //	 printf("%d\n",id);
+	 // printf("%d\n",k*4*4+(j+1)*4+i+1);
+	 
+	 connect[id] = k*(nx+1)*(ny+1)+j*(nx+1) +i +1;
+	   connect[id+1] = k*(nx+1)*(ny+1)+j*(nx+1)+i+1+1;
+	   connect[id+2] = k*(nx+1)*(ny+1)+(j+1)*(nx+1)+i+1+1;
+	   connect[id+3] =k*(nx+1)*(ny+1)+(j+1)*(nx+1)+i+1;
+	   connect[id+4] = (k+1)*(nx+1)*(ny+1)+j*(nx+1)+i+1;
+	   connect[id+5] =(k+1)*(nx+1)*(ny+1)+j*(nx+1)+i+1+1;
+	   connect[id+6]=(k+1)*(nx+1)*(ny+1)+(j+1)*(nx+1)+i+1+1;
+	   connect[id+7]=(k+1)*(nx+1)*(ny+1)+(j+1)*(nx+1)+i+1;
+
+	   // 	   printf("i=%i\n",connect[id]);
+       }
+     }
+   }
+
+   varname[0]="pres";
+   time_value = 0.0;
+   nt = 1;
+
+   	       elem_var_vals = (float *) calloc (num_elem_blk1, sizeof(float));
+	       for (j=0; j<num_elem_blk1; j++) {
+		 elem_var_vals[j] = 10.0;
+	       }
+
+           exoid = ex_create("rosie2.exo",EX_CLOBBER, &CPU_word_size, &IO_word_size);CHKERRQ(ierr);
+	   ierr = ex_put_init(exoid, "test", num_dim,num_nodes,num_elem,num_elem_blk,num_node_sets,num_side_sets);CHKERRQ(ierr);
+	     ierr = ex_put_coord(exoid,x,y,z);CHKERRQ(ierr);
+	     //   ierr = ex_put_coord_names(exoid,coord_names);CHKERRQ(ierr);
+    ierr = ex_put_elem_block(exoid,block_id,"HEX",num_elem_blk1,num_nodes_per_elem,0);CHKERRQ(ierr);
+
+      printf("i=%i\n",connect[id]);
+     ierr=ex_put_elem_conn(exoid,block_id,connect);CHKERRQ(ierr);
+     ierr = ex_put_var_param(exoid,"e",1);CHKERRQ(ierr);
+        ierr = ex_put_var_names(exoid,"e",1,varname);CHKERRQ(ierr);
+	ierr = ex_put_time(exoid,nt,&time_value);CHKERRQ(ierr);
+
+	 ierr = ex_put_elem_var(exoid,nt,1,block_id,num_elem_blk1,elem_var_vals);CHKERRQ(ierr);	       
+		 
+      ierr = ex_close(exoid);CHKERRQ(ierr);
+  */
+   /*
+   ss_id=1;
+   num_sides_in_ss=3*3;
+
+   elem_list= (int *) calloc (3*3, sizeof(int));
+     side_list = (int *) calloc (3*3, sizeof(int));
+   for (i=0;i<num_sides_in_ss;i++){
+     side_list[i] = 6;
+   }
+
+   count = 0;
+   k=3-1;
+   for(j=0;j<3;j++){
+     for(i=0;i<3;i++){
+       elem_list[count++]=k*3*3+j*3+i+1;
+     }
+   }
+   
+   //   printf("meow");
+   // 	  printf("meow = %f\n",connect[100]);
+   */
+
+   //  
+   // ierr = ex_put_coord(exoid,x,y,z);CHKERRQ(ierr);
+   // ierr = ex_put_coord_names(exoid,coord_names);CHKERRQ(ierr);
+   //   ierr = ex_put_elem_block(exoid,block_id,"HEX8",num_elem,num_nodes_per_elem,0);CHKERRQ(ierr);
+   //  ierr=ex_put_elem_conn(exoid,block_id,connect);CHKERRQ(ierr);
+   //   ierr = ex_put_side_set_param (exoid,ss_id,num_sides_in_ss,0);CHKERRQ(ierr);
+   //do concatanted
+   //   ierr=ex_put_side_set(exoid,ss_id,elem_list,side_list);CHKERRQ(ierr);
+   //  free(connect);
+  //  free(elem_list);
+  //  free(side_list);
+  /*
+  ss_id=2;
+  count =0;
+  k=0;
+  
+  for (j=0; j<3; j++) {
+    for (i=0;i<3;i++) {
+      elem_list[count++]=k*3*3+j*2+i+1;
+    }
+  }
+
+  for (i=0;i<num_sides_in_ss;i++) {
+    side_list[i] = 5;
+  }
+  
+  ierr=ex_put_side_set_param(exoid,ss_id,num_sides_in_ss,0);
+  ierr=ex_put_side_set(exoid,ss_id,elem_list,side_list);
+  ierr = ex_close(exoid);CHKERRQ(ierr);
+   */
+  //
 
   PetscReal normp, normv;
   ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
