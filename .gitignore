@@ -1,1 +1,14 @@
 *xcode/*
+*.vtk
+*.sol
+*.rhs
+*.d
+*.json
+*.o
+*.so
+*.log
+*.DIR
+*.mod
+*.mat
+steady
+steadyblock
