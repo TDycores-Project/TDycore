@@ -1,9 +1,22 @@
 #include <private/tdycoreimpl.h>
 #include <petscblaslapack.h>
 
+/*
+u = -K \nabla p              (1)
+\nabla\cdot u = f,           (2)
+
+weak form:
+(v,K_inv*u) - (\nabla\cdot v, p) = 0   (3)
+-(w,\nabla\cdot u) + (w,f)       = 0   (4)
+*/
+
 /* (dim*vertices_per_cell+1)^2 */
 #define MAX_LOCAL_SIZE 625
+//========================================================
+//         Compute f0 and f1 for the equation (3)
+//========================================================
 
+// (v,K_inv*u),
 static void f0_u(
   PetscInt dim, PetscInt Nf, PetscInt NfAux,
   const PetscInt uOff[], const PetscInt uOff_x[],
@@ -13,20 +26,13 @@ static void f0_u(
   for (PetscInt d=0; d<dim; d++) {
     f0[d] = u[uOff[0] + d]; // TODO: coefficients
   }
+  /* If we add K_inv for example for 2D
+  double K_inv[4]
+  f0[0] = K_inv[0]*u[uOff[0] + 0] + K_inv[1]*u[uOff[0] + 1];
+  f0[1] = K_inv[2]*u[uOff[0] + 0] + K_inv[3]*u[uOff[0] + 1];   
+  */
 }
-
-static void f0_p(
-  PetscInt dim, PetscInt Nf, PetscInt NfAux,
-  const PetscInt uOff[], const PetscInt uOff_x[],
-  const PetscScalar u[], const PetscScalar u_t[], const PetscScalar u_x[],
-  const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[], const PetscScalar a_t[], const PetscScalar a_x[],
-  PetscReal t, const PetscReal x[], PetscInt numConstants, const PetscScalar constants[], PetscScalar f0[]) {
-  PetscScalar div = 0;
-  for (PetscInt d=0; d<dim; d++)
-    div -= u_x[d*dim + d];
-  f0[0] = div;
-}
-
+// (\nabla\cdot v, p)
 static void f1_u(
   PetscInt dim, PetscInt Nf, PetscInt NfAux,
   const PetscInt uOff[], const PetscInt uOff_x[],
@@ -40,6 +46,79 @@ static void f1_u(
   }
 }
 
+//========================================================
+//         Compute f0 and f1 for the equation (4)
+//========================================================
+
+// -(w,\nabla\cdot u) + (w,f)
+static void f0_p(
+  PetscInt dim, PetscInt Nf, PetscInt NfAux,
+  const PetscInt uOff[], const PetscInt uOff_x[],
+  const PetscScalar u[], const PetscScalar u_t[], const PetscScalar u_x[],
+  const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[], const PetscScalar a_t[], const PetscScalar a_x[],
+  PetscReal t, const PetscReal x[], PetscInt numConstants, const PetscScalar constants[], PetscScalar f0[]) {
+  PetscScalar div = 0;
+  for (PetscInt d=0; d<dim; d++){
+    div -= u_x[d*dim + d];
+  }
+  PetscScalar f = 0; //
+  if (dim == 2){
+    f = PetscSinScalar(PETSC_PI*x[1])*PetscCosScalar(PETSC_PI*x[0]);
+    }
+    else {
+    f = PetscSinScalar(PETSC_PI*x[2])*PetscSinScalar(PETSC_PI*x[1])*PetscCosScalar(PETSC_PI*x[0]);
+    }
+  
+  f0[0] = div + f;
+}
+
+//========================================================
+//      Compute Jacobian g0-g3 for the equation (3)
+//========================================================
+
+static void f0_u_J(
+  PetscInt dim, PetscInt Nf, PetscInt NfAux,
+  const PetscInt uOff[], const PetscInt uOff_x[], 
+  const PetscScalar u[], const PetscScalar u_t[], const PetscScalar u_x[],
+  const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[], const PetscScalar a_t[], const PetscScalar a_x[],
+  PetscReal t, PetscReal u_tShift, const PetscReal x[], PetscInt numConstants, const PetscScalar constants[], PetscScalar g0[]) {
+  for (PetscInt d=0; d<dim; d++) {
+    g0[d] = 1.0; // TODO: coefficients
+  }
+  /* If we add K_inv for example for 2D
+  double K_inv[4]
+  g0[0] = K_inv[0] + K_inv[1];
+  g0[1] = K_inv[2] + K_inv[3];   
+  */
+}
+
+static void f1_u_J(
+  PetscInt dim, PetscInt Nf, PetscInt NfAux,
+  const PetscInt uOff[], const PetscInt uOff_x[], 
+  const PetscScalar u[], const PetscScalar u_t[], const PetscScalar u_x[],
+  const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[], const PetscScalar a_t[], const PetscScalar a_x[],
+  PetscReal t, PetscReal u_tShift, const PetscReal x[], PetscInt numConstants, const PetscScalar constants[], PetscScalar g2[]) {
+  for (PetscInt c=0; c<dim; c++) {
+    for (PetscInt d=0; d<dim; d++) {
+      g2[c*dim+d] = (c == d) ? 1 : 0.;
+    }
+  }
+}
+
+//========================================================
+//      Compute Jacobian g0-g3 for the equation (4)
+//========================================================
+
+static void f0_p_J(
+  PetscInt dim, PetscInt Nf, PetscInt NfAux,
+  const PetscInt uOff[], const PetscInt uOff_x[], 
+  const PetscScalar u[], const PetscScalar u_t[], const PetscScalar u_x[],
+  const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[], const PetscScalar a_t[], const PetscScalar a_x[],
+  PetscReal t, PetscReal u_tShift, const PetscReal x[], PetscInt numConstants, const PetscScalar constants[], PetscScalar g1[]) {
+  for (PetscInt d=0; d<dim; d++) {
+    g1[d*dim + d] = -1.0; // TODO: coefficients
+  }
+}
 
 PetscErrorCode TDyQ2Initialize(TDy tdy) {
   PetscErrorCode ierr;
@@ -65,6 +144,9 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
   ierr = DMGetDS(dm, &ds);CHKERRQ(ierr);
   ierr = PetscDSSetResidual(ds, 0, f0_u, f1_u);CHKERRQ(ierr);
   ierr = PetscDSSetResidual(ds, 1, f0_p, NULL);CHKERRQ(ierr);
+  ierr = PetscDSSetJacobian(ds, 0, 0, f0_u_J, NULL,  NULL,  NULL);CHKERRQ(ierr);
+  ierr = PetscDSSetJacobian(ds, 0, 1, NULL, NULL,  f1_u_J, NULL);CHKERRQ(ierr);
+  ierr = PetscDSSetJacobian(ds, 1, 0, NULL, f0_p_J, NULL,  NULL);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -73,6 +155,7 @@ PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   DM dm = tdy->dm;
   Vec             u,r;                  /* solution, residual vectors */
   PetscErrorCode  ierr;
+  PetscInt        its;
   MPI_Comm       comm = PETSC_COMM_WORLD;
 
   PetscFunctionBegin;
@@ -80,14 +163,14 @@ PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = SNESSetDM(snes, dm);CHKERRQ(ierr);
 
   ierr = TDyQ2Initialize(&dm);CHKERRQ(ierr);
-
-
   ierr = DMCreateGlobalVector(dm, &u);CHKERRQ(ierr);
   ierr = VecDuplicate(u, &r);CHKERRQ(ierr);
-  
-  ierr = SNESSetFromOptions(snes);CHKERRQ(ierr);
 
-  ierr = SNESSolve(snes, F, u);CHKERRQ(ierr);
+  ierr = SNESSetFromOptions(snes);CHKERRQ(ierr);
+  ierr = SNESSetUp(snes);CHKERRQ(ierr);
+  ierr = SNESSolve(snes, NULL, u);CHKERRQ(ierr);
+  ierr = SNESGetIterationNumber(snes, &its);CHKERRQ(ierr);
+  ierr = PetscPrintf(comm, "Number of SNES iterations = %D\n", its);CHKERRQ(ierr);
 
   PetscReal res = 0.0;
   ierr = SNESComputeFunction(snes, u, r);CHKERRQ(ierr);
@@ -96,9 +179,6 @@ PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = VecView(r, PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
   ierr = VecNorm(r, NORM_2, &res);CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "L_2 Residual: %g\n", (double)res);CHKERRQ(ierr);
-    
-
-
   PetscFunctionReturn(0);
 }
 
