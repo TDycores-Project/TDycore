@@ -5,6 +5,7 @@
 #include <private/tdympfaoimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
+#include <private/tdydmimpl.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -80,7 +81,15 @@ PetscErrorCode TDyInitializePackage(void) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyCreate(DM dm,TDy *_tdy) {
+PetscErrorCode TDyCreate(TDy *_tdy) {
+  PetscErrorCode ierr;
+  DM             dm;
+  ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
+  ierr = TDyCreateWithDM(dm,_tdy); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   TDy            tdy;
   PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,c,cStart,cEnd,eStart,eEnd,offset,
                  nc;
@@ -264,6 +273,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->Cr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->rhor); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
+  ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

@@ -48,7 +48,8 @@ PETSC_EXTERN PetscLogEvent TDy_ComputeSystem;
 
 /* ---------------------------------------------------------------- */
 
-PETSC_EXTERN PetscErrorCode TDyCreate(DM dm,TDy *tdy);
+PETSC_EXTERN PetscErrorCode TDyCreate(TDy *tdy);
+PETSC_EXTERN PetscErrorCode TDyCreateWithDM(DM dm,TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyDestroy(TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyView(TDy tdy,PetscViewer viewer);
 PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy tdy);
