@@ -171,7 +171,7 @@ int main(int argc, char **argv) {
   /* Setup problem parameters */
   TDy  tdy;
   TDyMode mode = TH;
-  ierr = TDyCreate(dm,&tdy); CHKERRQ(ierr);
+  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
   ierr = TDySetMode(tdy,mode); CHKERRQ(ierr);
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
   ierr = TDySetSpecificHeatCapacity(tdy,SpecificHeatCapacity); CHKERRQ(ierr);
@@ -306,7 +306,6 @@ int main(int argc, char **argv) {
 
   /* Cleanup */
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFree(mass_p); CHKERRQ(ierr);
   ierr = PetscFree(pres_p); CHKERRQ(ierr);
   ierr = PetscPrintf(MPI_COMM_SELF,"Done!\n");CHKERRQ(ierr);

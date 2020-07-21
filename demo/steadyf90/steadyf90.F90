@@ -172,7 +172,7 @@ program main
   CHKERRA(ierr);
   !call DMViewFromOptions(dm,PETSC_NULL_CHARACTER,'-dm_view',ierr); CHKERRA(ierr)
 
-  call TDyCreate(dm, tdy, ierr);
+  call TDyCreateWithDM(dm, tdy, ierr);
   CHKERRA(ierr);
 
   call TDySetPermeabilityFunction(tdy,PermeabilityFunction,0,ierr);
@@ -235,9 +235,6 @@ program main
   CHKERRQ(ierr);
 
   call TDyDestroy(tdy,ierr);
-  CHKERRQ(ierr);
-
-  call DMDestroy(dm,ierr);
   CHKERRQ(ierr);
 
   call PetscFinalize(ierr)

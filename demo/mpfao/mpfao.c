@@ -296,7 +296,6 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&F); CHKERRQ(ierr);
   ierr = MatDestroy(&K); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = DMDestroy(&dm);CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
 
   return(successful_exit_code);

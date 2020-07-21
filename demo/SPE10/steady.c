@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 
   /* Setup problem parameters */
   TDy  tdy;
-  ierr = TDyCreate(dm,&tdy); CHKERRQ(ierr);
+  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
   ierr = ReadSPE10Permeability(tdy,ang); CHKERRQ(ierr);
@@ -167,7 +167,6 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&F); CHKERRQ(ierr);
   ierr = MatDestroy(&K); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
   return(0);
 }
