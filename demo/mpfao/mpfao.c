@@ -190,6 +190,8 @@ PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
   PetscFunctionReturn(0);
 }
 
+
+
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
@@ -229,6 +231,7 @@ int main(int argc, char **argv) {
 
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
                                NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
+   ierr = DMCreateLabel(dm, "celltype");CHKERRQ(ierr);
     if (perturb) {
       ierr = PerturbInteriorVertices(dm,1./N); CHKERRQ(ierr);
     } else {
@@ -238,6 +241,12 @@ int main(int argc, char **argv) {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE, &dm); CHKERRQ(ierr);
     printf("here");
   }
+
+  //
+
+
+
+  //
 
   ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
   if (dmDist) {DMDestroy(&dm); dm = dmDist;}
@@ -309,14 +318,23 @@ int main(int argc, char **argv) {
 
   //
   //Actually export mesh
+
   int CPU_word_size, IO_word_size, exoid;
+  PetscReal *mass_p;
+  PetscInt c;
+
+  c=0;
 
    CPU_word_size = sizeof(PetscReal);
   IO_word_size  = sizeof(PetscReal);
-  exoid = ex_create("out.exo",EX_CLOBBER, &CPU_word_size, &IO_word_size);CHKERRQ(ierr);
-  ierr = DMPlexView_ExodusII_Internal(dm,exoid,1);CHKERRQ(ierr);
-
   
+  exoid = ex_create("out.exo",EX_CLOBBER, &CPU_word_size, &IO_word_size);CHKERRQ(ierr);
+
+  ierr = DMPlexView_ExodusII_Internal(dm,exoid,1);CHKERRQ(ierr);
+   ierr = ex_close(exoid);CHKERRQ(ierr);
+  // ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
+  // Vec          coordinates;
+  //  ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
   /*
 //working
   int CPU_word_size, IO_word_size, exoid;
