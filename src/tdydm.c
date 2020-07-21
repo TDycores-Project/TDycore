@@ -1,8 +1,7 @@
 #include <tdydm.h>
 
-PetscErrorCode TDyCreateDM(DM *_dm) {
+PetscErrorCode TDyCreateDM(DM *dm) {
   PetscErrorCode ierr;
-  DM             dm;
   PetscInt       dim = 2;
   PetscReal      lower_bound_x = 0., lower_bound_y = lower_bound_x, 
                  lower_bound_z = lower_bound_x;
@@ -111,29 +110,26 @@ PetscErrorCode TDyCreateDM(DM *_dm) {
     //printf("%f %f %f\n",upper[0],upper[1],upper[2]);
 
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, faces,
-                               lower, upper, NULL, PETSC_TRUE, &dm);
+                               lower, upper, NULL, PETSC_TRUE, dm);
     CHKERRQ(ierr);
   } else {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE,
-                                &dm); CHKERRQ(ierr);
+                                dm); CHKERRQ(ierr);
   }
 
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyDistributeDM(DM *_dm) {
-  DM             dm;
-  PetscErrorCode ierr;
-
+PetscErrorCode TDyDistributeDM(DM *dm) {
   DM dmDist;
-  ierr = DMPlexDistribute(dm, 1, NULL, &dmDist); CHKERRQ(ierr);
+  PetscErrorCode ierr;
+  ierr = DMPlexDistribute(*dm, 1, NULL, &dmDist); CHKERRQ(ierr);
   if (dmDist) {
-    DMDestroy(&dm); CHKERRQ(ierr);
-    dm = dmDist;
+    DMDestroy(dm); CHKERRQ(ierr);
+    *dm = dmDist;
   }
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
-  *_dm = dm;
+  ierr = DMSetFromOptions(*dm); CHKERRQ(ierr);
+  ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
