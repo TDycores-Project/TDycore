@@ -1,4 +1,7 @@
 #include "tdycore.h"
+#if defined(DEBUG)
+#include "private/tdycoreimpl.h"
+#endif
 
 PetscReal alpha = 1;
 
@@ -237,6 +240,7 @@ int main(int argc, char **argv) {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE, &dm); CHKERRQ(ierr);
   }
 
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
   if (dmDist) {DMDestroy(&dm); dm = dmDist;}
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
@@ -281,6 +285,7 @@ int main(int argc, char **argv) {
     }
   } else {
     ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction3D,NULL); CHKERRQ(ierr);
+    ierr = TDySetPermeabilityTensor(tdy,Permeability3D); CHKERRQ(ierr);
     ierr = TDySetForcingFunction(tdy,Forcing3D,NULL); CHKERRQ(ierr);
     ierr = TDySetDirichletValueFunction(tdy,Pressure3D,NULL); CHKERRQ(ierr);
     ierr = TDySetDirichletFluxFunction(tdy,Velocity3D,NULL); CHKERRQ(ierr);
@@ -296,6 +301,17 @@ int main(int argc, char **argv) {
   ierr = DMCreateGlobalVector(dm,&F); CHKERRQ(ierr);
   ierr = DMCreateMatrix      (dm,&K); CHKERRQ(ierr);
   ierr = TDyComputeSystem(tdy,K,F); CHKERRQ(ierr);
+
+#if defined(DEBUG)
+  PetscViewer viewer;
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"K.mat",&viewer); CHKERRQ(ierr);
+  ierr = MatView(K,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"trans.mat",&viewer); CHKERRQ(ierr);
+  ierr = MatView(tdy->Trans_mat,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
 
   // Solve system
   KSP ksp;
