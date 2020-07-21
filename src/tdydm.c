@@ -1,4 +1,4 @@
-#include <private/tdydmimpl.h>
+#include <tdydm.h>
 
 PetscErrorCode TDyCreateDM(DM *_dm) {
   PetscErrorCode ierr;
@@ -118,13 +118,22 @@ PetscErrorCode TDyCreateDM(DM *_dm) {
                                 &dm); CHKERRQ(ierr);
   }
 
-  DM dmDist;
-  ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
-  if (dmDist) {DMDestroy(&dm); dm = dmDist;}
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
-  *_dm = dm;
 
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyDistributeDM(DM *_dm) {
+  DM             dm;
+  PetscErrorCode ierr;
+
+  DM dmDist;
+  ierr = DMPlexDistribute(dm, 1, NULL, &dmDist); CHKERRQ(ierr);
+  if (dmDist) {
+    DMDestroy(&dm); CHKERRQ(ierr);
+    dm = dmDist;
+  }
+  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
+  *_dm = dm;
+  PetscFunctionReturn(0);
+}

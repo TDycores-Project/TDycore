@@ -5,7 +5,7 @@
 #include <private/tdympfaoimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
-#include <private/tdydmimpl.h>
+#include <tdydm.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -85,6 +85,7 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   PetscErrorCode ierr;
   DM             dm;
   ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
+  ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
   ierr = TDyCreateWithDM(dm,_tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
