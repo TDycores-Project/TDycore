@@ -1,4 +1,5 @@
 #include "tdycore.h"
+#include "tdydm.h"
 #if defined(DEBUG)
 #include "private/tdycoreimpl.h"
 #endif
@@ -195,62 +196,38 @@ PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt N = 8, dim = 2, problem = 3;
+  PetscInt problem = 3;
   PetscInt successful_exit_code=0;
+  PetscReal perturbation = 0.;
   PetscBool perturb = PETSC_FALSE;
-  char      mesh_filename[PETSC_MAX_PATH_LEN];
 
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
   CHKERRQ(ierr);
-  ierr = PetscOptionsInt ("-dim","Problem dimension","",dim,&dim,NULL);
-  CHKERRQ(ierr);
-  ierr = PetscOptionsInt ("-N","Number of elements in 1D","",N,&N,NULL);
-  CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-problem","Problem number","",problem,&problem,NULL);
   CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-perturb","Perturb interior vertices","",perturb,
-                          &perturb,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-perturb","Perturb interior vertices","",
+                          perturbation,&perturbation,&perturb); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-alpha","Permeability scaling","",alpha,&alpha,NULL);
   CHKERRQ(ierr);
-  ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
+  ierr = PetscOptionsInt("-successful_exit_code",
+                         "Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
-  ierr = PetscOptionsString("-mesh_filename", "The mesh file", "", mesh_filename, mesh_filename, PETSC_MAX_PATH_LEN, NULL); CHKERRQ(ierr);
-
    ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   /* Create and distribute the mesh */
-  DM dm, dmDist = NULL;
-  size_t len;
-
-  ierr = PetscStrlen(mesh_filename, &len); CHKERRQ(ierr);
-  if (!len){
-    const PetscInt  faces[3] = {N,N,N  };
-    const PetscReal lower[3] = {0.0,0.0,0.0};
-    const PetscReal upper[3] = {1.0,1.0,1.0};
-
-    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
-                               NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
-    if (perturb) {
-      ierr = PerturbInteriorVertices(dm,1./N); CHKERRQ(ierr);
-    } else {
-      ierr = PerturbInteriorVertices(dm,0.); CHKERRQ(ierr);
-    }
-  } else {
-    ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE, &dm); CHKERRQ(ierr);
-  }
-
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
-  if (dmDist) {DMDestroy(&dm); dm = dmDist;}
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
+  if (perturb) {ierr = PerturbInteriorVertices(dm,perturbation); CHKERRQ(ierr);}
+  ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
 
   // Setup problem parameters
   TDy  tdy;
   PetscReal gravity[3];
 
-  ierr = TDyCreate(dm,&tdy); CHKERRQ(ierr);
+  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
+  PetscInt dim;
+  ierr = TDyGetDimension(tdy,&dim); CHKERRQ(ierr);
 
   gravity[0] = 0.0; gravity[1] = 0.0; gravity[2] = 0.0;
   ierr = TDySetGravityVector(tdy,gravity);
@@ -334,7 +311,6 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&F); CHKERRQ(ierr);
   ierr = MatDestroy(&K); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = DMDestroy(&dm);CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
 
   return(successful_exit_code);
