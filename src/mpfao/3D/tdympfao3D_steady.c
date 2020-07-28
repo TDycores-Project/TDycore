@@ -157,7 +157,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
     // Vertex is on the boundary
     
-    PetscScalar pBoundary[4];
+    PetscScalar pBoundary[tdy->nfv];
     PetscInt numBoundary;
     
     // For boundary edges, save following information:
@@ -335,7 +335,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
     // Vertex is on the boundary
     
-    PetscScalar pBoundary[3];
+    PetscScalar pBoundary[tdy->nfv];
     PetscInt numBoundary;
     
     // For boundary edges, save following information:
