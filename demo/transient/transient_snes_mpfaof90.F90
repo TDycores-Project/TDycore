@@ -108,6 +108,12 @@ implicit none
   else
     call DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE, dm, ierr);
     CHKERRA(ierr);
+    call DMGetDimension(dm, dim, ierr);
+    CHKERRA(ierr);
+    if (dim /= 3) then
+      write(*,*)'Only 3D meshes are supported and the exodus file is not 3D'
+      call exit(0)
+    endif
   endif
 
   call DMPlexDistribute(dm, 1, PETSC_NULL_SF, dmDist, ierr);
