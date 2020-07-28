@@ -160,7 +160,7 @@ PetscInt TDyMaxNumOfAElmTypeSharingOtherElmType(PetscInt *closureSize, PetscInt 
     for (o=0; o<closureSize[a]*2; o+=2) {
       if ((closure[a][o] >= oStart) && (closure[a][o] < oEnd)) nElem += 1;
     }
-    result = MAX(result, nElem);
+    result = PetscMax(result, nElem);
   }
 
   PetscFunctionReturn(result);
