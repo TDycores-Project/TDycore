@@ -26,6 +26,7 @@ export PETSC_DIR=$PWD
 --download-netcdf \
 --download-pnetcdf \
 --download-zlib \
+--download-fblaslapack \
 --download-mpich=http://www.mpich.org/static/downloads/3.2/mpich-3.2.tar.gz
 
 
