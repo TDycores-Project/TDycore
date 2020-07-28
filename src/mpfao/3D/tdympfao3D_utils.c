@@ -300,7 +300,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
     // Vertex is on the boundary
     
-    PetscScalar pBoundary[4];
+    PetscScalar pBoundary[tdy->nfv];
     PetscInt numBoundary;
     
     // For boundary edges, save following information:
