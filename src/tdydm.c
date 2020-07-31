@@ -11,6 +11,7 @@ PetscErrorCode TDyCreateDM(DM *dm) {
   PetscBool      found;
   char           mesh_filename[PETSC_MAX_PATH_LEN];
 
+  PetscFunctionBegin;
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"DM Options","");
                            CHKERRQ(ierr);
   ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL);
@@ -116,13 +117,14 @@ PetscErrorCode TDyCreateDM(DM *dm) {
                                 dm); CHKERRQ(ierr);
   }
 
-
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyDistributeDM(DM *dm) {
   DM dmDist;
   PetscErrorCode ierr;
+
+  PetscFunctionBegin;
   ierr = DMPlexDistribute(*dm, 1, NULL, &dmDist); CHKERRQ(ierr);
   if (dmDist) {
     DMDestroy(dm); CHKERRQ(ierr);

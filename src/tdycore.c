@@ -84,6 +84,7 @@ PetscErrorCode TDyInitializePackage(void) {
 PetscErrorCode TDyCreate(TDy *_tdy) {
   PetscErrorCode ierr;
   DM             dm;
+  PetscFunctionBegin;
   ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
   ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
   ierr = TDyCreateWithDM(dm,_tdy); CHKERRQ(ierr);
