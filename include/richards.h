@@ -8,7 +8,6 @@
 typedef struct Richards Richards;
 
 struct Richards {
-  int i;
   TDy tdy;
   Vec U;
   Vec F;
