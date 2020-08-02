@@ -1,4 +1,4 @@
-#include <private/tdycoreimpl.h>
+#include "../include/private/tdycoreimpl.h"
 #include <petscblaslapack.h>
 
 /*
@@ -12,6 +12,75 @@ weak form:
 
 /* (dim*vertices_per_cell+1)^2 */
 #define MAX_LOCAL_SIZE 625
+
+void PermWheeler2012_1(double *x,double *K) {
+  K[0] = 2; K[1] = 1.25;
+  K[2] = 1.25; K[3] = 3;
+}
+
+void PermWheeler2012_2(double *x,double *K) {
+  K[0] = 1;     K[1] = 1;     K[2] = 1;
+  K[3] = 1;     K[4] = 2;     K[5] = 1;
+  K[6] = 1;     K[7] = 1;     K[8] = 2;
+}
+
+void InvPermWheeler2012_1(double *x,double *K_inv) {
+  double K[4];
+  double det; 
+  PermWheeler2012_1(x,K);
+  det = K[0]*K[3] - K[1]*K[2];
+  
+  K_inv[0] =  K[3]/det; K_inv[1] = -K[1]/det;
+  K_inv[2] = -K[2]/det; K_inv[3] =  K[0]/det;
+}
+
+void InvPermWheeler2012_2(double *x,double *K_inv) {
+  double K[9];
+  double det; 
+  PermWheeler2012_2(x,K);
+  det = (K[0]*K[4]*K[8]+K[1]*K[5]*K[6]+K[2]*K[3]*K[7]) - (K[0]*K[5]*K[7]+K[1]*K[3]*K[8]+K[2]*K[4]*K[6]);
+
+  K_inv[0] =  (K[4]*K[8]-K[5]*K[7])/det;  K_inv[1] = -(K[1]*K[8]-K[2]*K[7])/det;  K_inv[2] =  (K[1]*K[5]-K[2]*K[4])/det;
+  K_inv[3] = -(K[3]*K[8]-K[5]*K[6])/det;  K_inv[4] =  (K[0]*K[8]-K[2]*K[6])/det;  K_inv[5] = -(K[0]*K[5]-K[2]*K[3])/det;
+  K_inv[6] =  (K[3]*K[7]-K[4]*K[6])/det;  K_inv[7] = -(K[0]*K[7]-K[1]*K[6])/det;  K_inv[8] =  (K[0]*K[4]-K[1]*K[3])/det;
+}
+
+void ForcingWheeler2012_1(double *x,double *f) {
+  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
+  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
+  PetscReal cx = PetscCosReal(3*PETSC_PI*x[0]);
+  PetscReal cy = PetscCosReal(3*PETSC_PI*x[1]);
+  double K[4];
+  PermWheeler2012_1(x,K);
+  (*f)  = K[0]*sx*sx*sy*sy;
+  (*f) -= K[0]*sy*sy*cx*cx;
+  (*f) -= K[1]*(PetscCosReal(6*PETSC_PI*(x[0]-x[1]))-PetscCosReal(6*PETSC_PI*(x[0]+x[1])))*0.25;
+  (*f) -= K[2]*(PetscCosReal(6*PETSC_PI*(x[0]-x[1]))-PetscCosReal(6*PETSC_PI*(x[0]+x[1])))*0.25;
+  (*f) += K[3]*sx*sx*sy*sy;
+  (*f) -= K[3]*sx*sx*cy*cy;
+  (*f) *= 18*PETSC_PI*PETSC_PI;
+}
+
+void ForcingWheeler2012_2(double *x,double *f) {
+  PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
+  PetscReal xm12 = PetscSqr(x[0]-1);
+  PetscReal ym12 = PetscSqr(x[1]-1);
+  PetscReal zm12 = PetscSqr(x[2]-1);
+  double K[9]; PermWheeler2012_2(x,K);
+
+  PetscReal a1 = 2*x[0]*(x[0]-1)*(2*x[0]-1);
+  PetscReal b1 = 2*x[1]*(x[1]-1)*(2*x[1]-1);
+  PetscReal c1 = 2*x[2]*(x[2]-1)*(2*x[2]-1);
+
+  PetscReal a2 = 12*x2 - 12*x[0] + 2;
+  PetscReal b2 = 12*y2 - 12*x[1] + 2;
+  PetscReal c2 = 12*z2 - 12*x[2] + 2;
+
+  (*f) =
+    -K[0]*a2*y2*ym12*z2*zm12 -K[1]*a1     *b1*z2*zm12 -K[2]*a1     *y2*ym12*c1 +
+    -K[3]*a1*b1     *z2*zm12 -K[4]*x2*xm12*b2*z2*zm12 -K[5]*x2*xm12*b1     *c1 +
+    -K[6]*a1*y2*ym12*c1      -K[7]*x2*xm12*b1*c1      -K[8]*x2*xm12*y2*ym12*c2;
+}
 //========================================================
 //         Compute f0 and f1 for the equation (3)
 //========================================================
@@ -23,14 +92,24 @@ static void f0_u(
   const PetscScalar u[], const PetscScalar u_t[], const PetscScalar u_x[],
   const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[], const PetscScalar a_t[], const PetscScalar a_x[],
   PetscReal t, const PetscReal x[], PetscInt numConstants, const PetscScalar constants[], PetscScalar f0[]) {
-  for (PetscInt d=0; d<dim; d++) {
-    f0[d] = u[uOff[0] + d]; // TODO: coefficients
-  }
-  /* If we add K_inv for example for 2D
-  double K_inv[4]
+  //for (PetscInt d=0; d<dim; d++) {
+  //  f0[d] = u[uOff[0] + d]; // TODO: coefficients
+  //}
+
+  // If we add K_inv
+  if (dim == 2){
+  double K_inv[4];
+  InvPermWheeler2012_1(x,K_inv);
   f0[0] = K_inv[0]*u[uOff[0] + 0] + K_inv[1]*u[uOff[0] + 1];
   f0[1] = K_inv[2]*u[uOff[0] + 0] + K_inv[3]*u[uOff[0] + 1];   
-  */
+  }
+  else{
+  double K_inv[9];
+  InvPermWheeler2012_2(x,K_inv);
+  f0[0] = K_inv[0]*u[uOff[0] + 0] + K_inv[1]*u[uOff[0] + 1] + K_inv[2]*u[uOff[0] + 2];
+  f0[1] = K_inv[3]*u[uOff[0] + 0] + K_inv[4]*u[uOff[0] + 1] + K_inv[5]*u[uOff[0] + 2];
+  f0[2] = K_inv[6]*u[uOff[0] + 0] + K_inv[7]*u[uOff[0] + 1] + K_inv[8]*u[uOff[0] + 2];
+  }
 }
 // (\nabla\cdot v, p)
 static void f1_u(
@@ -61,15 +140,17 @@ static void f0_p(
   for (PetscInt d=0; d<dim; d++){
     div -= u_x[d*dim + d];
   }
-  PetscScalar f = 0; //
-  if (dim == 2){
-    f = PetscSinScalar(PETSC_PI*x[1])*PetscCosScalar(PETSC_PI*x[0]);
-    }
-    else {
-    f = PetscSinScalar(PETSC_PI*x[2])*PetscSinScalar(PETSC_PI*x[1])*PetscCosScalar(PETSC_PI*x[0]);
-    }
   
-  f0[0] = div + f;
+  if (dim == 2){
+    double *f;
+    ForcingWheeler2012_1(x,f);
+    f0[0] = div + *f;
+  }
+  else {
+    double *f;
+    ForcingWheeler2012_2(x,f);
+    f0[0] = div + *f;
+  }
 }
 
 //========================================================
@@ -150,12 +231,13 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
+PetscErrorCode TDyQ2SNES(TDy tdy,Vec u,Vec r) {
   SNES            snes;                 /* nonlinear solver */
   DM dm = tdy->dm;
   Vec             u,r;                  /* solution, residual vectors */
   PetscErrorCode  ierr;
   PetscInt        its;
+  PetscReal res = 0.0;
   MPI_Comm       comm = PETSC_COMM_WORLD;
 
   PetscFunctionBegin;
@@ -169,16 +251,21 @@ PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = SNESSetFromOptions(snes);CHKERRQ(ierr);
   ierr = SNESSetUp(snes);CHKERRQ(ierr);
   ierr = SNESSolve(snes, NULL, u);CHKERRQ(ierr);
+  ierr = SNESGetSolution(snes, &u);CHKERRQ(ierr);
   ierr = SNESGetIterationNumber(snes, &its);CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "Number of SNES iterations = %D\n", its);CHKERRQ(ierr);
 
-  PetscReal res = 0.0;
+  ierr = SNESGetFunction(snes, &r, NULL, NULL);CHKERRQ(ierr);
   ierr = SNESComputeFunction(snes, u, r);CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Initial Residual\n");CHKERRQ(ierr);
-  ierr = VecChop(r, 1.0e-10);CHKERRQ(ierr);
+  ierr = PetscPrintf(comm, "Residual\n");CHKERRQ(ierr);
   ierr = VecView(r, PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
   ierr = VecNorm(r, NORM_2, &res);CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "L_2 Residual: %g\n", (double)res);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
+  PetscFunctionBegin;
   PetscFunctionReturn(0);
 }
 
