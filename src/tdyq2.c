@@ -231,7 +231,7 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyQ2SNES(TDy tdy,Vec u,Vec r) {
+PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   SNES            snes;                 /* nonlinear solver */
   DM dm = tdy->dm;
   Vec             u,r;                  /* solution, residual vectors */
@@ -261,13 +261,10 @@ PetscErrorCode TDyQ2SNES(TDy tdy,Vec u,Vec r) {
   ierr = VecView(r, PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
   ierr = VecNorm(r, NORM_2, &res);CHKERRQ(ierr);
   ierr = PetscPrintf(comm, "L_2 Residual: %g\n", (double)res);CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
-  PetscFunctionBegin;
-  PetscFunctionReturn(0);
-}
 
 PetscReal TDyQ2PressureNorm(TDy tdy,Vec U) {
   PetscFunctionBegin;
