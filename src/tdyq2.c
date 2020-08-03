@@ -163,14 +163,26 @@ static void f0_u_J(
   const PetscScalar u[], const PetscScalar u_t[], const PetscScalar u_x[],
   const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[], const PetscScalar a_t[], const PetscScalar a_x[],
   PetscReal t, PetscReal u_tShift, const PetscReal x[], PetscInt numConstants, const PetscScalar constants[], PetscScalar g0[]) {
+  /*
   for (PetscInt d=0; d<dim; d++) {
     g0[d] = 1.0; // TODO: coefficients
   }
-  /* If we add K_inv for example for 2D
-  double K_inv[4]
+  */
+  //If we add K_inv 
+  if (dim == 2){
+  double K_inv[4], xx;
+  InvPermWheeler2012_1(&xx,K_inv);
   g0[0] = K_inv[0] + K_inv[1];
   g0[1] = K_inv[2] + K_inv[3];   
-  */
+  }
+  else{
+  double xx, K_inv[9];
+  InvPermWheeler2012_2(&xx,K_inv);
+  g0[0] = K_inv[0] + K_inv[1] + K_inv[2];
+  g0[1] = K_inv[3] + K_inv[4] + K_inv[5];
+  g0[2] = K_inv[6] + K_inv[7] + K_inv[8];
+  }
+  
 }
 
 static void f1_u_J(
