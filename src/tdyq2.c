@@ -13,31 +13,31 @@ weak form:
 /* (dim*vertices_per_cell+1)^2 */
 #define MAX_LOCAL_SIZE 625
 
-void PermWheeler2012_1(double *x,double *K) {
+void PermWheeler2012_1(double *xx,double *K) {
   K[0] = 2; K[1] = 1.25;
   K[2] = 1.25; K[3] = 3;
 }
 
-void PermWheeler2012_2(double *x,double *K) {
+void PermWheeler2012_2(double *xx,double *K) {
   K[0] = 1;     K[1] = 1;     K[2] = 1;
   K[3] = 1;     K[4] = 2;     K[5] = 1;
   K[6] = 1;     K[7] = 1;     K[8] = 2;
 }
 
-void InvPermWheeler2012_1(double *x,double *K_inv) {
+void InvPermWheeler2012_1(double *xx,double *K_inv) {
   double K[4];
   double det; 
-  PermWheeler2012_1(x,K);
+  PermWheeler2012_1(xx,K);
   det = K[0]*K[3] - K[1]*K[2];
   
   K_inv[0] =  K[3]/det; K_inv[1] = -K[1]/det;
   K_inv[2] = -K[2]/det; K_inv[3] =  K[0]/det;
 }
 
-void InvPermWheeler2012_2(double *x,double *K_inv) {
+void InvPermWheeler2012_2(double *xx,double *K_inv) {
   double K[9];
   double det; 
-  PermWheeler2012_2(x,K);
+  PermWheeler2012_2(xx,K);
   det = (K[0]*K[4]*K[8]+K[1]*K[5]*K[6]+K[2]*K[3]*K[7]) - (K[0]*K[5]*K[7]+K[1]*K[3]*K[8]+K[2]*K[4]*K[6]);
 
   K_inv[0] =  (K[4]*K[8]-K[5]*K[7])/det;  K_inv[1] = -(K[1]*K[8]-K[2]*K[7])/det;  K_inv[2] =  (K[1]*K[5]-K[2]*K[4])/det;
@@ -45,36 +45,36 @@ void InvPermWheeler2012_2(double *x,double *K_inv) {
   K_inv[6] =  (K[3]*K[7]-K[4]*K[6])/det;  K_inv[7] = -(K[0]*K[7]-K[1]*K[6])/det;  K_inv[8] =  (K[0]*K[4]-K[1]*K[3])/det;
 }
 
-void ForcingWheeler2012_1(double *x,double *f) {
-  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
-  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
-  PetscReal cx = PetscCosReal(3*PETSC_PI*x[0]);
-  PetscReal cy = PetscCosReal(3*PETSC_PI*x[1]);
+void ForcingWheeler2012_1(double *xx,double *f) {
+  PetscReal sx = PetscSinReal(3*PETSC_PI*xx[0]);
+  PetscReal sy = PetscSinReal(3*PETSC_PI*xx[1]);
+  PetscReal cx = PetscCosReal(3*PETSC_PI*xx[0]);
+  PetscReal cy = PetscCosReal(3*PETSC_PI*xx[1]);
   double K[4];
-  PermWheeler2012_1(x,K);
+  PermWheeler2012_1(xx,K);
   (*f)  = K[0]*sx*sx*sy*sy;
   (*f) -= K[0]*sy*sy*cx*cx;
-  (*f) -= K[1]*(PetscCosReal(6*PETSC_PI*(x[0]-x[1]))-PetscCosReal(6*PETSC_PI*(x[0]+x[1])))*0.25;
-  (*f) -= K[2]*(PetscCosReal(6*PETSC_PI*(x[0]-x[1]))-PetscCosReal(6*PETSC_PI*(x[0]+x[1])))*0.25;
+  (*f) -= K[1]*(PetscCosReal(6*PETSC_PI*(xx[0]-xx[1]))-PetscCosReal(6*PETSC_PI*(xx[0]+xx[1])))*0.25;
+  (*f) -= K[2]*(PetscCosReal(6*PETSC_PI*(xx[0]-xx[1]))-PetscCosReal(6*PETSC_PI*(xx[0]+xx[1])))*0.25;
   (*f) += K[3]*sx*sx*sy*sy;
   (*f) -= K[3]*sx*sx*cy*cy;
   (*f) *= 18*PETSC_PI*PETSC_PI;
 }
 
-void ForcingWheeler2012_2(double *x,double *f) {
-  PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
-  PetscReal xm12 = PetscSqr(x[0]-1);
-  PetscReal ym12 = PetscSqr(x[1]-1);
-  PetscReal zm12 = PetscSqr(x[2]-1);
-  double K[9]; PermWheeler2012_2(x,K);
+void ForcingWheeler2012_2(double *xx,double *f) {
+  PetscReal x2 = xx[0]*xx[0], y2 = xx[1]*xx[1], z2 = xx[2]*xx[2];
+  PetscReal xm12 = PetscSqr(xx[0]-1);
+  PetscReal ym12 = PetscSqr(xx[1]-1);
+  PetscReal zm12 = PetscSqr(xx[2]-1);
+  double K[9]; PermWheeler2012_2(xx,K);
 
-  PetscReal a1 = 2*x[0]*(x[0]-1)*(2*x[0]-1);
-  PetscReal b1 = 2*x[1]*(x[1]-1)*(2*x[1]-1);
-  PetscReal c1 = 2*x[2]*(x[2]-1)*(2*x[2]-1);
+  PetscReal a1 = 2*xx[0]*(xx[0]-1)*(2*xx[0]-1);
+  PetscReal b1 = 2*xx[1]*(xx[1]-1)*(2*xx[1]-1);
+  PetscReal c1 = 2*xx[2]*(xx[2]-1)*(2*xx[2]-1);
 
-  PetscReal a2 = 12*x2 - 12*x[0] + 2;
-  PetscReal b2 = 12*y2 - 12*x[1] + 2;
-  PetscReal c2 = 12*z2 - 12*x[2] + 2;
+  PetscReal a2 = 12*x2 - 12*xx[0] + 2;
+  PetscReal b2 = 12*y2 - 12*xx[1] + 2;
+  PetscReal c2 = 12*z2 - 12*xx[2] + 2;
 
   (*f) =
     -K[0]*a2*y2*ym12*z2*zm12 -K[1]*a1     *b1*z2*zm12 -K[2]*a1     *y2*ym12*c1 +
@@ -98,14 +98,14 @@ static void f0_u(
 
   // If we add K_inv
   if (dim == 2){
-  double K_inv[4];
-  InvPermWheeler2012_1(x,K_inv);
+  double K_inv[4], xx;
+  InvPermWheeler2012_1(&xx,K_inv);
   f0[0] = K_inv[0]*u[uOff[0] + 0] + K_inv[1]*u[uOff[0] + 1];
   f0[1] = K_inv[2]*u[uOff[0] + 0] + K_inv[3]*u[uOff[0] + 1];   
   }
   else{
-  double K_inv[9];
-  InvPermWheeler2012_2(x,K_inv);
+  double xx, K_inv[9];
+  InvPermWheeler2012_2(&xx,K_inv);
   f0[0] = K_inv[0]*u[uOff[0] + 0] + K_inv[1]*u[uOff[0] + 1] + K_inv[2]*u[uOff[0] + 2];
   f0[1] = K_inv[3]*u[uOff[0] + 0] + K_inv[4]*u[uOff[0] + 1] + K_inv[5]*u[uOff[0] + 2];
   f0[2] = K_inv[6]*u[uOff[0] + 0] + K_inv[7]*u[uOff[0] + 1] + K_inv[8]*u[uOff[0] + 2];
@@ -142,14 +142,14 @@ static void f0_p(
   }
   
   if (dim == 2){
-    double *f;
-    ForcingWheeler2012_1(x,f);
-    f0[0] = div + *f;
+    double xx, f;
+    ForcingWheeler2012_1(&xx,&f);
+    f0[0] = div + f;
   }
   else {
-    double *f;
-    ForcingWheeler2012_2(x,f);
-    f0[0] = div + *f;
+    double xx, f;
+    ForcingWheeler2012_2(&xx,&f);
+    f0[0] = div + f;
   }
 }
 
