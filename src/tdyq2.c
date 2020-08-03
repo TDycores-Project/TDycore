@@ -202,15 +202,14 @@ static void f0_p_J(
 }
 
 PetscErrorCode TDyQ2Initialize(TDy tdy) {
+
+  PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscInt dim;
   DM dm = tdy->dm;
   PetscFE fe[2];
   PetscDS ds;
-
-  PetscFunctionBegin;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-
   ierr = PetscFECreateLagrange(PETSC_COMM_SELF, dim, 3, PETSC_FALSE, 2, 2, &fe[0]);CHKERRQ(ierr);
   ierr = PetscFECreateLagrange(PETSC_COMM_SELF, dim, 1, PETSC_FALSE, 0, 2, &fe[1]);CHKERRQ(ierr);
   ierr = PetscFECopyQuadrature(fe[0], fe[1]);CHKERRQ(ierr);
@@ -232,6 +231,8 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
 }
 
 PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
+  
+  PetscFunctionBegin;
   SNES            snes;                 /* nonlinear solver */
   DM dm = tdy->dm;
   Vec             u,r;                  /* solution, residual vectors */
@@ -240,11 +241,9 @@ PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscReal res = 0.0;
   MPI_Comm       comm = PETSC_COMM_WORLD;
 
-  PetscFunctionBegin;
   ierr = SNESCreate(comm, &snes);CHKERRQ(ierr);
   ierr = SNESSetDM(snes, dm);CHKERRQ(ierr);
 
-  ierr = TDyQ2Initialize(&dm);CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(dm, &u);CHKERRQ(ierr);
   ierr = VecDuplicate(u, &r);CHKERRQ(ierr);
 
