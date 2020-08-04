@@ -308,6 +308,7 @@ int main(int argc, char **argv) {
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFree(mass_p); CHKERRQ(ierr);
+  ierr = PetscFree(u_p); CHKERRQ(ierr);
   ierr = PetscFree(pres_p); CHKERRQ(ierr);
   ierr = PetscPrintf(MPI_COMM_SELF,"Done!\n");CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);

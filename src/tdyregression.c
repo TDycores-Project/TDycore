@@ -278,5 +278,8 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
     fclose(fp);
   }
 
+  ierr = VecDestroy(&U_pres); CHKERRQ(ierr);
+  if (tdy->mode == TH) ierr = VecDestroy(&U_temp); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }

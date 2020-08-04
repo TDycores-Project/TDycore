@@ -256,8 +256,8 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->matprop_alpha); CHKERRQ(ierr);
   ierr = PetscFree(tdy->matprop_n); CHKERRQ(ierr);
   ierr = PetscFree(tdy->matprop_m); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->Kappa); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->Kappa0); CHKERRQ(ierr);
+//  ierr = PetscFree(tdy->Kappa); CHKERRQ(ierr);
+//  ierr = PetscFree(tdy->Kappa0); CHKERRQ(ierr);
   ierr = PetscFree(tdy->h); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dh_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
