@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
   /* Setup problem parameters */
   printf("Creating TDycore.\n");
   TDy  tdy;
-  ierr = TDyCreate(dm,&tdy); CHKERRQ(ierr);
+  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
   if (dim == 1) {
     ierr = TDySetPermeabilityTensor(tdy,PermeabilityBlock1); CHKERRQ(ierr);
     switch(problem) {
@@ -224,7 +224,6 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&F); CHKERRQ(ierr);
   ierr = MatDestroy(&K); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
 
   printf("Done.\n");
