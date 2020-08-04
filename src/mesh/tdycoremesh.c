@@ -142,6 +142,9 @@ PetscErrorCode AllocateMemoryForSubcells(
 /* -------------------------------------------------------------------------- */
 PetscErrorCode AllocateMemoryForVertices(
   PetscInt       num_vertices,
+  PetscInt       ncells_per_vertex,
+  PetscInt       nfaces_per_vertex,
+  PetscInt       nedges_per_vertex,
   TDyCellType    cell_type,
   TDy_vertex     *vertices) {
 
@@ -150,16 +153,12 @@ PetscErrorCode AllocateMemoryForVertices(
   PetscInt ivertex;
   PetscErrorCode ierr;
 
-  PetscInt num_internal_cells = GetNumOfCellsSharingAVertexForCellType(cell_type);
-  PetscInt num_edges          = GetNumEdgesForCellType(cell_type);
-  PetscInt num_faces          = GetNumFacesSharedByVertexForCellType(cell_type);
-
   ierr = TDyAllocate_IntegerArray_1D(&vertices->id                ,num_vertices); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&vertices->global_id         ,num_vertices); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&vertices->num_internal_cells,num_vertices); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&vertices->num_edges         ,num_vertices); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&vertices->num_faces         ,num_vertices); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&vertices->num_boundary_cells,num_vertices); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&vertices->num_boundary_faces,num_vertices); CHKERRQ(ierr);
 
   vertices->is_local = (PetscBool *)malloc(num_vertices*sizeof(PetscBool));
 
@@ -171,30 +170,30 @@ PetscErrorCode AllocateMemoryForVertices(
   ierr = TDyAllocate_IntegerArray_1D(&vertices->subcell_offset      ,num_vertices ); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&vertices->boundary_face_offset,num_vertices ); CHKERRQ(ierr);
 
-  ierr = TDyAllocate_IntegerArray_1D(&vertices->edge_ids         ,num_vertices*num_edges ); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&vertices->face_ids         ,num_vertices*num_faces ); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&vertices->subface_ids      ,num_vertices*num_faces ); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&vertices->internal_cell_ids,num_vertices*num_internal_cells ); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&vertices->subcell_ids      ,num_vertices*num_internal_cells ); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&vertices->boundary_face_ids,num_vertices*num_internal_cells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&vertices->edge_ids         ,num_vertices*nedges_per_vertex ); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&vertices->face_ids         ,num_vertices*nfaces_per_vertex ); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&vertices->subface_ids      ,num_vertices*nfaces_per_vertex ); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&vertices->internal_cell_ids,num_vertices*ncells_per_vertex ); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&vertices->subcell_ids      ,num_vertices*nfaces_per_vertex ); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&vertices->boundary_face_ids,num_vertices*nfaces_per_vertex ); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<num_vertices; ivertex++) {
     vertices->id[ivertex]                 = ivertex;
     vertices->is_local[ivertex]           = PETSC_FALSE;
     vertices->num_internal_cells[ivertex] = 0;
-    vertices->num_edges[ivertex]          = num_edges;
+    vertices->num_edges[ivertex]          = 0;
     vertices->num_faces[ivertex]          = 0;
-    vertices->num_boundary_cells[ivertex] = 0;
+    vertices->num_boundary_faces[ivertex] = 0;
 
-    vertices->edge_offset[ivertex]          = ivertex*num_edges;
-    vertices->face_offset[ivertex]          = ivertex*num_faces;
-    vertices->internal_cell_offset[ivertex] = ivertex*num_internal_cells;
-    vertices->subcell_offset[ivertex]       = ivertex*num_internal_cells;
-    vertices->boundary_face_offset[ivertex] = ivertex*num_internal_cells;
+    vertices->edge_offset[ivertex]          = ivertex*nedges_per_vertex;
+    vertices->face_offset[ivertex]          = ivertex*nfaces_per_vertex;
+    vertices->internal_cell_offset[ivertex] = ivertex*ncells_per_vertex;
+    vertices->subcell_offset[ivertex]       = ivertex*nfaces_per_vertex;
+    vertices->boundary_face_offset[ivertex] = ivertex*nfaces_per_vertex;
 
   }
 
-  TDyInitialize_IntegerArray_1D(vertices->face_ids, num_vertices*num_faces, 0);
+  TDyInitialize_IntegerArray_1D(vertices->face_ids, num_vertices*nfaces_per_vertex, 0);
 
   PetscFunctionReturn(0);
 
@@ -342,20 +341,27 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
   mesh->num_edges    = eNum;
   mesh->num_vertices = vNum;
 
-  tdy->maxClosureSize = 27;
-  ierr = TDyAllocate_IntegerArray_1D(&tdy->closureSize, cNum+fNum+eNum+fNum); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_2D(&tdy->closure, cNum+fNum+eNum+fNum, 2*tdy->maxClosureSize); CHKERRQ(ierr);
-  ierr = TDySaveClosures(dm, tdy->closureSize, tdy->closure, tdy->maxClosureSize); CHKERRQ(ierr);
+  tdy->maxClosureSize = 27*4*4;
+  ierr = TDyAllocate_IntegerArray_1D(&tdy->closureSize, cNum+fNum+eNum+vNum); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&tdy->closure, cNum+fNum+eNum+vNum, 2*tdy->maxClosureSize); CHKERRQ(ierr);
+  ierr = TDySaveClosures(dm, tdy->closureSize, tdy->closure, &tdy->maxClosureSize); CHKERRQ(ierr);
 
   /* compute number of vertices per grid cell */
   nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
-  tdy->ncv = nverts_per_cell;
   cell_type = GetCellType(dim, nverts_per_cell);
 
   ierr = AllocateMemoryForCells(cNum, cell_type, &mesh->cells); CHKERRQ(ierr);
-  ierr = AllocateMemoryForVertices(vNum, cell_type, &mesh->vertices); CHKERRQ(ierr);
   ierr = AllocateMemoryForEdges(eNum, cell_type, &mesh->edges); CHKERRQ(ierr);
   ierr = AllocateMemoryForFaces(fNum, cell_type, &mesh->faces); CHKERRQ(ierr);
+
+  
+  PetscInt ncells_per_vertex = TDyMaxNumberOfCellsSharingAVertex(dm, tdy->closureSize, tdy->closure);
+  PetscInt nfaces_per_vertex = TDyMaxNumberOfFacesSharingAVertex(dm, tdy->closureSize, tdy->closure);
+  PetscInt nedges_per_vertex = TDyMaxNumberOfEdgesSharingAVertex(dm, tdy->closureSize, tdy->closure);
+  tdy->ncv = ncells_per_vertex;
+  tdy->nfv = nfaces_per_vertex;
+
+  ierr = AllocateMemoryForVertices(vNum, ncells_per_vertex, nfaces_per_vertex, nedges_per_vertex, cell_type, &mesh->vertices); CHKERRQ(ierr);
 
   subcell_type  = GetSubcellTypeForCellType(cell_type);
   num_subcells  = GetNumSubcellsForSubcellType(subcell_type);
@@ -521,7 +527,6 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   nverts_per_cell = tdy->ncv;
-  nverts_per_cell = 16;
 
   /* Determine the number of cells, edges, and vertices of the mesh */
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
@@ -562,13 +567,19 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
         PetscInt vOffsetCell = vertices->internal_cell_offset[ivertex];
         PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
 
+        PetscInt found = PETSC_FALSE;
         for (j=0; j<nverts_per_cell; j++) {
           if (vertices->internal_cell_ids[vOffsetCell + j] == -1) {
             vertices->num_internal_cells[ivertex]++;
             vertices->internal_cell_ids[vOffsetCell + j] = icell;
             vertices->subcell_ids[vOffsetSubcell + j]    = c2vCount;
+            found = PETSC_TRUE;
             break;
           }
+        }
+        if (!found) {
+          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,
+                  "No empty space found in the vertex to save cell");
         }
         c2vCount++;
       } else if (IsClosureWithinBounds(tdy->closure[icell][i], eStart,
@@ -638,7 +649,7 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
       PetscInt iedge = support[s] - eStart;
       PetscInt vOffsetEdge = vertices->edge_offset[ivertex];
       vertices->edge_ids[vOffsetEdge + s] = iedge;
-      if (!edges->is_internal[iedge]) vertices->num_boundary_cells[ivertex]++;
+      if (!edges->is_internal[iedge]) vertices->num_boundary_faces[ivertex]++;
     }
   }
 
@@ -714,8 +725,8 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
         PetscInt vertex_id = faces->vertex_ids[fOffsetVertex + v];
         PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[vertex_id];
 
-        vertices->boundary_face_ids[vOffsetBoundaryFace + vertices->num_boundary_cells[vertex_id] ] = iface;
-        vertices->num_boundary_cells[vertex_id]++;
+        vertices->boundary_face_ids[vOffsetBoundaryFace + vertices->num_boundary_faces[vertex_id] ] = iface;
+        vertices->num_boundary_faces[vertex_id]++;
       }
     }
 
@@ -1368,12 +1379,12 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
 
   PetscFunctionBegin;
 
-  PetscInt icell, isubcell, iface, ncells, cell_id, nflux_in, ncells_bnd;
+  PetscInt icell, isubcell, iface, ncells, cell_id, nflux_in, nfaces_bnd;
   PetscInt ii, boundary_cell_count;
   PetscInt vOffsetBoundaryFace, vOffsetFace;
   
   ncells = vertices->num_internal_cells[ivertex];
-  ncells_bnd= vertices->num_boundary_cells[ivertex];
+  nfaces_bnd= vertices->num_boundary_faces[ivertex];
   vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
   vOffsetFace = vertices->face_offset[ivertex];
 
@@ -1411,7 +1422,7 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex
         subcells->face_unknown_idx[sOffsetFace + iface] = boundary_cell_count+nflux_in;
         
         PetscInt face_id_local;
-        for (ii=0; ii<ncells_bnd; ii++) {
+        for (ii=0; ii<nfaces_bnd; ii++) {
           if (vertices->boundary_face_ids[vOffsetBoundaryFace + ii] == face_id) {
             face_id_local = ncells + ii;
             break;
@@ -1556,6 +1567,44 @@ PetscBool VerticesHaveSameXYCoords(TDy tdy, PetscInt ivertex_1, PetscInt ivertex
   if (dist<eps) sameXY = PETSC_TRUE;
 
   PetscFunctionReturn(sameXY);
+}
+
+
+/* -------------------------------------------------------------------------- */
+PetscInt VertexIdWithSameXYInACell(TDy tdy, PetscInt icell, PetscInt ivertex) {
+
+  PetscFunctionBegin;
+
+  TDy_cell *cells;
+  PetscInt cOffsetVert, iv;
+  PetscInt result;
+  PetscBool found = PETSC_FALSE;
+  
+  cells = &tdy->mesh->cells;
+
+  cOffsetVert = cells->vertex_offset[icell];
+
+  for (iv=0; iv<cells->num_vertices[icell]; iv++) {
+
+    PetscInt ivertex_2 = cells->vertex_ids[cOffsetVert+iv];
+
+    if (ivertex != ivertex_2) {
+
+      if (VerticesHaveSameXYCoords(tdy, ivertex, ivertex_2)) {
+        found = PETSC_TRUE;
+        result = ivertex_2;
+        break;
+      }
+    }
+  }
+
+  if (!found) {
+    char error_msg[100];
+    sprintf(error_msg,"VertexIdWithSameXYInACell: Could not determine if cell_id %d is above or below vertex_id %d\n",icell,ivertex);
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,error_msg);
+  }
+
+  PetscFunctionReturn(result);
 }
 
 
@@ -1769,36 +1818,17 @@ PetscBool AreCellsNeighbors(TDy tdy, PetscInt cell_id_1, PetscInt cell_id_2) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, PetscInt **cellsAbvBlw,
-                PetscInt ncells_abv, PetscInt ncells_blw) {
+PetscErrorCode ArrangeCellsInAnCircularOrder(TDy tdy, PetscInt *cellsAbvBlw, PetscInt ncells, PetscInt *cell_order) {
 
   PetscFunctionBegin;
-
-  TDy_cell *cells;
-  TDy_vertex *vertices;
-  TDy_face *faces;
-  PetscInt ii,jj,aa,ncells;
+  PetscInt ii, jj;
   PetscBool found;
-
-  cells = &tdy->mesh->cells;
-  vertices = &tdy->mesh->vertices;
-  faces = &tdy->mesh->faces;
-
-  if (ncells_abv>0) {
-    ncells = ncells_abv;
-    aa = 0;
-  } else {
-    ncells = ncells_blw;
-    aa = 1;
-  }
-
-  PetscInt cell_order[ncells];
   PetscInt cell_used[ncells];
 
   for (ii=0; ii<ncells; ii++) cell_used[ii] = 0;
 
   // First put cells in an order that could be clockwise or anticlockwise
-  cell_order[0] = cellsAbvBlw[aa][0];
+  cell_order[0] = cellsAbvBlw[0];
   cell_used[0] = 1;
   
   for (ii=0; ii<ncells-1; ii++) {
@@ -1811,8 +1841,8 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
     
       if (cell_used[jj] == 0) {
     
-        if (AreCellsNeighbors(tdy, cell_order[ii], cellsAbvBlw[aa][jj])) {
-          cell_order[ii+1] = cellsAbvBlw[aa][jj];
+        if (AreCellsNeighbors(tdy, cell_order[ii], cellsAbvBlw[jj])) {
+          cell_order[ii+1] = cellsAbvBlw[jj];
           cell_used[jj] = 1;
           found = PETSC_TRUE;
           break;
@@ -1824,8 +1854,22 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
     }
   }
 
-  // Find the face that is shared by cell_order[0] and cell_order[1]
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscInt IDofFaceSharedByTwoCellsForACommonVertex(TDy tdy, PetscInt ivertex, PetscInt icell_1, PetscInt icell_2) {
+
+  TDy_vertex *vertices;
+  TDy_face *faces;
+  PetscBool found;
   PetscInt vOffsetFace, iface, face_id;
+
+  PetscFunctionBegin;
+
+  vertices = &tdy->mesh->vertices;
+  faces = &tdy->mesh->faces;
   vOffsetFace = vertices->face_offset[ivertex];
 
   for (iface=0; iface<vertices->num_faces[ivertex]; iface++) {
@@ -1835,14 +1879,61 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
     PetscInt fOffsetCell = faces->cell_offset[face_id];
 
     if (
-        (faces->cell_ids[fOffsetCell  ] == cell_order[0] || faces->cell_ids[fOffsetCell  ]  == cell_order[1] ) &&
-        (faces->cell_ids[fOffsetCell+1] == cell_order[0] || faces->cell_ids[fOffsetCell+1]  == cell_order[1] )
+        (faces->cell_ids[fOffsetCell  ] == icell_1 || faces->cell_ids[fOffsetCell  ]  == icell_2 ) &&
+        (faces->cell_ids[fOffsetCell+1] == icell_1 || faces->cell_ids[fOffsetCell+1]  == icell_2 )
        ) {
       found = PETSC_TRUE;
       break;
     }
   }
+  
+  if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a shared face");
 
+   PetscFunctionReturn(face_id);
+ 
+ }
+
+/* -------------------------------------------------------------------------- */
+PetscBool PointsAreInAntiClockDirInXYPlane(PetscReal a[2], PetscReal b[2], PetscReal c[2]) {
+
+  PetscFunctionBegin;
+
+  PetscInt d;
+  PetscReal ba[3],ca[3],baXca[3];
+  PetscBool result;
+  PetscErrorCode ierr;
+
+  for (d=0; d<2; d++) {
+    ba[d] = b[d] - a[d];
+    ca[d] = c[d] - a[d];
+  }
+  ba[2] = 0.0; ca[2] = 0.0;
+
+  ierr = TDyCrossProduct(ba,ca,baXca); CHKERRQ(ierr);
+
+  if (baXca[2]>0.0) result = PETSC_TRUE;
+  else              result = PETSC_FALSE;
+
+  PetscFunctionReturn(result);
+}
+
+/* -------------------------------------------------------------------------- */
+
+  PetscErrorCode ArrangeCellsInAntiClockwiseDirection(TDy tdy, PetscInt ivertex, PetscInt *inp_cell_order, PetscInt ncells, PetscInt *out_cell_order) {
+
+  PetscFunctionBegin;
+
+  TDy_cell *cells;
+  TDy_vertex *vertices;
+  TDy_face *faces;
+
+  cells = &tdy->mesh->cells;
+  vertices = &tdy->mesh->vertices;
+  faces = &tdy->mesh->faces;
+
+  // Find the face that is shared by first and second cell
+  PetscInt face_id = IDofFaceSharedByTwoCellsForACommonVertex(tdy, ivertex, inp_cell_order[0], inp_cell_order[1]);
+  
   // Now rearrnge the cell order to be anticlockwise direction
   //   vec_a = (centroid_0 - ivertex)
   //   vec_b = (face_01    - ivertex)
@@ -1850,199 +1941,283 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
   // If dotprod(vec_a,vec_b) > 0, the cell_order is in anticlockwise
   // else flip the cell_order
   //
+
+  PetscReal a2d[2],b2d[2],c2d[2];
+  PetscInt d;
+  for (d=0; d<2; d++) {
+    a2d[d] = vertices->coordinate[ivertex     ].X[d];
+    b2d[d] = cells->centroid[inp_cell_order[0]].X[d];
+    c2d[d] = faces->centroid[face_id          ].X[d];
+  }
+
+  PetscInt ii;
+  if (PointsAreInAntiClockDirInXYPlane(a2d,b2d,c2d)) {
+    // Cells are in anticlockwise direction, so copy the ids
+    for (ii=0; ii<ncells; ii++) out_cell_order[ii] = inp_cell_order[ii];
+  } else {
+    // Cells are in clockwise direction, so flip the order
+    for (ii=0; ii<ncells; ii++) out_cell_order[ii] = inp_cell_order[ncells-ii-1];
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode RearrangeCellsInListAsNeighbors(TDy tdy, PetscInt ncells, PetscInt *cell_list_1, PetscInt *cell_list_2) {
+ 
+  PetscFunctionBegin;
+
+  PetscInt ii,jj;
+  PetscBool found;
+  PetscInt tmp_cell_order[ncells];
+
+  for (ii=0; ii<ncells; ii++) {
+    found = PETSC_FALSE;
+    for (jj=0; jj<ncells; jj++) {
+      if (AreCellsNeighbors(tdy, cell_list_1[ii], cell_list_2[jj])) {
+        tmp_cell_order[ii] = cell_list_2[jj];
+        found = PETSC_TRUE;
+        break;
+      }
+    }
+    if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a corresponding cell below the given cell");
+  }
+
+  // Update the order of cells below the vertex
+  for (ii=0; ii<ncells; ii++) cell_list_2[ii] = tmp_cell_order[ii];
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, PetscInt **cellsAbvBlw,
+                PetscInt ncells_abv, PetscInt ncells_blw) {
+
+  PetscFunctionBegin;
+
+  PetscInt level, ncells;
+  PetscErrorCode ierr;
+
+  if (ncells_abv>0) {
+    ncells = ncells_abv;
+    level = 0;
+  } else {
+    ncells = ncells_blw;
+    level = 1;
+  }
+
+  PetscInt cell_order[ncells];
+
+  ierr = ArrangeCellsInAnCircularOrder(tdy, cellsAbvBlw[level], ncells, &cell_order[0]); CHKERRQ(ierr);
+
+  ierr = ArrangeCellsInAntiClockwiseDirection(tdy, ivertex, cell_order, ncells, cellsAbvBlw[level]); CHKERRQ(ierr);
+
+  if (ncells_abv>0 && ncells_blw>0) {
+    // Cells are present above and below the ivertex and
+    // only the cells above the vertex were sorted.
+    // So, for each cell above the vertex, find the corresponding
+    // cell below the vertex
+    ierr = RearrangeCellsInListAsNeighbors(tdy, ncells, cellsAbvBlw[0], cellsAbvBlw[1]); CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode AddTwoBndFacesOfTwoCellsInTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt *cellsAbvBlw,
+  PetscInt ncells_level, PetscInt *cell_traversal) {
+
+  // For the last and first cell in cellsAbvBlw, add the face that
+  // that includes a vertex directly above or below ivertex
+
+  PetscFunctionBegin;
+
+  TDy_face *faces;
+  TDy_vertex *vertices;
+
+  faces = &tdy->mesh->faces;
+  vertices = &tdy->mesh->vertices;
+
+  PetscInt ncells    = vertices->num_internal_cells[ivertex];
+  PetscInt nfaces_bnd= vertices->num_boundary_faces[ivertex];
+  PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
+
+  PetscInt ii,jj;
+  PetscInt kk,mm;
+  PetscBool found;
+
+  PetscInt bnd_faces_found[nfaces_bnd];  
+  for (ii=0; ii<nfaces_bnd; ii++) bnd_faces_found[ii] = 0;
+
+  // For the first and the last cell, check if there is a boundary face
+  // that corresponds to the anticlockwise traversal direction.
+
+  for (kk=0; kk<2; kk++) { // For the first and last cell
+
+    // Select the mm-th (first or last) cell
+    if (kk == 0) mm = ncells_level-1;
+    else         mm = 0;
+
+    found = PETSC_FALSE;
+    
+    // Loop through all boundary faces of ivertex
+    for (ii=0; ii<nfaces_bnd; ii++) {
+      
+      // Skip the boundary face that has been previously identified
+      if (bnd_faces_found[ii]) continue;
+      
+      PetscInt face_id = vertices->boundary_face_ids[vOffsetBoundaryFace + ii];
+      PetscInt fOffsetCell = faces->cell_offset[face_id];
+
+      // Check if the face belongs to the mm-th cell
+      if ((cellsAbvBlw[mm] == faces->cell_ids[fOffsetCell]  )||
+          (cellsAbvBlw[mm] == faces->cell_ids[fOffsetCell+1])) {
+
+        PetscInt fOffsetVertex = faces->vertex_offset[face_id];
+
+        // If the face has a vertex that is exactly above or below the
+        // ivertex, add it to the traversal direction
+        for (jj=0; jj<faces->num_vertices[face_id]; jj++) {
+          if ( (ivertex != faces->vertex_ids[fOffsetVertex + jj])
+              && VerticesHaveSameXYCoords(tdy, ivertex, faces->vertex_ids[fOffsetVertex + jj])) {
+            found = PETSC_TRUE;
+            bnd_faces_found[ii] = 1;
+            cell_traversal[ncells_level+kk] = ncells + ii;
+            break;
+          }
+        }
+        if (found) break;
+      }
+    }
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode AddTwoBndFacesOfACellInTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt *cellsAbvBlw,
+  PetscInt ncells_level, PetscInt *cell_traversal) {
+
+  PetscFunctionBegin;
+
+  TDy_cell *cells;
+  TDy_face *faces;
+  TDy_vertex *vertices;
+
+  cells = &tdy->mesh->cells;
+  faces = &tdy->mesh->faces;
+  vertices = &tdy->mesh->vertices;
+
+  PetscInt ncells    = vertices->num_internal_cells[ivertex];
+  PetscInt nfaces_bnd= vertices->num_boundary_faces[ivertex];
+  PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
+
+  PetscInt mm = 0, count=0, face_id_1, ii_1, ii_2;
+  PetscInt ii;
+
+  for (ii=0; ii<nfaces_bnd; ii++) {
+    PetscInt face_id = vertices->boundary_face_ids[vOffsetBoundaryFace + ii];
+    PetscInt fOffsetCell = faces->cell_offset[face_id];
+    if ((cellsAbvBlw[mm] == faces->cell_ids[fOffsetCell]  )||
+        (cellsAbvBlw[mm] == faces->cell_ids[fOffsetCell+1])) {
+      if (count==0) {
+        face_id_1 = face_id;
+        ii_1 = ii + ncells;
+        count++;
+      } else {
+        ii_2 = ii + ncells;
+        count++;
+      }
+    }
+  }
+  if (count!=2) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not two faces for the cell in the list");
+
+  // Determine if cellID --> face_id_1 is in anticlockwise direction
+
   PetscReal a[3], b[3], axb[3];
   PetscInt d, dim=2;
   PetscErrorCode ierr;
-
-  if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a shared face");
+  PetscInt cellID = cellsAbvBlw[mm];
 
   for (d=0; d<dim; d++) {
-    a[d] = cells->centroid[cell_order[0]].X[d] - vertices->coordinate[ivertex].X[d];
-    b[d] = faces->centroid[face_id      ].X[d] - vertices->coordinate[ivertex].X[d];
+    a[d] = cells->centroid[cellID   ].X[d] - vertices->coordinate[ivertex].X[d];
+    b[d] = faces->centroid[face_id_1].X[d] - vertices->coordinate[ivertex].X[d];
   }
   a[2] = 0.0;
   b[2] = 0.0;
 
   ierr = TDyCrossProduct(a,b,axb); CHKERRQ(ierr);
 
-  if (axb[2]>0) {
-    // Cells are in anticlockwise direction, so copy the ids
-    for (ii=0; ii<ncells; ii++) cellsAbvBlw[aa][ii] = cell_order[ii];
+  if (axb[2]>0) { // cellID --> face_id_1 is in anticlockwise direction
+    cell_traversal[1] = ii_1;
+    cell_traversal[2] = ii_2;
   } else {
-    // Cells are in clockwise direction, so flip the order
-    for (ii=0; ii<ncells; ii++) cellsAbvBlw[aa][ii] = cell_order[ncells-ii-1];
-  }
-
-  if (ncells_abv>0 && ncells_blw>0) {
-    // 1. Cells are present above and below the ivertex, and
-    // 2. Initially cells above the vertex were sorted.
-    // So, for each cell above the vertex, find the corresponding
-    // cell below the vertex
-    for (ii=0; ii<ncells_abv; ii++) {
-      found = PETSC_FALSE;
-      for (jj=0; jj<ncells_blw; jj++) {
-        if (AreCellsNeighbors(tdy, cellsAbvBlw[0][ii], cellsAbvBlw[1][jj])) {
-          cell_order[ii] = cellsAbvBlw[1][jj];
-          found = PETSC_TRUE;
-          break;
-        }
-      }
-      if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a corresponding cell below the given cell");
-    }
-
-    // Update the order of cells below the vertex
-    for (ii=0; ii<ncells_blw; ii++) cellsAbvBlw[1][ii] = cell_order[ii];
+    cell_traversal[1] = ii_2;
+    cell_traversal[2] = ii_1;
   }
 
   PetscFunctionReturn(0);
 
 }
 
-
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **cell_ids_abv_blw,
-  PetscInt ncells_level, PetscInt level, PetscInt **cell_traversal){
+PetscErrorCode ConvertCellsAntiClockwiseDirInTraversalDir(TDy tdy, PetscInt ivertex, PetscInt *cell_ids_abv_blw,
+  PetscInt ncells_level, PetscInt *cell_traversal){
   
   PetscFunctionBegin;
 
-  TDy_face *faces;
-  TDy_cell *cells;
   TDy_vertex *vertices;
 
-  PetscInt ncells,ncells_bnd;
+  PetscInt ncells,nfaces_bnd;
 
-  cells = &tdy->mesh->cells;
-  faces = &tdy->mesh->faces;
+  if (ncells_level==0) PetscFunctionReturn(0);
+
   vertices = &tdy->mesh->vertices;
 
   ncells    = vertices->num_internal_cells[ivertex];
-  ncells_bnd= vertices->num_boundary_cells[ivertex];
+  nfaces_bnd= vertices->num_boundary_faces[ivertex];
 
   PetscInt vOffsetIntCell = vertices->internal_cell_offset[ivertex];
-  PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
 
   PetscInt ii,jj;
   PetscBool found;
-  PetscInt bnd_faces_found[ncells_bnd];
-  
-  for (ii=0; ii<ncells_bnd; ii++) bnd_faces_found[ii] = 0;
 
   // Values of cell_traversal[0:1][:] should corresponds to cell/face IDs in
   // local numbering
 
-  if (ncells_level>0) {
-
-    // First find cell IDs in local numbering
-    for (ii=0; ii<ncells_level; ii++) {
-      found = PETSC_FALSE;
-      for (jj=0; jj<ncells; jj++) {
-        PetscInt cellID = vertices->internal_cell_ids[vOffsetIntCell + jj];
-        if (cellID == cell_ids_abv_blw[level][ii]) {
-          cell_traversal[level][ii] = jj;
-          found = PETSC_TRUE;
-          break;
-        }
-      }
-      if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a the cell in the list");
-    }
-
-
-    if (ncells_level>1) {
-      PetscInt kk,mm;
-      PetscBool found;
-      
-      // For the first and the last cell, check if there is a boundary face
-      // that corresponds to the anticlockwise traversal direction.
-      for (kk=0;kk<2;kk++) {
-        // Select the mm-th (first or last) cell
-        if (kk == 0) mm = ncells_level-1;
-        else         mm = 0;
-        
-        found = PETSC_FALSE;
-        
-        // Loop through all boundary face
-        for (ii=0; ii<ncells_bnd; ii++) {
-          
-          // Skip the boundary face that has been previously identified
-          if (bnd_faces_found[ii]) continue;
-          
-          PetscInt face_id = vertices->boundary_face_ids[vOffsetBoundaryFace + ii];
-          PetscInt fOffsetCell = faces->cell_offset[face_id];
-          
-          // Check if the face belongs to mm-th cell
-          if ((cell_ids_abv_blw[level][mm] == faces->cell_ids[fOffsetCell]  )||
-              (cell_ids_abv_blw[level][mm] == faces->cell_ids[fOffsetCell+1])) {
-            PetscInt fOffsetVertex = faces->vertex_offset[face_id];
-            
-            // Check if the face has a vertex that is exactly above or below the
-            // ivertex
-            for (jj=0; jj<faces->num_vertices[face_id]; jj++) {
-              if ( (ivertex != faces->vertex_ids[fOffsetVertex + jj])
-                  && VerticesHaveSameXYCoords(tdy, ivertex, faces->vertex_ids[fOffsetVertex + jj])) {
-                found = PETSC_TRUE;
-                bnd_faces_found[ii] = 1;
-                cell_traversal[level][ncells_level+kk] = ncells+ ii;
-                break;
-              }
-            }
-            if (found) break;
-          }
-        }
-      }
-    } else {
-      PetscInt mm = 0, count=0, face_id_1, ii_1, ii_2;
-      for (ii=0; ii<ncells_bnd; ii++) {
-        PetscInt face_id = vertices->boundary_face_ids[vOffsetBoundaryFace + ii];
-        PetscInt fOffsetCell = faces->cell_offset[face_id];
-        if ((cell_ids_abv_blw[level][mm] == faces->cell_ids[fOffsetCell]  )||
-            (cell_ids_abv_blw[level][mm] == faces->cell_ids[fOffsetCell+1])) {
-          if (count==0) {
-            face_id_1 = face_id;
-            ii_1 = ii + ncells;
-            count++;
-          } else {
-            ii_2 = ii + ncells;
-            count++;
-          }
-        }
-      }
-      if (count!=2) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not two faces for the cell in the list");
-      
-      
-      PetscReal a[3], b[3], axb[3];
-      PetscInt d, dim=2;
-      PetscErrorCode ierr;
-      PetscInt cellID = cell_ids_abv_blw[level][mm];
-
-      for (ii=0; ii<ncells; ii++) {
-        if (cellID == vertices->internal_cell_ids[vOffsetIntCell + ii]) {
-          cell_traversal[level][0] = ii;
-        }
-      }
-
-      for (d=0; d<dim; d++) {
-        a[d] = cells->centroid[cellID   ].X[d] - vertices->coordinate[ivertex].X[d];
-        b[d] = faces->centroid[face_id_1].X[d] - vertices->coordinate[ivertex].X[d];
-      }
-      a[2] = 0.0;
-      b[2] = 0.0;
-      
-      ierr = TDyCrossProduct(a,b,axb); CHKERRQ(ierr);
-      if (axb[2]>0) {
-        cell_traversal[level][1] = ii_1;
-        cell_traversal[level][2] = ii_2;
-      } else {
-        cell_traversal[level][1] = ii_2;
-        cell_traversal[level][2] = ii_1;
+  // Add internal cells in the traversal direction.
+  // Note: The travel direction of cells in cell_ids_abv_blw is in
+  //       the local numbering corresponding to vertices->internal_cell_ids
+  for (ii=0; ii<ncells_level; ii++) {
+    found = PETSC_FALSE;
+    for (jj=0; jj<ncells; jj++) {
+      PetscInt cellID = vertices->internal_cell_ids[vOffsetIntCell + jj];
+      if (cellID == cell_ids_abv_blw[ii]) {
+        cell_traversal[ii] = jj;
+        found = PETSC_TRUE;
+        break;
       }
     }
+    if (!found) SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a the cell in the list");
+  }
+
+  if (nfaces_bnd == 0) PetscFunctionReturn(0);
+
+  // Now add boundary faces in the traversal direction
+  if (ncells_level>1) {
+    AddTwoBndFacesOfTwoCellsInTraversalDirection(tdy, ivertex, cell_ids_abv_blw, ncells_level, cell_traversal);
+  } else if (ncells_level == 1) {
+    AddTwoBndFacesOfACellInTraversalDirection(tdy, ivertex, cell_ids_abv_blw, ncells_level, cell_traversal);
   }
 
   PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeBoundaryFaceTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **cell_ids_abv_blw,
+PetscErrorCode AddUpDownBndFacesOfCellsInTraversalDirection(TDy tdy, PetscInt ivertex, PetscInt **cell_ids_abv_blw,
   PetscInt ncells_level, PetscInt level, PetscInt **cell_traversal){
   
   PetscFunctionBegin;
@@ -2050,32 +2225,32 @@ PetscErrorCode ComputeBoundaryFaceTraversalDirection(TDy tdy, PetscInt ivertex, 
   TDy_face *faces;
   TDy_vertex *vertices;
 
-  PetscInt ncells,ncells_bnd;
+  PetscInt ncells,nfaces_bnd;
 
   faces = &tdy->mesh->faces;
   vertices = &tdy->mesh->vertices;
 
   ncells    = vertices->num_internal_cells[ivertex];
-  ncells_bnd= vertices->num_boundary_cells[ivertex];
+  nfaces_bnd= vertices->num_boundary_faces[ivertex];
 
   PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
 
   PetscInt ii,jj,level_faces;
-  PetscInt bnd_faces_found[ncells_bnd];
+  PetscInt bnd_faces_found[nfaces_bnd];
   
   if (level == 0) level_faces = 1;
   else            level_faces = 0;
 
   // Identify the boundary faces that have already been used
-  for (ii=0; ii<ncells_bnd; ii++) bnd_faces_found[ii] = 0;
-  for (ii=0; ii<ncells+ncells_bnd; ii++) {
+  for (ii=0; ii<nfaces_bnd; ii++) bnd_faces_found[ii] = 0;
+  for (ii=0; ii<ncells+nfaces_bnd; ii++) {
     jj = cell_traversal[level][ii];
     if (jj >= ncells) bnd_faces_found[jj-ncells] = 1;
   }
 
   // For each cell at the given 'level', find a corresponding top/bottom face
   for (ii=0; ii<ncells_level; ii++) {
-    for (jj=0; jj<ncells_bnd; jj++) {
+    for (jj=0; jj<nfaces_bnd; jj++) {
       if (bnd_faces_found[jj]) continue;
       PetscInt face_id = vertices->boundary_face_ids[vOffsetBoundaryFace + jj];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
@@ -2098,13 +2273,13 @@ PetscErrorCode SetUpToDownConnections(TDy tdy, PetscInt ivertex, PetscInt **cell
 
   TDy_vertex *vertices;
 
-  PetscInt ncells,ncells_bnd;
+  PetscInt ncells,nfaces_bnd;
   PetscInt count, level;
 
   vertices = &tdy->mesh->vertices;
 
   ncells    = vertices->num_internal_cells[ivertex];
-  ncells_bnd= vertices->num_boundary_cells[ivertex];
+  nfaces_bnd= vertices->num_boundary_faces[ivertex];
 
   PetscInt ii,jj,aa,bb,l2r_dir;
   count=0;
@@ -2113,42 +2288,31 @@ PetscErrorCode SetUpToDownConnections(TDy tdy, PetscInt ivertex, PetscInt **cell
   for (level=0; level<2; level++) {
     if (level==0) l2r_dir = 1;  // x ---> y
     else          l2r_dir = 0;  // x <--- y
-    for (ii = 0; ii<ncells+ncells_bnd; ii++) {
+    for (ii = 0; ii<ncells+nfaces_bnd; ii++) {
       aa = cell_traversal[level][ii];
       if (aa == -1) break;
 
-      if (ii == ncells+ncells_bnd-1) bb = cell_traversal[level][0];
+      if (ii == ncells+nfaces_bnd-1) bb = cell_traversal[level][0];
       else                           bb = cell_traversal[level][ii+1];
 
       if (bb == -1) bb = cell_traversal[level][0];
+
       if (aa>=ncells && bb>=ncells) continue;
 
-      PetscInt increase_count = PETSC_FALSE;
-
-      if (aa < ncells && bb < ncells) {
-        increase_count = PETSC_TRUE;
-      } else if (aa < ncells && bb>= ncells) {
-        increase_count = PETSC_TRUE;
-      } else if (aa >= ncells && bb<ncells) {
-        increase_count = PETSC_TRUE;
+      if (l2r_dir) {
+        cell_up2dw[count][0] = aa;
+        cell_up2dw[count][1] = bb;
+      } else {
+        cell_up2dw[count][0] = bb;
+        cell_up2dw[count][1] = aa;
       }
-
-      if (increase_count) {
-        if (l2r_dir) {
-          cell_up2dw[count][0] = aa;
-          cell_up2dw[count][1] = bb;
-        } else {
-          cell_up2dw[count][0] = bb;
-          cell_up2dw[count][1] = aa;
-        }
-        count++;
-      }
+      count++;
     }
   }
 
   // Set up-to-dw connections between cells above and
   // below the vertex
-  for (ii=0; ii<ncells+ncells_bnd; ii++) {
+  for (ii=0; ii<ncells+nfaces_bnd; ii++) {
     aa = cell_traversal[0][ii];
     bb = cell_traversal[1][ii];
     if (aa == -1 || bb == -1) break;
@@ -2194,7 +2358,7 @@ PetscErrorCode SetUpToDownConnections(TDy tdy, PetscInt ivertex, PetscInt **cell
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, PetscInt ivertex) {
+PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, PetscInt ivertex, PetscInt **cellsAbove, PetscInt **cellsBelow) {
 
   /*
   
@@ -2233,7 +2397,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   TDy_subcell *subcells;
   TDy_vertex *vertices;
 
-  PetscInt ncells,ncells_bnd;
+  PetscInt ncells,nfaces_bnd;
   PetscInt **cell_traversal;
   PetscInt ncells_abv,ncells_blw;
   PetscInt **cell_up2dw;
@@ -2245,7 +2409,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   vertices = &tdy->mesh->vertices;
 
   ncells    = vertices->num_internal_cells[ivertex];
-  ncells_bnd= vertices->num_boundary_cells[ivertex];
+  nfaces_bnd= vertices->num_boundary_faces[ivertex];
 
   // 1. Determine cells above and below the given vertex.
   //    - NOTE:
@@ -2263,28 +2427,41 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
 
   PetscInt **cell_ids_abv_blw;
 
-  ierr = TDyAllocate_IntegerArray_2D(&cell_ids_abv_blw, 2, ncells+ncells_bnd); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&cell_ids_abv_blw, 2, ncells+nfaces_bnd); CHKERRQ(ierr);
 
   ncells_abv = 0;
   ncells_blw = 0;
 
-  ierr = DetermineCellsAboveAndBelow(tdy,ivertex,cell_ids_abv_blw,&ncells_abv,&ncells_blw); CHKERRQ(ierr);
+  // Copy precomputed cell IDs above the ivertex 
+  if (cellsAbove[ivertex][0] > 0) {
+    ncells_abv = cellsAbove[ivertex][0];
+    PetscInt ii;
+    for (ii=0; ii<cellsAbove[ivertex][0]; ii++) cell_ids_abv_blw[0][ii] = cellsAbove[ivertex][ii+1];
+  }
+
+  // Copy precomputed cell IDs below the ivertex
+  if (cellsBelow[ivertex][0] > 0) {
+    ncells_blw = cellsBelow[ivertex][0];
+    PetscInt ii;
+    for (ii=0; ii<cellsBelow[ivertex][0]; ii++) cell_ids_abv_blw[1][ii] = cellsBelow[ivertex][ii+1];
+  }
+
   if (ncells_abv > 1) {
     ierr = RearrangeCellsInAntiClockwiseDir(tdy,ivertex,cell_ids_abv_blw,ncells_abv,ncells_blw); CHKERRQ(ierr);
   } else if (ncells_blw > 1) {
     ierr = RearrangeCellsInAntiClockwiseDir(tdy,ivertex,cell_ids_abv_blw,ncells_abv,ncells_blw); CHKERRQ(ierr);
   }
 
-  ierr = TDyAllocate_IntegerArray_2D(&cell_traversal, 2, ncells+ncells_bnd); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_2D(&cell_up2dw, 24, 2); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&cell_traversal, 2, ncells+nfaces_bnd); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&cell_up2dw, tdy->nfv, 2); CHKERRQ(ierr);
 
   PetscInt level, ncells_level;
 
   level = 0; ncells_level = ncells_abv;
-  ierr = ComputeTraversalDirection(tdy,ivertex,cell_ids_abv_blw,ncells_level,level,cell_traversal); CHKERRQ(ierr);
+  ierr = ConvertCellsAntiClockwiseDirInTraversalDir(tdy,ivertex,cell_ids_abv_blw[level],ncells_level,cell_traversal[level]); CHKERRQ(ierr);
 
   level = 1; ncells_level = ncells_blw;
-  ierr = ComputeTraversalDirection(tdy,ivertex,cell_ids_abv_blw,ncells_level,level,cell_traversal); CHKERRQ(ierr);
+  ierr = ConvertCellsAntiClockwiseDirInTraversalDir(tdy,ivertex,cell_ids_abv_blw[level],ncells_level,cell_traversal[level]); CHKERRQ(ierr);
 
   if (ncells_abv == 0 || ncells_blw == 0) {
     if (ncells_abv == 0) {
@@ -2294,7 +2471,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
       level = 0;
       ncells_level = ncells_abv;
     }
-    ierr = ComputeBoundaryFaceTraversalDirection(tdy,ivertex,cell_ids_abv_blw,ncells_level,level,cell_traversal); CHKERRQ(ierr);
+    ierr = AddUpDownBndFacesOfCellsInTraversalDirection(tdy,ivertex,cell_ids_abv_blw,ncells_level,level,cell_traversal); CHKERRQ(ierr);
   }
 
   PetscInt nUp2Dw;
@@ -2302,7 +2479,151 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   ierr = SetupUpwindFacesForSubcell(vertices,ivertex,cells,faces,subcells,cell_up2dw,nUp2Dw); CHKERRQ(ierr);
 
   ierr = TDyDeallocate_IntegerArray_2D(cell_traversal, 2); CHKERRQ(ierr);
-  ierr = TDyDeallocate_IntegerArray_2D(cell_up2dw, ncells+ncells_bnd); CHKERRQ(ierr);
+  ierr = TDyDeallocate_IntegerArray_2D(cell_up2dw, tdy->nfv); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode SaveCellIdsAtOppositeLevel(TDy tdy, PetscInt ivertex, PetscInt *icell_level, PetscInt ncells_level, PetscInt **icells_opposite_level) {
+
+  PetscFunctionBegin;
+
+  PetscInt ii;
+  PetscInt ivertex_xy = VertexIdWithSameXYInACell(tdy, icell_level[0], ivertex);
+
+  icells_opposite_level[ivertex_xy][0] = ncells_level;
+  for (ii=0; ii<ncells_level; ii++) icells_opposite_level[ivertex_xy][ii+1] = icell_level[ii];
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode FindCellsAboveAndBelowAVertex(TDy tdy, PetscInt ivertex, PetscInt **cellsAbove, PetscInt **cellsBelow) {
+
+  PetscFunctionBegin;
+
+  TDy_mesh *mesh;
+  TDy_vertex *vertices;
+  PetscErrorCode ierr;
+
+  mesh     = tdy->mesh;
+  vertices = &mesh->vertices;
+
+  PetscInt ncells    = vertices->num_internal_cells[ivertex];
+  PetscInt nfaces_bnd= vertices->num_boundary_faces[ivertex];
+  PetscInt **cell_ids_abv_blw;
+
+  ierr = TDyAllocate_IntegerArray_2D(&cell_ids_abv_blw, 2, ncells+nfaces_bnd); CHKERRQ(ierr);
+
+  PetscInt ncells_abv = 0;
+  PetscInt ncells_blw = 0;
+
+  ierr = DetermineCellsAboveAndBelow(tdy,ivertex,cell_ids_abv_blw,&ncells_abv,&ncells_blw); CHKERRQ(ierr);
+
+  // Save no. of cells
+  cellsAbove[ivertex][0] = ncells_abv;
+  cellsBelow[ivertex][0] = ncells_blw;
+
+  // Save IDs of cells
+  PetscInt icell;
+  for (icell = 0; icell<ncells_abv; icell++) cellsAbove[ivertex][icell+1] = cell_ids_abv_blw[0][icell];
+  for (icell = 0; icell<ncells_blw; icell++) cellsBelow[ivertex][icell+1] = cell_ids_abv_blw[1][icell];
+  
+  if (ncells_abv>0) {
+    // Save the cells that are above the ivertex as the cells that are below the vertex that
+    // is directly above the ivertex
+    ierr = SaveCellIdsAtOppositeLevel(tdy, ivertex, cell_ids_abv_blw[0], ncells_abv, cellsBelow); CHKERRQ(ierr);
+   }
+
+   if (ncells_blw>0) {
+    // Save the cells that are below the ivertex as the cells that are above the vertex that
+    // is directly below the ivertex
+     ierr = SaveCellIdsAtOppositeLevel(tdy, ivertex, cell_ids_abv_blw[1], ncells_blw, cellsAbove); CHKERRQ(ierr);
+   }
+
+  ierr = TDyDeallocate_IntegerArray_2D(cell_ids_abv_blw, 2); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode FindCellsAtUninitializedLevel (TDy tdy, PetscInt ivertex, PetscInt **icell_initialized, PetscInt **icell_uninitailized) {
+  
+  PetscFunctionBegin;
+
+  TDy_mesh *mesh;
+  TDy_vertex *vertices;
+
+  mesh     = tdy->mesh;
+  vertices = &mesh->vertices;
+
+  PetscInt ncells = vertices->num_internal_cells[ivertex];
+
+  // Are there more cells connected to ivertex than the no. of cells at the initialized level?
+  if (ncells == icell_initialized[ivertex][0]) PetscFunctionReturn(0);
+
+  // Set the no. of cells to zero
+  icell_uninitailized[ivertex][0] = 0;
+
+  PetscInt ii,jj;
+  PetscInt vOffsetIntCell = vertices->internal_cell_offset[ivertex];
+
+  // Loop over all cells that are connected to the ivertex
+  for (ii=0; ii<ncells; ii++){
+
+    PetscInt icell = vertices->internal_cell_ids[vOffsetIntCell+ii];
+    PetscBool found = PETSC_FALSE;
+
+    // Check if icell is one of the cells within the initialized cell list
+    for (jj=0; jj<icell_initialized[ivertex][0]; jj++) {
+      if ( icell_initialized[ivertex][jj+1] == icell) {
+        found = PETSC_TRUE;
+        break;
+      }
+    }
+
+    if (!found) {// Add the icell to the list of cells within the uninitalized cell list
+
+     // Increase the count
+     icell_uninitailized[ivertex][0]++;
+
+     // Save the icell
+     icell_uninitailized[ivertex][ icell_uninitailized[ivertex][0] ] =  vertices->internal_cell_ids[vOffsetIntCell+ii];
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode FindCellsAboveAndBelowVertices(TDy tdy, PetscInt **cellsAbove, PetscInt **cellsBelow) {
+
+  PetscFunctionBegin;
+
+  TDy_mesh *mesh;
+  PetscInt ivertex;
+  PetscErrorCode ierr;
+
+  mesh = tdy->mesh;
+
+  for (ivertex = 0; ivertex < mesh->num_vertices; ivertex++) {
+
+    if (cellsAbove[ivertex][0] == -1 && cellsBelow[ivertex][0] == -1) {
+
+      ierr = FindCellsAboveAndBelowAVertex(tdy, ivertex, cellsAbove, cellsBelow); CHKERRQ(ierr);
+
+    } else if (cellsAbove[ivertex][0]  > -1 && cellsBelow[ivertex][0] == -1 ) {
+
+      // Cells above the ivertex are initialized, while cells below the ivertex are uninitialized
+      ierr = FindCellsAtUninitializedLevel(tdy, ivertex, cellsAbove, cellsBelow); CHKERRQ(ierr);
+
+    } else if (cellsAbove[ivertex][0] == -1 && cellsBelow[ivertex][0]  > -1 ) {
+
+      // Cells below the ivertex are initialized, while cells above the ivertex are uninitialized
+      ierr = FindCellsAtUninitializedLevel(tdy, ivertex, cellsBelow, cellsAbove); CHKERRQ(ierr);
+    }
+  }
 
   PetscFunctionReturn(0);
 }
@@ -2466,9 +2787,18 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
   }
 
+  // Determine cell IDs that are above and below all vertices
+  PetscInt **cellsAbove, **cellsBelow;
+  PetscInt ncells_per_vertex = TDyMaxNumberOfCellsSharingAVertex(dm, tdy->closureSize, tdy->closure);
+
+  ierr = TDyAllocate_IntegerArray_2D(&cellsAbove, mesh->num_vertices, ncells_per_vertex); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&cellsBelow, mesh->num_vertices, ncells_per_vertex); CHKERRQ(ierr);
+
+  ierr = FindCellsAboveAndBelowVertices(tdy, cellsAbove, cellsBelow);
+
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     if (vertices->num_internal_cells[ivertex] > 1 && vertices->is_local[ivertex]) {
-      ierr = DetermineUpwindFacesForSubcell_PlanarVerticalFaces(tdy, ivertex); CHKERRQ(ierr);
+      ierr = DetermineUpwindFacesForSubcell_PlanarVerticalFaces(tdy, ivertex, cellsAbove, cellsBelow); CHKERRQ(ierr);
     }
   }
 

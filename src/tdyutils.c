@@ -1,62 +1,123 @@
 #include <private/tdyutils.h>
 #include <petscblaslapack.h>
+#include <private/tdymemoryimpl.h>
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
+PetscErrorCode Increase_Closure_Array(DM dm, PetscInt **closure, PetscInt *maxClosureSize, PetscInt newSize) {
+
+  PetscInt **tmpArray;
+  PetscInt oldSize;
+  PetscInt pStart, pEnd, i, j;
+  PetscErrorCode ierr;
+
   PetscFunctionBegin;
 
-  PetscInt i, c, cStart, cEnd;
+  ierr = DMPlexGetChart(dm, &pStart, &pEnd); CHKERRQ(ierr);
+
+  oldSize = *maxClosureSize;
+
+  ierr = TDyAllocate_IntegerArray_2D(&tmpArray, pEnd, 2*newSize); CHKERRQ(ierr);
+
+  for (i=pStart; i<pEnd; i++) {
+    for (j=0; j<*maxClosureSize; j++) {
+      tmpArray[i][j] = closure[i][j];
+    }
+  }
+
+  ierr = TDyDeallocate_IntegerArray_2D(closure, pEnd); CHKERRQ(ierr);
+
+  *maxClosureSize = newSize;
+  ierr = TDyAllocate_IntegerArray_2D(&closure, pEnd, 2*newSize); CHKERRQ(ierr);
+
+  for (i=pStart; i<pEnd; i++) {
+    for (j=0; j<oldSize; j++) {
+      closure[i][j] = tmpArray[i][j];
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDySaveClosures_Elemnts(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize, PetscInt eStart, PetscInt eEnd, PetscBool use_cone){
+  PetscFunctionBegin;
+
+  PetscInt i, e;
   PetscInt pSize,*p;
   MPI_Comm       comm;
   PetscErrorCode ierr;
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
+
+  for(e=eStart; e<eEnd; e++) {
+    p = NULL;
+    ierr = DMPlexGetTransitiveClosure(dm,e,use_cone,&pSize,&p);CHKERRQ(ierr);
+    closureSize[e] = pSize;
+
+    if (pSize > *maxClosureSize) {
+      // Increase the column size by 2 x pSize
+      ierr = Increase_Closure_Array(dm, closure, maxClosureSize, 2*pSize); CHKERRQ(ierr);
+    }
+
+    for (i=0;i<pSize*2;i++) closure[e][i] = p[i];
+    ierr = DMPlexRestoreTransitiveClosure(dm,e,use_cone,&pSize,&p);CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
+  PetscFunctionBegin;
+
+  PetscInt cStart, cEnd;
+  PetscBool use_cone = PETSC_TRUE;
+  PetscErrorCode ierr;
+
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
-
-  for(c=cStart; c<cEnd; c++) {
-    p = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm,c,PETSC_TRUE,&pSize,&p);CHKERRQ(ierr);
-    closureSize[c] = pSize;
-    if (pSize > maxClosureSize) SETERRQ(comm,PETSC_ERR_USER,"closureSize > maxClosureSize");
-    for (i=0;i<pSize*2;i++) closure[c][i] = p[i];
-    ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&pSize,&p);CHKERRQ(ierr);
-  }
+  ierr = TDySaveClosures_Elemnts(dm, closureSize, closure, maxClosureSize, cStart, cEnd, use_cone); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDySaveClosures_Faces(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
+PetscErrorCode TDySaveClosures_Faces(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
   PetscFunctionBegin;
 
-  PetscInt i, f, fStart, fEnd;
-  PetscInt pSize,*p;
-  MPI_Comm       comm;
+  PetscInt fStart, fEnd;
+  PetscBool use_cone = PETSC_TRUE;
   PetscErrorCode ierr;
 
-  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
-
-  for(f=fStart; f<fEnd; f++) {
-    p = NULL;
-    ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&pSize,&p);CHKERRQ(ierr);
-    closureSize[f] = pSize;
-    if (pSize > maxClosureSize) SETERRQ(comm,PETSC_ERR_USER,"closureSize > maxClosureSize");
-    for (i=0;i<pSize*2;i++) closure[f][i] = p[i];
-    ierr = DMPlexRestoreTransitiveClosure(dm,f,PETSC_TRUE,&pSize,&p);CHKERRQ(ierr);
-  }
+  ierr = TDySaveClosures_Elemnts(dm, closureSize, closure, maxClosureSize, fStart, fEnd, use_cone); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDySaveClosures(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt maxClosureSize){
+PetscErrorCode TDySaveClosures_Vertices(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
+  PetscFunctionBegin;
+
+  PetscInt vStart, vEnd;
+  PetscBool use_cone = PETSC_FALSE;
+  PetscErrorCode ierr;
+
+  ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
+  ierr = TDySaveClosures_Elemnts(dm, closureSize, closure, maxClosureSize, vStart, vEnd, use_cone); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDySaveClosures(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
   PetscFunctionBegin;
 
   PetscInt dim;
   PetscErrorCode ierr;
 
   ierr = TDySaveClosures_Cells(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
+  ierr = TDySaveClosures_Vertices(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   if (dim == 3) {
     ierr = TDySaveClosures_Faces(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
@@ -84,6 +145,73 @@ PetscInt TDyGetNumberOfCellVerticesWithClosures(DM dm, PetscInt *closureSize, Pe
     if(nq !=  q) SETERRQ(comm,PETSC_ERR_SUP,"Mesh cells must be of uniform type");
   }
   PetscFunctionReturn(nq);
+}
+
+/* ---------------------------------------------------------------- */
+PetscInt TDyMaxNumOfAElmTypeSharingOtherElmType(PetscInt *closureSize, PetscInt **closure, PetscInt aStart, PetscInt aEnd, PetscInt oStart, PetscInt oEnd) {
+
+  PetscFunctionBegin;
+
+  PetscInt nElem,a,o,result; //cStart,cEnd,vStart,vEnd,result;
+
+  result = 0;
+  for(a=aStart; a<aEnd; a++) {
+    nElem = 0;
+    for (o=0; o<closureSize[a]*2; o+=2) {
+      if ((closure[a][o] >= oStart) && (closure[a][o] < oEnd)) nElem += 1;
+    }
+    result = PetscMax(result, nElem);
+  }
+
+  PetscFunctionReturn(result);
+}
+
+/* ---------------------------------------------------------------- */
+PetscInt TDyMaxNumberOfCellsSharingAVertex(DM dm, PetscInt *closureSize, PetscInt **closure) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  MPI_Comm       comm;
+  PetscInt cStart,cEnd,vStart,vEnd,result;
+
+  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+
+  result = TDyMaxNumOfAElmTypeSharingOtherElmType(closureSize, closure, vStart, vEnd, cStart, cEnd);
+
+  PetscFunctionReturn(result);
+}
+
+/* ---------------------------------------------------------------- */
+PetscInt TDyMaxNumberOfEdgesSharingAVertex(DM dm, PetscInt *closureSize, PetscInt **closure) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  MPI_Comm       comm;
+  PetscInt eStart,eEnd,vStart,vEnd,result;
+
+  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
+
+  result = TDyMaxNumOfAElmTypeSharingOtherElmType(closureSize, closure, vStart, vEnd, eStart, eEnd);
+
+  PetscFunctionReturn(result);
+}
+
+/* ---------------------------------------------------------------- */
+PetscInt TDyMaxNumberOfFacesSharingAVertex(DM dm, PetscInt *closureSize, PetscInt **closure) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  MPI_Comm       comm;
+  PetscInt fStart,fEnd,vStart,vEnd,result;
+
+  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,2,&fStart,&fEnd); CHKERRQ(ierr);
+
+  result = TDyMaxNumOfAElmTypeSharingOtherElmType(closureSize, closure, vStart, vEnd, fStart, fEnd);
+
+  PetscFunctionReturn(result);
 }
 
 /* ---------------------------------------------------------------- */

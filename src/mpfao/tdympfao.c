@@ -315,9 +315,9 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
     break;
   case 3:
-    ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 24, 24); CHKERRQ(ierr);
+    ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, tdy->nfv, tdy->nfv); CHKERRQ(ierr);
     if (tdy->mode == TH){ierr = TDyAllocate_RealArray_3D(&tdy->Temp_Trans, 
-                         tdy->mesh->num_vertices, 24, 24); CHKERRQ(ierr);}
+                         tdy->mesh->num_vertices, tdy->nfv, tdy->nfv); CHKERRQ(ierr);}
     ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
                      &(tdy->vel )); CHKERRQ(ierr);
     ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
@@ -405,7 +405,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
     nrow = 4*nFaces;
     ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
-    nz   = 8;
+    nz   = tdy->nfv;
     ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&tdy->Trans_mat); CHKERRQ(ierr);
     ierr = MatSetOption(tdy->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
     ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&tdy->P_vec);

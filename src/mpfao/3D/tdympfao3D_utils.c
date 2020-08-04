@@ -148,7 +148,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 
     vertex_id = ivertex;
 
-    if (vertices->num_boundary_cells[ivertex] == 0) {
+    if (vertices->num_boundary_faces[ivertex] == 0) {
 
       PetscInt    nflux_in = vertices->num_faces[ivertex];
       PetscScalar Pcomputed[vertices->num_internal_cells[ivertex]];
@@ -225,7 +225,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
   TDy_subcell    *subcells;
   PetscInt       ivertex, icell, cell_id_up, cell_id_dn;
   PetscInt       irow, icol, vertex_id;
-  PetscInt       ncells, ncells_bnd;
+  PetscInt       ncells, nfaces_bnd;
   PetscReal      value;
   PetscInt       vStart, vEnd;
   PetscInt       fStart, fEnd;
@@ -283,9 +283,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
     vertex_id = ivertex;
 
     ncells    = vertices->num_internal_cells[ivertex];
-    ncells_bnd= vertices->num_boundary_cells[ivertex];
+    nfaces_bnd= vertices->num_boundary_faces[ivertex];
 
-    if (ncells_bnd == 0) continue;
+    if (nfaces_bnd == 0) continue;
     if (ncells < 2)  continue;
     if (!vertices->is_local[ivertex]) continue;
 
@@ -294,13 +294,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
     npcen    = vertices->num_internal_cells[ivertex];
-    npitf_bc = vertices->num_boundary_cells[ivertex];
+    npitf_bc = vertices->num_boundary_faces[ivertex];
 
-    nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_cells[ivertex];
+    nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
 
     // Vertex is on the boundary
     
-    PetscScalar pBoundary[4];
+    PetscScalar pBoundary[tdy->nfv];
     PetscInt numBoundary;
     
     // For boundary edges, save following information:
@@ -486,7 +486,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         }
 
         //  +T_11 * Pbc
-        for (icol=0; icol<vertices->num_boundary_cells[ivertex]; icol++) {
+        for (icol=0; icol<vertices->num_boundary_faces[ivertex]; icol++) {
           value += -tdy->Trans[vertex_id][irow+nflux_in][icol+npcen] * pBoundary[icol]/faces->area[face_id];
           //ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
         }
@@ -560,7 +560,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     
-    if (vertices->num_boundary_cells[ivertex] == 0) continue;
+    if (vertices->num_boundary_faces[ivertex] == 0) continue;
     if (vertices->num_internal_cells[ivertex] > 1)  continue;
     
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
