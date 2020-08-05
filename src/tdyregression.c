@@ -153,7 +153,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   TDy_regression *reg;
   PetscInt myrank, size;
   PetscErrorCode ierr;
-  PetscInt c,cStart,cEnd;
+  PetscInt c;
   Vec U_pres, U_temp;
 
   PetscFunctionBegin;
@@ -164,11 +164,10 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   ierr = VecScatterBegin(reg->scatter_cells_per_process_gtos,U,reg->cells_per_process_vec,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
   ierr = VecScatterEnd(reg->scatter_cells_per_process_gtos,U,reg->cells_per_process_vec,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
 
-//  ierr = VecView(U,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+  ierr = VecView(U,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
   MPI_Comm_size(PetscObjectComm((PetscObject)dm),&size);
   MPI_Comm_rank(PetscObjectComm((PetscObject)dm),&myrank);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
   PetscScalar *vec_ptr;
   PetscScalar min_pres_val, max_pres_val, mean_pres_val;
@@ -202,12 +201,12 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   ierr = VecGetArray(U,&u_p); CHKERRQ(ierr);
   
   if (tdy->mode == TH && num_fields == 2) {
-    for (c=0;c<cEnd-cStart;c++) {
+    for (c=0;c<vec_local_size;c++) {
       pres_p[c] = u_p[c*2];
       temp_p[c] = u_p[c*2+1];
     }
   } else {
-    for (c=0;c<cEnd-cStart;c++) {
+    for (c=0;c<vec_local_size;c++) {
       pres_p[c] = u_p[c];
     }
   }
@@ -233,7 +232,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
     mean_temp_val= mean_temp_val/temp_vec_size;
   }
 
-//  ierr = VecView(U_pres,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+  ierr = VecView(U_pres,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 //  ierr = VecView(U_temp,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
   if (myrank==0) {
