@@ -706,7 +706,7 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
     for (c=0; c<vertices->num_internal_cells[ivertex]; c++) {
       PetscInt vOffsetIntCell = vertices->internal_cell_offset[ivertex];
       icell = vertices->internal_cell_ids[vOffsetIntCell + c];
-      if (cells->is_local[icell]) vertices->is_local[ivertex] = PETSC_TRUE;
+      if (icell >= 0 && cells->is_local[icell]) vertices->is_local[ivertex] = PETSC_TRUE;
     }
 
   }
@@ -747,7 +747,7 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
       else                                icell_1 = edges->cell_ids[eOffsetCell + 1];
 
       // Is the cell locally owned?
-      if (cells->is_local[icell_1]) edges->is_local[iedge] = PETSC_TRUE;
+      if (icell_1 >= 0 && cells->is_local[icell_1]) edges->is_local[iedge] = PETSC_TRUE;
 
     } else { // An internal edge
 
@@ -817,7 +817,7 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
       }
 
       // Is the cell locally owned?
-      if (cells->is_local[icell_1]) faces->is_local[iface] = PETSC_TRUE;
+      if (icell_1 >= 0 && cells->is_local[icell_1]) faces->is_local[iface] = PETSC_TRUE;
 
     } else { // An internal face
 
