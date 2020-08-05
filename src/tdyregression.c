@@ -164,7 +164,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   ierr = VecScatterBegin(reg->scatter_cells_per_process_gtos,U,reg->cells_per_process_vec,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
   ierr = VecScatterEnd(reg->scatter_cells_per_process_gtos,U,reg->cells_per_process_vec,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
 
-  ierr = VecView(U,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+//  ierr = VecView(U,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
   MPI_Comm_size(PetscObjectComm((PetscObject)dm),&size);
   MPI_Comm_rank(PetscObjectComm((PetscObject)dm),&myrank);
@@ -232,7 +232,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
     mean_temp_val= mean_temp_val/temp_vec_size;
   }
 
-  ierr = VecView(U_pres,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
+//  ierr = VecView(U_pres,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 //  ierr = VecView(U_temp,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
   if (myrank==0) {
