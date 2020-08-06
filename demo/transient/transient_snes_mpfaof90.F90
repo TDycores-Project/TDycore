@@ -234,9 +234,6 @@ implicit none
      call TDySetPorosityFunction(tdy,PorosityFunctionPFLOTRAN,0,ierr);
      CHKERRA(ierr);
 
-     call TDySetPermeabilityFunction(tdy,PermeabilityFunctionPFLOTRAN,0,ierr);
-     CHKERRA(ierr);
-
      do c = 1,ncell
         index(c) = c-1;
         call MaterialPropAlpha_PFLOTRAN(alpha(c))
@@ -248,6 +245,13 @@ implicit none
 
      call TDySetMaterialPropertyMValuesLocal(tdy,ncell,index,m,ierr)
      CHKERRA(ierr);
+
+     call TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,blockPerm,ierr);
+     CHKERRA(ierr);
+
+     call TDySetResidualSaturationValuesLocal(tdy,ncell,index,residualSat,ierr);
+     CHKERRA(ierr);
+
   else
 
      call TDySetPorosityFunction(tdy,PorosityFunction,0,ierr);
