@@ -110,7 +110,6 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   ierr = ISCreateGeneral(PetscObjectComm((PetscObject)dm),global_count,int_array,PETSC_COPY_VALUES,&temp_is); CHKERRQ(ierr);
 
   ierr = VecScatterCreate(temp_vec,temp_is,regression->cells_per_process_vec,NULL,&temp_scatter); CHKERRQ(ierr);
-//  ierr = VecScatterView(temp_scatter,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
   ierr = ISDestroy(&temp_is); CHKERRQ(ierr);
 
   ierr = VecScatterBegin(temp_scatter,temp_vec,regression->cells_per_process_vec,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
@@ -130,11 +129,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
     
   ierr = ISCreateGeneral(PetscObjectComm((PetscObject)dm),global_count,int_array,PETSC_COPY_VALUES,&temp_is); CHKERRQ(ierr);
 
-//  ierr = ISView(temp_is,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
-//  ierr = VecView(regression->cells_per_process_vec,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
-//  ierr = VecView(U,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
   ierr = VecScatterCreate(U,temp_is,regression->cells_per_process_vec,NULL,&(regression->scatter_cells_per_process_gtos)); CHKERRQ(ierr);
-//  ierr = VecScatterView(regression->scatter_cells_per_process_gtos,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
   ierr = ISDestroy(&temp_is); CHKERRQ(ierr);
   
   tdy->regression = regression;
@@ -164,7 +159,6 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   ierr = VecScatterBegin(reg->scatter_cells_per_process_gtos,U,reg->cells_per_process_vec,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
   ierr = VecScatterEnd(reg->scatter_cells_per_process_gtos,U,reg->cells_per_process_vec,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
 
-//  ierr = VecView(U,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
   MPI_Comm_size(PetscObjectComm((PetscObject)dm),&size);
   MPI_Comm_rank(PetscObjectComm((PetscObject)dm),&myrank);
@@ -232,8 +226,6 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
     mean_temp_val= mean_temp_val/temp_vec_size;
   }
 
-//  ierr = VecView(U_pres,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
-//  ierr = VecView(U_temp,PETSC_VIEWER_STDOUT_WORLD); CHKERRQ(ierr);
 
   if (myrank==0) {
     FILE *fp;
