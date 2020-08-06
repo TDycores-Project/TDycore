@@ -14,6 +14,7 @@ PETSC_EXTERN PetscErrorCode TDyCrossProduct(PetscReal vect_A[3], PetscReal vect_
 PETSC_EXTERN PetscErrorCode TDyDotProduct(PetscReal vect_A[3], PetscReal vect_B[3], PetscReal *dot_P);
 PETSC_EXTERN PetscErrorCode TDyTriangleArea(PetscReal node_1[3], PetscReal node_2[3],PetscReal node_3[3], PetscReal *area);
 PETSC_EXTERN PetscErrorCode TDyQuadrilateralArea(PetscReal node_1[3], PetscReal node_2[3],PetscReal node_3[3], PetscReal node_4[3], PetscReal *area);
+PETSC_EXTERN PetscErrorCode TDyUnitNormalVectorJoiningTwoVertices(PetscReal[3], PetscReal[3],PetscReal[3]);
 PETSC_EXTERN PetscErrorCode TDyNormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],PetscReal node_3[3],PetscReal normal[3]);
 PETSC_EXTERN PetscErrorCode TDyUnitNormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],PetscReal node_3[3],PetscReal normal[3]);
 PETSC_EXTERN PetscErrorCode TDyNormalToQuadrilateral(PetscReal node_1[3], PetscReal node_2[3],PetscReal node_3[3], PetscReal node_4[3],PetscReal normal[3]);
