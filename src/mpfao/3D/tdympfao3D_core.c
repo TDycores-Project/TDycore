@@ -31,6 +31,7 @@ PetscErrorCode TDyComputeEntryOfGMatrix3D(PetscReal area, PetscReal n[3],
     (*g) += n[i] * Kv[i];
   }
   (*g) *= 1.0/(T)*area;
+  if ( fabs(*g) < PETSC_MACHINE_EPSILON) *g = 0.0;
 
   PetscFunctionReturn(0);
 }
