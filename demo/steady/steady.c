@@ -747,6 +747,8 @@ int main(int argc, char **argv) {
   /* Solve system */
   KSP ksp;
   ierr = KSPCreate(PETSC_COMM_WORLD,&ksp); CHKERRQ(ierr);
+  ierr = KSPSetDM(ksp,dm);CHKERRQ(ierr);
+  ierr = KSPSetDMActive(ksp,PETSC_FALSE);CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp,K,K); CHKERRQ(ierr);
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
