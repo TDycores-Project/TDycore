@@ -242,37 +242,46 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
-  
+#if 0
+static PetscErrorCode TDyQ2ApplyResidual(void *dummy, Vec U, Vec F, DM dm)
+{
+  PetscErrorCode ierr;
+
   PetscFunctionBegin;
-  SNES            snes;                 /* nonlinear solver */
+  ierr = DMPlexSNESComputeResidualFEM(dm, U, F, NULL);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+#endif
+
+PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   DM dm = tdy->dm;
-  Vec             u,r;                  /* solution, residual vectors */
+  Vec             u;                  /* solution, residual vectors */
   PetscErrorCode  ierr;
-  PetscInt        its;
-  PetscReal res = 0.0;
-  MPI_Comm       comm = PETSC_COMM_WORLD;
 
-  ierr = SNESCreate(comm, &snes);CHKERRQ(ierr);
-  ierr = SNESSetDM(snes, dm);CHKERRQ(ierr);
+  PetscFunctionBegin;
+  ierr = DMGetGlobalVector(dm, &u);CHKERRQ(ierr);
+  ierr = VecZeroEntries(u);CHKERRQ(ierr);
+  ierr = DMPlexSNESComputeResidualFEM(dm, u, F, NULL);CHKERRQ(ierr);
+  ierr = VecView(F,NULL);CHKERRQ(ierr);
 
-  ierr = DMCreateGlobalVector(dm, &u);CHKERRQ(ierr);
-  ierr = VecDuplicate(u, &r);CHKERRQ(ierr);
+  ISColoring iscoloring;
+  MatFDColoring color;
+  MatColoring mc;
+  ierr = MatColoringCreate(K,&mc);CHKERRQ(ierr);
+  ierr = MatColoringSetDistance(mc,2);CHKERRQ(ierr);
+  ierr = MatColoringSetType(mc,MATCOLORINGSL);CHKERRQ(ierr);
+  ierr = MatColoringSetFromOptions(mc);CHKERRQ(ierr);
+  ierr = MatColoringApply(mc,&iscoloring);CHKERRQ(ierr);
+  ierr = MatFDColoringCreate(K,iscoloring,&color);CHKERRQ(ierr);
+  ierr = MatFDColoringSetFunction(color,(PetscErrorCode (*)(void))DMPlexSNESComputeResidualFEM,NULL);CHKERRQ(ierr);
+  ierr = MatFDColoringSetFromOptions(color);CHKERRQ(ierr);
+  ierr = MatFDColoringSetUp(K,iscoloring,color);CHKERRQ(ierr);
+  ierr = ISColoringDestroy(&iscoloring);CHKERRQ(ierr);
+  ierr = MatFDColoringApply(K,color,u,dm);CHKERRQ(ierr);
+  ierr = DMRestoreGlobalVector(dm, &u);CHKERRQ(ierr);
+  ierr = MatFDColoringDestroy(&color);CHKERRQ(ierr);
 
-  ierr = SNESSetFromOptions(snes);CHKERRQ(ierr);
-  ierr = SNESSetUp(snes);CHKERRQ(ierr);
-  ierr = SNESSolve(snes, NULL, u);CHKERRQ(ierr);
-  ierr = SNESGetSolution(snes, &u);CHKERRQ(ierr);
-  ierr = SNESGetIterationNumber(snes, &its);CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Number of SNES iterations = %D\n", its);CHKERRQ(ierr);
-
-  ierr = SNESGetFunction(snes, &r, NULL, NULL);CHKERRQ(ierr);
-  ierr = SNESComputeFunction(snes, u, r);CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "Residual\n");CHKERRQ(ierr);
-  ierr = VecView(r, PETSC_VIEWER_STDOUT_WORLD);CHKERRQ(ierr);
-  ierr = VecNorm(r, NORM_2, &res);CHKERRQ(ierr);
-  ierr = PetscPrintf(comm, "L_2 Residual: %g\n", (double)res);CHKERRQ(ierr);
-
+  // ierr = MatView(K,NULL);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
