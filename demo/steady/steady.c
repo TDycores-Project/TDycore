@@ -732,7 +732,7 @@ int main(int argc, char **argv) {
   }
 
   //ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+  //ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   /* Compute system */
