@@ -33,7 +33,7 @@ endif
 # standard tests that are run to verify executable is built correctly
 #
 
-test : test-mpfao test-steadyf90 test-steady test-transient test-transient-mpfao test-transient-mpfaof90 test-transient-snes-mpfaof90
+test : test-mpfao test-steadyf90 test-steady test-transient test-transient-mpfao test-transient-mpfaof90 test-transient-snes-mpfaof90 test-richards
 
 test-steady :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/steady/steady $(TEST_OPTIONS) \
@@ -70,6 +70,12 @@ test-transient-th-mpfao :
 		--suite standard standard_parallel \
 		--config-files ../demo/transient/transient_th_mpfao.cfg \
 		--logfile_prefix transient_th_mpfao
+
+test-richards :
+	$(PYTHON) $(TEST_MANAGER) -e ../demo/richards/richards_driver $(TEST_OPTIONS) \
+		--suite standard standard_parallel \
+		--config-files ../demo/richards/richards.cfg \
+		--logfile_prefix richards
 
 test-mpfao :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/mpfao/mpfao $(TEST_OPTIONS) \
