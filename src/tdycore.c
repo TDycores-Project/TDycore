@@ -5,6 +5,7 @@
 #include <private/tdympfaoimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
+#include "/home/rosie/software/petsc/arch-linux2-c-opt/externalpackages/git.exodusii/packages/seacas/libraries/exodus/include/exodusII.h"
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -1255,5 +1256,37 @@ PetscErrorCode TDyPostSolveSNESSolver(TDy tdy, Vec soln) {
 
   PetscFunctionBegin;
   ierr = VecCopy(soln,tdy->soln_prev); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode OutputExodus(char *ofilename, PetscObject U, char *nodalVarName, DM dm){
+  
+  int CPU_word_size, IO_word_size, exoid=-1;
+  // char *nodalVarName[1];
+  int nt;
+  float time_value;
+  PetscErrorCode ierr;
+
+  // PetscFunctionBegin;
+
+  time_value = 0.0;
+  nt = 1;
+
+  CPU_word_size = sizeof(PetscReal);
+  IO_word_size  = sizeof(PetscReal);
+
+  exoid = ex_create(ofilename,EX_CLOBBER, &CPU_word_size, &IO_word_size);//;CHKERRQ(ierr);
+
+  ierr = DMPlexView_ExodusII_Internal(dm,exoid,1);CHKERRQ(ierr);
+  ierr = ex_put_variable_param(exoid, EX_ELEM_BLOCK, 1);CHKERRQ(ierr);
+  ierr = ex_put_variable_names(exoid,EX_ELEM_BLOCK, 1, nodalVarName);CHKERRQ(ierr);
+  ierr = ex_put_time(exoid,nt,&time_value);CHKERRQ(ierr);
+	   
+  ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, 1);CHKERRQ(ierr);
+        
+  ierr = ex_close(exoid);CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }

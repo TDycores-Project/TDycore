@@ -334,9 +334,15 @@ int main(int argc, char **argv) {
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
 
-  //
+  //Export to Exodus function
+ 
+    char *nodalVarName[1];
+   nodalVarName[0]="U";
+   ierr = PetscObjectSetName((PetscObject) U,  "U");CHKERRQ(ierr);
+   ierr = OutputExodus(ofilename,U,nodalVarName,dm);CHKERRQ(ierr);
+   
   //Export to Exodus
-
+    /*
   int CPU_word_size, IO_word_size, exoid;
   char *nodalVarName[1];
   int nt;
@@ -357,10 +363,11 @@ int main(int argc, char **argv) {
   ierr = ex_put_variable_names(exoid,EX_ELEM_BLOCK, 1, nodalVarName);CHKERRQ(ierr);
   ierr = ex_put_time(exoid,nt,&time_value);CHKERRQ(ierr);
 	   
-  ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, 1);CHKERRQ(ierr);
+  // ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, 1);CHKERRQ(ierr);
         
   ierr = ex_close(exoid);CHKERRQ(ierr);
   //
+  */
 
   PetscReal normp, normv;
   ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
