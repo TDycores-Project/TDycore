@@ -23,6 +23,6 @@ include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 build:
 	@cd ../../; make
 
-steady: steady.o chkopts
+steady: steady.o
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<

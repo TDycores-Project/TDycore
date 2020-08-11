@@ -23,7 +23,7 @@ include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 build:
 	@cd ../; make
 
-mpfao: mpfao.o chkopts
+mpfao: mpfao.o
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
 

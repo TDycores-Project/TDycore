@@ -2,7 +2,6 @@
 
 TDYCORE_DIR ?= $(CURDIR)
 include ./lib/tdycore/conf/variables
--include makefile.in
 
 OBJDIR := $(PETSC_ARCH)/obj
 MODDIR := $(PETSC_ARCH)/include
@@ -44,7 +43,7 @@ else                   # Show the full command line
 endif
 
 pcc = $(if $(findstring CONLY,$(PETSC_LANGUAGE)),CC,CXX)
-COMPILE.cc = $(call quiet,$(pcc)) $(PCC_FLAGS) $(CFLAGS) $(CCPPFLAGS) $(C_DEPFLAGS) -c
+COMPILE.c = $(call quiet,$(pcc)) $(PCC_FLAGS) $(CFLAGS) $(CCPPFLAGS) $(C_DEPFLAGS) -c
 COMPILE.cxx = $(call quiet,CXX) $(CXX_FLAGS) $(CFLAGS) $(CCPPFLAGS) $(CXX_DEPFLAGS) -c
 ifneq ($(FC_MODULE_OUTPUT_FLAG),)
 COMPILE.fc = $(call quiet,FC) $(FC_FLAGS) $(FFLAGS) $(FCPPFLAGS) $(FC_DEPFLAGS) $(FC_MODULE_OUTPUT_FLAG)$(MODDIR) -c
@@ -81,13 +80,39 @@ else
 endif
 
 $(OBJDIR)/%.o : %.c | $$(@D)/.DIR
-	$(COMPILE.cc) $(abspath $<) -o $@
+	$(COMPILE.c) $(abspath $<) -o $@
 
 $(OBJDIR)/%.o : %.cxx | $$(@D)/.DIR
 	$(COMPILE.cxx) $(abspath $<) -o $@
 
 $(OBJDIR)/%.o : %.F90 | $$(@D)/.DIR $(MODDIR)/.DIR
 	$(COMPILE.fc) $(abspath $<) -o $(if $(FCMOD),$(abspath $@),$@)
+
+TEST.c = \
+	demo/steady/steady.c \
+	demo/transient/transient.c \
+	demo/transient/transient_mpfao.c \
+	demo/mpfao/mpfao.c \
+#	demo/transient/transient_th_mpfao.c \
+
+TEST.F90 = \
+	demo/steadyf90/steadyf90.F90 \
+	demo/transient/transient_mpfaof90.F90 \
+	demo/transient/transient_snes_mpfaof90.F90
+
+# Demo executables
+$(TEST.c:%.c=%.o) : %.o : %.c
+	$(COMPILE.c) $(abspath $<) -o $@
+
+$(TEST.c:%.c=%) : demo/% : demo/%.o $$^ $(libtdycore)
+	$(call quiet,CLINKER) -o $@ $^ $(TDYCORE_LIB) $(LIBS)
+
+$(TEST.F90:%.F90=%.o) : MODDIR = $(PETSC_ARCH)/obj/demo-modules
+$(TEST.F90:%.F90=%.o) : %.o : %.F90 $(libtdycore) | $$(@D)/.DIR $$(MODDIR)/.DIR
+	$(COMPILE.fc) $(abspath $<) -o $(if $(FCMOD),$(abspath $@),$@)
+
+$(TEST.F90:%.F90=%) : demo/% : demo/%.o $$^ $(libtdycore)
+	$(call quiet,FLINKER) -o $@ $^ $(TDYCORE_LIB) $(LIBS)
 
 # Hack: manual dependencies on object files
 tdycore.mod.o:= $(OBJDIR)/src/tdycore.o
@@ -105,6 +130,19 @@ $(filter-out $(tdycore.mod.o),$(srcs-tdycore.F90.o)): | $(tdycore.mod.o)
 
 clean:
 	@$(RM) -r $(OBJDIR) $(LIBDIR)/libtdycore.* $(MODDIR)/tdycore.mod
+
+testname = test-$(subst _,-,$(basename $(notdir $(1))))
+ALLTESTS = $(foreach path,$(TEST.c) $(TEST.F90),$(call testname,$(path)))
+# Set target-specific variables for each test
+define target_specific_var
+  $(call testname,$(1)) : DEMO_EXE = $(basename $(1))
+endef
+$(foreach demo_src,$(TEST.c) $(TEST.F90),$(eval $(call target_specific_var,$(demo_src))))
+
+$(ALLTESTS) : test-% : $$(DEMO_EXE)
+	+@$(MAKE) -C regression_tests $@
+
+test : $(ALLTESTS)
 
 # make print VAR=the-variable
 print : ; @echo $($(VAR))

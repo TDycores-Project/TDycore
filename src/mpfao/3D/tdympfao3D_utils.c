@@ -739,7 +739,6 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
 PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
 
   TDy_mesh *mesh;
-  TDy_cell *cells;
   TDy_face *faces;
   PetscErrorCode ierr;
   PetscInt dim, ncells;
@@ -760,7 +759,6 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
   }
 
   mesh = tdy->mesh;
-  cells = &mesh->cells;
   faces = &mesh->faces;
   ncells = mesh->num_cells;
 
