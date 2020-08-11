@@ -9,6 +9,8 @@
 #include <private/tdympfao3Dutilsimpl.h>
 #include <private/tdympfao3Dtsimpl.h>
 
+#include <petscviewerhdf5.h>
+
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accum) {
 
@@ -116,12 +118,21 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
 
+#if 0
+  ierr = VecCopy(R,tdy->F); CHKERRQ(ierr);
+
+  PetscViewer viewer;
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"F.vec",&viewer);
+         CHKERRQ(ierr);
+  ierr = VecView(R,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
+
   PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
-
   TDy      tdy = (TDy)ctx;
   DM             dm;
   TDy_mesh       *mesh;
@@ -177,6 +188,72 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
 
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Udotl); CHKERRQ(ierr);
+
+#if 0
+  PetscViewer viewer;
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"A.mat",&viewer);
+//  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,"A.h5",FILE_MODE_WRITE,&viewer);
+         CHKERRQ(ierr);
+  ierr = MatView(A,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  ierr = MatCopy(A,tdy->G,SAME_NONZERO_PATTERN); CHKERRQ(ierr);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"G.mat",&viewer);
+//  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,"G.h5",FILE_MODE_WRITE,&viewer);
+         CHKERRQ(ierr);
+  ierr = MatView(tdy->G,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"F.vec",&viewer);
+//  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,"F.h5",FILE_MODE_WRITE,&viewer);
+         CHKERRQ(ierr);
+  ierr = VecView(tdy->F,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  KSP ksp;
+  ierr = KSPCreate(PETSC_COMM_WORLD,&ksp); CHKERRQ(ierr);
+  ierr = KSPSetOperators(ksp,tdy->G,tdy->G); CHKERRQ(ierr);
+  PC pc;
+  ierr = KSPSetType(ksp,KSPPREONLY); CHKERRQ(ierr);
+  ierr = KSPGetPC(ksp,&pc); CHKERRQ(ierr);
+  ierr = PCSetType(pc,PCLU); CHKERRQ(ierr);
+  ierr = PCFactorSetZeroPivot(pc,1.e-20); CHKERRQ(ierr);
+  ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
+  ierr = KSPSetUp(ksp); CHKERRQ(ierr);
+  ierr = KSPSolve(ksp,tdy->F,tdy->update); CHKERRQ(ierr);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"U.vec",&viewer);
+         CHKERRQ(ierr);
+  ierr = VecView(tdy->update,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+#if 0
+  Mat AA;
+//  ierr = MatDuplicate(A,MAT_COPY_VALUES,&AA); CHKERRQ(ierr);
+  ierr = DMCreateMatrix(dm,&AA); CHKERRQ(ierr);
+  ierr = MatCopy(A,AA,DIFFERENT_NONZERO_PATTERN); CHKERRQ(ierr);
+  IS is1, is2;
+  PetscInt iarray[8];
+  MatFactorInfo info;
+  for (int i=0; i<8; i++) iarray[i] = i;
+  ierr = ISCreateGeneral(PETSC_COMM_WORLD,8,iarray,PETSC_COPY_VALUES,&is1);
+         CHKERRQ(ierr);
+  ierr = ISSetPermutation(is1); CHKERRQ(ierr);
+  ierr = ISCreateGeneral(PETSC_COMM_WORLD,8,iarray,PETSC_COPY_VALUES,&is2);
+         CHKERRQ(ierr);
+  ierr = ISSetPermutation(is2); CHKERRQ(ierr);
+  ierr = MatLUFactor(AA,is1,is2,&info); CHKERRQ(ierr); CHKERRQ(ierr);
+  ierr = MatLUFactor(A,is1,is2,&info); CHKERRQ(ierr); CHKERRQ(ierr);
+#endif
+
+#if 0
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"factor.mat",&viewer);
+         CHKERRQ(ierr);
+  ierr = MatView(AA,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
+#endif
 
   PetscFunctionReturn(0);
 }
