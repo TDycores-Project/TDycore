@@ -466,6 +466,20 @@ PetscErrorCode TDySubCell_GetIthNuVector(TDy_subcell *subcells, PetscInt isubcel
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDySubCell_GetIthNuStarVector(TDy_subcell *subcells, PetscInt isubcell, PetscInt i, PetscInt dim, PetscReal *nu_vec) {
+  PetscFunctionBegin;
+  PetscInt d;
+  PetscInt sOffsetNu = subcells->nu_vector_offset[isubcell];
+
+  if (i>=subcells->num_nu_vectors[isubcell]) {
+    SETERRQ(PETSC_COMM_SELF,PETSC_ERR_USER,"Subcell: Requested i-th nu_vec exceeds max nu_vecs");
+  }
+  
+  for (d=0; d<dim; d++) nu_vec[d] = subcells->nu_star_vector[sOffsetNu + i].V[d];
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDySubCell_GetIthFaceCentroid(TDy_subcell *subcells, PetscInt isubcell, PetscInt i, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;

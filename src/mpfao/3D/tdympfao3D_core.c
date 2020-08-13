@@ -105,8 +105,15 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
           
           ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
                                          &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
-
-
+          PetscReal g;
+          if (ii == jj) {
+            ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+            ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
+                                         &g); CHKERRQ(ierr);
+          } else {
+            g = 0.0;
+          }
+          //tdy->subc_Gmatrix[icell][isubcell][ii][jj] = g;
           if (tdy->mode == TH) {ierr = TDyComputeEntryOfGMatrix3D(area, normal, Kappa,
                                 nu, subcells->T[subcell_id], dim,
                                 &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);}                                         
