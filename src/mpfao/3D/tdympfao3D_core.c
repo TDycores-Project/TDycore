@@ -31,7 +31,6 @@ PetscErrorCode TDyComputeEntryOfGMatrix3D(PetscReal area, PetscReal n[3],
     (*g) += n[i] * Kv[i];
   }
   (*g) *= 1.0/(T)*area;
-  if ( fabs(*g) < PETSC_MACHINE_EPSILON) *g = 0.0;
 
   PetscFunctionReturn(0);
 }
@@ -299,7 +298,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
   for (j=0; j<ncells; j++) {
     for (i=0; i<nfluxes; i++) {
       (*Trans)[vertex_id][i][j] = CuptimesAinvB_1d[idx] - Fup[i][j];
-      if (fabs((*Trans)[vertex_id][i][j])<PETSC_MACHINE_EPSILON) (*Trans)[vertex_id][i][j] = 0.0;
       idx++;
     }
   }
@@ -570,7 +568,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
       } else {
         (*Trans)[vertex_id][i][j] = CupInxIntimesAinvB_1d[idx] + Cup[i][j-npcen+npitf_in];
       }
-      if (fabs((*Trans)[vertex_id][i][j])<PETSC_MACHINE_EPSILON) (*Trans)[vertex_id][i][j] = 0.0;
       idx++;
     }
   }
@@ -585,7 +582,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
       } else {
         (*Trans)[vertex_id][i+nflux_in][j] = CupBCxIntimesAinvB_1d[idx] + Cup[i+npitf_in][j-npcen+npitf_in];
       }
-      if (fabs((*Trans)[vertex_id][i+nflux_in         ][j])<PETSC_MACHINE_EPSILON) (*Trans)[vertex_id][i+nflux_in         ][j] = 0.0;
       idx++;
     }
   }
@@ -598,7 +594,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
       } else {
         (*Trans)[vertex_id][i+nflux_in+nflux_bc_up][j] = CdnBCxIntimesAinvB_1d[idx] + Cdn[i+npitf_in][j-npcen+npitf_in];
       }
-      if (fabs((*Trans)[vertex_id][i+nflux_in+nflux_bc_up][j])<PETSC_MACHINE_EPSILON) (*Trans)[vertex_id][i+nflux_in+nflux_bc_up][j] = 0.0;
       idx++;
     }
   }
@@ -729,7 +724,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
     for (j=0; j<dim; j++) {
       (*Trans)[vertices->id[ivertex]][iface][j] = Gmatrix[iface][j];
-      if (fabs( (*Trans)[vertices->id[ivertex]][iface][j])<PETSC_MACHINE_EPSILON) (*Trans)[vertices->id[ivertex]][iface][j] = 0.0;
     }
     (*Trans)[vertices->id[ivertex]][iface][dim] = 0.0;
     for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] -= (Gmatrix[iface][j]);
