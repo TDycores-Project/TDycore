@@ -36,6 +36,7 @@ PetscErrorCode InvPermWheeler2012_1(const PetscReal x[], PetscScalar *K_inv) {
   
   K_inv[0] =  K[3]/det; K_inv[1] = -K[1]/det;
   K_inv[2] = -K[2]/det; K_inv[3] =  K[0]/det;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode InvPermWheeler2012_2(const PetscReal x[],PetscScalar *K_inv) {
@@ -47,6 +48,7 @@ PetscErrorCode InvPermWheeler2012_2(const PetscReal x[],PetscScalar *K_inv) {
   K_inv[0] =  (K[4]*K[8]-K[5]*K[7])/det;  K_inv[1] = -(K[1]*K[8]-K[2]*K[7])/det;  K_inv[2] =  (K[1]*K[5]-K[2]*K[4])/det;
   K_inv[3] = -(K[3]*K[8]-K[5]*K[6])/det;  K_inv[4] =  (K[0]*K[8]-K[2]*K[6])/det;  K_inv[5] = -(K[0]*K[5]-K[2]*K[3])/det;
   K_inv[6] =  (K[3]*K[7]-K[4]*K[6])/det;  K_inv[7] = -(K[0]*K[7]-K[1]*K[6])/det;  K_inv[8] =  (K[0]*K[4]-K[1]*K[3])/det;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode ForcingWheeler2012_1(const PetscReal x[],PetscScalar *f) {
@@ -63,6 +65,7 @@ PetscErrorCode ForcingWheeler2012_1(const PetscReal x[],PetscScalar *f) {
   (*f) += K[3]*sx*sx*sy*sy;
   (*f) -= K[3]*sx*sx*cy*cy;
   (*f) *= 18*PETSC_PI*PETSC_PI;
+  PetscFunctionReturn(0);
 }
 
 
@@ -85,6 +88,7 @@ PetscErrorCode ForcingWheeler2012_2(const PetscReal x[],PetscScalar *f) {
     -K[0]*a2*y2*ym12*z2*zm12 -K[1]*a1     *b1*z2*zm12 -K[2]*a1     *y2*ym12*c1 +
     -K[3]*a1*b1     *z2*zm12 -K[4]*x2*xm12*b2*z2*zm12 -K[5]*x2*xm12*b1     *c1 +
     -K[6]*a1*y2*ym12*c1      -K[7]*x2*xm12*b1*c1      -K[8]*x2*xm12*y2*ym12*c2;
+  PetscFunctionReturn(0);
 }
 //========================================================
 //         Compute f0 and f1 for the equation (3)
@@ -262,10 +266,6 @@ PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   DM dm = tdy->dm;
   Vec             u;                  /* solution, residual vectors */
   PetscErrorCode  ierr;
-<<<<<<< HEAD
-
-=======
->>>>>>> 29f24e3... src/tdyq2.c: WIP - Fixed the forcing term
   PetscFunctionBegin;
   ierr = DMCreateGlobalVector(dm, &u);CHKERRQ(ierr);
   ierr = VecZeroEntries(u);CHKERRQ(ierr);
