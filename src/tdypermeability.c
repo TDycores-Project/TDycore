@@ -202,3 +202,20 @@ PetscErrorCode TDyGetBlockPermeabilityValuesLocal(TDy tdy, PetscInt *ni, PetscSc
 
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode TDyPermeabilityFunctionDefault(TDy tdy, double *x, double *K, void *ctx) {
+  PetscErrorCode ierr;
+  PetscInt dim;
+  PetscFunctionBegin;
+  TDy tdya;
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  for (int j=0; j<dim; j++) {
+    for (int i=0; i<dim; i++) {
+      K[j*dim+i] = 0.;
+    }
+  }
+  for (int i=0; i<dim; i++)
+    K[i*dim+i] = 1.e-12;
+  return 0;
+  PetscFunctionReturn(0);
+}

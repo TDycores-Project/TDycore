@@ -55,3 +55,12 @@ PetscErrorCode TDyGetPorosityValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[])
 
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode TDyPorosityFunctionDefault(TDy tdy, double *x, double *por, void *ctx) {
+  PetscErrorCode ierr;
+  PetscInt dim;
+  PetscFunctionBegin;
+  TDy tdya;
+  *por = 0.25;
+  PetscFunctionReturn(0);
+}

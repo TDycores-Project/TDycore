@@ -6,6 +6,10 @@
 #include <private/tdyeosimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 #include <tdydm.h>
+#include <tdyts.h>
+#include <tdypermeability.h>
+#include <tdyporosity.h>
+#include <tdyrichards.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -218,6 +222,9 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   tdy->faces = NULL; tdy->LtoG = NULL; tdy->orient = NULL;
   tdy->allow_unsuitable_mesh = PETSC_FALSE;
   tdy->qtype = FULL;
+
+  ierr = TimestepperCreate(&(tdy->ts)); CHKERRQ(ierr);
+  ierr = TDyRichardsInitialize(tdy); CHKERRQ(ierr);
   
   PetscFunctionReturn(0);
 }
@@ -274,6 +281,11 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->Cr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->rhor); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->U); CHKERRQ(ierr);
+  ierr = TimestepperDestroy(&tdy->ts); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);
@@ -682,9 +694,10 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   case MPFA_O:
     switch (dim) {
     case 3:
-      ierr = DMCreateGlobalVector(tdy->dm,&tdy->accumulation_prev); CHKERRQ(ierr);
-      ierr = DMCreateGlobalVector(tdy->dm,&tdy->soln_prev); CHKERRQ(ierr);
       ierr = DMCreateGlobalVector(tdy->dm,&tdy->residual); CHKERRQ(ierr);
+      ierr = VecDuplicate(tdy->residual,&tdy->accumulation_prev); CHKERRQ(ierr);
+      ierr = VecDuplicate(tdy->residual,&tdy->U); CHKERRQ(ierr);
+      ierr = VecDuplicate(tdy->residual,&tdy->soln_prev); CHKERRQ(ierr);
       ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction_3DMesh,tdy); CHKERRQ(ierr);
       break;
     default :
@@ -1260,11 +1273,56 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyPostSolveSNESSolver(TDy tdy, Vec soln) {
+PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
 
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  ierr = VecCopy(soln,tdy->soln_prev); CHKERRQ(ierr);
+  ierr = VecCopy(U,tdy->soln_prev); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyRichardsInitialize(TDy tdy) {
+  PetscRandom rand;
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  PetscReal gravity[3];
+  gravity[0] = 0.0; gravity[1] = 0.0; gravity[2] = 9.8068;
+  ierr = TDySetGravityVector(tdy,gravity);
+  ierr = TDySetPorosityFunction(tdy,TDyPorosityFunctionDefault,PETSC_NULL);
+         CHKERRQ(ierr);
+  ierr = TDySetPermeabilityFunction(tdy,TDyPermeabilityFunctionDefault,PETSC_NULL);
+         CHKERRQ(ierr);
+  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+
+  DM dm;
+  ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
+  PetscViewer viewer;
+#if defined(DEBUG)
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"dm.txt",&viewer);
+         CHKERRQ(ierr);
+  ierr = DMView(dm,viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
+
+  ierr = DMCreateGlobalVector(dm,&tdy->U); CHKERRQ(ierr);
+
+  ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
+  ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
+  ierr = VecSetRandom(tdy->U,rand); CHKERRQ(ierr);
+  ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
+
+  ierr = SNESCreate(PETSC_COMM_WORLD,&tdy->ts->snes); CHKERRQ(ierr);
+  ierr = TDySetSNESFunction(tdy->ts->snes,tdy); CHKERRQ(ierr);
+  ierr = TDySetSNESJacobian(tdy->ts->snes,tdy); CHKERRQ(ierr);
+  SNESLineSearch linesearch;
+  ierr = SNESGetLineSearch(tdy->ts->snes,&linesearch); CHKERRQ(ierr);
+  ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,&tdy);
+         CHKERRQ(ierr);
+  ierr = SNESSetFromOptions(tdy->ts->snes); CHKERRQ(ierr);
+  ierr = TDySetInitialSolutionForSNESSolver(tdy,tdy->U); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
