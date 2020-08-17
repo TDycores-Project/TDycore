@@ -275,9 +275,7 @@ PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   ISColoring iscoloring;
   MatFDColoring color;
   MatColoring mc;
-  SNES            snes;
-  ierr = SNESCreate(PETSC_COMM_WORLD,&snes);CHKERRQ(ierr);
-  ierr = SNESGetDM(snes,&dm);CHKERRQ(ierr);
+
   ierr = MatColoringCreate(K,&mc);CHKERRQ(ierr);
   ierr = MatColoringSetDistance(mc,2);CHKERRQ(ierr);
   ierr = MatColoringSetType(mc,MATCOLORINGSL);CHKERRQ(ierr);
