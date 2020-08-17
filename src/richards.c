@@ -1,12 +1,17 @@
 #include "richards.h"
+#include "private/tdydriverimpl.h"
 
 //#define DEBUG
+#define R (*r)
 
-PetscErrorCode RichardsCreate(Richards *r) {
+PetscErrorCode RichardsCreate(TDyDriver tdydriver) {
+  Richards R;
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  *r = (Richards) malloc(sizeof(struct Richards));
-  ierr = TDyCreate(&((*r)->tdy)); CHKERRQ(ierr);
+  R = (Richards) malloc(sizeof(struct Richards));
+  tdydriver->driverctx = (void*)malloc(sizeof(struct Richards));
+  ierr = TDyCreate(&(R->tdy)); CHKERRQ(ierr);
+  rr = (void*)r; 
   PetscFunctionReturn(0);
 }
 
@@ -61,33 +66,36 @@ PetscErrorCode RichardsSNESPostCheck(SNESLineSearch linesearch,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode RichardsInitialize(Richards r) {
+PetscErrorCode RichardsInitialize(void *rr) {
   PetscRandom rand;
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  r->U = PETSC_NULL;
-  r->snes = PETSC_NULL;
-  r->io_process = PETSC_FALSE;
-  r->print_intermediate = PETSC_FALSE;
-  r->time = 0.;
-  r->dtime = 1.;
-  r->istep = 0;
+  Richards R;
+  r = (Richards*)rr;
+
+  R->U = PETSC_NULL;
+  R->snes = PETSC_NULL;
+  R->io_process = PETSC_FALSE;
+  R->print_intermediate = PETSC_FALSE;
+  R->time = 0.;
+  R->dtime = 1.;
+  R->istep = 0;
   PetscScalar final_time_in_years = 0.0001;
-  r->final_time = final_time_in_years*365.*24.*3600.;
+  R->final_time = final_time_in_years*365.*24.*3600.;
 
   PetscReal gravity[3];
   gravity[0] = 0.0; gravity[1] = 0.0; gravity[2] = 9.8068;
-  ierr = TDySetGravityVector(r->tdy,gravity);
-  ierr = TDySetPorosityFunction(r->tdy,PorosityFunction,PETSC_NULL); 
+  ierr = TDySetGravityVector(R->tdy,gravity);
+  ierr = TDySetPorosityFunction(R->tdy,PorosityFunction,PETSC_NULL); 
          CHKERRQ(ierr);
-  ierr = TDySetPermeabilityFunction(r->tdy,PermeabilityFunction,PETSC_NULL); 
+  ierr = TDySetPermeabilityFunction(R->tdy,PermeabilityFunction,PETSC_NULL); 
          CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(r->tdy,MPFA_O); CHKERRQ(ierr);
-  ierr = TDySetFromOptions(r->tdy); CHKERRQ(ierr); 
+  ierr = TDySetDiscretizationMethod(R->tdy,MPFA_O); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(R->tdy); CHKERRQ(ierr); 
 
   DM dm;
-  ierr = TDyGetDM(r->tdy,&dm); CHKERRQ(ierr);
+  ierr = TDyGetDM(R->tdy,&dm); CHKERRQ(ierr);
   PetscViewer viewer;
 #if defined(DEBUG)
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"dm.txt",&viewer); 
@@ -96,62 +104,70 @@ PetscErrorCode RichardsInitialize(Richards r) {
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
   
-  ierr = DMCreateGlobalVector(dm,&(r->U)); CHKERRQ(ierr);
+  ierr = DMCreateGlobalVector(dm,&(R->U)); CHKERRQ(ierr);
 
   ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
   ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
-  ierr = VecSetRandom(r->U,rand); CHKERRQ(ierr);
-//  ierr = VecSet(r->U,2.e5); CHKERRQ(ierr);
+  ierr = VecSetRandom(R->U,rand); CHKERRQ(ierr);
+//  ierr = VecSet(R->U,2.e5); CHKERRQ(ierr);
   ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
 
-  ierr = SNESCreate(PETSC_COMM_WORLD,&(r->snes)); CHKERRQ(ierr);
-  ierr = TDySetSNESFunction(r->snes,r->tdy); CHKERRQ(ierr);
-  ierr = TDySetSNESJacobian(r->snes,r->tdy); CHKERRQ(ierr);
+  ierr = SNESCreate(PETSC_COMM_WORLD,&(R->snes)); CHKERRQ(ierr);
+  ierr = TDySetSNESFunction(R->snes,R->tdy); CHKERRQ(ierr);
+  ierr = TDySetSNESJacobian(R->snes,R->tdy); CHKERRQ(ierr);
   SNESLineSearch linesearch;
-  ierr = SNESGetLineSearch(r->snes,&linesearch); CHKERRQ(ierr);
+  ierr = SNESGetLineSearch(R->snes,&linesearch); CHKERRQ(ierr);
   ierr = SNESLineSearchSetPostCheck(linesearch,RichardsSNESPostCheck,&r);
          CHKERRQ(ierr);
-  ierr = SNESSetFromOptions(r->snes); CHKERRQ(ierr);
-  ierr = TDySetInitialSolutionForSNESSolver(r->tdy,r->U); CHKERRQ(ierr);
+  ierr = SNESSetFromOptions(R->snes); CHKERRQ(ierr);
+  ierr = TDySetInitialSolutionForSNESSolver(R->tdy,R->U); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode RichardsRunToTime(Richards r,PetscReal sync_time) {
+PetscErrorCode RichardsRunToTime(void *rr,PetscReal sync_time) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscViewer viewer;
   PetscScalar *a;
 
-  while (r->time < sync_time) {
-    ierr = TDySetDtimeForSNESSolver(r->tdy,r->dtime); CHKERRQ(ierr);
-    ierr = TDyPreSolveSNESSolver(r->tdy); CHKERRQ(ierr);
-    ierr = SNESSolve(r->snes,PETSC_NULL,r->U); CHKERRQ(ierr);
-    ierr = TDyPostSolveSNESSolver(r->tdy,r->U); CHKERRQ(ierr);
-    r->time += r->dtime;
-    r->dtime *= 1.25;
-    PetscInt dt_for_sync = sync_time-r->time;
-    if (r->dtime > dt_for_sync) {r->dtime = dt_for_sync; r->time = sync_time;}
-    r->istep++;
+  Richards *r;
+  r = (Richards*)rr;
+
+  while (R->time < sync_time) {
+    ierr = TDySetDtimeForSNESSolver(R->tdy,R->dtime); CHKERRQ(ierr);
+    ierr = TDyPreSolveSNESSolver(R->tdy); CHKERRQ(ierr);
+    ierr = SNESSolve(R->snes,PETSC_NULL,R->U); CHKERRQ(ierr);
+    ierr = TDyPostSolveSNESSolver(R->tdy,R->U); CHKERRQ(ierr);
+    R->time += R->dtime;
+    R->dtime *= 1.25;
+    PetscInt dt_for_sync = sync_time-R->time;
+    if (R->dtime > dt_for_sync) {R->dtime = dt_for_sync; R->time = sync_time;}
+    R->istep++;
     PetscInt nit;
-    ierr = SNESGetLinearSolveIterations(r->snes,&nit); CHKERRQ(ierr);
-    if (r->io_process)
+    ierr = SNESGetLinearSolveIterations(R->snes,&nit); CHKERRQ(ierr);
+    if (R->io_process)
       printf("Time step %d: time = %f dt = %f ni=%d\n",
-             r->istep,r->time,r->dtime,nit);
-    if (r->print_intermediate)
-      ierr = RichardsPrintVec(r->U,"soln",r->istep); CHKERRQ(ierr);
+             R->istep,R->time,R->dtime,nit);
+    if (R->print_intermediate)
+      ierr = RichardsPrintVec(R->U,"soln",R->istep); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
 }
 
 
-PetscErrorCode RichardsDestroy(Richards *r) {
+PetscErrorCode RichardsDestroy(void *rr) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ierr = VecDestroy(&((*r)->U)); CHKERRQ(ierr);
-  ierr = TDyDestroy(&((*r)->tdy)); CHKERRQ(ierr);
-  free(*r);
-  *r = PETSC_NULL;
+
+  Richards *r;
+  r = (Richards*)rr;
+
+  ierr = VecDestroy(&(R->U)); CHKERRQ(ierr);
+  ierr = TDyDestroy(&(R->tdy)); CHKERRQ(ierr);
+  free(R);
+  rr = PETSC_NULL;
   PetscFunctionReturn(0);
 }
+#undef R

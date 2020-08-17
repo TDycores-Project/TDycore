@@ -22,10 +22,10 @@ struct Richards {
   PetscInt istep;
 };
 
-PETSC_EXTERN PetscErrorCode RichardsCreate(Richards*);
-PETSC_EXTERN PetscErrorCode RichardsInitialize(Richards);
+PETSC_EXTERN PetscErrorCode RichardsCreate(void*);
+PETSC_EXTERN PetscErrorCode RichardsInitialize(void*);
 PETSC_EXTERN PetscErrorCode RichardsPrintVec(Vec,char*,int);
-PETSC_EXTERN PetscErrorCode RichardsRunToTime(Richards,PetscReal);
-PETSC_EXTERN PetscErrorCode RichardsDestroy(Richards*);
+PETSC_EXTERN PetscErrorCode RichardsRunToTime(void*,PetscReal);
+PETSC_EXTERN PetscErrorCode RichardsDestroy(void*);
 
 #endif
