@@ -7,7 +7,7 @@ PetscErrorCode TDyRichardsInitialize(TDy tdy) {
   PetscRandom rand;
   ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
   ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
-  ierr = VecSetRandom(tdy->U,rand); CHKERRQ(ierr);
+  ierr = VecSetRandom(tdy->solution,rand); CHKERRQ(ierr);
   ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);

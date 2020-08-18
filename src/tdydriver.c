@@ -34,6 +34,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     case TH:
       break;
   }
-  ierr = TDySetInitialSolutionForSNESSolver(tdy,tdy->U); CHKERRQ(ierr);
+  ierr = TDySetInitialSolutionForSNESSolver(tdy,tdy->solution); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

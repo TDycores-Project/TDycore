@@ -282,7 +282,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
-  ierr = VecDestroy(&tdy->U); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->solution); CHKERRQ(ierr);
   ierr = TDyIODestroy(&tdy->io); CHKERRQ(ierr);
   ierr = TDyTimestepperDestroy(&tdy->ts); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
@@ -695,7 +695,7 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
     case 3:
       ierr = DMCreateGlobalVector(tdy->dm,&tdy->residual); CHKERRQ(ierr);
       ierr = VecDuplicate(tdy->residual,&tdy->accumulation_prev); CHKERRQ(ierr);
-      ierr = VecDuplicate(tdy->residual,&tdy->U); CHKERRQ(ierr);
+      ierr = VecDuplicate(tdy->residual,&tdy->solution); CHKERRQ(ierr);
       ierr = VecDuplicate(tdy->residual,&tdy->soln_prev); CHKERRQ(ierr);
       ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction_3DMesh,tdy); CHKERRQ(ierr);
       break;

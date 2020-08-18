@@ -62,8 +62,8 @@ PetscErrorCode TDyTimestepperRunToTime(TDy tdy,PetscReal sync_time) {
   while (ts->time < sync_time) {
     ierr = TDySetDtimeForSNESSolver(tdy,ts->dt); CHKERRQ(ierr);
     ierr = TDyPreSolveSNESSolver(tdy); CHKERRQ(ierr);
-    ierr = SNESSolve(ts->snes,PETSC_NULL,tdy->U); CHKERRQ(ierr);
-    ierr = TDyPostSolveSNESSolver(tdy,tdy->U); CHKERRQ(ierr);
+    ierr = SNESSolve(ts->snes,PETSC_NULL,tdy->solution); CHKERRQ(ierr);
+    ierr = TDyPostSolveSNESSolver(tdy,tdy->solution); CHKERRQ(ierr);
     ts->time += ts->dt;
     ts->istep++;
     PetscInt nit;
@@ -72,7 +72,7 @@ PetscErrorCode TDyTimestepperRunToTime(TDy tdy,PetscReal sync_time) {
       printf("Time step %d: time = %f dt = %f ni=%d\n",
              ts->istep,ts->time,ts->dt,nit);
     if (tdy->io->print_intermediate)
-      ierr = TDyIOPrintVec(tdy->U,"soln",ts->istep); CHKERRQ(ierr);
+      ierr = TDyIOPrintVec(tdy->solution,"soln",ts->istep); CHKERRQ(ierr);
     ierr = TDyTimestepperUpdateDT(ts,sync_time); CHKERRQ(ierr);
   }
 
