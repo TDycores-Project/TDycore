@@ -5,7 +5,9 @@
 #include <private/tdympfaoimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
-#include "/home/rosie/software/petsc/arch-linux2-c-opt/externalpackages/git.exodusii/packages/seacas/libraries/exodus/include/exodusII.h"
+#include "exodusII.h"
+
+int nt = 0;
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -1261,32 +1263,60 @@ PetscErrorCode TDyPostSolveSNESSolver(TDy tdy, Vec soln) {
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode OutputExodus(char *ofilename, PetscObject U, char *nodalVarName, DM dm){
+
+PetscErrorCode InitializeExodus(char *ofilename, char *nodalVarNames, DM dm, int num_vars){
   
-  int CPU_word_size, IO_word_size, exoid=-1;
-  // char *nodalVarName[1];
-  int nt;
-  float time_value;
+  int CPU_word_size, IO_word_size, exoid;
   PetscErrorCode ierr;
-
-  // PetscFunctionBegin;
-
-  time_value = 0.0;
-  nt = 1;
-
+  PetscReal time_test = 0.0;
+  int ntt=1;
   CPU_word_size = sizeof(PetscReal);
   IO_word_size  = sizeof(PetscReal);
 
-  exoid = ex_create(ofilename,EX_CLOBBER, &CPU_word_size, &IO_word_size);//;CHKERRQ(ierr);
+  exoid = ex_create(ofilename,EX_CLOBBER, &CPU_word_size, &IO_word_size);
 
   ierr = DMPlexView_ExodusII_Internal(dm,exoid,1);CHKERRQ(ierr);
-  ierr = ex_put_variable_param(exoid, EX_ELEM_BLOCK, 1);CHKERRQ(ierr);
-  ierr = ex_put_variable_names(exoid,EX_ELEM_BLOCK, 1, nodalVarName);CHKERRQ(ierr);
-  ierr = ex_put_time(exoid,nt,&time_value);CHKERRQ(ierr);
-	   
-  ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, 1);CHKERRQ(ierr);
-        
+
+  ierr = ex_put_variable_param(exoid, EX_ELEM_BLOCK, num_vars);CHKERRQ(ierr);
+  ierr = ex_put_variable_names(exoid,EX_ELEM_BLOCK, num_vars, nodalVarNames);CHKERRQ(ierr);
+
   ierr = ex_close(exoid);CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode AddTime(char *ofilename, PetscReal time){
+
+  int CPU_word_size, IO_word_size, exoid;
+  float version;
+  PetscErrorCode ierr;
+  
+  nt = nt + 1;  
+  exoid = ex_open(ofilename, EX_WRITE, &CPU_word_size, &IO_word_size, &version);
+  ierr = ex_put_time(exoid,nt,&time);CHKERRQ(ierr);
+  ierr = ex_close(exoid);CHKERRQ(ierr);
+
+}
+  
+PetscErrorCode AddExodusVar(char *ofilename, PetscObject U){
+  
+  int CPU_word_size, IO_word_size, exoid;
+  PetscErrorCode ierr;
+  float version;
+
+
+  CPU_word_size = sizeof(PetscReal);
+  IO_word_size  = sizeof(PetscReal);
+
+  exoid = ex_open(ofilename, EX_WRITE, &CPU_word_size, &IO_word_size, &version);
+  
+
+  ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, nt);CHKERRQ(ierr);
+        
+  ierr = ex_close(exoid);CHKERRQ(ierr);
+
+
+
+  PetscFunctionReturn(0);
+}
+

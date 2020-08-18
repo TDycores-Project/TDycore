@@ -1,6 +1,6 @@
 #include "tdycore.h"
 
-#include "/home/rosie/software/petsc/arch-linux2-c-opt/externalpackages/git.exodusii/packages/seacas/libraries/exodus/include/exodusII.h"
+#include "exodusII.h"
 
 #if defined(DEBUG)
 #include "private/tdycoreimpl.h"
@@ -334,19 +334,31 @@ int main(int argc, char **argv) {
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
 
-  //Export to Exodus function
- 
-    char *nodalVarName[1];
+    //Export to Exodus function
+  
+    char *nodalVarName[2];
+
    nodalVarName[0]="U";
+     nodalVarName[1]="F";
    ierr = PetscObjectSetName((PetscObject) U,  "U");CHKERRQ(ierr);
-   ierr = OutputExodus(ofilename,U,nodalVarName,dm);CHKERRQ(ierr);
+
+    ierr = PetscObjectSetName((PetscObject) F,  "F");CHKERRQ(ierr);
+     ierr = InitializeExodus(ofilename,nodalVarName,dm,2);CHKERRQ(ierr);
+     
+    ierr = AddTime(ofilename,0.0);
+    ierr = AddExodusVar(ofilename,U);CHKERRQ(ierr);
+    ierr = AddExodusVar(ofilename,F);CHKERRQ(ierr);
+
+    ierr = AddTime(ofilename,1.0);
+    ierr = AddExodusVar(ofilename,U);CHKERRQ(ierr);
+    ierr = AddExodusVar(ofilename,F);CHKERRQ(ierr);
    
   //Export to Exodus
-    /*
+  /*
   int CPU_word_size, IO_word_size, exoid;
   char *nodalVarName[1];
   int nt;
-  float time_value;
+  PetscReal time_value;
 
   nodalVarName[0]="U";
   time_value = 0.0;
@@ -363,7 +375,7 @@ int main(int argc, char **argv) {
   ierr = ex_put_variable_names(exoid,EX_ELEM_BLOCK, 1, nodalVarName);CHKERRQ(ierr);
   ierr = ex_put_time(exoid,nt,&time_value);CHKERRQ(ierr);
 	   
-  // ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, 1);CHKERRQ(ierr);
+  ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, 1);CHKERRQ(ierr);
         
   ierr = ex_close(exoid);CHKERRQ(ierr);
   //
