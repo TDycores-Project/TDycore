@@ -9,7 +9,6 @@
 #include <tdyts.h>
 #include <tdypermeability.h>
 #include <tdyporosity.h>
-#include <tdyrichards.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -225,9 +224,6 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   tdy->allow_unsuitable_mesh = PETSC_FALSE;
   tdy->qtype = FULL;
 
-  ierr = TimestepperCreate(&(tdy->ts)); CHKERRQ(ierr);
-  ierr = TDyRichardsInitialize(tdy); CHKERRQ(ierr);
-  
   PetscFunctionReturn(0);
 }
 
@@ -1284,46 +1280,3 @@ PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyRichardsInitialize(TDy tdy) {
-  PetscRandom rand;
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  PetscReal gravity[3];
-  gravity[0] = 0.0; gravity[1] = 0.0; gravity[2] = 9.8068;
-  ierr = TDySetGravityVector(tdy,gravity);
-  ierr = TDySetPorosityFunction(tdy,TDyPorosityFunctionDefault,PETSC_NULL);
-         CHKERRQ(ierr);
-  ierr = TDySetPermeabilityFunction(tdy,TDyPermeabilityFunctionDefault,PETSC_NULL);
-         CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
-
-  DM dm;
-  ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
-  PetscViewer viewer;
-#if defined(DEBUG)
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"dm.txt",&viewer);
-         CHKERRQ(ierr);
-  ierr = DMView(dm,viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-#endif
-
-  ierr = SNESCreate(PETSC_COMM_WORLD,&tdy->ts->snes); CHKERRQ(ierr);
-  ierr = TDySetSNESFunction(tdy->ts->snes,tdy); CHKERRQ(ierr);
-  ierr = TDySetSNESJacobian(tdy->ts->snes,tdy); CHKERRQ(ierr);
-  SNESLineSearch linesearch;
-  ierr = SNESGetLineSearch(tdy->ts->snes,&linesearch); CHKERRQ(ierr);
-  ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,&tdy);
-         CHKERRQ(ierr);
-  ierr = SNESSetFromOptions(tdy->ts->snes); CHKERRQ(ierr);
-
-  ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
-  ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
-  ierr = VecSetRandom(tdy->U,rand); CHKERRQ(ierr);
-  ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
-
-  ierr = TDySetInitialSolutionForSNESSolver(tdy,tdy->U); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
