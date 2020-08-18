@@ -1,5 +1,17 @@
 #include <tdyio.h>
 
+PetscErrorCode IOCreate(IO *_io) {
+  IO io;
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  io = (IO)malloc(sizeof(struct IO));
+  *_io = io;
+
+  io->io_process = PETSC_FALSE;
+  io->print_intermediate = PETSC_FALSE;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode PrintVec(Vec v,char *prefix, int print_count) {
   char word[32];
   PetscViewer viewer;
@@ -13,5 +25,13 @@ PetscErrorCode PrintVec(Vec v,char *prefix, int print_count) {
          CHKERRQ(ierr);
   ierr = VecView(v,viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode IODestroy(IO *io) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  free(*io);
+  io = PETSC_NULL;
   PetscFunctionReturn(0);
 }

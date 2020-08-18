@@ -112,6 +112,8 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
                            TDyView); CHKERRQ(ierr);
   *_tdy = tdy;
 
+  ierr = IOCreate(&tdy->io); CHKERRQ(ierr);
+
   /* compute/store plex geometry */
   tdy->dm = dm;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -1307,13 +1309,6 @@ PetscErrorCode TDyRichardsInitialize(TDy tdy) {
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
 
-  ierr = DMCreateGlobalVector(dm,&tdy->U); CHKERRQ(ierr);
-
-  ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
-  ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
-  ierr = VecSetRandom(tdy->U,rand); CHKERRQ(ierr);
-  ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
-
   ierr = SNESCreate(PETSC_COMM_WORLD,&tdy->ts->snes); CHKERRQ(ierr);
   ierr = TDySetSNESFunction(tdy->ts->snes,tdy); CHKERRQ(ierr);
   ierr = TDySetSNESJacobian(tdy->ts->snes,tdy); CHKERRQ(ierr);
@@ -1322,6 +1317,12 @@ PetscErrorCode TDyRichardsInitialize(TDy tdy) {
   ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,&tdy);
          CHKERRQ(ierr);
   ierr = SNESSetFromOptions(tdy->ts->snes); CHKERRQ(ierr);
+
+  ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
+  ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
+  ierr = VecSetRandom(tdy->U,rand); CHKERRQ(ierr);
+  ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
+
   ierr = TDySetInitialSolutionForSNESSolver(tdy,tdy->U); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);

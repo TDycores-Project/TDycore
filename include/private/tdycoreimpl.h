@@ -6,6 +6,7 @@
 #include <private/tdymeshimpl.h>
 #include <private/tdyregressionimpl.h>
 #include <tdycore.h>
+#include <tdyio.h>
 #include <tdyts.h>
 
 #define VAR_PRESSURE 0
@@ -35,6 +36,7 @@ struct _p_TDy {
   DM dm;
 
   Timestepper ts;
+  IO io;
 
   /* arrays of the size of the Hasse diagram */
   PetscReal *V; /* volume of point (if applicable) */

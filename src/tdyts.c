@@ -10,8 +10,6 @@ PetscErrorCode TimestepperCreate(Timestepper *_ts) {
   ts = (Timestepper)malloc(sizeof(struct Timestepper));
   *_ts = ts;
 
-  ts->io_process = PETSC_FALSE;
-  ts->print_intermediate = PETSC_FALSE;
   ts->dt_init = 1.;
   ts->dt = ts->dt_init;
   ts->time = 0.;
@@ -22,9 +20,9 @@ PetscErrorCode TimestepperCreate(Timestepper *_ts) {
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Timestepper Options","");
                            CHKERRQ(ierr);
   ierr = PetscOptionsReal("-final_time","Final Time","",ts->final_time,
-                          &(ts->final_time),NULL); CHKERRQ(ierr);
+                          &ts->final_time,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-dt_init","Initial Timestep Size","",ts->dt_init,
-                          &(ts->dt_init),NULL); CHKERRQ(ierr);
+                          &ts->dt_init,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -58,10 +56,10 @@ PetscErrorCode TimestepperRunToTime(TDy tdy,PetscReal sync_time) {
     ts->istep++;
     PetscInt nit;
     ierr = SNESGetLinearSolveIterations(ts->snes,&nit); CHKERRQ(ierr);
-    if (ts->io_process)
+    if (tdy->io->io_process)
       printf("Time step %d: time = %f dt = %f ni=%d\n",
              ts->istep,ts->time,ts->dt,nit);
-    if (ts->print_intermediate)
+    if (tdy->io->print_intermediate)
       ierr = PrintVec(tdy->U,"soln",ts->istep); CHKERRQ(ierr);
   }
 

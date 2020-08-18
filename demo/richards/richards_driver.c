@@ -27,8 +27,8 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);
-  if (!rank) tdy->ts->io_process = PETSC_TRUE;
-  tdy->ts->print_intermediate = print_intermediate;
+  if (!rank) tdy->io->io_process = PETSC_TRUE;
+  tdy->io->print_intermediate = print_intermediate;
   ierr = PrintVec(tdy->U,"initial_solution",-1); CHKERRQ(ierr);
   ierr = TimestepperRunToTime(tdy,tdy->ts->final_time); CHKERRQ(ierr);
   ierr = PrintVec(tdy->U,"final_solution",-1); CHKERRQ(ierr);

@@ -7,8 +7,6 @@ typedef struct Timestepper *Timestepper;
 
 struct Timestepper {
   SNES snes;
-  PetscBool io_process;
-  PetscBool print_intermediate;
   PetscScalar dt_init;
   PetscScalar dt;
   PetscScalar time;
