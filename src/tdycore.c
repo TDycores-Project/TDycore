@@ -111,7 +111,7 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
                            TDyView); CHKERRQ(ierr);
   *_tdy = tdy;
 
-  ierr = IOCreate(&tdy->io); CHKERRQ(ierr);
+  ierr = TDyIOCreate(&tdy->io); CHKERRQ(ierr);
 
   /* compute/store plex geometry */
   tdy->dm = dm;
@@ -283,7 +283,8 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->U); CHKERRQ(ierr);
-  ierr = TimestepperDestroy(&tdy->ts); CHKERRQ(ierr);
+  ierr = TDyIODestroy(&tdy->io); CHKERRQ(ierr);
+  ierr = TDyTimestepperDestroy(&tdy->ts); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);

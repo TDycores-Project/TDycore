@@ -3,7 +3,7 @@
 #include <tdyts.h>
 #include <tdyio.h>
 
-PetscErrorCode TimestepperCreate(Timestepper *_ts) {
+PetscErrorCode TDyTimestepperCreate(Timestepper *_ts) {
   Timestepper ts;
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -38,13 +38,20 @@ PetscErrorCode TimestepperCreate(Timestepper *_ts) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TimestepperUpdateDT(Timestepper ts) {
+PetscErrorCode TDyTimestepperUpdateDT(Timestepper ts,PetscReal sync_time) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  ts->dt *= ts->dt_growth_factor;
+  if (ts->dt > ts->dt_max) ts->dt = ts->dt_max;
+  PetscInt dt_for_sync = sync_time-ts->time;
+  if (ts->dt > dt_for_sync) {
+    ts->dt = dt_for_sync; 
+    ts->time = sync_time;
+  }
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TimestepperRunToTime(TDy tdy,PetscReal sync_time) {
+PetscErrorCode TDyTimestepperRunToTime(TDy tdy,PetscReal sync_time) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscViewer viewer;
@@ -58,13 +65,6 @@ PetscErrorCode TimestepperRunToTime(TDy tdy,PetscReal sync_time) {
     ierr = SNESSolve(ts->snes,PETSC_NULL,tdy->U); CHKERRQ(ierr);
     ierr = TDyPostSolveSNESSolver(tdy,tdy->U); CHKERRQ(ierr);
     ts->time += ts->dt;
-    ts->dt *= ts->dt_growth_factor;
-    if (ts->dt > ts->dt_max) ts->dt = ts->dt_max;
-    PetscInt dt_for_sync = sync_time-ts->time;
-    if (ts->dt > dt_for_sync) {
-      ts->dt = dt_for_sync; 
-      ts->time = sync_time;
-    }
     ts->istep++;
     PetscInt nit;
     ierr = SNESGetLinearSolveIterations(ts->snes,&nit); CHKERRQ(ierr);
@@ -72,13 +72,14 @@ PetscErrorCode TimestepperRunToTime(TDy tdy,PetscReal sync_time) {
       printf("Time step %d: time = %f dt = %f ni=%d\n",
              ts->istep,ts->time,ts->dt,nit);
     if (tdy->io->print_intermediate)
-      ierr = PrintVec(tdy->U,"soln",ts->istep); CHKERRQ(ierr);
+      ierr = TDyIOPrintVec(tdy->U,"soln",ts->istep); CHKERRQ(ierr);
+    ierr = TDyTimestepperUpdateDT(ts,sync_time); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TimestepperDestroy(Timestepper *ts) {
+PetscErrorCode TDyTimestepperDestroy(Timestepper *ts) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   free(*ts);

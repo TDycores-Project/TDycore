@@ -10,8 +10,8 @@ struct IO {
   PetscBool print_intermediate;
 };
 
-PETSC_EXTERN PetscErrorCode IOCreate(IO*);
-PETSC_EXTERN PetscErrorCode PrintVec(Vec,char*,int);
-PETSC_EXTERN PetscErrorCode IODestroy(IO*);
+PETSC_EXTERN PetscErrorCode TDyIOCreate(IO*);
+PETSC_EXTERN PetscErrorCode TDyIOPrintVec(Vec,char*,int);
+PETSC_EXTERN PetscErrorCode TDyIODestroy(IO*);
 
 #endif

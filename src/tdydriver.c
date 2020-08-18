@@ -17,7 +17,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
-  ierr = TimestepperCreate(&tdy->ts); CHKERRQ(ierr);
+  ierr = TDyTimestepperCreate(&tdy->ts); CHKERRQ(ierr);
   ierr = SNESCreate(PETSC_COMM_WORLD,&tdy->ts->snes); CHKERRQ(ierr);
   ierr = TDySetSNESFunction(tdy->ts->snes,tdy); CHKERRQ(ierr);
   ierr = TDySetSNESJacobian(tdy->ts->snes,tdy); CHKERRQ(ierr);

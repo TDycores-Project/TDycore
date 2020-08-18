@@ -17,9 +17,9 @@ struct Timestepper {
   PetscInt istep;
 };
 
-PETSC_EXTERN PetscErrorCode TimestepperCreate(Timestepper*);
-PETSC_EXTERN PetscErrorCode TimestepperUpdateDT(Timestepper);
-PETSC_EXTERN PetscErrorCode TimestepperRunToTime(TDy,PetscReal);
-PETSC_EXTERN PetscErrorCode TimestepperDestroy(Timestepper*);
+PETSC_EXTERN PetscErrorCode TDyTimestepperCreate(Timestepper*);
+PETSC_EXTERN PetscErrorCode TDyTimestepperUpdateDT(Timestepper,PetscReal);
+PETSC_EXTERN PetscErrorCode TDyTimestepperRunToTime(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDyTimestepperDestroy(Timestepper*);
 
 #endif

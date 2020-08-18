@@ -1,6 +1,6 @@
 #include <tdyio.h>
 
-PetscErrorCode IOCreate(IO *_io) {
+PetscErrorCode TDyIOCreate(IO *_io) {
   IO io;
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -12,7 +12,7 @@ PetscErrorCode IOCreate(IO *_io) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode PrintVec(Vec v,char *prefix, int print_count) {
+PetscErrorCode TDyIOPrintVec(Vec v,char *prefix, int print_count) {
   char word[32];
   PetscViewer viewer;
   PetscErrorCode ierr;
@@ -28,7 +28,7 @@ PetscErrorCode PrintVec(Vec v,char *prefix, int print_count) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode IODestroy(IO *io) {
+PetscErrorCode TDyIODestroy(IO *io) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   free(*io);
