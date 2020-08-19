@@ -36,7 +36,7 @@ struct _p_TDy {
   DM dm;
 
   TDyTimestepper timestepper;
-  IO io;
+  TDyIO io;
 
   /* arrays of the size of the Hasse diagram */
   PetscReal *V; /* volume of point (if applicable) */

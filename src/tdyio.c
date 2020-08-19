@@ -1,10 +1,10 @@
 #include <tdyio.h>
 
-PetscErrorCode TDyIOCreate(IO *_io) {
-  IO io;
+PetscErrorCode TDyIOCreate(TDyIO *_io) {
+  TDyIO io;
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  io = (IO)malloc(sizeof(struct IO));
+  io = (TDyIO)malloc(sizeof(struct TDyIO));
   *_io = io;
 
   io->io_process = PETSC_FALSE;
@@ -28,7 +28,7 @@ PetscErrorCode TDyIOPrintVec(Vec v,char *prefix, int print_count) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyIODestroy(IO *io) {
+PetscErrorCode TDyIODestroy(TDyIO *io) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   free(*io);
