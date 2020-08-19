@@ -3,9 +3,9 @@
 
 #include <petsc.h>
 
-typedef struct Timestepper *Timestepper;
+typedef struct TDyTimestepper *TDyTimestepper;
 
-struct Timestepper {
+struct TDyTimestepper {
   SNES snes;
   PetscScalar dt_init;
   PetscScalar dt_max;
@@ -17,9 +17,9 @@ struct Timestepper {
   PetscInt istep;
 };
 
-PETSC_EXTERN PetscErrorCode TDyTimestepperCreate(Timestepper*);
-PETSC_EXTERN PetscErrorCode TDyTimestepperUpdateDT(Timestepper,PetscReal);
+PETSC_EXTERN PetscErrorCode TDyTimestepperCreate(TDyTimestepper*);
+PETSC_EXTERN PetscErrorCode TDyTimestepperUpdateDT(TDyTimestepper,PetscReal);
 PETSC_EXTERN PetscErrorCode TDyTimestepperRunToTime(TDy,PetscReal);
-PETSC_EXTERN PetscErrorCode TDyTimestepperDestroy(Timestepper*);
+PETSC_EXTERN PetscErrorCode TDyTimestepperDestroy(TDyTimestepper*);
 
 #endif

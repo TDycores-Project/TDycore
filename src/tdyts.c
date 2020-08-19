@@ -3,50 +3,51 @@
 #include <tdyts.h>
 #include <tdyio.h>
 
-PetscErrorCode TDyTimestepperCreate(Timestepper *_ts) {
-  Timestepper ts;
+PetscErrorCode TDyTimestepperCreate(TDyTimestepper *_timestepper) {
+  TDyTimestepper timestepper;
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ts = (Timestepper)malloc(sizeof(struct Timestepper));
-  *_ts = ts;
+  timestepper = (TDyTimestepper)malloc(sizeof(struct TDyTimestepper));
+  *_timestepper =timestepper;
 
-  ts->dt_init = 1.;
-  ts->dt_max = 1.e20;
-  ts->dt_growth_factor = 1.25;
-  ts->dt_reduction_factor = 0.5;
-  ts->dt = ts->dt_init;
-  ts->time = 0.;
+  timestepper->dt_init = 1.;
+  timestepper->dt_max = 1.e20;
+  timestepper->dt_growth_factor = 1.25;
+  timestepper->dt_reduction_factor = 0.5;
+  timestepper->dt = timestepper->dt_init;
+  timestepper->time = 0.;
   PetscScalar final_time_in_years = 0.0001;
-  ts->final_time = final_time_in_years*365.*24.*3600.;
-  ts->istep = 0;
+  timestepper->final_time = final_time_in_years*365.*24.*3600.;
+  timestepper->istep = 0;
 
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Timestepper Options","");
                            CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-final_time","Final Time","",ts->final_time,
-                          &ts->final_time,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-dt_max","Maximum Timestep Size","",ts->dt_max,
-                          &ts->dt_max,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-dt_init","Initial Timestep Size","",ts->dt_init,
-                          &ts->dt_init,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-final_time","Final Time","",timestepper->final_time,
+                          &timestepper->final_time,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-dt_max","Maximum Timestep Size","",timestepper->dt_max,
+                          &timestepper->dt_max,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-dt_init","Initial Timestep Size","",timestepper->dt_init,
+                          &timestepper->dt_init,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-dt_growth_factor","Timestep Growth Factor",
-                          "",ts->dt_growth_factor,
-                          &ts->dt_growth_factor,NULL); CHKERRQ(ierr);
+                          "",timestepper->dt_growth_factor,
+                          &timestepper->dt_growth_factor,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-dt_reduction_factor","Timestep Reduction Factor",
-                          "",ts->dt_reduction_factor,
-                          &ts->dt_reduction_factor,NULL); CHKERRQ(ierr);
+                          "",timestepper->dt_reduction_factor,
+                          &timestepper->dt_reduction_factor,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyTimestepperUpdateDT(Timestepper ts,PetscReal sync_time) {
+PetscErrorCode TDyTimestepperUpdateDT(TDyTimestepper timestepper,
+                                      PetscReal sync_time) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ts->dt *= ts->dt_growth_factor;
-  if (ts->dt > ts->dt_max) ts->dt = ts->dt_max;
-  PetscInt dt_for_sync = sync_time-ts->time;
-  if (ts->dt > dt_for_sync) {
-    ts->dt = dt_for_sync; 
-    ts->time = sync_time;
+  timestepper->dt *= timestepper->dt_growth_factor;
+  if (timestepper->dt > timestepper->dt_max) timestepper->dt = timestepper->dt_max;
+  PetscInt dt_for_sync = sync_time-timestepper->time;
+  if (timestepper->dt > dt_for_sync) {
+    timestepper->dt = dt_for_sync; 
+    timestepper->time = sync_time;
   }
   PetscFunctionReturn(0);
 }
@@ -57,33 +58,33 @@ PetscErrorCode TDyTimestepperRunToTime(TDy tdy,PetscReal sync_time) {
   PetscViewer viewer;
   PetscScalar *a;
 
-  Timestepper ts = tdy->ts;
+  TDyTimestepper timestepper = tdy->timestepper;
 
-  while (ts->time < sync_time) {
-    ierr = TDySetDtimeForSNESSolver(tdy,ts->dt); CHKERRQ(ierr);
+  while (timestepper->time < sync_time) {
+    ierr = TDySetDtimeForSNESSolver(tdy,timestepper->dt); CHKERRQ(ierr);
     ierr = TDyPreSolveSNESSolver(tdy); CHKERRQ(ierr);
-    ierr = SNESSolve(ts->snes,PETSC_NULL,tdy->solution); CHKERRQ(ierr);
+    ierr = SNESSolve(timestepper->snes,PETSC_NULL,tdy->solution); CHKERRQ(ierr);
     ierr = TDyPostSolveSNESSolver(tdy,tdy->solution); CHKERRQ(ierr);
-    ts->time += ts->dt;
-    ts->istep++;
+    timestepper->time += timestepper->dt;
+    timestepper->istep++;
     PetscInt nit;
-    ierr = SNESGetLinearSolveIterations(ts->snes,&nit); CHKERRQ(ierr);
+    ierr = SNESGetLinearSolveIterations(timestepper->snes,&nit); CHKERRQ(ierr);
     if (tdy->io->io_process)
       printf("Time step %d: time = %f dt = %f ni=%d\n",
-             ts->istep,ts->time,ts->dt,nit);
+             timestepper->istep,timestepper->time,timestepper->dt,nit);
     if (tdy->io->print_intermediate)
-      ierr = TDyIOPrintVec(tdy->solution,"soln",ts->istep); CHKERRQ(ierr);
-    ierr = TDyTimestepperUpdateDT(ts,sync_time); CHKERRQ(ierr);
+      ierr = TDyIOPrintVec(tdy->solution,"soln",timestepper->istep); CHKERRQ(ierr);
+    ierr = TDyTimestepperUpdateDT(timestepper,sync_time); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyTimestepperDestroy(Timestepper *ts) {
+PetscErrorCode TDyTimestepperDestroy(TDyTimestepper *timestepper) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  free(*ts);
-  ts = PETSC_NULL;
+  free(*timestepper);
+  timestepper = PETSC_NULL;
   PetscFunctionReturn(0);
 }
 

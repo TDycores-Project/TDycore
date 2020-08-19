@@ -35,7 +35,7 @@ struct _p_TDy {
   PetscBool setup;
   DM dm;
 
-  Timestepper ts;
+  TDyTimestepper timestepper;
   IO io;
 
   /* arrays of the size of the Hasse diagram */

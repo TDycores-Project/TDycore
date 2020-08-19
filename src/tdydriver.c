@@ -17,15 +17,15 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
-  ierr = TDyTimestepperCreate(&tdy->ts); CHKERRQ(ierr);
-  ierr = SNESCreate(PETSC_COMM_WORLD,&tdy->ts->snes); CHKERRQ(ierr);
-  ierr = TDySetSNESFunction(tdy->ts->snes,tdy); CHKERRQ(ierr);
-  ierr = TDySetSNESJacobian(tdy->ts->snes,tdy); CHKERRQ(ierr);
+  ierr = TDyTimestepperCreate(&tdy->timestepper); CHKERRQ(ierr);
+  ierr = SNESCreate(PETSC_COMM_WORLD,&tdy->timestepper->snes); CHKERRQ(ierr);
+  ierr = TDySetSNESFunction(tdy->timestepper->snes,tdy); CHKERRQ(ierr);
+  ierr = TDySetSNESJacobian(tdy->timestepper->snes,tdy); CHKERRQ(ierr);
   SNESLineSearch linesearch;
-  ierr = SNESGetLineSearch(tdy->ts->snes,&linesearch); CHKERRQ(ierr);
+  ierr = SNESGetLineSearch(tdy->timestepper->snes,&linesearch); CHKERRQ(ierr);
   ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,&tdy);
          CHKERRQ(ierr);
-  ierr = SNESSetFromOptions(tdy->ts->snes); CHKERRQ(ierr);
+  ierr = SNESSetFromOptions(tdy->timestepper->snes); CHKERRQ(ierr);
 
   switch (tdy->mode) {
     case RICHARDS:

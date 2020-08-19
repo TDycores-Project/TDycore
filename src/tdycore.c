@@ -284,7 +284,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->solution); CHKERRQ(ierr);
   ierr = TDyIODestroy(&tdy->io); CHKERRQ(ierr);
-  ierr = TDyTimestepperDestroy(&tdy->ts); CHKERRQ(ierr);
+  ierr = TDyTimestepperDestroy(&tdy->timestepper); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);

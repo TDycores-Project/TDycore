@@ -32,7 +32,8 @@ int main(int argc, char **argv) {
   if (!rank) tdy->io->io_process = PETSC_TRUE;
   tdy->io->print_intermediate = print_intermediate;
   ierr = TDyIOPrintVec(tdy->solution,"initial_solution",-1); CHKERRQ(ierr);
-  ierr = TDyTimestepperRunToTime(tdy,tdy->ts->final_time); CHKERRQ(ierr);
+  ierr = TDyTimestepperRunToTime(tdy,tdy->timestepper->final_time); 
+         CHKERRQ(ierr);
   ierr = TDyIOPrintVec(tdy->solution,"final_solution",-1); CHKERRQ(ierr);
   ierr = TDyOutputRegression(tdy,tdy->solution); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
