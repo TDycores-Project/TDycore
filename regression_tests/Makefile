@@ -83,6 +83,12 @@ test-steadyf90 :
 		--config-files ../demo/steadyf90/steadyf90.cfg \
 		--logfile_prefix steadyf90
 
+test-richards :
+	$(PYTHON) $(TEST_MANAGER) -e ../demo/richards/richards_driver $(TEST_OPTIONS) \
+		--suite standard standard_parallel \
+		--config-files ../demo/richards/richards.cfg \
+		--logfile_prefix richards
+
 #
 # Try to cleanup the regression test output.
 #

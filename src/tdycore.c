@@ -6,6 +6,9 @@
 #include <private/tdyeosimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 #include <tdydm.h>
+#include <tdyti.h>
+#include <tdypermeability.h>
+#include <tdyporosity.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -107,6 +110,8 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   ierr = PetscHeaderCreate(tdy,TDY_CLASSID,"TDy","TDy","TDy",comm,TDyDestroy,
                            TDyView); CHKERRQ(ierr);
   *_tdy = tdy;
+
+  ierr = TDyIOCreate(&tdy->io); CHKERRQ(ierr);
 
   /* compute/store plex geometry */
   tdy->dm = dm;
@@ -218,7 +223,7 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   tdy->faces = NULL; tdy->LtoG = NULL; tdy->orient = NULL;
   tdy->allow_unsuitable_mesh = PETSC_FALSE;
   tdy->qtype = FULL;
-  
+
   PetscFunctionReturn(0);
 }
 
@@ -274,6 +279,12 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->Cr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->rhor); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->solution); CHKERRQ(ierr);
+  ierr = TDyIODestroy(&tdy->io); CHKERRQ(ierr);
+  ierr = TDyTimeIntegratorDestroy(&tdy->ti); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);
@@ -682,9 +693,10 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   case MPFA_O:
     switch (dim) {
     case 3:
-      ierr = DMCreateGlobalVector(tdy->dm,&tdy->accumulation_prev); CHKERRQ(ierr);
-      ierr = DMCreateGlobalVector(tdy->dm,&tdy->soln_prev); CHKERRQ(ierr);
       ierr = DMCreateGlobalVector(tdy->dm,&tdy->residual); CHKERRQ(ierr);
+      ierr = VecDuplicate(tdy->residual,&tdy->accumulation_prev); CHKERRQ(ierr);
+      ierr = VecDuplicate(tdy->residual,&tdy->solution); CHKERRQ(ierr);
+      ierr = VecDuplicate(tdy->residual,&tdy->soln_prev); CHKERRQ(ierr);
       ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction_3DMesh,tdy); CHKERRQ(ierr);
       break;
     default :
@@ -1260,11 +1272,12 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyPostSolveSNESSolver(TDy tdy, Vec soln) {
+PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
 
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  ierr = VecCopy(soln,tdy->soln_prev); CHKERRQ(ierr);
+  ierr = VecCopy(U,tdy->soln_prev); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
+

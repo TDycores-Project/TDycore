@@ -6,6 +6,8 @@
 #include <private/tdymeshimpl.h>
 #include <private/tdyregressionimpl.h>
 #include <tdycore.h>
+#include <tdyio.h>
+#include <tdyti.h>
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
@@ -32,6 +34,9 @@ struct _p_TDy {
   PETSCHEADER(struct _TDyOps);
   PetscBool setup;
   DM dm;
+
+  TDyTimeIntegrator ti;
+  TDyIO io;
 
   /* arrays of the size of the Hasse diagram */
   PetscReal *V; /* volume of point (if applicable) */
@@ -134,6 +139,7 @@ struct _p_TDy {
 
   /* For SNES based timestepping */
   PetscReal dtime;
+  Vec solution;
   Vec soln_prev;
   Vec accumulation_prev;
   Vec residual;

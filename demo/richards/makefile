@@ -1,4 +1,4 @@
-TARGETS = build-steady build-transient build-mpfao build-steadyf90 build-richards
+TARGETS = richards_driver
 
 ifdef codecov
   MYFLAGS += -fprofile-arcs -ftest-coverage
@@ -13,9 +13,9 @@ FPPFLAGS = ${MYFLAGS}
 
 ALL: $(TARGETS)
 clean::
-	-@$(RM) $(TARGETS) *.gcov *.regression *.old *.stdout
+	-@$(RM) $(TARGETS) *.gcov *.regression *.old *.stdout *.bin *.bin.info
 
-topdir := $(shell cd .. && pwd)
+topdir := $(shell cd ../.. && pwd)
 TDYCORE_DIR ?= $(topdir)
 include $(TDYCORE_DIR)/lib/tdycore/conf/variables
 include $(TDYCORE_DIR)/lib/tdycore/conf/rules
@@ -23,17 +23,7 @@ include $(TDYCORE_DIR)/lib/tdycore/conf/rules
 build:
 	@cd ../; make
 
-build-steady:
-	@cd steady/; make
+richards_driver: richards_driver.o
+	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
+	$(RM) -f $<
 
-build-richards:
-	@cd richards; make
-
-build-transient:
-	@cd transient; make
-
-build-mpfao:
-	@cd mpfao; make
-
-build-steadyf90:
-	@cd steadyf90; make
