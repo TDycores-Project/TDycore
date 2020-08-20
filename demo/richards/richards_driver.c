@@ -1,7 +1,7 @@
 #include <tdycore.h>
 #include <private/tdycoreimpl.h>
 #include <tdydriver.h>
-#include <tdyts.h>
+#include <tdyti.h>
 #include <tdyio.h>
 
 int main(int argc, char **argv) {
@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
   if (!rank) tdy->io->io_process = PETSC_TRUE;
   tdy->io->print_intermediate = print_intermediate;
   ierr = TDyIOPrintVec(tdy->solution,"initial_solution",-1); CHKERRQ(ierr);
-  ierr = TDyTimestepperRunToTime(tdy,tdy->timestepper->final_time); 
+  ierr = TDyTimeIntegratorRunToTime(tdy,tdy->ti->final_time); 
          CHKERRQ(ierr);
   ierr = TDyIOPrintVec(tdy->solution,"final_solution",-1); CHKERRQ(ierr);
   ierr = TDyOutputRegression(tdy,tdy->solution); CHKERRQ(ierr);

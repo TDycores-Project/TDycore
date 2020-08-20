@@ -7,7 +7,7 @@
 #include <private/tdyregressionimpl.h>
 #include <tdycore.h>
 #include <tdyio.h>
-#include <tdyts.h>
+#include <tdyti.h>
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
@@ -35,7 +35,7 @@ struct _p_TDy {
   PetscBool setup;
   DM dm;
 
-  TDyTimestepper timestepper;
+  TDyTimeIntegrator ti;
   TDyIO io;
 
   /* arrays of the size of the Hasse diagram */

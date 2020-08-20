@@ -17,15 +17,28 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
-  ierr = TDyTimestepperCreate(&tdy->timestepper); CHKERRQ(ierr);
-  ierr = SNESCreate(PETSC_COMM_WORLD,&tdy->timestepper->snes); CHKERRQ(ierr);
-  ierr = TDySetSNESFunction(tdy->timestepper->snes,tdy); CHKERRQ(ierr);
-  ierr = TDySetSNESJacobian(tdy->timestepper->snes,tdy); CHKERRQ(ierr);
-  SNESLineSearch linesearch;
-  ierr = SNESGetLineSearch(tdy->timestepper->snes,&linesearch); CHKERRQ(ierr);
-  ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,&tdy);
-         CHKERRQ(ierr);
-  ierr = SNESSetFromOptions(tdy->timestepper->snes); CHKERRQ(ierr);
+  ierr = TDyTimeIntegratorCreate(&tdy->ti); CHKERRQ(ierr);
+  switch(tdy->ti->time_integration_method) {
+    case TDySNES:
+      ierr = SNESCreate(PETSC_COMM_WORLD,&tdy->ti->snes); 
+             CHKERRQ(ierr);
+      ierr = TDySetSNESFunction(tdy->ti->snes,tdy); CHKERRQ(ierr);
+      ierr = TDySetSNESJacobian(tdy->ti->snes,tdy); CHKERRQ(ierr);
+      SNESLineSearch linesearch;
+      ierr = SNESGetLineSearch(tdy->ti->snes,&linesearch); 
+             CHKERRQ(ierr);
+      ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,
+                                        &tdy); CHKERRQ(ierr);
+      ierr = SNESSetFromOptions(tdy->ti->snes); CHKERRQ(ierr);
+      break;
+    case TDyTS:
+      break;
+    default:
+      if (tdy->io->io_process) {
+        printf("Unrecognized time integration method.\n"); 
+        exit(1);
+      }
+  }
 
   switch (tdy->mode) {
     case RICHARDS:
@@ -33,6 +46,11 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       break;
     case TH:
       break;
+    default:
+      if (tdy->io->io_process) {
+        printf("Unrecognized flow mode.\n"); 
+        exit(1);
+      }
   }
   ierr = TDySetInitialSolutionForSNESSolver(tdy,tdy->solution); CHKERRQ(ierr);
   PetscFunctionReturn(0);

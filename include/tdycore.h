@@ -29,6 +29,11 @@ typedef enum {
   TH
 } TDyMode;
 
+typedef enum {
+  TDySNES=0,
+  TDyTS
+} TDyTimeIntegrationMethod;
+
 PETSC_EXTERN const char *const TDyModes[];
 
 typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */

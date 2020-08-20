@@ -6,7 +6,7 @@
 #include <private/tdyeosimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 #include <tdydm.h>
-#include <tdyts.h>
+#include <tdyti.h>
 #include <tdypermeability.h>
 #include <tdyporosity.h>
 
@@ -284,7 +284,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->solution); CHKERRQ(ierr);
   ierr = TDyIODestroy(&tdy->io); CHKERRQ(ierr);
-  ierr = TDyTimestepperDestroy(&tdy->timestepper); CHKERRQ(ierr);
+  ierr = TDyTimeIntegratorDestroy(&tdy->ti); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);
