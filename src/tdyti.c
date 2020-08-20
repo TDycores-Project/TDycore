@@ -40,7 +40,6 @@ PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
 }
 
 PetscErrorCode TDyTimeIntegratorUpdateDT(TDyTimeIntegrator ti, PetscReal sync_time) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   ti->dt *= ti->dt_growth_factor;
   if (ti->dt > ti->dt_max) ti->dt = ti->dt_max;
@@ -90,7 +89,6 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
 }
 
 PetscErrorCode TDyTimeIntegratorDestroy(TDyTimeIntegrator *ti) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   free(*ti);
   ti = PETSC_NULL;

@@ -5,7 +5,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   PetscFunctionBegin;
   PetscReal gravity[3] = {0.,0.,0.};
 
-  DM dm;
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr); 
   gravity[dim-1] = 9.8068;
