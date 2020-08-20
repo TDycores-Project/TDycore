@@ -32,6 +32,10 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       ierr = SNESSetFromOptions(tdy->ti->snes); CHKERRQ(ierr);
       break;
     case TDyTS:
+      if (tdy->io->io_process) {
+        printf("TS time integration method not implemented.\n"); 
+        exit(1);
+      }
       break;
     default:
       if (tdy->io->io_process) {
@@ -45,6 +49,10 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       ierr = TDyRichardsInitialize(tdy); CHKERRQ(ierr);
       break;
     case TH:
+      if (tdy->io->io_process) {
+        printf("TH flow mode not implemented.\n"); 
+        exit(1);
+      }
       break;
     default:
       if (tdy->io->io_process) {
