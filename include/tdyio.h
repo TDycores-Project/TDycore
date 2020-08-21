@@ -11,7 +11,7 @@ struct TDyIO {
 };
 
 PETSC_EXTERN PetscErrorCode TDyIOCreate(TDyIO*);
-PETSC_EXTERN PetscErrorCode TDyIOPrintVec(Vec,char*,int);
+PETSC_EXTERN PetscErrorCode TDyIOPrintVec(Vec,const char*,int);
 PETSC_EXTERN PetscErrorCode TDyIODestroy(TDyIO*);
 
 #endif

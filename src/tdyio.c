@@ -2,7 +2,6 @@
 
 PetscErrorCode TDyIOCreate(TDyIO *_io) {
   TDyIO io;
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   io = (TDyIO)malloc(sizeof(struct TDyIO));
   *_io = io;
@@ -12,7 +11,7 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyIOPrintVec(Vec v,char *prefix, int print_count) {
+PetscErrorCode TDyIOPrintVec(Vec v,const char *prefix, int print_count) {
   char word[32];
   PetscViewer viewer;
   PetscErrorCode ierr;
@@ -29,7 +28,6 @@ PetscErrorCode TDyIOPrintVec(Vec v,char *prefix, int print_count) {
 }
 
 PetscErrorCode TDyIODestroy(TDyIO *io) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   free(*io);
   io = PETSC_NULL;

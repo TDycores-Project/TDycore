@@ -207,7 +207,6 @@ PetscErrorCode TDyPermeabilityFunctionDefault(TDy tdy, double *x, double *K, voi
   PetscErrorCode ierr;
   PetscInt dim;
   PetscFunctionBegin;
-  TDy tdya;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   for (int j=0; j<dim; j++) {
     for (int i=0; i<dim; i++) {
