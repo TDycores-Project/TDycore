@@ -226,7 +226,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
   ndim      = 3;
   ncells    = vertices->num_internal_cells[ivertex];
   vertex_id = ivertex;
-  nfluxes   = ncells * 3/2;
+  nfluxes   = vertices->num_faces[ivertex];
 
   ierr = TDyAllocate_RealArray_2D(&Gmatrix, ndim   , ndim   ); CHKERRQ(ierr);
   ierr = TDyAllocate_RealArray_2D(&Fup    , nfluxes, ncells ); CHKERRQ(ierr);
