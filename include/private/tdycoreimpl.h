@@ -123,6 +123,7 @@ struct _p_TDy {
   PetscInt  *faces;
 
   /* MPFA-O */
+  PetscInt mpfao_gmatrix_method;
   TDy_mesh *mesh;
   PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
   PetscReal ***Trans;

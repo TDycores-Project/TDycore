@@ -100,22 +100,46 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
         for (jj=0;jj<subcells->num_faces[subcell_id];jj++) {
           PetscReal nu[dim];
 
-          ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+          switch (tdy->mpfao_gmatrix_method){
+          case MPFAO_GMATRIX_DEFAULT:
+             ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
           
-          ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
+             ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
+                                            &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+             break;
+
+          case MPFAO_GMATRIX_TPF:
+            if (ii == jj) {
+              ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+              ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
                                          &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
-          PetscReal g;
-          if (ii == jj) {
-            ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
-            ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
-                                         &g); CHKERRQ(ierr);
-          } else {
-            g = 0.0;
+            } else {
+              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
+            }
           }
-          //tdy->subc_Gmatrix[icell][isubcell][ii][jj] = g;
-          if (tdy->mode == TH) {ierr = TDyComputeEntryOfGMatrix3D(area, normal, Kappa,
-                                nu, subcells->T[subcell_id], dim,
-                                &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);}                                         
+
+          if (tdy->mode == TH) {
+            switch (tdy->mpfao_gmatrix_method){
+            case MPFAO_GMATRIX_DEFAULT:
+               ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+          
+              ierr = TDyComputeEntryOfGMatrix3D(area, normal, Kappa,
+                                  nu, subcells->T[subcell_id], dim,
+                                  &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+               break;
+
+            case MPFAO_GMATRIX_TPF:
+               if (ii == jj) {
+                ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+
+                ierr = TDyComputeEntryOfGMatrix3D(area, normal, Kappa, nu, subcells->T[subcell_id], dim,
+                                           &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+                } else {
+                  tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
+                }
+                break;
+            }
+          }
         }
       }
     }

@@ -18,6 +18,13 @@ typedef enum {
 PETSC_EXTERN const char *const TDyMethods[];
 
 typedef enum {
+  MPFAO_GMATRIX_DEFAULT=0, /* default method to compute gmatrix for MPFA-O method        */
+  MPFAO_GMATRIX_TPF        /* two-point flux method to compute gmatrix for MPFA-O method */
+} TDyMPFAOGmatrixMethod;
+
+PETSC_EXTERN const char *const TDyMPFAOGmatrixMethods[];
+
+typedef enum {
   LUMPED=0,
   FULL
 } TDyQuadratureType;
@@ -114,6 +121,7 @@ PETSC_EXTERN PetscErrorCode TDySetup(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
     TDyQuadratureType qtype);
 PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
+PETSC_EXTERN PetscErrorCode TDySetMPFAOGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
 
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS ts,TDy tdy);

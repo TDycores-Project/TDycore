@@ -13,7 +13,8 @@
 #define tdycreatewithdm_                            TDYCREATEWITHDM
 #define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
 #define tdysetup_                                   TDYSETUP
-#define tdysetwaterdensitytype_                     TDYWATERDENSITYTYPE
+#define tdysetwaterdensitytype_                     TDYSETWATERDENSITYTYPE
+#define tdysetmpfaogmatrixmethod_                   TDYSETMPFAOGMATRIXMETHOD
 #define tdysetifunction_                            TDYSETIFUNCTION
 #define tdysetijacobian_                            TDYSETIJACOBIAN
 #define tdysetsnesfunction_                         TDYSETSNESFUNCTION
@@ -64,6 +65,7 @@
 #define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
 #define tdysetup_                                   tdysetup
 #define tdysetwaterdensitytype_                     tdysetwaterdensitytype
+#define tdysetmpfaogmatrixmethod_                   tdysetmpfaogmatrixmethod
 #define tdysetifunction_                            tdysetifunction
 #define tdysetijacobian_                            tdysetijacobian
 #define tdysetsnesfunction_                         tdysetsnesfunction
@@ -166,6 +168,16 @@ extern "C" {
 #endif
 PETSC_EXTERN void  tdysetwaterdensitytype_(TDy tdy, PetscInt *method, int *__ierr){
 *__ierr = TDySetWaterDensityType((TDy)PetscToPointer((tdy)), *method);
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdysetmpfaogmatrixmthod_(TDy tdy, PetscInt *method, int *__ierr){
+*__ierr = TDySetMPFAOGmatrixMethod((TDy)PetscToPointer((tdy)), *method);
 }
 #if defined(__cplusplus)
 }
