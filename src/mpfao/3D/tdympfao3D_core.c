@@ -313,7 +313,7 @@ PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(TDy tdy,
+PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
     PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
 
   TDy_vertex *vertices;
@@ -719,23 +719,15 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
 
     if (!vertices->is_local[ivertex]) continue;
 
-    if (vertices->num_boundary_faces[ivertex] == 0) {
-      ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
+    if (vertices->num_boundary_faces[ivertex] == 0 || vertices->num_internal_cells[ivertex] > 1) {
+      ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(tdy, ivertex, cells, 0); CHKERRQ(ierr);
       if (tdy->mode == TH) {
-        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
+        ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(tdy, ivertex, cells, 0); CHKERRQ(ierr);
       }
     } else {
-      if (vertices->num_internal_cells[ivertex] > 1) {
-        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
-        if (tdy->mode == TH) {
-          ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(tdy, ivertex, cells, 1); CHKERRQ(ierr);
-        }
-
-      } else {
-        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
-        if (tdy->mode == TH) {
-          ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 1); CHKERRQ(ierr);
-        }
+      ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
+      if (tdy->mode == TH) {
+        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 1); CHKERRQ(ierr);
       }
     }
   }
