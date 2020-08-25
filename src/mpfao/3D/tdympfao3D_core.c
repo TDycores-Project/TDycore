@@ -274,10 +274,7 @@ PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
 PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
     PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
 
-  PetscInt       ncells, icell, isubcell;
-
   TDy_vertex *vertices;
-  TDy_subcell    *subcells;
   PetscInt dim;
   PetscReal **Fup, **Fdn;
   PetscReal **Cup, **Cdn;
@@ -285,7 +282,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
   PetscReal **Gmatrix;
   PetscInt idx, vertex_id;
   PetscErrorCode ierr;
-  PetscInt i, j, ndim, nfluxes;
+  PetscInt i, j, ndim;
   PetscReal ****Trans;
   Mat *Trans_mat;
 
@@ -293,34 +290,38 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
 
   vertices = &tdy->mesh->vertices;
   PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
-  PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
   PetscInt vOffsetFace = vertices->face_offset[ivertex];
 
   ndim      = 3;
-  ncells    = vertices->num_internal_cells[ivertex];
+  PetscInt npcen    = vertices->num_internal_cells[ivertex];
   vertex_id = ivertex;
-  nfluxes   = vertices->num_faces[ivertex];
+  PetscInt nfluxes_in   = vertices->num_faces[ivertex];
+  PetscInt nfluxes_in_up = nfluxes_in;
+  PetscInt nfluxes_in_dn = nfluxes_in;
+  PetscInt npitf_in = nfluxes_in;
+  PetscInt npitf_bc = 0;
+  PetscInt npitf = npitf_in + npitf_bc;
 
   ierr = TDyAllocate_RealArray_2D(&Gmatrix, ndim   , ndim   ); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_2D(&Fup    , nfluxes, ncells ); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_2D(&Fdn    , nfluxes, ncells ); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_2D(&Cup    , nfluxes, nfluxes); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_2D(&Cdn    , nfluxes, nfluxes); CHKERRQ(ierr);
 
-  ierr = TDyAllocate_RealArray_1D(&A_1d           , nfluxes*nfluxes); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_1D(&B_1d           , nfluxes*ncells ); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_1D(&Cup_1d          , nfluxes*nfluxes); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_1D(&AinvB_1d        , nfluxes*ncells ); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_1D(&CuptimesAinvB_1d, nfluxes*ncells ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Fup    , nfluxes_in_up, npcen ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Cup    , nfluxes_in_up, npitf); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Fdn    , nfluxes_in_dn, npcen ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Cdn    , nfluxes_in_dn, npitf); CHKERRQ(ierr);
 
-  subcells = &tdy->mesh->subcells;
+  ierr = TDyAllocate_RealArray_1D(&A_1d            , nfluxes_in*npitf_in); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&B_1d            , nfluxes_in*(npcen+npitf_bc) ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&Cup_1d          , nfluxes_in*npitf_in); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&AinvB_1d        , nfluxes_in*npcen ); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&CuptimesAinvB_1d, nfluxes_in*npcen ); CHKERRQ(ierr);
+
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
   ierr = ComputeCandFmatrix(tdy, ivertex, varID, Cup, Cdn, Fup, Fdn); CHKERRQ(ierr);
 
   idx = 0;
-  for (j=0; j<nfluxes; j++) {
-    for (i=0; i<nfluxes; i++) {
+  for (j=0; j<npitf_in; j++) {
+    for (i=0; i<nfluxes_in; i++) {
       A_1d[idx] = -Cup[i][j] + Cdn[i][j];
       Cup_1d[idx] = Cup[i][j];
       idx++;
@@ -328,18 +329,18 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
   }
 
   idx = 0;
-  for (j=0; j<ncells; j++) {
-    for (i=0; i<nfluxes; i++) {
+  for (j=0; j<npcen+npitf_bc; j++) {
+    for (i=0; i<nfluxes_in; i++) {
       B_1d[idx]= -Fup[i][j] + Fdn[i][j];
       idx++;
     }
   }
 
   // Solve A^-1 * B
-  ierr = ComputeAinvB(nfluxes, A_1d, ncells, B_1d, AinvB_1d);
+  ierr = ComputeAinvB(nfluxes_in, A_1d, npcen+npitf_bc, B_1d, AinvB_1d);
 
   // Solve C * (A^-1 * B)
-  ierr = ComputeCtimesAinvB(nfluxes, ncells, nfluxes, Cup_1d, AinvB_1d, CuptimesAinvB_1d);
+  ierr = ComputeCtimesAinvB(nfluxes_in, npcen+npitf_bc, nfluxes_in, Cup_1d, AinvB_1d, CuptimesAinvB_1d);
 
   // Save Transmissibility matrix
   if (varID == VAR_PRESSURE) {
@@ -351,8 +352,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
   }
 
   idx = 0;
-  for (j=0; j<ncells; j++) {
-    for (i=0; i<nfluxes; i++) {
+  for (j=0; j<npcen; j++) {
+    for (i=0; i<nfluxes_in; i++) {
       (*Trans)[vertex_id][i][j] = CuptimesAinvB_1d[idx] - Fup[i][j];
       idx++;
     }
@@ -360,11 +361,11 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
 
   PetscInt face_id, subface_id, num_subfaces = 4;
   PetscInt row, col;
-  for (i=0; i<nfluxes; i++) {
+  for (i=0; i<nfluxes_in; i++) {
     face_id = vertices->face_ids[vOffsetFace + i];
     subface_id = vertices->subface_ids[vOffsetFace + i];
     row = face_id*num_subfaces + subface_id;
-    for (j=0; j<ncells; j++) {
+    for (j=0; j<npcen; j++) {
       col = vertices->internal_cell_ids[vOffsetCell + j];
       ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[vertex_id][i][j],ADD_VALUES); CHKERRQ(ierr);
     }
@@ -372,10 +373,10 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
 
   // Free up the memory
   ierr = TDyDeallocate_RealArray_2D(Gmatrix, ndim   ); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(Fup    , nfluxes ); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(Fdn    , nfluxes ); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(Cup    , nfluxes ); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(Cdn    , nfluxes ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fup    , nfluxes_in_up ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fdn    , nfluxes_in_dn ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup    , nfluxes_in_up ); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn    , nfluxes_in_dn ); CHKERRQ(ierr);
 
   free(A_1d            );
   free(B_1d            );
