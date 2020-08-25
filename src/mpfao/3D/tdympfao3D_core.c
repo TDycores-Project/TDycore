@@ -269,6 +269,49 @@ PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
   PetscFunctionReturn(0);
 }
     
+/* -------------------------------------------------------------------------- */
+PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex, PetscInt *nflux_bc_up, PetscInt *nflux_bc_dn) {
+
+  PetscFunctionBegin;
+
+  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_subcell *subcells = &tdy->mesh->subcells;
+  TDy_cell *cells = &tdy->mesh->cells;
+  TDy_face *faces = &tdy->mesh->faces;
+
+  PetscInt npcen = vertices->num_internal_cells[ivertex];
+  PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
+  PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
+
+  PetscInt i, iface;
+
+  *nflux_bc_up = 0;
+  *nflux_bc_dn = 0;
+
+  for (i=0; i<npcen; i++) {
+    PetscInt icell    = vertices->internal_cell_ids[vOffsetCell + i];
+    PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
+
+    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
+    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+    for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+
+      PetscInt faceID = subcells->face_ids[sOffsetFace+iface];
+      if (faces->is_internal[faceID]) continue;
+
+      if ((subcells->is_face_up[sOffsetFace + iface]==1)) {
+        (*nflux_bc_up)++;
+      } else {
+        (*nflux_bc_dn)++;
+      }
+    }
+
+  }
+
+  PetscFunctionReturn(0);
+}
+
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
@@ -397,7 +440,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
   PetscInt nflux_in, nflux_bc_up, nflux_bc_dn, nflux_in_up, nflux_in_dn;
   PetscInt npitf_bc, npitf_in, npitf;
   PetscInt npcen;
-  PetscInt icell, isubcell;
+  PetscInt icell;
   PetscReal **Gmatrix;
   PetscReal **Fup, **Cup, **Fdn, **Cdn;
   PetscReal *AInxIn_1d, *BInxCBC_1d;
@@ -425,29 +468,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
   ierr = DMGetDimension(tdy->dm, &ndim); CHKERRQ(ierr);
 
   npcen = vertices->num_internal_cells[ivertex];
-  nflux_bc_up = 0;
-  nflux_bc_dn = 0;
-  for (i=0; i<npcen; i++) {
-    icell    = vertices->internal_cell_ids[vOffsetCell + i];
-    isubcell = vertices->subcell_ids[vOffsetSubcell + i];
 
-    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
-
-    PetscInt iface;
-    for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-
-      PetscInt faceID = subcells->face_ids[sOffsetFace+iface];
-      if (faces->is_internal[faceID]) continue;
-
-      PetscBool upwind_entries;
-      upwind_entries = (subcells->is_face_up[sOffsetFace + iface]==1);
-
-      if (upwind_entries) nflux_bc_up++;
-      else                nflux_bc_dn++;
-    }
-
-  }
+  ierr = DetermineNumberOfUpAndDownBoundaryFaces(tdy, ivertex, &nflux_bc_up, &nflux_bc_dn);
 
   // Determine:
   //  (1) number of internal and boudnary fluxes,
