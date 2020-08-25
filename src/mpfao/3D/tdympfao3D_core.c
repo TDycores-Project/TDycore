@@ -197,6 +197,79 @@ PetscErrorCode ComputeCtimesAinvB(PetscInt A_nrow, PetscInt B_ncol, PetscInt C_n
 
 }
 
+ /* -------------------------------------------------------------------------- */
+PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID, 
+  PetscReal **Cup, PetscReal **Cdn, PetscReal **Fup, PetscReal **Fdn) {
+
+  PetscErrorCode ierr;
+
+  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_cell   *cells    = &tdy->mesh->cells;
+  TDy_subcell *subcells = &tdy->mesh->subcells;
+
+  PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
+  PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
+
+  PetscInt npcen = vertices->num_internal_cells[ivertex];
+  PetscReal **Gmatrix;
+  PetscInt i, ndim;
+
+  ierr = DMGetDimension(tdy->dm, &ndim); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, ndim   , ndim   ); CHKERRQ(ierr);
+
+  for (i=0; i<npcen; i++) {
+    PetscInt icell    = vertices->internal_cell_ids[vOffsetCell + i];
+    PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
+
+    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
+    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+    if (varID == VAR_PRESSURE) {
+      ierr = ExtractSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
+    } else if (varID == VAR_TEMPERATURE){
+      ierr = ExtractTempSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
+    }
+
+    PetscInt idx_interface_p0, idx_interface_p1, idx_interface_p2;
+
+    idx_interface_p0 = subcells->face_unknown_idx[sOffsetFace +0];
+    idx_interface_p1 = subcells->face_unknown_idx[sOffsetFace +1];
+    idx_interface_p2 = subcells->face_unknown_idx[sOffsetFace +2];
+
+    PetscInt idx_flux, iface;
+    for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+
+      PetscBool upwind_entries;
+
+      upwind_entries = (subcells->is_face_up[sOffsetFace + iface]==1);
+
+      if (upwind_entries) {
+        idx_flux = subcells->face_flux_idx[sOffsetFace + iface];
+
+        Cup[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
+        Cup[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
+        Cup[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
+
+        Fup[idx_flux][i] = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+
+      } else {
+        idx_flux = subcells->face_flux_idx[sOffsetFace + iface];
+
+        Cdn[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
+        Cdn[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
+        Cdn[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
+
+        Fdn[idx_flux][i] = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+
+      }
+    }
+
+  }
+
+  PetscFunctionReturn(0);
+}
+    
+
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
     PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
@@ -243,48 +316,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
   subcells = &tdy->mesh->subcells;
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
-  for (i=0; i<ncells; i++) {
-    icell    = vertices->internal_cell_ids[vOffsetCell + i];
-    isubcell = vertices->subcell_ids[vOffsetSubcell + i];
-
-    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
-
-    if (varID == VAR_PRESSURE) {
-      ierr = ExtractSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
-    } else if (varID == VAR_TEMPERATURE) {
-      ierr = ExtractTempSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
-    }
-
-    PetscInt idx_interface_p0, idx_interface_p1, idx_interface_p2;
-    idx_interface_p0 = subcells->face_unknown_idx[sOffsetFace + 0];
-    idx_interface_p1 = subcells->face_unknown_idx[sOffsetFace + 1];
-    idx_interface_p2 = subcells->face_unknown_idx[sOffsetFace + 2];
-
-    PetscInt iface;
-    for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
-
-      PetscBool upwind_entries;
-      PetscInt idx_flux;
-
-      upwind_entries = (subcells->is_face_up[sOffsetFace + iface]==1);
-
-      idx_flux = subcells->face_flux_idx[sOffsetFace +iface];
-
-      if (upwind_entries) {
-        Cup[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
-        Cup[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
-        Cup[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
-        Fup[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-      } else {
-        Cdn[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
-        Cdn[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
-        Cdn[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
-        Fdn[idx_flux][i]                = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-      }
-      
-    }
-  }
+  ierr = ComputeCandFmatrix(tdy, ivertex, varID, Cup, Cdn, Fup, Fdn); CHKERRQ(ierr);
 
   idx = 0;
   for (j=0; j<nfluxes; j++) {
@@ -449,54 +481,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
   ierr = TDyAllocate_RealArray_1D(&CdnBCxIntimesAinvB_1d, nflux_bc_dn*(npcen+npitf_bc)   );
   
 
-  for (i=0; i<npcen; i++) {
-    icell    = vertices->internal_cell_ids[vOffsetCell + i];
-    isubcell = vertices->subcell_ids[vOffsetSubcell + i];
+  ierr = ComputeCandFmatrix(tdy, ivertex, varID, Cup, Cdn, Fup, Fdn); CHKERRQ(ierr);
 
-    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
-
-    if (varID == VAR_PRESSURE) {
-      ierr = ExtractSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
-    } else if (varID == VAR_TEMPERATURE){
-      ierr = ExtractTempSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
-    }
-
-    PetscInt idx_interface_p0, idx_interface_p1, idx_interface_p2;
-
-    idx_interface_p0 = subcells->face_unknown_idx[sOffsetFace +0];
-    idx_interface_p1 = subcells->face_unknown_idx[sOffsetFace +1];
-    idx_interface_p2 = subcells->face_unknown_idx[sOffsetFace +2];
-
-    PetscInt idx_flux, iface;
-    for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-
-      PetscBool upwind_entries;
-
-      upwind_entries = (subcells->is_face_up[sOffsetFace + iface]==1);
-
-      if (upwind_entries) {
-        idx_flux = subcells->face_flux_idx[sOffsetFace + iface];
-
-        Cup[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
-        Cup[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
-        Cup[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
-
-        Fup[idx_flux][i] = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-
-      } else {
-        idx_flux = subcells->face_flux_idx[sOffsetFace + iface];
-
-        Cdn[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
-        Cdn[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
-        Cdn[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
-
-        Fdn[idx_flux][i] = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-
-      }
-    }
-
-  }
 
   /*
     Upwind/Downwind
