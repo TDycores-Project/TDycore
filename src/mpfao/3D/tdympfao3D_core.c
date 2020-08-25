@@ -583,9 +583,13 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
   ierr = ComputeAinvB(nflux_in, AInxIn_1d, npcen+npitf_bc, BInxCBC_1d, AinvB_1d);
 
   // Solve C * (A^-1 * B) for internal, upwind, and downwind fluxes
-  ierr = ComputeCtimesAinvB(nflux_in, npcen+npitf_bc, nflux_in, CupInxIn_1d, AinvB_1d, CupInxIntimesAinvB_1d);
-  ierr = ComputeCtimesAinvB(nflux_in, npcen+npitf_bc, nflux_bc_up, CupBcxIn_1d, AinvB_1d, CupBCxIntimesAinvB_1d);
-  ierr = ComputeCtimesAinvB(nflux_in, npcen+npitf_bc, nflux_bc_dn, CdnBcxIn_1d, AinvB_1d, CdnBCxIntimesAinvB_1d);
+  ierr = ComputeCtimesAinvB(nflux_in, npcen+npitf_bc, nflux_in, CupInxIn_1d, AinvB_1d, CupInxIntimesAinvB_1d); CHKERRQ(ierr);
+  if (nflux_bc_up > 0) {
+    ierr = ComputeCtimesAinvB(nflux_in, npcen+npitf_bc, nflux_bc_up, CupBcxIn_1d, AinvB_1d, CupBCxIntimesAinvB_1d);  CHKERRQ(ierr);
+    }
+  if (nflux_bc_dn > 0) {
+    ierr = ComputeCtimesAinvB(nflux_in, npcen+npitf_bc, nflux_bc_dn, CdnBcxIn_1d, AinvB_1d, CdnBCxIntimesAinvB_1d); CHKERRQ(ierr);
+    }
 
   if (varID == VAR_PRESSURE) {
     Trans = &tdy->Trans;
@@ -842,9 +846,9 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
     if (!vertices->is_local[ivertex]) continue;
 
     if (vertices->num_boundary_faces[ivertex] == 0) {
-      ierr = ComputeTransmissibilityMatrix_ForInternalVertex(tdy, ivertex, cells, 0); CHKERRQ(ierr);
+      ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
       if (tdy->mode == TH) {
-        ierr = ComputeTransmissibilityMatrix_ForInternalVertex(tdy, ivertex, cells, 1); CHKERRQ(ierr);
+        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
       }
     } else {
       if (vertices->num_internal_cells[ivertex] > 1) {
