@@ -335,14 +335,21 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForInternalVertex(TDy tdy,
   PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
   PetscInt vOffsetFace = vertices->face_offset[ivertex];
 
-  ndim      = 3;
-  PetscInt npcen    = vertices->num_internal_cells[ivertex];
+  ierr = DMGetDimension(tdy->dm, &ndim); CHKERRQ(ierr);
+
   vertex_id = ivertex;
-  PetscInt nfluxes_in   = vertices->num_faces[ivertex];
-  PetscInt nfluxes_in_up = nfluxes_in;
-  PetscInt nfluxes_in_dn = nfluxes_in;
+
+  PetscInt nflux_bc_up, nflux_bc_dn;
+  ierr = DetermineNumberOfUpAndDownBoundaryFaces(tdy, ivertex, &nflux_bc_up, &nflux_bc_dn);
+
+  PetscInt npcen    = vertices->num_internal_cells[ivertex];
+  PetscInt npitf_bc = vertices->num_boundary_faces[ivertex];
+
+  PetscInt nfluxes_in   = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
+
+  PetscInt nfluxes_in_up = nfluxes_in + nflux_bc_up;
+  PetscInt nfluxes_in_dn = nfluxes_in + nflux_bc_dn;
   PetscInt npitf_in = nfluxes_in;
-  PetscInt npitf_bc = 0;
   PetscInt npitf = npitf_in + npitf_bc;
 
   ierr = TDyAllocate_RealArray_2D(&Gmatrix, ndim   , ndim   ); CHKERRQ(ierr);
