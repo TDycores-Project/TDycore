@@ -444,9 +444,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
   TDy_vertex *vertices;
   TDy_subcell *subcells;
   TDy_face *faces;
-  PetscInt nflux_in, nflux_bc_up, nflux_bc_dn, nflux_in_up, nflux_in_dn;
-  PetscInt npitf_bc, npitf_in, npitf;
-  PetscInt npcen;
   PetscInt icell;
   PetscReal **Gmatrix;
   PetscReal **Fup, **Cup, **Fdn, **Cdn;
@@ -474,22 +471,21 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_SharedWithInterna
 
   ierr = DMGetDimension(tdy->dm, &ndim); CHKERRQ(ierr);
 
-  npcen = vertices->num_internal_cells[ivertex];
-
+  PetscInt nflux_bc_up, nflux_bc_dn;
   ierr = DetermineNumberOfUpAndDownBoundaryFaces(tdy, ivertex, &nflux_bc_up, &nflux_bc_dn);
 
   // Determine:
   //  (1) number of internal and boudnary fluxes,
   //  (2) number of internal unknown pressure values and known boundary pressure values
-  npcen = vertices->num_internal_cells[ivertex];
-  npitf_bc = vertices->num_boundary_faces[ivertex];
+  PetscInt npcen = vertices->num_internal_cells[ivertex];
+  PetscInt npitf_bc = vertices->num_boundary_faces[ivertex];
   
-  nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
+  PetscInt nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
 
-  npitf_in = nflux_in;
-  nflux_in_up = nflux_in + nflux_bc_up;
-  nflux_in_dn = nflux_in + nflux_bc_dn;
-  npitf = npitf_in + npitf_bc;
+  PetscInt nflux_in_up = nflux_in + nflux_bc_up;
+  PetscInt nflux_in_dn = nflux_in + nflux_bc_dn;
+  PetscInt npitf_in = nflux_in;
+  PetscInt npitf = npitf_in + npitf_bc;
 
   ierr = TDyAllocate_RealArray_2D(&Gmatrix, ndim, ndim);
 
