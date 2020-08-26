@@ -497,14 +497,14 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
   ierr = ExtractsubCMatrices(nflux_in_plus_bcs_up, npitf, Cup_all,
     nflux_in, nflux_dir_bc_up, nflux_neu_bc_up, // rows
-    npitf_in, npitf_dir_bc_all, nflux_neu_bc_up, // cols
+    npitf_in, npitf_dir_bc_all, nflux_neu_bc_all, // cols
     &Cup_11, &Cup_12, &Cup_13,
     &Cup_21, &Cup_22, &Cup_23,
     &Cup_31, &Cup_32, &Cup_33);
 
   ierr = ExtractsubCMatrices(nflux_in_plus_bcs_up, npitf, Cdn_all,
     nflux_in, nflux_dir_bc_dn, nflux_neu_bc_dn, // rows
-    npitf_in, npitf_dir_bc_all, nflux_neu_bc_dn, // cols
+    npitf_in, npitf_dir_bc_all, nflux_neu_bc_all, // cols
     &Cdn_11, &Cdn_12, &Cdn_13,
     &Cdn_21, &Cdn_22, &Cdn_23,
     &Cdn_31, &Cdn_32, &Cdn_33);
@@ -515,11 +515,27 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
       BINBCxCDBC_1d[idx] = -Fup_in[i][j]+Fdn_in[i][j];
       idx++;
     }
+    for (i=0; i<nflux_neu_bc_up; i++) {
+      BINBCxCDBC_1d[idx] = -Fup_neu_bc[i][j];
+      idx++;
+    }
+    for (i=0; i<nflux_neu_bc_dn; i++) {
+      BINBCxCDBC_1d[idx] = -Fdn_neu_bc[i][j];
+      idx++;
+    }
   }
 
   for (j=0; j< npitf_dir_bc_all; j++) {
     for (i=0; i<nflux_in; i++) {
       BINBCxCDBC_1d[idx] = Cup_12[i][j] - Cdn_12[i][j];
+      idx++;
+    }
+    for (i=0; i<nflux_neu_bc_up; i++) {
+      BINBCxCDBC_1d[idx] = -Cup_32[i][j];
+      idx++;
+    }
+    for (i=0; i<nflux_neu_bc_dn; i++) {
+      BINBCxCDBC_1d[idx] = -Cdn_32[i][j];
       idx++;
     }
   }
@@ -531,7 +547,41 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
       CupINBCxINBC_1d[idx] = Cup_11[i][j];
       idx++;
     }
+
+    for (i=0; i<nflux_neu_bc_up; i++) {
+      AINBCxINBC_1d[idx]   = -Cup_31[i][j];
+      CupINBCxINBC_1d[idx] = Cup_31[i][j];
+      idx++;
+    }
+
+    for (i=0; i<nflux_neu_bc_dn; i++) {
+      AINBCxINBC_1d[idx]   = -Cdn_31[i][j];
+      CupINBCxINBC_1d[idx] = Cdn_31[i][j];
+      idx++;
+    }
+
   }
+
+  for (j=0; j<nflux_neu_bc_all; j++) {
+    for (i=0; i<nflux_in; i++) {
+      AINBCxINBC_1d[idx]   = -Cup_13[i][j] + Cdn_13[i][j];
+      CupINBCxINBC_1d[idx] = Cup_13[i][j];
+      idx++;
+    }
+
+    for (i=0; i<nflux_neu_bc_up; i++) {
+      AINBCxINBC_1d[idx]   = -Cup_33[i][j];
+      CupINBCxINBC_1d[idx] = Cup_33[i][j];
+      idx++;
+    }
+
+    for (i=0; i<nflux_neu_bc_dn; i++) {
+      AINBCxINBC_1d[idx]   = -Cdn_33[i][j];
+      CupINBCxINBC_1d[idx] = Cdn_33[i][j];
+      idx++;
+    }
+  }
+
 
   idx = 0;
   for (j=0; j<npitf_in; j++) {
