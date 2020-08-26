@@ -313,6 +313,36 @@ PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex
 }
 
 /* -------------------------------------------------------------------------- */
+  PetscErrorCode ExtractSubMatrix(PetscReal **M, PetscInt rStart, PetscInt rEnd, PetscInt cStart, PetscInt cEnd, PetscReal **Msub){
+
+    PetscFunctionBegin;
+
+    PetscInt irow, icol;
+
+    for (irow = rStart; irow < rEnd; irow++) {
+      for (icol = cStart; icol < cEnd; icol++) {
+        Msub[irow-rStart][icol-cStart] = M[irow][icol];
+      }
+    }
+
+    PetscFunctionReturn(0);
+  }
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode ExtractsubFMatrices(PetscReal **F, PetscInt nrow, PetscInt ncol, PetscInt nrow_1, PetscInt nrow_2, PetscInt nrow_3, PetscReal **F_1, PetscReal **F_2, PetscReal **F_3){
+
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+
+  ierr = ExtractSubMatrix(F, 0, nrow_1, 0, ncol, F_1); CHKERRQ(ierr);
+  ierr = ExtractSubMatrix(F, nrow_1, nrow_1 + nrow_2, 0, ncol, F_2); CHKERRQ(ierr);
+  ierr = ExtractSubMatrix(F, nrow_1 + nrow_2, nrow_1 + nrow_2 + nrow_3, 0, ncol, F_3); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
     PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
 
@@ -321,7 +351,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   TDy_face *faces;
   PetscInt icell;
   PetscReal **Gmatrix;
-  PetscReal **Fup, **Cup, **Fdn, **Cdn;
+  PetscReal **Fup_all, **Cup, **Fdn_all, **Cdn;
   PetscReal *AINBCxINBC_1d, *BINBCxCDBC_1d;
   PetscReal *AinvB_1d;
   PetscReal *CupINBCxINBC_1d, *CupDBCxIn_1d, *CdnDBCxIn_1d;
@@ -392,9 +422,9 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
   ierr = TDyAllocate_RealArray_2D(&Gmatrix, ndim, ndim);
 
-  ierr = TDyAllocate_RealArray_2D(&Fup, nflux_in_plus_bcs_up, npcen);
+  ierr = TDyAllocate_RealArray_2D(&Fup_all, nflux_in_plus_bcs_up, npcen);
   ierr = TDyAllocate_RealArray_2D(&Cup, nflux_in_plus_bcs_up, npitf);
-  ierr = TDyAllocate_RealArray_2D(&Fdn, nflux_in_plus_bcs_dn, npcen);
+  ierr = TDyAllocate_RealArray_2D(&Fdn_all, nflux_in_plus_bcs_dn, npcen);
   ierr = TDyAllocate_RealArray_2D(&Cdn, nflux_in_plus_bcs_dn, npitf);
 
   ierr = TDyAllocate_RealArray_1D(&AINBCxINBC_1d  , (nflux_in+nflux_neu_bc_all)*(npitf_in + nflux_neu_bc_all));
@@ -410,8 +440,19 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   ierr = TDyAllocate_RealArray_1D(&CdnBCxIntimesAinvB_1d, nflux_dir_bc_dn*(npcen + npitf_dir_bc_all)   );
   
 
-  ierr = ComputeCandFmatrix(tdy, ivertex, varID, Cup, Cdn, Fup, Fdn); CHKERRQ(ierr);
+  ierr = ComputeCandFmatrix(tdy, ivertex, varID, Cup, Cdn, Fup_all, Fdn_all); CHKERRQ(ierr);
 
+  PetscReal **Fup_in, **Fup_dir_bc, **Fup_neu_bc;
+  PetscReal **Fdn_in, **Fdn_dir_bc, **Fdn_neu_bc;
+  ierr = TDyAllocate_RealArray_2D(&Fup_in    , nflux_in       , npcen);
+  ierr = TDyAllocate_RealArray_2D(&Fup_dir_bc, nflux_dir_bc_up, npcen);
+  ierr = TDyAllocate_RealArray_2D(&Fup_neu_bc, nflux_neu_bc_up, npcen);
+  ierr = TDyAllocate_RealArray_2D(&Fdn_in    , nflux_in       , npcen);
+  ierr = TDyAllocate_RealArray_2D(&Fdn_dir_bc, nflux_dir_bc_dn, npcen);
+  ierr = TDyAllocate_RealArray_2D(&Fdn_neu_bc, nflux_neu_bc_dn, npcen);
+
+  ierr = ExtractsubFMatrices(Fup_all, nflux_in_plus_bcs_up, npcen, nflux_in, nflux_dir_bc_up, nflux_neu_bc_up, Fup_in, Fup_dir_bc, Fup_neu_bc);
+  ierr = ExtractsubFMatrices(Fdn_all, nflux_in_plus_bcs_up, npcen, nflux_in, nflux_dir_bc_dn, nflux_neu_bc_dn, Fdn_in, Fdn_dir_bc, Fdn_neu_bc);
 
   /*
     Upwind/Downwind
@@ -443,7 +484,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   idx = 0;
   for (j=0; j<npcen; j++) {
     for (i=0; i<nflux_in; i++) {
-      BINBCxCDBC_1d[idx] = -Fup[i][j]+Fdn[i][j];
+      BINBCxCDBC_1d[idx] = -Fup_in[i][j]+Fdn_in[i][j];
       idx++;
     }
   }
@@ -521,7 +562,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   for (j=0;j<npcen+npitf_dir_bc_all;j++) {
     for (i=0;i<nflux_in;i++) {
       if (j<npcen) {
-        (*Trans)[vertex_id][i][j] = CupInxIntimesAinvB_1d[idx] - Fup[i][j];
+        (*Trans)[vertex_id][i][j] = CupInxIntimesAinvB_1d[idx] - Fup_in[i][j];
       } else {
         (*Trans)[vertex_id][i][j] = CupInxIntimesAinvB_1d[idx] + Cup[i][j-npcen+npitf_in];
       }
@@ -535,7 +576,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   for (j=0;j<npcen+npitf_dir_bc_all;j++) {
     for (i=0;i<nflux_dir_bc_up;i++) {
       if (j<npcen) {
-        (*Trans)[vertex_id][i+nflux_in][j] = CupBCxIntimesAinvB_1d[idx] - Fup[i+nflux_in][j];
+        (*Trans)[vertex_id][i+nflux_in][j] = CupBCxIntimesAinvB_1d[idx] - Fup_dir_bc[i][j];
       } else {
         (*Trans)[vertex_id][i+nflux_in][j] = CupBCxIntimesAinvB_1d[idx] + Cup[i+npitf_in][j-npcen+npitf_in];
       }
@@ -547,7 +588,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   for (j=0;j<npcen+npitf_dir_bc_all;j++) {
     for (i=0;i<nflux_dir_bc_dn;i++) {
       if (j<npcen) {
-        (*Trans)[vertex_id][i+nflux_in+nflux_dir_bc_up][j] = CdnBCxIntimesAinvB_1d[idx] - Fdn[i+nflux_in][j];
+        (*Trans)[vertex_id][i+nflux_in+nflux_dir_bc_up][j] = CdnBCxIntimesAinvB_1d[idx] - Fdn_dir_bc[i][j];
       } else {
         (*Trans)[vertex_id][i+nflux_in+nflux_dir_bc_up][j] = CdnBCxIntimesAinvB_1d[idx] + Cdn[i+npitf_in][j-npcen+npitf_in];
       }
@@ -603,10 +644,17 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   }
 
   ierr = TDyDeallocate_RealArray_2D(Gmatrix, ndim); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(Fup, nflux_in_plus_bcs_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fup_all, nflux_in_plus_bcs_up); CHKERRQ(ierr);
   ierr = TDyDeallocate_RealArray_2D(Cup, nflux_in_plus_bcs_up); CHKERRQ(ierr);
-  ierr = TDyDeallocate_RealArray_2D(Fdn, nflux_in_plus_bcs_dn); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fdn_all, nflux_in_plus_bcs_dn); CHKERRQ(ierr);
   ierr = TDyDeallocate_RealArray_2D(Cdn, nflux_in_plus_bcs_dn); CHKERRQ(ierr);
+
+  ierr = TDyDeallocate_RealArray_2D(Fup_in, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fup_dir_bc, nflux_dir_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fup_neu_bc, nflux_neu_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fdn_in, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fdn_dir_bc, nflux_dir_bc_dn); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Fdn_neu_bc, nflux_neu_bc_dn); CHKERRQ(ierr);
 
   free(AinvB_1d);
   free(CupInxIntimesAinvB_1d);
