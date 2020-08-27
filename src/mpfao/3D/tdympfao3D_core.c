@@ -167,7 +167,7 @@ PetscErrorCode ComputeAinvB(PetscInt A_nrow, PetscReal *A,
   if (info>0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_MAT_LU_ZRPVT,
                         "Bad LU factorization");
 
-  ierr = PetscMemcpy(AinvB,B,sizeof(PetscScalar)*(A_nrow*B_ncol));
+  ierr = PetscMemcpy(AinvB,B,sizeof(PetscReal)*(A_nrow*B_ncol));
   CHKERRQ(ierr); // AinvB in col major
 
   // Solve AinvB = (A^-1 * B) by back-substitution
@@ -180,7 +180,7 @@ PetscErrorCode ComputeAinvB(PetscInt A_nrow, PetscReal *A,
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeCtimesAinvB(PetscInt A_nrow, PetscInt B_ncol, PetscInt C_nrow,
+PetscErrorCode ComputeCtimesAinvB(PetscInt C_nrow, PetscInt AinvB_ncol, PetscInt C_ncol,
     PetscReal *C, PetscReal *AinvB, PetscReal *CtimesAinvB) {
 
   PetscFunctionBegin;
@@ -189,7 +189,7 @@ PetscErrorCode ComputeCtimesAinvB(PetscInt A_nrow, PetscInt B_ncol, PetscInt C_n
   PetscScalar zero = 0.0, one = 1.0;
 
   // Compute (C * AinvB)
-  m = C_nrow; n = B_ncol; k = A_nrow;
+  m = C_nrow; n = AinvB_ncol; k = C_ncol;
   BLASgemm_("N","N", &m, &n, &k, &one, C, &m, AinvB, &k, &zero,
             CtimesAinvB, &m);
 
@@ -478,10 +478,10 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   ierr = TDyAllocate_RealArray_1D(&CupDBCxIn_1d, nflux_dir_bc_up*npitf_in);
   ierr = TDyAllocate_RealArray_1D(&CdnDBCxIn_1d, nflux_dir_bc_dn*npitf_in);
 
-  ierr = TDyAllocate_RealArray_1D(&AinvB_1d, nflux_in*(npcen + npitf_dir_bc_all)   );
-  ierr = TDyAllocate_RealArray_1D(&CupInxIntimesAinvB_1d, nflux_in       *(npcen + npitf_dir_bc_all)   );
-  ierr = TDyAllocate_RealArray_1D(&CupBCxIntimesAinvB_1d, nflux_dir_bc_up*(npcen + npitf_dir_bc_all)   );
-  ierr = TDyAllocate_RealArray_1D(&CdnBCxIntimesAinvB_1d, nflux_dir_bc_dn*(npcen + npitf_dir_bc_all)   );
+  ierr = TDyAllocate_RealArray_1D(&AinvB_1d             , (nflux_in + nflux_neu_bc_all)*(npcen + npitf_dir_bc_all) );
+  ierr = TDyAllocate_RealArray_1D(&CupInxIntimesAinvB_1d, (nflux_in + nflux_neu_bc_all)*(npcen + npitf_dir_bc_all) );
+  ierr = TDyAllocate_RealArray_1D(&CupBCxIntimesAinvB_1d, nflux_dir_bc_up              *(npcen + npitf_dir_bc_all) );
+  ierr = TDyAllocate_RealArray_1D(&CdnBCxIntimesAinvB_1d, nflux_dir_bc_dn              *(npcen + npitf_dir_bc_all) );
   
 
   ierr = ComputeCandFmatrix(tdy, ivertex, varID, Cup_all, Cdn_all, Fup_all, Fdn_all); CHKERRQ(ierr);
@@ -604,24 +604,25 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
   // Solve C * (A^-1 * B) for internal, upwind, and downwind fluxes
   ierr = ComputeCtimesAinvB(
-    nflux_in + nflux_neu_bc_all, // nrow for A
-    npcen    + npitf_dir_bc_all, // ncol for B
     nflux_in + nflux_neu_bc_all, // nrow for CupINBCxINBC_1d
+    npcen    + npitf_dir_bc_all, // ncol for AinvB
+    npitf_in + npitf_neu_bc_all, // ncol for CupINBCxINBC_1d
+    //    nflux_in + nflux_neu_bc_all, // nrow for CupINBCxINBC_1d
     CupINBCxINBC_1d, AinvB_1d, CupInxIntimesAinvB_1d); CHKERRQ(ierr);
 
   if (nflux_dir_bc_up > 0) {
     ierr = ComputeCtimesAinvB(
-      nflux_in + nflux_neu_bc_all, // nrow for A
-      npcen    + npitf_dir_bc_all, // ncol for B
-      nflux_dir_bc_up            , // nrow CupDBCxIn_1d
+      nflux_dir_bc_up             , // nrow for CupDBCxIn_1d
+      npcen    + npitf_dir_bc_all , // ncol for AinvB
+      npitf_in                    , // ncol CupDBCxIn_1d
       CupDBCxIn_1d, AinvB_1d, CupBCxIntimesAinvB_1d);  CHKERRQ(ierr);
     }
 
   if (nflux_dir_bc_dn > 0) {
     ierr = ComputeCtimesAinvB(
-      nflux_in + nflux_neu_bc_all, // nrow for A
-      npcen    + npitf_dir_bc_all, // ncol for B
-      nflux_dir_bc_dn            , // nrow for CdnDBCxIn_1d
+      nflux_dir_bc_dn             , // nrow for CdnDBCxIn_1d
+      npcen    + npitf_dir_bc_all , // ncol for AinvB
+      npitf_in                    , // nrow for CdnDBCxIn_1d
       CdnDBCxIn_1d, AinvB_1d, CdnBCxIntimesAinvB_1d); CHKERRQ(ierr);
     }
 
@@ -679,26 +680,28 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
   ncells = vertices->num_internal_cells[ivertex];
   numBnd = 0;
-  for (i=0; i<ncells; i++) {
-    icell = vertices->internal_cell_ids[vOffsetCell + i];
-    PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
+  if (npitf_dir_bc_all>0){
+    for (i=0; i<ncells; i++) {
+      icell = vertices->internal_cell_ids[vOffsetCell + i];
+      PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
 
-    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+      PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
+      PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
-    PetscInt iface;
-    for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
+      PetscInt iface;
+      for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+	PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+	PetscInt fOffsetCell = faces->cell_offset[face_id];
 
-      if (faces->is_internal[face_id] == 0) {
+	if (faces->is_internal[face_id] == 0) {
 
-        // Extract pressure value at the boundary
-        if (faces->cell_ids[fOffsetCell + 0] >= 0) idxBnd[numBnd] = -faces->cell_ids[fOffsetCell + 1] - 1;
-        else                                       idxBnd[numBnd] = -faces->cell_ids[fOffsetCell + 0] - 1;
+	  // Extract pressure value at the boundary
+	  if (faces->cell_ids[fOffsetCell + 0] >= 0) idxBnd[numBnd] = -faces->cell_ids[fOffsetCell + 1] - 1;
+	  else                                       idxBnd[numBnd] = -faces->cell_ids[fOffsetCell + 0] - 1;
 
-        numBnd++;
+	  numBnd++;
+	}
       }
     }
   }
