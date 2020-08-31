@@ -232,7 +232,7 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
   PetscFE fe[2];
   PetscDS ds;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = PetscFECreateLagrange(PETSC_COMM_SELF, dim, 3, PETSC_FALSE, 2, 2, &fe[0]);CHKERRQ(ierr);
+  ierr = PetscFECreateLagrange(PETSC_COMM_SELF, dim, dim, PETSC_FALSE, 2, 2, &fe[0]);CHKERRQ(ierr);
   ierr = PetscFECreateLagrange(PETSC_COMM_SELF, dim, 1, PETSC_FALSE, 0, 2, &fe[1]);CHKERRQ(ierr);
   ierr = PetscFECopyQuadrature(fe[0], fe[1]);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject)fe[0], "Velocity");CHKERRQ(ierr);
@@ -252,16 +252,15 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-#if 0
-static PetscErrorCode TDyQ2ApplyResidual(void *dummy, Vec U, Vec F, DM dm)
+static PetscErrorCode TDyQ2ApplyResidual(DM dm, Vec U, Vec F, void *dummy)
 {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  ierr = VecZeroEntries(F);CHKERRQ(ierr);
   ierr = DMPlexSNESComputeResidualFEM(dm, U, F, NULL);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
-#endif
 
 PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   DM dm = tdy->dm;
@@ -270,7 +269,7 @@ PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
   ierr = DMCreateGlobalVector(dm, &u);CHKERRQ(ierr);
   ierr = VecZeroEntries(u);CHKERRQ(ierr);
-  ierr = DMPlexSNESComputeResidualFEM(dm, u, F, NULL);CHKERRQ(ierr);
+  ierr = TDyQ2ApplyResidual(dm, u, F, NULL);CHKERRQ(ierr);
   ierr = VecView(F,NULL);CHKERRQ(ierr);
 
   ISColoring iscoloring;
@@ -283,7 +282,7 @@ PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = MatColoringSetFromOptions(mc);CHKERRQ(ierr);
   ierr = MatColoringApply(mc,&iscoloring);CHKERRQ(ierr);
   ierr = MatFDColoringCreate(K,iscoloring,&color);CHKERRQ(ierr);
-  ierr = MatFDColoringSetFunction(color,(PetscErrorCode (*)(void))DMPlexSNESComputeResidualFEM,NULL);CHKERRQ(ierr);
+  ierr = MatFDColoringSetFunction(color,(PetscErrorCode (*)(void))TDyQ2ApplyResidual,NULL);CHKERRQ(ierr);
   ierr = MatFDColoringSetFromOptions(color);CHKERRQ(ierr);
   ierr = MatFDColoringSetUp(K,iscoloring,color);CHKERRQ(ierr);
   ierr = ISColoringDestroy(&iscoloring);CHKERRQ(ierr);
