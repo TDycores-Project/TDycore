@@ -8,7 +8,7 @@ u = -K \nabla p              (1)
 
 weak form:
 (v,K_inv*u) - (\nabla\cdot v, p) = 0   (3)
--(w,\nabla\cdot u) + (w,f)       = 0   (4)
+(w,\nabla\cdot u) -  (w,f)       = 0   (4)
 */
 
 /* (dim*vertices_per_cell+1)^2 */
@@ -102,10 +102,11 @@ static void f0_u(
   const PetscScalar u[], const PetscScalar u_t[], const PetscScalar u_x[],
   const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[], const PetscScalar a_t[], const PetscScalar a_x[],
   PetscReal t, const PetscReal x[], PetscInt numConstants, const PetscScalar constants[], PetscScalar f0[]) {
-  //for (PetscInt d=0; d<dim; d++) {
-  //  f0[d] = u[uOff[0] + d]; // TODO: coefficients
-  //}
-
+  /*
+  for (PetscInt d=0; d<dim; d++) {
+    f0[d] = u[uOff[0] + d]; // TODO: coefficients
+  }
+  */
   // If we add K_inv
   if (dim == 2){
   PetscScalar K_inv[4];
@@ -120,6 +121,7 @@ static void f0_u(
   f0[1] = K_inv[3]*u[uOff[0] + 0] + K_inv[4]*u[uOff[0] + 1] + K_inv[5]*u[uOff[0] + 2];
   f0[2] = K_inv[6]*u[uOff[0] + 0] + K_inv[7]*u[uOff[0] + 1] + K_inv[8]*u[uOff[0] + 2];
   }
+  
 }
 // (\nabla\cdot v, p)
 static void f1_u(
@@ -139,7 +141,7 @@ static void f1_u(
 //         Compute f0 and f1 for the equation (4)
 //========================================================
 
-// -(w,\nabla\cdot u) + (w,f)
+// (w,\nabla\cdot u) - (w,f)
 static void f0_p(
   PetscInt dim, PetscInt Nf, PetscInt NfAux,
   const PetscInt uOff[], const PetscInt uOff_x[],
@@ -148,7 +150,7 @@ static void f0_p(
   PetscReal t, const PetscReal x[], PetscInt numConstants, const PetscScalar constants[], PetscScalar f0[]) {
   PetscScalar div = 0;
   for (PetscInt d=0; d<dim; d++){
-    div -= u_x[d*dim + d];
+    div += u_x[d*dim + d];
   }
   
   if (dim == 2){
@@ -203,7 +205,7 @@ static void f1_u_J(
   PetscReal t, PetscReal u_tShift, const PetscReal x[], PetscInt numConstants, const PetscScalar constants[], PetscScalar g2[]) {
   for (PetscInt c=0; c<dim; c++) {
     for (PetscInt d=0; d<dim; d++) {
-      g2[c*dim+d] = (c == d) ? 1 : 0.;
+      g2[c*dim+d] = (c == d) ? 1. : 0.;
     }
   }
 }
@@ -219,7 +221,7 @@ static void f0_p_J(
   const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[], const PetscScalar a_t[], const PetscScalar a_x[],
   PetscReal t, PetscReal u_tShift, const PetscReal x[], PetscInt numConstants, const PetscScalar constants[], PetscScalar g1[]) {
   for (PetscInt d=0; d<dim; d++) {
-    g1[d*dim + d] = -1.0; // TODO: coefficients
+    g1[d*dim + d] = 1.0; 
   }
 }
 
