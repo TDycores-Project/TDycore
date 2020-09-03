@@ -10,6 +10,8 @@ PetscErrorCode TDyCreateDM(DM *dm) {
   PetscInt       Nx = -999, Ny = -999, Nz = -999;
   PetscBool      found;
   char           mesh_filename[PETSC_MAX_PATH_LEN];
+  
+  mesh_filename[0] = '\0';
 
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"DM Options","");
                            CHKERRQ(ierr);
