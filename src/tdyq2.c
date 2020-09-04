@@ -1,6 +1,7 @@
 //#include "../include/private/tdycoreimpl.h"
 #include <private/tdycoreimpl.h>
 #include <petscblaslapack.h>
+#include <petscviewerhdf5.h>
 
 /*
 u = -K \nabla p              (1)
@@ -264,6 +265,18 @@ static PetscErrorCode TDyQ2ApplyResidual(DM dm, Vec U, Vec F, void *dummy)
   PetscFunctionReturn(0);
 }
 
+void PermTest2D(const double *x,double *K) {
+  K[0] = 5; K[1] = 1;
+  K[2] = 1; K[3] = 2;
+}
+PetscErrorCode func_p(PetscInt dim, PetscReal time, const PetscReal x[0], PetscInt Nf, PetscScalar *p, void *ctx) { *p = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1]); return 0;}
+PetscErrorCode func_u(PetscInt dim, PetscReal time, const PetscReal x[0], PetscInt Nf, PetscScalar *v, void *ctx) {
+  double K[4]; PermTest2D(x,K);
+  v[0] = -K[0]*(1-2*x[0]) - K[1]*(1-2*x[1]);
+  v[1] = -K[2]*(1-2*x[0]) - K[3]*(1-2*x[1]);
+  return 0;
+}
+
 PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   DM dm = tdy->dm;
   Vec             u;                  /* solution, residual vectors */
@@ -272,7 +285,6 @@ PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = DMCreateGlobalVector(dm, &u);CHKERRQ(ierr);
   ierr = VecZeroEntries(u);CHKERRQ(ierr);
   ierr = TDyQ2ApplyResidual(dm, u, F, NULL);CHKERRQ(ierr);
-  ierr = VecView(F,NULL);CHKERRQ(ierr);
 
   ISColoring iscoloring;
   MatFDColoring color;
@@ -295,7 +307,27 @@ PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = MatFDColoringDestroy(&color);CHKERRQ(ierr);
   ierr = ISColoringDestroy(&iscoloring);CHKERRQ(ierr);
   //ierr = MatView(K,NULL);CHKERRQ(ierr);
-  
+
+  if (1) { // Debug: project exact solution (cribbed from demo/steady/steady
+    PetscViewer viewer;
+    Vec U, R;
+    PetscErrorCode (*funcs[2])() = {func_u, func_p};
+    ierr = DMCreateGlobalVector(dm,&U);CHKERRQ(ierr);
+    ierr = DMProjectFunction(dm, 0., funcs, NULL, ADD_VALUES, U);CHKERRQ(ierr);
+    ierr = PetscViewerHDF5Open(PetscObjectComm((PetscObject)dm),"project.h5",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
+    ierr = PetscObjectSetName((PetscObject)U,"Solution");CHKERRQ(ierr);
+    ierr = DMView(dm,viewer);CHKERRQ(ierr);
+    ierr = VecView(U,viewer);CHKERRQ(ierr);
+
+    ierr = DMCreateGlobalVector(dm,&R);CHKERRQ(ierr);
+    ierr = MatMult(K, U, R);CHKERRQ(ierr);
+    ierr = PetscObjectSetName((PetscObject)R,"Residual");CHKERRQ(ierr);
+    ierr = VecView(R,viewer);CHKERRQ(ierr);
+
+    ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
+    ierr = VecDestroy(&U);CHKERRQ(ierr);
+    ierr = VecDestroy(&R);CHKERRQ(ierr);
+  }
   PetscFunctionReturn(0);
 }
 

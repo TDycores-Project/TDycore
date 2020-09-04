@@ -1,5 +1,6 @@
 #include "tdycore.h"
 #include "private/tdycoreimpl.h"
+#include <petscviewerhdf5.h>
 
 PetscReal alpha = 1;
 
@@ -756,12 +757,18 @@ int main(int argc, char **argv) {
 
   /* Output solution */
   PetscViewer viewer;
-  PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"sol.vtk",FILE_MODE_WRITE,&viewer);
-  ierr = DMView(dm,viewer); CHKERRQ(ierr);
-  ierr = VecView(U,viewer); CHKERRQ(ierr); // the approximate solution
-  //ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F);
+  //PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"sol.vtu",FILE_MODE_WRITE,&viewer);
+  ierr = PetscViewerHDF5Open(PetscObjectComm((PetscObject)dm),"sol.h5",FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject)U,"Solution");CHKERRQ(ierr);
+  ierr = DMView(dm,viewer);CHKERRQ(ierr);
+  ierr = VecView(U,viewer);CHKERRQ(ierr); // the approximate solution
+  if (0) {
+  ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F);
+  ierr = PetscObjectSetName((PetscObject)F,"Residual");CHKERRQ(ierr);
   ierr = VecView(F,viewer); CHKERRQ(ierr); // the residual K*Ue-F
+  ierr = PetscObjectSetName((PetscObject)Ue,"Exact");CHKERRQ(ierr);
   ierr = VecView(Ue,viewer); CHKERRQ(ierr);  // the exact solution
+  }
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   /* Evaluate error norms */
