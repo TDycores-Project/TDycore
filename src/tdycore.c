@@ -247,6 +247,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->dS_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->d2S_dP2); CHKERRQ(ierr);
   ierr = PetscFree(tdy->rho); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->drho_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->d2rho_dP2); CHKERRQ(ierr);
   ierr = PetscFree(tdy->vis); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dP); CHKERRQ(ierr);
@@ -264,6 +265,10 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
   ierr = PetscFree(tdy->Cr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->rhor); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->drho_dT);CHKERRQ(ierr);
+  ierr = PetscFree(tdy->u);CHKERRQ(ierr);
+  ierr = PetscFree(tdy->du_dP);CHKERRQ(ierr);
+  ierr = PetscFree(tdy->du_dT);CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);
