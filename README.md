@@ -14,9 +14,14 @@ in an attempt to study problems including
 * urban flooding
 * surface water dynamics
 
-TDycores provides two dynamical cores: one based on a finite element (FE)
-discretization, and one based on the finite volume multi-point flux
-approximation.
+TDycores provides two dynamical cores:
+
+1. a finite element (FE) version based on an _H-div_ conforming space
+2. a finite volume (FV) version based on the multi-point flux approximation
+   (MPFA)
+
+Both dycores can use meshes with hexahedral or triangular prismatic cells
+with planar faces. The prismatic cells are aligned logically along a z axis.
 
 ## Installation
 
