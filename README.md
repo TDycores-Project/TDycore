@@ -6,13 +6,8 @@
 This project consists of a set of dynamical cores for simulating
 three-dimensional land processes in order to address questions about the
 hydrological cycle at global scale. TDycore applies higher-order,
-spatially-adaptive algorithms on geometries that capture features of interest,
-in an attempt to study problems including
-
-* lateral water and energy transport in high-latitude systems
-* transport of water and energy in the soil-plant continuum
-* urban flooding
-* surface water dynamics
+spatially-adaptive algorithms on geometries that capture features of interest
+to study the subsurface transport of water and energy.
 
 TDycores provides two dynamical cores:
 
