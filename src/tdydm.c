@@ -113,6 +113,9 @@ PetscErrorCode TDyCreateDM(DM *dm) {
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, faces,
                                lower, upper, NULL, PETSC_TRUE, dm);
     CHKERRQ(ierr);
+    //             ierr = DMCreateLabel(*dm, "celltype");CHKERRQ(ierr);
+      ierr = DMSetLabelValue(*dm, "Cell Sets", 0, 8);CHKERRQ(ierr);
+
   } else {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE,
                                 dm); CHKERRQ(ierr);
@@ -132,5 +135,6 @@ PetscErrorCode TDyDistributeDM(DM *dm) {
   }
   ierr = DMSetFromOptions(*dm); CHKERRQ(ierr);
   ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
