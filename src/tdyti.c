@@ -5,6 +5,7 @@
 
 PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
   TDyTimeIntegrator ti;
+  char time_integration_method[32];
   PetscErrorCode ierr;
   PetscFunctionBegin;
   ti = (TDyTimeIntegrator)malloc(sizeof(struct TDyTimeIntegrator));
@@ -15,12 +16,13 @@ PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
   ti->dt_max = 1.e20;
   ti->dt_growth_factor = 1.25;
   ti->dt_reduction_factor = 0.5;
-  ti->dt = ti->dt_init;
   ti->time = 0.;
-  PetscScalar final_time_in_years = 0.0001;
+  ti->dt_save = 0.;
+  PetscReal final_time_in_years = 0.0001;
   ti->final_time = final_time_in_years*365.*24.*3600.;
   ti->istep = 0;
 
+  time_integration_method[0] = '\0';
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Time Integration Options","");
                            CHKERRQ(ierr);
   ierr = PetscOptionsReal("-final_time","Final Time","",ti->final_time,
@@ -35,18 +37,45 @@ PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
   ierr = PetscOptionsReal("-dt_reduction_factor","Timestep Reduction Factor",
                           "",ti->dt_reduction_factor,
                           &ti->dt_reduction_factor,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsString("-time_integration_method",
+                            "Time Integration Method","",
+                            time_integration_method,time_integration_method,32,
+                            NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  size_t len;
+  ierr = PetscStrlen(time_integration_method,&len); CHKERRQ(ierr);
+  if (len) {
+    if (!strcmp(time_integration_method,"SNES"))
+      ti->time_integration_method = TDySNES;
+    else if (!strcmp(time_integration_method,"TS"))
+      ti->time_integration_method = TDyTS;
+    else
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unrecognized Time Integration Method");
+  }
+  ti->dt = ti->dt_init;
+
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyTimeIntegratorUpdateDT(TDyTimeIntegrator ti, PetscReal sync_time) {
   PetscFunctionBegin;
+  if (ti->dt_save > 0.) {
+    ti->time = sync_time;
+    ti->dt = ti->dt_save;
+    ti->dt_save = 0.;
+  }
   ti->dt *= ti->dt_growth_factor;
   if (ti->dt > ti->dt_max) ti->dt = ti->dt_max;
-  PetscInt dt_for_sync = sync_time-ti->time;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyTimeIntegratorSetTargetTime(TDyTimeIntegrator ti, PetscReal sync_time) {
+  PetscFunctionBegin;
+  PetscReal dt_for_sync = sync_time-ti->time;
   if (ti->dt > dt_for_sync) {
+    ti->dt_save = ti->dt;
     ti->dt = dt_for_sync; 
-    ti->time = sync_time;
   }
   PetscFunctionReturn(0);
 }
@@ -60,6 +89,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
     case TDySNES:
       ti = tdy->ti;
       while (ti->time < sync_time) {
+        ierr = TDyTimeIntegratorSetTargetTime(ti,sync_time); CHKERRQ(ierr);
         ierr = TDySetDtimeForSNESSolver(tdy,ti->dt); CHKERRQ(ierr);
         ierr = TDyPreSolveSNESSolver(tdy); CHKERRQ(ierr);
         ierr = SNESSolve(ti->snes,PETSC_NULL,tdy->solution); 
@@ -82,6 +112,11 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
       }
       break;
     case TDyTS:
+      ti = tdy->ti;
+      PetscReal delta_time = sync_time - ti->time;
+      ierr = TSSetTimeStep(ti->ts,ti->dt_init); CHKERRQ(ierr);
+      ierr = TSSetMaxTime(ti->ts,delta_time); CHKERRQ(ierr);
+      ierr = TSSolve(ti->ts,tdy->solution); CHKERRQ(ierr);
       break;
   }
 

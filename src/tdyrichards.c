@@ -17,6 +17,16 @@ PetscErrorCode TDyRichardsSNESPostCheck(SNESLineSearch linesearch,
                                         Vec X, Vec Y, Vec W,
                                         PetscBool *changed_Y,
                                         PetscBool *changed_W,void *ctx) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
+
+//#define DEBUG
+#if defined(DEBUG)
+  PetscViewer viewer;
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"update.vec",&viewer); CHKERRQ(ierr);
+  ierr = VecView(Y,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
+
   PetscFunctionReturn(0);
 }
