@@ -206,5 +206,7 @@ PETSC_EXTERN PetscErrorCode CheckSymmetric(PetscReal *A,PetscInt n);
 
 PETSC_EXTERN PetscErrorCode TDyRichardsInitialize(TDy);
 PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
+PETSC_EXTERN PetscErrorCode TDyCreateVectors(TDy);
+PETSC_EXTERN PetscErrorCode TDyCreateJacobian(TDy);
 
 #endif

@@ -772,19 +772,7 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for TPF");
     break;
   case MPFA_O:
-    ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
-    ierr = DMCreateMatrix(tdy->dm,&tdy->Jpre); CHKERRQ(ierr);
-
-    ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->J,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->J,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
-
-    ierr = MatSetOption(tdy->Jpre,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
-
+    ierr = TDyCreateJacobian(tdy); CHKERRQ(ierr);
     switch (tdy->mode) {
     case RICHARDS:
       ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_3DMesh,tdy); CHKERRQ(ierr);
@@ -796,34 +784,11 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
     }
     break;
   case MPFA_O_DAE:
-    ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
-    ierr = DMCreateMatrix(tdy->dm,&tdy->Jpre); CHKERRQ(ierr);
-
-    ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->J,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->J,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
-
-    ierr = MatSetOption(tdy->Jpre,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
-
+    ierr = TDyCreateJacobian(tdy); CHKERRQ(ierr);
     break;
 
   case MPFA_O_TRANSIENTVAR:
-    ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
-    ierr = DMCreateMatrix(tdy->dm,&tdy->Jpre); CHKERRQ(ierr);
-
-    ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->J,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->J,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
-
-    ierr = MatSetOption(tdy->Jpre,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+    ierr = TDyCreateJacobian(tdy); CHKERRQ(ierr);
     break;
 
   case BDM:
@@ -857,10 +822,6 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   case MPFA_O:
     switch (dim) {
     case 3:
-      ierr = DMCreateGlobalVector(tdy->dm,&tdy->residual); CHKERRQ(ierr);
-      ierr = VecDuplicate(tdy->residual,&tdy->accumulation_prev); CHKERRQ(ierr);
-      ierr = VecDuplicate(tdy->residual,&tdy->solution); CHKERRQ(ierr);
-      ierr = VecDuplicate(tdy->residual,&tdy->soln_prev); CHKERRQ(ierr);
       ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction_3DMesh,tdy); CHKERRQ(ierr);
       break;
     default :
@@ -905,19 +866,6 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
   case MPFA_O:
     switch (dim) {
     case 3:
-        ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
-        ierr = DMCreateMatrix(tdy->dm,&tdy->Jpre); CHKERRQ(ierr);
-
-        ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
-        ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
-        ierr = MatSetOption(tdy->J,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
-        ierr = MatSetOption(tdy->J,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
-
-        ierr = MatSetOption(tdy->Jpre,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
-        ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
-        ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
-        ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
-
       ierr = SNESSetJacobian(snes,tdy->J,tdy->J,TDyMPFAOSNESJacobian_3DMesh,tdy); CHKERRQ(ierr);
       break;
     default :
@@ -1453,6 +1401,32 @@ PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
   TDY_START_FUNCTION_TIMER()
   ierr = VecCopy(U,tdy->soln_prev); CHKERRQ(ierr);
   TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyCreateVectors(TDy tdy) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = DMCreateGlobalVector(tdy->dm,&tdy->solution); CHKERRQ(ierr);
+  ierr = VecDuplicate(tdy->solution,&tdy->residual); CHKERRQ(ierr);
+  ierr = VecDuplicate(tdy->solution,&tdy->accumulation_prev); CHKERRQ(ierr);
+  ierr = VecDuplicate(tdy->solution,&tdy->soln_prev); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyCreateJacobian(TDy tdy) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
+  ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
+  ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
+  ierr = MatSetOption(tdy->J,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
+  ierr = MatSetOption(tdy->J,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+  ierr = DMCreateMatrix(tdy->dm,&tdy->Jpre); CHKERRQ(ierr);
+  ierr = MatSetOption(tdy->Jpre,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
+  ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
+  ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
+  ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

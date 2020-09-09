@@ -125,6 +125,14 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
 
+//#define DEBUG
+#if defined(DEBUG)
+  PetscViewer viewer;
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"IU.vec",&viewer); CHKERRQ(ierr);
+  ierr = VecView(U,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
+
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
@@ -167,6 +175,12 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   ierr = VecRestoreArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
+
+#if defined(DEBUG)
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"IFunction.vec",&viewer); CHKERRQ(ierr);
+  ierr = VecView(R,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
   
   PetscFunctionReturn(0);
 }
@@ -625,6 +639,13 @@ PetscErrorCode TDyMPFAOIJacobian_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,PetscRea
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Udotl); CHKERRQ(ierr);
 
+#if defined(DEBUG)
+  PetscViewer viewer;
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"IJacobian.mat",&viewer); CHKERRQ(ierr);
+  ierr = MatView(A,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
+  
   PetscFunctionReturn(0);
 }
 
