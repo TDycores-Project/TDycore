@@ -868,7 +868,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     ierr = ComputeWaterDensity(P[i], tdy->rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
     if (tdy->mode ==  TH) {
-      tdy->Kappa[i*dim2+j] = tdy->Kappa0[i*dim2+j]; // update this based on Kersten number, etc. 
+      for(j=0; j<dim2; j++) tdy->Kappa[i*dim2+j] = tdy->Kappa0[i*dim2+j]; // update this based on Kersten number, etc. 
       ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);
       tdy->u[i] = tdy->h[i] - P[i]/tdy->rho[i];
     }

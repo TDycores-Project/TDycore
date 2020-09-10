@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
   if (mode == TH && num_fields == 2){
     ierr = VecGetArray(U,&u_p); CHKERRQ(ierr);
     for (c=0;c<cEnd-cStart;c++) pres_p[c] = u_p[c*2];
-    ierr = TDyUpdateState(tdy,pres_p); CHKERRQ(ierr);
+    ierr = TDyUpdateState(tdy,u_p); CHKERRQ(ierr);
     ierr = VecRestoreArray(U,&u_p); CHKERRQ(ierr);
     ierr = TDyGetLiquidMassValuesLocal(tdy,&c,mass_p);
     total_mass_beg = 0.0;
