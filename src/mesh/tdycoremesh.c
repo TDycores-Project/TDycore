@@ -2813,7 +2813,16 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         }
 
         ierr = TDyUnitNormalVectorJoiningTwoVertices(neighbor_cell_cen, cell_cen, f_normal); CHKERRQ(ierr);
-        for (d=0; d<dim; d++) subcells->nu_star_vector[sOffsetNuVec + iface].V[d] = f_normal[d]*volume*6.0/dist;
+
+        PetscReal normal[3], dot_prod, value;
+        for (d=0; d<dim; d++) normal[d] = faces->normal[face_id].V[d];
+
+        ierr = TDyDotProduct(normal,f_normal,&dot_prod); CHKERRQ(ierr);
+        if (dot_prod>0) value = 1.0;
+        else value = -1.0;
+
+        for (d=0; d<dim; d++) subcells->nu_star_vector[sOffsetNuVec + iface].V[d] = value*volume*6.0/dist;
+
       }
 
     }
