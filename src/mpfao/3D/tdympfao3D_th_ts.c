@@ -272,7 +272,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
   PetscInt dim;
   TDy_subcell    *subcells;
   PetscInt irow;
-  PetscInt isubcell,iface;
+  PetscInt isubcell;
   PetscInt cell_id_up,cell_id_dn,cell_id;
   PetscReal den,fluxm,ukvr,fluxe,uh,flow_rate;
   PetscReal *TtimesP_vec_ptr,*Temp_TtimesP_vec_ptr;
@@ -314,7 +314,6 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
     isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
 
     PetscInt subcell_id = cell_id*cells->num_subcells[cell_id]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
     numBoundary = subcells->num_faces[subcell_id];
 
@@ -331,11 +330,7 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
       Temp_TtimesP[irow] = Temp_TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
       if (fabs(Temp_TtimesP[irow])<PETSC_MACHINE_EPSILON) Temp_TtimesP[irow] = 0.0;
-    }
 
-    for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
@@ -352,10 +347,10 @@ PetscErrorCode TDyMPFAOIFunction_BoundaryVertices_NotSharedWithInternalVertices_
 
       if (TtimesP[irow] < 0.0) { // up ---> dn
         if (cell_id_up>=0) uh = tdy->h[cell_id_up];
-        else               uh = tdy->h[-cell_id_up-1];
+        else               uh = tdy->h_BND[-cell_id_up-1];
       } else {
         if (cell_id_dn>=0) uh = tdy->h[cell_id_dn];
-        else               uh = tdy->h[-cell_id_dn-1];
+        else               uh = tdy->h_BND[-cell_id_dn-1];
       }
 
       den = 0.0;
@@ -624,6 +619,12 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh_TH(Vec Ul, Mat A, void 
       
       dukvr_dPup = 0.0;
       dukvr_dPdn = 0.0;
+      dukvr_dTup = 0.0;
+      dukvr_dTdn = 0.0;
+      duh_dPup = 0.0;
+      duh_dPdn = 0.0;
+      duh_dTup = 0.0;
+      duh_dTdn = 0.0;
 
       if (TtimesP[irow] < 0.0) {
         ukvr       = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
@@ -665,6 +666,7 @@ PetscErrorCode TDyMPFAOIJacobian_InternalVertices_3DMesh_TH(Vec Ul, Mat A, void 
       // Jac[2] is dfluxe/dP
       // Jac[3] is dfluxe/dT
 
+	for (ijac=0; ijac<size_jac; ijac++) Jac[ijac] = 0.0;
 
       // Advection terms
         if (cell_id == cell_id_up) {
@@ -944,6 +946,12 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_SharedWithInternalVertices_3DM
 
       dden_dPup = 0.0;
       dden_dPdn = 0.0;
+      dukvr_dTup = 0.0;
+      dukvr_dTdn = 0.0;
+      duh_dPup = 0.0;
+      duh_dPdn = 0.0;
+      duh_dTup = 0.0;
+      duh_dTdn = 0.0;
 
       if (cell_id_up>=0) dden_dPup = 0.5*tdy->drho_dP[cell_id_up];
       if (cell_id_up>=0) dden_dTup = 0.5*tdy->drho_dT[cell_id_up];
