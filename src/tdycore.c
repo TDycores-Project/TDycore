@@ -52,6 +52,7 @@ PetscLogEvent TDy_ComputeSystem = 0;
 PetscErrorCode TDyFinalizePackage(void) {
   PetscFunctionBegin;
   TDyPackageInitialized = PETSC_FALSE;
+  TDyDestroyTimers();
   PetscFunctionReturn(0);
 }
 
@@ -64,10 +65,8 @@ PetscErrorCode TDyInitializePackage(void) {
   if (TDyPackageInitialized) PetscFunctionReturn(0);
   TDyPackageInitialized = PETSC_TRUE;
   ierr = PetscClassIdRegister("TDy",&TDY_CLASSID); CHKERRQ(ierr);
-  /* Register events */
+  /* Register timers. */
   ierr = TDyInitTimers();
-  CHKERRQ(ierr);
-  ierr = PetscLogEventRegister("TDyComputeSystem",TDY_CLASSID,&TDy_ComputeSystem);
   CHKERRQ(ierr);
   /* Process info exclusions */
   ierr = PetscOptionsGetString(NULL,NULL,"-info_exclude",logList,sizeof(logList),
@@ -117,6 +116,8 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   ierr = TDyIOCreate(&tdy->io); CHKERRQ(ierr);
 
   /* compute/store plex geometry */
+  PetscLogEvent t1 = TDY_GET_TIMER("ComputePlexGeometry");
+  TDY_START_TIMER(t1);
   tdy->dm = dm;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
@@ -142,8 +143,11 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
     }
   }
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+  TDY_STOP_TIMER(t1);
 
   /* allocate space for a full tensor perm for each cell */
+  PetscLogEvent t2 = TDY_GET_TIMER("ComputePlexGeometry");
+  TDY_START_TIMER(t2);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   nc   = cEnd-cStart;
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K0)); CHKERRQ(ierr);
@@ -179,6 +183,7 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
+  TDY_STOP_TIMER(t2);
 
 
   /* problem constants FIX: add mutators */
@@ -250,6 +255,15 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   PetscFunctionBegin;
   PetscValidPointer(_tdy,1);
   tdy = *_tdy; *_tdy = NULL;
+
+  // Dump timing information before we leave.
+  if (tdy->enable_timers) {
+    PetscViewer log;
+    PetscViewerASCIIOpen(PETSC_COMM_WORLD, "tdycore_profile.txt", &log);
+    PetscLogView(log);
+    PetscViewerDestroy(&log);
+  }
+
   if (!tdy) PetscFunctionReturn(0);
   ierr = TDyResetDiscretizationMethod(tdy); CHKERRQ(ierr);
   ierr = PetscFree(tdy->V); CHKERRQ(ierr);
@@ -290,6 +304,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = TDyTimeIntegratorDestroy(&tdy->ti); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -315,6 +330,7 @@ PetscErrorCode TDyGetCentroidArray(TDy tdy,PetscReal **X) {
 }
 
 PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscInt       dim;
 
@@ -344,16 +360,16 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
     break;
   }
   // if (tdy->subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
-  //                                   nsubcells, nrow, ncol); CHKERRQ(ierr); } 
-  // if (tdy->Trans       ) { ierr = TDyDeallocate_RealArray_3D(&tdy->Trans, 
+  //                                   nsubcells, nrow, ncol); CHKERRQ(ierr); }
+  // if (tdy->Trans       ) { ierr = TDyDeallocate_RealArray_3D(&tdy->Trans,
   //                                   tdy->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
   // if (tdy->Trans_mat   ) { ierr = MatDestroy(&tdy->Trans_mat  ); CHKERRQ(ierr); }
   if (tdy->P_vec       ) { ierr = VecDestroy(&tdy->P_vec      ); CHKERRQ(ierr); }
   if (tdy->TtimesP_vec ) { ierr = VecDestroy(&tdy->TtimesP_vec); CHKERRQ(ierr); }
-  // if (tdy->Temp_subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->Temp_subc_Gmatrix, 
+  // if (tdy->Temp_subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->Temp_subc_Gmatrix,
   //                                        tdy->mesh->num_cells,
-  //                                        nsubcells, nrow, ncol); CHKERRQ(ierr); } 
-  // if (tdy->Temp_Trans       ) { ierr = TDyDeallocate_RealArray_3D(&tdy->Temp_Trans, 
+  //                                        nsubcells, nrow, ncol); CHKERRQ(ierr); }
+  // if (tdy->Temp_Trans       ) { ierr = TDyDeallocate_RealArray_3D(&tdy->Temp_Trans,
   //                                        tdy->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
   if (tdy->Temp_Trans_mat   ) { ierr = MatDestroy(&tdy->Temp_Trans_mat  ); CHKERRQ(ierr); }
   if (tdy->Temp_P_vec       ) { ierr = VecDestroy(&tdy->Temp_P_vec      ); CHKERRQ(ierr); }
@@ -361,6 +377,7 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   if (tdy->J           ) { ierr = MatDestroy(&tdy->J   ); CHKERRQ(ierr); }
   if (tdy->Jpre        ) { ierr = MatDestroy(&tdy->Jpre); CHKERRQ(ierr); }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -413,6 +430,14 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnum("-tdy_mode","Flow mode",
                           "TDySetMode",TDyModes,(PetscEnum)mode,(PetscEnum *)&mode,
                           &flg); CHKERRQ(ierr);
+
+  // Enable timers if requested.
+  ierr = PetscOptionsBool("-tdy_timers",
+                          "Enable timers for profiling","",PETSC_FALSE,
+                          &tdy->enable_timers,NULL); CHKERRQ(ierr);
+  if (tdy->enable_timers)
+    PetscLogDefaultBegin();
+
   if (flg && (mode != tdy->mode)) { ierr = TDySetMode(tdy,mode); CHKERRQ(ierr); }
 
   if (tdy->regression_testing) {
@@ -452,6 +477,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 }
 
 PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
+  TDY_START_FUNCTION_TIMER()
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscValidPointer(tdy,1);
@@ -479,6 +505,7 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
     ierr = TDyWYInitialize(tdy); CHKERRQ(ierr);
     break;
   }
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -533,6 +560,7 @@ PetscErrorCode TDySetWaterDensityType(TDy tdy,TDyWaterDensityType dentype) {
 }
 
 PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
+  TDY_START_FUNCTION_TIMER()
   PetscInt       dim, num_fields;
   MPI_Comm       comm;
   DM             dm;
@@ -560,7 +588,7 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
       case RICHARDS:
         ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh,tdy); CHKERRQ(ierr);
         break;
-      case TH:  
+      case TH:
         ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh_TH,tdy); CHKERRQ(ierr);
         break;
       }
@@ -598,10 +626,12 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
     ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy); CHKERRQ(ierr);
     break;
   }
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
+  TDY_START_FUNCTION_TIMER()
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscValidPointer( ts,1);
@@ -674,10 +704,12 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for WY");
     break;
   }
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
+  TDY_START_FUNCTION_TIMER()
   PetscInt       dim;
   MPI_Comm       comm;
   PetscErrorCode ierr;
@@ -720,10 +752,12 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for WY");
     break;
   }
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
+  TDY_START_FUNCTION_TIMER()
   PetscInt       dim;
   MPI_Comm       comm;
   PetscErrorCode ierr;
@@ -744,12 +778,12 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
     case 3:
         ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
         ierr = DMCreateMatrix(tdy->dm,&tdy->Jpre); CHKERRQ(ierr);
-        
+
         ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
         ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
         ierr = MatSetOption(tdy->J,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
         ierr = MatSetOption(tdy->J,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
-        
+
         ierr = MatSetOption(tdy->Jpre,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
         ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
         ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
@@ -775,15 +809,16 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for WY");
     break;
   }
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
+  TDY_START_FUNCTION_TIMER()
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscFunctionBegin;
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
-  ierr = PetscLogEventBegin(TDy_ComputeSystem,tdy,K,F,0); CHKERRQ(ierr);
   switch (tdy->method) {
   case TPF:
     ierr = TDyTPFComputeSystem(tdy,K,F); CHKERRQ(ierr);
@@ -804,11 +839,12 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
     ierr = TDyWYComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
   }
-  ierr = PetscLogEventEnd(TDy_ComputeSystem,tdy,K,F,0); CHKERRQ(ierr);
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
@@ -871,7 +907,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     ierr = ComputeWaterDensity(P[i], tdy->rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
     if (tdy->mode ==  TH) {
-      for(j=0; j<dim2; j++) tdy->Kappa[i*dim2+j] = tdy->Kappa0[i*dim2+j]; // update this based on Kersten number, etc. 
+      for(j=0; j<dim2; j++) tdy->Kappa[i*dim2+j] = tdy->Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
       ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);
       tdy->u[i] = tdy->h[i] - P[i]/tdy->rho[i];
     }
@@ -896,13 +932,14 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
       for (c=cStart; c<cEnd; c++) {
         i = c-cStart;
         t_vec_ptr[i] = temp[i];
-      }     
+      }
       ierr = VecRestoreArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
     }
 
 
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -1170,6 +1207,7 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
 
 PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
                                     PetscReal *normv) {
+  TDY_START_FUNCTION_TIMER()
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -1204,6 +1242,7 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     if(normv != NULL) { *normv = TDyWYVelocityNorm(tdy); }
     break;
   }
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -1235,6 +1274,7 @@ PetscErrorCode TDySetInitialSolutionForSNESSolver(TDy tdy, Vec soln) {
 }
 
 PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
+  TDY_START_FUNCTION_TIMER()
   PetscInt dim;
   PetscErrorCode ierr;
   MPI_Comm       comm;
@@ -1272,15 +1312,18 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
     break;
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
+  TDY_START_FUNCTION_TIMER()
 
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   ierr = VecCopy(U,tdy->soln_prev); CHKERRQ(ierr);
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 

@@ -43,7 +43,7 @@ struct _p_TDy {
   PetscReal *X; /* centroid of point */
   PetscReal *N; /* normal of point (if applicable) */
   PetscInt ncv,nfv; /* number of {cell|face} vertices */
-  
+
   /* non-linear function of liquid pressure */
   PetscInt rho_type;
   PetscInt mu_type;
@@ -149,8 +149,9 @@ struct _p_TDy {
   PetscBool output_mesh;
   PetscBool regression_testing;
   TDy_regression *regression;
-  
 
+  /* Timers enabled? */
+  PetscBool enable_timers;
 };
 
 
