@@ -28,6 +28,13 @@ const char *const TDyMPFAOGmatrixMethods[] = {
   "TDyMPFAOGmatrixMethod","TDY_MPFAO_GMATRIX_METHOD_",NULL
 };
 
+const char *const TDyMPFAOBoundaryConditionTypes[] = {
+  "MPFAO_DIRICHLET_BC",
+  "MPFAO_NEUMANN_BC",
+  /* */
+  "TDyMPFAOBoundaryConditionType","TDY_MPFAO_BC_TYPE_",NULL
+};
+
 const char *const TDyModes[] = {
   "RICHARDS",
   "TH",
@@ -224,6 +231,7 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   tdy->mu_type = WATER_VISCOSITY_CONSTANT;
   tdy->enthalpy_type = WATER_ENTHALPY_CONSTANT;
   tdy->mpfao_gmatrix_method = MPFAO_GMATRIX_DEFAULT;
+  tdy->mpfao_bc_type = MPFAO_DIRICHLET_BC;
 
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
@@ -387,6 +395,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   TDyQuadratureType qtype = FULL;
   TDyWaterDensityType densitytype = WATER_DENSITY_CONSTANT;
   TDyMPFAOGmatrixMethod gmatrixmethod = MPFAO_GMATRIX_DEFAULT;
+  TDyMPFAOBoundaryConditionType bctype = MPFAO_DIRICHLET_BC;
 
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
@@ -425,6 +434,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           "TDySetMPFAOGmatrixMethod",TDyMPFAOGmatrixMethods,(PetscEnum)gmatrixmethod,(PetscEnum *)&gmatrixmethod,
                           &flg); CHKERRQ(ierr);
   if (flg && (method != tdy->mpfao_gmatrix_method)) { ierr = TDySetMPFAOGmatrixMethod(tdy,gmatrixmethod); CHKERRQ(ierr); }
+
+  ierr = PetscOptionsEnum("-tdy_mpfao_boundary_condition_type","MPFA-O boundary condition type",
+                          "TDySetMPFAOBoundaryConditionType",TDyMPFAOBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype,
+                          &flg); CHKERRQ(ierr);
+  if (flg && (bctype != tdy->mpfao_bc_type)) { ierr = TDySetMPFAOBoundaryConditionType(tdy,bctype); CHKERRQ(ierr); }
 
   if (tdy->regression_testing) {
     ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
@@ -548,6 +562,15 @@ PetscErrorCode TDySetMPFAOGmatrixMethod(TDy tdy,TDyMPFAOGmatrixMethod method) {
 
   PetscValidPointer(tdy,1);
   tdy->mpfao_gmatrix_method = method;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy tdy,TDyMPFAOBoundaryConditionType bctype) {
+  PetscFunctionBegin;
+
+  PetscValidPointer(tdy,1);
+  tdy->mpfao_bc_type = bctype;
 
   PetscFunctionReturn(0);
 }

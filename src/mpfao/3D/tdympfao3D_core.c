@@ -429,7 +429,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   ierr = DetermineNumberOfUpAndDownBoundaryFaces(tdy, ivertex, &nflux_all_bc_up, &nflux_all_bc_dn);
 
   PetscInt npitf_dir_bc_all, npitf_neu_bc_all;
-  if (1) {
+
+  if (tdy->mpfao_bc_type == MPFAO_DIRICHLET_BC) {
     nflux_dir_bc_up = nflux_all_bc_up;
     nflux_dir_bc_dn = nflux_all_bc_dn;
     npitf_dir_bc_all= npitf_bc_all;

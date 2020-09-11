@@ -25,6 +25,13 @@ typedef enum {
 PETSC_EXTERN const char *const TDyMPFAOGmatrixMethods[];
 
 typedef enum {
+  MPFAO_DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
+  MPFAO_NEUMANN_BC       /* Neumann zero-flux boundary condition */
+} TDyMPFAOBoundaryConditionType;
+
+PETSC_EXTERN const char *const TDyMPFAOBoundaryConditionTypes[];
+
+typedef enum {
   LUMPED=0,
   FULL
 } TDyQuadratureType;
@@ -122,6 +129,7 @@ PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
     TDyQuadratureType qtype);
 PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
 PETSC_EXTERN PetscErrorCode TDySetMPFAOGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
+PETSC_EXTERN PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
 
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS ts,TDy tdy);

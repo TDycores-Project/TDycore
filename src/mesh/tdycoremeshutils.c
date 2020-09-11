@@ -930,3 +930,53 @@ PetscErrorCode TDyGetCellIsLocal(TDy tdy, PetscInt *ni, PetscInt is_local[]) {
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyPrintSubcellInfo(TDy tdy, PetscInt icell, PetscInt isubcell) {
+
+  PetscFunctionBegin;
+
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_cell *cells = &mesh->cells;
+  TDy_subcell *subcells = &mesh->subcells;
+
+  PetscInt subcell_id = icell*cells->num_subcells[icell] + isubcell;
+  PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+  printf("Subcell_id = %02d is %d-th subcell of cell_id = %d; ",subcell_id, isubcell, icell);
+  printf(" No. faces = %d; ",subcells->num_faces[subcell_id]);
+
+  PetscInt iface;
+  printf(" Face Ids: ");
+  for (iface = 0; iface<subcells->num_faces[subcell_id]; iface++) {
+    printf("  %02d ",subcells->face_ids[sOffsetFace + iface]);
+  }
+  printf("\n");
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyPrintFaceInfo(TDy tdy, PetscInt iface) {
+
+  PetscFunctionBegin;
+
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_face *faces = &mesh->faces;
+
+  printf("Face_id = %d; ",iface);
+
+  PetscInt dim, d;
+  PetscErrorCode ierr;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  printf(" Centroid: ");
+  for (d = 0; d<dim; d++) {
+    printf(" %+e ",faces->centroid[iface].X[d]);
+  }
+  printf("\n");
+
+  PetscFunctionReturn(0);
+}
+
