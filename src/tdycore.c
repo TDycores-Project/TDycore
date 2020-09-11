@@ -7,6 +7,7 @@
 #include <private/tdympfao3Dutilsimpl.h>
 #include <tdydm.h>
 #include <tdyti.h>
+#include <tdytimers.h>
 #include <tdypermeability.h>
 #include <tdyporosity.h>
 
@@ -64,6 +65,8 @@ PetscErrorCode TDyInitializePackage(void) {
   TDyPackageInitialized = PETSC_TRUE;
   ierr = PetscClassIdRegister("TDy",&TDY_CLASSID); CHKERRQ(ierr);
   /* Register events */
+  ierr = TDyInitTimers();
+  CHKERRQ(ierr);
   ierr = PetscLogEventRegister("TDyComputeSystem",TDY_CLASSID,&TDy_ComputeSystem);
   CHKERRQ(ierr);
   /* Process info exclusions */
