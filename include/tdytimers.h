@@ -15,7 +15,7 @@ PETSC_EXTERN PetscClassId TDY_CLASSID;
 // values. PETSc ships with khash, so let's appropriate it.
 #include <petsc/private/kernels/khash.h>
 KHASH_MAP_INIT_STR(TDY_TIMER_MAP, PetscLogEvent)
-extern khash_t(TDY_TIMER_MAP)* TDY_TIMERS;
+PETSC_EXTERN khash_t(TDY_TIMER_MAP)* TDY_TIMERS;
 
 // t = TDY_GET_TIMER(name): creates or returns a timer (PetscLogEvent).
 PETSC_STATIC_INLINE PetscLogEvent TDY_GET_TIMER(const char* name) {

@@ -259,7 +259,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   // Dump timing information before we leave.
   if (tdy->enable_timers) {
     PetscViewer log;
-    PetscViewerASCIIOpen(PETSC_COMM_WORLD, "tdycore_profile.txt", &log);
+    PetscViewerASCIIOpen(PETSC_COMM_WORLD, "tdycore_profile.log", &log);
     PetscLogView(log);
     PetscViewerDestroy(&log);
   }
@@ -330,11 +330,11 @@ PetscErrorCode TDyGetCentroidArray(TDy tdy,PetscReal **X) {
 }
 
 PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
-  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscInt       dim;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscValidPointer(tdy,1);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
@@ -477,11 +477,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 }
 
 PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
-  TDY_START_FUNCTION_TIMER()
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
   if (tdy->method != method) { ierr = TDyResetDiscretizationMethod(tdy); CHKERRQ(ierr); }
   tdy->method = method;
@@ -560,7 +560,6 @@ PetscErrorCode TDySetWaterDensityType(TDy tdy,TDyWaterDensityType dentype) {
 }
 
 PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
-  TDY_START_FUNCTION_TIMER()
   PetscInt       dim, num_fields;
   MPI_Comm       comm;
   DM             dm;
@@ -570,6 +569,7 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   PetscValidPointer(tdy,2);
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
@@ -631,12 +631,12 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
 }
 
 PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
-  TDY_START_FUNCTION_TIMER()
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscValidPointer( ts,1);
   PetscValidPointer(tdy,2);
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
   switch (tdy->method) {
   case TPF:
@@ -709,7 +709,6 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
 }
 
 PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
-  TDY_START_FUNCTION_TIMER()
   PetscInt       dim;
   MPI_Comm       comm;
   PetscErrorCode ierr;
@@ -718,6 +717,7 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   PetscValidPointer(tdy,2);
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
@@ -757,7 +757,6 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
 }
 
 PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
-  TDY_START_FUNCTION_TIMER()
   PetscInt       dim;
   MPI_Comm       comm;
   PetscErrorCode ierr;
@@ -766,6 +765,7 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
   PetscValidPointer(tdy,2);
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
@@ -814,10 +814,10 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
 }
 
 PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
-  TDY_START_FUNCTION_TIMER()
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
   switch (tdy->method) {
   case TPF:
@@ -844,9 +844,9 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
 }
 
 PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
-  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
   PetscReal Se,dSe_dS,dKr_dSe,n,m,alpha,Kr;
   PetscReal *P, *temp;
@@ -1207,10 +1207,10 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
 
 PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
                                     PetscReal *normv) {
-  TDY_START_FUNCTION_TIMER()
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
   switch (tdy->method) {
   case TPF:
@@ -1274,12 +1274,12 @@ PetscErrorCode TDySetInitialSolutionForSNESSolver(TDy tdy, Vec soln) {
 }
 
 PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
-  TDY_START_FUNCTION_TIMER()
   PetscInt dim;
   PetscErrorCode ierr;
   MPI_Comm       comm;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   ierr = PetscObjectGetComm((PetscObject)tdy->dm,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
@@ -1317,11 +1317,11 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
 }
 
 PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
-  TDY_START_FUNCTION_TIMER()
 
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   ierr = VecCopy(U,tdy->soln_prev); CHKERRQ(ierr);
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
