@@ -447,7 +447,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
     nflux_neu_bc_dn = nflux_all_bc_dn;
     npitf_neu_bc_all= npitf_bc_all;
   }
-  PetscInt nflux_dir_bc_all = npitf_dir_bc_all;
+
   PetscInt nflux_neu_bc_all = npitf_neu_bc_all;
 
   PetscInt nptif_dir_bc = nflux_dir_bc_up + nflux_dir_bc_dn;
@@ -608,7 +608,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
     nflux_in + nflux_neu_bc_all, // nrow for CupINBCxINBC_1d
     npcen    + npitf_dir_bc_all, // ncol for AinvB
     npitf_in + npitf_neu_bc_all, // ncol for CupINBCxINBC_1d
-    //    nflux_in + nflux_neu_bc_all, // nrow for CupINBCxINBC_1d
     CupINBCxINBC_1d, AinvB_1d, CupInxIntimesAinvB_1d); CHKERRQ(ierr);
 
   if (nflux_dir_bc_up > 0) {
