@@ -8,7 +8,7 @@ u = -K \nabla p              (1)
 \nabla\cdot u = f,           (2)
 
 weak form:
-(v,K_inv*u) - (\nabla\cdot v, p)  = 0   (3)
+(v,K_inv*u) - (\nabla\cdot v, p)  + <v\cdot n,p>= 0   (3)
 -(w,\nabla\cdot u) +  (w,f)       = 0   (4)
 */
 
@@ -138,6 +138,16 @@ static void f1_u(
   }
 }
 
+// boundary term, <v\cdot n,p>, Note: (v\cdot n)*p =v \cdot (pn) ==> f0 = pn  
+static void f0_bd_u(PetscInt dim, PetscInt Nf, PetscInt NfAux,
+                    const PetscInt uOff[], const PetscInt uOff_x[], const PetscScalar u[], const PetscScalar u_t[], const PetscScalar u_x[],
+                    const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[], const PetscScalar a_t[], const PetscScalar a_x[],
+                    PetscReal t, const PetscReal x[], const PetscReal n[], PetscInt numConstants, const PetscScalar constants[], PetscScalar f0[])
+{
+  PetscInt d;
+  for (d = 0, f0[0] = 0.0; d < dim; ++d) f0[0] += n[d]*u[uOff[1] + 0];
+}
+
 //========================================================
 //         Compute f0 and f1 for the equation (4)
 //========================================================
@@ -252,6 +262,8 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
   ierr = PetscDSSetJacobian(ds, 0, 0, f0_u_J, NULL,  NULL,  NULL);CHKERRQ(ierr);
   ierr = PetscDSSetJacobian(ds, 0, 1, NULL, NULL,  f1_u_J, NULL);CHKERRQ(ierr);
   ierr = PetscDSSetJacobian(ds, 1, 0, NULL, f0_p_J, NULL,  NULL);CHKERRQ(ierr);
+  ierr = PetscDSSetBdResidual(ds, 0, f0_bd_u, NULL);CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -267,7 +279,7 @@ static PetscErrorCode TDyQ2ApplyResidual(DM dm, Vec U, Vec F, void *dummy)
 
 void PermTest2D(const double *x,double *K) {
   K[0] = 5; K[1] = 1;
-  K[2] = 1; K[3] = 2;
+  K[2] = 1; K[3] = 3;
 }
 PetscErrorCode func_p(PetscInt dim, PetscReal time, const PetscReal x[0], PetscInt Nf, PetscScalar *p, void *ctx) { *p = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1]); return 0;}
 PetscErrorCode func_u(PetscInt dim, PetscReal time, const PetscReal x[0], PetscInt Nf, PetscScalar *v, void *ctx) {
@@ -394,7 +406,7 @@ PetscReal TDyQ2VelocityNorm(TDy tdy,Vec U) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
             "Must set the velocity function with TDySetDirichletFluxFunction");
   }
-  
+
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
@@ -402,9 +414,10 @@ PetscReal TDyQ2VelocityNorm(TDy tdy,Vec U) {
     PetscScalar norm = 0.0;
 
     ierr = DMLabelCreate(PETSC_COMM_SELF, "boundary", &boundary);CHKERRQ(ierr);
-    ierr = DMLabelCreateIndex(boundary,fStart,fEnd);CHKERRQ(ierr);
+    //ierr = DMLabelCreateIndex(boundary,fStart,fEnd);CHKERRQ(ierr);
     //Need to add scaling factor |E|/|e|
-    ierr = DMPlexComputeBdIntegral(dm, U, boundary, PETSC_DETERMINE, PETSC_NULL, bd_integral, &norm, NULL);CHKERRQ(ierr);
+    PetscInt id = 1;
+    ierr = DMPlexComputeBdIntegral(dm, U, boundary, 1, &id, bd_integral, &norm, NULL);CHKERRQ(ierr);
 
     ierr = DMLabelDestroy(&boundary);CHKERRQ(ierr);
 
