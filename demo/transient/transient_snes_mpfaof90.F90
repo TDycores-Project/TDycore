@@ -130,7 +130,7 @@ implicit none
   PetscReal , pointer :: alpha(:), m(:)
   PetscReal           :: perm(9), resSat
   PetscInt            :: c, cStart, cEnd, j, nvalues,g, max_steps, step
-  PetscReal           :: dtime, mass_pre, mass_post
+  PetscReal           :: dtime, mass_pre, mass_post, ic_value
   character (len=256) :: mesh_filename, ic_filename
   character(len=256)  :: string
   PetscBool           :: mesh_file_flg, ic_file_flg, pflotran_consistent
@@ -145,6 +145,7 @@ implicit none
   successful_exit_code= 0
   max_steps = 2
   dtime = 1800.d0
+  ic_value = 102325.d0
   pflotran_consistent = PETSC_FALSE
 
   call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr);
@@ -161,6 +162,8 @@ implicit none
   call PetscOptionsGetBool(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-pflotran_consistent",pflotran_consistent,flg,ierr);
   CHKERRA(ierr)
   call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dtime',dtime,flg,ierr)
+  CHKERRA(ierr)
+  call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ic_value',ic_value,flg,ierr)
   CHKERRA(ierr)
 
   if (.not.mesh_file_flg) then
@@ -283,7 +286,7 @@ implicit none
     call PetscViewerDestroy(viewer, ierr);
     CHKERRA(ierr)
   else
-    call VecSet(U,102325.d0,ierr);
+    call VecSet(U,ic_value,ierr);
     CHKERRA(ierr);
   endif
 
