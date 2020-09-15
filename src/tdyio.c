@@ -12,11 +12,10 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   io->io_process = PETSC_FALSE;
   io->print_intermediate = PETSC_FALSE;  
   io->exodus_filename = "out.exo";
-  io->exodus_initialized = PETSC_FALSE;
   io->num_vars = 1;
   io->zonalVarNames[0] = "Soln";
   io->format = PetscViewerASCIIFormat;
-  io->nt = 0;
+  io->num_times = 0;
     
   PetscFunctionReturn(0);
 }
@@ -42,9 +41,8 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     TDyIOPrintVec(v, time);
   }
   if (tdy->io->format == ExodusFormat){
-    if (tdy->io->exodus_initialized == PETSC_FALSE) {
+    if (tdy->io->num_times == 0) {
       TdyIOInitializeExodus(ofilename,zonalVarNames,dm,num_vars);
-      tdy->io->exodus_initialized = PETSC_TRUE;
       ierr = PetscObjectSetName((PetscObject) v,  "Soln");CHKERRQ(ierr);
     }
     TdyIOAddExodusTime(ofilename,time,tdy->io);
@@ -82,12 +80,13 @@ PetscErrorCode TdyIOAddExodusTime(char *ofilename, PetscReal time, TDyIO io){
   CPU_word_size = sizeof(PetscReal);
   IO_word_size  = sizeof(PetscReal);
   
-  io->nt = io->nt + 1;  
+  io->num_times = io->num_times + 1;  
   exoid = ex_open(ofilename, EX_WRITE, &CPU_word_size, &IO_word_size, &version);
   if (exoid < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_FILE_UNEXPECTED, "Unable to open exodus file %\n", ofilename);
-  ierr = ex_put_time(exoid,io->nt,&time);CHKERRQ(ierr);
+  ierr = ex_put_time(exoid,io->num_times,&time);CHKERRQ(ierr);
   ierr = ex_close(exoid);CHKERRQ(ierr);
 
+  PetscFunctionReturn(0);
 }
   
 PetscErrorCode TdyIOWriteExodusVar(char *ofilename, Vec U, TDyIO io){ 
@@ -101,7 +100,7 @@ PetscErrorCode TdyIOWriteExodusVar(char *ofilename, Vec U, TDyIO io){
 
   exoid = ex_open(ofilename, EX_WRITE, &CPU_word_size, &IO_word_size, &version);
   if (exoid < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_FILE_UNEXPECTED, "Unable to open exodus file %\n", ofilename);
-  ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, io->nt);CHKERRQ(ierr);       
+  ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, io->num_times);CHKERRQ(ierr);       
   ierr = ex_close(exoid);CHKERRQ(ierr);
 
   PetscFunctionReturn(0);

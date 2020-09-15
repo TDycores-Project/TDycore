@@ -16,9 +16,8 @@ struct TDyIO {
   char *exodus_filename;
   char *zonalVarNames[1]; 
   int num_vars;
-  PetscBool exodus_initialized;
   TDyIOFormat format;
-  int nt;
+  int num_times;
 };
 
 PETSC_EXTERN PetscErrorCode TDyIOCreate(TDyIO*);
