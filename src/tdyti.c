@@ -75,7 +75,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
           printf("Time step %d: time = %f dt = %f ni=%d li = %d\n",
                  ti->istep,ti->time,ti->dt,nit,lit);
         if (tdy->io->print_intermediate) {
-          ierr = TDyIOWriteVec(tdy->io,tdy->solution,"soln",tdy->dm,ti->istep,ti->time); 
+          ierr = TDyIOWriteVec(tdy); 
           CHKERRQ(ierr);
         }
         ierr = TDyTimeIntegratorUpdateDT(ti,sync_time); CHKERRQ(ierr);

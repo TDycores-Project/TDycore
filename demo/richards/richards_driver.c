@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
   PetscBool print_intermediate = PETSC_FALSE;
   PetscMPIInt rank;
   TDy tdy = PETSC_NULL;
-  TDyIOFormat format = Exodus_Format; 
+  TDyIOFormat format = ExodusFormat; 
 
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank); CHKERRQ(ierr);
@@ -32,11 +32,11 @@ int main(int argc, char **argv) {
   ierr = TDyDriverInitializeTDy(tdy); CHKERRQ(ierr);
   if (!rank) tdy->io->io_process = PETSC_TRUE;
   tdy->io->print_intermediate = print_intermediate;
-    ierr = TDyIOSetMode(tdy->io,format);CHKERRQ(ierr);
-    ierr = TDyIOWriteVec(tdy->io,tdy->solution,"init_solution",tdy->dm,-1,0); CHKERRQ(ierr);
+  ierr = TDyIOSetMode(tdy->io,format);CHKERRQ(ierr);
+  ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);
   ierr = TDyTimeIntegratorRunToTime(tdy,tdy->ti->final_time); 
          CHKERRQ(ierr);
-  ierr = TDyIOWriteVec(tdy->io,tdy->solution,"final_solution",tdy->dm,-1,tdy->ti->final_time); CHKERRQ(ierr);
+  ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);
   ierr = TDyOutputRegression(tdy,tdy->solution); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
   ierr = PetscFinalize(); CHKERRQ(ierr);
