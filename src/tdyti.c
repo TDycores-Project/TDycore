@@ -1,7 +1,6 @@
 #include <private/tdycoreimpl.h>
-#include <tdycore.h>
-#include <tdyti.h>
 #include <tdyio.h>
+#include <tdyti.h>
 
 PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
   TDyTimeIntegrator ti;
@@ -55,6 +54,15 @@ PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
   }
   ti->dt = ti->dt_init;
 
+  switch(ti->time_integration_method) {
+    case TDySNES:
+      PetscPrintf(PETSC_COMM_WORLD,"Using TDycore backward Euler (and PETSc SNES) for time integration.\n");
+      break;
+    case TDyTS:
+      PetscPrintf(PETSC_COMM_WORLD,"Using PETSc TS for time integration.\n");
+      break;
+  }
+
   PetscFunctionReturn(0);
 }
 
@@ -84,7 +92,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyTimeIntegrator ti;
-
+  SNESConvergedReason reason;
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
       ti = tdy->ti;
@@ -101,9 +109,11 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
         ierr = SNESGetIterationNumber(ti->snes,&nit); CHKERRQ(ierr);
         ierr = SNESGetLinearSolveIterations(ti->snes,&lit); 
                CHKERRQ(ierr);
+        ierr = SNESGetConvergedReason(ti->snes,&reason); CHKERRQ(ierr);
         if (tdy->io->io_process)
-          printf("Time step %d: time = %f dt = %f ni=%d li = %d\n",
-                 ti->istep,ti->time,ti->dt,nit,lit);
+          printf("Time step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n",
+                 ti->istep,ti->time,ti->dt,nit,lit,
+                 SNESConvergedReasons[reason]);
         if (tdy->io->print_intermediate) {
           ierr = TDyIOPrintVec(tdy->solution,"soln",ti->istep); 
           CHKERRQ(ierr);

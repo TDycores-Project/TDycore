@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
 
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank); CHKERRQ(ierr);
-  if (!rank) printf("begin\n");
+  PetscPrintf(PETSC_COMM_WORLD,"Beginning Richards Driver simulation.\n");
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); 
                            CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code",
@@ -31,14 +31,16 @@ int main(int argc, char **argv) {
   ierr = TDyDriverInitializeTDy(tdy); CHKERRQ(ierr);
   if (!rank) tdy->io->io_process = PETSC_TRUE;
   tdy->io->print_intermediate = print_intermediate;
+  PetscPrintf(PETSC_COMM_WORLD,"--\n");
   ierr = TDyIOPrintVec(tdy->solution,"initial_solution",-1); CHKERRQ(ierr);
   ierr = TDyTimeIntegratorRunToTime(tdy,tdy->ti->final_time); 
          CHKERRQ(ierr);
   ierr = TDyIOPrintVec(tdy->solution,"final_solution",-1); CHKERRQ(ierr);
   ierr = TDyOutputRegression(tdy,tdy->solution); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = PetscFinalize(); CHKERRQ(ierr);
 
-  if (!rank) printf("done\n");
+  PetscPrintf(PETSC_COMM_WORLD,"--\n");
+  PetscPrintf(PETSC_COMM_WORLD,"Simulation complete.\n");
+  ierr = PetscFinalize(); CHKERRQ(ierr);
   return(successful_exit_code);
 }
