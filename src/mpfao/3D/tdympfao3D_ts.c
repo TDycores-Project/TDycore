@@ -97,8 +97,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
       fluxm = den*ukvr*(-TtimesP[irow]);
       
       // fluxm > 0 implies flow is from 'up' to 'dn'
-      if (cells->is_local[cell_id_up]) r[cell_id_up] += fluxm;
-      if (cells->is_local[cell_id_dn]) r[cell_id_dn] -= fluxm;
+      if (cell_id_up >= 0 && cells->is_local[cell_id_up]) r[cell_id_up] += fluxm;
+      if (cell_id_dn >= 0 && cells->is_local[cell_id_dn]) r[cell_id_dn] -= fluxm;
     }
   }
 
@@ -344,11 +344,11 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
         // Changing sign when bringing the term from RHS to LHS of the equation
         Jac = -Jac;
 
-        if (cells->is_local[cell_id_up]) {
+        if (cell_id_up >= 0 && cells->is_local[cell_id_up]) {
           ierr = MatSetValuesLocal(A,1,&cell_id_up,1,&cell_id,&Jac,ADD_VALUES);CHKERRQ(ierr);
         }
 
-        if (cells->is_local[cell_id_dn]) {
+        if (cell_id_dn >= 0 && cells->is_local[cell_id_dn]) {
           Jac = -Jac;
           ierr = MatSetValuesLocal(A,1,&cell_id_dn,1,&cell_id,&Jac,ADD_VALUES);CHKERRQ(ierr);
         }
