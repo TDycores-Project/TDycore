@@ -100,6 +100,7 @@ PetscErrorCode AllocateMemoryForSubcells(
   PetscInt num_faces      = GetNumFacesForSubcellType(subcell_type);
 
   ierr = TDyAllocate_TDyVector_1D(    num_cells*num_subcells_per_cell*num_nu_vectors, &subcells->nu_vector                      ); CHKERRQ(ierr);
+  ierr = TDyAllocate_TDyVector_1D(    num_cells*num_subcells_per_cell*num_nu_vectors, &subcells->nu_star_vector                      ); CHKERRQ(ierr);
   ierr = TDyAllocate_TDyCoordinate_1D(num_cells*num_subcells_per_cell*num_nu_vectors, &subcells->variable_continuity_coordinates); CHKERRQ(ierr);
   ierr = TDyAllocate_TDyCoordinate_1D(num_cells*num_subcells_per_cell*num_nu_vectors, &subcells->face_centroid                  ); CHKERRQ(ierr);
   ierr = TDyAllocate_TDyCoordinate_1D(num_cells*num_subcells_per_cell*num_vertices,   &subcells->vertices_coordinates           ); CHKERRQ(ierr);
@@ -2689,8 +2690,6 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
       // For a given cell, find all face ids that are share a vertex
       PetscInt f_idx[3];
-      for (d=0;d<3;d++) f_idx[d] = subcells->face_ids[sOffsetFace + d];
-
       ierr = FindFaceIDsOfACellCommonToAVertex(cells->id[icell], faces, vertices, ivertex, f_idx, &num_shared_faces);
 
       // Update order of faces in f_idx so (face_ids[0], face_ids[1], face_ids[2])
@@ -2699,8 +2698,16 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
       for (d=0;d<3;d++) subcells->face_ids[sOffsetFace + d] = f_idx[d];
 
       PetscReal face_cen[3][3];
-
+      PetscReal volume;
       PetscInt iface;
+
+      for (iface=0; iface<num_shared_faces; iface++) {
+        PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+        ierr = TDyFace_GetCentroid(faces, face_id, dim, &face_cen[iface][0]); CHKERRQ(ierr);
+      }
+      ierr = TDyComputeVolumeOfTetrahedron(cell_cen, face_cen[0], face_cen[1], face_cen[2], &volume); CHKERRQ(ierr);
+      subcells->T[subcell_id] = volume*6.0;
+
       for (iface=0; iface<num_shared_faces; iface++){
 
         /*      n1 ------------------ x
@@ -2738,24 +2745,27 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         // nu_vec on the "iface"-th is given as:
         //  = (x_{iface+1} - x_{cell_centroid}) x (x_{iface+2} - x_{cell_centroid})
         //  = (x_{f1_idx } - x_{cell_centroid}) x (x_{f2_idx } - x_{cell_centroid})
-        PetscInt f1_idx, f2_idx;
+        PetscInt f1_idx, f2_idx, f3_idx;
 
         // determin the f1_idx and f2_idx
-        PetscReal f1[3], f2[3];
+        PetscReal f1[3], f2[3], f3[3];
         switch (iface) {
           case 0:
           f1_idx = 1;
           f2_idx = 2;
+          f3_idx = 0;
           break;
           
           case 1:
           f1_idx = 2;
           f2_idx = 0;
+          f3_idx = 1;
           break;
 
           case 2:
           f1_idx = 0;
           f2_idx = 1;
+          f3_idx = 2;
           break;
 
           default:
@@ -2765,9 +2775,11 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         // Save x_{f1_idx } and x_{f2_idx }
         PetscInt face_id_1 = subcells->face_ids[sOffsetFace + f1_idx];
         PetscInt face_id_2 = subcells->face_ids[sOffsetFace + f2_idx];
+        PetscInt face_id_3 = subcells->face_ids[sOffsetFace + f3_idx];
 
         ierr = TDyFace_GetCentroid(faces, face_id_1, dim, &f1[0]); CHKERRQ(ierr);
         ierr = TDyFace_GetCentroid(faces, face_id_2, dim, &f2[0]); CHKERRQ(ierr);
+        ierr = TDyFace_GetCentroid(faces, face_id_3, dim, &f3[0]); CHKERRQ(ierr);
 
         // Compute (x_{f1_idx } - x_{cell_centroid}) x (x_{f2_idx } - x_{cell_centroid})
         ierr = TDyNormalToTriangle(cell_cen, f1, f2, f_normal);
@@ -2775,11 +2787,44 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         // Save the data
         for (d=0; d<dim; d++) subcells->nu_vector[sOffsetNuVec + iface].V[d] = f_normal[d];
 
+        // Compute nu_star vector for TPF
+        // 
+        // nu_star = T/dist * unit_normal_vec{x_neighbor, x_cell}
+        // where
+        //   dist = || x_cell - x_intercept||
+        //   x_intercept is the intercept of the line joining x_cell and x_neighbor with the face
+        PetscInt faceCellOffset = faces->cell_offset[face_id_3];
+        PetscInt neighbor_cell_id;
+        PetscReal neighbor_cell_cen[dim], dist;
+
+        if ( (faces->cell_ids[faceCellOffset]==icell) ) {
+           neighbor_cell_id = faces->cell_ids[faceCellOffset+1];
+        } else {
+           neighbor_cell_id = faces->cell_ids[faceCellOffset];
+        }
+
+        if (neighbor_cell_id >=0) {
+          ierr = TDyCell_GetCentroid2(cells, neighbor_cell_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
+          ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
+          dist *= 0.50;
+        } else {
+          ierr = TDyFace_GetCentroid(faces, face_id_3, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
+          ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
+        }
+
+        ierr = TDyUnitNormalVectorJoiningTwoVertices(neighbor_cell_cen, cell_cen, f_normal); CHKERRQ(ierr);
+
+        PetscReal normal[3], dot_prod, value;
+        for (d=0; d<dim; d++) normal[d] = faces->normal[face_id].V[d];
+
+        ierr = TDyDotProduct(normal,f_normal,&dot_prod); CHKERRQ(ierr);
+        if (dot_prod>0) value = 1.0;
+        else value = -1.0;
+
+        for (d=0; d<dim; d++) subcells->nu_star_vector[sOffsetNuVec + iface].V[d] = value*volume*6.0/dist;
+
       }
 
-      PetscReal volume;
-      ierr = TDyComputeVolumeOfTetrahedron(cell_cen, face_cen[0], face_cen[1], face_cen[2], &volume); CHKERRQ(ierr);
-      subcells->T[subcell_id] = volume*6.0;
     }
     PetscReal normal[3], centroid[3];
     ierr = DMPlexComputeCellGeometryFVM(dm, icell, &(cells->volume[icell]), &centroid[0],

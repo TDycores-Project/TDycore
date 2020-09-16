@@ -342,6 +342,19 @@ PetscErrorCode TDyQuadrilateralArea(PetscReal node_1[3], PetscReal node_2[3],
 }
 
 /* ---------------------------------------------------------------- */
+PetscErrorCode TDyUnitNormalVectorJoiningTwoVertices(PetscReal node_1[3], PetscReal node_2[3],
+                                PetscReal normal[3]) {
+  PetscErrorCode ierr;
+
+  ierr = TDyCreateVecJoiningTwoVertices(node_1, node_2, normal); CHKERRQ(ierr);
+
+  ierr = ConvertToUnitVector(normal); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyNormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],
                                 PetscReal node_3[3], PetscReal normal[3]) {
   PetscReal a[3], b[3];

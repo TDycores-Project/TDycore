@@ -47,6 +47,7 @@ struct _TDy_subcell {
   PetscInt       *num_nu_vectors;                  /* number of nu vectors of the subcell                        */
   PetscInt       *nu_vector_offset;
   TDy_vector     *nu_vector;                       /* nu vectors used to compute transmissibility                */
+  TDy_vector     *nu_star_vector;                  /* nu_star vectors used to compute TPF transmissibility       */
   TDy_coordinate *variable_continuity_coordinates; /* coordinates at which variable continuity is enforced       */
   TDy_coordinate *face_centroid;                   /* centroid of faces of subcell */
 
@@ -204,6 +205,7 @@ PETSC_EXTERN PetscErrorCode TDyBuildTwoDimMesh(TDy);
 PETSC_EXTERN PetscErrorCode TDyBuildMesh(TDy);
 PETSC_EXTERN PetscErrorCode TDyAllocateMemoryForMesh(TDy);
 PETSC_EXTERN PetscErrorCode TDySubCell_GetIthNuVector(TDy_subcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
+PETSC_EXTERN PetscErrorCode TDySubCell_GetIthNuStarVector(TDy_subcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDySubCell_GetIthFaceCentroid(TDy_subcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDySubCell_GetFaceIndexForAFace(TDy_subcell*,PetscInt,PetscInt,PetscInt *);
 PETSC_EXTERN PetscErrorCode TDyEdge_GetCentroid(TDy_edge*,PetscInt, PetscInt, PetscReal*);
