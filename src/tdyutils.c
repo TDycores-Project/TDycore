@@ -1,6 +1,7 @@
 #include <private/tdyutils.h>
 #include <petscblaslapack.h>
 #include <private/tdymemoryimpl.h>
+#include <tdytimers.h>
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode Increase_Closure_Array(DM dm, PetscInt **closure, PetscInt *maxClosureSize, PetscInt newSize) {
@@ -11,6 +12,7 @@ PetscErrorCode Increase_Closure_Array(DM dm, PetscInt **closure, PetscInt *maxCl
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   ierr = DMPlexGetChart(dm, &pStart, &pEnd); CHKERRQ(ierr);
 
@@ -35,6 +37,7 @@ PetscErrorCode Increase_Closure_Array(DM dm, PetscInt **closure, PetscInt *maxCl
     }
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -42,6 +45,7 @@ PetscErrorCode Increase_Closure_Array(DM dm, PetscInt **closure, PetscInt *maxCl
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDySaveClosures_Elemnts(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize, PetscInt eStart, PetscInt eEnd, PetscBool use_cone){
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscInt i, e;
   PetscInt pSize,*p;
@@ -64,12 +68,14 @@ PetscErrorCode TDySaveClosures_Elemnts(DM dm, PetscInt *closureSize, PetscInt **
     ierr = DMPlexRestoreTransitiveClosure(dm,e,use_cone,&pSize,&p);CHKERRQ(ierr);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscInt cStart, cEnd;
   PetscBool use_cone = PETSC_TRUE;
@@ -78,12 +84,14 @@ PetscErrorCode TDySaveClosures_Cells(DM dm, PetscInt *closureSize, PetscInt **cl
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   ierr = TDySaveClosures_Elemnts(dm, closureSize, closure, maxClosureSize, cStart, cEnd, use_cone); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDySaveClosures_Faces(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscInt fStart, fEnd;
   PetscBool use_cone = PETSC_TRUE;
@@ -92,12 +100,14 @@ PetscErrorCode TDySaveClosures_Faces(DM dm, PetscInt *closureSize, PetscInt **cl
   ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
   ierr = TDySaveClosures_Elemnts(dm, closureSize, closure, maxClosureSize, fStart, fEnd, use_cone); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDySaveClosures_Vertices(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscInt vStart, vEnd;
   PetscBool use_cone = PETSC_FALSE;
@@ -106,12 +116,14 @@ PetscErrorCode TDySaveClosures_Vertices(DM dm, PetscInt *closureSize, PetscInt *
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = TDySaveClosures_Elemnts(dm, closureSize, closure, maxClosureSize, vStart, vEnd, use_cone); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDySaveClosures(DM dm, PetscInt *closureSize, PetscInt **closure, PetscInt *maxClosureSize){
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscInt dim;
   PetscErrorCode ierr;
@@ -123,12 +135,14 @@ PetscErrorCode TDySaveClosures(DM dm, PetscInt *closureSize, PetscInt **closure,
     ierr = TDySaveClosures_Faces(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
 PetscInt TDyGetNumberOfCellVerticesWithClosures(DM dm, PetscInt *closureSize, PetscInt **closure) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   MPI_Comm       comm;
   PetscInt nq,c,q,i,cStart,cEnd,vStart,vEnd;
@@ -144,6 +158,7 @@ PetscInt TDyGetNumberOfCellVerticesWithClosures(DM dm, PetscInt *closureSize, Pe
     if(nq == -1) nq = q;
     if(nq !=  q) SETERRQ(comm,PETSC_ERR_SUP,"Mesh cells must be of uniform type");
   }
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(nq);
 }
 
@@ -151,6 +166,7 @@ PetscInt TDyGetNumberOfCellVerticesWithClosures(DM dm, PetscInt *closureSize, Pe
 PetscInt TDyMaxNumOfAElmTypeSharingOtherElmType(PetscInt *closureSize, PetscInt **closure, PetscInt aStart, PetscInt aEnd, PetscInt oStart, PetscInt oEnd) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscInt nElem,a,o,result; //cStart,cEnd,vStart,vEnd,result;
 
@@ -163,12 +179,14 @@ PetscInt TDyMaxNumOfAElmTypeSharingOtherElmType(PetscInt *closureSize, PetscInt 
     result = PetscMax(result, nElem);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(result);
 }
 
 /* ---------------------------------------------------------------- */
 PetscInt TDyMaxNumberOfCellsSharingAVertex(DM dm, PetscInt *closureSize, PetscInt **closure) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   MPI_Comm       comm;
   PetscInt cStart,cEnd,vStart,vEnd,result;
@@ -179,12 +197,14 @@ PetscInt TDyMaxNumberOfCellsSharingAVertex(DM dm, PetscInt *closureSize, PetscIn
 
   result = TDyMaxNumOfAElmTypeSharingOtherElmType(closureSize, closure, vStart, vEnd, cStart, cEnd);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(result);
 }
 
 /* ---------------------------------------------------------------- */
 PetscInt TDyMaxNumberOfEdgesSharingAVertex(DM dm, PetscInt *closureSize, PetscInt **closure) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   MPI_Comm       comm;
   PetscInt eStart,eEnd,vStart,vEnd,result;
@@ -195,12 +215,14 @@ PetscInt TDyMaxNumberOfEdgesSharingAVertex(DM dm, PetscInt *closureSize, PetscIn
 
   result = TDyMaxNumOfAElmTypeSharingOtherElmType(closureSize, closure, vStart, vEnd, eStart, eEnd);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(result);
 }
 
 /* ---------------------------------------------------------------- */
 PetscInt TDyMaxNumberOfFacesSharingAVertex(DM dm, PetscInt *closureSize, PetscInt **closure) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   MPI_Comm       comm;
   PetscInt fStart,fEnd,vStart,vEnd,result;
@@ -211,6 +233,7 @@ PetscInt TDyMaxNumberOfFacesSharingAVertex(DM dm, PetscInt *closureSize, PetscIn
 
   result = TDyMaxNumOfAElmTypeSharingOtherElmType(closureSize, closure, vStart, vEnd, fStart, fEnd);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(result);
 }
 
@@ -302,6 +325,7 @@ PetscErrorCode TDyTriangleArea(PetscReal node_1[3], PetscReal node_2[3],
                             PetscReal node_3[3], PetscReal *area) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
 
   PetscReal a[3], b[3], axb[3], vec_norm;
@@ -312,15 +336,17 @@ PetscErrorCode TDyTriangleArea(PetscReal node_1[3], PetscReal node_2[3],
   ierr = TDyCrossProduct(a,b,axb); CHKERRQ(ierr);
 
   ierr = Norm(axb, &vec_norm); CHKERRQ(ierr);
-  
+
   *area = 0.5*vec_norm;
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyQuadrilateralArea(PetscReal node_1[3], PetscReal node_2[3],
                             PetscReal node_3[3], PetscReal node_4[3], PetscReal *area) {
+  TDY_START_FUNCTION_TIMER()
   PetscReal node_cen[3];
   PetscInt  d;
   PetscReal tri_area;
@@ -331,12 +357,13 @@ PetscErrorCode TDyQuadrilateralArea(PetscReal node_1[3], PetscReal node_2[3],
   }
 
   *area = 0.;
-  
+
   ierr = TDyTriangleArea(node_cen, node_1, node_2, &tri_area); CHKERRQ(ierr); *area += tri_area;
   ierr = TDyTriangleArea(node_cen, node_2, node_3, &tri_area); CHKERRQ(ierr); *area += tri_area;
   ierr = TDyTriangleArea(node_cen, node_3, node_4, &tri_area); CHKERRQ(ierr); *area += tri_area;
   ierr = TDyTriangleArea(node_cen, node_4, node_1, &tri_area); CHKERRQ(ierr); *area += tri_area;
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -357,6 +384,7 @@ PetscErrorCode TDyUnitNormalVectorJoiningTwoVertices(PetscReal node_1[3], PetscR
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyNormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],
                                 PetscReal node_3[3], PetscReal normal[3]) {
+  TDY_START_FUNCTION_TIMER()
   PetscReal a[3], b[3];
   PetscErrorCode ierr;
 
@@ -365,6 +393,7 @@ PetscErrorCode TDyNormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],
 
   ierr = TDyCrossProduct(a,b,normal); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -372,11 +401,13 @@ PetscErrorCode TDyNormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyUnitNormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],
                                     PetscReal node_3[3], PetscReal normal[3]) {
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
 
   ierr = TDyNormalToTriangle(node_1, node_2, node_3, normal); CHKERRQ(ierr);
   ierr = ConvertToUnitVector(normal); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -385,6 +416,7 @@ PetscErrorCode TDyUnitNormalToTriangle(PetscReal node_1[3], PetscReal node_2[3],
 PetscErrorCode TDyNormalToQuadrilateral(PetscReal node_1[3], PetscReal node_2[3],
                                      PetscReal node_3[3], PetscReal node_4[3],
                                      PetscReal normal[3]) {
+  TDY_START_FUNCTION_TIMER()
   PetscReal node_cen[3];
   PetscReal normal_12c[3], normal_23c[3], normal_34c[3], normal_41c[3];
   PetscInt  d;
@@ -403,6 +435,7 @@ PetscErrorCode TDyNormalToQuadrilateral(PetscReal node_1[3], PetscReal node_2[3]
     normal[d] = (normal_12c[d] + normal_23c[d] + normal_34c[d] + normal_41c[d])/4.0;
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -413,6 +446,7 @@ PetscErrorCode TDyComputeVolumeOfTetrahedron(PetscReal node_1[3], PetscReal node
                                           PetscReal *volume) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscReal a[3], b[3], c[3], axb[3], dot_prod;
   PetscErrorCode ierr;
@@ -425,6 +459,7 @@ PetscErrorCode TDyComputeVolumeOfTetrahedron(PetscReal node_1[3], PetscReal node
   ierr = TDyDotProduct(axb,c,&dot_prod); CHKERRQ(ierr);
   *volume = PetscAbsReal(dot_prod)/6.0; CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -466,11 +501,12 @@ PetscErrorCode TDySavePetscVecAsBinary(Vec vec, const char filename[]) {
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ExtractSubVectors(Vec A, PetscInt stride, Vec *Asub) {
-  
+
   PetscInt local_size, block_size;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   ierr = VecGetLocalSize(A,&local_size); CHKERRQ(ierr);
   ierr = VecGetBlockSize(A,&block_size); CHKERRQ(ierr);
@@ -483,6 +519,7 @@ PetscErrorCode ExtractSubVectors(Vec A, PetscInt stride, Vec *Asub) {
   ierr = VecSetFromOptions(*Asub); CHKERRQ(ierr);
   ierr = VecStrideGather(A,stride,*Asub,INSERT_VALUES); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 

@@ -1,5 +1,6 @@
 #include <private/tdycoreimpl.h>
 #include <petscblaslapack.h>
+#include <tdytimers.h>
 
 /* (dim*vertices_per_cell+1)^2 */
 #define MAX_LOCAL_SIZE 625
@@ -8,6 +9,7 @@
   u <-- 1/J DF u
 */
 void TDyPiola(PetscReal *u,PetscReal *DF,PetscReal J,PetscInt dim){
+  TDY_START_FUNCTION_TIMER()
   PetscInt i,j;
   PetscReal v[3];
   for(i=0;i<dim;i++){
@@ -17,6 +19,7 @@ void TDyPiola(PetscReal *u,PetscReal *DF,PetscReal J,PetscInt dim){
     }
   }
   for(i=0;i<dim;i++) u[i] = v[i]/J;
+  TDY_STOP_FUNCTION_TIMER()
 }
 
 /*
@@ -29,6 +32,7 @@ void TDyPiola(PetscReal *u,PetscReal *DF,PetscReal J,PetscInt dim){
 
  */
 void HdivBasisQuad(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J) {
+  TDY_START_FUNCTION_TIMER()
   PetscInt i;
   B[ 0] = (-x[0]*x[1] + x[0] + x[1] - 1)*0.25;
   B[ 1] = (x[1]*x[1] - 1)*0.125;
@@ -47,9 +51,11 @@ void HdivBasisQuad(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J) {
   B[14] = (-x[0]*x[0] + 1)*0.125;
   B[15] = (x[0]*x[1] + x[0] + x[1] + 1)*0.25;
   for(i=0;i<8;i++) TDyPiola(&(B[2*i]),DF,J,2);
+  TDY_STOP_FUNCTION_TIMER()
 }
 
 void HdivBasisHex(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J) {
+  TDY_START_FUNCTION_TIMER()
   PetscInt i;
   B[ 0] = (x[0]*x[1]*x[2] - x[0]*x[1] - x[0]*x[2] + x[0] - x[1]*x[2] + x[1] + x[2] - 1)*0.125;
   B[ 1] = (x[1]*x[1] - 1)*0.0625;
@@ -124,10 +130,12 @@ void HdivBasisHex(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J) {
   B[70] = (-x[0]*x[1]*x[1] + x[0] - x[1]*x[1] + 1)*0.0625;
   B[71] = (x[0]*x[1]*x[2] + x[0]*x[1] + x[0]*x[2] + x[0] + x[1]*x[2] + x[1] + x[2] + 1)*0.125;
   for(i=0;i<24;i++) TDyPiola(&(B[3*i]),DF,J,3);
+  TDY_STOP_FUNCTION_TIMER()
 }
 
 PetscErrorCode TDyBDMInitialize(TDy tdy) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscInt pStart,pEnd,c,cStart,cEnd,f,f_abs,fStart,fEnd,nfv,ncv,v,vStart,vEnd,
            mStart,mEnd,i,nlocal,closureSize,*closure;
@@ -216,7 +224,7 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
         f = tdy->emap[(c-cStart)*ncv*dim+v*dim+d];
         f_abs = PetscAbsInt(f);
         ierr = DMPlexGetPointGlobal(dm,f_abs,&mStart,&mEnd); CHKERRQ(ierr);
-	if(mStart<0) mStart = -(mStart+1);    
+	if(mStart<0) mStart = -(mStart+1);
         found = PETSC_FALSE;
         for(i=0; i<nfv; i++) {
           if(tdy->vmap[ncv*(c-cStart)+v] == tdy->fmap[nfv*(f_abs-fStart)+i]) {
@@ -257,10 +265,12 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
   }
   #endif
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 PetscReal TDyKDotADotB(PetscReal *K,PetscReal *A,PetscReal *B,PetscInt dim) {
+  TDY_START_FUNCTION_TIMER()
   PetscInt i,j;
   PetscReal inner,outer=0;
   for(i=0; i<dim; i++) {
@@ -270,11 +280,13 @@ PetscReal TDyKDotADotB(PetscReal *K,PetscReal *A,PetscReal *B,PetscInt dim) {
     }
     outer += inner*B[i];
   }
+  TDY_STOP_FUNCTION_TIMER()
   return outer;
 }
 
 PetscErrorCode Inverse(PetscScalar *K,PetscInt nn) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
 
   PetscBLASInt n,lwork=nn*nn;
@@ -294,6 +306,7 @@ PetscErrorCode Inverse(PetscScalar *K,PetscInt nn) {
   if (info>0) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_MAT_LU_ZRPVT,"singular matrix");
 
   ierr = PetscFree(pivots); CHKERRQ(ierr);
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -304,6 +317,7 @@ PetscErrorCode Inverse(PetscScalar *K,PetscInt nn) {
  */
 PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal *gvdotn) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscQuadrature quadrature,face_quadrature;
   const PetscScalar *fquad_x,*fquad_w;
@@ -344,12 +358,12 @@ PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal
   if(TDyADotBMinusC(normal,&(tdy->X[f*dim]),&(tdy->X[c*dim]),dim) < 0){
     for(d=0; d<dim; d++) normal[d] *= -1;
   }
-  
+
   /* face quadrature setup */
   ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&face_quadrature); CHKERRQ(ierr);
   ierr = PetscQuadratureGetData(face_quadrature,NULL,NULL,&nfq,&fquad_x,&fquad_w); CHKERRQ(ierr);
   ierr = DMPlexComputeCellGeometryFEM(dm,f,face_quadrature,dummy,dummy,dummy,fJ); CHKERRQ(ierr);
-  
+
   /* dummy 1 point quadrature to get the mapping information */
   ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature); CHKERRQ(ierr);
   ierr = PetscMalloc1(3,&single_point); CHKERRQ(ierr);
@@ -357,7 +371,7 @@ PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal
 
   /* integrate on the face */
   for(q=0;q<nfq;q++){
-    
+
     /* extend the dim-1 quadrature point to dim */
     j = 0;
     single_point[0] = 0; single_point[1] = 0; single_point[2] = 0;
@@ -369,7 +383,7 @@ PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal
 	j += 1;
       }
     }
-      
+
     /* get volumetric mapping information and the basis */
     ierr = PetscQuadratureSetData(quadrature,dim,1,1,single_point,single_weight); CHKERRQ(ierr);
     ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,x,DF,DFinv,J); CHKERRQ(ierr);
@@ -377,7 +391,7 @@ PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal
       HdivBasisQuad(single_point,basis,DF,J[0]);
     }else{
       HdivBasisHex(single_point,basis,DF,J[0]);
-    }      
+    }
     /* -<g,v.n>|_q */
     ierr = (*tdy->ops->computedirichletvalue)(tdy,x,&g,NULL);CHKERRQ(ierr);
     for(i=0; i<ncv*dim; i++) gvdotn[i] -= g*TDyADotB(&(basis[i*dim]),normal,dim)*fquad_w[q]*fJ[q];
@@ -385,16 +399,18 @@ PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal
 
   ierr = PetscQuadratureDestroy(&quadrature); CHKERRQ(ierr);
   ierr = PetscQuadratureDestroy(&face_quadrature); CHKERRQ(ierr);
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
-/* 
+/*
     x: dim  *nq = 3*27 = 81
    DF: dim^2*nq = 9*27 = 243
     J:       nq =   27 = 27
 */
 PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nfq,nv,vi,vj,di,dj,
     local_row,local_col,isbc,f,nq1d=3;
@@ -411,7 +427,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   nv = tdy->ncv;
   nlocal = dim*nv + 1;
-  
+
   /* Get quadrature */
   switch(tdy->qtype) {
   case FULL:
@@ -427,7 +443,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   }
   ierr = PetscQuadratureGetData(     quadrature,NULL,NULL,&nq ,& quad_x,& quad_w); CHKERRQ(ierr);
   ierr = PetscQuadratureGetData(face_quadrature,NULL,NULL,&nfq,&fquad_x,&fquad_w); CHKERRQ(ierr);
-  
+
   for(c=cStart; c<cEnd; c++) {
 
     /* Only assemble the cells that this processor owns */
@@ -441,7 +457,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
 
     /* Invert permeability, in place */
     Inverse(&(tdy->K[dim2*(c-cStart)]),dim);
-    
+
     /* Integrate (Kappa^-1 u_i, v_j) */
     for(q=0; q<nq; q++) {
 
@@ -479,7 +495,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
 
     } /* end quadrature */
 
-    
+
     /* < g,div(v) > on boundaries, uses mean value of g with 1 point quadrature */
     PetscInt coneSize;
     const PetscInt *cone;
@@ -491,7 +507,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
 	ierr = IntegratePressureBoundary(tdy,cone[f],c,Flocal);
       }
     } /* end faces */
-    
+
     /* apply orientation flips */
     for(vi=0; vi<nlocal-1; vi++) {
       Flocal[vi] *= (PetscScalar)orient[vi];
@@ -504,7 +520,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
 
     //PrintMatrix(Klocal,nlocal,nlocal,PETSC_TRUE);
     //PrintMatrix(Flocal,1,nlocal,PETSC_TRUE);
-    
+
     /* assembly */
     ierr = MatSetValues(K,nlocal,LtoG,nlocal,LtoG,Klocal,ADD_VALUES); CHKERRQ(ierr);
     ierr = VecSetValues(F,nlocal,LtoG,Flocal,ADD_VALUES); CHKERRQ(ierr);
@@ -514,14 +530,16 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = VecAssemblyBegin(F); CHKERRQ(ierr);
   ierr = VecAssemblyEnd  (F); CHKERRQ(ierr);
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-  ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);  
+  ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = PetscQuadratureDestroy(&face_quadrature); CHKERRQ(ierr);
   ierr = PetscQuadratureDestroy(&     quadrature); CHKERRQ(ierr);
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 PetscReal TDyBDMPressureNorm(TDy tdy,Vec U) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscSection sec;
   PetscInt c,cStart,cEnd,offset,dim,gref,junk;
@@ -547,6 +565,7 @@ PetscReal TDyBDMPressureNorm(TDy tdy,Vec U) {
                        PetscObjectComm((PetscObject)U)); CHKERRQ(ierr);
   norm_sum = PetscSqrtReal(norm_sum);
   ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(norm_sum);
 }
 
@@ -562,6 +581,7 @@ PetscReal TDyBDMPressureNorm(TDy tdy,Vec U) {
  */
 PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscInt c,cStart,cEnd,dim,gref,fStart,fEnd,junk,d,s,f;
   DM dm = tdy->dm;
@@ -590,16 +610,16 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   ierr = PetscMalloc1(dim,&points); CHKERRQ(ierr);
   ierr = PetscMalloc1(1,&weights); CHKERRQ(ierr);
 
-  PetscReal cx[3],cDF[9],cDFinv[9],cJ[1];  
+  PetscReal cx[3],cDF[9],cDFinv[9],cJ[1];
   ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&cquad); CHKERRQ(ierr);
-  
+
   /* loop cells */
   norm = 0; norm_sum = 0;
   for(c=cStart; c<cEnd; c++) {
 
     const PetscInt *LtoG = &(tdy->LtoG[(c-cStart)*nlocal]);
     const PetscInt *orient = &(tdy->orient[(c-cStart)*nlocal]);
-    
+
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
     if (gref < 0) continue;
 
@@ -607,7 +627,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
     for(d=0; d<dim; d++) {
       for(s=0; s<2; s++) {
         f = tdy->faces[(c-cStart)*dim*2+d*2+s];
-	
+
         ierr = DMPlexComputeCellGeometryFEM(dm,f,quad,x,DF,DFinv,J); CHKERRQ(ierr);
 
         /* loop quadrature */
@@ -625,7 +645,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
               j += 1;
             }
           }
-	  
+
           /* interpolate normal component at this point/face */
           if(dim==2) {
 	    points[0] = xq[0]; points[1] = xq[1];
@@ -637,7 +657,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
 	    ierr = PetscQuadratureSetData(cquad,dim,1,1,points,weights); CHKERRQ(ierr);
 	    ierr = DMPlexComputeCellGeometryFEM(dm,c,cquad,cx,cDF,cDFinv,cJ); CHKERRQ(ierr);
             HdivBasisHex(xq,N,cDF,cJ[0]);
-          }	  
+          }
           vel[0] = 0; vel[1] = 0; vel[2] = 0;
 	  for(i=0;i<nlocal-1;i++) {
 	    for(dd=0;dd<dim;dd++) {
@@ -645,11 +665,11 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
 	    }
 	  }
           va = TDyADotB(vel,&(tdy->N[dim*f]),dim);
-		 
+
           /* exact value normal to this point/face */
           ierr = (*tdy->ops->computedirichletflux)(tdy,&(x[q*dim]),vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
           ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
-	  
+
           /* quadrature */
           flux  += va*quad_w[q]*J[q];
           flux0 += ve*quad_w[q]*J[q];
@@ -659,12 +679,13 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
     }
 
   }
-  ierr = PetscQuadratureDestroy(&cquad); CHKERRQ(ierr);  
+  ierr = PetscQuadratureDestroy(&cquad); CHKERRQ(ierr);
   ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
                        PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
   norm_sum = PetscSqrtReal(norm_sum);
   ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
   ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(norm_sum);
 }

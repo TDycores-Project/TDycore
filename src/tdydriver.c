@@ -1,12 +1,14 @@
 #include <tdydriver.h>
+#include <tdytimers.h>
 
 PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscReal gravity[3] = {0.,0.,0.};
 
   PetscInt dim;
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr); 
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   gravity[dim-1] = 9.8068;
   ierr = TDySetGravityVector(tdy,gravity);
   ierr = TDySetPorosityFunction(tdy,TDyPorosityFunctionDefault,PETSC_NULL);
@@ -19,12 +21,12 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   ierr = TDyTimeIntegratorCreate(&tdy->ti); CHKERRQ(ierr);
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
-      ierr = SNESCreate(PETSC_COMM_WORLD,&tdy->ti->snes); 
+      ierr = SNESCreate(PETSC_COMM_WORLD,&tdy->ti->snes);
              CHKERRQ(ierr);
       ierr = TDySetSNESFunction(tdy->ti->snes,tdy); CHKERRQ(ierr);
       ierr = TDySetSNESJacobian(tdy->ti->snes,tdy); CHKERRQ(ierr);
       SNESLineSearch linesearch;
-      ierr = SNESGetLineSearch(tdy->ti->snes,&linesearch); 
+      ierr = SNESGetLineSearch(tdy->ti->snes,&linesearch);
              CHKERRQ(ierr);
       ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,
                                         &tdy); CHKERRQ(ierr);
@@ -32,13 +34,13 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       break;
     case TDyTS:
       if (tdy->io->io_process) {
-        printf("TS time integration method not implemented.\n"); 
+        printf("TS time integration method not implemented.\n");
         exit(1);
       }
       break;
     default:
       if (tdy->io->io_process) {
-        printf("Unrecognized time integration method.\n"); 
+        printf("Unrecognized time integration method.\n");
         exit(1);
       }
   }
@@ -49,16 +51,17 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       break;
     case TH:
       if (tdy->io->io_process) {
-        printf("TH flow mode not implemented.\n"); 
+        printf("TH flow mode not implemented.\n");
         exit(1);
       }
       break;
     default:
       if (tdy->io->io_process) {
-        printf("Unrecognized flow mode.\n"); 
+        printf("Unrecognized flow mode.\n");
         exit(1);
       }
   }
   ierr = TDySetInitialSolutionForSNESSolver(tdy,tdy->solution); CHKERRQ(ierr);
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
