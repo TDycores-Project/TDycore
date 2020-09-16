@@ -1,7 +1,7 @@
 #include <private/tdycoreimpl.h>
+#include <tdytimers.h>
 
 PetscErrorCode TDyRegressionInitialize(TDy tdy) {
-
   TDy_regression *regression;
   DM dm;
   PetscInt c;
@@ -19,6 +19,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   VecScatter temp_scatter;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   dm = tdy->dm;
 
@@ -40,7 +41,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
 	    "Need to specify a regression filename via -tdy_regression_test_filename");
   }
-  
+
   MPI_Comm_size(PetscObjectComm((PetscObject)dm),&size);
   MPI_Comm_rank(PetscObjectComm((PetscObject)dm),&myrank);
 
@@ -56,14 +57,14 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   if (myrank == 0) {
     ierr = PetscMalloc(ncells_local*regression->num_cells_per_process*sizeof(PetscInt),&(regression->cells_per_process_natural_ids)); CHKERRQ(ierr);
   }
- 
+
   if (tdy->mode == TH) {
     increment = floor(ncells_local/regression->num_cells_per_process/2);
   }
   else {
     increment = floor(ncells_local/regression->num_cells_per_process);
   }
-  
+
 
   global_offset = 0;
   ierr = MPI_Exscan(&ncells_local,&global_offset,1,MPIU_INT,MPI_SUM,PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
@@ -106,7 +107,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   for (c=0; c<global_count; c++){
     int_array[c] = c;
   }
-  
+
   ierr = ISCreateGeneral(PetscObjectComm((PetscObject)dm),global_count,int_array,PETSC_COPY_VALUES,&temp_is); CHKERRQ(ierr);
 
   ierr = VecScatterCreate(temp_vec,temp_is,regression->cells_per_process_vec,NULL,&temp_scatter); CHKERRQ(ierr);
@@ -126,12 +127,12 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
     }
     ierr = VecRestoreArray(regression->cells_per_process_vec,&vec_ptr); CHKERRQ(ierr);
   }
-    
+
   ierr = ISCreateGeneral(PetscObjectComm((PetscObject)dm),global_count,int_array,PETSC_COPY_VALUES,&temp_is); CHKERRQ(ierr);
 
   ierr = VecScatterCreate(U,temp_is,regression->cells_per_process_vec,NULL,&(regression->scatter_cells_per_process_gtos)); CHKERRQ(ierr);
   ierr = ISDestroy(&temp_is); CHKERRQ(ierr);
-  
+
   tdy->regression = regression;
 
   // Cleanup
@@ -139,6 +140,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   ierr = PetscFree(int_array); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -152,6 +154,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   Vec U_pres, U_temp;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   reg = tdy->regression;
   dm = tdy->dm;
@@ -193,7 +196,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
 
 
   ierr = VecGetArray(U,&u_p); CHKERRQ(ierr);
-  
+
   if (tdy->mode == TH && num_fields == 2) {
     for (c=0;c<vec_local_size;c++) {
       pres_p[c] = u_p[c*2];
@@ -207,11 +210,11 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
 
   ierr = VecRestoreArray(U,&u_p); CHKERRQ(ierr);
   ierr = VecRestoreArray(U_pres,&pres_p); CHKERRQ(ierr);
- 
-  if (tdy->mode == TH) { 
+
+  if (tdy->mode == TH) {
     ierr = VecRestoreArray(U_temp,&temp_p); CHKERRQ(ierr);
   }
-  
+
   ierr = VecMax(U_pres,NULL,&max_pres_val); CHKERRQ(ierr);
   ierr = VecMin(U_pres,NULL,&min_pres_val); CHKERRQ(ierr);
   ierr = VecSum(U_pres,&mean_pres_val); CHKERRQ(ierr);
@@ -243,8 +246,8 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
     fprintf(fp,"      Max: %21.13e\n",max_pres_val);
     fprintf(fp,"      Min: %21.13e\n",min_pres_val);
     fprintf(fp,"     Mean: %21.13e\n",mean_pres_val);
-   
-    if (tdy->mode == TH) { 
+
+    if (tdy->mode == TH) {
       for (i=0; i<count/2; i++) {
         fprintf(fp,"%9d: %21.13e\n",reg->cells_per_process_natural_ids[2*i]/2,vec_ptr[2*i]);
       }
@@ -253,7 +256,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
         fprintf(fp,"%9d: %21.13e\n",reg->cells_per_process_natural_ids[i],vec_ptr[i]);
       }
     }
-   
+
     if (tdy->mode == TH) {
       fprintf(fp,"-- GENERIC: Temperature --\n");
       fprintf(fp,"      Max: %21.13e\n",max_temp_val);
@@ -263,7 +266,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
         fprintf(fp,"%9d: %21.13e\n",reg->cells_per_process_natural_ids[2*i]/2,vec_ptr[2*i+1]);
       }
     }
- 
+
     ierr = VecRestoreArray(reg->cells_per_process_vec,&vec_ptr); CHKERRQ(ierr);
 
     fclose(fp);
@@ -272,5 +275,6 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   ierr = VecDestroy(&U_pres); CHKERRQ(ierr);
   if (tdy->mode == TH) ierr = VecDestroy(&U_temp); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }

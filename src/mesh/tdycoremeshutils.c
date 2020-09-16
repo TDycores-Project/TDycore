@@ -466,6 +466,20 @@ PetscErrorCode TDySubCell_GetIthNuVector(TDy_subcell *subcells, PetscInt isubcel
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDySubCell_GetIthNuStarVector(TDy_subcell *subcells, PetscInt isubcell, PetscInt i, PetscInt dim, PetscReal *nu_vec) {
+  PetscFunctionBegin;
+  PetscInt d;
+  PetscInt sOffsetNu = subcells->nu_vector_offset[isubcell];
+
+  if (i>=subcells->num_nu_vectors[isubcell]) {
+    SETERRQ(PETSC_COMM_SELF,PETSC_ERR_USER,"Subcell: Requested i-th nu_vec exceeds max nu_vecs");
+  }
+  
+  for (d=0; d<dim; d++) nu_vec[d] = subcells->nu_star_vector[sOffsetNu + i].V[d];
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDySubCell_GetIthFaceCentroid(TDy_subcell *subcells, PetscInt isubcell, PetscInt i, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;
@@ -706,7 +720,7 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
     for (c=0; c<vertices->num_internal_cells[ivertex]; c++) {
       PetscInt vOffsetIntCell = vertices->internal_cell_offset[ivertex];
       icell = vertices->internal_cell_ids[vOffsetIntCell + c];
-      if (cells->is_local[icell]) vertices->is_local[ivertex] = PETSC_TRUE;
+      if (icell >= 0 && cells->is_local[icell]) vertices->is_local[ivertex] = PETSC_TRUE;
     }
 
   }
@@ -747,7 +761,7 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
       else                                icell_1 = edges->cell_ids[eOffsetCell + 1];
 
       // Is the cell locally owned?
-      if (cells->is_local[icell_1]) edges->is_local[iedge] = PETSC_TRUE;
+      if (icell_1 >= 0 && cells->is_local[icell_1]) edges->is_local[iedge] = PETSC_TRUE;
 
     } else { // An internal edge
 
@@ -817,7 +831,7 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
       }
 
       // Is the cell locally owned?
-      if (cells->is_local[icell_1]) faces->is_local[iface] = PETSC_TRUE;
+      if (icell_1 >= 0 && cells->is_local[icell_1]) faces->is_local[iface] = PETSC_TRUE;
 
     } else { // An internal face
 
@@ -912,6 +926,56 @@ PetscErrorCode TDyGetCellIsLocal(TDy tdy, PetscInt *ni, PetscInt is_local[]) {
     else                        is_local[*ni] = 0;
     *ni += 1;
   }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyPrintSubcellInfo(TDy tdy, PetscInt icell, PetscInt isubcell) {
+
+  PetscFunctionBegin;
+
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_cell *cells = &mesh->cells;
+  TDy_subcell *subcells = &mesh->subcells;
+
+  PetscInt subcell_id = icell*cells->num_subcells[icell] + isubcell;
+  PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+  printf("Subcell_id = %02d is %d-th subcell of cell_id = %d; ",subcell_id, isubcell, icell);
+  printf(" No. faces = %d; ",subcells->num_faces[subcell_id]);
+
+  PetscInt iface;
+  printf(" Face Ids: ");
+  for (iface = 0; iface<subcells->num_faces[subcell_id]; iface++) {
+    printf("  %02d ",subcells->face_ids[sOffsetFace + iface]);
+  }
+  printf("\n");
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyPrintFaceInfo(TDy tdy, PetscInt iface) {
+
+  PetscFunctionBegin;
+
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_face *faces = &mesh->faces;
+
+  printf("Face_id = %d; ",iface);
+
+  PetscInt dim, d;
+  PetscErrorCode ierr;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  printf(" Centroid: ");
+  for (d = 0; d<dim; d++) {
+    printf(" %+e ",faces->centroid[iface].X[d]);
+  }
+  printf("\n");
 
   PetscFunctionReturn(0);
 }

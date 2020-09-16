@@ -1,4 +1,5 @@
 #include <private/tdycoreimpl.h>
+#include <tdytimers.h>
 
 PETSC_STATIC_INLINE void Waxpy(PetscInt dim, PetscScalar a,
                                const PetscScalar *x, const PetscScalar *y, PetscScalar *w) {PetscInt d; for (d = 0; d < dim; ++d) w[d] = a*x[d] + y[d];}
@@ -13,6 +14,7 @@ PetscErrorCode TDyTPFInitialize(TDy tdy) {
   PetscSection sec;
   DM dm = tdy->dm;
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -38,6 +40,7 @@ PetscErrorCode TDyTPFInitialize(TDy tdy) {
   //ierr = DMPlexSetAdjacencyUseCone(dm,PETSC_TRUE); CHKERRQ(ierr);
   //ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_FALSE); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -47,6 +50,7 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscReal pnt2pnt[3],dist,Ki,p,force;
   DM dm = tdy->dm;
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   if(!tdy->allow_unsuitable_mesh) {
     ierr = TDyTPFCheckMeshSuitability(tdy); CHKERRQ(ierr);
   }
@@ -121,6 +125,7 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -131,6 +136,7 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
  */
 PetscReal TDyTPFPressureNorm(TDy tdy,Vec U) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscSection sec;
   PetscInt c,cStart,cEnd,offset,dim,gref,junk;
@@ -156,6 +162,7 @@ PetscReal TDyTPFPressureNorm(TDy tdy,Vec U) {
                        PetscObjectComm((PetscObject)U)); CHKERRQ(ierr);
   norm_sum = PetscSqrtReal(norm_sum);
   ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(norm_sum);
 }
 
@@ -165,6 +172,7 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
   PetscReal pnt2pnt[3],dist,Ki,p,vel[3],va,ve,*u,sign,face_error,norm,norm_sum;
   DM dm = tdy->dm;
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
@@ -218,11 +226,13 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
                        PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
   norm_sum = PetscSqrtReal(norm_sum);
   ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(norm_sum);
 }
 
 PetscErrorCode TDyTPFCheckMeshSuitability(TDy tdy) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscInt dim,f,fStart,fEnd;
   PetscReal diff,dist,pnt2pnt[3];
@@ -243,5 +253,6 @@ PetscErrorCode TDyTPFCheckMeshSuitability(TDy tdy) {
               "Mesh is unsuitable for a consistent two point flux method. To force rerun with -tdy_tpf_allow_unsuitable_mesh");
     }
   }
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }

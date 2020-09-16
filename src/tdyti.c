@@ -1,5 +1,6 @@
 #include <private/tdycoreimpl.h>
 #include <tdycore.h>
+#include <tdytimers.h>
 #include <tdyti.h>
 #include <tdyio.h>
 
@@ -45,7 +46,7 @@ PetscErrorCode TDyTimeIntegratorUpdateDT(TDyTimeIntegrator ti, PetscReal sync_ti
   if (ti->dt > ti->dt_max) ti->dt = ti->dt_max;
   PetscInt dt_for_sync = sync_time-ti->time;
   if (ti->dt > dt_for_sync) {
-    ti->dt = dt_for_sync; 
+    ti->dt = dt_for_sync;
     ti->time = sync_time;
   }
   PetscFunctionReturn(0);
@@ -54,6 +55,7 @@ PetscErrorCode TDyTimeIntegratorUpdateDT(TDyTimeIntegrator ti, PetscReal sync_ti
 PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   TDyTimeIntegrator ti;
 
   switch(tdy->ti->time_integration_method) {
@@ -85,6 +87,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
       break;
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 

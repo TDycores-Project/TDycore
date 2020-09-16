@@ -22,9 +22,15 @@ PetscErrorCode ComputeWaterDensity_Exponential(PetscReal p, PetscReal *den, Pets
 
   PetscFunctionBegin;
 
+  if (p < ReferencePressure) p = ReferencePressure;
   *den = ReferenceDensity*exp(WaterCompressibility*(p - ReferencePressure));
-  *dden_dP = WaterCompressibility * (*den);
-  *d2den_dP2 = WaterCompressibility * (*dden_dP);
+  if (p < ReferencePressure) {
+    *dden_dP = 0.0;
+    *d2den_dP2 = 0.0;
+  } else {
+    *dden_dP = WaterCompressibility * (*den);
+    *d2den_dP2 = WaterCompressibility * (*dden_dP);
+  }
 
   PetscFunctionReturn(0);
 }

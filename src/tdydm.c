@@ -1,4 +1,5 @@
 #include <tdydm.h>
+#include <tdytimers.h>
 
 PetscErrorCode TDyCreateDM(DM *dm) {
   PetscErrorCode ierr;

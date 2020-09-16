@@ -43,4 +43,7 @@ PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*, 
 PETSC_EXTERN PetscErrorCode TDyGetNumCellsLocal(TDy, PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyGetCellNaturalIDsLocal(TDy, PetscInt*, PetscInt[]);
 PETSC_EXTERN PetscErrorCode TDyGetCellIsLocal(TDy, PetscInt*, PetscInt[]);
+PETSC_EXTERN PetscErrorCode TDyPrintSubcellInfo(TDy, PetscInt, PetscInt);
+PETSC_EXTERN PetscErrorCode TDyPrintFaceInfo(TDy, PetscInt);
+
 #endif
