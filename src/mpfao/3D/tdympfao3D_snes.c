@@ -9,6 +9,13 @@
 #include <private/tdympfao3Dutilsimpl.h>
 #include <private/tdympfao3Dtsimpl.h>
 
+//#define DEBUG
+#if defined(DEBUG)
+PetscInt icount_f = 0;
+PetscInt icount_j = 0;
+PetscInt max_count = 5;
+#endif
+
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accum) {
 
@@ -70,10 +77,11 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
 
-//#define DEBUG
 #if defined(DEBUG)
   PetscViewer viewer;
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"U.vec",&viewer); CHKERRQ(ierr);
+  char word[32];
+  sprintf(word,"U%d.vec",icount_f);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
@@ -125,9 +133,11 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
 
 #if defined(DEBUG)
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Function.vec",&viewer); CHKERRQ(ierr);
+  sprintf(word,"Function%d.vec",icount_f);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
   ierr = VecView(R,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  icount_f++;
 #endif
 
   PetscFunctionReturn(0);
@@ -194,9 +204,14 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
 
 #if defined(DEBUG)
   PetscViewer viewer;
+  char word[32];
+  sprintf(word,"Jacobian%d.vec",icount_j);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Jacobian.mat",&viewer); CHKERRQ(ierr);
   ierr = MatView(A,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  icount_j++;
+  if (icount_j == max_count) exit(0);
 #endif
 
   PetscFunctionReturn(0);

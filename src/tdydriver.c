@@ -44,8 +44,10 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       ierr = TDySetSNESJacobian(tdy->ti->snes,tdy); CHKERRQ(ierr);
       ierr = SNESGetLineSearch(tdy->ti->snes,&linesearch);
              CHKERRQ(ierr);
+/*
       ierr = SNESLineSearchSetType(linesearch,SNESLINESEARCHBASIC);
              CHKERRQ(ierr);
+*/
       ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,
                                         &tdy); CHKERRQ(ierr);
       ierr = SNESSetConvergenceTest(tdy->ti->snes,TDyRichardsConvergenceTest,
