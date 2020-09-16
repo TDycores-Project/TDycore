@@ -26,8 +26,14 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       SNESLineSearch linesearch;
       ierr = SNESGetLineSearch(tdy->ti->snes,&linesearch); 
              CHKERRQ(ierr);
+/*
+      ierr = SNESLineSearchSetType(linesearch,SNESLINESEARCHBASIC);
+             CHKERRQ(ierr);
+*/
       ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,
                                         &tdy); CHKERRQ(ierr);
+      ierr = SNESSetConvergenceTest(tdy->ti->snes,TDyRichardsConvergenceTest,
+                                    &tdy,NULL); CHKERRQ(ierr);
       ierr = SNESSetFromOptions(tdy->ti->snes); CHKERRQ(ierr);
       break;
     case TDyTS:

@@ -55,6 +55,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyTimeIntegrator ti;
+  SNESConvergedReason reason;
 
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
@@ -72,8 +73,10 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
         ierr = SNESGetLinearSolveIterations(ti->snes,&lit); 
                CHKERRQ(ierr);
         if (tdy->io->io_process)
-          printf("Time step %d: time = %f dt = %f ni=%d li = %d\n",
-                 ti->istep,ti->time,ti->dt,nit,lit);
+        if (tdy->io->io_process)
+          printf("Time step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n",
+                 ti->istep,ti->time,ti->dt,nit,lit,
+                 SNESConvergedReasons[reason]);
         if (tdy->io->print_intermediate) {
           ierr = TDyIOPrintVec(tdy->solution,"soln",ti->istep); 
           CHKERRQ(ierr);
