@@ -173,6 +173,9 @@ implicit none
   call TDySetFromOptions(tdy,ierr);
   CHKERRA(ierr);
 
+  call TDyCreateVectors(tdy,ierr); CHKERRA(ierr)
+  call TDyCreateJacobian(tdy,ierr); CHKERRA(ierr)
+
   ! Set initial condition
   call DMCreateGlobalVector(dm,U,ierr);
   CHKERRA(ierr);

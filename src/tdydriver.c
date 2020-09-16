@@ -26,19 +26,8 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   ierr = TDyTimeIntegratorCreate(&tdy->ti); CHKERRQ(ierr);
-  ierr = DMCreateGlobalVector(tdy->dm,&tdy->solution); CHKERRQ(ierr); 
-  ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
-  ierr = DMCreateMatrix(tdy->dm,&tdy->Jpre); CHKERRQ(ierr);
-
-  ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
-  ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
-  ierr = MatSetOption(tdy->J,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
-  ierr = MatSetOption(tdy->J,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
-
-  ierr = MatSetOption(tdy->Jpre,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
-  ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
-  ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
-  ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+  ierr = TDyCreateVectors(tdy); CHKERRQ(ierr);
+  ierr = TDyCreateJacobian(tdy); CHKERRQ(ierr);
 
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
