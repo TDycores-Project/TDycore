@@ -145,7 +145,8 @@ static void f0_bd_u(PetscInt dim, PetscInt Nf, PetscInt NfAux,
                     PetscReal t, const PetscReal x[], const PetscReal n[], PetscInt numConstants, const PetscScalar constants[], PetscScalar f0[])
 {
   PetscInt d;
-  for (d = 0, f0[0] = 0.0; d < dim; ++d) f0[0] += n[d]*u[uOff[1] + 0];
+  for (d = 0; d < dim; ++d) 
+  f0[d] = n[d]*u[uOff[1] + 0];
 }
 
 //========================================================
@@ -264,6 +265,8 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
   ierr = PetscDSSetJacobian(ds, 1, 0, NULL, f0_p_J, NULL,  NULL);CHKERRQ(ierr);
   ierr = PetscDSSetBdResidual(ds, 0, f0_bd_u, NULL);CHKERRQ(ierr);
 
+  const PetscInt   ids[] = {1, 2, 3, 4};
+  ierr = DMAddBoundary(dm, DM_BC_NATURAL, "flux", "Face Sets", 0, 0, NULL, (void (*)(void))NULL, NULL, 4, ids, NULL);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
