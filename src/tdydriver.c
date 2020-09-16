@@ -12,6 +12,10 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
 
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  if (dim != 3) {
+    PetscPrintf(PETSC_COMM_WORLD,"Richards mode currently only supports 3D\n");
+    exit(0);
+  }
   gravity[dim-1] = 9.8068;
   ierr = TDySetGravityVector(tdy,gravity);
   ierr = TDySetPorosityFunction(tdy,TDyPorosityFunctionDefault,PETSC_NULL);
