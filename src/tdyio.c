@@ -112,7 +112,7 @@ PetscErrorCode TDyIOPrintVec(Vec v,PetscReal time) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  sprintf(word,"%f.txt",time);
+  sprintf(word,"%11.5e.txt",time);
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer);
          CHKERRQ(ierr);
   ierr = VecView(v,viewer); CHKERRQ(ierr);
