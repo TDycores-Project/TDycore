@@ -144,9 +144,11 @@ static void f0_bd_u(PetscInt dim, PetscInt Nf, PetscInt NfAux,
                     const PetscInt aOff[], const PetscInt aOff_x[], const PetscScalar a[], const PetscScalar a_t[], const PetscScalar a_x[],
                     PetscReal t, const PetscReal x[], const PetscReal n[], PetscInt numConstants, const PetscScalar constants[], PetscScalar f0[])
 {
-  PetscInt d;
-  for (d = 0; d < dim; ++d) 
-  f0[d] = n[d]*u[uOff[1] + 0];
+  PetscScalar pressure = u[uOff[1] + 0];
+  printf("(%10f, %10f) n [%10f %10f] Pressure %f\n", x[0], x[1], n[0], n[1], pressure);
+  for (PetscInt d = 0; d < dim; ++d) {
+    f0[d] = n[d]*pressure;
+  }
 }
 
 //========================================================
