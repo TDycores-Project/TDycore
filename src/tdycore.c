@@ -60,6 +60,9 @@ const char *const TDyWaterDensityTypes[] = {
 // Timers registry.
 khash_t(TDY_TIMER_MAP)* TDY_TIMERS = NULL;
 
+// Are timers enabled?
+static PetscBool TDyEnableTimers = PETSC_FALSE;
+
 // Profiling stages registry.
 khash_t(TDY_PROFILING_STAGE_MAP)* TDY_PROFILING_STAGES = NULL;
 
@@ -118,6 +121,13 @@ static PetscErrorCode TDyInitSubsystems() {
     ierr = PetscStrInList("tdy",logList,',',&pkg); CHKERRQ(ierr);
     if (pkg) {ierr = PetscLogEventDeactivateClass(TDY_CLASSID); CHKERRQ(ierr);}
   }
+
+  // Enable timers if requested.
+  ierr = PetscOptionsGetBool(NULL,NULL,"-tdy_timers", &TDyEnableTimers, &opt);
+  CHKERRQ(ierr);
+  if (TDyEnableTimers)
+    PetscLogDefaultBegin();
+
   PetscFunctionReturn(0);
 }
 
@@ -161,7 +171,16 @@ PetscBool TDyInitialized(void) {
 
 PetscErrorCode TDyFinalize() {
   PetscFunctionBegin;
-  TDyPackageInitialized = PETSC_FALSE;
+
+  // Dump timing information before we leave.
+  if (TDyEnableTimers) {
+    PetscViewer log;
+    PetscViewerASCIIOpen(PETSC_COMM_WORLD, "tdycore_profile.csv", &log);
+    PetscViewerFormat format = PETSC_VIEWER_ASCII_CSV;
+    PetscViewerPushFormat(log, format);
+    PetscLogView(log);
+    PetscViewerDestroy(&log);
+  }
 
   // Free the timers registry and the profiling stages registry.
   if (TDY_TIMERS != NULL)
@@ -171,6 +190,8 @@ PetscErrorCode TDyFinalize() {
 
   // Finalize PETSc.
   PetscFinalize();
+
+  TDyPackageInitialized = PETSC_FALSE;
   PetscFunctionReturn(0);
 }
 
@@ -345,14 +366,6 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   PetscValidPointer(_tdy,1);
   tdy = *_tdy; *_tdy = NULL;
 
-  // Dump timing information before we leave.
-  if (tdy->enable_timers) {
-    PetscViewer log;
-    PetscViewerASCIIOpen(PETSC_COMM_WORLD, "tdycore_profile.log", &log);
-    PetscLogView(log);
-    PetscViewerDestroy(&log);
-  }
-
   if (!tdy) PetscFunctionReturn(0);
   ierr = TDyResetDiscretizationMethod(tdy); CHKERRQ(ierr);
   ierr = PetscFree(tdy->V); CHKERRQ(ierr);
@@ -522,12 +535,9 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           "TDySetMode",TDyModes,(PetscEnum)mode,(PetscEnum *)&mode,
                           &flg); CHKERRQ(ierr);
 
-  // Enable timers if requested.
   ierr = PetscOptionsBool("-tdy_timers",
                           "Enable timers for profiling","",PETSC_FALSE,
-                          &tdy->enable_timers,NULL); CHKERRQ(ierr);
-  if (tdy->enable_timers)
-    PetscLogDefaultBegin();
+                          &TDyEnableTimers,NULL); CHKERRQ(ierr);
 
   if (flg && (mode != tdy->mode)) { ierr = TDySetMode(tdy,mode); CHKERRQ(ierr); }
 
