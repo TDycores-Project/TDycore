@@ -9,6 +9,8 @@
 #include "tdycore.h"
 
 #ifdef PETSC_HAVE_FORTRAN_CAPS
+#define tdyinitnoarguments_                         TDYINITNOARGUMENTS
+#define tdyfinalize_                                TDYFINALIZE
 #define tdycreate_                                  TDYCREATE
 #define tdycreatewithdm_                            TDYCREATEWITHDM
 #define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
@@ -61,6 +63,8 @@
 #define tdyoutputregression_                        TDYOUTPUTREGRESSION
 #define tdydestroy_                                 TDYDESTROY
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
+#define tdyinitnoarguments_                         tdyinitnoarguments
+#define tdyfinalize_                                tdyfinalize
 #define tdycreate_                                  tdycreate
 #define tdycreatewithdm_                            tdycreatewithdm
 #define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
@@ -124,6 +128,26 @@ static struct {
 #endif
 } _cb;
 
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdyinitnoarguments_(int *__ierr){
+*__ierr = TDyInitNoArguments();
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdyfinalize_(int *__ierr){
+*__ierr = TDyFinalize();
+}
+#if defined(__cplusplus)
+}
+#endif
 
 #if defined(__cplusplus)
 extern "C" {

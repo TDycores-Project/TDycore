@@ -67,6 +67,7 @@ PETSC_EXTERN PetscLogEvent TDy_ComputeSystem;
 
 /* ---------------------------------------------------------------- */
 PETSC_EXTERN PetscErrorCode TDyInit(int argc, char* argv[]);
+PETSC_EXTERN PetscErrorCode TDyInitNoArguments(void);
 PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 
 PETSC_EXTERN PetscErrorCode TDyCreate(TDy *tdy);

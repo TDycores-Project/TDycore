@@ -139,7 +139,7 @@ program main
   KSP            :: ksp
   PetscErrorCode :: ierr
 
-  call PetscInitialize(PETSC_NULL_CHARACTER,ierr)
+  call TDyInit(ierr)
 
   N = 8
   dim = 2;
@@ -237,7 +237,7 @@ program main
   call TDyDestroy(tdy,ierr);
   CHKERRQ(ierr);
 
-  call PetscFinalize(ierr)
+  call TDyFinalize(ierr)
   CHKERRA(ierr);
 
   call exit(successful_exit_code)

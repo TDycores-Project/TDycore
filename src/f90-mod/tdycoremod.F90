@@ -8,7 +8,14 @@ module tdycoredef
 end module tdycoredef
 
 module tdycore
+#include <petsc/finclude/petscvec.h>
   use tdycoredef
+
+  interface
+     subroutine TDyFinalize(ierr)
+       integer ierr
+     end subroutine TDyFinalize
+  end interface
   interface
      subroutine TDyCreate(a,b,z)
        use petscdm
@@ -359,5 +366,18 @@ module tdycore
        integer z
      end subroutine TDyPostSolveSNESSolver
   end interface
+
+  contains
+
+  subroutine TDyInit(ierr)
+#include <petsc/finclude/petscvec.h>
+     use petscvec
+     implicit none
+     integer ierr
+
+     call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+     CHKERRQ(ierr)
+     call TDyInitNoArguments(ierr)
+  end subroutine TDyInit
 
 end module tdycore

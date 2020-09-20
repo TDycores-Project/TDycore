@@ -78,20 +78,12 @@ PetscErrorCode TDyFinalize() {
   PetscFunctionReturn(0);
 }
 
-// This function initializes the TDycore library and its various subsystems.
-PetscErrorCode TDyInit(int argc, char* argv[]) {
-
-  // Initialize PETSc if we haven't already.
-  PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, NULL);
-  CHKERRQ(ierr);
-
+static PetscErrorCode TDyInitSubsystems() {
   char           logList[256];
   PetscBool      opt,pkg;
 
-  PetscFunctionBegin;
-  if (TDyPackageInitialized) PetscFunctionReturn(0);
-  TDyPackageInitialized = PETSC_TRUE;
-  ierr = PetscClassIdRegister("TDy",&TDY_CLASSID); CHKERRQ(ierr);
+  // Register a class ID for logging.
+  PetscErrorCode ierr = PetscClassIdRegister("TDy",&TDY_CLASSID); CHKERRQ(ierr);
 
   // Register timers table.
   if (TDY_TIMERS == NULL)
@@ -115,7 +107,38 @@ PetscErrorCode TDyInit(int argc, char* argv[]) {
     ierr = PetscStrInList("tdy",logList,',',&pkg); CHKERRQ(ierr);
     if (pkg) {ierr = PetscLogEventDeactivateClass(TDY_CLASSID); CHKERRQ(ierr);}
   }
+  PetscFunctionReturn(0);
+}
 
+// This function initializes the TDycore library and its various subsystems.
+PetscErrorCode TDyInit(int argc, char* argv[]) {
+  PetscFunctionBegin;
+  if (TDyPackageInitialized) PetscFunctionReturn(0);
+
+  // Initialize PETSc if we haven't already.
+  PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, NULL); CHKERRQ(ierr);
+
+  // Initialize TDycore-specific subsystems.
+  ierr = TDyInitSubsystems(); CHKERRQ(ierr);
+
+  TDyPackageInitialized = PETSC_TRUE;
+  PetscFunctionReturn(0);
+}
+
+// This function initializes the TDycore library and its various subsystems
+// without arguments. It's used by the Fortran interface, which calls
+// PetscInitialize itself and then this function.
+PetscErrorCode TDyInitNoArguments(void) {
+  PetscFunctionBegin;
+  if (TDyPackageInitialized) PetscFunctionReturn(0);
+
+  // Initialize PETSc if we haven't already.
+  PetscErrorCode ierr = PetscInitializeNoArguments(); CHKERRQ(ierr);
+
+  // Initialize TDycore-specific subsystems.
+  ierr = TDyInitSubsystems(); CHKERRQ(ierr);
+
+  TDyPackageInitialized = PETSC_TRUE;
   PetscFunctionReturn(0);
 }
 
