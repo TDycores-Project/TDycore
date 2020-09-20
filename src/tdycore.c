@@ -60,22 +60,24 @@ const char *const TDyWaterDensityTypes[] = {
 // Timers registry.
 khash_t(TDY_TIMER_MAP)* TDY_TIMERS = NULL;
 
+// Profiling stages registry.
+khash_t(TDY_PROFILING_STAGE_MAP)* TDY_PROFILING_STAGES = NULL;
+
 PetscClassId TDY_CLASSID = 0;
 
 static PetscBool TDyPackageInitialized = PETSC_FALSE;
 PetscLogEvent TDy_ComputeSystem = 0;
 
-PetscErrorCode TDyFinalize() {
-  PetscFunctionBegin;
-  TDyPackageInitialized = PETSC_FALSE;
-
-  // Free the timers registry.
-  if (TDY_TIMERS != NULL)
-    kh_destroy(TDY_TIMER_MAP, TDY_TIMERS);
-
-  // Finalize PETSc.
-  PetscFinalize();
-  PetscFunctionReturn(0);
+void TDyAddProfilingStage(const char* name)
+{
+  khiter_t iter = kh_get(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name);
+  PetscLogStage stage;
+  if (iter == kh_end(TDY_PROFILING_STAGES)) {
+    PetscLogStageRegister(name, &stage);
+    int retval;
+    iter = kh_put(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name, &retval);
+    kh_val(TDY_PROFILING_STAGES, iter) = stage;
+  }
 }
 
 static PetscErrorCode TDyInitSubsystems() {
@@ -88,6 +90,15 @@ static PetscErrorCode TDyInitSubsystems() {
   // Register timers table.
   if (TDY_TIMERS == NULL)
     TDY_TIMERS = kh_init(TDY_TIMER_MAP);
+
+  // Register profiling stages table.
+  if (TDY_PROFILING_STAGES == NULL)
+    TDY_PROFILING_STAGES = kh_init(TDY_PROFILING_STAGE_MAP);
+
+  // Register some logging stages.
+  TDyAddProfilingStage("TDycore Setup");
+  TDyAddProfilingStage("TDycore Stepping");
+  TDyAddProfilingStage("TDycore I/O");
 
   // Process info exclusions.
   ierr = PetscOptionsGetString(NULL,NULL,"-info_exclude",logList,sizeof(logList),
@@ -148,6 +159,21 @@ PetscBool TDyInitialized(void) {
   return TDyPackageInitialized;
 }
 
+PetscErrorCode TDyFinalize() {
+  PetscFunctionBegin;
+  TDyPackageInitialized = PETSC_FALSE;
+
+  // Free the timers registry and the profiling stages registry.
+  if (TDY_TIMERS != NULL)
+    kh_destroy(TDY_TIMER_MAP, TDY_TIMERS);
+  if (TDY_PROFILING_STAGES != NULL)
+    kh_destroy(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES);
+
+  // Finalize PETSc.
+  PetscFinalize();
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyCreate(TDy *_tdy) {
   PetscErrorCode ierr;
   DM             dm;
@@ -177,8 +203,8 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   ierr = TDyIOCreate(&tdy->io); CHKERRQ(ierr);
 
   /* compute/store plex geometry */
-  PetscLogEvent t1 = TDY_GET_TIMER("ComputePlexGeometry");
-  TDY_START_TIMER(t1);
+  PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
+  TDyStartTimer(t1);
   tdy->dm = dm;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
@@ -204,11 +230,11 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
     }
   }
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
-  TDY_STOP_TIMER(t1);
+  TDyStopTimer(t1);
 
   /* allocate space for a full tensor perm for each cell */
-  PetscLogEvent t2 = TDY_GET_TIMER("ComputePlexGeometry");
-  TDY_START_TIMER(t2);
+  PetscLogEvent t2 = TDyGetTimer("ComputePlexGeometry");
+  TDyStartTimer(t2);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   nc   = cEnd-cStart;
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K0)); CHKERRQ(ierr);
@@ -244,7 +270,7 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
-  TDY_STOP_TIMER(t2);
+  TDyStopTimer(t2);
 
 
   /* problem constants FIX: add mutators */
