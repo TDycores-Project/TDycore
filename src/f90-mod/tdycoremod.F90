@@ -8,7 +8,6 @@ module tdycoredef
 end module tdycoredef
 
 module tdycore
-#include <petsc/finclude/petscvec.h>
   use tdycoredef
 
   interface
