@@ -57,47 +57,72 @@ const char *const TDyWaterDensityTypes[] = {
   "TDyWaterDensityType","TDY_DENSITY_",NULL
 };
 
+// Timers registry.
+khash_t(TDY_TIMER_MAP)* TDY_TIMERS = NULL;
+
 PetscClassId TDY_CLASSID = 0;
 
-PETSC_EXTERN PetscBool TDyPackageInitialized;
-PetscBool TDyPackageInitialized = PETSC_FALSE;
+static PetscBool TDyPackageInitialized = PETSC_FALSE;
 PetscLogEvent TDy_ComputeSystem = 0;
 
-PetscErrorCode TDyFinalizePackage(void) {
+PetscErrorCode TDyFinalize() {
   PetscFunctionBegin;
   TDyPackageInitialized = PETSC_FALSE;
-  TDyDestroyTimers();
+
+  // Free the timers registry.
+  if (TDY_TIMERS != NULL)
+    kh_destroy(TDY_TIMER_MAP, TDY_TIMERS);
+
+  // Finalize PETSc.
+  PetscFinalize();
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyInitializePackage(void) {
+// This function initializes the TDycore library and its various subsystems.
+PetscErrorCode TDyInit(int argc, char* argv[]) {
+
+  // Initialize PETSc if we haven't already.
+  PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, NULL);
+  CHKERRQ(ierr);
+
   char           logList[256];
   PetscBool      opt,pkg;
-  PetscErrorCode ierr;
 
   PetscFunctionBegin;
   if (TDyPackageInitialized) PetscFunctionReturn(0);
   TDyPackageInitialized = PETSC_TRUE;
   ierr = PetscClassIdRegister("TDy",&TDY_CLASSID); CHKERRQ(ierr);
-  /* Register timers. */
-  ierr = TDyInitTimers();
-  CHKERRQ(ierr);
-  /* Process info exclusions */
+
+  // Register timers table.
+  if (TDY_TIMERS == NULL)
+    TDY_TIMERS = kh_init(TDY_TIMER_MAP);
+
+  // Process info exclusions.
   ierr = PetscOptionsGetString(NULL,NULL,"-info_exclude",logList,sizeof(logList),
                                &opt); CHKERRQ(ierr);
   if (opt) {
     ierr = PetscStrInList("tdy",logList,',',&pkg); CHKERRQ(ierr);
-    if (pkg) {ierr = PetscInfoDeactivateClass(TDY_CLASSID); CHKERRQ(ierr);}
+    if (pkg) {
+      ierr = PetscInfoDeactivateClass(TDY_CLASSID);
+      CHKERRQ(ierr);
+    }
   }
-  /* Process summary exclusions */
+
+  // Process summary exclusions.
   ierr = PetscOptionsGetString(NULL,NULL,"-log_exclude",logList,sizeof(logList),
                                &opt); CHKERRQ(ierr);
   if (opt) {
     ierr = PetscStrInList("tdy",logList,',',&pkg); CHKERRQ(ierr);
     if (pkg) {ierr = PetscLogEventDeactivateClass(TDY_CLASSID); CHKERRQ(ierr);}
   }
-  ierr = PetscRegisterFinalize(TDyFinalizePackage); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
+}
+
+// This function returns PETSC_TRUE if the TDyCore library has been initialized,
+// PETSC_FALSE otherwise.
+PetscBool TDyInitialized(void) {
+  return TDyPackageInitialized;
 }
 
 PetscErrorCode TDyCreate(TDy *_tdy) {
@@ -121,7 +146,6 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   PetscFunctionBegin;
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
   PetscValidPointer(_tdy,1);
-  ierr = TDyInitializePackage(); CHKERRQ(ierr);
   *_tdy = NULL;
   ierr = PetscHeaderCreate(tdy,TDY_CLASSID,"TDy","TDy","TDy",comm,TDyDestroy,
                            TDyView); CHKERRQ(ierr);

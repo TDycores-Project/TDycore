@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
   PetscInt successful_exit_code=0;
   char exofile[256];
   PetscBool exo = PETSC_FALSE;
-  ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
+  ierr = TDyInit(argc, argv); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,
 			   "Transient Options",""); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-N","Number of elements in 1D",
@@ -134,6 +134,6 @@ int main(int argc, char **argv) {
 
   /* Cleanup */
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = PetscFinalize(); CHKERRQ(ierr);
+  ierr = TDyFinalize(); CHKERRQ(ierr);
   return(successful_exit_code);
 }

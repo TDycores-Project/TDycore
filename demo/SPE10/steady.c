@@ -17,10 +17,10 @@ PetscErrorCode Rotation(PetscReal *R, PetscReal ang, PetscInt axis, PetscInt dim
       }else{
 	row = i; if(row > axis) row -= 1;
 	col = j; if(col > axis) col -= 1;
-	if(row == 0 && col == 0) R[j*dim+i] =  PetscCosReal(ang); 
-	if(row == 0 && col == 1) R[j*dim+i] = -PetscSinReal(ang); 
-	if(row == 1 && col == 0) R[j*dim+i] =  PetscSinReal(ang); 
-	if(row == 1 && col == 1) R[j*dim+i] =  PetscCosReal(ang); 
+	if(row == 0 && col == 0) R[j*dim+i] =  PetscCosReal(ang);
+	if(row == 0 && col == 1) R[j*dim+i] = -PetscSinReal(ang);
+	if(row == 1 && col == 0) R[j*dim+i] =  PetscSinReal(ang);
+	if(row == 1 && col == 1) R[j*dim+i] =  PetscCosReal(ang);
       }
     }
   }
@@ -38,7 +38,7 @@ PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
   ierr = TDyGetDimension(tdy,&dim); CHKERRQ(ierr);
   ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
   ierr = TDyGetCentroidArray(tdy,&X); CHKERRQ(ierr);
-  
+
   // Rotation matrix
   PetscBLASInt n = dim;
   PetscReal one = 1, zero = 0;
@@ -50,7 +50,7 @@ PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
     Rotation(T ,0.5*ang,2,dim);
     BLASgemm_("N","N",&n,&n,&n,&one,R1,&n,T,&n,&zero,R,&n);
   }
-      
+
   // Read data
   ierr = PetscMalloc(3*nz*ny*nx*sizeof(PetscReal),&buffer); CHKERRQ(ierr);
   if(f){
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
   PetscErrorCode ierr;
   PetscInt dim = 2, N = 0;
   PetscReal ang = 0;
-  ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
+  ierr = TDyInit(argc, argv); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"SPE Options",""); CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-dim","Problem dimension","",
 			  dim,&dim,NULL); CHKERRQ(ierr);
@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsReal("-angle","Permeability angle","",
 			  ang,&ang,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
-    
+
   /* Create and distribute the mesh */
   DM dm, dmDist = NULL;
   PetscInt  faces[3] = {  60,  220,  85};
@@ -167,6 +167,6 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&F); CHKERRQ(ierr);
   ierr = MatDestroy(&K); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = PetscFinalize(); CHKERRQ(ierr);
+  ierr = TDyFinalize(); CHKERRQ(ierr);
   return(0);
 }

@@ -561,7 +561,7 @@ int main(int argc, char **argv) {
   char true_pres_filename[256]="none";
   char forcing_filename[256]="none";
   PetscBool exo = PETSC_FALSE;
-  ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
+  ierr = TDyInit(argc, argv); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL); CHKERRQ(ierr);
@@ -688,9 +688,9 @@ int main(int argc, char **argv) {
         ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
         ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
         break;
-        
+
         case 2:
-        
+
         if (dim == 2) {
           ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
           ierr = TDySetForcingFunction(tdy,ForcingQuadratic2D,NULL); CHKERRQ(ierr);
@@ -703,7 +703,7 @@ int main(int argc, char **argv) {
           ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_2,NULL); CHKERRQ(ierr);
         }
         break;
-        
+
         case 3:
         if (dim == 2) {
           ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
@@ -717,7 +717,7 @@ int main(int argc, char **argv) {
           ierr = TDySetDirichletFluxFunction(tdy,Velocity3,NULL); CHKERRQ(ierr);
         }
         break;
-        
+
         case 4:
         if (dim == 2) {
           ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_1); CHKERRQ(ierr);
@@ -725,7 +725,7 @@ int main(int argc, char **argv) {
           ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2012_1,NULL); CHKERRQ(ierr);
           ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_1,NULL); CHKERRQ(ierr);
         } else {
-          
+
         }
         break;
     }
@@ -773,7 +773,7 @@ int main(int argc, char **argv) {
   if (file_not_specified == 0) {
     ierr = SaveVertices(dm,vertices_filename); CHKERRQ(ierr);
   }
-  
+
   /* Save cell centroids */
   ierr = PetscStrcasecmp(centroids_filename,"none",&file_not_specified); CHKERRQ(ierr);
   if (file_not_specified == 0) {
@@ -802,7 +802,7 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&F); CHKERRQ(ierr);
   ierr = MatDestroy(&K); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = PetscFinalize(); CHKERRQ(ierr);
+  ierr = TDyFinalize(); CHKERRQ(ierr);
 
   return(successful_exit_code);
 }
