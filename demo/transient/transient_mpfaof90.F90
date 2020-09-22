@@ -72,7 +72,7 @@ implicit none
   PetscReal ::  perm(9)
   PetscInt :: c, cStart, cEnd, j, nvalues
 
-  call PetscInitialize(PETSC_NULL_CHARACTER,ierr);
+  call TDyInit(ierr);
   CHKERRA(ierr);
 
   nx = 3; ny = 3; nz = 3;
@@ -216,7 +216,7 @@ implicit none
   call TDyDestroy(tdy,ierr);
   CHKERRA(ierr);
 
-  call PetscFinalize(ierr);
+  call TDyFinalize(ierr);
   CHKERRA(ierr);
 
   deallocate(blockPerm)

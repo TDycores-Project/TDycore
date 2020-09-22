@@ -137,7 +137,7 @@ implicit none
   PetscViewer         :: viewer
   PetscInt            :: step_mod
 
-  call PetscInitialize(PETSC_NULL_CHARACTER,ierr);
+  call TDyInit(ierr);
   CHKERRA(ierr);
 
   nx = 1; ny = 1; nz = 15;
@@ -359,7 +359,7 @@ implicit none
   call TDyDestroy(tdy,ierr);
   CHKERRA(ierr);
 
-  call PetscFinalize(ierr);
+  call TDyFinalize(ierr);
   CHKERRA(ierr);
 
   deallocate(blockPerm)

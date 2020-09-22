@@ -201,7 +201,7 @@ int main(int argc, char **argv) {
   PetscReal perturbation = 0.;
   PetscBool perturb = PETSC_FALSE;
 
-  ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
+  ierr = TDyInit(argc, argv); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
   CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-problem","Problem number","",problem,&problem,NULL);
@@ -311,7 +311,7 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&F); CHKERRQ(ierr);
   ierr = MatDestroy(&K); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = PetscFinalize(); CHKERRQ(ierr);
+  ierr = TDyFinalize(); CHKERRQ(ierr);
 
   return(successful_exit_code);
 }

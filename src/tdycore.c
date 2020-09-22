@@ -57,46 +57,141 @@ const char *const TDyWaterDensityTypes[] = {
   "TDyWaterDensityType","TDY_DENSITY_",NULL
 };
 
+// Timers registry.
+khash_t(TDY_TIMER_MAP)* TDY_TIMERS = NULL;
+
+// Are timers enabled?
+static PetscBool TDyEnableTimers = PETSC_FALSE;
+
+// Profiling stages registry.
+khash_t(TDY_PROFILING_STAGE_MAP)* TDY_PROFILING_STAGES = NULL;
+
 PetscClassId TDY_CLASSID = 0;
 
-PETSC_EXTERN PetscBool TDyPackageInitialized;
-PetscBool TDyPackageInitialized = PETSC_FALSE;
+static PetscBool TDyPackageInitialized = PETSC_FALSE;
 PetscLogEvent TDy_ComputeSystem = 0;
 
-PetscErrorCode TDyFinalizePackage(void) {
-  PetscFunctionBegin;
-  TDyPackageInitialized = PETSC_FALSE;
-  TDyDestroyTimers();
-  PetscFunctionReturn(0);
+void TDyAddProfilingStage(const char* name)
+{
+  khiter_t iter = kh_get(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name);
+  PetscLogStage stage;
+  if (iter == kh_end(TDY_PROFILING_STAGES)) {
+    PetscLogStageRegister(name, &stage);
+    int retval;
+    iter = kh_put(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name, &retval);
+    kh_val(TDY_PROFILING_STAGES, iter) = stage;
+  }
 }
 
-PetscErrorCode TDyInitializePackage(void) {
+static PetscErrorCode TDyInitSubsystems() {
   char           logList[256];
   PetscBool      opt,pkg;
-  PetscErrorCode ierr;
 
-  PetscFunctionBegin;
-  if (TDyPackageInitialized) PetscFunctionReturn(0);
-  TDyPackageInitialized = PETSC_TRUE;
-  ierr = PetscClassIdRegister("TDy",&TDY_CLASSID); CHKERRQ(ierr);
-  /* Register timers. */
-  ierr = TDyInitTimers();
-  CHKERRQ(ierr);
-  /* Process info exclusions */
+  // Register a class ID for logging.
+  PetscErrorCode ierr = PetscClassIdRegister("TDy",&TDY_CLASSID); CHKERRQ(ierr);
+
+  // Register timers table.
+  if (TDY_TIMERS == NULL)
+    TDY_TIMERS = kh_init(TDY_TIMER_MAP);
+
+  // Register profiling stages table.
+  if (TDY_PROFILING_STAGES == NULL)
+    TDY_PROFILING_STAGES = kh_init(TDY_PROFILING_STAGE_MAP);
+
+  // Register some logging stages.
+  TDyAddProfilingStage("TDycore Setup");
+  TDyAddProfilingStage("TDycore Stepping");
+  TDyAddProfilingStage("TDycore I/O");
+
+  // Process info exclusions.
   ierr = PetscOptionsGetString(NULL,NULL,"-info_exclude",logList,sizeof(logList),
                                &opt); CHKERRQ(ierr);
   if (opt) {
     ierr = PetscStrInList("tdy",logList,',',&pkg); CHKERRQ(ierr);
-    if (pkg) {ierr = PetscInfoDeactivateClass(TDY_CLASSID); CHKERRQ(ierr);}
+    if (pkg) {
+      ierr = PetscInfoDeactivateClass(TDY_CLASSID);
+      CHKERRQ(ierr);
+    }
   }
-  /* Process summary exclusions */
+
+  // Process summary exclusions.
   ierr = PetscOptionsGetString(NULL,NULL,"-log_exclude",logList,sizeof(logList),
                                &opt); CHKERRQ(ierr);
   if (opt) {
     ierr = PetscStrInList("tdy",logList,',',&pkg); CHKERRQ(ierr);
     if (pkg) {ierr = PetscLogEventDeactivateClass(TDY_CLASSID); CHKERRQ(ierr);}
   }
-  ierr = PetscRegisterFinalize(TDyFinalizePackage); CHKERRQ(ierr);
+
+  // Enable timers if requested.
+  ierr = PetscOptionsGetBool(NULL,NULL,"-tdy_timers", &TDyEnableTimers, &opt);
+  CHKERRQ(ierr);
+  if (TDyEnableTimers)
+    PetscLogDefaultBegin();
+
+  PetscFunctionReturn(0);
+}
+
+// This function initializes the TDycore library and its various subsystems.
+PetscErrorCode TDyInit(int argc, char* argv[]) {
+  PetscFunctionBegin;
+  if (TDyPackageInitialized) PetscFunctionReturn(0);
+
+  // Initialize PETSc if we haven't already.
+  PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, NULL); CHKERRQ(ierr);
+
+  // Initialize TDycore-specific subsystems.
+  ierr = TDyInitSubsystems(); CHKERRQ(ierr);
+
+  TDyPackageInitialized = PETSC_TRUE;
+  PetscFunctionReturn(0);
+}
+
+// This function initializes the TDycore library and its various subsystems
+// without arguments. It's used by the Fortran interface, which calls
+// PetscInitialize itself and then this function.
+PetscErrorCode TDyInitNoArguments(void) {
+  PetscFunctionBegin;
+  if (TDyPackageInitialized) PetscFunctionReturn(0);
+
+  // Initialize PETSc if we haven't already.
+  PetscErrorCode ierr = PetscInitializeNoArguments(); CHKERRQ(ierr);
+
+  // Initialize TDycore-specific subsystems.
+  ierr = TDyInitSubsystems(); CHKERRQ(ierr);
+
+  TDyPackageInitialized = PETSC_TRUE;
+  PetscFunctionReturn(0);
+}
+
+// This function returns PETSC_TRUE if the TDyCore library has been initialized,
+// PETSC_FALSE otherwise.
+PetscBool TDyInitialized(void) {
+  return TDyPackageInitialized;
+}
+
+PetscErrorCode TDyFinalize() {
+  PetscFunctionBegin;
+
+  // Dump timing information before we leave.
+  if (TDyEnableTimers) {
+    PetscViewer log;
+    PetscViewerASCIIOpen(PETSC_COMM_WORLD, "tdycore_profile.csv", &log);
+    PetscViewerFormat format = PETSC_VIEWER_ASCII_CSV;
+    PetscViewerPushFormat(log, format);
+    PetscLogView(log);
+    PetscViewerDestroy(&log);
+  }
+
+  // Free the timers registry and the profiling stages registry.
+  if (TDY_TIMERS != NULL)
+    kh_destroy(TDY_TIMER_MAP, TDY_TIMERS);
+  if (TDY_PROFILING_STAGES != NULL)
+    kh_destroy(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES);
+
+  // Finalize PETSc.
+  PetscFinalize();
+
+  TDyPackageInitialized = PETSC_FALSE;
   PetscFunctionReturn(0);
 }
 
@@ -121,7 +216,6 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   PetscFunctionBegin;
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
   PetscValidPointer(_tdy,1);
-  ierr = TDyInitializePackage(); CHKERRQ(ierr);
   *_tdy = NULL;
   ierr = PetscHeaderCreate(tdy,TDY_CLASSID,"TDy","TDy","TDy",comm,TDyDestroy,
                            TDyView); CHKERRQ(ierr);
@@ -130,8 +224,8 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   ierr = TDyIOCreate(&tdy->io); CHKERRQ(ierr);
 
   /* compute/store plex geometry */
-  PetscLogEvent t1 = TDY_GET_TIMER("ComputePlexGeometry");
-  TDY_START_TIMER(t1);
+  PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
+  TDyStartTimer(t1);
   tdy->dm = dm;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
@@ -157,11 +251,11 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
     }
   }
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
-  TDY_STOP_TIMER(t1);
+  TDyStopTimer(t1);
 
   /* allocate space for a full tensor perm for each cell */
-  PetscLogEvent t2 = TDY_GET_TIMER("ComputePlexGeometry");
-  TDY_START_TIMER(t2);
+  PetscLogEvent t2 = TDyGetTimer("ComputePlexGeometry");
+  TDyStartTimer(t2);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   nc   = cEnd-cStart;
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K0)); CHKERRQ(ierr);
@@ -197,7 +291,7 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
-  TDY_STOP_TIMER(t2);
+  TDyStopTimer(t2);
 
 
   /* problem constants FIX: add mutators */
@@ -271,14 +365,6 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   PetscFunctionBegin;
   PetscValidPointer(_tdy,1);
   tdy = *_tdy; *_tdy = NULL;
-
-  // Dump timing information before we leave.
-  if (tdy->enable_timers) {
-    PetscViewer log;
-    PetscViewerASCIIOpen(PETSC_COMM_WORLD, "tdycore_profile.log", &log);
-    PetscLogView(log);
-    PetscViewerDestroy(&log);
-  }
 
   if (!tdy) PetscFunctionReturn(0);
   ierr = TDyResetDiscretizationMethod(tdy); CHKERRQ(ierr);
@@ -449,12 +535,9 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           "TDySetMode",TDyModes,(PetscEnum)mode,(PetscEnum *)&mode,
                           &flg); CHKERRQ(ierr);
 
-  // Enable timers if requested.
   ierr = PetscOptionsBool("-tdy_timers",
                           "Enable timers for profiling","",PETSC_FALSE,
-                          &tdy->enable_timers,NULL); CHKERRQ(ierr);
-  if (tdy->enable_timers)
-    PetscLogDefaultBegin();
+                          &TDyEnableTimers,NULL); CHKERRQ(ierr);
 
   if (flg && (mode != tdy->mode)) { ierr = TDySetMode(tdy,mode); CHKERRQ(ierr); }
 
