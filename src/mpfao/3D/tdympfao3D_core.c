@@ -1,3 +1,4 @@
+#include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
 #include <private/tdyutils.h>
@@ -39,6 +40,8 @@ PetscErrorCode TDyComputeEntryOfGMatrix3D(PetscReal area, PetscReal n[3],
 PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
   PetscInt dim,icell;
   PetscErrorCode ierr;
 
@@ -46,7 +49,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
   TDy_cell *cells;
   TDy_face *faces;
   TDy_subcell *subcells;
-  
+
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
   faces = &mesh->faces;
@@ -103,7 +106,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
           switch (tdy->mpfao_gmatrix_method){
           case MPFAO_GMATRIX_DEFAULT:
              ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
-          
+
              ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
                                             &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
              break;
@@ -122,7 +125,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
             switch (tdy->mpfao_gmatrix_method){
             case MPFAO_GMATRIX_DEFAULT:
                ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
-          
+
               ierr = TDyComputeEntryOfGMatrix3D(area, normal, Kappa,
                                   nu, subcells->T[subcell_id], dim,
                                   &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
@@ -145,6 +148,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
     }
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -153,6 +157,7 @@ PetscErrorCode ComputeAinvB(PetscInt A_nrow, PetscReal *A,
     PetscInt B_ncol, PetscReal *B, PetscReal *AinvB) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscInt m, n;
   PetscBLASInt info, *pivots;
@@ -175,6 +180,7 @@ PetscErrorCode ComputeAinvB(PetscInt A_nrow, PetscReal *A,
   LAPACKgetrs_("N", &m, &n, A, &m, pivots, AinvB, &m, &info);
   if (info) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"GETRS - Bad solve");
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -198,9 +204,10 @@ PetscErrorCode ComputeCtimesAinvB(PetscInt C_nrow, PetscInt AinvB_ncol, PetscInt
 }
 
  /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID, 
+PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
   PetscReal **Cup, PetscReal **Cdn, PetscReal **Fup, PetscReal **Fdn) {
 
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
 
   TDy_vertex *vertices = &tdy->mesh->vertices;
@@ -266,13 +273,15 @@ PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
 
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
-    
+
 /* -------------------------------------------------------------------------- */
 PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex, PetscInt *nflux_bc_up, PetscInt *nflux_bc_dn) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   TDy_vertex *vertices = &tdy->mesh->vertices;
   TDy_subcell *subcells = &tdy->mesh->subcells;
@@ -309,34 +318,37 @@ PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex
 
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */
-  PetscErrorCode ExtractSubMatrix(PetscReal **M, PetscInt rStart, PetscInt rEnd, PetscInt cStart, PetscInt cEnd, PetscReal **Msub){
+PetscErrorCode ExtractSubMatrix(PetscReal **M, PetscInt rStart, PetscInt rEnd,
+                                PetscInt cStart, PetscInt cEnd, PetscReal **Msub){
 
-    PetscFunctionBegin;
+  PetscFunctionBegin;
 
-    PetscInt irow, icol;
+  PetscInt irow, icol;
 
-    for (irow = rStart; irow < rEnd; irow++) {
-      for (icol = cStart; icol < cEnd; icol++) {
-        Msub[irow-rStart][icol-cStart] = M[irow][icol];
-      }
+  for (irow = rStart; irow < rEnd; irow++) {
+    for (icol = cStart; icol < cEnd; icol++) {
+      Msub[irow-rStart][icol-cStart] = M[irow][icol];
     }
-
-    PetscFunctionReturn(0);
   }
 
+  PetscFunctionReturn(0);
+}
+
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ExtractsubCMatrices(PetscInt nrow, PetscInt ncol, PetscReal **C, 
-  PetscInt nrow_1, PetscInt nrow_2, PetscInt nrow_3, 
-  PetscInt ncol_1, PetscInt ncol_2, PetscInt ncol_3, 
+PetscErrorCode ExtractsubCMatrices(PetscInt nrow, PetscInt ncol, PetscReal **C,
+  PetscInt nrow_1, PetscInt nrow_2, PetscInt nrow_3,
+  PetscInt ncol_1, PetscInt ncol_2, PetscInt ncol_3,
   PetscReal ***C_11, PetscReal ***C_12, PetscReal ***C_13,
   PetscReal ***C_21, PetscReal ***C_22, PetscReal ***C_23,
   PetscReal ***C_31, PetscReal ***C_32, PetscReal ***C_33){
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscErrorCode ierr;
 
@@ -364,14 +376,16 @@ PetscErrorCode ExtractsubCMatrices(PetscInt nrow, PetscInt ncol, PetscReal **C,
   ierr = ExtractSubMatrix(C, nrow_1+nrow_2, nrow_1+nrow_2+nrow_3, ncol_1       , ncol_1+ncol_2       , *C_32); CHKERRQ(ierr);
   ierr = ExtractSubMatrix(C, nrow_1+nrow_2, nrow_1+nrow_2+nrow_3, ncol_1+ncol_2, ncol_1+ncol_2+ncol_3, *C_33); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ExtractsubFMatrices(PetscReal **F, PetscInt nrow, PetscInt ncol, PetscInt nrow_1, PetscInt nrow_2, PetscInt nrow_3, 
+PetscErrorCode ExtractsubFMatrices(PetscReal **F, PetscInt nrow, PetscInt ncol, PetscInt nrow_1, PetscInt nrow_2, PetscInt nrow_3,
 PetscReal ***F_1, PetscReal ***F_2, PetscReal ***F_3){
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscErrorCode ierr;
 
@@ -383,6 +397,7 @@ PetscReal ***F_1, PetscReal ***F_2, PetscReal ***F_3){
   ierr = ExtractSubMatrix(F, nrow_1, nrow_1 + nrow_2, 0, ncol, *F_2); CHKERRQ(ierr);
   ierr = ExtractSubMatrix(F, nrow_1 + nrow_2, nrow_1 + nrow_2 + nrow_3, 0, ncol, *F_3); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -408,6 +423,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   vertices = &tdy->mesh->vertices;
   faces = &tdy->mesh->faces;
@@ -456,7 +472,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   // Determine:
   //  (1) number of internal and boudnary fluxes,
   //  (2) number of internal unknown pressure values and known boundary pressure values
-  
+
   PetscInt nflux_in = vertices->num_faces[ivertex] - nptif_dir_bc - nptif_neu_bc;
 
   PetscInt nflux_in_plus_bcs_up = nflux_in + nflux_dir_bc_up + nflux_neu_bc_up;
@@ -483,7 +499,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   ierr = TDyAllocate_RealArray_1D(&CupInxIntimesAinvB_1d, (nflux_in + nflux_neu_bc_all)*(npcen + npitf_dir_bc_all) );
   ierr = TDyAllocate_RealArray_1D(&CupBCxIntimesAinvB_1d, nflux_dir_bc_up              *(npcen + npitf_dir_bc_all) );
   ierr = TDyAllocate_RealArray_1D(&CdnBCxIntimesAinvB_1d, nflux_dir_bc_dn              *(npcen + npitf_dir_bc_all) );
-  
+
 
   ierr = ComputeCandFmatrix(tdy, ivertex, varID, Cup_all, Cdn_all, Fup_all, Fdn_all); CHKERRQ(ierr);
 
@@ -745,6 +761,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   free(CupDBCxIn_1d           );
   free(CdnDBCxIn_1d           );
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -768,6 +785,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   dm       = tdy->dm;
   subcells = &tdy->mesh->subcells;
@@ -785,12 +803,12 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   // Vertex is on the boundary
-  
+
   // For boundary edges, save following information:
   //  - Dirichlet pressure value
   //  - Cell IDs connecting the boundary edge in the direction of unit normal
   PetscInt subcell_id;
-  
+
   icell    = vertices->internal_cell_ids[vOffsetCell + 0];
   isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
   subcell_id = icell*cells->num_subcells[icell]+isubcell;
@@ -813,7 +831,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     (*Trans)[vertices->id[ivertex]][iface][dim] = 0.0;
     for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] -= (Gmatrix[iface][j]);
   }
-  
+
 
   PetscInt i, face_id, subface_id;
   PetscInt row, col, ncells;
@@ -866,6 +884,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][numBnd],ADD_VALUES); CHKERRQ(ierr);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -880,6 +899,7 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
@@ -910,6 +930,7 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
     ierr = MatAssemblyEnd(tdy->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
