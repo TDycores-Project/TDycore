@@ -267,8 +267,13 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
   ierr = PetscDSSetJacobian(ds, 1, 0, NULL, f0_p_J, NULL,  NULL);CHKERRQ(ierr);
   ierr = PetscDSSetBdResidual(ds, 0, f0_bd_u, NULL);CHKERRQ(ierr);
 
-  const PetscInt   ids[] = {1, 2, 3, 4};
-  ierr = DMAddBoundary(dm, DM_BC_NATURAL, "flux", "Face Sets", 0, 0, NULL, (void (*)(void))NULL, NULL, 4, ids, NULL);CHKERRQ(ierr);
+  DMLabel   label;
+  ierr = DMCreateLabel(dm, "boundary");CHKERRQ(ierr);
+  ierr = DMGetLabel(dm, "boundary", &label);CHKERRQ(ierr);
+  ierr = DMPlexMarkBoundaryFaces(dm, 1, label);CHKERRQ(ierr);  
+  const PetscInt id = 1;
+  //const PetscInt   ids[] = {1, 2, 3, 4};
+  ierr = DMAddBoundary(dm, DM_BC_NATURAL, "flux", "boundary", 0, 0, NULL, (void (*)(void))NULL, NULL, 1, &id, NULL);CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
