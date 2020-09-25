@@ -2,7 +2,7 @@
 
 git clone https://gitlab.com/petsc/petsc.git
 
-PETSC_GIT_HASH=f3948bd0bd
+PETSC_GIT_HASH=a826417c4d
 DEBUG=1
 
 cd petsc
