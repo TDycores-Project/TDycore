@@ -38,10 +38,9 @@ int main(int argc, char **argv) {
   ierr = TDyIOPrintVec(tdy->solution,"final_solution",-1); CHKERRQ(ierr);
   ierr = TDyOutputRegression(tdy,tdy->solution); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = TDyFinalize(); CHKERRQ(ierr);
 
   PetscPrintf(PETSC_COMM_WORLD,"--\n");
   PetscPrintf(PETSC_COMM_WORLD,"Simulation complete.\n");
-  ierr = PetscFinalize(); CHKERRQ(ierr);
+  ierr = TDyFinalize(); CHKERRQ(ierr);
   return(successful_exit_code);
 }
