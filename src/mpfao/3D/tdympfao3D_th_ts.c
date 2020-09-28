@@ -1,3 +1,4 @@
+#include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
 #include <private/tdyutils.h>
@@ -28,6 +29,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
@@ -74,7 +76,6 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
     //      (kr/mu)_{ij,upwind} = (kr/mu)_{i} if velocity is from i to j
     //                          = (kr/mu)_{j} otherwise
     //      T includes product of K and A_{ij}
-      
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
@@ -133,12 +134,13 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
   ierr = VecRestoreArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
   ierr = VecRestoreArray(tdy->Temp_TtimesP_vec,&Temp_TtimesP_vec_ptr); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
-  
+
   TDy      tdy = (TDy)ctx;
   TDy_mesh       *mesh;
   TDy_cell       *cells;
@@ -148,6 +150,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
@@ -225,7 +228,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
                tdy->drho_dT[icell] * tdy->porosity[icell] * tdy->S[icell] +
                tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dT[icell];
 
-    // A_E = [d(rho*phi*s*U)/dP + d(rho*(1-phi)*T)/dP] * dP_dtime *Vol + 
+    // A_E = [d(rho*phi*s*U)/dP + d(rho*(1-phi)*T)/dP] * dP_dtime *Vol +
     //       [d(rho*phi*s*U)/dT + d(rho*(1-phi)*T)/dT] * dT_dtime *Vol
     // denergy_dP = dden_dP     * por        * sat     * u     + &
     //              den         * dpor_dP    * sat     * u     + &
@@ -267,7 +270,8 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   ierr = VecRestoreArray(U_t,&du_dt); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
-  
+
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -302,6 +306,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
@@ -337,8 +342,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
       PetscInt num_subfaces = 4;
 
       if (!faces->is_local[face_id]) continue;
-      
-      TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id]; 
+
+      TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
       Temp_TtimesP[irow] = Temp_TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
       if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
       if (fabs(Temp_TtimesP[irow])<PETSC_MACHINE_EPSILON) Temp_TtimesP[irow] = 0.0;
@@ -367,7 +372,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
 
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
       cell_id_dn = faces->cell_ids[fOffsetCell + 1];
-      
+
       dukvr_dPup = 0.0;
       dukvr_dPdn = 0.0;
       dukvr_dTup = 0.0;
@@ -445,10 +450,10 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
 
       for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
         cell_id = vertices->internal_cell_ids[vOffsetCell + icol];
-        
+
         T      = tdy->Trans[vertex_id][irow][icol];
         Temp_T = tdy->Temp_Trans[vertex_id][irow][icol];
-        
+
         ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
 
       // Jac[0] is dfluxm/dP
@@ -501,7 +506,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
           Jac[0] = den * ukvr * T * (1.0 + 0.*gz);
           Jac[2] = den * ukvr * T * (0.0 + 0.*gz); // derivative with temperature is zero
           Jac[1] = den * ukvr * T * (1.0 + 0.*gz) * uh;
-          Jac[3] = den * ukvr * T * (0.0 + 0.*gz) * uh; // derivative with temperature is zero 
+          Jac[3] = den * ukvr * T * (0.0 + 0.*gz) * uh; // derivative with temperature is zero
         }
 
       // conduction term
@@ -511,7 +516,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
         for (ijac=0; ijac<size_jac; ijac++) {
           if (fabs(Jac[ijac])<PETSC_MACHINE_EPSILON) Jac[ijac] = 0.0;;
         }
-        
+
 
         // Changing sign when bringing the term from RHS to LHS of the equation
         for (ijac=0; ijac<size_jac; ijac++) {Jac[ijac] = -Jac[ijac];}
@@ -541,10 +546,10 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
-
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscReal shift,Mat A,void *ctx) {
@@ -573,6 +578,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
   PetscInt ijac;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   mesh = tdy->mesh;
   cells = &mesh->cells;
@@ -606,7 +612,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
     d2porosity_dT2 = 0.0;
     d2porosity_dTdP = 0.0;
     d2porosity_dPdT = d2porosity_dTdP;
-    
+
     // Density
     rho = tdy->rho[icell];
     drho_dP = tdy->drho_dP[icell];
@@ -619,7 +625,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
     // Saturation
     sat = tdy->S[icell];
     dsat_dP = tdy->dS_dP[icell];
-    dsat_dT = tdy->dS_dT[icell];    
+    dsat_dT = tdy->dS_dT[icell];
     d2sat_dP2 = tdy->d2S_dP2[icell];
     d2sat_dT2 = 0.0;
     d2sat_dTdP = 0.0;
@@ -638,11 +644,11 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
 
 
     // A_M = d(rho*phi*s)/dP * dP_dtime * Vol + d(rho*phi*s)/dT * dT_dtime * Vol
-    
+
     // Jlocal(1,1) = shift*d(A_M)/d(Pdot) + d(A_M)/d(P)
     //             = shift*d(rho*phi*s)/dP*Vol + d2(rho*phi*s)/dP2*dP_dtime*Vol +
     //               d2(rho*phi*s)/dTdP*dT_dtime*Vol
-    
+
     dmass_dP = rho     * dporosity_dP * sat       +
                drho_dP * porosity     * sat       +
                rho     * porosity     * dsat_dP;
@@ -659,34 +665,34 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
       dsat_dP   * rho        * dporosity_dP
        );
 
-    d2mass_dPdT = ( 
-      dsat_dT     * drho_dP     * porosity        + 
-      sat         * d2rho_dTdP  * porosity        + 
-      sat         * drho_dP     * dporosity_dT    + 
-      d2sat_dTdP  * rho         * porosity        + 
-      dsat_dP     * drho_dT     * porosity        + 
-      dsat_dP     * rho         * dporosity_dT    + 
-      dsat_dT     * rho         * dporosity_dP    + 
-      sat         * drho_dT     * dporosity_dP    + 
-      sat         * rho         * d2porosity_dTdP 
+    d2mass_dPdT = (
+      dsat_dT     * drho_dP     * porosity        +
+      sat         * d2rho_dTdP  * porosity        +
+      sat         * drho_dP     * dporosity_dT    +
+      d2sat_dTdP  * rho         * porosity        +
+      dsat_dP     * drho_dT     * porosity        +
+      dsat_dP     * rho         * dporosity_dT    +
+      dsat_dT     * rho         * dporosity_dP    +
+      sat         * drho_dT     * dporosity_dP    +
+      sat         * rho         * d2porosity_dTdP
       );
-      
+
     d2mass_dTdP = d2mass_dPdT;
 
     Jac[0] = (shift*dmass_dP + d2mass_dP2*dp_dt[icell] + d2mass_dTdP*dT_dt[icell])*cells->volume[icell];
 
     // Jlocal(1,2) = shift*d(A_M)/d(Tdot) + d(A_M)/d(T)
     //             = shift*d(rho*phi*s)/dT*Vol + d2(rho*phi*s)/dT2*dT_dtime*Vol +
-    //              d2(rho*phi*s)/dPdT*dP_dtime*Vol  
-    
-    dmass_dT = ( 
+    //              d2(rho*phi*s)/dPdT*dP_dtime*Vol
+
+    dmass_dT = (
       sat     * drho_dT * porosity     +
       dsat_dT * rho     * porosity     +
-      sat     * rho     * dporosity_dT 
-      );   
-    
-    d2mass_dT2 = ( 
-      dsat_dT   * drho_dT   * porosity       + 
+      sat     * rho     * dporosity_dT
+      );
+
+    d2mass_dT2 = (
+      dsat_dT   * drho_dT   * porosity       +
       sat       * d2rho_dT2 * porosity       +
       sat       * drho_dT   * dporosity_dT   +
       d2sat_dT2 * rho       * porosity       +
@@ -694,26 +700,26 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
       dsat_dT   * rho       * dporosity_dT   +
       dsat_dT   * rho       * dporosity_dT   +
       sat       * drho_dT   * dporosity_dT   +
-      sat       * rho       * d2porosity_dT2 
-      );    
-      
+      sat       * rho       * d2porosity_dT2
+      );
+
     Jac[2] = (shift*dmass_dT + d2mass_dT2*dT_dt[icell] + d2mass_dPdT*dp_dt[icell])*cells->volume[icell];
-    
-  //   A_E = [d(rho*phi*s*U)/dP + d(rock_dencpr*(1-phi)*T)/dP] * dP_dtime *Vol + 
+
+  //   A_E = [d(rho*phi*s*U)/dP + d(rock_dencpr*(1-phi)*T)/dP] * dP_dtime *Vol +
   //        [d(rho*phi*s*U)/dT + d(rock_dencpr*(1-phi)*T)/dT] * dT_dtime *Vol
-    
-    
+
+
   //  Jlocal(2,1) = shift*d(A_E)/d(Pdot) + d(A_E)/d(P)
-  //              = shift*[d(rho*phi*s*U)/dP + d(rock_dencpr*(1-phi)*T)/dP]*Vol + 
+  //              = shift*[d(rho*phi*s*U)/dP + d(rock_dencpr*(1-phi)*T)/dP]*Vol +
   //                [d2(rho*phi*s*U)/dP2 + d2(rock_dencpr*(1-phi)*T)/dP2]*dP_dtime*Vol +
   //                [d2(rho*phi*s*U)/dTdP + d2(rock_dencpr*(1-phi)*T)/dTdP]*dT_dtime*Vol
-    
+
     denergy_dP = drho_dP     * porosity        * sat     * u     +
                  rho         * dporosity_dP    * sat     * u     +
                  rho         * porosity        * dsat_dP * u     +
                  rho         * porosity        * sat     * du_dP +
-                 rock_dencpr * (-dporosity_dP) * temp[icell]; 
-    
+                 rock_dencpr * (-dporosity_dP) * temp[icell];
+
     d2energy_dP2 = d2rho_dP2   * porosity          * sat       * u       +
                    drho_dP     * dporosity_dP      * sat       * u       +
                    drho_dP     * porosity          * dsat_dP   * u       +
@@ -730,7 +736,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
                    rho         * dporosity_dP      * sat       * du_dP   +
                    rho         * porosity          * dsat_dP   * du_dP   +
                    rho         * porosity          * sat       * d2u_dP2 +
-                   rock_dencpr * (-d2porosity_dP2) * temp[icell]; 
+                   rock_dencpr * (-d2porosity_dP2) * temp[icell];
 
     d2energy_dPdT = d2rho_dPdT  * porosity           * sat        * u        +
                     drho_dP     * dporosity_dT       * sat        * u        +
@@ -749,7 +755,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
                     rho         * porosity           * dsat_dT    * du_dP    +
                     rho         * porosity           * sat        * d2u_dPdT +
                     rock_dencpr * (-d2porosity_dPdT) * temp[icell]           +
-                    rock_dencpr * (-dporosity_dP);  
+                    rock_dencpr * (-dporosity_dP);
 
     d2energy_dTdP = d2energy_dPdT;
 
@@ -757,18 +763,18 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
     Jac[1] = (shift*denergy_dP + d2energy_dP2*dp_dt[icell] + d2energy_dTdP*dT_dt[icell])*cells->volume[icell];
 
 
-  //  Jlocal(2,2) = shift*d(A_E)/d(Tdot) + d(A_E)/d(T) 
-  //              = shift*[d(rho*phi*s*U)/dT + d(rock_dencpr*(1-phi)*T)/dT]*Vol + 
+  //  Jlocal(2,2) = shift*d(A_E)/d(Tdot) + d(A_E)/d(T)
+  //              = shift*[d(rho*phi*s*U)/dT + d(rock_dencpr*(1-phi)*T)/dT]*Vol +
   //                [d2(rho*phi*s*U)/dPdt + d2(rock_dencpr*(1-phi)*T)/dPdt]*dP_dtime*Vol +
   //                [d2(rho*phi*s*U)/dT2 + d2(rock_dencpr*(1-phi)*T)/dT2]*dT_dtime*Vol
 
     denergy_dT = drho_dT     * porosity        * sat     * u     +
                  rho         * dporosity_dT    * sat     * u     +
                  rho         * porosity        * dsat_dT * u     +
-                 rho         * porosity        * sat     * du_dT +                          
+                 rho         * porosity        * sat     * du_dT +
                  rock_dencpr * (-dporosity_dT) * temp[icell]     +
-                 rock_dencpr * (1-porosity);     
-                 
+                 rock_dencpr * (1-porosity);
+
     d2energy_dT2 = d2rho_dT2   * porosity          * sat       * u       +
                    drho_dT     * dporosity_dT      * sat       * u       +
                    drho_dT     * porosity          * dsat_dT   * u       +
@@ -821,6 +827,7 @@ PetscErrorCode TDyMPFAOIJacobian_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Petsc
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   dm = tdy->dm;
 
@@ -845,6 +852,7 @@ PetscErrorCode TDyMPFAOIJacobian_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Petsc
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Udotl); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 

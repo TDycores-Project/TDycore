@@ -1,3 +1,4 @@
+#include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
 #include <private/tdyutils.h>
@@ -37,6 +38,8 @@ PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
   PetscInt icell;
   PetscErrorCode ierr;
 
+  TDY_START_FUNCTION_TIMER()
+
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
 
@@ -58,12 +61,13 @@ PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
   }
   ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
-  
+
   TDy      tdy = (TDy)ctx;
   TDy_mesh       *mesh;
   TDy_cell       *cells;
@@ -73,6 +77,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
@@ -105,7 +110,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
 
   PetscReal *accum_prev;
-  
+
   ierr = TDyMPFAOIFunction_Vertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
 
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
@@ -140,6 +145,8 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   icount_f++;
 #endif
 
+  TDY_STOP_FUNCTION_TIMER()
+
   PetscFunctionReturn(0);
 }
 
@@ -154,6 +161,7 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
@@ -213,6 +221,8 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
   icount_j++;
   if (icount_j == max_count) exit(0);
 #endif
+
+  TDY_STOP_FUNCTION_TIMER()
 
   PetscFunctionReturn(0);
 }

@@ -1,3 +1,4 @@
+#include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
 #include <private/tdyutils.h>
@@ -13,6 +14,7 @@
 PetscErrorCode SetPermeabilityFromFunction(TDy tdy) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscInt dim;
   PetscErrorCode ierr;
 
@@ -44,6 +46,7 @@ PetscErrorCode SetPermeabilityFromFunction(TDy tdy) {
     ierr = PetscFree(localK); CHKERRQ(ierr);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -55,6 +58,7 @@ PetscErrorCode SetPorosityFromFunction(TDy tdy) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
@@ -93,6 +97,7 @@ PetscErrorCode SetPorosityFromFunction(TDy tdy) {
   }
   */
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -100,6 +105,7 @@ PetscErrorCode SetPorosityFromFunction(TDy tdy) {
 PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscInt dim;
   PetscErrorCode ierr;
 
@@ -129,6 +135,7 @@ PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
     ierr = PetscFree(localKappa); CHKERRQ(ierr);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -136,11 +143,12 @@ PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
 PetscErrorCode ComputeGMatrix(TDy tdy) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscInt dim;
   PetscErrorCode ierr;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
- 
+
   switch (dim) {
   case 2:
     ierr = TDyComputeGMatrixFor2DMesh(tdy); CHKERRQ(ierr);
@@ -153,6 +161,7 @@ PetscErrorCode ComputeGMatrix(TDy tdy) {
     break;
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -161,6 +170,7 @@ PetscErrorCode ComputeGMatrix(TDy tdy) {
 PetscErrorCode ComputeTransmissibilityMatrix(TDy tdy) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscInt dim;
   PetscErrorCode ierr;
 
@@ -178,6 +188,7 @@ PetscErrorCode ComputeTransmissibilityMatrix(TDy tdy) {
     break;
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -189,6 +200,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   mesh  = tdy->mesh;
   nbnd_faces = mesh->num_boundary_faces;
@@ -209,6 +221,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
     ierr = ComputeWaterViscosity(tdy->Pref, tdy->mu_type, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -220,6 +233,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   mesh  = tdy->mesh;
   nbnd_faces = mesh->num_boundary_faces;
@@ -233,6 +247,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy) {
     ierr = ComputeWaterEnthalpy(tdy->Tref, tdy->Pref,tdy->enthalpy_type, &(tdy->h_BND[i]), &dh_dP, &dh_dT); CHKERRQ(ierr);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -244,6 +259,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   mesh  = tdy->mesh;
   ncells = mesh->num_cells;
@@ -253,6 +269,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
   PetscInt i;
   for (i=0;i<ncells;i++) tdy->source_sink[i] = 0.0;
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -264,6 +281,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(TDy tdy) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   mesh  = tdy->mesh;
   ncells = mesh->num_cells;
@@ -273,6 +291,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(TDy tdy) {
   PetscInt i;
   for (i=0;i<ncells;i++) tdy->energy_source_sink[i] = 0.0;
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -287,6 +306,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   PetscInt       nrow,ncol,nsubcells;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   dm = tdy->dm;
 
@@ -344,7 +364,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   PetscSection sec;
   PetscInt p, pStart, pEnd;
   PetscBool use_dae;
-  
+
   use_dae = (tdy->method == MPFA_O_DAE);
   ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
   if (!use_dae) {
@@ -433,6 +453,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     }
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -441,28 +462,16 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 PetscErrorCode TDyMPFAOSetup(TDy tdy) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscLogStage stages[1];
   PetscClassId mpfaoId;
   PetscLogEvent eventGMatrix, eventTMatrix;
 
-  PetscClassIdRegister("MPFAO",&mpfaoId);
-  PetscLogStageRegister("MPFAO Setup",&stages[0]);
-  PetscLogEventRegister("Gmatrix",mpfaoId,&eventGMatrix);
-  PetscLogEventRegister("Tmatrix",mpfaoId,&eventTMatrix);
-
-  PetscLogStagePush(stages[0]);
-
-  PetscLogEventBegin(eventGMatrix,0,0,0,0);
   ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
-  PetscLogEventEnd(eventGMatrix,0,0,0,0);
-
-  PetscLogEventBegin(eventTMatrix,0,0,0,0);
   ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
-  PetscLogEventEnd(eventTMatrix,0,0,0,0);
 
-  PetscLogStagePop();
-
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -470,12 +479,14 @@ PetscErrorCode TDyMPFAOSetup(TDy tdy) {
 PetscErrorCode TDyMPFAOSetFromOptions(TDy tdy) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscInt dim;
   PetscErrorCode ierr;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
   if (tdy->ops->computeporosity) { ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr); }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -483,6 +494,7 @@ PetscErrorCode TDyMPFAOSetFromOptions(TDy tdy) {
 PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy,Mat K,Vec F) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscInt dim;
   PetscErrorCode ierr;
 
@@ -502,6 +514,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy,Mat K,Vec F) {
     break;
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -510,6 +523,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy,Mat K,Vec F) {
 PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices(TDy tdy,Mat K,Vec F) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscInt dim;
   PetscErrorCode ierr;
 
@@ -527,6 +541,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
     break;
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -534,6 +549,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices(TDy tdy,Mat K,Vec F) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscInt dim;
   PetscErrorCode ierr;
 
@@ -551,6 +567,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
     break;
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -567,6 +584,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   dm       = tdy->dm;
   mesh     = tdy->mesh;
@@ -599,6 +617,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -610,6 +629,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscInt dim;
   PetscErrorCode ierr;
 
@@ -627,6 +647,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
     break;
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -644,6 +665,7 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   dm    = tdy->dm;
   mesh  = tdy->mesh;
@@ -680,6 +702,7 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 
   norm_sum = PetscSqrtReal(norm_sum);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(norm_sum);
 }
 
@@ -699,6 +722,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   dm    = tdy->dm;
   mesh  = tdy->mesh;
@@ -734,6 +758,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
                        PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
   norm_sum = PetscSqrtReal(norm_sum);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(norm_sum);
 }
 
@@ -741,6 +766,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
 PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscInt dim;
   PetscErrorCode ierr;
@@ -760,5 +786,6 @@ PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
     break;
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(norm_sum);
 }

@@ -1,3 +1,4 @@
+#include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
 #include <private/tdyutils.h>
@@ -25,6 +26,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   dm       = tdy->dm;
   mesh     = tdy->mesh;
@@ -44,28 +46,28 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
     vertex_id = ivertex;
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
-  
+
     if (vertices->num_boundary_faces[ivertex] == 0) {
       PetscInt nflux_in = vertices->num_faces[ivertex];
-      
+
       for (irow=0; irow<nflux_in; irow++) {
-        
+
         PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
         PetscInt fOffsetCell = faces->cell_offset[face_id];
-        
+
         cell_id_up = faces->cell_ids[fOffsetCell + 0];
         cell_id_dn = faces->cell_ids[fOffsetCell + 1];
-        
+
         for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
           col   = vertices->internal_cell_ids[vOffsetCell + icol];
           col   = cells->global_id[vertices->internal_cell_ids[vOffsetCell + icol]];
           if (col<0) col = -col - 1;
-          
+
           value = -tdy->Trans[vertex_id][irow][icol];
-          
+
           row = cells->global_id[cell_id_up];
           if (cells->is_local[cell_id_up]) {ierr = MatSetValue(K, row, col, value, ADD_VALUES); CHKERRQ(ierr);}
-          
+
           row = cells->global_id[cell_id_dn];
           if (cells->is_local[cell_id_dn]) {ierr = MatSetValue(K, row, col, -value, ADD_VALUES); CHKERRQ(ierr);}
         }
@@ -78,6 +80,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -103,6 +106,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   dm       = tdy->dm;
   mesh     = tdy->mesh;
@@ -156,10 +160,10 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
     nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
 
     // Vertex is on the boundary
-    
+
     PetscScalar pBoundary[tdy->nfv];
     PetscInt numBoundary;
-    
+
     // For boundary edges, save following information:
     //  - Dirichlet pressure value
     //  - Cell IDs connecting the boundary edge in the direction of unit normal
@@ -213,7 +217,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
           ierr = VecSetValue(F, row, -value, ADD_VALUES); CHKERRQ(ierr);
         }
       }
-      
+
       if (cells->is_local[cell_id_dn]) {
 
         row   = cells->global_id[cell_id_dn];
@@ -233,7 +237,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         }
       }
     }
-    
+
     // For fluxes through boundary edges, only add contribution to the vector
     for (irow=0; irow<npitf_bc; irow++) {
 
@@ -263,10 +267,10 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         }
 
       }
-      
+
       if (cell_id_dn>-1 && cells->is_local[cell_id_dn]) {
         row   = cells->global_id[cell_id_dn];
-        
+
         // -T_10
         for (icol=0; icol<npcen; icol++) {
           col   = cells->global_id[vertices->internal_cell_ids[vOffsetCell + icol]];
@@ -288,6 +292,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -312,6 +317,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   dm       = tdy->dm;
   mesh     = tdy->mesh;
@@ -326,7 +332,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
-    
+
     if (vertices->num_boundary_faces[ivertex] == 0) continue;
     if (vertices->num_internal_cells[ivertex] > 1)  continue;
 
@@ -334,14 +340,14 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
     PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
 
     // Vertex is on the boundary
-    
+
     PetscScalar pBoundary[tdy->nfv];
     PetscInt numBoundary;
-    
+
     // For boundary edges, save following information:
     //  - Dirichlet pressure value
     //  - Cell IDs connecting the boundary edge in the direction of unit normal
-    
+
     icell    = vertices->internal_cell_ids[vOffsetCell + 0];
     isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
 
@@ -350,7 +356,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
     numBoundary = 0;
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-      
+
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
 
       PetscInt f;
@@ -414,6 +420,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }

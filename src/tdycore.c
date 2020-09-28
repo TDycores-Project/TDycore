@@ -593,6 +593,7 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
+  TDyEnterProfilingStage("TDycore Setup");
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
   if (tdy->method != method) { ierr = TDyResetDiscretizationMethod(tdy); CHKERRQ(ierr); }
   tdy->method = method;
@@ -616,6 +617,7 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
     ierr = TDyWYInitialize(tdy); CHKERRQ(ierr);
     break;
   }
+  TDyExitProfilingStage("TDycore Setup");
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
@@ -923,6 +925,7 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
 PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
   PetscReal Se,dSe_dS,dKr_dSe,n,m,alpha,Kr;
@@ -1017,6 +1020,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   }
 
   TDY_STOP_FUNCTION_TIMER()
+  TDyExitProfilingStage("TDycore Setup");
   PetscFunctionReturn(0);
 }
 
