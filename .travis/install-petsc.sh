@@ -31,4 +31,4 @@ export PETSC_DIR=$PWD
 
 
 make all
-
+make test

@@ -17,8 +17,8 @@ PETSC_EXTERN PetscClassId TDY_CLASSID;
 KHASH_MAP_INIT_STR(TDY_TIMER_MAP, PetscLogEvent)
 PETSC_EXTERN khash_t(TDY_TIMER_MAP)* TDY_TIMERS;
 
-// t = TDY_GET_TIMER(name): creates or returns a timer (PetscLogEvent).
-PETSC_STATIC_INLINE PetscLogEvent TDY_GET_TIMER(const char* name) {
+// t = TDyGetTimer(name): creates or returns a timer (PetscLogEvent).
+PETSC_STATIC_INLINE PetscLogEvent TDyGetTimer(const char* name) {
   khiter_t iter = kh_get(TDY_TIMER_MAP, TDY_TIMERS, name);
   PetscLogEvent timer;
   if (iter == kh_end(TDY_TIMERS)) {
@@ -32,30 +32,49 @@ PETSC_STATIC_INLINE PetscLogEvent TDY_GET_TIMER(const char* name) {
   return timer;
 }
 
-// TDY_START_TIMER(timer): declares and starts the given timer.
-#define TDY_START_TIMER(timer) \
+// TDyStartTimer(timer): declares and starts the given timer.
+#define TDyStartTimer(timer) \
   PetscLogEventBegin(timer, 0, 0, 0, 0);
 
-// TDY_STOP_TIMER(name): stops a timer started by TDY_STOP_TIMER(name) in the
+// TDyStopTimer(name): stops a timer started by TDyStartTimer(name) in the
 // same function.
-#define TDY_STOP_TIMER(timer) \
+#define TDyStopTimer(timer) \
   PetscLogEventEnd(timer, 0, 0, 0, 0);
 
 // TDY_START_FUNCTION_TIMER: call this at the beginning of a function to start
 // a timer named after the function itself.
 #define TDY_START_FUNCTION_TIMER() \
-  PetscLogEvent TDY_FUNC_TIMER = TDY_GET_TIMER(__func__); \
-  TDY_START_TIMER(TDY_FUNC_TIMER)
+  PetscLogEvent TDY_FUNC_TIMER = TDyGetTimer(__func__); \
+  TDyStartTimer(TDY_FUNC_TIMER)
 
 // TDY_STOP_FUNCTION_TIMER: call this at each exit point in a function to stop
 // a timer started by TDY_START_FUNCTION_TIMER.
 #define TDY_STOP_FUNCTION_TIMER() \
-  TDY_STOP_TIMER(TDY_FUNC_TIMER)
+  TDyStopTimer(TDY_FUNC_TIMER)
 
-// Initialize timer machinery.
-PETSC_EXTERN PetscErrorCode TDyInitTimers(void);
+// Here we define a registry for profiling stages.
+KHASH_MAP_INIT_STR(TDY_PROFILING_STAGE_MAP, PetscLogStage)
+PETSC_EXTERN khash_t(TDY_PROFILING_STAGE_MAP)* TDY_PROFILING_STAGES;
 
-// Destroy timer machinery, freeing resources.
-PETSC_EXTERN PetscErrorCode TDyDestroyTimers(void);
+// TDyAddProfilingStage(name): creates a profiling stage (PetscLogStage).
+PETSC_EXTERN void TDyAddProfilingStage(const char* name);
+
+// TDyEnterProfilingstage(name): enters the profiling stage with the given name.
+// Has no effect if the given stage name is invalid.
+#define TDyEnterProfilingStage(name) \
+  khiter_t iter = kh_get(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name); \
+  PetscLogStage stage; \
+  if (iter != kh_end(TDY_PROFILING_STAGES)) \
+    stage = kh_val(TDY_PROFILING_STAGES, iter); \
+  PetscLogStagePush(stage)
+
+// TDyExitProfilingstage(name): exits the profiling stage with the given name.
+// Has no effect if the given stage name is invalid.
+#define TDyExitProfilingStage(name) \
+  khiter_t iter = kh_get(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name); \
+  PetscLogStage stage; \
+  if (iter != kh_end(TDY_PROFILING_STAGES)) \
+    stage = kh_val(TDY_PROFILING_STAGES, iter); \
+  PetscLogStagePop(stage)
 
 #endif

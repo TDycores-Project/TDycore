@@ -137,7 +137,7 @@ implicit none
   PetscViewer         :: viewer
   PetscInt            :: step_mod
 
-  call PetscInitialize(PETSC_NULL_CHARACTER,ierr);
+  call TDyInit(ierr);
   CHKERRA(ierr);
 
   nx = 1; ny = 1; nz = 15;
@@ -274,6 +274,9 @@ implicit none
   call TDySetFromOptions(tdy,ierr);
   CHKERRA(ierr);
 
+  call TDyCreateVectors(tdy,ierr); CHKERRA(ierr)
+  call TDyCreateJacobian(tdy,ierr); CHKERRA(ierr)
+
   ! Set initial condition
   call DMCreateGlobalVector(dm,U,ierr);
   CHKERRA(ierr);
@@ -359,7 +362,7 @@ implicit none
   call TDyDestroy(tdy,ierr);
   CHKERRA(ierr);
 
-  call PetscFinalize(ierr);
+  call TDyFinalize(ierr);
   CHKERRA(ierr);
 
   deallocate(blockPerm)

@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
   FILE *fp;
   char string[128];
 
-  ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
+  ierr = TDyInit(argc, argv); CHKERRQ(ierr);
 
   strcpy(string,"tdycore.in");
 
@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"tdycore.sol",&viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  
+
   /* Output solution */
   PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"tdycore.vtk",FILE_MODE_WRITE,&viewer);
   ierr = DMView(dm,viewer); CHKERRQ(ierr);
@@ -224,7 +224,7 @@ int main(int argc, char **argv) {
   ierr = VecDestroy(&F); CHKERRQ(ierr);
   ierr = MatDestroy(&K); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
-  ierr = PetscFinalize(); CHKERRQ(ierr);
+  ierr = TDyFinalize(); CHKERRQ(ierr);
 
   printf("Done.\n");
   return(successful_exit_code);

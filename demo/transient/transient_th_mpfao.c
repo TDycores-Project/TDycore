@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
   PetscInt successful_exit_code=0;
   char exofile[256];
   PetscBool exo = PETSC_FALSE;
-  ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
+  ierr = TDyInit(argc, argv); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,
 			   "Transient Options",""); CHKERRQ(ierr);
   //ierr = PetscOptionsInt("-N","Number of elements in 1D",
@@ -202,7 +202,7 @@ int main(int argc, char **argv) {
   Vec U;
   PetscReal initial_temperature = 25;
   PetscReal initial_pressure = 91325;
-  ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);  
+  ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
   if (mode == TH && num_fields == 2) {
     ierr = VecGetArray(U, &u_p); CHKERRQ(ierr);
     for (c=0;c<cEnd-cStart;c++) {
@@ -275,7 +275,7 @@ int main(int argc, char **argv) {
 
   ierr = PetscPrintf(MPI_COMM_SELF,"Solving.\n");CHKERRQ(ierr);
   ierr = TSSolve(ts,U); CHKERRQ(ierr);
-  
+
   ierr = VecGetArray(U,&u_p); CHKERRQ(ierr);
   for (c=0;c<cEnd-cStart;c++) pres_p[c] = u_p[c*2];
   ierr = TDyUpdateState(tdy,pres_p); CHKERRQ(ierr);
@@ -288,7 +288,7 @@ int main(int argc, char **argv) {
       total_mass_end += mass_p[c];
     }
   }
-  
+
   PetscReal total_mass_beg_glb, total_mass_end_glb;
   PetscInt rank;
   ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
@@ -310,7 +310,7 @@ int main(int argc, char **argv) {
   ierr = PetscFree(u_p); CHKERRQ(ierr);
   ierr = PetscFree(pres_p); CHKERRQ(ierr);
   ierr = PetscPrintf(MPI_COMM_SELF,"Done!\n");CHKERRQ(ierr);
-  ierr = PetscFinalize(); CHKERRQ(ierr);
+  ierr = TDyFinalize(); CHKERRQ(ierr);
   return(successful_exit_code);
 }
 
