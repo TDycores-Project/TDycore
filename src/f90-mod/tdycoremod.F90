@@ -330,6 +330,22 @@ module tdycore
   end interface
 
   interface
+     subroutine TDyCreateVectors(a,z)
+       use tdycoredef
+       TDy a
+       integer z
+     end subroutine TDyCreateVectors
+  end interface
+
+  interface
+     subroutine TDyCreateJacobian(a,z)
+       use tdycoredef
+       TDy a
+       integer z
+     end subroutine TDyCreateJacobian
+  end interface
+
+  interface
      subroutine TDySetDtimeForSNESSolver(a,b,z)
        use tdycoredef
        TDy a

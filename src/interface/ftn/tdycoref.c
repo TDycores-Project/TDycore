@@ -22,6 +22,8 @@
 #define tdysetijacobian_                            TDYSETIJACOBIAN
 #define tdysetsnesfunction_                         TDYSETSNESFUNCTION
 #define tdysetsnesjacobian_                         TDYSETSNESJACOBIAN
+#define tdycreatevectors_                           TDYCREATEVECTORS
+#define tdycreatejacobian_                          TDYCREATEJACOBIAN
 #define tdysetdtimeforsnessolver_                   TDYSETDTIMEFORSNESSOLVER
 #define tdysetinitialsolutionforsnessolver_         TDYSETINITIALSOLUTIONFORSNESSOLVER
 #define tdypresolvesnessolver_                      TDYSETPRESOLVESNESSOLVER
@@ -76,6 +78,8 @@
 #define tdysetijacobian_                            tdysetijacobian
 #define tdysetsnesfunction_                         tdysetsnesfunction
 #define tdysetsnesjacobian_                         tdysetsnesjacobian
+#define tdycreatevectors_                           tdycreatevectors
+#define tdycreatejacobian_                          tdycreatejacobian
 #define tdysetdtimeforsnessolver_                   tdysetdtimeforsnessolver
 #define tdysetinitialsolutionforsnessolver_         tdysetinitialsolutionforsnessolver
 #define tdypresolvesnessolver_                      tdypresolvesnessolver
@@ -342,6 +346,28 @@ PETSC_EXTERN void  tdycomputeerrornorms_(TDy tdy, Vec U, PetscReal *normp, Petsc
   (TDy)PetscToPointer((tdy) ),
   (Vec)PetscToPointer((U) ),
   normp, normv);
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdycreatevectors_(TDy tdy, int *__ierr){
+*__ierr = TDyCreateVectors(
+  (TDy)PetscToPointer((tdy)));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdycreatejacobian_(TDy tdy, int *__ierr){
+*__ierr = TDyCreateJacobian(
+  (TDy)PetscToPointer((tdy)));
 }
 #if defined(__cplusplus)
 }

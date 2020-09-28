@@ -2132,7 +2132,7 @@ def main(options):
                 "ERROR: a problem occured in file '{0}'.  This is "
                 "probably an error with commandline options, the "
                 "configuration file, or an internal error.  Please send "
-                "this log file to pflotran-dev mailing list. The "
+                "this log file to tdycore-dev mailing list. The "
                 "error is:\n{1}".format(config_file, str(error)))
             print(''.join(['\n', message, '\n']), file=testlog)
             if options.backtrace:
