@@ -114,6 +114,14 @@ PetscErrorCode TDyCreateDM(DM *dm) {
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, faces,
                                lower, upper, NULL, PETSC_TRUE, dm);
     CHKERRQ(ierr);
+    PetscInt rank;
+    ierr = MPI_Comm_rank(PetscObjectComm((PetscObject)*dm),&rank);
+    if (!rank) {
+      int num_cell_in_set;
+      num_cell_in_set = Nx * Ny * Nz;
+      for (int c=0; c < num_cell_in_set; ++c)
+        ierr = DMSetLabelValue(*dm, "Cell Sets", c, 1); CHKERRQ(ierr);
+    }
   } else {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE,
                                 dm); CHKERRQ(ierr);
