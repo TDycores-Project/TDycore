@@ -126,6 +126,7 @@ PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy tdy);
 
 PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,
     TDyMethod method);
+PETSC_EXTERN PetscErrorCode TDySetupDiscretizationMethod(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetMode(TDy tdy, TDyMode mode);
 PETSC_EXTERN PetscErrorCode TDySetup(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,

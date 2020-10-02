@@ -142,7 +142,7 @@ implicit none
   call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
   CHKERRA(ierr);
 
-  call TDySetFromOptions(tdy,ierr);
+  call TDySetup(tdy,ierr);
   CHKERRA(ierr);
 
   ! Set initial condition

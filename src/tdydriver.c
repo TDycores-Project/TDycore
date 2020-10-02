@@ -26,7 +26,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   ierr = TDySetPermeabilityFunction(tdy,TDyPermeabilityFunctionDefault,PETSC_NULL);
          CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+  ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   ierr = TDyTimeIntegratorCreate(&tdy->ti); CHKERRQ(ierr);
   ierr = TDyCreateVectors(tdy); CHKERRQ(ierr);

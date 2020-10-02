@@ -33,6 +33,13 @@ module tdycore
      end subroutine TDySetDiscretizationMethod
   end interface
   interface
+     subroutine TDySetupDiscretizationMethod(a,z)
+       use tdycoredef
+       TDy a
+       integer z
+     end subroutine TDySetupDiscretizationMethod
+  end interface
+  interface
      subroutine TDySetup(a,z)
        use tdycoredef
        TDy a
