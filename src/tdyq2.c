@@ -145,7 +145,7 @@ static void f0_bd_u(PetscInt dim, PetscInt Nf, PetscInt NfAux,
                     PetscReal t, const PetscReal x[], const PetscReal n[], PetscInt numConstants, const PetscScalar constants[], PetscScalar f0[])
 {
   PetscScalar pressure = u[uOff[1] + 0];
-  printf("(%10f, %10f) n [%10f %10f] Pressure %f\n", x[0], x[1], n[0], n[1], pressure);
+  //printf("(%10f, %10f) n [%10f %10f] Pressure %f\n", x[0], x[1], n[0], n[1], pressure);
   for (PetscInt d = 0; d < dim; ++d) {
     f0[d] = n[d]*pressure;
   }
@@ -266,15 +266,15 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
   ierr = PetscDSSetJacobian(ds, 0, 1, NULL, NULL,  f1_u_J, NULL);CHKERRQ(ierr);
   ierr = PetscDSSetJacobian(ds, 1, 0, NULL, f0_p_J, NULL,  NULL);CHKERRQ(ierr);
   ierr = PetscDSSetBdResidual(ds, 0, f0_bd_u, NULL);CHKERRQ(ierr);
-
-  DMLabel   label;
-  ierr = DMCreateLabel(dm, "boundary");CHKERRQ(ierr);
-  ierr = DMGetLabel(dm, "boundary", &label);CHKERRQ(ierr);
-  ierr = DMPlexMarkBoundaryFaces(dm, 1, label);CHKERRQ(ierr);  
-  const PetscInt id = 1;
-  //const PetscInt   ids[] = {1, 2, 3, 4};
-  ierr = DMAddBoundary(dm, DM_BC_NATURAL, "flux", "boundary", 0, 0, NULL, (void (*)(void))NULL, NULL, 1, &id, NULL);CHKERRQ(ierr);
-  PetscFunctionReturn(0);
+  if (dim ==2){
+  const PetscInt   ids[] = {1, 2, 3, 4};
+  ierr = DMAddBoundary(dm, DM_BC_NATURAL, "flux", "Face Sets", 0, 0, NULL, (void (*)(void))NULL, NULL, 4, ids, NULL);CHKERRQ(ierr);
+  }
+  else{
+  const PetscInt   ids[] = {1, 2, 3, 4, 5, 6};
+  ierr = DMAddBoundary(dm, DM_BC_NATURAL, "flux", "Face Sets", 0, 0, NULL, (void (*)(void))NULL, NULL, 6, ids, NULL);CHKERRQ(ierr);  
+  }
+   PetscFunctionReturn(0);
 }
 
 static PetscErrorCode TDyQ2ApplyResidual(DM dm, Vec U, Vec F, void *dummy)
@@ -291,17 +291,42 @@ void PermTest2D(const double *x,double *K) {
   K[0] = 5; K[1] = 1;
   K[2] = 1; K[3] = 3;
 }
-PetscErrorCode func_p(PetscInt dim, PetscReal time, const PetscReal x[0], PetscInt Nf, PetscScalar *p, void *ctx) { *p = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1]); return 0;}
-PetscErrorCode func_u(PetscInt dim, PetscReal time, const PetscReal x[0], PetscInt Nf, PetscScalar *v, void *ctx) {
-  double K[4]; PermTest2D(x,K);
+
+void PermTest3D(const double *x,double *K) {
+  K[0] = 4.321; K[1] = 1;     K[2] = 0.5;
+  K[3] = 1    ; K[4] = 1.234; K[5] = 1;
+  K[6] = 0.5  ; K[7] = 1;     K[8] = 1.1;
+}
+PetscErrorCode func_p(PetscInt dim, PetscReal time, const PetscReal x[0],
+                      PetscInt Nf, PetscScalar *p, void *ctx)
+{
+if(dim == 2){
+*p = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1]);
+}
+else{
+(*p) = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1])+x[2]*(1-x[2]);
+}  
+return 0;
+}
+
+PetscErrorCode func_u(PetscInt dim, PetscReal time, const PetscReal x[0],
+                      PetscInt Nf, PetscScalar *v, void *ctx)
+{
+if(dim == 2){
+double K[4]; PermTest2D(x,K);
   v[0] = -K[0]*(1-2*x[0]) - K[1]*(1-2*x[1]);
-  v[1] = -K[2]*(1-2*x[0]) - K[3]*(1-2*x[1]);
-  return 0;
+  v[1] = -K[2]*(1-2*x[0]) - K[3]*(1-2*x[1]);}
+else{
+double K[9]; PermTest3D(x,K);
+  v[0] = -K[0]*(1-2*x[0]) - K[1]*(1-2*x[1]) - K[2]*(1-2*x[2]);
+  v[1] = -K[3]*(1-2*x[0]) - K[4]*(1-2*x[1]) - K[5]*(1-2*x[2]);
+  v[2] = -K[6]*(1-2*x[0]) - K[7]*(1-2*x[1]) - K[8]*(1-2*x[2]);}  
+return 0;
 }
 
 PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   DM dm = tdy->dm;
-  Vec             u;                  /* solution, residual vectors */
+  Vec             u;                  
   PetscErrorCode  ierr;
   PetscFunctionBegin;
   ierr = DMCreateGlobalVector(dm, &u);CHKERRQ(ierr);
@@ -416,13 +441,14 @@ PetscReal TDyQ2VelocityNorm(TDy tdy,Vec U) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
             "Must set the velocity function with TDySetDirichletFluxFunction");
   }
-
+  
+  PetscScalar *u;
+  ierr = VecGetArray(U,&u); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
     DMLabel     boundary;
     PetscScalar norm = 0.0;
-
     ierr = DMLabelCreate(PETSC_COMM_SELF, "boundary", &boundary);CHKERRQ(ierr);
     //ierr = DMLabelCreateIndex(boundary,fStart,fEnd);CHKERRQ(ierr);
     //Need to add scaling factor |E|/|e|
