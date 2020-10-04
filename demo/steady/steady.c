@@ -265,6 +265,36 @@ PetscErrorCode Forcing3(TDy tdy,double *x,double *f,void *ctx) {
   PetscFunctionReturn(0);
 }
 
+/*--- -dim 2 -quartic ---------------------------------------------------------------*/
+// p = x (1-x) y (1-y)
+void PermQuartic2D(const PetscReal x[],double *K) {
+  K[0] = 5; K[1] = 1;
+  K[2] = 1; K[3] = 3;
+}
+PetscErrorCode PressureQuartic(TDy tdy, const PetscReal x[], PetscScalar *p, void *ctx) {
+  PetscInt d;
+  p[0] = 1.0;
+  for (d = 0; d < 2; ++d) p[0] *= x[d]*(1.0 - x[d]);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode VelocityQuartic(TDy tdy, const PetscReal x[], PetscScalar *v, void *ctx) {
+  double gradpx, gradpy, K[4];
+  PermQuartic2D(x,K);
+  gradpx = (1-2*x[0])*x[1]*(1-x[1]);
+  gradpy = x[0]*(1-x[0])*(1-2*x[1]);
+  v[0] = -(K[0]*gradpx+K[1]*gradpy);
+  v[1] = -(K[2]*gradpx+K[3]*gradpy);
+  PetscFunctionReturn(0);
+}
+PetscErrorCode ForcingQuartic(TDy tdy, const PetscReal x[], PetscScalar *f, void *ctx) {
+  double K[4];
+  PermQuartic2D(x,K);
+  PetscReal vx_x =  2*K[0]*x[1]*(1-x[1]) - K[1]*(1-2*x[0])*(1-2*x[1]);
+  PetscReal vy_y = -K[2]*(1-2*x[0])*(1-2*x[1]) + 2*K[3]*x[0]*(1-x[0]);
+  (*f) = vx_x + vy_y;
+  PetscFunctionReturn(0);
+}
 
 PetscErrorCode PerturbVerticesRandom(DM dm,PetscReal h) {
   PetscErrorCode ierr;
