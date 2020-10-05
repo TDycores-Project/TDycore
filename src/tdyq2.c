@@ -301,7 +301,8 @@ PetscErrorCode func_p(PetscInt dim, PetscReal time, const PetscReal x[0],
                       PetscInt Nf, PetscScalar *p, void *ctx)
 {
 if(dim == 2){
-*p = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1]);
+//*p = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1]);
+*p = x[0]*(1.0 - x[0])*x[1]*(1.0 - x[1]);
 }
 else{
 (*p) = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1])+x[2]*(1-x[2]);
@@ -313,9 +314,15 @@ PetscErrorCode func_u(PetscInt dim, PetscReal time, const PetscReal x[0],
                       PetscInt Nf, PetscScalar *v, void *ctx)
 {
 if(dim == 2){
-double K[4]; PermTest2D(x,K);
-  v[0] = -K[0]*(1-2*x[0]) - K[1]*(1-2*x[1]);
-  v[1] = -K[2]*(1-2*x[0]) - K[3]*(1-2*x[1]);}
+//double K[4]; PermTest2D(x,K);
+//  v[0] = -K[0]*(1-2*x[0]) - K[1]*(1-2*x[1]);
+//  v[1] = -K[2]*(1-2*x[0]) - K[3]*(1-2*x[1]);}
+  double gradpx, gradpy, K[4];
+  PermTest2D(x,K);
+  gradpx = (1-2*x[0])*x[1]*(1-x[1]);
+  gradpy = x[0]*(1-x[0])*(1-2*x[1]);
+  v[0] = -(K[0]*gradpx+K[1]*gradpy);
+  v[1] = -(K[2]*gradpx+K[3]*gradpy);}
 else{
 double K[9]; PermTest3D(x,K);
   v[0] = -K[0]*(1-2*x[0]) - K[1]*(1-2*x[1]) - K[2]*(1-2*x[2]);
