@@ -646,6 +646,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
       }
       idx++;
     }
+    idx = idx + npitf_neu_bc_all;
   }
 
   // Save transmissiblity matrix for boundary fluxes (first upwind and then downwind) including
