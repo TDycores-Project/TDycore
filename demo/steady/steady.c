@@ -266,19 +266,19 @@ PetscErrorCode Forcing3(TDy tdy,double *x,double *f,void *ctx) {
 }
 
 /*--- -dim 2 -quartic ---------------------------------------------------------------*/
-// p = x (1-x) y (1-y)
-void PermQuartic2D(const PetscReal x[],double *K) {
+// p = x (1-x) y (1-y), gradp = [(1-2x)y(1-y),x(1-x)(1-2y)]
+void PermQuartic2D(double *x,double *K) {
   K[0] = 5; K[1] = 1;
   K[2] = 1; K[3] = 3;
 }
-PetscErrorCode PressureQuartic(TDy tdy, const PetscReal x[], PetscScalar *p, void *ctx) {
+PetscErrorCode PressureQuartic(TDy tdy, double *x, double *p, void *ctx) {
   PetscInt d;
   p[0] = 1.0;
   for (d = 0; d < 2; ++d) p[0] *= x[d]*(1.0 - x[d]);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode VelocityQuartic(TDy tdy, const PetscReal x[], PetscScalar *v, void *ctx) {
+PetscErrorCode VelocityQuartic(TDy tdy, double *x, double *v, void *ctx) {
   double gradpx, gradpy, K[4];
   PermQuartic2D(x,K);
   gradpx = (1-2*x[0])*x[1]*(1-x[1]);
@@ -287,7 +287,7 @@ PetscErrorCode VelocityQuartic(TDy tdy, const PetscReal x[], PetscScalar *v, voi
   v[1] = -(K[2]*gradpx+K[3]*gradpy);
   PetscFunctionReturn(0);
 }
-PetscErrorCode ForcingQuartic(TDy tdy, const PetscReal x[], PetscScalar *f, void *ctx) {
+PetscErrorCode ForcingQuartic(TDy tdy, double *x, double *f, void *ctx) {
   double K[4];
   PermQuartic2D(x,K);
   PetscReal vx_x =  2*K[0]*x[1]*(1-x[1]) - K[1]*(1-2*x[0])*(1-2*x[1]);
@@ -592,12 +592,14 @@ int main(int argc, char **argv) {
   char true_pres_filename[256]="none";
   char forcing_filename[256]="none";
   PetscBool exo = PETSC_FALSE;
+  PetscBool quartic = PETSC_FALSE;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-problem","Problem number","",problem,&problem,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-perturb","Perturb interior vertices","",perturb,&perturb,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-quartic","Solve with quartic functions","",quartic,&quartic,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-alpha","Permeability scaling","",alpha,&alpha,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",successful_exit_code,&successful_exit_code,NULL);
   ierr = PetscOptionsString("-exo","Mesh file in exodus format","",exofile,exofile,256,&exo); CHKERRQ(ierr);
@@ -707,7 +709,12 @@ int main(int argc, char **argv) {
         default:
         SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2012 only valid for -problem {1,2}");
     }
-  }else{
+  } else if (quartic) {
+          ierr = TDySetPermeabilityTensor(tdy,PermQuartic2D); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,ForcingQuartic,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletValueFunction(tdy,PressureQuartic,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletFluxFunction(tdy,VelocityQuartic,NULL); CHKERRQ(ierr);
+  } else{
     switch(problem) {
         case 1:
         if (dim == 2) {
