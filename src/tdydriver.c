@@ -8,6 +8,7 @@
 PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
   PetscReal gravity[3] = {0.,0.,0.};
   SNESLineSearch linesearch;
@@ -109,5 +110,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
              CHKERRQ(ierr);
   }
   TDY_STOP_FUNCTION_TIMER()
+  TDyExitProfilingStage("TDycore Setup");
   PetscFunctionReturn(0);
 }
