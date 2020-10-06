@@ -2818,8 +2818,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         for (d=0; d<dim; d++) normal[d] = faces->normal[face_id].V[d];
 
         ierr = TDyDotProduct(normal,f_normal,&dot_prod); CHKERRQ(ierr);
-        if (dot_prod>0) value = 1.0;
-        else value = -1.0;
+        value = dot_prod;
 
         for (d=0; d<dim; d++) subcells->nu_star_vector[sOffsetNuVec + iface].V[d] = value*volume*6.0/dist;
 
