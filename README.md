@@ -18,6 +18,7 @@ TDycores provides two dynamical cores:
 Both dycores can use meshes with hexahedral or triangular prismatic cells
 with planar faces. The prismatic cells are aligned logically along a z axis.
 
-Check out the [Wiki]() for documentation, which includes instructions for
+Check out the [Wiki](https://github.com/TDycores-Project/TDycore/wiki) for
+documentation, including instructions for
 [building and installing TDycore](https://github.com/TDycores-Project/TDycore/wiki/Building-and-Installing-TDycore).
 
