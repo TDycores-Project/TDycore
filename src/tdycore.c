@@ -1411,16 +1411,19 @@ PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
 PetscErrorCode TDyCreateVectors(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   ierr = DMCreateGlobalVector(tdy->dm,&tdy->solution); CHKERRQ(ierr);
   ierr = VecDuplicate(tdy->solution,&tdy->residual); CHKERRQ(ierr);
   ierr = VecDuplicate(tdy->solution,&tdy->accumulation_prev); CHKERRQ(ierr);
   ierr = VecDuplicate(tdy->solution,&tdy->soln_prev); CHKERRQ(ierr);
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyCreateJacobian(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   ierr = DMCreateMatrix(tdy->dm,&tdy->J); CHKERRQ(ierr);
   ierr = MatSetOption(tdy->J,MAT_KEEP_NONZERO_PATTERN,PETSC_FALSE); CHKERRQ(ierr);
   ierr = MatSetOption(tdy->J,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
@@ -1431,6 +1434,7 @@ PetscErrorCode TDyCreateJacobian(TDy tdy) {
   ierr = MatSetOption(tdy->Jpre,MAT_ROW_ORIENTED,PETSC_FALSE); CHKERRQ(ierr);
   ierr = MatSetOption(tdy->Jpre,MAT_NO_OFF_PROC_ZERO_ROWS,PETSC_TRUE); CHKERRQ(ierr);
   ierr = MatSetOption(tdy->Jpre,MAT_NEW_NONZERO_LOCATIONS,PETSC_TRUE); CHKERRQ(ierr);
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
