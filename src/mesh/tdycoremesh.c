@@ -2603,12 +2603,16 @@ PetscErrorCode FindCellsAboveAndBelowVertices(TDy tdy, PetscInt **cellsAbove, Pe
   PetscFunctionBegin;
 
   TDy_mesh *mesh;
+  TDy_vertex *vertices;
   PetscInt ivertex;
   PetscErrorCode ierr;
 
   mesh = tdy->mesh;
+  vertices = &mesh->vertices;
 
   for (ivertex = 0; ivertex < mesh->num_vertices; ivertex++) {
+
+    if (!vertices->is_local[ivertex]) continue;
 
     if (cellsAbove[ivertex][0] == -1 && cellsBelow[ivertex][0] == -1) {
 
