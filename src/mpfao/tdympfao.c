@@ -388,9 +388,8 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     ierr = PetscSectionSetFieldComponents(sec, 1, 1); CHKERRQ(ierr);
   }
 
-  ierr = DMPlexGetChart(dm, &pStart, &pEnd); CHKERRQ(ierr);
-  ierr = PetscSectionSetChart(sec,pStart,pEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&pStart,&pEnd); CHKERRQ(ierr);
+  ierr = PetscSectionSetChart(sec,pStart,pEnd); CHKERRQ(ierr);
   for(p=pStart; p<pEnd; p++) {
     ierr = PetscSectionSetFieldDof(sec,p,0,1); CHKERRQ(ierr);
     ierr = PetscSectionSetDof(sec,p,1); CHKERRQ(ierr);
