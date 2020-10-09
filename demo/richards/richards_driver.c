@@ -9,12 +9,13 @@ int main(int argc, char **argv) {
   PetscErrorCode ierr;
   PetscInt successful_exit_code;
   PetscBool print_intermediate = PETSC_FALSE;
-  PetscMPIInt rank;
+  PetscMPIInt rank, size;
   TDy tdy = PETSC_NULL;
   TDyIOFormat format = ExodusFormat; 
 
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
   ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank); CHKERRQ(ierr);
+  ierr = MPI_Comm_size(PETSC_COMM_WORLD,&size); CHKERRQ(ierr);
   PetscPrintf(PETSC_COMM_WORLD,"Beginning Richards Driver simulation.\n");
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); 
                            CHKERRQ(ierr);
@@ -33,11 +34,13 @@ int main(int argc, char **argv) {
   if (!rank) tdy->io->io_process = PETSC_TRUE;
   tdy->io->print_intermediate = print_intermediate;
   PetscPrintf(PETSC_COMM_WORLD,"--\n");
-  ierr = TDyIOSetMode(tdy->io,format);CHKERRQ(ierr);
-  ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);
+  if (size == 1) {
+    ierr = TDyIOSetMode(tdy->io,format);CHKERRQ(ierr);
+    ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);
+  }
   ierr = TDyTimeIntegratorRunToTime(tdy,tdy->ti->final_time); 
          CHKERRQ(ierr);
-  ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);
+  if (size == 1) {ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);}
   ierr = TDyOutputRegression(tdy,tdy->solution); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
 
