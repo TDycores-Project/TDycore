@@ -831,7 +831,7 @@ PetscErrorCode TDyMPFAOIJacobian_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Petsc
 
   dm = tdy->dm;
 
-  ierr = MatZeroEntries(A); CHKERRQ(ierr);
+  ierr = MatZeroEntries(B); CHKERRQ(ierr);
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm,&Udotl); CHKERRQ(ierr);
@@ -841,12 +841,12 @@ PetscErrorCode TDyMPFAOIJacobian_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Petsc
   ierr = DMGlobalToLocalBegin(dm,U_t,INSERT_VALUES,Udotl); CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd  (dm,U_t,INSERT_VALUES,Udotl); CHKERRQ(ierr);
 
-  ierr = TDyMPFAOIJacobian_Vertices_3DMesh_TH(Ul,A,ctx);
-  ierr = TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Ul,Udotl,shift,A,ctx);
+  ierr = TDyMPFAOIJacobian_Vertices_3DMesh_TH(Ul,B,ctx);
+  ierr = TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Ul,Udotl,shift,B,ctx);
 
   if (A !=B ) {
-    ierr = MatAssemblyBegin(B,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-    ierr = MatAssemblyEnd(B,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
 
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
