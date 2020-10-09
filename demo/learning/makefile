@@ -1,4 +1,4 @@
-TARGETS = learning_dmplex_box_f learning_dmplex_mixed_f
+TARGETS = learning_dmplex_box_f learning_dmplex_mixed_f learning_dmplex_box_mesh_f
 
 ifdef codecov
   MYFLAGS += -fprofile-arcs -ftest-coverage
@@ -28,6 +28,10 @@ learning_dmplex_box_f : learning_dmplex_box_f.o
 	$(RM) -f $<
 
 learning_dmplex_mixed_f : learning_dmplex_mixed_f.o
+	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
+	$(RM) -f $<
+
+learning_dmplex_box_mesh_f : learning_dmplex_box_mesh_f.o
 	$(CLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
 

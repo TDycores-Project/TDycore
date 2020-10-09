@@ -106,6 +106,10 @@ program mixed
   PetscInt :: reverse_mapping(8)
   PetscInt :: icount
   PetscInt :: vertices(8)
+  PetscSection :: section
+
+  PetscBool :: use_cone
+  PetscBool :: use_closure
 
   reverse_mapping = [1,4,3,2,5,6,7,8]
 
@@ -258,8 +262,28 @@ program mixed
     write(*,*) ''
     
   enddo
+  call PetscSectionCreate(PETSC_COMM_WORLD,section,ierr)
+  call PetscSectionSetNumFields(section,1,ierr)
+  call PetscSectionSetFieldName(section,0,"Pressure",ierr)
+  call PetscSectionSetFieldComponents(section,0,1,ierr)
   call DMPlexGetChart(dmi,pstart,pend,ierr)
+  call PetscSectionSetChart(section,pstart,pend,ierr)
   print *, 'chart: ', pstart, pend
+  call DMPlexGetHeightStratum(dmi,0,cstart,cend,ierr)
+  do i = cstart, cend-1
+    call PetscSectionSetFieldDof(section,i,0,1,ierr)
+    call PetscSectionSetDof(section,i,1,ierr)
+  enddo
+  call PetscSectionSetup(section,ierr)
+  call DMSetSection(dmi,section,ierr)
+  call PetscSectionView(section,PETSC_VIEWER_STDOUT_WORLD,ierr)
+  call PetscSectionDestroy(section,ierr)
+  ! star stencil: TRUE, FALSE
+  ! box stencil: TRUE, TRUE
+  use_cone = PETSC_TRUE
+  use_closure = PETSC_FALSE
+  call DMSetBasicAdjacency(dmi,use_cone,use_closure,ierr)
+  print *, '--'
   call DMCreateMatrix(dmi,Jacobian,ierr)
   call MatView(Jacobian,PETSC_VIEWER_STDOUT_WORLD,ierr)
   call DMDestroy(dmi,ierr)

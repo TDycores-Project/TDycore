@@ -44,7 +44,6 @@ program mixed
   call DMPlexCreateBoxMesh(PETSC_COMM_WORLD,3,PETSC_FALSE,faces,lower,upper, &
                            DM_BOUNDARY_NONE,PETSC_TRUE,dmi,ierr)
   call DMView(dmi,PETSC_VIEWER_STDOUT_WORLD,ierr)
-#if 1
   call PetscSectionCreate(PETSC_COMM_WORLD,section,ierr)
   call PetscSectionSetNumFields(section,1,ierr)
   call PetscSectionSetFieldName(section,0,"Pressure",ierr)
@@ -61,7 +60,6 @@ program mixed
   call DMSetSection(dmi,section,ierr)
   call PetscSectionView(section,PETSC_VIEWER_STDOUT_WORLD,ierr)
   call PetscSectionDestroy(section,ierr)
-#endif
   ! star stencil: TRUE, FALSE
   ! box stencil: TRUE, TRUE
   use_cone = PETSC_TRUE
