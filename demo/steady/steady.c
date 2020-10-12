@@ -743,13 +743,6 @@ int main(int argc, char **argv) {
   ierr = DMCreateMatrix      (dm,&K ); CHKERRQ(ierr);
   ierr = TDyComputeSystem(tdy,K,F); CHKERRQ(ierr);
 
-  PetscViewer viewer;
-#if 0
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"K.mat",&viewer); CHKERRQ(ierr);
-  ierr = MatView(K,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-#endif
-
   /* Solve system */
   KSP ksp;
   ierr = KSPCreate(PETSC_COMM_WORLD,&ksp); CHKERRQ(ierr);
@@ -759,7 +752,7 @@ int main(int argc, char **argv) {
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
 
   /* Output solution */
-//  PetscViewer viewer;
+  PetscViewer viewer;
   PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"sol.vtk",FILE_MODE_WRITE,&viewer);
   ierr = DMView(dm,viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer); CHKERRQ(ierr); // the approximate solution

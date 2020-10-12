@@ -559,9 +559,10 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 }
 
 PetscErrorCode TDySetup(TDy tdy) {
-  // must come after TDySetFromOptions()
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+  TDyEnterProfilingStage("TDycore Setup");
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
   ierr = TDySetupDiscretizationMethod(tdy); CHKERRQ(ierr); 
   if (tdy->regression_testing) {
@@ -574,7 +575,8 @@ PetscErrorCode TDySetup(TDy tdy) {
     }
     ierr = TDyOutputMesh(tdy); CHKERRQ(ierr);
   }
-
+  TDyExitProfilingStage("TDycore Setup");
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -589,8 +591,6 @@ PetscErrorCode TDySetupDiscretizationMethod(TDy tdy) {
   PetscErrorCode ierr;
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  TDyEnterProfilingStage("TDycore Setup");
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
   switch (tdy->method) {
   case TPF:
@@ -612,9 +612,6 @@ PetscErrorCode TDySetupDiscretizationMethod(TDy tdy) {
     ierr = TDyWYInitialize(tdy); CHKERRQ(ierr);
     break;
   }
-
-  TDyExitProfilingStage("TDycore Setup");
-  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 

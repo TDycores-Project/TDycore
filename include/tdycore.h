@@ -74,7 +74,6 @@ PETSC_EXTERN PetscErrorCode TDyCreate(TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyCreateWithDM(DM dm,TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyDestroy(TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyView(TDy tdy,PetscViewer viewer);
-PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy tdy);
 
 PETSC_EXTERN PetscErrorCode TDyGetDimension(TDy tdy,PetscInt *dim);
 PETSC_EXTERN PetscErrorCode TDyGetDM(TDy tdy,DM *dm);

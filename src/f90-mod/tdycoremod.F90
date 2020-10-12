@@ -47,13 +47,6 @@ module tdycore
      end subroutine TDySetup
   end interface
   interface
-     subroutine TDySetFromOptions(a,z)
-       use tdycoredef
-       TDy a
-       integer z
-     end subroutine TDySetFromOptions
-  end interface
-  interface
      subroutine TDyComputeSystem(a,b,c,z)
        use tdycoredef
        use petscvec
