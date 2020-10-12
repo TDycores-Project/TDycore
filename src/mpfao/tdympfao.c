@@ -438,10 +438,15 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     }
   }
 
+  if (tdy->ops->computeporosity) { ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr); }
   if (tdy->ops->computepermeability) {ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
   if (tdy->mode == TH){
     if (tdy->ops->computethermalconductivity) {ierr = SetThermalConductivityFromFunction(tdy); CHKERRQ(ierr);}
   }
+
+  // why must these be placed after SetPermeabilityFromFunction()?
+  ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
+  ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
 
   if (dim == 3) {
     ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
@@ -455,38 +460,6 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOSetup(TDy tdy) {
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  PetscErrorCode ierr;
-  PetscLogStage stages[1];
-  PetscClassId mpfaoId;
-  PetscLogEvent eventGMatrix, eventTMatrix;
-
-  ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
-  ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOSetFromOptions(TDy tdy) {
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  PetscInt dim;
-  PetscErrorCode ierr;
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-  if (tdy->ops->computeporosity) { ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr); }
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */

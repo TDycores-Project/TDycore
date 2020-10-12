@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
   TDy  tdy;
   ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+  ierr = TDySetup(tdy); CHKERRQ(ierr);
   ierr = ReadSPE10Permeability(tdy,ang); CHKERRQ(ierr);
   ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
 

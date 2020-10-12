@@ -176,6 +176,8 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
   ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
   ierr = DMGetGlobalSection(dm,&sec); CHKERRQ(ierr);
+  ierr = DMSetBasicAdjacency(dm,PETSC_TRUE,PETSC_TRUE); CHKERRQ(ierr);
+  tdy->ncv = TDyGetNumberOfCellVertices(dm);
 
   /* Build vmap and emap */
   ierr = TDyCreateCellVertexMap(tdy,&(tdy->vmap)); CHKERRQ(ierr);
@@ -207,7 +209,6 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
 
   /* use vmap, emap, and fmap to build a LtoG map for local element
      assembly */
-  tdy->ncv = TDyGetNumberOfCellVertices(dm);
   ncv = tdy->ncv;
   nlocal = dim*ncv + 1;
   ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),

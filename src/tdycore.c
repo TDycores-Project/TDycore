@@ -494,6 +494,7 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
 }
 
 PetscErrorCode TDySetFromOptions(TDy tdy) {
+  // must preceed TDySetup()
   PetscErrorCode ierr;
   PetscBool flg;
   TDyMethod method = WY;
@@ -509,7 +510,9 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnum("-tdy_method","Discretization method",
                           "TDySetDiscretizationMethod",TDyMethods,(PetscEnum)method,(PetscEnum *)&method,
                           &flg); CHKERRQ(ierr);
-  if (flg && (method != tdy->method)) { ierr = TDySetDiscretizationMethod(tdy,method); CHKERRQ(ierr); }
+  if (flg && (method != tdy->method)) { 
+    ierr = TDySetDiscretizationMethod(tdy,method); CHKERRQ(ierr); 
+  }
   ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type",
                           "TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&qtype,
                           &flg); CHKERRQ(ierr);
@@ -551,53 +554,45 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           &flg); CHKERRQ(ierr);
   if (flg && (bctype != tdy->mpfao_bc_type)) { ierr = TDySetMPFAOBoundaryConditionType(tdy,bctype); CHKERRQ(ierr); }
 
-  if (tdy->regression_testing) {
-    ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
-  }
-
-  if (tdy->output_mesh) {
-    if (tdy->method != MPFA_O) {
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-tdy_output_mesh only supported for MPFA-O method");
-    }
-    ierr = TDyOutputMesh(tdy); CHKERRQ(ierr);
-  }
-
-  switch (tdy->method) {
-  case TPF:
-    break;
-  case MPFA_O:
-    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
-    ierr = TDyMPFAOSetFromOptions(tdy); CHKERRQ(ierr);
-    break;
-  case MPFA_O_DAE:
-    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
-    ierr = TDyMPFAOSetFromOptions(tdy); CHKERRQ(ierr);
-    break;
-  case MPFA_O_TRANSIENTVAR:
-    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
-    ierr = TDyMPFAOSetFromOptions(tdy); CHKERRQ(ierr);
-    break;
-  case BDM:
-    break;
-  case WY:
-    break;
-  }
-
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetup(TDy tdy) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+  TDyEnterProfilingStage("TDycore Setup");
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+  ierr = TDySetupDiscretizationMethod(tdy); CHKERRQ(ierr); 
+  if (tdy->regression_testing) {
+    ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
+  }
+  if (tdy->output_mesh) {
+    if (tdy->method != MPFA_O) {
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+              "-tdy_output_mesh only supported for MPFA-O method");
+    }
+    ierr = TDyOutputMesh(tdy); CHKERRQ(ierr);
+  }
+  TDyExitProfilingStage("TDycore Setup");
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
+  PetscFunctionBegin;
+  tdy->method = method;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetupDiscretizationMethod(TDy tdy) {
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  TDyEnterProfilingStage("TDycore Setup");
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
-  if (tdy->method != method) { ierr = TDyResetDiscretizationMethod(tdy); CHKERRQ(ierr); }
-  tdy->method = method;
-  switch (method) {
+  switch (tdy->method) {
   case TPF:
     ierr = TDyTPFInitialize(tdy); CHKERRQ(ierr);
     break;
@@ -615,30 +610,6 @@ PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
     break;
   case WY:
     ierr = TDyWYInitialize(tdy); CHKERRQ(ierr);
-    break;
-  }
-  TDyExitProfilingStage("TDycore Setup");
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetup(TDy tdy) {
-  PetscErrorCode ierr;
-  switch (tdy->method) {
-  case TPF:
-    break;
-  case MPFA_O:
-    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
-    break;
-  case MPFA_O_DAE:
-    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
-    break;
-  case MPFA_O_TRANSIENTVAR:
-    ierr = TDyMPFAOSetup(tdy); CHKERRQ(ierr);
-    break;
-  case BDM:
-    break;
-  case WY:
     break;
   }
   PetscFunctionReturn(0);
@@ -1163,9 +1134,9 @@ PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
   ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc(nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
-  #if defined(PETSC_USE_DEBUG)
+#if defined(PETSC_USE_DEBUG)
   for(c=0; c<nv*(cEnd-cStart); c++) { (*map)[c] = -1; }
-  #endif
+#endif
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexComputeCellGeometryFEM(dm,c,quad,x,DF,DFinv,J); CHKERRQ(ierr);
     closure = NULL;
@@ -1183,14 +1154,14 @@ PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
     ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
     CHKERRQ(ierr);
   }
-  #if defined(PETSC_USE_DEBUG)
+#if defined(PETSC_USE_DEBUG)
   for(c=0; c<nv*(cEnd-cStart); c++) {
     if((*map)[c]<0) {
       SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
               "Unable to find map(cell,local_vertex) -> vertex");
     }
   }
-  #endif
+#endif
   ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -1238,9 +1209,9 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc(dim*nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
-  #if defined(PETSC_USE_DEBUG)
+#if defined(PETSC_USE_DEBUG)
   for(c=0; c<dim*nv*(cEnd-cStart); c++) { (*map)[c] = 0; }
-  #endif
+#endif
   for(c=cStart; c<cEnd; c++) {
     closure = NULL;
     ierr = DMPlexGetTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
@@ -1275,14 +1246,14 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
     ierr = DMPlexRestoreTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
     CHKERRQ(ierr);
   }
-  #if defined(PETSC_USE_DEBUG)
+#if defined(PETSC_USE_DEBUG)
   for(c=0; c<dim*nv*(cEnd-cStart); c++) {
     if((*map)[c]==0) {
       SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
               "Unable to find map(cell,local_vertex,dir) -> face");
     }
   }
-  #endif
+#endif
   PetscFunctionReturn(0);
 }
 

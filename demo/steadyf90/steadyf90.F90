@@ -187,7 +187,7 @@ program main
   method = MPFA_O;
   call TDySetDiscretizationMethod(tdy,method, ierr);
   CHKERRA(ierr);
-  call TDySetFromOptions(tdy, ierr);
+  call TDySetup(tdy, ierr);
   CHKERRA(ierr);
 
 

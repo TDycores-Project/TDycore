@@ -39,6 +39,7 @@ PetscErrorCode TDyTPFInitialize(TDy tdy) {
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
   //ierr = DMPlexSetAdjacencyUseCone(dm,PETSC_TRUE); CHKERRQ(ierr);
   //ierr = DMPlexSetAdjacencyUseClosure(dm,PETSC_FALSE); CHKERRQ(ierr);
+  ierr = DMSetBasicAdjacency(dm,PETSC_TRUE,PETSC_FALSE); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
