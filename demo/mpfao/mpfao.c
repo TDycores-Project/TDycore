@@ -268,6 +268,7 @@ int main(int argc, char **argv) {
     ierr = TDySetDirichletFluxFunction(tdy,Velocity3D,NULL); CHKERRQ(ierr);
   }
 
+  ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
   ierr = TDySetup(tdy); CHKERRQ(ierr);
 

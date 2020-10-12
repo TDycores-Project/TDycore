@@ -30,6 +30,8 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);
+  ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
+  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
   ierr = TDyDriverInitializeTDy(tdy); CHKERRQ(ierr);
   if (!rank) tdy->io->io_process = PETSC_TRUE;
   tdy->io->print_intermediate = print_intermediate;
