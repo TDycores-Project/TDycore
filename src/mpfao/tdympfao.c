@@ -463,9 +463,6 @@ PetscErrorCode TDyMPFAOSetup(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
-  PetscLogStage stages[1];
-  PetscClassId mpfaoId;
-  PetscLogEvent eventGMatrix, eventTMatrix;
 
   ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
   ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);

@@ -104,10 +104,19 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
         exit(1);
       }
   }
+  printf("tdy->ti->time_integration_method = %d\n",tdy->ti->time_integration_method);
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
       ierr = TDySetInitialSolutionForSNESSolver(tdy,tdy->solution);
              CHKERRQ(ierr);
+      break;
+    case TDyTS:
+      ierr = TDySetInitialSolutionForSNESSolver(tdy,tdy->solution);
+             CHKERRQ(ierr);
+      break;
+    default:
+      printf("Unable to set initial condition for the time integration method.\n");
+      exit(1);
   }
   TDY_STOP_FUNCTION_TIMER()
   TDyExitProfilingStage("TDycore Setup");
