@@ -270,6 +270,7 @@ int main(int argc, char **argv) {
 
   ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
   ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   // Compute system

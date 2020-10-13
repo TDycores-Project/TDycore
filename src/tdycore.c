@@ -559,11 +559,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 }
 
 PetscErrorCode TDySetup(TDy tdy) {
+  // must folow TDySetFromOptions()
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   TDyEnterProfilingStage("TDycore Setup");
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
   ierr = TDySetupDiscretizationMethod(tdy); CHKERRQ(ierr); 
   if (tdy->regression_testing) {
     ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);

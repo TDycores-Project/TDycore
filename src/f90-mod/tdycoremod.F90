@@ -40,6 +40,13 @@ module tdycore
      end subroutine TDySetupDiscretizationMethod
   end interface
   interface
+     subroutine TDySetFromOptions(a,z)
+       use tdycoredef
+       TDy a
+       integer z
+     end subroutine TDySetFromOptions
+  end interface
+  interface
      subroutine TDySetup(a,z)
        use tdycoredef
        TDy a

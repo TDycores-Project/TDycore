@@ -126,6 +126,7 @@ int main(int argc, char **argv) {
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
   //ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
   ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   /* Setup initial condition */

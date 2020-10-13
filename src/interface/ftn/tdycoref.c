@@ -15,6 +15,7 @@
 #define tdycreatewithdm_                            TDYCREATEWITHDM
 #define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
 #define tdysetup_                                   TDYSETUP
+#define tdysetfromoptions_                          TDYSETFROMOPTIONS
 #define tdysetupdiscretizationmethod_               TDYSETUPDISCRETIZATIONMETHOD
 #define tdysetwaterdensitytype_                     TDYSETWATERDENSITYTYPE
 #define tdysetmpfaogmatrixmethod_                   TDYSETMPFAOGMATRIXMETHOD
@@ -71,6 +72,7 @@
 #define tdycreatewithdm_                            tdycreatewithdm
 #define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
 #define tdysetup_                                   tdysetup
+#define tdysetfromoptions_                          tdysetfromoptions
 #define tdysetupdiscretizationmethod_               tdysetupdiscretizationmethod
 #define tdysetwaterdensitytype_                     tdysetwaterdensitytype
 #define tdysetmpfaogmatrixmethod_                   tdysetmpfaogmatrixmethod
@@ -193,6 +195,15 @@ PETSC_EXTERN void  tdysetupdiscretizationmethod_(TDy tdy, int *__ierr){
 }
 #endif
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdysetfromoptions_(TDy tdy, int *__ierr){
+*__ierr = TDySetFromOptions((TDy)PetscToPointer((tdy)));
+}
+#if defined(__cplusplus)
+}
+#endif
 
 #if defined(__cplusplus)
 extern "C" {
