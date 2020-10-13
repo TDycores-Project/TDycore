@@ -7,7 +7,7 @@
 typedef struct _TDy_regression TDy_regression;
 
 struct _TDy_regression {
-  char filename[256];
+  char filename[PETSC_MAX_PATH_LEN];
   PetscInt num_cells_per_process;
   PetscInt *cells_per_process_natural_ids;
   Vec cells_per_process_vec;
