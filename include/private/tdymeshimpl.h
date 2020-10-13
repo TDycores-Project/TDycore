@@ -11,6 +11,7 @@ typedef struct _TDy_cell       TDy_cell;
 typedef struct _TDy_vertex     TDy_vertex;
 typedef struct _TDy_edge       TDy_edge;
 typedef struct _TDy_face       TDy_face;
+typedef struct _TDy_region     TDy_region;
 typedef struct _TDy_mesh       TDy_mesh;
 
 typedef enum {
@@ -183,6 +184,11 @@ struct _TDy_face {
   PetscReal *area;          /* area of the face */
 };
 
+struct _TDy_region {
+  PetscInt num_cells;
+  PetscInt *id;
+};
+
 struct _TDy_mesh {
 
   PetscInt   num_cells;
@@ -198,6 +204,7 @@ struct _TDy_mesh {
   TDy_edge    edges;
   TDy_face    faces;
 
+  TDy_region region_connected;
 };
 
 PETSC_EXTERN PetscErrorCode TDyOutputMesh(TDy);
