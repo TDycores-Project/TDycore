@@ -977,10 +977,12 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
   }
 
   TDy_region *region = &mesh->region_connected;
-  if (region->num_cells > 0 && tdy->mpfao_gmatrix_method == MPFAO_GMATRIX_TPF ) {
-    ierr = TDyUpdateTransmissibilityMatrix(tdy); CHKERRQ(ierr);
-  } else {
-    PetscPrintf(PETSC_COMM_WORLD,"WARNING -- Connected region option is only supported with MPFA-O TPF\n");
+  if (region->num_cells > 0){
+    if (tdy->mpfao_gmatrix_method == MPFAO_GMATRIX_TPF ) {
+      ierr = TDyUpdateTransmissibilityMatrix(tdy); CHKERRQ(ierr);
+    } else {
+      PetscPrintf(PETSC_COMM_WORLD,"WARNING -- Connected region option is only supported with MPFA-O TPF\n");
+    }
   }
 
   TDY_STOP_FUNCTION_TIMER()
