@@ -5,7 +5,6 @@
 #include <private/tdympfaoimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
-#include <private/tdygenprofscript.h>
 #include <tdydm.h>
 #include <tdyti.h>
 #include <tdytimers.h>
@@ -181,7 +180,6 @@ PetscErrorCode TDyFinalize() {
     PetscViewerPushFormat(log, format);
     PetscLogView(log);
     PetscViewerDestroy(&log);
-    TDyGenProfScript("tdyprof", "tdycore_profile.csv");
   }
 
   // Free the timers registry and the profiling stages registry.
