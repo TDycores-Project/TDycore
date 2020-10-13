@@ -3,6 +3,7 @@
 #include <tdypermeability.h>
 #include <tdyporosity.h>
 #include <tdyrichards.h>
+#include <tdyth.h>
 #include <tdytimers.h>
 
 PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
@@ -11,12 +12,14 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
   PetscReal gravity[3] = {0.,0.,0.};
+  TS ts;
+  SNES snes;
   SNESLineSearch linesearch;
 
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   if (dim != 3) {
-    PetscPrintf(PETSC_COMM_WORLD,"Richards mode currently only supports 3D\n");
+    PetscPrintf(PETSC_COMM_WORLD,"Drivers currently only supports 3D\n");
     exit(0);
   }
   gravity[dim-1] = 9.8068;
@@ -25,6 +28,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
          CHKERRQ(ierr);
   ierr = TDySetPermeabilityFunction(tdy,TDyPermeabilityFunctionDefault,PETSC_NULL);
          CHKERRQ(ierr);
+
   // default mode and method must be set prior to TDySetup()
   ierr = TDySetup(tdy); CHKERRQ(ierr);
 
@@ -32,71 +36,10 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   ierr = TDyCreateVectors(tdy); CHKERRQ(ierr);
   ierr = TDyCreateJacobian(tdy); CHKERRQ(ierr);
 
-  switch(tdy->ti->time_integration_method) {
-    case TDySNES:
-      ierr = SNESCreate(PETSC_COMM_WORLD,&tdy->ti->snes);
-             CHKERRQ(ierr);
-      ierr = TDySetSNESFunction(tdy->ti->snes,tdy); CHKERRQ(ierr);
-      ierr = TDySetSNESJacobian(tdy->ti->snes,tdy); CHKERRQ(ierr);
-      ierr = SNESGetLineSearch(tdy->ti->snes,&linesearch);
-             CHKERRQ(ierr);
-/*
-      ierr = SNESLineSearchSetType(linesearch,SNESLINESEARCHBASIC);
-             CHKERRQ(ierr);
-*/
-      ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,
-                                        &tdy); CHKERRQ(ierr);
-      ierr = SNESSetConvergenceTest(tdy->ti->snes,TDyRichardsConvergenceTest,
-                                    &tdy,NULL); CHKERRQ(ierr);
-      ierr = SNESSetFromOptions(tdy->ti->snes); CHKERRQ(ierr);
-      break;
-    case TDyTS:
-      ierr = TSCreate(PETSC_COMM_WORLD,&tdy->ti->ts); CHKERRQ(ierr);
-//      ierr = TSSetType(tdy->ti->ts,TSBEULER); CHKERRQ(ierr);
-//      ierr = TSSetType(tdy->ti->ts,TSPSEUDO); CHKERRQ(ierr);
-//      ierr = TSPseudoSetTimeStep(tdy->ti->ts,TSPseudoTimeStepDefault,NULL); CHKERRQ(ierr);
-      ierr = TSSetEquationType(tdy->ti->ts,TS_EQ_IMPLICIT); CHKERRQ(ierr);
-      ierr = TSSetProblemType(tdy->ti->ts,TS_NONLINEAR); CHKERRQ(ierr);
-      ierr = TSSetDM(tdy->ti->ts,tdy->dm); CHKERRQ(ierr);
-      ierr = TSSetSolution(tdy->ti->ts,tdy->solution); CHKERRQ(ierr);
-      ierr = TDySetIFunction(tdy->ti->ts,tdy); CHKERRQ(ierr);
-      ierr = TDySetIJacobian(tdy->ti->ts,tdy); CHKERRQ(ierr);
-      ierr = TSSetPostStep(tdy->ti->ts,TDyRichardsTSPostStep); CHKERRQ(ierr);
-      SNES snes;
-      ierr = TSGetSNES(tdy->ti->ts,&snes); CHKERRQ(ierr);
-      ierr = SNESGetLineSearch(snes,&linesearch);
-             CHKERRQ(ierr);
-/*
-      ierr = SNESLineSearchSetType(linesearch,SNESLINESEARCHBASIC);
-             CHKERRQ(ierr);
-*/
-      ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,
-                                        &tdy); CHKERRQ(ierr);
-      ierr = SNESSetConvergenceTest(snes,TDyRichardsConvergenceTest,&tdy,NULL); 
-             CHKERRQ(ierr);
-      ierr = TSSetExactFinalTime(tdy->ti->ts,TS_EXACTFINALTIME_MATCHSTEP);
-             CHKERRQ(ierr);
-      ierr = TSSetFromOptions(tdy->ti->ts); CHKERRQ(ierr);
-      if (tdy->io->io_process) {
-        printf("TS time integration method not implemented.\n");
-        exit(1);
-      }
-      break;
-    default:
-      if (tdy->io->io_process) {
-        printf("Unrecognized time integration method.\n");
-        exit(1);
-      }
-  }
+  // check for unsupported modes
   switch (tdy->mode) {
     case RICHARDS:
-      ierr = TDyRichardsInitialize(tdy); CHKERRQ(ierr);
-      break;
     case TH:
-      if (tdy->io->io_process) {
-        printf("TH flow mode not implemented.\n");
-        exit(1);
-      }
       break;
     default:
       if (tdy->io->io_process) {
@@ -104,19 +47,99 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
         exit(1);
       }
   }
-  printf("tdy->ti->time_integration_method = %d\n",tdy->ti->time_integration_method);
+  // check for unsupported methods
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
-      ierr = TDySetInitialSolutionForSNESSolver(tdy,tdy->solution);
+      switch (tdy->mode) {
+        case TH:
+          printf("SNES not supported for TH mode.\n");
+          exit(1);
+          break;
+      }
+      break;
+    case TDyTS:
+      break;
+    default:
+      if (tdy->io->io_process) {
+        printf("Unrecognized time integration method.\n");
+        exit(1);
+      }
+  }
+
+  // create time integrator 
+  switch(tdy->ti->time_integration_method) {
+    case TDySNES:
+      ierr = SNESCreate(PETSC_COMM_WORLD,&snes);
+             CHKERRQ(ierr);
+      ierr = TDySetSNESFunction(snes,tdy); CHKERRQ(ierr);
+      ierr = TDySetSNESJacobian(snes,tdy); CHKERRQ(ierr);
+      ierr = SNESGetLineSearch(snes,&linesearch);
+             CHKERRQ(ierr);
+      tdy->ti->snes = snes;
+      break;
+    case TDyTS:
+      if (tdy->io->io_process) {
+        printf("TS time integration method not implemented.\n");
+        exit(1);
+      }
+      ierr = TSCreate(PETSC_COMM_WORLD,&ts); CHKERRQ(ierr);
+//      ierr = TSSetType(ts,TSBEULER); CHKERRQ(ierr);
+//      ierr = TSSetType(ts,TSPSEUDO); CHKERRQ(ierr);
+//      ierr = TSPseudoSetTimeStep(ts,TSPseudoTimeStepDefault,NULL); CHKERRQ(ierr);
+      ierr = TSSetEquationType(ts,TS_EQ_IMPLICIT); CHKERRQ(ierr);
+      ierr = TSSetProblemType(ts,TS_NONLINEAR); CHKERRQ(ierr);
+      ierr = TSSetDM(ts,tdy->dm); CHKERRQ(ierr);
+      ierr = TSSetSolution(ts,tdy->solution); CHKERRQ(ierr);
+      ierr = TDySetIFunction(ts,tdy); CHKERRQ(ierr);
+      ierr = TDySetIJacobian(ts,tdy); CHKERRQ(ierr);
+      SNES snes;
+      ierr = TSGetSNES(ts,&snes); CHKERRQ(ierr);
+      ierr = SNESGetLineSearch(snes,&linesearch);
+             CHKERRQ(ierr);
+      ierr = TSSetExactFinalTime(ts,TS_EXACTFINALTIME_MATCHSTEP);
+             CHKERRQ(ierr);
+      tdy->ti->ts = ts;
+      break;
+  }
+  // time integrator settings for all modes
+//  ierr = SNESLineSearchSetType(linesearch,SNESLINESEARCHBASIC);
+//         CHKERRQ(ierr);
+  // mode specific time integrator settings
+  switch (tdy->mode) {
+    case RICHARDS:
+      ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,
+                                        &tdy); CHKERRQ(ierr);
+      ierr = SNESSetConvergenceTest(snes,TDyRichardsConvergenceTest,
+                                    &tdy,NULL); CHKERRQ(ierr);
+      switch(tdy->ti->time_integration_method) {
+        case TDyTS:
+          ierr = TSSetPostStep(ts,TDyRichardsTSPostStep); CHKERRQ(ierr);
+      }
+      ierr = TDyRichardsInitialize(tdy); CHKERRQ(ierr);
+      break;
+    case TH:
+      ierr = SNESLineSearchSetPostCheck(linesearch,TDyTHSNESPostCheck,
+                                        &tdy); CHKERRQ(ierr);
+      ierr = SNESSetConvergenceTest(snes,TDyTHConvergenceTest,
+                                    &tdy,NULL); CHKERRQ(ierr);
+      switch(tdy->ti->time_integration_method) {
+        case TDyTS:
+          ierr = TSSetPostStep(ts,TDyTHTSPostStep); CHKERRQ(ierr);
+      }
+      ierr = TDyTHInitialize(tdy); CHKERRQ(ierr);
+      break;
+  }
+  PetscPrintf("tdy->ti->time_integration_method = %d\n",(int)tdy->ti->time_integration_method);
+  // finish set of time integrators
+  switch(tdy->ti->time_integration_method) {
+    case TDySNES:
+      ierr = SNESSetFromOptions(snes); CHKERRQ(ierr);
+      ierr = TDySetPreviousSolutionForSNESSolver(tdy,tdy->solution);
              CHKERRQ(ierr);
       break;
     case TDyTS:
-      ierr = TDySetInitialSolutionForSNESSolver(tdy,tdy->solution);
-             CHKERRQ(ierr);
+      ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
       break;
-    default:
-      printf("Unable to set initial condition for the time integration method.\n");
-      exit(1);
   }
   TDY_STOP_FUNCTION_TIMER()
   TDyExitProfilingStage("TDycore Setup");

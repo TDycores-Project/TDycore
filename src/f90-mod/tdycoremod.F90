@@ -355,13 +355,13 @@ module tdycore
   end interface
 
   interface
-     subroutine TDySetInitialSolutionForSNESSolver(a,b,z)
+     subroutine TDySetPreviousSolutionForSNESSolver(a,b,z)
        use tdycoredef
        use petscvec
        TDy a
        Vec b
        integer z
-     end subroutine TDySetInitialSolutionForSNESSolver
+     end subroutine TDySetPreviousSolutionForSNESSolver
   end interface
 
   interface

@@ -1316,7 +1316,7 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetInitialSolutionForSNESSolver(TDy tdy, Vec soln) {
+PetscErrorCode TDySetPreviousSolutionForSNESSolver(TDy tdy, Vec soln) {
 
   PetscErrorCode ierr;
 

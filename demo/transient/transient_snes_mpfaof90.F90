@@ -305,7 +305,7 @@ implicit none
   call SNESSetFromOptions(snes,ierr);
   CHKERRA(ierr);
 
-  call TDySetInitialSolutionForSNESSolver(tdy,U,ierr);
+  call TDySetPreviousSolutionForSNESSolver(tdy,U,ierr);
   CHKERRA(ierr);
 
   dtime = 1800.d0
