@@ -1,4 +1,5 @@
 #include <private/tdycoreimpl.h>
+#include <tdyrockproperties.h>
 #include <tdytimers.h>
 
 PetscErrorCode TDySetSpecificHeatCapacity(TDy tdy,SpatialFunction f) {
@@ -30,3 +31,16 @@ PetscErrorCode TDySetRockDensity(TDy tdy,SpatialFunction f) {
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode TDyRockDensityFunctionDefault(PetscReal *x, PetscReal *den) {
+  PetscFunctionBegin;
+  *den = 2650.;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySpecificHeatCapacityFunctionDefault(PetscReal *x, PetscReal *cr) {
+  PetscFunctionBegin;
+  *cr = 1000.;
+  PetscFunctionReturn(0);
+}
+

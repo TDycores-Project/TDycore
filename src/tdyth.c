@@ -17,7 +17,7 @@ PetscErrorCode TDyTHInitialize(TDy tdy) {
   ierr = VecGetLocalSize(tdy->solution,&local_size); CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(tdy->dm,&temp_vec); CHKERRQ(ierr);
   // pressure
-  ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
+  ierr = PetscRandomSetInterval(rand,1.e4,1.e5); CHKERRQ(ierr);
   ierr = VecSetRandom(temp_vec,rand); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->solution,&soln_p); CHKERRQ(ierr);
   ierr = VecGetArray(temp_vec,&temp_p); CHKERRQ(ierr);

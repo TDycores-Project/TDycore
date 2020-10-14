@@ -3,6 +3,7 @@
 #include <tdypermeability.h>
 #include <tdyporosity.h>
 #include <tdyrichards.h>
+#include <tdyrockproperties.h>
 #include <tdyth.h>
 #include <tdytimers.h>
 
@@ -24,13 +25,22 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   }
   gravity[dim-1] = 9.8068;
   ierr = TDySetGravityVector(tdy,gravity);
-  ierr = TDySetPorosityFunction(tdy,TDyPorosityFunctionDefault,PETSC_NULL);
-         CHKERRQ(ierr);
-  ierr = TDySetPermeabilityFunction(tdy,TDyPermeabilityFunctionDefault,PETSC_NULL);
-         CHKERRQ(ierr);
 
   // default mode and method must be set prior to TDySetFromOptions()
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+
+  ierr = TDySetPorosityFunction(tdy,TDyPorosityFunctionDefault,PETSC_NULL);
+         CHKERRQ(ierr);
+  ierr = TDySetPermeabilityFunction(tdy,TDyPermeabilityFunctionDefault,
+                                    PETSC_NULL); CHKERRQ(ierr);
+  if (tdy->mode == TH) {
+    ierr = TDySetThermalConductivityFunction(tdy,
+                                         TDyThermalConductivityFunctionDefault,
+                                         PETSC_NULL); CHKERRQ(ierr);
+    ierr = TDySetRockDensity(tdy,TDyRockDensityFunctionDefault); CHKERRQ(ierr);
+    ierr = TDySetSpecificHeatCapacity(tdy,TDySpecificHeatCapacityFunctionDefault); CHKERRQ(ierr);
+  }
+
   ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   ierr = TDyTimeIntegratorCreate(&tdy->ti); CHKERRQ(ierr);
