@@ -335,7 +335,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
     break;
   case 3:
-    ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, tdy->nfv, tdy->nfv); CHKERRQ(ierr);
+    ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, tdy->nfv, tdy->nfv + tdy->ncv); CHKERRQ(ierr);
     if (tdy->mode == TH){ierr = TDyAllocate_RealArray_3D(&tdy->Temp_Trans, 
                          tdy->mesh->num_vertices, tdy->nfv, tdy->nfv); CHKERRQ(ierr);}
     ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
