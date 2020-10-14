@@ -20,14 +20,20 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   if (dim != 3) {
-    PetscPrintf(PETSC_COMM_WORLD,"Drivers currently only supports 3D\n");
-    exit(0);
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver currently only supports 3D");
   }
   gravity[dim-1] = 9.8068;
   ierr = TDySetGravityVector(tdy,gravity);
 
   // default mode and method must be set prior to TDySetFromOptions()
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+  switch(tdy->method) {
+    case MPFA_O_DAE:
+    case MPFA_O_TRANSIENTVAR:
+    case BDM:
+    case WY:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver not supported for specified method.");
+  }
 
   ierr = TDySetPorosityFunction(tdy,TDyPorosityFunctionDefault,PETSC_NULL);
          CHKERRQ(ierr);
@@ -53,28 +59,21 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     case TH:
       break;
     default:
-      if (tdy->io->io_process) {
-        printf("Unrecognized flow mode.\n");
-        exit(1);
-      }
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unrecognized flow mode.");
   }
-  // check for unsupported methods
+  // check for unsupported time integration methods
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
       switch (tdy->mode) {
         case TH:
-          printf("SNES not supported for TH mode.\n");
-          exit(1);
+          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SNES not supported for TH mode.");
           break;
       }
       break;
     case TDyTS:
       break;
     default:
-      if (tdy->io->io_process) {
-        printf("Unrecognized time integration method.\n");
-        exit(1);
-      }
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unrecognized time integration method.");
   }
 
   // create time integrator 
@@ -89,10 +88,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       tdy->ti->snes = snes;
       break;
     case TDyTS:
-      if (tdy->io->io_process) {
-        printf("TS time integration method not implemented.\n");
-        exit(1);
-      }
       ierr = TSCreate(PETSC_COMM_WORLD,&ts); CHKERRQ(ierr);
 //      ierr = TSSetType(ts,TSBEULER); CHKERRQ(ierr);
 //      ierr = TSSetType(ts,TSPSEUDO); CHKERRQ(ierr);

@@ -6,19 +6,17 @@ PetscErrorCode TDyRichardsInitialize(TDy tdy) {
   PetscFunctionBegin;
 
   PetscPrintf(PETSC_COMM_WORLD,"Running Richards mode.\n");
-  PetscRandom rand;
-  ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
-  ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
-  ierr = VecSetRandom(tdy->solution,rand); CHKERRQ(ierr);
-  ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
 
-#if 0
-  PetscReal values[8] = {722832., 71176., 19922.1, 153193., 403800., 82306.2, 112828., 258273.};
-  PetscInt indices[8] = {0,1,2,3,4,5,6,7};
-  ierr = VecSetValues(tdy->solution,8,indices,values,INSERT_VALUES); CHKERRQ(ierr);
-  ierr = VecAssemblyBegin(tdy->solution); CHKERRQ(ierr);
-  ierr = VecAssemblyEnd(tdy->solution); CHKERRQ(ierr);
-#endif
+  if (tdy->init_with_random_field) {
+    PetscRandom rand;
+    ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
+    ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
+    ierr = VecSetRandom(tdy->solution,rand); CHKERRQ(ierr);
+    ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
+  }
+  else {
+    ierr = VecSet(tdy->solution,101325.); CHKERRQ(ierr);
+  }
 
   PetscFunctionReturn(0);
 }

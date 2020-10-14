@@ -10,29 +10,32 @@ PetscErrorCode TDyTHInitialize(TDy tdy) {
   PetscFunctionBegin;
 
   PetscPrintf(PETSC_COMM_WORLD,"Running TH mode.\n");
-  PetscRandom rand;
-  ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
 
-
-  ierr = VecGetLocalSize(tdy->solution,&local_size); CHKERRQ(ierr);
-  ierr = DMCreateGlobalVector(tdy->dm,&temp_vec); CHKERRQ(ierr);
-  // pressure
-  ierr = PetscRandomSetInterval(rand,1.e4,1.e5); CHKERRQ(ierr);
-  ierr = VecSetRandom(temp_vec,rand); CHKERRQ(ierr);
-  ierr = VecGetArray(tdy->solution,&soln_p); CHKERRQ(ierr);
-  ierr = VecGetArray(temp_vec,&temp_p); CHKERRQ(ierr);
-  for (int i=0; i<local_size; i+=2) soln_p[i] = temp_p[i];
-  ierr = VecRestoreArray(temp_vec,&temp_p); CHKERRQ(ierr);
-  // temperature
-  ierr = PetscRandomSetInterval(rand,15.,35.); CHKERRQ(ierr);
-  ierr = VecSetRandom(temp_vec,rand); CHKERRQ(ierr);
-  ierr = VecGetArray(temp_vec,&temp_p); CHKERRQ(ierr);
-  for (int i=1; i<local_size; i+=2) soln_p[i] = temp_p[i];
-  ierr = VecRestoreArray(temp_vec,&temp_p); CHKERRQ(ierr);
-  ierr = VecRestoreArray(tdy->solution,&soln_p); CHKERRQ(ierr);
-
-  ierr = VecDestroy(&temp_vec); CHKERRQ(ierr);
-  ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
+  if (tdy->init_with_random_field) {
+    PetscRandom rand;
+    ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
+    ierr = VecGetLocalSize(tdy->solution,&local_size); CHKERRQ(ierr);
+    ierr = DMCreateGlobalVector(tdy->dm,&temp_vec); CHKERRQ(ierr);
+    // pressure
+    ierr = PetscRandomSetInterval(rand,1.e4,1.e5); CHKERRQ(ierr);
+    ierr = VecSetRandom(temp_vec,rand); CHKERRQ(ierr);
+    ierr = VecGetArray(tdy->solution,&soln_p); CHKERRQ(ierr);
+    ierr = VecGetArray(temp_vec,&temp_p); CHKERRQ(ierr);
+    for (int i=0; i<local_size; i+=2) soln_p[i] = temp_p[i];
+    ierr = VecRestoreArray(temp_vec,&temp_p); CHKERRQ(ierr);
+    // temperature
+    ierr = PetscRandomSetInterval(rand,15.,35.); CHKERRQ(ierr);
+    ierr = VecSetRandom(temp_vec,rand); CHKERRQ(ierr);
+    ierr = VecGetArray(temp_vec,&temp_p); CHKERRQ(ierr);
+    for (int i=1; i<local_size; i+=2) soln_p[i] = temp_p[i];
+    ierr = VecRestoreArray(temp_vec,&temp_p); CHKERRQ(ierr);
+    ierr = VecRestoreArray(tdy->solution,&soln_p); CHKERRQ(ierr);
+    ierr = VecDestroy(&temp_vec); CHKERRQ(ierr);
+    ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
+  }
+  else {
+    ierr = VecSet(tdy->solution,101325.); CHKERRQ(ierr);
+  }
 
   PetscFunctionReturn(0);
 }

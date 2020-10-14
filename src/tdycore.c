@@ -340,6 +340,7 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   tdy->quad = NULL;
   tdy->faces = NULL; tdy->LtoG = NULL; tdy->orient = NULL;
   tdy->allow_unsuitable_mesh = PETSC_FALSE;
+  tdy->init_with_random_field = PETSC_FALSE;
   tdy->qtype = FULL;
 
   PetscFunctionReturn(0);
@@ -517,6 +518,10 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           "TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&qtype,
                           &flg); CHKERRQ(ierr);
   if (flg && (qtype != tdy->qtype)) { ierr = TDySetQuadratureType(tdy,qtype); CHKERRQ(ierr); }
+  ierr = PetscOptionsBool("-tdy_init_with_random_field",
+                          "Initialize solution with a random field","",
+                          tdy->init_with_random_field,
+                          &(tdy->init_with_random_field),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-tdy_tpf_allow_unsuitable_mesh",
                           "Enable to allow non-orthgonal meshes in tpf","",tdy->allow_unsuitable_mesh,
                           &(tdy->allow_unsuitable_mesh),NULL); CHKERRQ(ierr);
