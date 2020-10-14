@@ -32,15 +32,11 @@ PetscErrorCode TDySetRockDensity(TDy tdy,SpatialFunction f) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyRockDensityFunctionDefault(PetscReal *x, PetscReal *den) {
-  PetscFunctionBegin;
+void TDyRockDensityFunctionDefault(PetscReal *x, PetscReal *den) {
   *den = 2650.;
-  PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySpecificHeatCapacityFunctionDefault(PetscReal *x, PetscReal *cr) {
-  PetscFunctionBegin;
+void TDySpecificHeatCapacityFunctionDefault(PetscReal *x, PetscReal *cr) {
   *cr = 1000.;
-  PetscFunctionReturn(0);
 }
 

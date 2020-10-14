@@ -140,7 +140,8 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       ierr = TDyTHInitialize(tdy); CHKERRQ(ierr);
       break;
   }
-  PetscPrintf("tdy->ti->time_integration_method = %d\n",(int)tdy->ti->time_integration_method);
+  PetscPrintf(PETSC_COMM_WORLD,"tdy->ti->time_integration_method = %d\n",
+              tdy->ti->time_integration_method);
   // finish set of time integrators
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
