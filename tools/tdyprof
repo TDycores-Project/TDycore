@@ -60,7 +60,7 @@ def topN(data, N, options):
     print('tdyprof: showing top %d hits %s:'%(N, rank_str))
     col_names = ['Stage Name', 'Event Name', 'Time', 'FLOP']
     print('{: >20} {: >40} {: >10} {: >16}'.format(*col_names))
-    for i in range(len(rows)):
+    for i in range(N):
         row = [rows[i][c][:40] for c in col_names]
         print('{: >20} {: >40} {: >10} {: >16}'.format(*row))
 
@@ -78,7 +78,7 @@ def botN(data, N, options):
     print('tdyprof: showing bottom %d hits %s:'%(N, rank_str))
     col_names = ['Stage Name', 'Event Name', 'Time', 'FLOP']
     print('{: >20} {: >40} {: >10} {: >16}'.format(*col_names))
-    for i in range(len(rows)):
+    for i in range(N):
         row = [rows[i][c][:40] for c in col_names]
         print('{: >20} {: >40} {: >10} {: >16}'.format(*row))
 

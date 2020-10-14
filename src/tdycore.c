@@ -467,7 +467,6 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   PetscInt       dim;
 
   PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
   PetscValidPointer(tdy,1);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
@@ -510,7 +509,6 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   if (tdy->J           ) { ierr = MatDestroy(&tdy->J   ); CHKERRQ(ierr); }
   if (tdy->Jpre        ) { ierr = MatDestroy(&tdy->Jpre); CHKERRQ(ierr); }
 
-  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -1421,9 +1419,7 @@ PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
   ierr = VecCopy(U,tdy->soln_prev); CHKERRQ(ierr);
-  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
