@@ -13,8 +13,8 @@ typedef struct TDyIO *TDyIO;
 struct TDyIO {
   PetscBool io_process;
   PetscBool print_intermediate;
-  char *exodus_filename;
-  char *zonalVarNames[1]; 
+  char exodus_filename[PETSC_MAX_PATH_LEN];
+  char zonalVarNames[1][PETSC_MAX_PATH_LEN];
   int num_vars;
   TDyIOFormat format;
   int num_times;

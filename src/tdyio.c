@@ -11,9 +11,9 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
 
   io->io_process = PETSC_FALSE;
   io->print_intermediate = PETSC_FALSE;  
-  io->exodus_filename = "out.exo";
+  strcpy(io->exodus_filename, "out.exo");
   io->num_vars = 1;
-  io->zonalVarNames[0] = "Soln";
+  strcpy(io->zonalVarNames[0], "Soln");
   io->format = PetscViewerASCIIFormat;
   io->num_times = 0;
     

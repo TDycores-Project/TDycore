@@ -463,6 +463,35 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAOSetup(TDy tdy) {
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+  PetscErrorCode ierr;
+
+  ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
+  ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAOSetFromOptions(TDy tdy) {
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+  PetscInt dim;
+  PetscErrorCode ierr;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  if (tdy->ops->computeporosity) { ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr); }
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy,Mat K,Vec F) {
 
   PetscFunctionBegin;

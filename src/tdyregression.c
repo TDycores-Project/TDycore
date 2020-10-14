@@ -232,7 +232,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
 
   if (myrank==0) {
     FILE *fp;
-    char filename[267];
+    char filename[PETSC_MAX_PATH_LEN+11];
     sprintf(filename,"%s.regression",reg->filename);
     if ((fp = fopen(filename,"w")) == NULL) {
       SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Unable to write regression file");
