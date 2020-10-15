@@ -316,6 +316,10 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
       else               den += tdy->rho_BND[-cell_id_dn-1];
       den *= 0.5;
 
+      if ( tdy->mpfao_gmatrix_method == MPFAO_GMATRIX_TPF &&
+           (cell_id_up<0 || cell_id_dn <0))
+        continue;
+
       // If one of the cell is on the boundary
       if (cell_id_up<0) cell_id_up = cell_id_dn;
       if (cell_id_dn<0) cell_id_dn = cell_id_up;

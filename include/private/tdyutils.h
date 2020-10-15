@@ -22,6 +22,7 @@ PETSC_EXTERN PetscErrorCode TDyComputeVolumeOfTetrahedron(PetscReal node_1[3], P
 PETSC_EXTERN PetscErrorCode TDyCreateVecJoiningTwoVertices(PetscReal vtx_from[3],PetscReal vtx_to[3], PetscReal vec[3]);
 PETSC_EXTERN PetscInt TDyReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value);
 PETSC_EXTERN PetscInt TDySavePetscVecAsBinary(Vec vec, const char filename[]);
+PETSC_EXTERN PetscInt TDySavePetscMatAsBinary(Mat, const char []);
 PETSC_EXTERN PetscErrorCode ExtractSubVectors(Vec,PetscInt,Vec *);
 PETSC_EXTERN PetscErrorCode ComputeTheta(PetscReal, PetscReal, PetscReal *);
 #endif
