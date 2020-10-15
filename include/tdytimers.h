@@ -62,15 +62,22 @@ PETSC_EXTERN void TDyAddProfilingStage(const char* name);
 // TDyEnterProfilingstage(name): enters the profiling stage with the given name.
 // Has no effect if the given stage name is invalid.
 #define TDyEnterProfilingStage(name) \
-  khiter_t iter = kh_get(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name); \
-  PetscLogStage stage; \
-  if (iter != kh_end(TDY_PROFILING_STAGES)) \
-    stage = kh_val(TDY_PROFILING_STAGES, iter); \
-  PetscLogStagePush(stage)
+  { \
+    khiter_t iter = kh_get(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name); \
+    PetscLogStage stage; \
+    if (iter != kh_end(TDY_PROFILING_STAGES)) { \
+      stage = kh_val(TDY_PROFILING_STAGES, iter); \
+      PetscLogStagePush(stage); \
+    } \
+  }
 
 // TDyExitProfilingstage(name): exits the profiling stage with the given name.
 // (The name isn't actually used, but it can be useful to explicate it.)
 #define TDyExitProfilingStage(name) \
-  PetscLogStagePop()
+  { \
+    khiter_t iter = kh_get(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name); \
+    if (iter != kh_end(TDY_PROFILING_STAGES)) \
+      PetscLogStagePop(); \
+  }
 
 #endif

@@ -1,4 +1,5 @@
 #include <petsc.h>
+#include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
 #include <private/tdymemoryimpl.h>
