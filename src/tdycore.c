@@ -564,7 +564,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 }
 
 PetscErrorCode TDySetup(TDy tdy) {
-  // must folow TDySetFromOptions()
+  // must follow TDySetFromOptions()
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
