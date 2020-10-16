@@ -268,16 +268,15 @@ PetscErrorCode Forcing3(TDy tdy,double *x,double *f,void *ctx) {
 /*--- -dim 2 -quartic ---------------------------------------------------------------*/
 // p = x (1-x) y (1-y), gradp = [(1-2x)y(1-y),x(1-x)(1-2y)]
 void PermQuartic2D(double *x,double *K) {
-  K[0] = 5; K[1] = 1;
-  K[2] = 1; K[3] = 3;
+  K[0] = 3; K[1] = 0;
+  K[2] = 0; K[3] = 3;
 }
+// p =x(1-x)y(1-y)
 PetscErrorCode PressureQuartic(TDy tdy, double *x, double *p, void *ctx) {
-  PetscInt d;
-  p[0] = 1.0;
-  for (d = 0; d < 2; ++d) p[0] *= x[d]*(1.0 - x[d]);
+  *p = x[0]*(1.0 - x[0])*x[1]*(1.0 - x[1]);
   PetscFunctionReturn(0);
 }
-
+//gradp = [(1-2x)y(1-y);x(1-x)(1-2y)], v=-K gradp
 PetscErrorCode VelocityQuartic(TDy tdy, double *x, double *v, void *ctx) {
   double gradpx, gradpy, K[4];
   PermQuartic2D(x,K);
@@ -287,6 +286,7 @@ PetscErrorCode VelocityQuartic(TDy tdy, double *x, double *v, void *ctx) {
   v[1] = -(K[2]*gradpx+K[3]*gradpy);
   PetscFunctionReturn(0);
 }
+//f=div(v) = (2K[0]y(1-y) -K[1](1-2x)(1-2y)) + (-K[2](1-2x)(1-2y)+2K[3]x(1-x))
 PetscErrorCode ForcingQuartic(TDy tdy, double *x, double *f, void *ctx) {
   double K[4];
   PermQuartic2D(x,K);
