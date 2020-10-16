@@ -71,7 +71,7 @@ PetscErrorCode TDyTHSNESPostCheck(SNESLineSearch linesearch,
                                         Vec X, Vec Y, Vec W,
                                         PetscBool *changed_Y,
                                         PetscBool *changed_W,void *ctx) {
-  PetscErrorCode ierr;
+  //PetscErrorCode ierr;
   PetscFunctionBegin;
 
 //#define DEBUG
@@ -91,7 +91,7 @@ PetscErrorCode TDyTHSNESPostCheck(SNESLineSearch linesearch,
 PetscErrorCode TDyTHConvergenceTest(SNES snes, PetscInt it,
                  PetscReal xnorm, PetscReal unorm, PetscReal fnorm,
                  SNESConvergedReason *reason, void *ctx) {
-  TDy tdy = (TDy)ctx;
+  //TDy tdy = (TDy)ctx;
   PetscErrorCode ierr;
   Vec r;
   MPI_Comm comm;

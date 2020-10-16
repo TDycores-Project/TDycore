@@ -28,11 +28,15 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   // default mode and method must be set prior to TDySetFromOptions()
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
   switch(tdy->method) {
+    case TPF:
+    case MPFA_O:
+      break;
     case MPFA_O_DAE:
     case MPFA_O_TRANSIENTVAR:
     case BDM:
     case WY:
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver not supported for specified method.");
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver not supported for specified method.");
+      break;
   }
 
   ierr = TDySetPorosityFunction(tdy,TDyPorosityFunctionDefault,PETSC_NULL);
@@ -65,6 +69,8 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
       switch (tdy->mode) {
+        case RICHARDS:
+          break;
         case TH:
           SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SNES not supported for TH mode.");
           break;
@@ -118,8 +124,11 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       ierr = SNESSetConvergenceTest(snes,TDyRichardsConvergenceTest,
                                     &tdy,NULL); CHKERRQ(ierr);
       switch(tdy->ti->time_integration_method) {
+        case TDySNES:
+          break;
         case TDyTS:
           ierr = TSSetPostStep(ts,TDyRichardsTSPostStep); CHKERRQ(ierr);
+          break;
       }
       ierr = TDyRichardsInitialize(tdy); CHKERRQ(ierr);
       break;
@@ -129,6 +138,8 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       ierr = SNESSetConvergenceTest(snes,TDyTHConvergenceTest,
                                     &tdy,NULL); CHKERRQ(ierr);
       switch(tdy->ti->time_integration_method) {
+        case TDySNES:
+          break;
         case TDyTS:
           ierr = TSSetPostStep(ts,TDyTHTSPostStep); CHKERRQ(ierr);
       }
