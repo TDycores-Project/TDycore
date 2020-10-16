@@ -340,6 +340,7 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   tdy->quad = NULL;
   tdy->faces = NULL; tdy->LtoG = NULL; tdy->orient = NULL;
   tdy->allow_unsuitable_mesh = PETSC_FALSE;
+  tdy->init_with_random_field = PETSC_FALSE;
   tdy->qtype = FULL;
 
   PetscFunctionReturn(0);
@@ -494,7 +495,7 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
 }
 
 PetscErrorCode TDySetFromOptions(TDy tdy) {
-  // must preceed TDySetup()
+  // must preceed TDySetup() as it sets options used in TDySetup()
   PetscErrorCode ierr;
   PetscBool flg;
   TDyMethod method = WY;
@@ -517,6 +518,10 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           "TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&qtype,
                           &flg); CHKERRQ(ierr);
   if (flg && (qtype != tdy->qtype)) { ierr = TDySetQuadratureType(tdy,qtype); CHKERRQ(ierr); }
+  ierr = PetscOptionsBool("-tdy_init_with_random_field",
+                          "Initialize solution with a random field","",
+                          tdy->init_with_random_field,
+                          &(tdy->init_with_random_field),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-tdy_tpf_allow_unsuitable_mesh",
                           "Enable to allow non-orthgonal meshes in tpf","",tdy->allow_unsuitable_mesh,
                           &(tdy->allow_unsuitable_mesh),NULL); CHKERRQ(ierr);
@@ -559,11 +564,12 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 }
 
 PetscErrorCode TDySetup(TDy tdy) {
+  /* must follow TDySetFromOptions() is it relies upon options set by 
+     TDySetFromOptions */
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   TDyEnterProfilingStage("TDycore Setup");
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
   ierr = TDySetupDiscretizationMethod(tdy); CHKERRQ(ierr); 
   if (tdy->regression_testing) {
     ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
@@ -1316,7 +1322,7 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetInitialSolutionForSNESSolver(TDy tdy, Vec soln) {
+PetscErrorCode TDySetPreviousSolutionForSNESSolver(TDy tdy, Vec soln) {
 
   PetscErrorCode ierr;
 

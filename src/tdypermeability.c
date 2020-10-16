@@ -218,3 +218,19 @@ PetscErrorCode TDyPermeabilityFunctionDefault(TDy tdy, double *x, double *K, voi
   return 0;
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode TDyThermalConductivityFunctionDefault(TDy tdy, double *x, double *K, void *ctx) {
+  PetscErrorCode ierr;
+  PetscInt dim;
+  PetscFunctionBegin;
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  for (int j=0; j<dim; j++) {
+    for (int i=0; i<dim; i++) {
+      K[j*dim+i] = 0.;
+    }
+  }
+  for (int i=0; i<dim; i++)
+    K[i*dim+i] = 1.;
+  return 0;
+  PetscFunctionReturn(0);
+}

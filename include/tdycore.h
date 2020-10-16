@@ -127,6 +127,7 @@ PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,
     TDyMethod method);
 PETSC_EXTERN PetscErrorCode TDySetupDiscretizationMethod(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetMode(TDy tdy, TDyMode mode);
+PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetup(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
     TDyQuadratureType qtype);
@@ -143,7 +144,7 @@ PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     PetscReal *normv);
 
 PETSC_EXTERN PetscErrorCode TDySetDtimeForSNESSolver(TDy,PetscReal);
-PETSC_EXTERN PetscErrorCode TDySetInitialSolutionForSNESSolver(TDy,Vec);
+PETSC_EXTERN PetscErrorCode TDySetPreviousSolutionForSNESSolver(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyPreSolveSNESSolver(TDy);
 PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
 

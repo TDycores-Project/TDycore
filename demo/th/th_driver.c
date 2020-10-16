@@ -11,12 +11,12 @@ int main(int argc, char **argv) {
   PetscBool print_intermediate = PETSC_FALSE;
   PetscMPIInt rank, size;
   TDy tdy = PETSC_NULL;
-  TDyIOFormat format = ExodusFormat; 
+  TDyIOFormat format = PetscViewerASCIIFormat; 
 
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
   ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank); CHKERRQ(ierr);
   ierr = MPI_Comm_size(PETSC_COMM_WORLD,&size); CHKERRQ(ierr);
-  PetscPrintf(PETSC_COMM_WORLD,"Beginning Richards Driver simulation.\n");
+  PetscPrintf(PETSC_COMM_WORLD,"Beginning TH Driver simulation.\n");
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); 
                            CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code",
@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);
-  ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
+  ierr = TDySetMode(tdy,TH); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
   ierr = TDyDriverInitializeTDy(tdy); CHKERRQ(ierr);
   if (!rank) tdy->io->io_process = PETSC_TRUE;

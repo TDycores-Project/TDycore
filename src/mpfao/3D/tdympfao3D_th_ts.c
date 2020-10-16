@@ -9,6 +9,13 @@
 #include <private/tdypermeabilityimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 
+//#define DEBUG
+#if defined(DEBUG)
+PetscInt icount_f = 0;
+PetscInt icount_j = 0;
+PetscInt max_count = 5;
+#endif
+
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
 
@@ -157,6 +164,15 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
+#if defined(DEBUG)
+  PetscViewer viewer;
+  char word[32];
+  sprintf(word,"U%d.vec",icount_f);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
+  ierr = VecView(U,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
+
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
@@ -270,6 +286,14 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   ierr = VecRestoreArray(U_t,&du_dt); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
+
+#if defined(DEBUG)
+  sprintf(word,"Function%d.vec",icount_f);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
+  ierr = VecView(R,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  icount_f++;
+#endif
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -851,6 +875,17 @@ PetscErrorCode TDyMPFAOIJacobian_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Petsc
 
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Udotl); CHKERRQ(ierr);
+
+#if defined(DEBUG)
+  PetscViewer viewer;
+  char word[32];
+  sprintf(word,"Jacobian%d.mat",icount_j);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
+  ierr = MatView(A,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  icount_j++;
+  if (icount_j == max_count) exit(0);
+#endif
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);

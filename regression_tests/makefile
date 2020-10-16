@@ -33,7 +33,7 @@ endif
 # standard tests that are run to verify executable is built correctly
 #
 
-test : test-mpfao test-steadyf90 test-steady test-transient test-transient-mpfao test-transient-mpfaof90 test-transient-snes-mpfaof90 test-transient-th-mpfao test-richards
+test : test-mpfao test-steadyf90 test-steady test-transient test-transient-mpfao test-transient-mpfaof90 test-transient-snes-mpfaof90 test-transient-th-mpfao test-richards test-th
 
 test-steady :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/steady/steady $(TEST_OPTIONS) \
@@ -88,6 +88,12 @@ test-richards :
 		--suite standard standard_parallel \
 		--config-files ../demo/richards/richards.cfg \
 		--logfile_prefix richards
+
+test-th :
+	$(PYTHON) $(TEST_MANAGER) -e ../demo/th/th_driver $(TEST_OPTIONS) \
+		--suite standard standard_parallel \
+		--config-files ../demo/th/th.cfg \
+		--logfile_prefix th
 
 #
 # Try to cleanup the regression test output.
