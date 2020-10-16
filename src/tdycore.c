@@ -495,7 +495,7 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
 }
 
 PetscErrorCode TDySetFromOptions(TDy tdy) {
-  // must preceed TDySetup()
+  // must preceed TDySetup() as it sets options used in TDySetup()
   PetscErrorCode ierr;
   PetscBool flg;
   TDyMethod method = WY;
@@ -564,7 +564,8 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 }
 
 PetscErrorCode TDySetup(TDy tdy) {
-  // must follow TDySetFromOptions()
+  /* must follow TDySetFromOptions() is it relies upon options set by 
+     TDySetFromOptions */
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()

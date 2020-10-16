@@ -104,7 +104,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       ierr = TSSetSolution(ts,tdy->solution); CHKERRQ(ierr);
       ierr = TDySetIFunction(ts,tdy); CHKERRQ(ierr);
       ierr = TDySetIJacobian(ts,tdy); CHKERRQ(ierr);
-      SNES snes;
       ierr = TSGetSNES(ts,&snes); CHKERRQ(ierr);
       ierr = SNESGetLineSearch(snes,&linesearch);
              CHKERRQ(ierr);

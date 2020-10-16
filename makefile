@@ -8,7 +8,7 @@ ifdef codecov
 endif
 
 # These flags are supplemental to the PETSc flags
-CFLAGS   = ${LIBS} -Wunused-variable -Wswitch
+CFLAGS   = ${LIBS}
 FFLAGS   = ${LIBS}
 CPPFLAGS = ${MYFLAGS}
 FPPFLAGS = ${MYFLAGS}
