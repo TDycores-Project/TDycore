@@ -25,6 +25,11 @@ def parse_csv(csv_file):
         rows = [r for r in data]
         return rows
 
+def prune_rows(rows):
+    # Prunes extraneous Stage information and summary entries from rows.
+    return [r for r in rows if float(r['Time']) > 0 and
+            r['Event Name'] != 'summary']
+
 def gather_topN(data, N, rank):
     # If a rank was specified, sort the rows in descending order by time.
     if rank is not None and rank >= 0:
@@ -45,7 +50,7 @@ def gather_topN(data, N, rank):
         sorted_rows = sorted(max_time_rows,
                              key=lambda row: float(row['Time']),
                              reverse=True)
-    return sorted_rows
+    return prune_rows(sorted_rows)
 
 def topN(data, N, options):
     if len(data) == 0:
