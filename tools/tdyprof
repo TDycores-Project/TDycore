@@ -50,7 +50,7 @@ def gather_topN(data, N, rank):
         sorted_rows = sorted(max_time_rows,
                              key=lambda row: float(row['Time']),
                              reverse=True)
-    return prune_rows(sorted_rows)
+    return sorted_rows
 
 def topN(data, N, options):
     if len(data) == 0:
@@ -64,10 +64,10 @@ def topN(data, N, options):
     rank_str = '(max across ranks)' if rank is None else 'for rank "%d"'%rank
     print('tdyprof: showing top %d hits %s:'%(N, rank_str))
     col_names = ['Stage Name', 'Event Name', 'Time', 'FLOP']
-    print('{: >20} {: >40} {: >10} {: >16}'.format(*col_names))
+    print('{: >20} {: >40} {: >16} {: >16}'.format(*col_names))
     for i in range(N):
         row = [rows[i][c][:40] for c in col_names]
-        print('{: >20} {: >40} {: >10} {: >16}'.format(*row))
+        print('{: >20} {: >40} {: >16} {: >16}'.format(*row))
 
 def botN(data, N, options):
     if len(data) == 0:
@@ -82,10 +82,10 @@ def botN(data, N, options):
     rank_str = '(max across ranks)' if rank is None else 'for rank "%d"'%rank
     print('tdyprof: showing bottom %d hits %s:'%(N, rank_str))
     col_names = ['Stage Name', 'Event Name', 'Time', 'FLOP']
-    print('{: >20} {: >40} {: >10} {: >16}'.format(*col_names))
+    print('{: >20} {: >40} {: >16} {: >16}'.format(*col_names))
     for i in range(N):
         row = [rows[i][c][:40] for c in col_names]
-        print('{: >20} {: >40} {: >10} {: >16}'.format(*row))
+        print('{: >20} {: >40} {: >16} {: >16}'.format(*row))
 
 def match(data, pattern, options):
     if len(data) == 0:
@@ -108,10 +108,10 @@ def match(data, pattern, options):
     rank_str = '' if rank is None else 'for rank "%d"'%rank
     print('tdyprof: showing matches for "%s"%s:'%(pattern, rank_str))
     col_names = ['Ranking', 'Stage Name', 'Event Name', 'Time', 'FLOP']
-    print('{: >10} {: >20} {: >40} {: >10} {: >16}'.format(*col_names))
+    print('{: >10} {: >20} {: >40} {: >16} {: >16}'.format(*col_names))
     for i in range(len(results)):
         row = [results[i][c][:40] for c in col_names]
-        print('{: >10} {: >20} {: >40} {: >10} {: >16}'.format(*row))
+        print('{: >10} {: >20} {: >40} {: >16} {: >16}'.format(*row))
 
 def main():
     import sys
@@ -122,7 +122,8 @@ def main():
     csv_file = sys.argv[1]
     command = sys.argv[2]
 
-    data = parse_csv(csv_file)
+    # Parse the CSV file and prune all irrelevant rows.
+    data = prune_rows(parse_csv(csv_file))
 
     # Gather any command-specific options
     options = {}
