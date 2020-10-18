@@ -26,7 +26,11 @@ def parse_csv(csv_file):
         return rows
 
 def prune_rows(rows):
-    # Prunes extraneous Stage information and summary entries from rows.
+    # Strip off metadata.
+    md = [i for i in range(len(rows)) if rows[i]['Stage Name'] == 'METADATA']
+    if len(md) > 0:
+        rows = rows[:md[0]]
+    # Prune extraneous Stage information and summary entries from rows.
     return [r for r in rows if float(r['Time']) > 0 and
             r['Event Name'] != 'summary']
 

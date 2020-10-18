@@ -180,6 +180,20 @@ PetscErrorCode TDyFinalize() {
     PetscViewerPushFormat(log, format);
     PetscLogView(log);
     PetscViewerDestroy(&log);
+
+    // Add a footer to the profile CSV that contains useful metadata.
+    FILE* f = fopen("tdycore_profile.csv", "a");
+    fprintf(f, "METADATA\n");
+    fprintf(f, "Nx,Ny,Nz\n");
+    PetscInt Nx = 8, Ny = 8, Nz = 8, ierr;
+    ierr = PetscOptionsGetInt(NULL, NULL, "-Nx", &Nx, NULL);
+    CHKERRQ(ierr);
+    ierr = PetscOptionsGetInt(NULL, NULL, "-Ny", &Ny, NULL);
+    CHKERRQ(ierr);
+    ierr = PetscOptionsGetInt(NULL, NULL, "-Nz", &Nz, NULL);
+    CHKERRQ(ierr);
+    fprintf(f, "%d,%d,%d", Nx, Ny, Nz);
+    fclose(f);
   }
 
   // Free the timers registry and the profiling stages registry.

@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 
 def usage():
     print('tdyperfplot: Usage:')
-    print('tdyperfplot <profile1.csv> <profile2.csv> ... <profileN.csv>\n')
+    print('tdyperfplot [options] <profile1.csv> <profile2.csv> ... <profileN.csv>\n')
+    print('Options:')
+    print('  -e e1,e2,...,eN: Plot measurements for events e1..eN (default: plot total time)')
     exit()
 
 def plot_profiles(files):
