@@ -526,7 +526,7 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
       ierr = TDyAllocate_IntegerArray_1D(&region->id,region->num_cells); CHKERRQ(ierr);
 
       ierr = VecGetArray(local, &p); CHKERRQ(ierr);
-      for (ii = 0; ii < size_local/num_fields; ++ii) region->id[ii] = p[ii*num_fields];
+      for (ii = 0; ii < region->num_cells ; ++ii) region->id[ii] = p[ii*num_fields];
       ierr = VecRestoreArray(local, &p); CHKERRQ(ierr);
 
       // Cleanup
