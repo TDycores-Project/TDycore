@@ -5,7 +5,6 @@
 
 import math
 import pandas as pd
-import matplotlib.pyplot as plt
 from optparse import OptionParser
 
 def usage():
@@ -38,13 +37,31 @@ def extract_metadata(prof_df):
     return prof_df, md
 
 def plot_profiles(files, events):
-    plt.title('TDycore Scaling')
-    plt.xlabel(' Scaling')
+    # Gather throughput data for the plot.
+    labels = []
+    x = [] # time (log axis)
+    y = [] # throughput = (# cells) / time
     for f in files:
         # Read the profile into a dataframe.
         prof = pd.read_csv(f)
         prof, md = extract_metadata(prof)
-#        print(prof.where(prof['Event Name'] == 'summary', None))
+
+        Nx, Ny, Nz = int(md['Nx']), int(md['Ny']), int(md['Nz'])
+        num_cells = Nx * Ny * Nz
+
+        if len(events) > 0:
+            for e in events:
+                t_e = prof.query("'Event Name' == '%s'"%e)['Time'].sum()
+                x.append(t_e)
+                y.append(num_cells/t_e)
+                labels.append('%s(%dx%dx%d)'%(e, Nx, Ny, Nz))
+        else: # total time
+            print(prof.query("'Event Name' == 'summary'"))
+            t_tot = prof.query("'Event Name' == 'summary'")['Time'].sum()
+            x.append(t_tot)
+            y.append(num_cells/t_tot)
+            labels.append('Total(%dx%dx%d)'%(Nx, Ny, Nz))
+    print(labels, x, y)
 
 def main():
     import sys
@@ -52,14 +69,14 @@ def main():
         usage()
 
     parser = OptionParser()
-    parser.add_option("-e", "--events", dest="events", default="total",
+    parser.add_option("-e", "--events", dest="events", default=[],
                       help="Events to plot")
 
     options, args = parser.parse_args()
     if ',' in options.events:
         events = options.events.split(',')
     else:
-        events = [options.events]
+        events = options.events
     files = args
 
     if len(files) < 1:
