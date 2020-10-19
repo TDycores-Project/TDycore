@@ -561,7 +561,13 @@ int main(int argc, char **argv) {
   char true_pres_filename[256]="none";
   char forcing_filename[256]="none";
   PetscBool exo = PETSC_FALSE;
+
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
+  TDy  tdy;
+  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
+  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL); CHKERRQ(ierr);
@@ -623,10 +629,10 @@ int main(int argc, char **argv) {
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
-  /* Setup problem parameters */
-  TDy  tdy;
-  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
+  ierr = TDySetDM(dm,tdy); CHKERRQ(ierr);
+  ierr = TDyAllocate(tdy); CHKERRQ(ierr);
 
+  /* Setup problem parameters */
   if(wheeler2006){
     if(dim != 2){
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2006 is only for -dim 2 problems");
@@ -731,8 +737,6 @@ int main(int argc, char **argv) {
     }
   }
 
-  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
   ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   /* Compute system */

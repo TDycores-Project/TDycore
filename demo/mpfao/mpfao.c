@@ -202,6 +202,12 @@ int main(int argc, char **argv) {
   PetscBool perturb = PETSC_FALSE;
 
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
+  TDy  tdy;
+  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
+  ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
+  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
   CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-problem","Problem number","",problem,&problem,NULL);
@@ -222,10 +228,10 @@ int main(int argc, char **argv) {
   ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
 
   // Setup problem parameters
-  TDy  tdy;
   PetscReal gravity[3];
 
-  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
+  ierr = TDySetDM(dm,tdy); CHKERRQ(ierr);
+  ierr = TDyAllocate(tdy); CHKERRQ(ierr);
   PetscInt dim;
   ierr = TDyGetDimension(tdy,&dim); CHKERRQ(ierr);
 
@@ -268,9 +274,6 @@ int main(int argc, char **argv) {
     ierr = TDySetDirichletFluxFunction(tdy,Velocity3D,NULL); CHKERRQ(ierr);
   }
 
-  ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
   ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   // Compute system

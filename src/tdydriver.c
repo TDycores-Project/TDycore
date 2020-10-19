@@ -1,4 +1,5 @@
 #include <private/tdycoreimpl.h>
+#include <tdydm.h>
 #include <tdydriver.h>
 #include <tdypermeability.h>
 #include <tdyporosity.h>
@@ -13,9 +14,15 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
   PetscReal gravity[3] = {0.,0.,0.};
+  DM dm;
   TS ts;
   SNES snes;
   SNESLineSearch linesearch;
+
+  ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
+  ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
+  ierr = TDySetDM(dm,tdy); CHKERRQ(ierr);
+  ierr = TDyAllocate(tdy); CHKERRQ(ierr);
 
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
@@ -25,8 +32,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   gravity[dim-1] = 9.8068;
   ierr = TDySetGravityVector(tdy,gravity);
 
-  // default mode and method must be set prior to TDySetFromOptions()
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
   switch(tdy->method) {
     case TPF:
     case MPFA_O:

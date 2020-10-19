@@ -94,6 +94,10 @@ int main(int argc, char **argv) {
   char string[128];
 
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
+  TDy  tdy;
+  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
+  ierr = TDySetDiscretizationMethod(tdy,TPF); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   strcpy(string,"tdycore.in");
 
@@ -140,10 +144,11 @@ int main(int argc, char **argv) {
   if (dmDist) {DMDestroy(&dm); dm = dmDist;}
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
+  ierr = TDySetDM(dm,tdy); CHKERRQ(ierr);
+  ierr = TDyAllocate(tdy); CHKERRQ(ierr);
+
   /* Setup problem parameters */
   printf("Creating TDycore.\n");
-  TDy  tdy;
-  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
   if (dim == 1) {
     ierr = TDySetPermeabilityTensor(tdy,PermeabilityBlock1); CHKERRQ(ierr);
     switch(problem) {
@@ -165,8 +170,6 @@ int main(int argc, char **argv) {
     }
   }
 
-  ierr = TDySetDiscretizationMethod(tdy,TPF); CHKERRQ(ierr);
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
   ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   /* Compute system */

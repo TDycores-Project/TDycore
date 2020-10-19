@@ -74,6 +74,12 @@ implicit none
 
   call TDyInit(ierr);
   CHKERRA(ierr);
+  call TDyCreate(tdy, ierr);
+  CHKERRA(ierr);
+  call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
+  CHKERRA(ierr);
+  call TDySetFromOptions(tdy,ierr);
+  CHKERRA(ierr);
 
   nx = 3; ny = 3; nz = 3;
   dim = 3
@@ -104,10 +110,6 @@ implicit none
   call DMSetFromOptions(dm, ierr);
   CHKERRA(ierr);
 
-  call TDyCreateWithDM(dm, tdy, ierr);
-  CHKERRA(ierr);
-
-
   call DMPlexGetHeightStratum(dm,0,cStart,cEnd,ierr);
   CHKERRA(ierr);
 
@@ -127,6 +129,11 @@ implicit none
     enddo
   enddo
 
+  call TDySetDM(dm, tdy, ierr);
+  CHKERRA(ierr);
+  call TDyAllocate(tdy, ierr);
+  CHKERRA(ierr);
+
   call TDySetPorosityFunction(tdy,PorosityFunction,0,ierr);
   CHKERRA(ierr);
 
@@ -139,11 +146,6 @@ implicit none
   call TDySetResidualSaturationValuesLocal(tdy,cEnd-cStart,index,residualSat,ierr);
   CHKERRA(ierr);
 
-  call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
-  CHKERRA(ierr);
-
-  call TDySetFromOptions(tdy,ierr);
-  CHKERRA(ierr);
   call TDySetup(tdy,ierr);
   CHKERRA(ierr);
 

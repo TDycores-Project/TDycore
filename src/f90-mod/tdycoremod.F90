@@ -16,13 +16,20 @@ module tdycore
      end subroutine TDyFinalize
   end interface
   interface
-     subroutine TDyCreate(a,b,z)
+     subroutine TDyCreate(a,z)
+       use tdycoredef
+       TDy a
+       integer z
+     end subroutine TDyCreate
+  end interface
+  interface
+     subroutine TDySetDM(a,b,z)
        use petscdm
        use tdycoredef
        DM a
        TDy b
        integer z
-     end subroutine TDyCreate
+     end subroutine TDySetDM
   end interface
   interface
      subroutine TDySetDiscretizationMethod(a,b,z)
@@ -45,6 +52,13 @@ module tdycore
        TDy a
        integer z
      end subroutine TDySetFromOptions
+  end interface
+  interface
+     subroutine TDyAllocate(a,z)
+       use tdycoredef
+       TDy a
+       integer z
+     end subroutine TDyAllocate
   end interface
   interface
      subroutine TDySetup(a,z)

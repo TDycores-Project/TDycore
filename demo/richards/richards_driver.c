@@ -14,6 +14,10 @@ int main(int argc, char **argv) {
   TDyIOFormat format = ExodusFormat; 
 
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
+  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
+  ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
+  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+
   ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank); CHKERRQ(ierr);
   ierr = MPI_Comm_size(PETSC_COMM_WORLD,&size); CHKERRQ(ierr);
   PetscPrintf(PETSC_COMM_WORLD,"Beginning Richards Driver simulation.\n");
@@ -29,9 +33,9 @@ int main(int argc, char **argv) {
                           CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
-  ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+  // default mode and method must be set prior to TDySetFromOptions()
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+
   ierr = TDyDriverInitializeTDy(tdy); CHKERRQ(ierr);
   if (!rank) tdy->io->io_process = PETSC_TRUE;
   tdy->io->print_intermediate = print_intermediate;

@@ -12,8 +12,9 @@
 #define tdyinitnoarguments_                         TDYINITNOARGUMENTS
 #define tdyfinalize_                                TDYFINALIZE
 #define tdycreate_                                  TDYCREATE
-#define tdycreatewithdm_                            TDYCREATEWITHDM
+#define tdycreatesetdm_                             TDYSETDM
 #define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
+#define tdyallocate_                                TDYALLOCATE
 #define tdysetup_                                   TDYSETUP
 #define tdysetfromoptions_                          TDYSETFROMOPTIONS
 #define tdysetupdiscretizationmethod_               TDYSETUPDISCRETIZATIONMETHOD
@@ -69,8 +70,9 @@
 #define tdyinitnoarguments_                         tdyinitnoarguments
 #define tdyfinalize_                                tdyfinalize
 #define tdycreate_                                  tdycreate
-#define tdycreatewithdm_                            tdycreatewithdm
+#define tdysetdm_                                   tdysetdm
 #define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
+#define tdyallocate_                                tdyallocate
 #define tdysetup_                                   tdysetup
 #define tdysetfromoptions_                          tdysetfromoptions
 #define tdysetupdiscretizationmethod_               tdysetupdiscretizationmethod
@@ -168,8 +170,8 @@ PETSC_EXTERN void  tdycreate_(TDy *_tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdycreatewithdm_(DM dm,TDy *_tdy, int *__ierr){
-*__ierr = TDyCreateWithDM((DM)PetscToPointer((dm)), _tdy);
+PETSC_EXTERN void  tdysetdm_(DM dm,TDy *_tdy, int *__ierr){
+*__ierr = TDySetDM((DM)PetscToPointer((dm)), *_tdy);
 }
 #if defined(__cplusplus)
 }
@@ -200,6 +202,16 @@ extern "C" {
 #endif
 PETSC_EXTERN void  tdysetfromoptions_(TDy tdy, int *__ierr){
 *__ierr = TDySetFromOptions((TDy)PetscToPointer((tdy)));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdyallocate_(TDy tdy, int *__ierr){
+*__ierr = TDyAllocate((TDy)PetscToPointer((tdy)));
 }
 #if defined(__cplusplus)
 }

@@ -36,6 +36,7 @@ struct _p_TDy {
   DM dm;
 
   TDyTimeIntegrator ti;
+  TDySetupFlags setupflags;
   TDyIO io;
   PetscBool init_with_random_field;
 

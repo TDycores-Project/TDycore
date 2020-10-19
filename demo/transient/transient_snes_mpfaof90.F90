@@ -139,6 +139,12 @@ implicit none
 
   call TDyInit(ierr);
   CHKERRA(ierr);
+  call TDyCreate(tdy, ierr);
+  CHKERRA(ierr);
+  call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
+  CHKERRA(ierr);
+  call TDySetFromOptions(tdy,ierr);
+  CHKERRA(ierr);
 
   nx = 1; ny = 1; nz = 15;
   dim = 3
@@ -199,8 +205,6 @@ implicit none
   call DMSetFromOptions(dm, ierr);
   CHKERRA(ierr);
 
-  call TDyCreateWithDM(dm, tdy, ierr);
-  CHKERRA(ierr);
 
   call TDySetWaterDensityType(tdy,WATER_DENSITY_EXPONENTIAL,ierr);
   CHKERRA(ierr)
@@ -232,6 +236,11 @@ implicit none
       blockPerm((c-1)*dim*dim+j) = perm(j)
     enddo
   enddo
+
+  call TDySetDM(dm, tdy, ierr);
+  CHKERRA(ierr);
+  call TDyAllocate(tdy,ierr);
+  CHKERRA(ierr);
 
   if (pflotran_consistent) then
      call TDySetPorosityFunction(tdy,PorosityFunctionPFLOTRAN,0,ierr);
@@ -268,11 +277,6 @@ implicit none
 
   end if
 
-  call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
-  CHKERRA(ierr);
-
-  call TDySetFromOptions(tdy,ierr);
-  CHKERRA(ierr);
   call TDySetup(tdy,ierr);
   CHKERRA(ierr);
 

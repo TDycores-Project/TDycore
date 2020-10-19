@@ -48,6 +48,13 @@ typedef enum {
   TDyTS
 } TDyTimeIntegrationMethod;
 
+typedef enum {
+  TDyCreated=0x0,
+  TDyParametersInitialized=0x1,
+  TDyOptionsSet=0x2,
+  TDySetupFinished=0x4,
+} TDySetupFlags;
+
 PETSC_EXTERN const char *const TDyModes[];
 
 typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */
@@ -71,7 +78,8 @@ PETSC_EXTERN PetscErrorCode TDyInitNoArguments(void);
 PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 
 PETSC_EXTERN PetscErrorCode TDyCreate(TDy *tdy);
-PETSC_EXTERN PetscErrorCode TDyCreateWithDM(DM dm,TDy *tdy);
+PETSC_EXTERN PetscErrorCode TDySetDM(DM dm,TDy tdy);
+PETSC_EXTERN PetscErrorCode TDyAllocate(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyDestroy(TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyView(TDy tdy,PetscViewer viewer);
 

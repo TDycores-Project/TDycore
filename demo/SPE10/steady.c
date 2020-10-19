@@ -102,7 +102,13 @@ int main(int argc, char **argv) {
   PetscErrorCode ierr;
   PetscInt dim = 2, N = 0;
   PetscReal ang = 0;
+
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
+  TDy  tdy;
+  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
+  ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"SPE Options",""); CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-dim","Problem dimension","",
 			  dim,&dim,NULL); CHKERRQ(ierr);
@@ -136,14 +142,13 @@ int main(int argc, char **argv) {
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
-  /* Setup problem parameters */
-  TDy  tdy;
-  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
-  ierr = TDySetup(tdy); CHKERRQ(ierr);
   ierr = ReadSPE10Permeability(tdy,ang); CHKERRQ(ierr);
   ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
+
+  /* Setup problem parameters */
+  ierr = TDySetDM(dm,tdy); CHKERRQ(ierr);
+  ierr = TDyAllocate CHKERRQ(ierr);
+  ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   /* Compute system */
   Mat K;

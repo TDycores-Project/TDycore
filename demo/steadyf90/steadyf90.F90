@@ -140,6 +140,14 @@ program main
   PetscErrorCode :: ierr
 
   call TDyInit(ierr)
+  CHKERRA(ierr);
+  call TDyCreate(tdy, ierr);
+  CHKERRA(ierr);
+  method = MPFA_O;
+  call TDySetDiscretizationMethod(tdy,method, ierr);
+  CHKERRA(ierr);
+  call TDySetFromOptions(tdy, ierr);
+  CHKERRA(ierr);
 
   N = 8
   dim = 2;
@@ -172,7 +180,9 @@ program main
   CHKERRA(ierr);
   !call DMViewFromOptions(dm,PETSC_NULL_CHARACTER,'-dm_view',ierr); CHKERRA(ierr)
 
-  call TDyCreateWithDM(dm, tdy, ierr);
+  call TDySetDM(dm, tdy, ierr);
+  CHKERRA(ierr);
+  call TDyAllocate(tdy, ierr);
   CHKERRA(ierr);
 
   call TDySetPermeabilityFunction(tdy,PermeabilityFunction,0,ierr);
@@ -184,11 +194,6 @@ program main
   call TDySetDirichletFluxFunction(tdy,VelocityFunction,0,ierr);
   CHKERRA(ierr);
 
-  method = MPFA_O;
-  call TDySetDiscretizationMethod(tdy,method, ierr);
-  CHKERRA(ierr);
-  call TDySetFromOptions(tdy, ierr);
-  CHKERRA(ierr);
   call TDySetup(tdy, ierr);
   CHKERRA(ierr);
 
