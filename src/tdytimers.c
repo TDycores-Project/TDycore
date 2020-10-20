@@ -16,6 +16,7 @@ typedef struct {
   TDyMethod method;
   TDyMode mode;
   int num_cells;
+  int num_proc;
 } TimingMetadata;
 static TimingMetadata metadata_;
 
@@ -87,8 +88,9 @@ PetscErrorCode TDyWriteTimingProfile(const char* filename) {
     }
     FILE* f = fopen("tdycore_profile.csv", "a");
     fprintf(f, "METADATA\n");
-    fprintf(f, "Method,Mode,NumCells\n");
-    fprintf(f, "%s,%s,%d", method_name, mode_name, metadata_.num_cells);
+    fprintf(f, "Method,Mode,NumProc,NumCells\n");
+    fprintf(f, "%s,%s,%d,%d", method_name, mode_name,
+            metadata_.num_proc, metadata_.num_cells);
     fclose(f);
     return 0;
   }
@@ -99,6 +101,7 @@ PetscErrorCode TDySetTimingMetadata(TDy tdy) {
   metadata_.method = tdy->method;
   metadata_.mode = tdy->mode;
   metadata_.num_cells = tdy->mesh->num_cells;
+  MPI_Comm_size(PETSC_COMM_WORLD, &metadata_.num_proc);
   return 0;
 }
 
