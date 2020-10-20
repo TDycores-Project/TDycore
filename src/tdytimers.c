@@ -69,6 +69,10 @@ PetscErrorCode TDyWriteTimingProfile(const char* filename) {
     int rank;
     MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
     if (rank == 0) {
+      // Count up the total number of cells in the simulation.
+      int num_cells;
+      MPI_Reduce(&metadata_.num_cells, &num_cells, 1, MPI_INT, MPI_SUM,
+                 0, PETSC_COMM_WORLD);
       const char* method_name;
       if (metadata_.method == TPF) {
         method_name = "TPF";
@@ -93,8 +97,11 @@ PetscErrorCode TDyWriteTimingProfile(const char* filename) {
       fprintf(f, "METADATA\n");
       fprintf(f, "Method,Mode,NumProc,NumCells\n");
       fprintf(f, "%s,%s,%d,%d", method_name, mode_name,
-              metadata_.num_proc, metadata_.num_cells);
+              metadata_.num_proc, num_cells);
       fclose(f);
+    } else { // rank > 0
+      MPI_Reduce(&metadata_.num_cells, NULL, 1, MPI_INT, MPI_SUM,
+                 0, PETSC_COMM_WORLD);
     }
     return 0;
   }
@@ -104,7 +111,7 @@ PetscErrorCode TDyWriteTimingProfile(const char* filename) {
 PetscErrorCode TDySetTimingMetadata(TDy tdy) {
   metadata_.method = tdy->method;
   metadata_.mode = tdy->mode;
-  metadata_.num_cells = tdy->mesh->num_cells;
+  metadata_.num_cells = TDyMeshGetNumberOfLocalCells(tdy->mesh);
   MPI_Comm_size(PETSC_COMM_WORLD, &metadata_.num_proc);
   return 0;
 }
