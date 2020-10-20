@@ -184,15 +184,20 @@ PetscErrorCode TDyFinalize() {
     // Add a footer to the profile CSV that contains useful metadata.
     FILE* f = fopen("tdycore_profile.csv", "a");
     fprintf(f, "METADATA\n");
-    fprintf(f, "Nx,Ny,Nz\n");
-    PetscInt Nx = 8, Ny = 8, Nz = 8, ierr;
+    fprintf(f, "Method,Mode,Nx,Ny,Nz\n");
+    PetscInt ierr;
+    char method_name[32];
+    ierr = PetscOptionsGetString(NULL, NULL, "-method_name", method_name, 32, NULL);
+    char mode_name[32];
+    ierr = PetscOptionsGetString(NULL, NULL, "-mode_name", mode_name, 32, NULL);
+    PetscInt Nx = 8, Ny = 8, Nz = 8;
     ierr = PetscOptionsGetInt(NULL, NULL, "-Nx", &Nx, NULL);
     CHKERRQ(ierr);
     ierr = PetscOptionsGetInt(NULL, NULL, "-Ny", &Ny, NULL);
     CHKERRQ(ierr);
     ierr = PetscOptionsGetInt(NULL, NULL, "-Nz", &Nz, NULL);
     CHKERRQ(ierr);
-    fprintf(f, "%d,%d,%d", Nx, Ny, Nz);
+    fprintf(f, "%s,%s,%d,%d,%d", method_name, mode_name, Nx, Ny, Nz);
     fclose(f);
   }
 
@@ -608,9 +613,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 
   ierr = TDyCreateGrid(tdy); CHKERRQ(ierr);
 
-  PetscFunctionReturn(0);
-}
-
 PetscErrorCode TDySetupDiscretizationScheme(TDy tdy) {
   MPI_Comm       comm;
   PetscErrorCode ierr;
@@ -679,6 +681,15 @@ PetscErrorCode TDySetMode(TDy tdy,TDyMode mode) {
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
   tdy->mode = mode;
+  PetscInt ierr;
+  switch (tdy->mode) {
+    case RICHARDS:
+      ierr = PetscOptionsSetValue(NULL, "-mode_name", "RICHARDS"); CHKERRQ(ierr);
+      break;
+    case TH:
+      ierr = PetscOptionsSetValue(NULL, "-mode_name", "TH"); CHKERRQ(ierr);
+      break;
+  }
   PetscFunctionReturn(0);
 }
 
