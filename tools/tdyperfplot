@@ -5,103 +5,136 @@
 
 import math
 import matplotlib.pyplot as plt
-import pandas as pd
 from optparse import OptionParser
 
 def usage():
     print('tdyperfplot: Usage:')
     print('tdyperfplot [options] <profile1.csv> <profile2.csv> ... <profileN.csv>\n')
     print('Options:')
-    print('  -e e1,e2,...,eN: Plot measurements for events e1..eN (default: plot total time)')
+    print('  -s stage: Plot measurements for a specific logging stage.')
     exit()
 
-def extract_metadata(prof_df):
-    md_row = None
-    md_names = None
-    md = {}
-    md_frame = prof_df.tail(3)
-    for i, s in md_frame.iterrows():
-        if s['Stage Name'] == 'METADATA':
-            md_row = i
-        elif md_row:
-            if not md_names:
-                md_names = []
-                names = s.to_list()
-                for name in names:
-                    md_names.append(name)
-            else:
-                mdata = s.to_list()
-                for i, val in enumerate(mdata):
-                    if not (isinstance(val, float) and math.isnan(val)):
-                        md[md_names[i]] = val
-    prof_df = prof_df[:-3]
-    return prof_df, md
+def parse_csv(csv_file):
+    import io, csv
+    with open(csv_file, 'r') as f:
+        data = csv.DictReader(f)
+        rows = [r for r in data]
+        return rows
 
-def plot_profiles(files, events):
-    labels = {}
-    times = {}      # time [s]
-    throughput = {} # throughput [# cells) / time]
+def extract_metadata(rows):
+    md_row = None
+    md = {}
+    for i, row in enumerate(rows):
+        if row['Stage Name'] == 'METADATA':
+            md_row = i
+    if not md_row:
+        raise RuntimeError('Invalid profile report!')
+    md_names = [v for v in rows[md_row+1].values() if v is not None]
+    for i, v in enumerate(rows[md_row+2].values()):
+        if v is not None:
+            md[md_names[i]] = v
+    rows = rows[:md_row]
+    return rows, md
+
+def plot_profiles(files, options):
+    stage = options.stage
+    all_data = {} # maps numbers of cells to datasets
+    colors = {}   # produces colors for mode+mœthod combination
 
     # Gather throughput data for the plot from the given files.
     for f in files:
-        # Read the profile into a dataframe.
-        prof = pd.read_csv(f)
+        prof = parse_csv(f)
         prof, md = extract_metadata(prof)
 
-        Nx, Ny, Nz = int(md['Nx']), int(md['Ny']), int(md['Nz'])
-        num_cells = Nx * Ny * Nz
-        if num_cells not in x:
-            times[num_cells] = []
-            throughput[num_cells] = []
-            labels[num_cells] = []
+        # Get the important metadata. We break the datasets into plots of
+        # different numbers of cells.
+        mode = md['Mode']
+        method = md['Method']
+        nproc = int(md['NumProc'])
+        ncells = int(md['NumCells'])
+        if ncells not in all_data:
+            all_data[ncells] = {}
 
-        # Extract the desired events.
-        if events and len(events) > 0:
-            for e in events:
-                t_e = prof.loc[prof['Event Name'] == e]['Time'].sum()
-                times[num_cells].append(t_e)
-                throughput[num_cells].append(num_cells/t_e)
-                labels[num_cells].append(e)
+        label = '%ѕ %s'%(mode, method)
+        if not label in colors:
+            colors[label] = [len(colors)]
+
+        if label not in all_data[ncells]:
+            d = {
+                'mode': mode,
+                'method': method,
+                'color': colors[label],
+                'size': [],
+                'x': [],
+                'y': [],
+            }
+            all_data[ncells] = d
+
+        # Extract the data.
+        if stage: # time for a particular stage
+            x = sum([r['Time'] for r in prof
+                     if r['Stage Name'] == stage
+                     and r['Event Name'] == 'summary'])
         else: # total time
-            t_tot = prof.loc[prof['Event Name'] == 'summary']['Time'].sum()
-            times[num_cells].append(t_tot)
-            throughput[num_cells].append(num_cells/t_tot)
-            labels[num_cells].append('Total')
+            x = sum([r['Time'] for r in prof
+                     if r['Event Name'] == 'summary'])
+        y = ncells/x
+        size = nproc
+        d = all_data[ncells]
+        d['x'].append(x)
+        d['y'].append(y)
+        d['size'].append(nproc)
 
-    # Plot the thing.
-    for nc in times.keys():
-        tp = throughput[nc]
-        t = times[nc]
-        label = 
-    data = {
-        'Time [s]': times,
-        'Throughput [cells / s]': throughput
-    }
-    df = pd.DataFrame(
-                     )
+    # Generate all the plots.
+    i = 0
+    for ncells, data in all_data.items():
+        if len(data) > 1:
+            if stage:
+                title = '%s Scaling'%stage
+            else:
+                title = 'TDycore Scaling'
+        else:
+            # Everything's running in the same mode, so strip it out of
+            # the labels and stick it into the title.
+            relabeled_data = {}
+            for label, series in data.values():
+                mode = series['mode']
+                if stage:
+                    title = '%s Scaling (%s)'%(stage, data['mode'])
+                else:
+                    title = 'TDycore Scaling (%s)'%data['mode']
+                new_label = label.replace('%s '%mode, '')
+                relabeled_data[new_label] = data[label]
+            data = relabeled_data
+        plt.figure(i)
+        plt.title(title)
+        plt.xlabel('Time [s]')
+        plt.ylabel('Throughput [# cells/s]')
+        for label, series in data.items():
+            plt.scatter(series['x'],
+                        series['y'],
+                        s=series['size'],
+                        c=series['color'],
+                        label=label)
+        i += 1
+
 def main():
     import sys
     if len(sys.argv) < 2:
         usage()
 
     parser = OptionParser()
-    parser.add_option("-e", "--events", dest="events", default=None,
-                      help="Events to plot")
+    parser.add_option("-s", "--stage", dest="stage", default=None,
+                      help="Logging stage for scaling study")
 
     options, args = parser.parse_args()
-    if options.events and ',' in options.events:
-        events = options.events.split(',')
-    elif options.events:
-        events = [options.events]
-    else:
-        events = []
     files = args
 
     if len(files) < 1:
       print("tdyperfplot: need at least one profile.")
       exit()
 
-    plot_profiles(files, events)
+    plot_profiles(files, options)
 
 if __name__ == '__main__':
     main()
