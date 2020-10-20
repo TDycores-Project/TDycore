@@ -66,32 +66,36 @@ PetscErrorCode TDyWriteTimingProfile(const char* filename) {
     PetscViewerDestroy(&log);
 
     // Add a footer to the profile CSV that contains useful metadata.
-    const char* method_name;
-    if (metadata_.method == TPF) {
-      method_name = "TPF";
-    } else if (metadata_.method == MPFA_O) {
-      method_name = "MPFA_O";
-    } else if (metadata_.method == MPFA_O_DAE) {
-      method_name = "MPFA_O_DAE";
-    } else if (metadata_.method == MPFA_O_TRANSIENTVAR) {
-      method_name = "MPFA_O_TRANSIENTVAR";
-    } else if (metadata_.method == BDM) {
-      method_name = "BDM";
-    } else { // (metadata_.method == BDM)
-      method_name = "WY";
+    int rank;
+    MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+    if (rank == 0) {
+      const char* method_name;
+      if (metadata_.method == TPF) {
+        method_name = "TPF";
+      } else if (metadata_.method == MPFA_O) {
+        method_name = "MPFA_O";
+      } else if (metadata_.method == MPFA_O_DAE) {
+        method_name = "MPFA_O_DAE";
+      } else if (metadata_.method == MPFA_O_TRANSIENTVAR) {
+        method_name = "MPFA_O_TRANSIENTVAR";
+      } else if (metadata_.method == BDM) {
+        method_name = "BDM";
+      } else { // (metadata_.method == BDM)
+        method_name = "WY";
+      }
+      const char* mode_name;
+      if (metadata_.mode == RICHARDS) {
+        mode_name = "RICHARDS";
+      } else { // (metadata_.mode == TH)
+        mode_name = "TH";
+      }
+      FILE* f = fopen("tdycore_profile.csv", "a");
+      fprintf(f, "METADATA\n");
+      fprintf(f, "Method,Mode,NumProc,NumCells\n");
+      fprintf(f, "%s,%s,%d,%d", method_name, mode_name,
+              metadata_.num_proc, metadata_.num_cells);
+      fclose(f);
     }
-    const char* mode_name;
-    if (metadata_.mode == RICHARDS) {
-      mode_name = "RICHARDS";
-    } else { // (metadata_.mode == TH)
-      mode_name = "TH";
-    }
-    FILE* f = fopen("tdycore_profile.csv", "a");
-    fprintf(f, "METADATA\n");
-    fprintf(f, "Method,Mode,NumProc,NumCells\n");
-    fprintf(f, "%s,%s,%d,%d", method_name, mode_name,
-            metadata_.num_proc, metadata_.num_cells);
-    fclose(f);
     return 0;
   }
   return 0;
