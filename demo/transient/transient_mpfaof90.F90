@@ -129,9 +129,7 @@ implicit none
     enddo
   enddo
 
-  call TDySetDM(dm, tdy, ierr);
-  CHKERRA(ierr);
-  call TDyAllocate(tdy, ierr);
+  call TDySetupDiscretization(dm, tdy, ierr);
   CHKERRA(ierr);
 
   call TDySetPorosityFunction(tdy,PorosityFunction,0,ierr);

@@ -23,13 +23,13 @@ module tdycore
      end subroutine TDyCreate
   end interface
   interface
-     subroutine TDySetDM(a,b,z)
+     subroutine TDySetupDiscretization(a,b,z)
        use petscdm
        use tdycoredef
        DM a
        TDy b
        integer z
-     end subroutine TDySetDM
+     end subroutine TDySetupDiscretization
   end interface
   interface
      subroutine TDySetDiscretizationMethod(a,b,z)

@@ -230,8 +230,7 @@ int main(int argc, char **argv) {
   // Setup problem parameters
   PetscReal gravity[3];
 
-  ierr = TDySetDM(dm,tdy); CHKERRQ(ierr);
-  ierr = TDyAllocate(tdy); CHKERRQ(ierr);
+  ierr = TDySetupDiscretization(dm,tdy); CHKERRQ(ierr);
   PetscInt dim;
   ierr = TDyGetDimension(tdy,&dim); CHKERRQ(ierr);
 

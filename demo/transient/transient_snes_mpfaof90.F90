@@ -237,9 +237,7 @@ implicit none
     enddo
   enddo
 
-  call TDySetDM(dm, tdy, ierr);
-  CHKERRA(ierr);
-  call TDyAllocate(tdy,ierr);
+  call TDySetupDiscretization(dm, tdy, ierr);
   CHKERRA(ierr);
 
   if (pflotran_consistent) then

@@ -176,8 +176,7 @@ int main(int argc, char **argv) {
     residualSat[c] = 0.115;
   }
 
-  ierr = TDySetDM(dm,tdy); CHKERRQ(ierr);
-  ierr = TDyAllocate(tdy); CHKERRQ(ierr);
+  ierr = TDySetupDiscretization(dm,tdy); CHKERRQ(ierr);
 
   /* Setup problem parameters */
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);

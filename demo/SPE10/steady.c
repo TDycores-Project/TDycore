@@ -146,8 +146,7 @@ int main(int argc, char **argv) {
   ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
 
   /* Setup problem parameters */
-  ierr = TDySetDM(dm,tdy); CHKERRQ(ierr);
-  ierr = TDyAllocate CHKERRQ(ierr);
+  ierr = TDySetupDiscretization(dm,tdy); CHKERRQ(ierr);
   ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   /* Compute system */

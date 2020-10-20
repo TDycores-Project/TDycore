@@ -12,7 +12,7 @@
 #define tdyinitnoarguments_                         TDYINITNOARGUMENTS
 #define tdyfinalize_                                TDYFINALIZE
 #define tdycreate_                                  TDYCREATE
-#define tdycreatesetdm_                             TDYSETDM
+#define tdycreatesetupdiscretization_               TDYSETUPDISCRETIZATION
 #define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
 #define tdyallocate_                                TDYALLOCATE
 #define tdysetup_                                   TDYSETUP
@@ -70,7 +70,7 @@
 #define tdyinitnoarguments_                         tdyinitnoarguments
 #define tdyfinalize_                                tdyfinalize
 #define tdycreate_                                  tdycreate
-#define tdysetdm_                                   tdysetdm
+#define tdysetupdiscretization_                     tdysetdiscretization
 #define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
 #define tdyallocate_                                tdyallocate
 #define tdysetup_                                   tdysetup
@@ -170,8 +170,8 @@ PETSC_EXTERN void  tdycreate_(TDy *_tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdysetdm_(DM dm,TDy *_tdy, int *__ierr){
-*__ierr = TDySetDM((DM)PetscToPointer((dm)), *_tdy);
+PETSC_EXTERN void  tdysetupdiscretization_(DM dm,TDy *_tdy, int *__ierr){
+*__ierr = TDySetupDiscretization((DM)PetscToPointer((dm)), *_tdy);
 }
 #if defined(__cplusplus)
 }

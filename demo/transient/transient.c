@@ -106,8 +106,7 @@ int main(int argc, char **argv) {
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
-  ierr = TDySetDM(dm,tdy); CHKERRQ(ierr);
-  ierr = TDyAllocate(tdy); CHKERRQ(ierr);
+  ierr = TDySetupDiscretization(dm,tdy); CHKERRQ(ierr);
 
   /* Setup problem parameters */
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);

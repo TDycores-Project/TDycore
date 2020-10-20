@@ -78,7 +78,7 @@ PETSC_EXTERN PetscErrorCode TDyInitNoArguments(void);
 PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 
 PETSC_EXTERN PetscErrorCode TDyCreate(TDy *tdy);
-PETSC_EXTERN PetscErrorCode TDySetDM(DM dm,TDy tdy);
+PETSC_EXTERN PetscErrorCode TDySetupDiscretization(DM dm,TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyAllocate(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyDestroy(TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyView(TDy tdy,PetscViewer viewer);

@@ -21,8 +21,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
 
   ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
   ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
-  ierr = TDySetDM(dm,tdy); CHKERRQ(ierr);
-  ierr = TDyAllocate(tdy); CHKERRQ(ierr);
+  ierr = TDySetupDiscretization(dm,tdy); CHKERRQ(ierr);
 
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);

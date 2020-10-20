@@ -180,9 +180,7 @@ program main
   CHKERRA(ierr);
   !call DMViewFromOptions(dm,PETSC_NULL_CHARACTER,'-dm_view',ierr); CHKERRA(ierr)
 
-  call TDySetDM(dm, tdy, ierr);
-  CHKERRA(ierr);
-  call TDyAllocate(tdy, ierr);
+  call TDySetupDiscretization(dm, tdy, ierr);
   CHKERRA(ierr);
 
   call TDySetPermeabilityFunction(tdy,PermeabilityFunction,0,ierr);

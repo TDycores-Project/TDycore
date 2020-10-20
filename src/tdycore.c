@@ -230,7 +230,11 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetDM(DM dm,TDy tdy) {
+PetscErrorCode TDySetupDiscretization(DM dm,TDy tdy) {
+  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,eStart,eEnd,offset,nc;
+  Vec            coordinates;
+  PetscSection   coordSection;
+  PetscScalar   *coords;
   PetscErrorCode ierr;
   PetscFunctionBegin;
   if ((tdy->setupflags & TDyOptionsSet) == 0) {
@@ -241,22 +245,6 @@ PetscErrorCode TDySetDM(DM dm,TDy tdy) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"A DM must be created prior to TDySetDM()");
   }
   tdy->dm = dm;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyAllocate(TDy tdy) {
-  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,c,cStart,cEnd,eStart,eEnd,
-                 offset,nc;
-  Vec            coordinates;
-  PetscSection   coordSection;
-  PetscScalar   *coords;
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  if ((tdy->setupflags & TDyOptionsSet) == 0) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDyAllocate()");
-  }
-
   /* compute/store plex geometry */
   PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
   TDyStartTimer(t1);
@@ -286,10 +274,23 @@ PetscErrorCode TDyAllocate(TDy tdy) {
   }
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
   TDyStopTimer(t1);
+  ierr = TDyAllocate(tdy); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyAllocate(TDy tdy) {
+  PetscInt       dim,c,cStart,cEnd,eStart,eEnd,nc;
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  if (!tdy->dm) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->dm must be set priot to TDyAllocate()");
+  }
 
   /* allocate space for a full tensor perm for each cell */
   PetscLogEvent t2 = TDyGetTimer("ComputePlexGeometry");
   TDyStartTimer(t2);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   nc   = cEnd-cStart;
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K0)); CHKERRQ(ierr);
@@ -326,7 +327,6 @@ PetscErrorCode TDyAllocate(TDy tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
   TDyStopTimer(t2);
-
 
   /* problem constants FIX: add mutators */
   for (c=0; c<nc; c++) {
