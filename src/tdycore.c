@@ -640,7 +640,8 @@ PetscErrorCode TDySetupNumericalMethods(TDy tdy) {
   TDyEnterProfilingStage("TDycore Setup");
   ierr = TDySetupDiscretizationScheme(tdy); CHKERRQ(ierr); 
   if (tdy->regression_testing) {
-    // should this be moved to TDyCreateGrid?
+    /* must come after Sections are set up in 
+       TDySetupDiscretizationScheme->XXXInitialize */
     ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
   }
   if (tdy->output_mesh) {
