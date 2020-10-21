@@ -143,8 +143,6 @@ implicit none
   CHKERRA(ierr);
   call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
   CHKERRA(ierr);
-  call TDySetFromOptions(tdy,ierr);
-  CHKERRA(ierr);
 
   nx = 1; ny = 1; nz = 15;
   dim = 3
@@ -237,7 +235,9 @@ implicit none
     enddo
   enddo
 
-  call TDySetupDiscretization(dm, tdy, ierr);
+  call TDySetDM(tdy, dm, ierr);
+  CHKERRA(ierr);
+  call TDySetFromOptions(tdy,ierr);
   CHKERRA(ierr);
 
   if (pflotran_consistent) then
@@ -275,7 +275,7 @@ implicit none
 
   end if
 
-  call TDySetup(tdy,ierr);
+  call TDySetupNumericalMethods(tdy,ierr);
   CHKERRA(ierr);
 
   call TDyCreateVectors(tdy,ierr); CHKERRA(ierr)

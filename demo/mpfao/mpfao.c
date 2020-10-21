@@ -206,6 +206,14 @@ int main(int argc, char **argv) {
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);
   ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+
+  /* Create and distribute the mesh */
+  DM dm;
+  ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
+  if (perturb) {ierr = PerturbInteriorVertices(dm,perturbation); CHKERRQ(ierr);}
+  ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
+  ierr = TDySetDM(tdy,dm); CHKERRQ(ierr);
+
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
@@ -221,16 +229,9 @@ int main(int argc, char **argv) {
                          successful_exit_code,&successful_exit_code,NULL);
    ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  /* Create and distribute the mesh */
-  DM dm;
-  ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
-  if (perturb) {ierr = PerturbInteriorVertices(dm,perturbation); CHKERRQ(ierr);}
-  ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
-
   // Setup problem parameters
   PetscReal gravity[3];
 
-  ierr = TDySetupDiscretization(dm,tdy); CHKERRQ(ierr);
   PetscInt dim;
   ierr = TDyGetDimension(tdy,&dim); CHKERRQ(ierr);
 
@@ -273,7 +274,7 @@ int main(int argc, char **argv) {
     ierr = TDySetDirichletFluxFunction(tdy,Velocity3D,NULL); CHKERRQ(ierr);
   }
 
-  ierr = TDySetup(tdy); CHKERRQ(ierr);
+  ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
 
   // Compute system
   Mat K;

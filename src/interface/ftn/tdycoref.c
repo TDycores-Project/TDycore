@@ -6,18 +6,15 @@
 
 #define PetscToPointer(a) (*(PetscFortranAddr *)(a))
 
-#include "tdycore.h"
-
 #ifdef PETSC_HAVE_FORTRAN_CAPS
 #define tdyinitnoarguments_                         TDYINITNOARGUMENTS
 #define tdyfinalize_                                TDYFINALIZE
 #define tdycreate_                                  TDYCREATE
-#define tdycreatesetupdiscretization_               TDYSETUPDISCRETIZATION
+#define tdycreatesetdm_                             TDYSETDM
+#define tdysetmode_                                 TDYSETMODE
 #define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
-#define tdyallocate_                                TDYALLOCATE
-#define tdysetup_                                   TDYSETUP
 #define tdysetfromoptions_                          TDYSETFROMOPTIONS
-#define tdysetupdiscretizationmethod_               TDYSETUPDISCRETIZATIONMETHOD
+#define tdysetupnumericalmethods_                   TDYSETUPNUMERICALMETHODS
 #define tdysetwaterdensitytype_                     TDYSETWATERDENSITYTYPE
 #define tdysetmpfaogmatrixmethod_                   TDYSETMPFAOGMATRIXMETHOD
 #define tdysetmpfaoboundaryconditiontype_           TDYSETMPFAOGBOUNDARYCONDITIONTYPE
@@ -70,12 +67,11 @@
 #define tdyinitnoarguments_                         tdyinitnoarguments
 #define tdyfinalize_                                tdyfinalize
 #define tdycreate_                                  tdycreate
-#define tdysetupdiscretization_                     tdysetdiscretization
+#define tdysetdm_                                   tdysetdm
+#define tdysetmode_                                 tdysetmode
 #define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
-#define tdyallocate_                                tdyallocate
-#define tdysetup_                                   tdysetup
 #define tdysetfromoptions_                          tdysetfromoptions
-#define tdysetupdiscretizationmethod_               tdysetupdiscretizationmethod
+#define tdysetupnumericalmethods_                   tdysetupnumericalmethods
 #define tdysetwaterdensitytype_                     tdysetwaterdensitytype
 #define tdysetmpfaogmatrixmethod_                   tdysetmpfaogmatrixmethod
 #define tdysetmpfaoboundaryconditiontype_           tdysetmpfaoboundaryconditiontype
@@ -170,8 +166,17 @@ PETSC_EXTERN void  tdycreate_(TDy *_tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdysetupdiscretization_(DM dm,TDy *_tdy, int *__ierr){
-*__ierr = TDySetupDiscretization((DM)PetscToPointer((dm)), *_tdy);
+PETSC_EXTERN void  tdysetmode_(TDy _tdy, PetscInt *mode, int *__ierr){
+*__ierr = TDySetMode((TDy)PetscToPointer((_tdy)), *mode);
+}
+#if defined(__cplusplus)
+}
+#endif
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdysetdiscretizationmethod_(TDy _tdy, PetscInt *method, int *__ierr){
+*__ierr = TDySetDiscretizationMethod((TDy)PetscToPointer((_tdy)), *method);
 }
 #if defined(__cplusplus)
 }
@@ -180,18 +185,8 @@ PETSC_EXTERN void  tdysetupdiscretization_(DM dm,TDy *_tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdysetdiscretizationmethod_(TDy tdy, PetscInt *method, int *__ierr){
-*__ierr = TDySetDiscretizationMethod((TDy)PetscToPointer((tdy)), *method);
-}
-#if defined(__cplusplus)
-}
-#endif
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-PETSC_EXTERN void  tdysetupdiscretizationmethod_(TDy tdy, int *__ierr){
-*__ierr = TDySetupDiscretizationMethod((TDy)PetscToPointer((tdy)));
+PETSC_EXTERN void  tdysetdm_(TDy _tdy, DM dm, int *__ierr){
+*__ierr = TDySetDM((TDy)PetscToPointer((_tdy)), (DM)PetscToPointer((dm)));
 }
 #if defined(__cplusplus)
 }
@@ -210,18 +205,8 @@ PETSC_EXTERN void  tdysetfromoptions_(TDy tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdyallocate_(TDy tdy, int *__ierr){
-*__ierr = TDyAllocate((TDy)PetscToPointer((tdy)));
-}
-#if defined(__cplusplus)
-}
-#endif
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-PETSC_EXTERN void  tdysetup_(TDy tdy, int *__ierr){
-*__ierr = TDySetup((TDy)PetscToPointer((tdy)));
+PETSC_EXTERN void  tdysetupnumericalmethods_(TDy _tdy, int *__ierr){
+*__ierr = TDySetupNumericalMethods((TDy)PetscToPointer((_tdy)));
 }
 #if defined(__cplusplus)
 }

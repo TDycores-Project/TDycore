@@ -230,61 +230,23 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetupDiscretization(DM dm,TDy tdy) {
-  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,eStart,eEnd,offset,nc;
-  Vec            coordinates;
-  PetscSection   coordSection;
-  PetscScalar   *coords;
+PetscErrorCode TDySetDM(TDy tdy, DM dm) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  if ((tdy->setupflags & TDyOptionsSet) == 0) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetDM()");
-  }
-
   if (!dm) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"A DM must be created prior to TDySetDM()");
   }
   tdy->dm = dm;
-  /* compute/store plex geometry */
-  PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
-  TDyStartTimer(t1);
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
-  ierr = DMPlexGetChart(tdy->dm,&pStart,&pEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(tdy->dm,0,&vStart,&vEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(tdy->dm,1,&eStart,&eEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(tdy->V));
-  CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->X));
-  CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->N));
-  CHKERRQ(ierr);
-  ierr = DMGetCoordinateSection(tdy->dm, &coordSection); CHKERRQ(ierr);
-  ierr = DMGetCoordinatesLocal (tdy->dm, &coordinates); CHKERRQ(ierr);
-  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
-  for(p=pStart; p<pEnd; p++) {
-    if((p >= vStart) && (p < vEnd)) {
-      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
-      for(d=0; d<dim; d++) tdy->X[p*dim+d] = coords[offset+d];
-    } else {
-      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
-      ierr = DMPlexComputeCellGeometryFVM(tdy->dm,p,&(tdy->V[p]),
-                                          &(tdy->X[p*dim]),
-                                          &(tdy->N[p*dim])); CHKERRQ(ierr);
-    }
-  }
-  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
-  TDyStopTimer(t1);
-  ierr = TDyAllocate(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyAllocate(TDy tdy) {
+PetscErrorCode TDyMalloc(TDy tdy) {
   PetscInt       dim,c,cStart,cEnd,eStart,eEnd,nc;
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
   if (!tdy->dm) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->dm must be set priot to TDyAllocate()");
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->dm must be set prior to TDyMalloc()");
   }
 
   /* allocate space for a full tensor perm for each cell */
@@ -360,6 +322,57 @@ PetscErrorCode TDyAllocate(TDy tdy) {
     tdy->dvis_dT[c] = 0.0;
   }
   tdy->gravity[dim-1] = -9.81;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyCreateGrid(TDy tdy) {
+  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,eStart,eEnd,offset,nc;
+  Vec            coordinates;
+  PetscSection   coordSection;
+  PetscScalar   *coords;
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  if ((tdy->setupflags & TDyOptionsSet) == 0) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Options must be set prior to TDyCreateGrid()");
+  }
+
+  if (!tdy->dm) {
+    DM dm;
+    ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
+    ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
+    tdy->dm = dm;
+  }
+
+  /* compute/store plex geometry */
+  PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
+  TDyStartTimer(t1);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  ierr = DMPlexGetChart(tdy->dm,&pStart,&pEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(tdy->dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(tdy->dm,1,&eStart,&eEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(tdy->V));
+  CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->X));
+  CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->N));
+  CHKERRQ(ierr);
+  ierr = DMGetCoordinateSection(tdy->dm, &coordSection); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal (tdy->dm, &coordinates); CHKERRQ(ierr);
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  for(p=pStart; p<pEnd; p++) {
+    if((p >= vStart) && (p < vEnd)) {
+      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
+      for(d=0; d<dim; d++) tdy->X[p*dim+d] = coords[offset+d];
+    } else {
+      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
+      ierr = DMPlexComputeCellGeometryFVM(tdy->dm,p,&(tdy->V[p]),
+                                          &(tdy->X[p*dim]),
+                                          &(tdy->N[p*dim])); CHKERRQ(ierr);
+    }
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+  TDyStopTimer(t1);
+  ierr = TDyMalloc(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -512,7 +525,7 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
 }
 
 PetscErrorCode TDySetFromOptions(TDy tdy) {
-  // must preceed TDySetup() as it sets options used in TDySetup()
+  // must preceed TDySetupNumericalMethods() as it sets options used in TDySetupNumericalMethods()
   PetscErrorCode ierr;
   PetscBool flg;
   TDyMethod method = WY;
@@ -523,7 +536,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   TDyMPFAOBoundaryConditionType bctype = MPFAO_DIRICHLET_BC;
   PetscFunctionBegin;
   if ((tdy->setupflags & TDySetupFinished) != 0) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetup()");
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetupNumericalMethods()");
   }
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   ierr = PetscObjectOptionsBegin((PetscObject)tdy); CHKERRQ(ierr);
@@ -580,43 +593,13 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   tdy->setupflags |= TDyOptionsSet;
+
+  ierr = TDyCreateGrid(tdy); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetup(TDy tdy) {
-  /* must follow TDySetFromOptions() is it relies upon options set by 
-     TDySetFromOptions */
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  if ((tdy->setupflags & TDyOptionsSet) == 0) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetup()");
-  }
-  TDY_START_FUNCTION_TIMER()
-  TDyEnterProfilingStage("TDycore Setup");
-  ierr = TDySetupDiscretizationMethod(tdy); CHKERRQ(ierr); 
-  if (tdy->regression_testing) {
-    ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
-  }
-  if (tdy->output_mesh) {
-    if (tdy->method != MPFA_O) {
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
-              "-tdy_output_mesh only supported for MPFA-O method");
-    }
-    ierr = TDyOutputMesh(tdy); CHKERRQ(ierr);
-  }
-  TDyExitProfilingStage("TDycore Setup");
-  tdy->setupflags |= TDySetupFinished;
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
-  PetscFunctionBegin;
-  tdy->method = method;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetupDiscretizationMethod(TDy tdy) {
+PetscErrorCode TDySetupDiscretizationScheme(TDy tdy) {
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscValidPointer(tdy,1);
@@ -642,6 +625,40 @@ PetscErrorCode TDySetupDiscretizationMethod(TDy tdy) {
     ierr = TDyWYInitialize(tdy); CHKERRQ(ierr);
     break;
   }
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetupNumericalMethods(TDy tdy) {
+  /* must follow TDySetFromOptions() is it relies upon options set by 
+     TDySetFromOptions */
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  if ((tdy->setupflags & TDyOptionsSet) == 0) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetupNumericalMethods()");
+  }
+  TDY_START_FUNCTION_TIMER()
+  TDyEnterProfilingStage("TDycore Setup");
+  ierr = TDySetupDiscretizationScheme(tdy); CHKERRQ(ierr); 
+  if (tdy->regression_testing) {
+    // should this be moved to TDyCreateGrid?
+    ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
+  }
+  if (tdy->output_mesh) {
+    if (tdy->method != MPFA_O) {
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+              "-tdy_output_mesh only supported for MPFA-O method");
+    }
+    ierr = TDyOutputMesh(tdy); CHKERRQ(ierr);
+  }
+  TDyExitProfilingStage("TDycore Setup");
+  tdy->setupflags |= TDySetupFinished;
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
+  PetscFunctionBegin;
+  tdy->method = method;
   PetscFunctionReturn(0);
 }
 

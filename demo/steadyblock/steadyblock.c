@@ -97,7 +97,6 @@ int main(int argc, char **argv) {
   TDy  tdy;
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,TPF); CHKERRQ(ierr);
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   strcpy(string,"tdycore.in");
 
@@ -144,7 +143,8 @@ int main(int argc, char **argv) {
   if (dmDist) {DMDestroy(&dm); dm = dmDist;}
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
-  ierr = TDySetupDiscretization(dm,tdy); CHKERRQ(ierr);
+  ierr = TDySetDM(tdy,dm); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   /* Setup problem parameters */
   printf("Creating TDycore.\n");
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  ierr = TDySetup(tdy); CHKERRQ(ierr);
+  ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
 
   /* Compute system */
   Mat K;

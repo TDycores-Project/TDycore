@@ -77,7 +77,6 @@ int main(int argc, char **argv) {
   TDy  tdy;
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,
 			   "Transient Options",""); CHKERRQ(ierr);
@@ -122,7 +121,8 @@ int main(int argc, char **argv) {
     residualSat[c] = 0.115;
   }
 
-  ierr = TDySetupDiscretization(dm,tdy); CHKERRQ(ierr);
+  ierr = TDySetDM(tdy,dm); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   /* Setup problem parameters */
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
@@ -132,7 +132,7 @@ int main(int argc, char **argv) {
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
   //ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
 
-  ierr = TDySetup(tdy); CHKERRQ(ierr);
+  ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
 
   /* Setup initial condition */
   Vec U;

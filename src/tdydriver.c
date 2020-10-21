@@ -19,10 +19,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   SNES snes;
   SNESLineSearch linesearch;
 
-  ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
-  ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
-  ierr = TDySetupDiscretization(dm,tdy); CHKERRQ(ierr);
-
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   if (dim != 3) {
@@ -55,7 +51,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     ierr = TDySetSpecificHeatCapacity(tdy,TDySpecificHeatCapacityFunctionDefault); CHKERRQ(ierr);
   }
 
-  ierr = TDySetup(tdy); CHKERRQ(ierr);
+  ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
 
   ierr = TDyTimeIntegratorCreate(&tdy->ti); CHKERRQ(ierr);
   ierr = TDyCreateVectors(tdy); CHKERRQ(ierr);

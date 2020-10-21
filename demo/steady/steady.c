@@ -566,7 +566,6 @@ int main(int argc, char **argv) {
   TDy  tdy;
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL); CHKERRQ(ierr);
@@ -629,7 +628,8 @@ int main(int argc, char **argv) {
   ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
-  ierr = TDySetupDiscretization(dm,tdy); CHKERRQ(ierr);
+  ierr = TDySetDM(tdy,dm); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   /* Setup problem parameters */
   if(wheeler2006){
@@ -736,7 +736,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  ierr = TDySetup(tdy); CHKERRQ(ierr);
+  ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
 
   /* Compute system */
   Mat K;
