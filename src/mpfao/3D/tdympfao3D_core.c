@@ -8,6 +8,7 @@
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
+#include <private/tdymeshutilsimpl.h>
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyComputeEntryOfGMatrix3D(PetscReal area, PetscReal n[3],
@@ -110,9 +111,47 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
 
           case MPFAO_GMATRIX_TPF:
             if (ii == jj) {
+              /*
               ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
               ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
                                          &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+              */
+
+              PetscInt neighbor_cell_id;
+              PetscReal neighbor_cell_cen[dim],cell_cen[dim], dist;
+
+              PetscInt faceCellOffset = faces->cell_offset[face_id];
+
+              ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen[0]); CHKERRQ(ierr);
+
+              if ( (faces->cell_ids[faceCellOffset]==icell) ) {
+                neighbor_cell_id = faces->cell_ids[faceCellOffset+1];
+              } else {
+                neighbor_cell_id = faces->cell_ids[faceCellOffset];
+              }
+
+              PetscReal K_neighbor[3][3];
+
+              if (neighbor_cell_id >=0) {
+                ierr = TDyCell_GetCentroid2(cells, neighbor_cell_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
+                ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
+                dist *= 0.50;
+              } else {
+                ierr = TDyFace_GetCentroid(faces, face_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
+                ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
+              }
+              PetscReal K_neighbor_value = 0.0, K_value = 0.0, K_aveg;
+
+              PetscInt kk;
+              for (kk=0;kk<dim;kk++) K_neighbor_value += K_neighbor[kk][kk] * pow(normal[kk],2.0);
+              for (kk=0;kk<dim;kk++) K_value          += K[kk][kk]          * pow(normal[kk],2.0);
+              K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
+
+              PetscReal dot_prod, normal_up2dn[dim];
+              ierr = TDyUnitNormalVectorJoiningTwoVertices(neighbor_cell_cen, cell_cen, normal_up2dn); CHKERRQ(ierr);
+              ierr = TDyDotProduct(normal,normal_up2dn,&dot_prod); CHKERRQ(ierr);
+              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist/2.0);
+
             } else {
               tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
             }
@@ -614,7 +653,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   }
 
   // Solve A^-1 * B
-  ierr = ComputeAinvB(nflux_in + nflux_neu_bc_all, AINBCxINBC_1d, npcen+npitf_dir_bc_all, BINBCxCDBC_1d, AinvB_1d);
+  ierr = ComputeAinvB(nflux_in + nflux_neu_bc_all, AINBCxINBC_1d, npcen+npitf_dir_bc_all, BINBCxCDBC_1d, AinvB_1d); CHKERRQ(ierr);
 
   // Solve C * (A^-1 * B) for internal, upwind, and downwind fluxes
   ierr = ComputeCtimesAinvB(
