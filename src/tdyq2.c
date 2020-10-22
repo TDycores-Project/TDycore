@@ -288,8 +288,8 @@ static PetscErrorCode TDyQ2ApplyResidual(DM dm, Vec U, Vec F, void *dummy)
 }
 
 void PermTest2D(const double *x,double *K) {
-  K[0] = 5; K[1] = 1;
-  K[2] = 1; K[3] = 3;
+  K[0] = 1; K[1] = 0;
+  K[2] = 0; K[3] = 1;
 }
 
 void PermTest3D(const double *x,double *K) {
@@ -384,7 +384,6 @@ PetscErrorCode TDyQ2ComputeSystem(TDy tdy,Mat K,Vec F) {
   }
   PetscFunctionReturn(0);
 }
-
 
 PetscReal TDyQ2PressureNorm(TDy tdy,Vec U) {
   PetscFunctionBegin;
