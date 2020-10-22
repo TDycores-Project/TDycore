@@ -268,8 +268,8 @@ PetscErrorCode Forcing3(TDy tdy,double *x,double *f,void *ctx) {
 /*--- -dim 2 -quartic ---------------------------------------------------------------*/
 // p = x (1-x) y (1-y), gradp = [(1-2x)y(1-y),x(1-x)(1-2y)]
 void PermQuartic2D(double *x,double *K) {
-  K[0] = 3; K[1] = 0;
-  K[2] = 0; K[3] = 3;
+  K[0] = 1; K[1] = 0;
+  K[2] = 0; K[3] = 1;
 }
 // p =x(1-x)y(1-y)
 PetscErrorCode PressureQuartic(TDy tdy, double *x, double *p, void *ctx) {
@@ -799,7 +799,7 @@ int main(int argc, char **argv) {
   ierr = PetscObjectSetName((PetscObject)U,"Solution");CHKERRQ(ierr);
   ierr = DMView(dm,viewer);CHKERRQ(ierr);
   ierr = VecView(U,viewer);CHKERRQ(ierr); // the approximate solution
-  if (0) {
+  if (1) {
   ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F);
   ierr = PetscObjectSetName((PetscObject)F,"Residual");CHKERRQ(ierr);
   ierr = VecView(F,viewer); CHKERRQ(ierr); // the residual K*Ue-F
