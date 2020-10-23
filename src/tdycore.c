@@ -619,15 +619,6 @@ PetscErrorCode TDySetMode(TDy tdy,TDyMode mode) {
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
   tdy->mode = mode;
-  PetscInt ierr;
-  switch (tdy->mode) {
-    case RICHARDS:
-      ierr = PetscOptionsSetValue(NULL, "-mode_name", "RICHARDS"); CHKERRQ(ierr);
-      break;
-    case TH:
-      ierr = PetscOptionsSetValue(NULL, "-mode_name", "TH"); CHKERRQ(ierr);
-      break;
-  }
   PetscFunctionReturn(0);
 }
 
