@@ -131,26 +131,40 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
               }
 
               PetscReal K_neighbor[3][3];
+              PetscInt kk,mm;
 
               if (neighbor_cell_id >=0) {
                 ierr = TDyCell_GetCentroid2(cells, neighbor_cell_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
                 ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
                 dist *= 0.50;
+
+                for (kk=0; kk<dim; kk++) {
+                  for (mm=0; mm<dim; mm++) {
+                    K_neighbor[kk][mm] = tdy->K0[neighbor_cell_id*dim*dim + kk*dim + mm];
+                  }
+                }
               } else {
                 ierr = TDyFace_GetCentroid(faces, face_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
                 ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
+                for (kk=0; kk<dim; kk++) {
+                  for (mm=0; mm<dim; mm++) {
+                    K_neighbor[kk][mm] = tdy->K0[icell*dim*dim + kk*dim + mm];
+                  }
+                }
               }
               PetscReal K_neighbor_value = 0.0, K_value = 0.0, K_aveg;
-
-              PetscInt kk;
-              for (kk=0;kk<dim;kk++) K_neighbor_value += K_neighbor[kk][kk] * pow(normal[kk],2.0);
-              for (kk=0;kk<dim;kk++) K_value          += K[kk][kk]          * pow(normal[kk],2.0);
-              K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
 
               PetscReal dot_prod, normal_up2dn[dim];
               ierr = TDyUnitNormalVectorJoiningTwoVertices(neighbor_cell_cen, cell_cen, normal_up2dn); CHKERRQ(ierr);
               ierr = TDyDotProduct(normal,normal_up2dn,&dot_prod); CHKERRQ(ierr);
-              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist/2.0);
+
+              for (kk=0;kk<dim;kk++) K_neighbor_value += pow(normal_up2dn[kk],2.0)/K_neighbor[kk][kk];
+              for (kk=0;kk<dim;kk++) K_value          += pow(normal_up2dn[kk],2.0)/K[kk][kk];
+              K_neighbor_value = 1.0/K_neighbor_value;
+              K_value = 1.0/K_value;
+              K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
+
+              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist)*2.0;
 
             } else {
               tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
