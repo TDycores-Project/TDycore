@@ -118,7 +118,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
                  ti->istep,ti->time,ti->dt,nit,lit,
                  SNESConvergedReasons[reason]);
         if (tdy->io->print_intermediate) {
-          ierr = TDyIOPrintVec(tdy->solution,"soln",ti->istep); 
+          ierr = TDyIOWriteVec(tdy); 
           CHKERRQ(ierr);
         }
         ierr = TDyTimeIntegratorUpdateDT(ti,sync_time); CHKERRQ(ierr);
@@ -130,6 +130,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
       ierr = TSSetTimeStep(ti->ts,ti->dt_init); CHKERRQ(ierr);
       ierr = TSSetMaxTime(ti->ts,delta_time); CHKERRQ(ierr);
       ierr = TSSolve(ti->ts,tdy->solution); CHKERRQ(ierr);
+      ierr = TSGetTime(ti->ts,&ti->time); CHKERRQ(ierr);
       break;
   }
 

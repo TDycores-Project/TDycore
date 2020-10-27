@@ -500,6 +500,22 @@ PetscErrorCode TDySavePetscVecAsBinary(Vec vec, const char filename[]) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDySavePetscMatAsBinary(Mat M, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE,
+                               &viewer); CHKERRQ(ierr);
+  ierr = MatView(M, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode ExtractSubVectors(Vec A, PetscInt stride, Vec *Asub) {
 
   PetscInt local_size, block_size;

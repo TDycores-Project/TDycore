@@ -33,11 +33,11 @@ module tdycore
      end subroutine TDySetDiscretizationMethod
   end interface
   interface
-     subroutine TDySetup(a,z)
+     subroutine TDySetupDiscretizationMethod(a,z)
        use tdycoredef
        TDy a
        integer z
-     end subroutine TDySetup
+     end subroutine TDySetupDiscretizationMethod
   end interface
   interface
      subroutine TDySetFromOptions(a,z)
@@ -45,6 +45,13 @@ module tdycore
        TDy a
        integer z
      end subroutine TDySetFromOptions
+  end interface
+  interface
+     subroutine TDySetup(a,z)
+       use tdycoredef
+       TDy a
+       integer z
+     end subroutine TDySetup
   end interface
   interface
      subroutine TDyComputeSystem(a,b,c,z)
@@ -355,13 +362,13 @@ module tdycore
   end interface
 
   interface
-     subroutine TDySetInitialSolutionForSNESSolver(a,b,z)
+     subroutine TDySetPreviousSolutionForSNESSolver(a,b,z)
        use tdycoredef
        use petscvec
        TDy a
        Vec b
        integer z
-     end subroutine TDySetInitialSolutionForSNESSolver
+     end subroutine TDySetPreviousSolutionForSNESSolver
   end interface
 
   interface

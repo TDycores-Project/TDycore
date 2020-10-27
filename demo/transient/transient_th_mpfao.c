@@ -186,6 +186,7 @@ int main(int argc, char **argv) {
   //ierr = TDySetTemperatureDirichletValueFunction(tdy,Temperature,NULL); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+  ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   PetscSection   sec;
   PetscInt num_fields;

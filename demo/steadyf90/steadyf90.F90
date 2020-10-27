@@ -189,6 +189,8 @@ program main
   CHKERRA(ierr);
   call TDySetFromOptions(tdy, ierr);
   CHKERRA(ierr);
+  call TDySetup(tdy, ierr);
+  CHKERRA(ierr);
 
 
   call DMCreateGlobalVector(dm,U,ierr);

@@ -388,9 +388,8 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     ierr = PetscSectionSetFieldComponents(sec, 1, 1); CHKERRQ(ierr);
   }
 
-  ierr = DMPlexGetChart(dm, &pStart, &pEnd); CHKERRQ(ierr);
-  ierr = PetscSectionSetChart(sec,pStart,pEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&pStart,&pEnd); CHKERRQ(ierr);
+  ierr = PetscSectionSetChart(sec,pStart,pEnd); CHKERRQ(ierr);
   for(p=pStart; p<pEnd; p++) {
     ierr = PetscSectionSetFieldDof(sec,p,0,1); CHKERRQ(ierr);
     ierr = PetscSectionSetDof(sec,p,1); CHKERRQ(ierr);
@@ -439,10 +438,15 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     }
   }
 
+  if (tdy->ops->computeporosity) { ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr); }
   if (tdy->ops->computepermeability) {ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
   if (tdy->mode == TH){
     if (tdy->ops->computethermalconductivity) {ierr = SetThermalConductivityFromFunction(tdy); CHKERRQ(ierr);}
   }
+
+  // why must these be placed after SetPermeabilityFromFunction()?
+  ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
+  ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
 
   if (dim == 3) {
     ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
@@ -464,9 +468,6 @@ PetscErrorCode TDyMPFAOSetup(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
-  PetscLogStage stages[1];
-  PetscClassId mpfaoId;
-  PetscLogEvent eventGMatrix, eventTMatrix;
 
   ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
   ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);

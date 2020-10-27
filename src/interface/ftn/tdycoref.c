@@ -15,6 +15,8 @@
 #define tdycreatewithdm_                            TDYCREATEWITHDM
 #define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
 #define tdysetup_                                   TDYSETUP
+#define tdysetfromoptions_                          TDYSETFROMOPTIONS
+#define tdysetupdiscretizationmethod_               TDYSETUPDISCRETIZATIONMETHOD
 #define tdysetwaterdensitytype_                     TDYSETWATERDENSITYTYPE
 #define tdysetmpfaogmatrixmethod_                   TDYSETMPFAOGMATRIXMETHOD
 #define tdysetmpfaoboundaryconditiontype_           TDYSETMPFAOGBOUNDARYCONDITIONTYPE
@@ -25,10 +27,9 @@
 #define tdycreatevectors_                           TDYCREATEVECTORS
 #define tdycreatejacobian_                          TDYCREATEJACOBIAN
 #define tdysetdtimeforsnessolver_                   TDYSETDTIMEFORSNESSOLVER
-#define tdysetinitialsolutionforsnessolver_         TDYSETINITIALSOLUTIONFORSNESSOLVER
+#define tdysetprevioussolutionforsnessolver_        TDYSETPREVIOUSSOLUTIONFORSNESSOLVER
 #define tdypresolvesnessolver_                      TDYSETPRESOLVESNESSOLVER
 #define tdypostsolvesnessolver_                     TDYSETPOSTSOLVESNESSOLVER
-#define tdysetfromoption_                           TDYSETFROMOPTIONS
 #define tdycomputesystem_                           TDYCOMPUTESYSTEM
 #define tdycomputeerrornorms_                       TDYCOMPUTEERRORNORMS
 #define tdysetporosityfunction_                     TDYSETPOROSITYFUNCTION
@@ -71,6 +72,8 @@
 #define tdycreatewithdm_                            tdycreatewithdm
 #define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
 #define tdysetup_                                   tdysetup
+#define tdysetfromoptions_                          tdysetfromoptions
+#define tdysetupdiscretizationmethod_               tdysetupdiscretizationmethod
 #define tdysetwaterdensitytype_                     tdysetwaterdensitytype
 #define tdysetmpfaogmatrixmethod_                   tdysetmpfaogmatrixmethod
 #define tdysetmpfaoboundaryconditiontype_           tdysetmpfaoboundaryconditiontype
@@ -81,10 +84,9 @@
 #define tdycreatevectors_                           tdycreatevectors
 #define tdycreatejacobian_                          tdycreatejacobian
 #define tdysetdtimeforsnessolver_                   tdysetdtimeforsnessolver
-#define tdysetinitialsolutionforsnessolver_         tdysetinitialsolutionforsnessolver
+#define tdysetprevioussolutionforsnessolver_        tdysetprevioussolutionforsnessolver
 #define tdypresolvesnessolver_                      tdypresolvesnessolver
 #define tdypostsolvesnessolver_                     tdypostsolvesnessolver
-#define tdysetfromoptions_                          tdysetfromoptions
 #define tdycomputesystem_                           tdycomputesystem
 #define tdycomputeerrornorms_                       tdycomputeerrornorms
 #define tdysetporosityfunction_                     tdysetporosityfunction
@@ -186,8 +188,28 @@ PETSC_EXTERN void  tdysetdiscretizationmethod_(TDy tdy, PetscInt *method, int *_
 #if defined(__cplusplus)
 extern "C" {
 #endif
+PETSC_EXTERN void  tdysetupdiscretizationmethod_(TDy tdy, int *__ierr){
+*__ierr = TDySetupDiscretizationMethod((TDy)PetscToPointer((tdy)));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdysetfromoptions_(TDy tdy, int *__ierr){
+*__ierr = TDySetFromOptions((TDy)PetscToPointer((tdy)));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 PETSC_EXTERN void  tdysetup_(TDy tdy, int *__ierr){
-*__ierr = TDySetup((TDy)PetscToPointer((tdy)) );
+*__ierr = TDySetup((TDy)PetscToPointer((tdy)));
 }
 #if defined(__cplusplus)
 }
@@ -284,8 +306,8 @@ PETSC_EXTERN void  tdysetdtimeforsnessolver_(TDy tdy, PetscReal *dtime, int *__i
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdysetinitialsolutionforsnessolver_(TDy tdy, Vec solution, int *__ierr){
-*__ierr = TDySetInitialSolutionForSNESSolver(
+PETSC_EXTERN void  tdysetprevioussolutionforsnessolver_(TDy tdy, Vec solution, int *__ierr){
+*__ierr = TDySetPreviousSolutionForSNESSolver(
   (TDy)PetscToPointer(tdy),
   (Vec)PetscToPointer(solution));
 }
@@ -310,16 +332,6 @@ PETSC_EXTERN void  tdypostsolvesnessolver_(TDy tdy, Vec solution, int *__ierr){
 *__ierr = TDyPostSolveSNESSolver(
   (TDy)PetscToPointer(tdy),
   (Vec)PetscToPointer(solution));
-}
-#if defined(__cplusplus)
-}
-#endif
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-PETSC_EXTERN void  tdysetfromoptions_(TDy tdy, int *__ierr){
-*__ierr = TDySetFromOptions((TDy)PetscToPointer((tdy)));
 }
 #if defined(__cplusplus)
 }

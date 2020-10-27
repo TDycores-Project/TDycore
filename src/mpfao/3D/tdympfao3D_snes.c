@@ -168,7 +168,7 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
 
   dm = tdy->dm;
 
-  ierr = MatZeroEntries(A); CHKERRQ(ierr);
+  ierr = MatZeroEntries(B); CHKERRQ(ierr);
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm,&Udotl); CHKERRQ(ierr);
@@ -176,7 +176,7 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
   ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
 
-  ierr = TDyMPFAOIJacobian_Vertices_3DMesh(Ul, A, ctx);
+  ierr = TDyMPFAOIJacobian_Vertices_3DMesh(Ul, B, ctx);
 
   PetscReal dtInv = 1.0/tdy->dtime;
 
@@ -196,15 +196,15 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
                tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dP[icell];
     Jac = dmass_dP * cells->volume[icell] * dtInv;
 
-    ierr = MatSetValuesLocal(A,1,&icell,1,&icell,&Jac,ADD_VALUES);CHKERRQ(ierr);
+    ierr = MatSetValuesLocal(B,1,&icell,1,&icell,&Jac,ADD_VALUES);CHKERRQ(ierr);
   }
 
-  ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  ierr = MatAssemblyBegin(B,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(B,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
   if (A !=B ) {
-    ierr = MatAssemblyBegin(B,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-    ierr = MatAssemblyEnd(B,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
 
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
@@ -213,9 +213,8 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
 #if defined(DEBUG)
   PetscViewer viewer;
   char word[32];
-  sprintf(word,"Jacobian%d.vec",icount_j);
+  sprintf(word,"Jacobian%d.mat",icount_j);
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Jacobian.mat",&viewer); CHKERRQ(ierr);
   ierr = MatView(A,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   icount_j++;

@@ -316,6 +316,10 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
       else               den += tdy->rho_BND[-cell_id_dn-1];
       den *= 0.5;
 
+      if ( tdy->mpfao_gmatrix_method == MPFAO_GMATRIX_TPF &&
+           (cell_id_up<0 || cell_id_dn <0))
+        continue;
+
       // If one of the cell is on the boundary
       if (cell_id_up<0) cell_id_up = cell_id_dn;
       if (cell_id_dn<0) cell_id_dn = cell_id_up;
@@ -630,7 +634,7 @@ PetscErrorCode TDyMPFAOIJacobian_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,PetscRea
 
   dm = tdy->dm;
 
-  ierr = MatZeroEntries(A); CHKERRQ(ierr);
+  ierr = MatZeroEntries(B); CHKERRQ(ierr);
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm,&Udotl); CHKERRQ(ierr);
@@ -640,13 +644,13 @@ PetscErrorCode TDyMPFAOIJacobian_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,PetscRea
   ierr = DMGlobalToLocalBegin(dm,U_t,INSERT_VALUES,Udotl); CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd  (dm,U_t,INSERT_VALUES,Udotl); CHKERRQ(ierr);
 
-  ierr = TDyMPFAOIJacobian_Vertices_3DMesh(Ul, A, ctx);
+  ierr = TDyMPFAOIJacobian_Vertices_3DMesh(Ul, B, ctx);
   //ierr = TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(Ul, A, ctx);
-  ierr = TDyMPFAOIJacobian_Accumulation_3DMesh(Ul, Udotl, shift, A, ctx);
+  ierr = TDyMPFAOIJacobian_Accumulation_3DMesh(Ul, Udotl, shift, B, ctx);
 
   if (A !=B ) {
-    ierr = MatAssemblyBegin(B,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-    ierr = MatAssemblyEnd(B,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
 
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);

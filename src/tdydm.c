@@ -11,6 +11,8 @@ PetscErrorCode TDyCreateDM(DM *dm) {
   PetscInt       Nx = -999, Ny = -999, Nz = -999;
   PetscBool      found;
   char           mesh_filename[PETSC_MAX_PATH_LEN];
+  char           string[512];
+  char           word[32];
   
   mesh_filename[0] = '\0';
 
@@ -54,19 +56,21 @@ PetscErrorCode TDyCreateDM(DM *dm) {
   ierr = PetscStrlen(mesh_filename, &len); CHKERRQ(ierr);
   if (!len){
     if (dim == 1) {
-      printf("ERROR: Only two or three dimensions currently supported.\n");
-      exit(0);
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+              "ERROR: Only two or three dimensions currently supported.");
       int i = 0;
       if (Nx > 0) i++;
       if (Ny > 0) i++;
       if (Nz > 0) i++;
       if (i > 1) {
-        printf("ERROR: Number of grid cells must be defined in only one ");
-        printf("dimension for a 1D problem:");
-        if (Nx > 0) printf(" %d",Nx); else printf(" ?");
-        if (Ny > 0) printf(" %d",Ny); else printf(" ?");
-        if (Nz > 0) printf(" %d\n",Nz); else printf(" ?\n");
-        exit(0);
+        strcpy(string,"ERROR: Number of grid cells must be defined in only one dimension for a 1D problem:");
+        if (Nx > 0) sprintf(word," %d",Nx); else sprintf(word," ?");
+        strcat(string,word);
+        if (Ny > 0) sprintf(word," %d",Ny); else sprintf(word," ?");
+        strcat(string,word);
+        if (Nz > 0) sprintf(word," %d\n",Nz); else sprintf(word," ?");
+        strcat(string,word);
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,string);
       }
       if (Nx > 0) {Ny = 1; Nz = 1;}
       else if (Ny > 0) {Nx = 1; Nz = 1;}
@@ -78,12 +82,14 @@ PetscErrorCode TDyCreateDM(DM *dm) {
             (Ny > 0 && Nz > 0) ||
             (Nx > 0 && Ny < 0 && Nz < 0) ||
             (Nx < 0 && Ny < 0 && Nz < 0))) {
-        printf("ERROR: Number of grid cells must be defined in one (-N #) ");
-        printf("or two dimensions for a 2D problem:");
-        if (Nx > 0) printf(" %d",Nx); else printf(" ?");
-        if (Ny > 0) printf(" %d",Ny); else printf(" ?");
-        if (Nz > 0) printf(" %d\n",Nz); else printf(" ?\n");
-        exit(0);
+        strcpy(string,"ERROR: Number of grid cells must be defined in one (-N #) or two dimensions for a 2D problem:");
+        if (Nx > 0) sprintf(word," %d",Nx); else sprintf(word," ?");
+        strcat(string,word);
+        if (Ny > 0) sprintf(word," %d",Ny); else sprintf(word," ?");
+        strcat(string,word);
+        if (Nz > 0) sprintf(word," %d\n",Nz); else sprintf(word," ?");
+        strcat(string,word);
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,string);
       }
       if (Nx > 0 && Ny > 0) Nz = 1;
       else if (Nx > 0 && Nz > 0) Ny = 1;
@@ -93,12 +99,14 @@ PetscErrorCode TDyCreateDM(DM *dm) {
     else if (dim == 3) {
       if ((Nx < 0 && (Ny > 0 || Nz > 0)) || 
           (Nx > 0 && ((Ny > 0 && Nz < 0) || (Ny < 0 && Nz > 0)))) {
-        printf("ERROR: Number of grid cells must be defined in one (-N #) ");
-        printf("or three dimensions for a 3D problem:");
-        if (Nx > 0) printf(" %d",Nx); else printf(" ?");
-        if (Ny > 0) printf(" %d",Ny); else printf(" ?");
-        if (Nz > 0) printf(" %d\n",Nz); else printf(" ?\n");
-        exit(0);
+        strcpy(string,"ERROR: Number of grid cells must be defined in one (-N #) or three dimensions for a 3D problem:");
+        if (Nx > 0) sprintf(word," %d",Nx); else sprintf(word," ?");
+        strcat(string,word);
+        if (Ny > 0) sprintf(word," %d",Ny); else sprintf(word," ?");
+        strcat(string,word);
+        if (Nz > 0) sprintf(word," %d\n",Nz); else sprintf(word," ?");
+        strcat(string,word);
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,string);
       }
       if (Nx < 0) Nx = 8;
       if (Ny < 0) Ny = Nx;
@@ -107,13 +115,18 @@ PetscErrorCode TDyCreateDM(DM *dm) {
     const PetscInt  faces[3] = {Nx,Ny,Nz};
     const PetscReal lower[3] = {lower_bound_x,lower_bound_y,lower_bound_z};
     const PetscReal upper[3] = {upper_bound_x,upper_bound_y,upper_bound_z};
-    //printf("%d %d %d\n",faces[0],faces[1],faces[2]);
-    //printf("%f %f %f\n",lower[0],lower[1],lower[2]);
-    //printf("%f %f %f\n",upper[0],upper[1],upper[2]);
 
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, faces,
                                lower, upper, NULL, PETSC_TRUE, dm);
     CHKERRQ(ierr);
+    PetscInt rank;
+    ierr = MPI_Comm_rank(PetscObjectComm((PetscObject)*dm),&rank);
+    if (!rank) {
+      int num_cell_in_set;
+      num_cell_in_set = Nx * Ny * Nz;
+      for (int c=0; c < num_cell_in_set; ++c)
+        ierr = DMSetLabelValue(*dm, "Cell Sets", c, 1); CHKERRQ(ierr);
+    }
   } else {
     ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE,
                                 dm); CHKERRQ(ierr);
@@ -126,6 +139,18 @@ PetscErrorCode TDyCreateDM(DM *dm) {
 PetscErrorCode TDyDistributeDM(DM *dm) {
   DM dmDist;
   PetscErrorCode ierr;
+
+  /* Define 1 DOF on cell center of each cell */
+  PetscInt dim;
+  PetscFE fe;
+  ierr = DMGetDimension(*dm, &dim); CHKERRQ(ierr);
+  ierr = PetscFECreateDefault(PETSC_COMM_SELF, dim, 1, PETSC_FALSE, "p_", -1, &fe); CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject) fe, "p");CHKERRQ(ierr);
+  ierr = DMSetField(*dm, 0, NULL, (PetscObject)fe); CHKERRQ(ierr);
+  ierr = DMCreateDS(*dm); CHKERRQ(ierr);
+  ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
+  ierr = DMSetUseNatural(*dm, PETSC_TRUE); CHKERRQ(ierr);
+
   ierr = DMPlexDistribute(*dm, 1, NULL, &dmDist); CHKERRQ(ierr);
   if (dmDist) {
     DMDestroy(dm); CHKERRQ(ierr);

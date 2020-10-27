@@ -9,12 +9,13 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   PetscInt myrank, size;
   PetscErrorCode ierr;
   Vec U;
-  PetscInt ncells_local, min_ncells_local;
+  PetscInt vecsize_local, min_vecsize_local;
   Vec temp_vec;
   PetscScalar *vec_ptr;
   PetscInt global_count;
   PetscInt *int_array;
   IS temp_is;
+  PetscInt ndof_per_cell;
   PetscBool opt;
   VecScatter temp_scatter;
 
@@ -22,6 +23,9 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   TDY_START_FUNCTION_TIMER()
 
   dm = tdy->dm;
+
+  ndof_per_cell = 1;
+  if (tdy->mode == TH) ndof_per_cell = 2;
 
   regression = (TDy_regression *) malloc(sizeof(TDy_regression));
 
@@ -46,51 +50,40 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   MPI_Comm_rank(PetscObjectComm((PetscObject)dm),&myrank);
 
   ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
-  ierr = VecGetLocalSize(U,&ncells_local); CHKERRQ(ierr);
+  ierr = VecGetLocalSize(U,&vecsize_local); CHKERRQ(ierr);
 
-  ierr = MPI_Allreduce(&ncells_local,&min_ncells_local,1,MPIU_INT,MPI_MIN,PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
+  ierr = MPI_Allreduce(&vecsize_local,&min_vecsize_local,1,MPIU_INT,MPI_MIN,PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
 
-  if (min_ncells_local<regression->num_cells_per_process) {
-    regression->num_cells_per_process = min_ncells_local;
+  if (min_vecsize_local<regression->num_cells_per_process) {
+    regression->num_cells_per_process = min_vecsize_local;
   }
 
   if (myrank == 0) {
-    ierr = PetscMalloc(ncells_local*regression->num_cells_per_process*sizeof(PetscInt),&(regression->cells_per_process_natural_ids)); CHKERRQ(ierr);
+    ierr = PetscMalloc(ndof_per_cell*size*regression->num_cells_per_process*sizeof(PetscInt),&(regression->cells_per_process_natural_ids)); CHKERRQ(ierr);
   }
 
   if (tdy->mode == TH) {
-    increment = floor(ncells_local/regression->num_cells_per_process/2);
+    increment = floor(vecsize_local/regression->num_cells_per_process/2);
   }
   else {
-    increment = floor(ncells_local/regression->num_cells_per_process);
+    increment = floor(vecsize_local/regression->num_cells_per_process);
   }
 
 
   global_offset = 0;
-  ierr = MPI_Exscan(&ncells_local,&global_offset,1,MPIU_INT,MPI_SUM,PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
+  ierr = MPI_Exscan(&vecsize_local,&global_offset,1,MPIU_INT,MPI_SUM,PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
 
 
   ierr = VecCreate(PetscObjectComm((PetscObject)dm),&temp_vec); CHKERRQ(ierr);
-  if (tdy->mode == TH) {
-    ierr = VecSetSizes(temp_vec,2*regression->num_cells_per_process,PETSC_DECIDE); CHKERRQ(ierr);
-  }
-  else {
-    ierr = VecSetSizes(temp_vec,regression->num_cells_per_process,PETSC_DECIDE); CHKERRQ(ierr);
-  }
+  ierr = VecSetSizes(temp_vec,ndof_per_cell*regression->num_cells_per_process,PETSC_DECIDE); CHKERRQ(ierr);
   ierr = VecSetFromOptions(temp_vec); CHKERRQ(ierr);
   ierr = VecGetArray(temp_vec,&vec_ptr); CHKERRQ(ierr);
 
 
-  if (tdy->mode == TH){
-    for (c=0; c<regression->num_cells_per_process; c++){
-      vec_ptr[2*c] = 2*c*increment + global_offset;
-      vec_ptr[2*c+1] = 2*c*increment + global_offset + 1;
-    }
-  }
-  else {
-    for (c=0; c<regression->num_cells_per_process; c++){
-      vec_ptr[c] = c*increment + global_offset;
-    }
+  for (c=0; c<regression->num_cells_per_process; c++){
+    for (int idof=0; idof<ndof_per_cell; idof++)
+      vec_ptr[ndof_per_cell*c+idof] = ndof_per_cell*c*increment + 
+                                      global_offset + idof;
   }
 
   ierr = VecRestoreArray(temp_vec,&vec_ptr); CHKERRQ(ierr);
@@ -122,8 +115,8 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   if (myrank==0) {
     ierr = VecGetArray(regression->cells_per_process_vec,&vec_ptr); CHKERRQ(ierr);
     for (c=0; c<global_count; c++) {
-      regression->cells_per_process_natural_ids[c] = floor(vec_ptr[c]);
-      int_array[c] = floor(vec_ptr[c]);
+      regression->cells_per_process_natural_ids[c] = (int)floor(vec_ptr[c]);
+      int_array[c] = (int)floor(vec_ptr[c]);
     }
     ierr = VecRestoreArray(regression->cells_per_process_vec,&vec_ptr); CHKERRQ(ierr);
   }
@@ -135,7 +128,6 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
 
   tdy->regression = regression;
 
-  // Cleanup
   ierr = VecDestroy(&U); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   ierr = PetscFree(int_array); CHKERRQ(ierr);
@@ -232,7 +224,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
 
   if (myrank==0) {
     FILE *fp;
-    char filename[267];
+    char filename[PETSC_MAX_PATH_LEN+11];
     sprintf(filename,"%s.regression",reg->filename);
     if ((fp = fopen(filename,"w")) == NULL) {
       SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,"Unable to write regression file");
