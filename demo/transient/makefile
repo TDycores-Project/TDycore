@@ -43,3 +43,7 @@ transient_snes_mpfaof90: transient_snes_mpfaof90.o
 	$(FLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
 	$(RM) -f $<
 
+th_source_sink: th_source_sink.o
+	$(FLINKER) -o $@ $< $(TDYCORE_LIB) $(LIBS)
+	$(RM) -f $<
+
