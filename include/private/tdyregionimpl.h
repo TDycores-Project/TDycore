@@ -10,4 +10,8 @@ struct _TDyRegion {
   PetscInt *id;
 };
 
+PETSC_INTERN PetscErrorCode TDyRegionCreate(TDyRegion*);
+PETSC_INTERN PetscErrorCode TDyRegionAddCells(PetscInt,PetscInt*,TDyRegion*);
+PETSC_INTERN PetscErrorCode TDyRegionDestroy(TDyRegion*);
+
 #endif

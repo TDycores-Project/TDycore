@@ -4,6 +4,7 @@
 #include <private/tdymemoryimpl.h>
 #include <private/tdyutils.h>
 #include <private/tdymeshutilsimpl.h>
+#include <private/tdyregionimpl.h>
 
 /* ---------------------------------------------------------------- */
 
@@ -369,8 +370,7 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
   mesh->num_subcells = cNum*num_subcells;
   ierr = AllocateMemoryForSubcells(cNum, num_subcells, subcell_type, &mesh->subcells); CHKERRQ(ierr);
 
-  TDyRegion *region = &mesh->region_connected;
-  region->num_cells = 0;
+  ierr = TDyRegionCreate(&mesh->region_connected); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
@@ -519,14 +519,17 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
       ierr = DMGlobalToLocalEnd(dm, global, INSERT_VALUES, local); CHKERRQ(ierr);
 
       // Save the region ids
-      TDyRegion *region = &mesh->region_connected;
-
       ierr = VecGetLocalSize(local, &size_local);
-      region->num_cells = size_local/num_fields;
-      ierr = TDyAllocate_IntegerArray_1D(&region->id,region->num_cells); CHKERRQ(ierr);
-
       ierr = VecGetArray(local, &p); CHKERRQ(ierr);
-      for (ii = 0; ii < region->num_cells ; ++ii) region->id[ii] = p[ii*num_fields];
+
+      PetscInt ncells = size_local/num_fields;
+      PetscInt *cell_ids;
+      ierr = TDyAllocate_IntegerArray_1D(&cell_ids,ncells); CHKERRQ(ierr);
+      for (ii=0; ii<ncells; ii++) cell_ids[ii] = p[ii*num_fields];
+
+      ierr = TDyRegionAddCells(&mesh->region_connected, ncells, cell_ids);
+      PetscFree(cell_ids);
+
       ierr = VecRestoreArray(local, &p); CHKERRQ(ierr);
 
       // Cleanup
