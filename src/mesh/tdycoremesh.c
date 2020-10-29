@@ -527,8 +527,8 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
       ierr = TDyAllocate_IntegerArray_1D(&cell_ids,ncells); CHKERRQ(ierr);
       for (ii=0; ii<ncells; ii++) cell_ids[ii] = p[ii*num_fields];
 
-      ierr = TDyRegionAddCells(&mesh->region_connected, ncells, cell_ids);
-      PetscFree(cell_ids);
+      ierr = TDyRegionAddCells(ncells, cell_ids, &mesh->region_connected);
+      free(cell_ids);
 
       ierr = VecRestoreArray(local, &p); CHKERRQ(ierr);
 
