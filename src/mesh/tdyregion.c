@@ -26,3 +26,12 @@ PetscErrorCode TDyRegionDestroy(TDyRegion *region) {
   }
   PetscFunctionReturn(0);
 }
+
+PetscBool TDyRegionAreCellsInTheSameRegion(TDyRegion *region, PetscInt cell_id_1, PetscInt cell_id_2) {
+
+  if (cell_id_1 >= region->num_cells || cell_id_2 >= region->num_cells) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Cell ID is larger than the number of cells in the region");
+  }
+
+  PetscFunctionReturn (region->cell_ids[cell_id_1] == region->cell_ids[cell_id_2]);
+}
