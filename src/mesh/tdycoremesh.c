@@ -369,7 +369,7 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
   mesh->num_subcells = cNum*num_subcells;
   ierr = AllocateMemoryForSubcells(cNum, num_subcells, subcell_type, &mesh->subcells); CHKERRQ(ierr);
 
-  TDy_region *region = &mesh->region_connected;
+  TDyRegion *region = &mesh->region_connected;
   region->num_cells = 0;
 
   PetscFunctionReturn(0);
@@ -519,7 +519,7 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
       ierr = DMGlobalToLocalEnd(dm, global, INSERT_VALUES, local); CHKERRQ(ierr);
 
       // Save the region ids
-      TDy_region *region = &mesh->region_connected;
+      TDyRegion *region = &mesh->region_connected;
 
       ierr = VecGetLocalSize(local, &size_local);
       region->num_cells = size_local/num_fields;

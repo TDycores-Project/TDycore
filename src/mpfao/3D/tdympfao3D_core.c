@@ -895,7 +895,7 @@ PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
 
   TDy_mesh       *mesh = tdy->mesh;
   TDy_face       *faces = &mesh->faces;
-  TDy_region     *region = &mesh->region_connected;
+  TDyRegion     *region = &mesh->region_connected;
   PetscInt       iface, isubface;
   PetscInt       num_subfaces = 4;
   PetscErrorCode ierr;
@@ -976,7 +976,7 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
     ierr = MatAssemblyEnd(tdy->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
 
-  TDy_region *region = &mesh->region_connected;
+  TDyRegion *region = &mesh->region_connected;
   if (region->num_cells > 0){
     if (tdy->mpfao_gmatrix_method == MPFAO_GMATRIX_TPF ) {
       ierr = TDyUpdateTransmissibilityMatrix(tdy); CHKERRQ(ierr);
