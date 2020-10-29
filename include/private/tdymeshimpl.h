@@ -3,6 +3,7 @@
 
 #include <petsc.h>
 #include "tdycore.h"
+#include "tdyregionimpl.h"
 
 typedef struct _TDy_coordinate TDy_coordinate;
 typedef struct _TDy_vector     TDy_vector;
@@ -11,7 +12,6 @@ typedef struct _TDy_cell       TDy_cell;
 typedef struct _TDy_vertex     TDy_vertex;
 typedef struct _TDy_edge       TDy_edge;
 typedef struct _TDy_face       TDy_face;
-typedef struct _TDyRegion      TDyRegion;
 typedef struct _TDy_mesh       TDy_mesh;
 
 typedef enum {
@@ -182,11 +182,6 @@ struct _TDy_face {
   TDy_coordinate *centroid; /* centroid of the face */
   TDy_vector *normal;       /* unit normal to the face */
   PetscReal *area;          /* area of the face */
-};
-
-struct _TDyRegion {
-  PetscInt num_cells;
-  PetscInt *id;
 };
 
 struct _TDy_mesh {
