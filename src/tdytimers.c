@@ -111,8 +111,12 @@ PetscErrorCode TDyWriteTimingProfile(const char* filename) {
 PetscErrorCode TDySetTimingMetadata(TDy tdy) {
   metadata_.method = tdy->method;
   metadata_.mode = tdy->mode;
-  metadata_.num_cells = TDyMeshGetNumberOfLocalCells(tdy->mesh);
-  MPI_Comm_size(PETSC_COMM_WORLD, &metadata_.num_proc);
+  if (tdy->mesh != NULL) {
+    metadata_.num_cells = TDyMeshGetNumberOfLocalCells(tdy->mesh);
+  } else {
+    metadata_.num_cells = 0;
+  }
+  MPI_Comm_size(PETSC_COMM_WORLD, &(metadata_.num_proc));
   return 0;
 }
 

@@ -356,6 +356,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   tdy = *_tdy; *_tdy = NULL;
 
   if (!tdy) PetscFunctionReturn(0);
+
   ierr = TDyResetDiscretizationMethod(tdy); CHKERRQ(ierr);
   ierr = PetscFree(tdy->V); CHKERRQ(ierr);
   ierr = PetscFree(tdy->X); CHKERRQ(ierr);
@@ -577,6 +578,10 @@ PetscErrorCode TDySetupDiscretizationScheme(TDy tdy) {
     ierr = TDyWYInitialize(tdy); CHKERRQ(ierr);
     break;
   }
+
+  // Write out some metadata for scaling studies.
+  TDySetTimingMetadata(tdy);
+
   PetscFunctionReturn(0);
 }
 
