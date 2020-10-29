@@ -4,25 +4,25 @@
 PetscErrorCode TDyRegionCreate(TDyRegion *region) {
 
   region->num_cells = 0;
-  region->id = NULL;
+  region->cell_ids = NULL;
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyRegionAddCells(PetscInt ncells, PetscInt *id, TDyRegion *region) {
+PetscErrorCode TDyRegionAddCells(PetscInt ncells, PetscInt *ids, TDyRegion *region) {
 
   PetscErrorCode ierr;
 
   region->num_cells = ncells;
-  ierr = TDyAllocate_IntegerArray_1D(&region->id, ncells); CHKERRQ(ierr);
-  ierr = PetscMemcpy(region->id, id, ncells); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&region->cell_ids, ncells); CHKERRQ(ierr);
+  ierr = PetscMemcpy(region->cell_ids, ids, ncells); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyRegionDestroy(TDyRegion *region) {
-  if (region->id != NULL) {
-    return PetscFree(region->id);
+  if (region->cell_ids != NULL) {
+    return PetscFree(region->cell_ids);
   }
   PetscFunctionReturn(0);
 }

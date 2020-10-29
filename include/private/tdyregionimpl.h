@@ -7,7 +7,7 @@ typedef struct _TDyRegion TDyRegion;
 
 struct _TDyRegion {
   PetscInt num_cells;
-  PetscInt *id;
+  PetscInt *cell_ids;
 };
 
 PETSC_INTERN PetscErrorCode TDyRegionCreate(TDyRegion*);
