@@ -9,7 +9,7 @@ PetscErrorCode TDyRegionCreate(TDyRegion *region) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyRegionAddCells(PetscInt ncells, PetscInt *ids, TDyRegion *region) {
+PetscErrorCode TDyRegionAddCells(PetscInt ncells, PetscInt ids[], TDyRegion *region) {
 
   PetscErrorCode ierr;
   PetscInt ii;
