@@ -136,6 +136,7 @@ implicit none
   PetscBool           :: mesh_file_flg, ic_file_flg, pflotran_consistent
   PetscViewer         :: viewer
   PetscInt            :: step_mod
+  PetscFE             :: fe
 
   call TDyInit(ierr);
   CHKERRA(ierr);
@@ -184,6 +185,21 @@ implicit none
       call exit(0)
     endif
   endif
+
+  call DMGetDimension(dm, dim, ierr);
+  CHKERRA(ierr)
+  call PetscFECreateDefault(PETSC_COMM_SELF, dim, 1, PETSC_FALSE, "p_", -1, fe, ierr);
+  CHKERRA(ierr)
+  call PetscObjectSetName(fe, "p", ierr);
+  CHKERRA(ierr)
+  call DMSetField(dm, 0, PETSC_NULL_DMLABEL, fe, ierr);
+  CHKERRA(ierr)
+  call DMCreateDS(dm, ierr);
+  CHKERRA(ierr)
+  call PetscFEDestroy(fe, ierr);
+  CHKERRA(ierr)
+  call DMSetUseNatural(dm, PETSC_TRUE, ierr);
+  CHKERRA(ierr)
 
   call DMPlexDistribute(dm, 1, PETSC_NULL_SF, dmDist, ierr);
   CHKERRA(ierr);

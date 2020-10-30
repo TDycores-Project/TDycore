@@ -3,6 +3,7 @@
 
 #include <petsc.h>
 #include "tdycore.h"
+#include "tdyregionimpl.h"
 
 typedef struct _TDy_coordinate TDy_coordinate;
 typedef struct _TDy_vector     TDy_vector;
@@ -198,6 +199,7 @@ struct _TDy_mesh {
   TDy_edge    edges;
   TDy_face    faces;
 
+  TDyRegion region_connected;
 };
 
 PETSC_EXTERN PetscErrorCode TDyOutputMesh(TDy);

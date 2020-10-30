@@ -4,6 +4,7 @@
 #include <petsc.h>
 
 PETSC_EXTERN PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy);
+PETSC_EXTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
 PETSC_EXTERN PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy);
 PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy,Mat,Vec);
 PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices_3DMesh(TDy,Mat,Vec);

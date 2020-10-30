@@ -4,6 +4,7 @@
 #include <private/tdymemoryimpl.h>
 #include <private/tdyutils.h>
 #include <private/tdymeshutilsimpl.h>
+#include <private/tdyregionimpl.h>
 
 /* ---------------------------------------------------------------- */
 
@@ -369,6 +370,8 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
   mesh->num_subcells = cNum*num_subcells;
   ierr = AllocateMemoryForSubcells(cNum, num_subcells, subcell_type, &mesh->subcells); CHKERRQ(ierr);
 
+  ierr = TDyRegionCreate(&mesh->region_connected); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 
 }
@@ -489,6 +492,51 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
     ierr = VecDestroy(&natural); CHKERRQ(ierr);
     ierr = VecDestroy(&global); CHKERRQ(ierr);
     ierr = VecDestroy(&local); CHKERRQ(ierr);
+
+    char file[PETSC_MAX_PATH_LEN];
+    PetscBool opt;
+    ierr = PetscOptionsGetString(NULL,NULL,"-tdy_connected_region",file,sizeof(file),
+                               &opt); CHKERRQ(ierr);
+    if (opt) {
+
+      PetscViewer viewer;
+      Vec region_id_nat_idx;
+
+      ierr = VecCreate(PETSC_COMM_WORLD,&region_id_nat_idx); CHKERRQ(ierr);
+
+      ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,file,FILE_MODE_READ,&viewer); CHKERRQ(ierr);
+      ierr = VecLoad(region_id_nat_idx,viewer); CHKERRQ(ierr);
+      ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+      // Map natural IDs in global order
+      ierr = DMCreateGlobalVector(dm, &global);CHKERRQ(ierr);
+      ierr = DMPlexNaturalToGlobalBegin(dm, region_id_nat_idx, global);CHKERRQ(ierr);
+      ierr = DMPlexNaturalToGlobalEnd(dm, region_id_nat_idx, global);CHKERRQ(ierr);
+
+      // Map natural IDs in local order
+      ierr = DMCreateLocalVector(dm, &local);CHKERRQ(ierr);
+      ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, local); CHKERRQ(ierr);
+      ierr = DMGlobalToLocalEnd(dm, global, INSERT_VALUES, local); CHKERRQ(ierr);
+
+      // Save the region ids
+      ierr = VecGetLocalSize(local, &size_local);
+      ierr = VecGetArray(local, &p); CHKERRQ(ierr);
+
+      PetscInt ncells = size_local/num_fields;
+      PetscInt cell_ids[ncells];
+
+      for (ii=0; ii<ncells; ii++) cell_ids[ii] = p[ii*num_fields];
+
+      ierr = TDyRegionAddCells(ncells, cell_ids, &mesh->region_connected);
+
+      ierr = VecRestoreArray(local, &p); CHKERRQ(ierr);
+
+      // Cleanup
+      ierr = VecDestroy(&region_id_nat_idx); CHKERRQ(ierr);
+      ierr = VecDestroy(&global); CHKERRQ(ierr);
+      ierr = VecDestroy(&local); CHKERRQ(ierr);
+
+    }
   }
 
   PetscFunctionReturn(0);
