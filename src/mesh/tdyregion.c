@@ -12,10 +12,11 @@ PetscErrorCode TDyRegionCreate(TDyRegion *region) {
 PetscErrorCode TDyRegionAddCells(PetscInt ncells, PetscInt *ids, TDyRegion *region) {
 
   PetscErrorCode ierr;
+  PetscInt ii;
 
   region->num_cells = ncells;
   ierr = TDyAllocate_IntegerArray_1D(&region->cell_ids, ncells); CHKERRQ(ierr);
-  ierr = PetscMemcpy(region->cell_ids, ids, ncells); CHKERRQ(ierr);
+  for (ii=0; ii<ncells; ii++) region->cell_ids[ii] = ids[ii];
 
   PetscFunctionReturn(0);
 }

@@ -913,7 +913,7 @@ PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
     PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
 
     if (cell_id_up>=0 && cell_id_dn>=0) {
-      if (~TDyRegionAreCellsInTheSameRegion(region, cell_id_up, cell_id_dn)) {
+      if (!TDyRegionAreCellsInTheSameRegion(region, cell_id_up, cell_id_dn)) {
         for (isubface=0; isubface<4; isubface++) {
           PetscInt row[1];
           row[0] = iface*num_subfaces + isubface;
