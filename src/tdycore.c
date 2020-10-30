@@ -579,7 +579,7 @@ PetscErrorCode TDySetupDiscretizationScheme(TDy tdy) {
     break;
   }
 
-  // Write out some metadata for scaling studies.
+  // Record metadata for scaling studies.
   TDySetTimingMetadata(tdy);
 
   PetscFunctionReturn(0);
