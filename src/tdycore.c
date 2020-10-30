@@ -91,7 +91,7 @@ static PetscErrorCode TDyInitSubsystems() {
   }
 
   // Enable timers if requested.
-  PetscBool timersEnabled;
+  PetscBool timersEnabled = PETSC_FALSE;
   ierr = PetscOptionsGetBool(NULL,NULL,"-tdy_timers", &timersEnabled, &opt);
   CHKERRQ(ierr);
   if (timersEnabled)
