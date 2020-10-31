@@ -14,7 +14,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
   PetscReal gravity[3] = {0.,0.,0.};
-  DM dm;
   TS ts;
   SNES snes;
   SNESLineSearch linesearch;

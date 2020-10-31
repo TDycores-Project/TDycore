@@ -189,7 +189,6 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
 }
 
 PetscErrorCode TDySetDM(TDy tdy, DM dm) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   if (!dm) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"A DM must be created prior to TDySetDM()");
@@ -199,7 +198,7 @@ PetscErrorCode TDySetDM(TDy tdy, DM dm) {
 }
 
 PetscErrorCode TDyMalloc(TDy tdy) {
-  PetscInt       dim,c,cStart,cEnd,eStart,eEnd,nc;
+  PetscInt       dim,c,cStart,cEnd,nc;
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -284,7 +283,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
 }
 
 PetscErrorCode TDyCreateGrid(TDy tdy) {
-  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,eStart,eEnd,offset,nc;
+  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,eStart,eEnd,offset;
   Vec            coordinates;
   PetscSection   coordSection;
   PetscScalar   *coords;
