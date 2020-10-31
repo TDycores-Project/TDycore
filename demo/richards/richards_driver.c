@@ -7,7 +7,7 @@
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt successful_exit_code;
+  PetscInt successful_exit_code = 0;
   PetscBool print_intermediate = PETSC_FALSE;
   PetscMPIInt rank, size;
   TDy tdy = PETSC_NULL;

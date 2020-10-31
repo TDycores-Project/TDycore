@@ -57,31 +57,10 @@ const char *const TDyWaterDensityTypes[] = {
   "TDyWaterDensityType","TDY_DENSITY_",NULL
 };
 
-// Timers registry.
-khash_t(TDY_TIMER_MAP)* TDY_TIMERS = NULL;
-
-// Are timers enabled?
-static PetscBool TDyEnableTimers = PETSC_FALSE;
-
-// Profiling stages registry.
-khash_t(TDY_PROFILING_STAGE_MAP)* TDY_PROFILING_STAGES = NULL;
-
 PetscClassId TDY_CLASSID = 0;
 
 static PetscBool TDyPackageInitialized = PETSC_FALSE;
 PetscLogEvent TDy_ComputeSystem = 0;
-
-void TDyAddProfilingStage(const char* name)
-{
-  khiter_t iter = kh_get(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name);
-  PetscLogStage stage;
-  if (iter == kh_end(TDY_PROFILING_STAGES)) {
-    PetscLogStageRegister(name, &stage);
-    int retval;
-    iter = kh_put(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name, &retval);
-    kh_val(TDY_PROFILING_STAGES, iter) = stage;
-  }
-}
 
 static PetscErrorCode TDyInitSubsystems() {
   char           logList[256];
@@ -90,18 +69,7 @@ static PetscErrorCode TDyInitSubsystems() {
   // Register a class ID for logging.
   PetscErrorCode ierr = PetscClassIdRegister("TDy",&TDY_CLASSID); CHKERRQ(ierr);
 
-  // Register timers table.
-  if (TDY_TIMERS == NULL)
-    TDY_TIMERS = kh_init(TDY_TIMER_MAP);
-
-  // Register profiling stages table.
-  if (TDY_PROFILING_STAGES == NULL)
-    TDY_PROFILING_STAGES = kh_init(TDY_PROFILING_STAGE_MAP);
-
-  // Register some logging stages.
-  TDyAddProfilingStage("TDycore Setup");
-  TDyAddProfilingStage("TDycore Stepping");
-  TDyAddProfilingStage("TDycore I/O");
+  TDyInitTimers();
 
   // Process info exclusions.
   ierr = PetscOptionsGetString(NULL,NULL,"-info_exclude",logList,sizeof(logList),
@@ -123,10 +91,11 @@ static PetscErrorCode TDyInitSubsystems() {
   }
 
   // Enable timers if requested.
-  ierr = PetscOptionsGetBool(NULL,NULL,"-tdy_timers", &TDyEnableTimers, &opt);
+  PetscBool timersEnabled = PETSC_FALSE;
+  ierr = PetscOptionsGetBool(NULL,NULL,"-tdy_timers", &timersEnabled, &opt);
   CHKERRQ(ierr);
-  if (TDyEnableTimers)
-    PetscLogDefaultBegin();
+  if (timersEnabled)
+    TDyEnableTimers();
 
   PetscFunctionReturn(0);
 }
@@ -173,20 +142,9 @@ PetscErrorCode TDyFinalize() {
   PetscFunctionBegin;
 
   // Dump timing information before we leave.
-  if (TDyEnableTimers) {
-    PetscViewer log;
-    PetscViewerASCIIOpen(PETSC_COMM_WORLD, "tdycore_profile.csv", &log);
-    PetscViewerFormat format = PETSC_VIEWER_ASCII_CSV;
-    PetscViewerPushFormat(log, format);
-    PetscLogView(log);
-    PetscViewerDestroy(&log);
-  }
+  TDyWriteTimingProfile("tdycore_profile.csv");
 
-  // Free the timers registry and the profiling stages registry.
-  if (TDY_TIMERS != NULL)
-    kh_destroy(TDY_TIMER_MAP, TDY_TIMERS);
-  if (TDY_PROFILING_STAGES != NULL)
-    kh_destroy(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES);
+  TDyDestroyTimers();
 
   // Finalize PETSc.
   PetscFinalize();
@@ -398,6 +356,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   tdy = *_tdy; *_tdy = NULL;
 
   if (!tdy) PetscFunctionReturn(0);
+
   ierr = TDyResetDiscretizationMethod(tdy); CHKERRQ(ierr);
   ierr = PetscFree(tdy->V); CHKERRQ(ierr);
   ierr = PetscFree(tdy->X); CHKERRQ(ierr);
@@ -467,7 +426,6 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   PetscInt       dim;
 
   PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
   PetscValidPointer(tdy,1);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
@@ -510,7 +468,6 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   if (tdy->J           ) { ierr = MatDestroy(&tdy->J   ); CHKERRQ(ierr); }
   if (tdy->Jpre        ) { ierr = MatDestroy(&tdy->Jpre); CHKERRQ(ierr); }
 
-  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -543,8 +500,8 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnum("-tdy_method","Discretization method",
                           "TDySetDiscretizationMethod",TDyMethods,(PetscEnum)method,(PetscEnum *)&method,
                           &flg); CHKERRQ(ierr);
-  if (flg && (method != tdy->method)) { 
-    ierr = TDySetDiscretizationMethod(tdy,method); CHKERRQ(ierr); 
+  if (flg && (method != tdy->method)) {
+    ierr = TDySetDiscretizationMethod(tdy,method); CHKERRQ(ierr);
   }
   ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type",
                           "TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&qtype,
@@ -574,10 +531,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnum("-tdy_mode","Flow mode",
                           "TDySetMode",TDyModes,(PetscEnum)mode,(PetscEnum *)&mode,
                           &flg); CHKERRQ(ierr);
-
-  ierr = PetscOptionsBool("-tdy_timers",
-                          "Enable timers for profiling","",PETSC_FALSE,
-                          &TDyEnableTimers,NULL); CHKERRQ(ierr);
 
   if (flg && (mode != tdy->mode)) { ierr = TDySetMode(tdy,mode); CHKERRQ(ierr); }
 
@@ -625,6 +578,10 @@ PetscErrorCode TDySetupDiscretizationScheme(TDy tdy) {
     ierr = TDyWYInitialize(tdy); CHKERRQ(ierr);
     break;
   }
+
+  // Record metadata for scaling studies.
+  TDySetTimingMetadata(tdy);
+
   PetscFunctionReturn(0);
 }
 
@@ -1421,9 +1378,7 @@ PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
   ierr = VecCopy(U,tdy->soln_prev); CHKERRQ(ierr);
-  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
