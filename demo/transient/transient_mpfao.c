@@ -72,7 +72,12 @@ int main(int argc, char **argv) {
   PetscInt successful_exit_code=0;
   char exofile[256];
   PetscBool exo = PETSC_FALSE;
+
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
+  TDy  tdy;
+  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
+  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,
 			   "Transient Options",""); CHKERRQ(ierr);
   //ierr = PetscOptionsInt("-N","Number of elements in 1D",
@@ -116,18 +121,18 @@ int main(int argc, char **argv) {
     residualSat[c] = 0.115;
   }
 
+  ierr = TDySetDM(tdy,dm); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+
   /* Setup problem parameters */
-  TDy  tdy;
-  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
   //ierr = TDySetPermeabilityScalar(tdy,Permeability); CHKERRQ(ierr);
   ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction3D,NULL); CHKERRQ(ierr);
   ierr = TDySetResidualSaturationValuesLocal(tdy,cEnd-cStart,index,residualSat);
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
   //ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
-  ierr = TDySetup(tdy); CHKERRQ(ierr);
+
+  ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
 
   /* Setup initial condition */
   Vec U;
