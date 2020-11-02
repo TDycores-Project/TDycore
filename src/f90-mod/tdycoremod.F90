@@ -16,13 +16,19 @@ module tdycore
      end subroutine TDyFinalize
   end interface
   interface
-     subroutine TDyCreate(a,b,z)
-       use petscdm
+     subroutine TDyCreate(a,z)
        use tdycoredef
-       DM a
-       TDy b
+       TDy a
        integer z
      end subroutine TDyCreate
+  end interface
+  interface
+     subroutine TDySetMode(a,b,z)
+       use tdycoredef
+       TDy a
+       PetscInt b
+       integer z
+     end subroutine TDySetMode
   end interface
   interface
      subroutine TDySetDiscretizationMethod(a,b,z)
@@ -33,18 +39,27 @@ module tdycore
      end subroutine TDySetDiscretizationMethod
   end interface
   interface
-     subroutine TDySetupDiscretizationMethod(a,z)
+     subroutine TDySetDM(a,b,z)
+       use petscdm
        use tdycoredef
        TDy a
+       DM b
        integer z
-     end subroutine TDySetupDiscretizationMethod
+     end subroutine TDySetDM
   end interface
   interface
-     subroutine TDySetup(a,z)
+     subroutine TDySetFromOptions(a,z)
        use tdycoredef
        TDy a
        integer z
-     end subroutine TDySetup
+     end subroutine TDySetFromOptions
+  end interface
+  interface
+     subroutine TDySetupNumericalMethods(a,z)
+       use tdycoredef
+       TDy a
+       integer z
+     end subroutine TDySetupNumericalMethods
   end interface
   interface
      subroutine TDyComputeSystem(a,b,c,z)
@@ -355,13 +370,13 @@ module tdycore
   end interface
 
   interface
-     subroutine TDySetInitialSolutionForSNESSolver(a,b,z)
+     subroutine TDySetPreviousSolutionForSNESSolver(a,b,z)
        use tdycoredef
        use petscvec
        TDy a
        Vec b
        integer z
-     end subroutine TDySetInitialSolutionForSNESSolver
+     end subroutine TDySetPreviousSolutionForSNESSolver
   end interface
 
   interface

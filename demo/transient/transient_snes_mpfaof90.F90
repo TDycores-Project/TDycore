@@ -136,8 +136,13 @@ implicit none
   PetscBool           :: mesh_file_flg, ic_file_flg, pflotran_consistent
   PetscViewer         :: viewer
   PetscInt            :: step_mod
+  PetscFE             :: fe
 
   call TDyInit(ierr);
+  CHKERRA(ierr);
+  call TDyCreate(tdy, ierr);
+  CHKERRA(ierr);
+  call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
   CHKERRA(ierr);
 
   nx = 1; ny = 1; nz = 15;
@@ -185,6 +190,21 @@ implicit none
     endif
   endif
 
+  call DMGetDimension(dm, dim, ierr);
+  CHKERRA(ierr)
+  call PetscFECreateDefault(PETSC_COMM_SELF, dim, 1, PETSC_FALSE, "p_", -1, fe, ierr);
+  CHKERRA(ierr)
+  call PetscObjectSetName(fe, "p", ierr);
+  CHKERRA(ierr)
+  call DMSetField(dm, 0, PETSC_NULL_DMLABEL, fe, ierr);
+  CHKERRA(ierr)
+  call DMCreateDS(dm, ierr);
+  CHKERRA(ierr)
+  call PetscFEDestroy(fe, ierr);
+  CHKERRA(ierr)
+  call DMSetUseNatural(dm, PETSC_TRUE, ierr);
+  CHKERRA(ierr)
+
   call DMPlexDistribute(dm, 1, PETSC_NULL_SF, dmDist, ierr);
   CHKERRA(ierr);
   if (dmDist /= PETSC_NULL_DM) then
@@ -199,8 +219,6 @@ implicit none
   call DMSetFromOptions(dm, ierr);
   CHKERRA(ierr);
 
-  call TDyCreateWithDM(dm, tdy, ierr);
-  CHKERRA(ierr);
 
   call TDySetWaterDensityType(tdy,WATER_DENSITY_EXPONENTIAL,ierr);
   CHKERRA(ierr)
@@ -232,6 +250,11 @@ implicit none
       blockPerm((c-1)*dim*dim+j) = perm(j)
     enddo
   enddo
+
+  call TDySetDM(tdy, dm, ierr);
+  CHKERRA(ierr);
+  call TDySetFromOptions(tdy,ierr);
+  CHKERRA(ierr);
 
   if (pflotran_consistent) then
      call TDySetPorosityFunction(tdy,PorosityFunctionPFLOTRAN,0,ierr);
@@ -268,10 +291,7 @@ implicit none
 
   end if
 
-  call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
-  CHKERRA(ierr);
-
-  call TDySetup(tdy,ierr);
+  call TDySetupNumericalMethods(tdy,ierr);
   CHKERRA(ierr);
 
   call TDyCreateVectors(tdy,ierr); CHKERRA(ierr)
@@ -305,7 +325,7 @@ implicit none
   call SNESSetFromOptions(snes,ierr);
   CHKERRA(ierr);
 
-  call TDySetInitialSolutionForSNESSolver(tdy,U,ierr);
+  call TDySetPreviousSolutionForSNESSolver(tdy,U,ierr);
   CHKERRA(ierr);
 
   dtime = 1800.d0

@@ -1,17 +1,36 @@
 #include <private/tdycoreimpl.h>
-#include <tdyrichards.h>
+#include <tdyth.h>
 
-PetscErrorCode TDyRichardsInitialize(TDy tdy) {
+PetscErrorCode TDyTHInitialize(TDy tdy) {
   PetscErrorCode ierr;
+  Vec temp_vec;
+  PetscReal *soln_p;
+  PetscReal *temp_p;
+  PetscInt local_size;
   PetscFunctionBegin;
 
-  PetscPrintf(PETSC_COMM_WORLD,"Running Richards mode.\n");
+  PetscPrintf(PETSC_COMM_WORLD,"Running TH mode.\n");
 
   if (tdy->init_with_random_field) {
     PetscRandom rand;
     ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
-    ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
-    ierr = VecSetRandom(tdy->solution,rand); CHKERRQ(ierr);
+    ierr = VecGetLocalSize(tdy->solution,&local_size); CHKERRQ(ierr);
+    ierr = DMCreateGlobalVector(tdy->dm,&temp_vec); CHKERRQ(ierr);
+    // pressure
+    ierr = PetscRandomSetInterval(rand,1.e4,1.e5); CHKERRQ(ierr);
+    ierr = VecSetRandom(temp_vec,rand); CHKERRQ(ierr);
+    ierr = VecGetArray(tdy->solution,&soln_p); CHKERRQ(ierr);
+    ierr = VecGetArray(temp_vec,&temp_p); CHKERRQ(ierr);
+    for (int i=0; i<local_size; i+=2) soln_p[i] = temp_p[i];
+    ierr = VecRestoreArray(temp_vec,&temp_p); CHKERRQ(ierr);
+    // temperature
+    ierr = PetscRandomSetInterval(rand,15.,35.); CHKERRQ(ierr);
+    ierr = VecSetRandom(temp_vec,rand); CHKERRQ(ierr);
+    ierr = VecGetArray(temp_vec,&temp_p); CHKERRQ(ierr);
+    for (int i=1; i<local_size; i+=2) soln_p[i] = temp_p[i];
+    ierr = VecRestoreArray(temp_vec,&temp_p); CHKERRQ(ierr);
+    ierr = VecRestoreArray(tdy->solution,&soln_p); CHKERRQ(ierr);
+    ierr = VecDestroy(&temp_vec); CHKERRQ(ierr);
     ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
   }
   else {
@@ -21,7 +40,7 @@ PetscErrorCode TDyRichardsInitialize(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyRichardsTSPostStep(TS ts) {
+PetscErrorCode TDyTHTSPostStep(TS ts) {
   PetscErrorCode ierr;
   PetscReal dt;
   PetscReal time;
@@ -48,10 +67,11 @@ PetscErrorCode TDyRichardsTSPostStep(TS ts) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyRichardsSNESPostCheck(SNESLineSearch linesearch,
+PetscErrorCode TDyTHSNESPostCheck(SNESLineSearch linesearch,
                                         Vec X, Vec Y, Vec W,
                                         PetscBool *changed_Y,
                                         PetscBool *changed_W,void *ctx) {
+  //PetscErrorCode ierr;
   PetscFunctionBegin;
 
 //#define DEBUG
@@ -68,9 +88,10 @@ PetscErrorCode TDyRichardsSNESPostCheck(SNESLineSearch linesearch,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyRichardsConvergenceTest(SNES snes, PetscInt it,
+PetscErrorCode TDyTHConvergenceTest(SNES snes, PetscInt it,
                  PetscReal xnorm, PetscReal unorm, PetscReal fnorm,
                  SNESConvergedReason *reason, void *ctx) {
+  //TDy tdy = (TDy)ctx;
   PetscErrorCode ierr;
   Vec r;
   MPI_Comm comm;

@@ -130,6 +130,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
       ierr = TSSetTimeStep(ti->ts,ti->dt_init); CHKERRQ(ierr);
       ierr = TSSetMaxTime(ti->ts,delta_time); CHKERRQ(ierr);
       ierr = TSSolve(ti->ts,tdy->solution); CHKERRQ(ierr);
+      ierr = TSGetTime(ti->ts,&ti->time); CHKERRQ(ierr);
       break;
   }
 

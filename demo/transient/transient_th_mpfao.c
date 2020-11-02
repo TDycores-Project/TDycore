@@ -124,7 +124,14 @@ int main(int argc, char **argv) {
   PetscInt successful_exit_code=0;
   char exofile[256];
   PetscBool exo = PETSC_FALSE;
+
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
+  TDy  tdy;
+  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
+  TDyMode mode = TH;
+  ierr = TDySetMode(tdy,mode); CHKERRQ(ierr);
+  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,
 			   "Transient Options",""); CHKERRQ(ierr);
   //ierr = PetscOptionsInt("-N","Number of elements in 1D",
@@ -168,11 +175,10 @@ int main(int argc, char **argv) {
     residualSat[c] = 0.115;
   }
 
+  ierr = TDySetDM(tdy,dm); CHKERRQ(ierr);
+  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+
   /* Setup problem parameters */
-  TDy  tdy;
-  TDyMode mode = TH;
-  ierr = TDyCreateWithDM(dm,&tdy); CHKERRQ(ierr);
-  ierr = TDySetMode(tdy,mode); CHKERRQ(ierr);
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
   ierr = TDySetSpecificHeatCapacity(tdy,SpecificHeatCapacity); CHKERRQ(ierr);
   ierr = TDySetRockDensity(tdy,RockDensity); CHKERRQ(ierr);
@@ -184,8 +190,8 @@ int main(int argc, char **argv) {
   ierr = TDySetEnergyForcingFunction(tdy,EnergyForcing,NULL); CHKERRQ(ierr);
   //ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
   //ierr = TDySetTemperatureDirichletValueFunction(tdy,Temperature,NULL); CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
-  ierr = TDySetup(tdy); CHKERRQ(ierr);
+
+  ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
 
   PetscSection   sec;
   PetscInt num_fields;

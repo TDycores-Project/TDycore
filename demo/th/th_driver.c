@@ -7,20 +7,20 @@
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt successful_exit_code = 0;
+  PetscInt successful_exit_code;
   PetscBool print_intermediate = PETSC_FALSE;
   PetscMPIInt rank, size;
   TDy tdy = PETSC_NULL;
-  TDyIOFormat format = ExodusFormat; 
+  TDyIOFormat format = PetscViewerASCIIFormat; 
 
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);
-  ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
+  ierr = TDySetMode(tdy,TH); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
 
   ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank); CHKERRQ(ierr);
   ierr = MPI_Comm_size(PETSC_COMM_WORLD,&size); CHKERRQ(ierr);
-  PetscPrintf(PETSC_COMM_WORLD,"Beginning Richards Driver simulation.\n");
+  PetscPrintf(PETSC_COMM_WORLD,"Beginning TH Driver simulation.\n");
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); 
                            CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code",

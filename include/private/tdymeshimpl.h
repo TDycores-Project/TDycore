@@ -3,6 +3,7 @@
 
 #include <petsc.h>
 #include "tdycore.h"
+#include "tdyregionimpl.h"
 
 typedef struct _TDy_coordinate TDy_coordinate;
 typedef struct _TDy_vector     TDy_vector;
@@ -198,6 +199,7 @@ struct _TDy_mesh {
   TDy_edge    edges;
   TDy_face    faces;
 
+  TDyRegion region_connected;
 };
 
 PETSC_EXTERN PetscErrorCode TDyOutputMesh(TDy);
@@ -215,8 +217,8 @@ PETSC_EXTERN PetscErrorCode TDyFace_GetCentroid(TDy_face*,PetscInt,PetscInt, Pet
 PETSC_EXTERN PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex*, PetscInt, PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyCell_GetCentroid(TDy_cell*,PetscInt, PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,PetscInt,TDy_vertex*,PetscInt,TDy_subcell*,PetscInt*);
-PETSC_EXTERN PetscErrorCode TDyMeshGetNumberOfLocalCells(TDy_mesh*);
-PETSC_EXTERN PetscErrorCode TDyMeshGetNumberOfLocalFacess(TDy_mesh*);
-PETSC_EXTERN PetscErrorCode TDyMeshGetNumberOfNonLocalFacess(TDy_mesh*);
-PETSC_EXTERN PetscErrorCode TDyMeshGetNumberOfNonInternalFacess(TDy_mesh*);
+PETSC_EXTERN PetscInt TDyMeshGetNumberOfLocalCells(TDy_mesh*);
+PETSC_EXTERN PetscInt TDyMeshGetNumberOfLocalFacess(TDy_mesh*);
+PETSC_EXTERN PetscInt TDyMeshGetNumberOfNonLocalFacess(TDy_mesh*);
+PETSC_EXTERN PetscInt TDyMeshGetNumberOfNonInternalFacess(TDy_mesh*);
 #endif

@@ -213,9 +213,8 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
 #if defined(DEBUG)
   PetscViewer viewer;
   char word[32];
-  sprintf(word,"Jacobian%d.vec",icount_j);
+  sprintf(word,"Jacobian%d.mat",icount_j);
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Jacobian.mat",&viewer); CHKERRQ(ierr);
   ierr = MatView(A,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   icount_j++;

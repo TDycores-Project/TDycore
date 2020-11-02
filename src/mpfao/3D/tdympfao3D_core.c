@@ -662,6 +662,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
       }
       idx++;
     }
+    idx = idx + npitf_neu_bc_all;
   }
 
   // Save transmissiblity matrix for boundary fluxes (first upwind and then downwind) including
@@ -890,6 +891,47 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
+
+  TDy_mesh       *mesh = tdy->mesh;
+  TDy_face       *faces = &mesh->faces;
+  TDyRegion     *region = &mesh->region_connected;
+  PetscInt       iface, isubface;
+  PetscInt       num_subfaces = 4;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()  
+
+  // If a face is shared by two cells that belong to different
+  // regions, zero the rows in the transmissiblity matrix
+
+  for (iface=0; iface<tdy->mesh->num_faces; iface++) {
+
+    PetscInt fOffsetCell = faces->cell_offset[iface];
+    PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
+    PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+
+    if (cell_id_up>=0 && cell_id_dn>=0) {
+      if (!TDyRegionAreCellsInTheSameRegion(region, cell_id_up, cell_id_dn)) {
+        for (isubface=0; isubface<4; isubface++) {
+          PetscInt row[1];
+          row[0] = iface*num_subfaces + isubface;
+          ierr = MatZeroRows(tdy->Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
+          if (tdy->mode == TH) {
+            ierr = MatZeroRows(tdy->Temp_Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
+          }
+        }
+      }
+    }
+  }
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
 
   TDy_mesh       *mesh;
@@ -915,9 +957,13 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
         ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(tdy, ivertex, cells, 1); CHKERRQ(ierr);
       }
     } else {
-      ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
-      if (tdy->mode == TH) {
-        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 1); CHKERRQ(ierr);
+      // It is assumed that neumann boundary condition is a zero-flux boundary condition.
+      // Thus, compute transmissiblity entries only for dirichlet boundary condition.
+      if (tdy->mpfao_bc_type == MPFAO_DIRICHLET_BC) {
+        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
+        if (tdy->mode == TH) {
+          ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 1); CHKERRQ(ierr);
+        }
       }
     }
   }
@@ -928,6 +974,15 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
   if (tdy->mode == TH) {
     ierr = MatAssemblyBegin(tdy->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(tdy->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  }
+
+  TDyRegion *region = &mesh->region_connected;
+  if (region->num_cells > 0){
+    if (tdy->mpfao_gmatrix_method == MPFAO_GMATRIX_TPF ) {
+      ierr = TDyUpdateTransmissibilityMatrix(tdy); CHKERRQ(ierr);
+    } else {
+      PetscPrintf(PETSC_COMM_WORLD,"WARNING -- Connected region option is only supported with MPFA-O TPF\n");
+    }
   }
 
   TDY_STOP_FUNCTION_TIMER()

@@ -48,6 +48,13 @@ typedef enum {
   TDyTS
 } TDyTimeIntegrationMethod;
 
+typedef enum {
+  TDyCreated=0x0,
+  TDyParametersInitialized=0x1,
+  TDyOptionsSet=0x2,
+  TDySetupFinished=0x4,
+} TDySetupFlags;
+
 PETSC_EXTERN const char *const TDyModes[];
 
 typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */
@@ -71,7 +78,12 @@ PETSC_EXTERN PetscErrorCode TDyInitNoArguments(void);
 PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 
 PETSC_EXTERN PetscErrorCode TDyCreate(TDy *tdy);
-PETSC_EXTERN PetscErrorCode TDyCreateWithDM(DM dm,TDy *tdy);
+PETSC_EXTERN PetscErrorCode TDySetMode(TDy tdy, TDyMode mode);
+PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,
+                                                       TDyMethod method);
+PETSC_EXTERN PetscErrorCode TDySetDM(TDy tdy,DM dm);
+PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy tdy);
+PETSC_EXTERN PetscErrorCode TDySetupNumericalMethods(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDyDestroy(TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyView(TDy tdy,PetscViewer viewer);
 
@@ -123,11 +135,6 @@ PETSC_EXTERN PetscErrorCode TDySetDirichletFlux    (TDy tdy,SpatialFunction f);
 
 PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy tdy);
 
-PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,
-    TDyMethod method);
-PETSC_EXTERN PetscErrorCode TDySetupDiscretizationMethod(TDy tdy);
-PETSC_EXTERN PetscErrorCode TDySetMode(TDy tdy, TDyMode mode);
-PETSC_EXTERN PetscErrorCode TDySetup(TDy tdy);
 PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
     TDyQuadratureType qtype);
 PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
@@ -143,7 +150,7 @@ PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
     PetscReal *normv);
 
 PETSC_EXTERN PetscErrorCode TDySetDtimeForSNESSolver(TDy,PetscReal);
-PETSC_EXTERN PetscErrorCode TDySetInitialSolutionForSNESSolver(TDy,Vec);
+PETSC_EXTERN PetscErrorCode TDySetPreviousSolutionForSNESSolver(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyPreSolveSNESSolver(TDy);
 PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
 

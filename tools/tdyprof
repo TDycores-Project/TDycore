@@ -7,9 +7,15 @@ def usage():
     print('tdyprof: Usage:')
     print('tdyprof <profile.csv> <command> [options]\n')
     print('Commands are:')
-    print('  topN [rank] - Show the N entries that take the most time')
-    print('                [optionally for only the given rank, otherwise')
-    print('                 reports max times across ranks].')
+    print('  topN [rank=P]')
+    print('  - Show the N measurements that take the most time, optionally')
+    print('    specifying the rank to which they belong.')
+    print('  botN [rank=P]')
+    print('  - Show the N measurements that take the least time, optionally')
+    print('    specifying the rank to which they belong.')
+    print('  match <pattern> [rank=P]')
+    print('  - Show the ranking of measurements matching the given pattern,')
+    print('    optionally specifying the rank to which it belongs.')
     exit()
 
 def parse_csv(csv_file):
@@ -19,17 +25,18 @@ def parse_csv(csv_file):
         rows = [r for r in data]
         return rows
 
-def topN(data, N, rank=-1):
-    if len(data) == 0:
-        return
-    if (rank == -1):
-        print('tdyprof: showing top %d hits (max times across ranks):'%N)
-    else:
-        print('tdyprof: showing top %d hits for rank %d:'%(N, rank))
-    columns = ['Stage Name', 'Event Name', 'Time', 'FLOP']
-    print('{: >20} {: >40} {: >10} {: >16}'.format(*columns))
+def prune_rows(rows):
+    # Strip off metadata.
+    md = [i for i in range(len(rows)) if rows[i]['Stage Name'] == 'METADATA']
+    if len(md) > 0:
+        rows = rows[:md[0]]
+    # Prune extraneous Stage information and summary entries from rows.
+    return [r for r in rows if float(r['Time']) > 0 and
+            r['Event Name'] != 'summary']
+
+def gather_topN(data, N, rank):
     # If a rank was specified, sort the rows in descending order by time.
-    if rank >= 0:
+    if rank is not None and rank >= 0:
         sorted_rows = sorted([r for r in data if int(r['Rank']) == rank],
                              key=lambda row: float(row['Time']),
                              reverse=True)
@@ -47,27 +54,103 @@ def topN(data, N, rank=-1):
         sorted_rows = sorted(max_time_rows,
                              key=lambda row: float(row['Time']),
                              reverse=True)
+    return sorted_rows
+
+def topN(data, N, options):
+    if len(data) == 0:
+        return
+    rank = None
+    if 'rank' in options:
+        rank = int(options['rank'])
+    rows = gather_topN(data, N, rank)
 
     # Report the top N results.
+    rank_str = '(max across ranks)' if rank is None else 'for rank "%d"'%rank
+    print('tdyprof: showing top %d hits %s:'%(N, rank_str))
+    col_names = ['Stage Name', 'Event Name', 'Time', 'FLOP']
+    print('{: >20} {: >40} {: >16} {: >16}'.format(*col_names))
     for i in range(N):
-        row = [sorted_rows[i][c][:40] for c in columns]
-        print('{: >20} {: >40} {: >10} {: >16}'.format(*row))
+        row = [rows[i][c][:40] for c in col_names]
+        print('{: >20} {: >40} {: >16} {: >16}'.format(*row))
+
+def botN(data, N, options):
+    if len(data) == 0:
+        return
+    rank = None
+    if 'rank' in options:
+        rank = int(options['rank'])
+    rows = gather_topN(data, N, rank)
+    rows.reverse()
+
+    # Report the bottom N results.
+    rank_str = '(max across ranks)' if rank is None else 'for rank "%d"'%rank
+    print('tdyprof: showing bottom %d hits %s:'%(N, rank_str))
+    col_names = ['Stage Name', 'Event Name', 'Time', 'FLOP']
+    print('{: >20} {: >40} {: >16} {: >16}'.format(*col_names))
+    for i in range(N):
+        row = [rows[i][c][:40] for c in col_names]
+        print('{: >20} {: >40} {: >16} {: >16}'.format(*row))
+
+def match(data, pattern, options):
+    if len(data) == 0:
+        return
+    rank = None
+    if 'rank' in options:
+        rank = int(options['rank'])
+    rows = gather_topN(data, len(data), rank)
+    matches = []
+    for i in range(len(rows)):
+        if pattern in rows[i]['Event Name']:
+            matches.append(i)
+    results = []
+    for m in matches:
+        rec = rows[m]
+        rec['Ranking'] = str(m+1)
+        results.append(rec)
+
+    # Report the rankings of the matches.
+    rank_str = '' if rank is None else 'for rank "%d"'%rank
+    print('tdyprof: showing matches for "%s"%s:'%(pattern, rank_str))
+    col_names = ['Ranking', 'Stage Name', 'Event Name', 'Time', 'FLOP']
+    print('{: >10} {: >20} {: >40} {: >16} {: >16}'.format(*col_names))
+    for i in range(len(results)):
+        row = [results[i][c][:40] for c in col_names]
+        print('{: >10} {: >20} {: >40} {: >16} {: >16}'.format(*row))
 
 def main():
     import sys
     if len(sys.argv) < 3:
         usage()
 
+    # The first two arguments are always the CSV file and the command.
     csv_file = sys.argv[1]
-    data = parse_csv(csv_file)
-
-    # Execute the given command with its given args.
     command = sys.argv[2]
+
+    # Parse the CSV file and prune all irrelevant rows.
+    data = prune_rows(parse_csv(csv_file))
+
+    # Gather any command-specific options
+    options = {}
+    for arg in sys.argv[3:]:
+        if '=' in arg:
+            k, v = arg.split('=')
+            options[k] = v
+
+    # Execute the given command with its given args/options.
     if command.startswith('top'):
         N = min(int(command[3:]), len(data))
-        rank = -1
-        if len(sys.argv) > 3:
-            rank = int(sys.argv[3])
-        topN(data, N, rank=rank)
+        topN(data, N, options)
+    elif command.startswith('bot'):
+        N = min(int(command[3:]), len(data))
+        botN(data, N, options)
+    elif command == 'match':
+        if len(sys.argv) < 4:
+            print('tdyprof: missing pattern for match command.')
+        else:
+            pattern = sys.argv[3]
+            match(data, pattern, options)
+    else:
+        print('tdyprof: unrecognized command: %s'%command)
+
 if __name__ == '__main__':
     main()

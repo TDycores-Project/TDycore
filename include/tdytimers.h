@@ -5,6 +5,12 @@
 
 PETSC_EXTERN PetscClassId TDY_CLASSID;
 
+// Initializes the timers subsystem.
+PETSC_EXTERN PetscErrorCode TDyInitTimers(void);
+
+// Enables timers.
+PETSC_EXTERN PetscErrorCode TDyEnableTimers(void);
+
 // Timer (PetscLogEvent) macros for profiling.
 // These macros make it easier to create/start/stop timers for profiling parts
 // of TDycore. The PetscEventLog machinery is a bit cumbersome when applied to
@@ -57,20 +63,39 @@ KHASH_MAP_INIT_STR(TDY_PROFILING_STAGE_MAP, PetscLogStage)
 PETSC_EXTERN khash_t(TDY_PROFILING_STAGE_MAP)* TDY_PROFILING_STAGES;
 
 // TDyAddProfilingStage(name): creates a profiling stage (PetscLogStage).
-PETSC_EXTERN void TDyAddProfilingStage(const char* name);
+PETSC_EXTERN PetscErrorCode TDyAddProfilingStage(const char* name);
 
 // TDyEnterProfilingstage(name): enters the profiling stage with the given name.
 // Has no effect if the given stage name is invalid.
 #define TDyEnterProfilingStage(name) \
-  khiter_t iter = kh_get(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name); \
-  PetscLogStage stage; \
-  if (iter != kh_end(TDY_PROFILING_STAGES)) \
-    stage = kh_val(TDY_PROFILING_STAGES, iter); \
-  PetscLogStagePush(stage)
+  { \
+    khiter_t iter = kh_get(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name); \
+    PetscLogStage stage; \
+    if (iter != kh_end(TDY_PROFILING_STAGES)) { \
+      stage = kh_val(TDY_PROFILING_STAGES, iter); \
+      PetscLogStagePush(stage); \
+    } \
+  }
 
 // TDyExitProfilingstage(name): exits the profiling stage with the given name.
 // (The name isn't actually used, but it can be useful to explicate it.)
 #define TDyExitProfilingStage(name) \
-  PetscLogStagePop()
+  { \
+    khiter_t iter = kh_get(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name); \
+    if (iter != kh_end(TDY_PROFILING_STAGES)) \
+      PetscLogStagePop(); \
+  }
+
+typedef struct _p_TDy *TDy;
+
+// Stores metadata for the given dycore in the timers subsystem for
+// profiling.
+PETSC_EXTERN PetscErrorCode TDySetTimingMetadata(TDy tdy);
+
+// Writes a timing profile report to the given filename.
+PETSC_EXTERN PetscErrorCode TDyWriteTimingProfile(const char* filename);
+
+// Breaks down the timers subsystem at finalization.
+void TDyDestroyTimers(void);
 
 #endif

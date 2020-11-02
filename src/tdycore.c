@@ -57,31 +57,10 @@ const char *const TDyWaterDensityTypes[] = {
   "TDyWaterDensityType","TDY_DENSITY_",NULL
 };
 
-// Timers registry.
-khash_t(TDY_TIMER_MAP)* TDY_TIMERS = NULL;
-
-// Are timers enabled?
-static PetscBool TDyEnableTimers = PETSC_FALSE;
-
-// Profiling stages registry.
-khash_t(TDY_PROFILING_STAGE_MAP)* TDY_PROFILING_STAGES = NULL;
-
 PetscClassId TDY_CLASSID = 0;
 
 static PetscBool TDyPackageInitialized = PETSC_FALSE;
 PetscLogEvent TDy_ComputeSystem = 0;
-
-void TDyAddProfilingStage(const char* name)
-{
-  khiter_t iter = kh_get(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name);
-  PetscLogStage stage;
-  if (iter == kh_end(TDY_PROFILING_STAGES)) {
-    PetscLogStageRegister(name, &stage);
-    int retval;
-    iter = kh_put(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES, name, &retval);
-    kh_val(TDY_PROFILING_STAGES, iter) = stage;
-  }
-}
 
 static PetscErrorCode TDyInitSubsystems() {
   char           logList[256];
@@ -90,18 +69,7 @@ static PetscErrorCode TDyInitSubsystems() {
   // Register a class ID for logging.
   PetscErrorCode ierr = PetscClassIdRegister("TDy",&TDY_CLASSID); CHKERRQ(ierr);
 
-  // Register timers table.
-  if (TDY_TIMERS == NULL)
-    TDY_TIMERS = kh_init(TDY_TIMER_MAP);
-
-  // Register profiling stages table.
-  if (TDY_PROFILING_STAGES == NULL)
-    TDY_PROFILING_STAGES = kh_init(TDY_PROFILING_STAGE_MAP);
-
-  // Register some logging stages.
-  TDyAddProfilingStage("TDycore Setup");
-  TDyAddProfilingStage("TDycore Stepping");
-  TDyAddProfilingStage("TDycore I/O");
+  TDyInitTimers();
 
   // Process info exclusions.
   ierr = PetscOptionsGetString(NULL,NULL,"-info_exclude",logList,sizeof(logList),
@@ -123,10 +91,11 @@ static PetscErrorCode TDyInitSubsystems() {
   }
 
   // Enable timers if requested.
-  ierr = PetscOptionsGetBool(NULL,NULL,"-tdy_timers", &TDyEnableTimers, &opt);
+  PetscBool timersEnabled = PETSC_FALSE;
+  ierr = PetscOptionsGetBool(NULL,NULL,"-tdy_timers", &timersEnabled, &opt);
   CHKERRQ(ierr);
-  if (TDyEnableTimers)
-    PetscLogDefaultBegin();
+  if (timersEnabled)
+    TDyEnableTimers();
 
   PetscFunctionReturn(0);
 }
@@ -173,20 +142,9 @@ PetscErrorCode TDyFinalize() {
   PetscFunctionBegin;
 
   // Dump timing information before we leave.
-  if (TDyEnableTimers) {
-    PetscViewer log;
-    PetscViewerASCIIOpen(PETSC_COMM_WORLD, "tdycore_profile.csv", &log);
-    PetscViewerFormat format = PETSC_VIEWER_ASCII_CSV;
-    PetscViewerPushFormat(log, format);
-    PetscLogView(log);
-    PetscViewerDestroy(&log);
-  }
+  TDyWriteTimingProfile("tdycore_profile.csv");
 
-  // Free the timers registry and the profiling stages registry.
-  if (TDY_TIMERS != NULL)
-    kh_destroy(TDY_TIMER_MAP, TDY_TIMERS);
-  if (TDY_PROFILING_STAGES != NULL)
-    kh_destroy(TDY_PROFILING_STAGE_MAP, TDY_PROFILING_STAGES);
+  TDyDestroyTimers();
 
   // Finalize PETSc.
   PetscFinalize();
@@ -196,67 +154,64 @@ PetscErrorCode TDyFinalize() {
 }
 
 PetscErrorCode TDyCreate(TDy *_tdy) {
-  PetscErrorCode ierr;
-  DM             dm;
-  ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
-  ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
-  ierr = TDyCreateWithDM(dm,_tdy); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   TDy            tdy;
-  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,c,cStart,cEnd,eStart,eEnd,offset,
-                 nc;
-  Vec            coordinates;
-  PetscSection   coordSection;
-  PetscScalar   *coords;
-  MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
   PetscValidPointer(_tdy,1);
   *_tdy = NULL;
-  ierr = PetscHeaderCreate(tdy,TDY_CLASSID,"TDy","TDy","TDy",comm,TDyDestroy,
-                           TDyView); CHKERRQ(ierr);
+  ierr = PetscHeaderCreate(tdy,TDY_CLASSID,"TDy","TDy","TDy",PETSC_COMM_WORLD,
+                           TDyDestroy,TDyView); CHKERRQ(ierr);
   *_tdy = tdy;
+  tdy->setupflags |= TDyCreated;
 
   ierr = TDyIOCreate(&tdy->io); CHKERRQ(ierr);
 
-  /* compute/store plex geometry */
-  PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
-  TDyStartTimer(t1);
-  tdy->dm = dm;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(tdy->V));
-  CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->X));
-  CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->N));
-  CHKERRQ(ierr);
-  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
-  ierr = DMGetCoordinatesLocal (dm, &coordinates); CHKERRQ(ierr);
-  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
-  for(p=pStart; p<pEnd; p++) {
-    if((p >= vStart) && (p < vEnd)) {
-      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
-      for(d=0; d<dim; d++) tdy->X[p*dim+d] = coords[offset+d];
-    } else {
-      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
-      ierr = DMPlexComputeCellGeometryFVM(dm,p,&(tdy->V[p]),&(tdy->X[p*dim]),
-                                          &(tdy->N[p*dim])); CHKERRQ(ierr);
-    }
+  // initialize flags/parameters
+  tdy->Pref = 101325;
+  tdy->Tref = 25;
+  tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
+  tdy->rho_type = WATER_DENSITY_CONSTANT;
+  tdy->mu_type = WATER_VISCOSITY_CONSTANT;
+  tdy->enthalpy_type = WATER_ENTHALPY_CONSTANT;
+  tdy->mpfao_gmatrix_method = MPFAO_GMATRIX_DEFAULT;
+  tdy->mpfao_bc_type = MPFAO_DIRICHLET_BC;
+  tdy->allow_unsuitable_mesh = PETSC_FALSE;
+  tdy->init_with_random_field = PETSC_FALSE;
+
+  /* initialize method information to null */
+  tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
+  tdy->quad = NULL;
+  tdy->faces = NULL; tdy->LtoG = NULL; tdy->orient = NULL;
+  tdy->qtype = FULL;
+
+  tdy->setupflags |= TDyParametersInitialized;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDM(TDy tdy, DM dm) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  if (!dm) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"A DM must be created prior to TDySetDM()");
   }
-  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
-  TDyStopTimer(t1);
+  tdy->dm = dm;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyMalloc(TDy tdy) {
+  PetscInt       dim,c,cStart,cEnd,eStart,eEnd,nc;
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  if (!tdy->dm) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->dm must be set prior to TDyMalloc()");
+  }
 
   /* allocate space for a full tensor perm for each cell */
   PetscLogEvent t2 = TDyGetTimer("ComputePlexGeometry");
   TDyStartTimer(t2);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   nc   = cEnd-cStart;
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K0)); CHKERRQ(ierr);
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K )); CHKERRQ(ierr);
@@ -293,7 +248,6 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
   TDyStopTimer(t2);
 
-
   /* problem constants FIX: add mutators */
   for (c=0; c<nc; c++) {
     tdy->Sr[c]   = 0.15;
@@ -325,23 +279,58 @@ PetscErrorCode TDyCreateWithDM(DM dm,TDy *_tdy) {
     tdy->du_dT[c] = 0.0;
     tdy->dvis_dT[c] = 0.0;
   }
-  tdy->Pref = 101325;
-  tdy->Tref = 25;
-  tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
   tdy->gravity[dim-1] = -9.81;
-  tdy->rho_type = WATER_DENSITY_CONSTANT;
-  tdy->mu_type = WATER_VISCOSITY_CONSTANT;
-  tdy->enthalpy_type = WATER_ENTHALPY_CONSTANT;
-  tdy->mpfao_gmatrix_method = MPFAO_GMATRIX_DEFAULT;
-  tdy->mpfao_bc_type = MPFAO_DIRICHLET_BC;
+  PetscFunctionReturn(0);
+}
 
-  /* initialize method information to null */
-  tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
-  tdy->quad = NULL;
-  tdy->faces = NULL; tdy->LtoG = NULL; tdy->orient = NULL;
-  tdy->allow_unsuitable_mesh = PETSC_FALSE;
-  tdy->qtype = FULL;
+PetscErrorCode TDyCreateGrid(TDy tdy) {
+  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,eStart,eEnd,offset,nc;
+  Vec            coordinates;
+  PetscSection   coordSection;
+  PetscScalar   *coords;
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  if ((tdy->setupflags & TDyOptionsSet) == 0) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Options must be set prior to TDyCreateGrid()");
+  }
 
+  if (!tdy->dm) {
+    DM dm;
+    ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
+    ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
+    tdy->dm = dm;
+  }
+
+  /* compute/store plex geometry */
+  PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
+  TDyStartTimer(t1);
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  ierr = DMPlexGetChart(tdy->dm,&pStart,&pEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(tdy->dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(tdy->dm,1,&eStart,&eEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(tdy->V));
+  CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->X));
+  CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->N));
+  CHKERRQ(ierr);
+  ierr = DMGetCoordinateSection(tdy->dm, &coordSection); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal (tdy->dm, &coordinates); CHKERRQ(ierr);
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  for(p=pStart; p<pEnd; p++) {
+    if((p >= vStart) && (p < vEnd)) {
+      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
+      for(d=0; d<dim; d++) tdy->X[p*dim+d] = coords[offset+d];
+    } else {
+      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
+      ierr = DMPlexComputeCellGeometryFVM(tdy->dm,p,&(tdy->V[p]),
+                                          &(tdy->X[p*dim]),
+                                          &(tdy->N[p*dim])); CHKERRQ(ierr);
+    }
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+  TDyStopTimer(t1);
+  ierr = TDyMalloc(tdy); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -367,6 +356,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   tdy = *_tdy; *_tdy = NULL;
 
   if (!tdy) PetscFunctionReturn(0);
+
   ierr = TDyResetDiscretizationMethod(tdy); CHKERRQ(ierr);
   ierr = PetscFree(tdy->V); CHKERRQ(ierr);
   ierr = PetscFree(tdy->X); CHKERRQ(ierr);
@@ -436,7 +426,6 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   PetscInt       dim;
 
   PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
   PetscValidPointer(tdy,1);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
@@ -479,7 +468,6 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   if (tdy->J           ) { ierr = MatDestroy(&tdy->J   ); CHKERRQ(ierr); }
   if (tdy->Jpre        ) { ierr = MatDestroy(&tdy->Jpre); CHKERRQ(ierr); }
 
-  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -494,7 +482,7 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
 }
 
 PetscErrorCode TDySetFromOptions(TDy tdy) {
-  // must preceed TDySetup()
+  // must preceed TDySetupNumericalMethods() as it sets options used in TDySetupNumericalMethods()
   PetscErrorCode ierr;
   PetscBool flg;
   TDyMethod method = WY;
@@ -503,20 +491,26 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   TDyWaterDensityType densitytype = WATER_DENSITY_CONSTANT;
   TDyMPFAOGmatrixMethod gmatrixmethod = MPFAO_GMATRIX_DEFAULT;
   TDyMPFAOBoundaryConditionType bctype = MPFAO_DIRICHLET_BC;
-
   PetscFunctionBegin;
+  if ((tdy->setupflags & TDySetupFinished) != 0) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetupNumericalMethods()");
+  }
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   ierr = PetscObjectOptionsBegin((PetscObject)tdy); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_method","Discretization method",
                           "TDySetDiscretizationMethod",TDyMethods,(PetscEnum)method,(PetscEnum *)&method,
                           &flg); CHKERRQ(ierr);
-  if (flg && (method != tdy->method)) { 
-    ierr = TDySetDiscretizationMethod(tdy,method); CHKERRQ(ierr); 
+  if (flg && (method != tdy->method)) {
+    ierr = TDySetDiscretizationMethod(tdy,method); CHKERRQ(ierr);
   }
   ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type",
                           "TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&qtype,
                           &flg); CHKERRQ(ierr);
   if (flg && (qtype != tdy->qtype)) { ierr = TDySetQuadratureType(tdy,qtype); CHKERRQ(ierr); }
+  ierr = PetscOptionsBool("-tdy_init_with_random_field",
+                          "Initialize solution with a random field","",
+                          tdy->init_with_random_field,
+                          &(tdy->init_with_random_field),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-tdy_tpf_allow_unsuitable_mesh",
                           "Enable to allow non-orthgonal meshes in tpf","",tdy->allow_unsuitable_mesh,
                           &(tdy->allow_unsuitable_mesh),NULL); CHKERRQ(ierr);
@@ -538,10 +532,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           "TDySetMode",TDyModes,(PetscEnum)mode,(PetscEnum *)&mode,
                           &flg); CHKERRQ(ierr);
 
-  ierr = PetscOptionsBool("-tdy_timers",
-                          "Enable timers for profiling","",PETSC_FALSE,
-                          &TDyEnableTimers,NULL); CHKERRQ(ierr);
-
   if (flg && (mode != tdy->mode)) { ierr = TDySetMode(tdy,mode); CHKERRQ(ierr); }
 
   ierr = PetscOptionsEnum("-tdy_mpfao_gmatrix_method","MPFA-O gmatrix method",
@@ -555,38 +545,14 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   if (flg && (bctype != tdy->mpfao_bc_type)) { ierr = TDySetMPFAOBoundaryConditionType(tdy,bctype); CHKERRQ(ierr); }
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  tdy->setupflags |= TDyOptionsSet;
+
+  ierr = TDyCreateGrid(tdy); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetup(TDy tdy) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  TDyEnterProfilingStage("TDycore Setup");
-  ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
-  ierr = TDySetupDiscretizationMethod(tdy); CHKERRQ(ierr); 
-  if (tdy->regression_testing) {
-    ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
-  }
-  if (tdy->output_mesh) {
-    if (tdy->method != MPFA_O) {
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
-              "-tdy_output_mesh only supported for MPFA-O method");
-    }
-    ierr = TDyOutputMesh(tdy); CHKERRQ(ierr);
-  }
-  TDyExitProfilingStage("TDycore Setup");
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
-  PetscFunctionBegin;
-  tdy->method = method;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetupDiscretizationMethod(TDy tdy) {
+PetscErrorCode TDySetupDiscretizationScheme(TDy tdy) {
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscValidPointer(tdy,1);
@@ -612,6 +578,45 @@ PetscErrorCode TDySetupDiscretizationMethod(TDy tdy) {
     ierr = TDyWYInitialize(tdy); CHKERRQ(ierr);
     break;
   }
+
+  // Record metadata for scaling studies.
+  TDySetTimingMetadata(tdy);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetupNumericalMethods(TDy tdy) {
+  /* must follow TDySetFromOptions() is it relies upon options set by 
+     TDySetFromOptions */
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  if ((tdy->setupflags & TDyOptionsSet) == 0) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetupNumericalMethods()");
+  }
+  TDY_START_FUNCTION_TIMER()
+  TDyEnterProfilingStage("TDycore Setup");
+  ierr = TDySetupDiscretizationScheme(tdy); CHKERRQ(ierr); 
+  if (tdy->regression_testing) {
+    /* must come after Sections are set up in 
+       TDySetupDiscretizationScheme->XXXInitialize */
+    ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
+  }
+  if (tdy->output_mesh) {
+    if (tdy->method != MPFA_O) {
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+              "-tdy_output_mesh only supported for MPFA-O method");
+    }
+    ierr = TDyOutputMesh(tdy); CHKERRQ(ierr);
+  }
+  TDyExitProfilingStage("TDycore Setup");
+  tdy->setupflags |= TDySetupFinished;
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
+  PetscFunctionBegin;
+  tdy->method = method;
   PetscFunctionReturn(0);
 }
 
@@ -1316,7 +1321,7 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetInitialSolutionForSNESSolver(TDy tdy, Vec soln) {
+PetscErrorCode TDySetPreviousSolutionForSNESSolver(TDy tdy, Vec soln) {
 
   PetscErrorCode ierr;
 
@@ -1373,9 +1378,7 @@ PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
   ierr = VecCopy(U,tdy->soln_prev); CHKERRQ(ierr);
-  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
