@@ -3,6 +3,8 @@
 #include "exodusII.h"
 #include <petsc/private/dmpleximpl.h>
 
+PetscReal test=1.0;
+
 PetscErrorCode TDyIOCreate(TDyIO *_io) {
   TDyIO io;
   PetscFunctionBegin;
@@ -12,6 +14,7 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   io->io_process = PETSC_FALSE;
   io->print_intermediate = PETSC_FALSE;  
   strcpy(io->exodus_filename, "out.exo");
+  strcpy(io->hdf5_filename, "out.h5");
   io->num_vars = 1;
   strcpy(io->zonalVarNames[0], "Soln");
   io->format = PetscViewerASCIIFormat;
@@ -30,7 +33,7 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscErrorCode ierr;
   char *zonalVarNames[1];
  
-  char *ofilename = tdy->io->exodus_filename;
+  
   int num_vars = tdy->io->num_vars;
   Vec v = tdy->solution;
   DM dm = tdy->dm;
@@ -41,6 +44,7 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     TDyIOPrintVec(v, time);
   }
   if (tdy->io->format == ExodusFormat){
+    char *ofilename = tdy->io->exodus_filename;
     if (tdy->io->num_times == 0) {
       TdyIOInitializeExodus(ofilename,zonalVarNames,dm,num_vars);
       ierr = PetscObjectSetName((PetscObject) v,  "Soln");CHKERRQ(ierr);
@@ -48,7 +52,46 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     TdyIOAddExodusTime(ofilename,time,tdy->io);
     TdyIOWriteExodusVar(ofilename,v,tdy->io);
   }
+  if (tdy->io->format == HDF5Format){
+    char *ofilename = tdy->io->hdf5_filename;
+    if (tdy->io->num_times == 0) {
+      TdyIOInitializeHDF5(ofilename,dm,v,time);
+      tdy->io->num_times = 1;
+    }
+    else {
+    TdyIOWriteHDF5Var(ofilename,v,time);
+    }
+  }  
   PetscFunctionReturn(0);
+}
+
+PetscErrorCode TdyIOInitializeHDF5(char *ofilename, DM dm, Vec U, PetscReal time){
+
+  PetscViewer viewer; 
+  PetscErrorCode ierr;
+  char word[32];
+  sprintf(word,"%11.5e",time);
+  
+  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,ofilename,FILE_MODE_WRITE,&viewer);
+  ierr = DMPlexView_HDF5_Internal(dm, viewer);
+  ierr = PetscObjectSetName((PetscObject) U,word);CHKERRQ(ierr);
+  ierr = VecView(U,viewer);CHKERRQ(ierr);
+
+  ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TdyIOWriteHDF5Var(char *ofilename, Vec U,PetscReal time){
+     
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+  char word[32];
+  sprintf(word,"%11.5e",time);
+  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,ofilename,FILE_MODE_APPEND,&viewer);
+  ierr = PetscObjectSetName((PetscObject) U,word);CHKERRQ(ierr);
+  ierr = VecView(U,viewer);CHKERRQ(ierr);  
+  ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
+PetscFunctionReturn(0);
 }
 
 PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM dm, int num_vars){
