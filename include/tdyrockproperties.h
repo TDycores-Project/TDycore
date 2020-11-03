@@ -3,7 +3,7 @@
 
 #include <petsc.h>
 
-PETSC_EXTERN void TDyRockDensityFunctionDefault(PetscReal*,PetscReal*);
-PETSC_EXTERN void TDySpecificHeatCapacityFunctionDefault(PetscReal*,PetscReal*);
+PETSC_INTERN void TDyRockDensityFunctionDefault(PetscReal*,PetscReal*);
+PETSC_INTERN void TDySpecificHeatCapacityFunctionDefault(PetscReal*,PetscReal*);
 
 #endif
