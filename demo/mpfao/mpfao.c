@@ -1,5 +1,5 @@
 #include "tdycore.h"
-#include "tdydm.h"
+#include <private/tdydmimpl.h>
 #if defined(DEBUG)
 #include "private/tdycoreimpl.h"
 #endif

@@ -1,5 +1,5 @@
 #include <private/tdycoreimpl.h>
-#include <tdydm.h>
+#include <private/tdydmimpl.h>
 #include <tdydriver.h>
 #include <tdypermeability.h>
 #include <tdyporosity.h>

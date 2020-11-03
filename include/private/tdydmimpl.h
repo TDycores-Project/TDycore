@@ -1,5 +1,5 @@
-#if !defined(TDYDM_H)
-#define TDYDM_H
+#if !defined(TDYDMIMPL_H)
+#define TDYDMIMPL_H
 
 #include <petsc.h>
 

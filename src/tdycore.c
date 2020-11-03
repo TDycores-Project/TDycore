@@ -5,7 +5,7 @@
 #include <private/tdympfaoimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
-#include <tdydm.h>
+#include <private/tdydmimpl.h>
 #include <tdyti.h>
 #include <tdytimers.h>
 #include <tdypermeability.h>
