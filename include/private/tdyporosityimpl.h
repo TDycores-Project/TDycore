@@ -1,5 +1,5 @@
-#if !defined(TDYPOROSITY_H)
-#define TDYPOROSITY_H
+#if !defined(TDYPOROSITYIMPL_H)
+#define TDYPOROSITYIMPL_H
 
 #include <petsc.h>
 #include <tdycore.h>

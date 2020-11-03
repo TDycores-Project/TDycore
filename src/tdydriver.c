@@ -1,7 +1,7 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdydmimpl.h>
 #include <tdydriver.h>
-#include <tdyporosity.h>
+#include <private/tdyporosityimpl.h>
 #include <tdyrichards.h>
 #include <tdyrockproperties.h>
 #include <tdyth.h>
