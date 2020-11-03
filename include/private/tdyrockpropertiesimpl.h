@@ -1,5 +1,5 @@
-#if !defined(TDYROCKPROPERTIES_H)
-#define TDYROCKPROPERTIES_H
+#if !defined(TDYROCKPROPERTIESIMPL_H)
+#define TDYROCKPROPERTIESIMPL_H
 
 #include <petsc.h>
 

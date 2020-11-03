@@ -1,6 +1,6 @@
 #include <private/tdycoreimpl.h>
 #include <tdycore.h>
-#include <tdyio.h>
+#include <private/tdyioimpl.h>
 #include <tdytimers.h>
 #include <tdyti.h>
 

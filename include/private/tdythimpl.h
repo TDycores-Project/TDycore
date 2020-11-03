@@ -1,5 +1,5 @@
-#if !defined(TDYTH_H)
-#define TDYTH_H
+#if !defined(TDYTHIMPL_H)
+#define TDYTHIMPL_H
 
 #include <petsc.h>
 #include <tdycore.h>

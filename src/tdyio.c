@@ -1,5 +1,5 @@
 #include <private/tdycoreimpl.h>
-#include <tdyio.h>
+#include <private/tdyioimpl.h>
 #include "exodusII.h"
 #include <petsc/private/dmpleximpl.h>
 
@@ -17,6 +17,18 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   io->format = PetscViewerASCIIFormat;
   io->num_times = 0;
     
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyIOSetIOProcess(TDyIO io, PetscBool flag){
+  PetscFunctionBegin;
+  io->io_process=flag;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyIOSetPrintIntermediate(TDyIO io, PetscBool flag){
+  PetscFunctionBegin;
+  io->print_intermediate=flag;
   PetscFunctionReturn(0);
 }
 

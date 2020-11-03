@@ -2,9 +2,9 @@
 #include <private/tdydmimpl.h>
 #include <tdydriver.h>
 #include <private/tdyporosityimpl.h>
-#include <tdyrichards.h>
-#include <tdyrockproperties.h>
-#include <tdyth.h>
+#include <private/tdyrichardsimpl.h>
+#include <private/tdyrockpropertiesimpl.h>
+#include <private/tdythimpl.h>
 #include <tdytimers.h>
 #include <private/tdypermeabilityimpl.h>
 

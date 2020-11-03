@@ -9,6 +9,7 @@
 #include <tdyti.h>
 #include <tdytimers.h>
 #include <private/tdyporosityimpl.h>
+#include <private/tdyioimpl.h>
 
 const char *const TDyMethods[] = {
   "TPF",

@@ -1,5 +1,5 @@
-#if !defined(TDYRICHARDS_H)
-#define TDYRICHARDS_H
+#if !defined(TDYRICHARDSIMPL_H)
+#define TDYRICHARDSIMPL_H
 
 #include <petsc.h>
 #include <tdycore.h>
