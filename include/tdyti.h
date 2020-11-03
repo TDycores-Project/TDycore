@@ -20,10 +20,10 @@ struct TDyTimeIntegrator {
   PetscInt istep;
 };
 
-PETSC_EXTERN PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator*);
-PETSC_EXTERN PetscErrorCode TDyTimeIntegratorUpdateDT(TDyTimeIntegrator,
+PETSC_INTERN PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator*);
+PETSC_INTERN PetscErrorCode TDyTimeIntegratorUpdateDT(TDyTimeIntegrator,
                                                       PetscReal);
 PETSC_EXTERN PetscErrorCode TDyTimeIntegratorRunToTime(TDy,PetscReal);
-PETSC_EXTERN PetscErrorCode TDyTimeIntegratorDestroy(TDyTimeIntegrator*);
+PETSC_INTERN PetscErrorCode TDyTimeIntegratorDestroy(TDyTimeIntegrator*);
 
 #endif
