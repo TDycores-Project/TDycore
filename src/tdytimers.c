@@ -1,6 +1,7 @@
 #include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
+#include <private/tdymeshutilsimpl.h>
 
 // Timers registry (maps timer names to PetscLogEvents).
 khash_t(TDY_TIMER_MAP)* TDY_TIMERS = NULL;
