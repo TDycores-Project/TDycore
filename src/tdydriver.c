@@ -1,12 +1,12 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdydmimpl.h>
 #include <tdydriver.h>
-#include <tdypermeability.h>
 #include <tdyporosity.h>
 #include <tdyrichards.h>
 #include <tdyrockproperties.h>
 #include <tdyth.h>
 #include <tdytimers.h>
+#include <private/tdypermeabilityimpl.h>
 
 PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   PetscErrorCode ierr;
