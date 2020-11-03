@@ -4,6 +4,6 @@
 #include <petsc.h>
 #include <tdycore.h>
 
-PETSC_EXTERN PetscErrorCode TDyPorosityFunctionDefault(TDy,double*,double*,void*);
+PETSC_INTERN PetscErrorCode TDyPorosityFunctionDefault(TDy,double*,double*,void*);
 
 #endif
