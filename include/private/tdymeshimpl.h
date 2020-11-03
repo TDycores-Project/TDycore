@@ -202,8 +202,7 @@ struct _TDy_mesh {
   TDyRegion region_connected;
 };
 
-PETSC_EXTERN PetscErrorCode TDyOutputMesh(TDy);
-PETSC_EXTERN PetscErrorCode TDyBuildTwoDimMesh(TDy);
-PETSC_EXTERN PetscErrorCode TDyBuildMesh(TDy);
-PETSC_EXTERN PetscErrorCode TDyAllocateMemoryForMesh(TDy);
+PETSC_INTERN PetscErrorCode TDyOutputMesh(TDy);
+PETSC_INTERN PetscErrorCode TDyBuildMesh(TDy);
+PETSC_INTERN PetscErrorCode TDyAllocateMemoryForMesh(TDy);
 #endif
