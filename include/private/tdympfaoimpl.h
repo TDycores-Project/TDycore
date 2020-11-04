@@ -3,7 +3,7 @@
 
 #include <petsc.h>
 
-PETSC_EXTERN PetscErrorCode TDyMPFAOInitialize(TDy);
+PETSC_INTERN PetscErrorCode TDyMPFAOInitialize(TDy);
 
 #endif
 
