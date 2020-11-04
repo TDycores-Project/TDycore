@@ -1,6 +1,5 @@
 #include <tdycore.h>
 #include <private/tdycoreimpl.h>
-#include <tdydriver.h>
 #include <tdyio.h>
 
 int main(int argc, char **argv) {

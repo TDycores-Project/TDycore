@@ -1,6 +1,5 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdydmimpl.h>
-#include <tdydriver.h>
 #include <private/tdyporosityimpl.h>
 #include <private/tdyrichardsimpl.h>
 #include <private/tdyrockpropertiesimpl.h>
