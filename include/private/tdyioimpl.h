@@ -3,7 +3,7 @@
 
 #include <petsc.h>
 
-struct TDyIO {
+struct _p_TDyIO {
   PetscBool io_process;
   PetscBool print_intermediate;
   char exodus_filename[PETSC_MAX_PATH_LEN];

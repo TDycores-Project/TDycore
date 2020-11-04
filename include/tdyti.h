@@ -3,9 +3,9 @@
 
 #include <petsc.h>
 
-typedef struct TDyTimeIntegrator *TDyTimeIntegrator;
+typedef struct _p_TDyTimeIntegrator *TDyTimeIntegrator;
 
-struct TDyTimeIntegrator {
+struct _p_TDyTimeIntegrator {
   SNES snes;
   TS ts;
   TDyTimeIntegrationMethod time_integration_method;

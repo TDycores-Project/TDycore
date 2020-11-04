@@ -1,12 +1,13 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdyioimpl.h>
+#include <tdyio.h>
 #include "exodusII.h"
 #include <petsc/private/dmpleximpl.h>
 
 PetscErrorCode TDyIOCreate(TDyIO *_io) {
   TDyIO io;
   PetscFunctionBegin;
-  io = (TDyIO)malloc(sizeof(struct TDyIO));
+  io = (TDyIO)malloc(sizeof(struct _p_TDyIO));
   *_io = io;
 
   io->io_process = PETSC_FALSE;

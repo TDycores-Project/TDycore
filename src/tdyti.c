@@ -9,7 +9,7 @@ PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
   char time_integration_method[32];
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ti = (TDyTimeIntegrator)malloc(sizeof(struct TDyTimeIntegrator));
+  ti = (TDyTimeIntegrator)malloc(sizeof(struct _p_TDyTimeIntegrator));
   *_ti =ti;
 
   ti->time_integration_method = TDySNES;

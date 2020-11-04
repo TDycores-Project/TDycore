@@ -8,7 +8,7 @@ typedef enum{
   ExodusFormat
 } TDyIOFormat;
 
-typedef struct TDyIO *TDyIO;
+typedef struct _p_TDyIO* TDyIO;
 
 PETSC_EXTERN PetscErrorCode TDyIOSetIOProcess(TDyIO,PetscBool);
 PETSC_EXTERN PetscErrorCode TDyIOSetPrintIntermediate(TDyIO,PetscBool);
