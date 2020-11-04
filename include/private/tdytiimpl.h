@@ -1,5 +1,5 @@
-#if !defined(TIMEINTEGRATOR_H)
-#define TIMEINTEGRATOR_H
+#if !defined(TIMEINTEGRATORIMPL_H)
+#define TIMEINTEGRATORIMPL_H
 
 #include <petsc.h>
 
@@ -21,9 +21,7 @@ struct _p_TDyTimeIntegrator {
 };
 
 PETSC_INTERN PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator*);
-PETSC_INTERN PetscErrorCode TDyTimeIntegratorUpdateDT(TDyTimeIntegrator,
-                                                      PetscReal);
-PETSC_EXTERN PetscErrorCode TDyTimeIntegratorRunToTime(TDy,PetscReal);
+PETSC_INTERN PetscErrorCode TDyTimeIntegratorUpdateDT(TDyTimeIntegrator,PetscReal);
 PETSC_INTERN PetscErrorCode TDyTimeIntegratorDestroy(TDyTimeIntegrator*);
 
 #endif

@@ -6,7 +6,7 @@
 #include <private/tdyeosimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 #include <private/tdydmimpl.h>
-#include <tdyti.h>
+#include <private/tdytiimpl.h>
 #include <tdytimers.h>
 #include <private/tdyporosityimpl.h>
 #include <private/tdyioimpl.h>

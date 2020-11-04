@@ -2,7 +2,7 @@
 #include <tdycore.h>
 #include <private/tdyioimpl.h>
 #include <tdytimers.h>
-#include <tdyti.h>
+#include <private/tdytiimpl.h>
 
 PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
   TDyTimeIntegrator ti;

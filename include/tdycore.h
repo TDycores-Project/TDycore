@@ -215,4 +215,6 @@ PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyCreateVectors(TDy);
 PETSC_EXTERN PetscErrorCode TDyCreateJacobian(TDy);
 
+PETSC_EXTERN PetscErrorCode TDyTimeIntegratorRunToTime(TDy,PetscReal);
+
 #endif
