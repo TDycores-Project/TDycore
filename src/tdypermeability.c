@@ -65,14 +65,14 @@ PetscErrorCode TDySetPermeabilityScalar(TDy tdy,SpatialFunction f) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   dim2 = dim*dim;
-  ierr = PetscMemzero(tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart)); CHKERRQ(ierr);
+  ierr = PetscMemzero(tdy->matprop_K,sizeof(PetscReal)*dim2*(cEnd-cStart)); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
-    f(&(tdy->X[dim*c]),&(tdy->K[dim2*(c-cStart)]));
+    f(&(tdy->X[dim*c]),&(tdy->matprop_K[dim2*(c-cStart)]));
     for(i=1; i<dim; i++) {
-      tdy->K[dim2*(c-cStart)+i*dim+i] = tdy->K[dim2*(c-cStart)];
+      tdy->matprop_K[dim2*(c-cStart)+i*dim+i] = tdy->matprop_K[dim2*(c-cStart)];
     }
   }
-  ierr = PetscMemcpy(tdy->K0,tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart));
+  ierr = PetscMemcpy(tdy->matprop_K0,tdy->matprop_K,sizeof(PetscReal)*dim2*(cEnd-cStart));
   PetscFunctionReturn(0);
 }
 
@@ -86,14 +86,14 @@ PetscErrorCode TDySetPermeabilityDiagonal(TDy tdy,SpatialFunction f) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   dim2 = dim*dim;
-  ierr = PetscMemzero(tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart)); CHKERRQ(ierr);
+  ierr = PetscMemzero(tdy->matprop_K,sizeof(PetscReal)*dim2*(cEnd-cStart)); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     f(&(tdy->X[dim*c]),&(val[0]));
     for(i=0; i<dim; i++) {
-      tdy->K[dim2*(c-cStart)+i*dim+i] = val[i];
+      tdy->matprop_K[dim2*(c-cStart)+i*dim+i] = val[i];
     }
   }
-  ierr = PetscMemcpy(tdy->K0,tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart));
+  ierr = PetscMemcpy(tdy->matprop_K0,tdy->matprop_K,sizeof(PetscReal)*dim2*(cEnd-cStart));
   PetscFunctionReturn(0);
 }
 
@@ -110,7 +110,7 @@ PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy tdy, PetscInt ni, const Pe
   dim2 = dim*dim;
 
   for(i=0; i<ni; i++) {
-    for(j=0; j<dim2; j++) tdy->K0[ix[i]*dim2 + j] = y[i*dim2+j];
+    for(j=0; j<dim2; j++) tdy->matprop_K0[ix[i]*dim2 + j] = y[i*dim2+j];
   }
 
   PetscFunctionReturn(0);
@@ -125,11 +125,11 @@ PetscErrorCode TDySetPermeabilityTensor(TDy tdy,SpatialFunction f) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   dim2 = dim*dim;
-  ierr = PetscMemzero(tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart)); CHKERRQ(ierr);
+  ierr = PetscMemzero(tdy->matprop_K,sizeof(PetscReal)*dim2*(cEnd-cStart)); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
-    f(&(tdy->X[dim*c]),&(tdy->K[dim2*(c-cStart)]));
+    f(&(tdy->X[dim*c]),&(tdy->matprop_K[dim2*(c-cStart)]));
   }
-  ierr = PetscMemcpy(tdy->K0,tdy->K,sizeof(PetscReal)*dim2*(cEnd-cStart));
+  ierr = PetscMemcpy(tdy->matprop_K0,tdy->matprop_K,sizeof(PetscReal)*dim2*(cEnd-cStart));
   PetscFunctionReturn(0);
 }
 
@@ -141,7 +141,7 @@ PetscErrorCode TDySetCellPermeability(TDy tdy,PetscInt c,PetscReal *K) {
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&i); CHKERRQ(ierr);
   ierr = DMGetDimension(tdy->dm,&dim2); CHKERRQ(ierr);
   dim2 *= dim2;  
-  for(i=0;i<dim2;i++) tdy->K[dim2*(c-cStart)+i] = K[i];
+  for(i=0;i<dim2;i++) tdy->matprop_K[dim2*(c-cStart)+i] = K[i];
   PetscFunctionReturn(0);
 }
 
@@ -194,7 +194,7 @@ PetscErrorCode TDyGetBlockPermeabilityValuesLocal(TDy tdy, PetscInt *ni, PetscSc
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
       for(j=0; j<dim2; j++) {
-        y[*ni] = tdy->K0[(c-cStart)*dim2 + j];
+        y[*ni] = tdy->matprop_K0[(c-cStart)*dim2 + j];
         *ni += 1;
       }
     }

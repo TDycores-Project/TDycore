@@ -94,7 +94,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
     tdy->Kr_BND[p_bnd_idx] = Kr;
     tdy->dKr_dS_BND[p_bnd_idx] = dKr_dSe * dSe_dS;
 
-    //for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
+    //for(j=0; j<dim2; j++) tdy->matprop_K[i*dim2+j] = tdy->matprop_K0[i*dim2+j] * Kr;
   }
   
   PetscFunctionReturn(0);

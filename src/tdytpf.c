@@ -75,7 +75,7 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
       ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk); CHKERRQ(ierr);
       Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[f*dim]),pnt2pnt);
       dist = Norm(dim,pnt2pnt);
-      Ki = tdy->K[(supp[0]-cStart)*dim2];
+      Ki = tdy->matprop_K[(supp[0]-cStart)*dim2];
       ierr = MatSetValue(K,row,row,Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);
       CHKERRQ(ierr);
       ierr = VecSetValue(F,row,p*Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);
@@ -85,7 +85,7 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
 
     Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[supp[1]*dim]),pnt2pnt);
     dist = Norm(dim,pnt2pnt);
-    Ki = 0.5*(tdy->K[(supp[0]-cStart)*dim2]+tdy->K[(supp[1]-cStart)*dim2]);
+    Ki = 0.5*(tdy->matprop_K[(supp[0]-cStart)*dim2]+tdy->matprop_K[(supp[1]-cStart)*dim2]);
 
     //wrt 0
     // v = -Ki (p1-p0)/dist
@@ -200,7 +200,7 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
         ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk); CHKERRQ(ierr);
         Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[f*dim]),pnt2pnt);
         dist = Norm(dim,pnt2pnt);
-        Ki = tdy->K[(supp[0]-cStart)*dim2];
+        Ki = tdy->matprop_K[(supp[0]-cStart)*dim2];
         ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]),&p, tdy->dirichletvaluectx);CHKERRQ(ierr);
         sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),
                                         &(tdy->X[dim*supp[0]]),dim));
@@ -211,7 +211,7 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
       } else {
         Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[supp[1]*dim]),pnt2pnt);
         dist = Norm(dim,pnt2pnt);
-        Ki = 0.5*(tdy->K[(supp[0]-cStart)*dim2]+tdy->K[(supp[1]-cStart)*dim2]);
+        Ki = 0.5*(tdy->matprop_K[(supp[0]-cStart)*dim2]+tdy->matprop_K[(supp[1]-cStart)*dim2]);
         sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),
                                         &(tdy->X[dim*c]),dim));
         va = sign* -Ki*(u[(supp[1]-cStart)]-u[(supp[0]-cStart)])/dist *tdy->V[f];

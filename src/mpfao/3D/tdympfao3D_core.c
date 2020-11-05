@@ -66,7 +66,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
 
     for (ii=0; ii<dim; ii++) {
       for (jj=0; jj<dim; jj++) {
-        K[ii][jj] = tdy->K0[icell*dim*dim + ii*dim + jj];
+        K[ii][jj] = tdy->matprop_K0[icell*dim*dim + ii*dim + jj];
       }
     }
 

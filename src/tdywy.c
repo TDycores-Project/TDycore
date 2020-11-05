@@ -188,7 +188,7 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
 		"Determinant of the jacobian is negative");
       }
       // compute Kappa^-1 which will be in column major format (shouldn't matter as it is symmetric)
-      ierr = Pullback(&(tdy->K[dim2*(c-cStart)]),&DFinv[dim2*q],Kinv,J[q],dim);
+      ierr = Pullback(&(tdy->matprop_K[dim2*(c-cStart)]),&DFinv[dim2*q],Kinv,J[q],dim);
       CHKERRQ(ierr);
 
       // at each vertex, we have a dim by dim system which we will store
@@ -243,7 +243,7 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
       PetscInt count = 0;
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
-          tdy->K[icell*dim*dim + ii*dim + jj] = localK[count];
+          tdy->matprop_K[icell*dim*dim + ii*dim + jj] = localK[count];
           count++;
         }
       }

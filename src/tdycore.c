@@ -212,8 +212,8 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   nc   = cEnd-cStart;
-  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K0)); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K )); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_K0)); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_K )); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->porosity)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Kr)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dKr_dS)); CHKERRQ(ierr);
@@ -360,8 +360,8 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->V); CHKERRQ(ierr);
   ierr = PetscFree(tdy->X); CHKERRQ(ierr);
   ierr = PetscFree(tdy->N); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->K); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->K0); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->matprop_K); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->matprop_K0); CHKERRQ(ierr);
   ierr = PetscFree(tdy->porosity); CHKERRQ(ierr);
   ierr = PetscFree(tdy->Kr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dKr_dS); CHKERRQ(ierr);
@@ -957,7 +957,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     tdy->Kr[i] = Kr;
     tdy->dKr_dS[i] = dKr_dSe * dSe_dS;
 
-    for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
+    for(j=0; j<dim2; j++) tdy->matprop_K[i*dim2+j] = tdy->matprop_K0[i*dim2+j] * Kr;
 
     ierr = ComputeWaterDensity(P[i], tdy->rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
