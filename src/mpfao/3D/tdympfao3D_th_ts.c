@@ -238,11 +238,11 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
 
     // A_M = d(rho*phi*s)/dP * dP_dtime * Vol + d(rho*phi*s)/dT * dT_dtime * Vol
     dmass_dP = tdy->rho[icell]     * dporosity_dP         * tdy->S[icell] +
-               tdy->drho_dP[icell] * tdy->porosity[icell] * tdy->S[icell] +
-               tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dP[icell];
+               tdy->drho_dP[icell] * tdy->matprop_porosity[icell] * tdy->S[icell] +
+               tdy->rho[icell]     * tdy->matprop_porosity[icell] * tdy->dS_dP[icell];
     dmass_dT = tdy->rho[icell]     * dporosity_dT         * tdy->S[icell] +
-               tdy->drho_dT[icell] * tdy->porosity[icell] * tdy->S[icell] +
-               tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dT[icell];
+               tdy->drho_dT[icell] * tdy->matprop_porosity[icell] * tdy->S[icell] +
+               tdy->rho[icell]     * tdy->matprop_porosity[icell] * tdy->dS_dT[icell];
 
     // A_E = [d(rho*phi*s*U)/dP + d(rho*(1-phi)*T)/dP] * dP_dtime *Vol +
     //       [d(rho*phi*s*U)/dT + d(rho*(1-phi)*T)/dT] * dT_dtime *Vol
@@ -262,18 +262,18 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
     PetscReal rock_dencpr = tdy->rhor[icell]*tdy->Cr[icell];
     PetscReal denergy_dP,denergy_dT;
 
-    denergy_dP = tdy->drho_dP[icell] * tdy->porosity[icell] * tdy->S[icell]     * tdy->u[icell]     +
+    denergy_dP = tdy->drho_dP[icell] * tdy->matprop_porosity[icell] * tdy->S[icell]     * tdy->u[icell]     +
                  tdy->rho[icell]     * dporosity_dP         * tdy->S[icell]     * tdy->u[icell]     +
-                 tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dP[icell] * tdy->u[icell]     +
-                 tdy->rho[icell]     * tdy->porosity[icell] * tdy->S[icell]     * tdy->du_dP[icell] +
+                 tdy->rho[icell]     * tdy->matprop_porosity[icell] * tdy->dS_dP[icell] * tdy->u[icell]     +
+                 tdy->rho[icell]     * tdy->matprop_porosity[icell] * tdy->S[icell]     * tdy->du_dP[icell] +
                  rock_dencpr         * (-dporosity_dP)      * temp[icell];
 
-    denergy_dT = tdy->drho_dT[icell] * tdy->porosity[icell] * tdy->S[icell]     * tdy->u[icell]     +
+    denergy_dT = tdy->drho_dT[icell] * tdy->matprop_porosity[icell] * tdy->S[icell]     * tdy->u[icell]     +
                  tdy->rho[icell]     * dporosity_dT         * tdy->S[icell]     * tdy->u[icell]     +
-                 tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dT[icell] * tdy->u[icell]     +
-                 tdy->rho[icell]     * tdy->porosity[icell] * tdy->S[icell]     * tdy->du_dT[icell] +
+                 tdy->rho[icell]     * tdy->matprop_porosity[icell] * tdy->dS_dT[icell] * tdy->u[icell]     +
+                 tdy->rho[icell]     * tdy->matprop_porosity[icell] * tdy->S[icell]     * tdy->du_dT[icell] +
                  rock_dencpr         * (-dporosity_dT)      * temp[icell]                           +
-                 rock_dencpr         * (1.0 - tdy->porosity[icell]);
+                 rock_dencpr         * (1.0 - tdy->matprop_porosity[icell]);
 
     r[icell*2]   += dmass_dP * dp_dt[icell] * cells->volume[icell] + dmass_dT * dtemp_dt[icell] * cells->volume[icell];
     r[icell*2+1] += denergy_dP * dp_dt[icell] * cells->volume[icell] + denergy_dT * dtemp_dt[icell] * cells->volume[icell];
@@ -629,7 +629,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
     for (ijac=0; ijac<size_jac; ijac++) {Jac[ijac] = 0.0;}
 
     // Porosity
-    porosity = tdy->porosity[icell];
+    porosity = tdy->matprop_porosity[icell];
     dporosity_dP = 0.0;
     d2porosity_dP2 = 0.0;
     dporosity_dT = 0.0;

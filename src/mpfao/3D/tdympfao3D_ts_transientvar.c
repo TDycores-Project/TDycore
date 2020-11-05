@@ -48,7 +48,7 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) 
 
     if (!cells->is_local[icell]) continue;
 
-    c[icell] = tdy->rho[icell] * tdy->porosity[icell] * tdy->S[icell]* cells->volume[icell];
+    c[icell] = tdy->rho[icell] * tdy->matprop_porosity[icell] * tdy->S[icell]* cells->volume[icell];
   }
 
   ierr = VecRestoreArray(C,&c); CHKERRQ(ierr);

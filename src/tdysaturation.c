@@ -169,7 +169,7 @@ PetscErrorCode TDyGetLiquidMassValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      y[*ni] = tdy->rho[c-cStart]*tdy->porosity[c-cStart]*tdy->S[c-cStart]*tdy->V[c];
+      y[*ni] = tdy->rho[c-cStart]*tdy->matprop_porosity[c-cStart]*tdy->S[c-cStart]*tdy->V[c];
       *ni += 1;
     }
   }

@@ -67,7 +67,7 @@ struct _p_TDy {
   PetscReal *matprop_K,
             *matprop_K0;         /* permeability tensor (cell,intrinsic) for each cell [m2] */
   PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
-  PetscReal *porosity;           /* porosity for each cell [1] */
+  PetscReal *matprop_porosity;   /* porosity for each cell [1] */
   PetscReal *S,
             *dS_dP,              /* saturation and derivative wrt pressure for each cell [1] */
             *d2S_dP2,            /* second derivative of saturation wrt pressure for each cell [1] */

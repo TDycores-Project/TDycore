@@ -64,10 +64,10 @@ PetscErrorCode SetPorosityFromFunction(TDy tdy) {
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(tdy->porosity,sizeof(PetscReal)*(cEnd-cStart));CHKERRQ(ierr);
+  ierr = PetscMemzero(tdy->matprop_porosity,sizeof(PetscReal)*(cEnd-cStart));CHKERRQ(ierr);
 
   for(c=cStart; c<cEnd; c++) {
-    ierr = (*tdy->ops->computeporosity)(tdy, &(tdy->X[c*dim]), &(tdy->porosity[c]), tdy->porosityctx);CHKERRQ(ierr);
+    ierr = (*tdy->ops->computeporosity)(tdy, &(tdy->X[c*dim]), &(tdy->matprop_porosity[c]), tdy->porosityctx);CHKERRQ(ierr);
   }
 
   /*

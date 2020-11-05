@@ -214,7 +214,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   nc   = cEnd-cStart;
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_K0)); CHKERRQ(ierr);
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_K )); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->porosity)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_porosity)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Kr)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dKr_dS)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->S)); CHKERRQ(ierr);
@@ -265,7 +265,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->vis[c] = 0.0;
     tdy->dvis_dP[c] = 0.0;
     tdy->d2vis_dP2[c] = 0.0;
-    tdy->porosity[c] = 0.0;
+    tdy->matprop_porosity[c] = 0.0;
     tdy->h[c] = 0.0;
     tdy->dh_dT[c] = 0.0;
     tdy->dh_dP[c] = 0.0;
@@ -362,7 +362,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->N); CHKERRQ(ierr);
   ierr = PetscFree(tdy->matprop_K); CHKERRQ(ierr);
   ierr = PetscFree(tdy->matprop_K0); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->porosity); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->matprop_porosity); CHKERRQ(ierr);
   ierr = PetscFree(tdy->Kr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dKr_dS); CHKERRQ(ierr);
   ierr = PetscFree(tdy->S); CHKERRQ(ierr);

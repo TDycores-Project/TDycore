@@ -10,8 +10,8 @@ PetscErrorCode TDySetPorosity(TDy tdy,SpatialFunction f) {
   PetscValidPointer(f,2);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(tdy->porosity,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
-  for(c=cStart; c<cEnd; c++) f(&(tdy->X[dim*c]),&(tdy->porosity[c-cStart]));
+  ierr = PetscMemzero(tdy->matprop_porosity,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
+  for(c=cStart; c<cEnd; c++) f(&(tdy->X[dim*c]),&(tdy->matprop_porosity[c-cStart]));
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
@@ -32,7 +32,7 @@ PetscErrorCode TDySetPorosityValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix
   if (!ni) PetscFunctionReturn(0);
 
   for(i=0; i<ni; i++) {
-    tdy->porosity[ix[i]] = y[i];
+    tdy->matprop_porosity[ix[i]] = y[i];
   }
 
   TDY_STOP_FUNCTION_TIMER()
@@ -54,7 +54,7 @@ PetscErrorCode TDyGetPorosityValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[])
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      y[*ni] = tdy->porosity[c-cStart];
+      y[*ni] = tdy->matprop_porosity[c-cStart];
       *ni += 1;
     }
   }

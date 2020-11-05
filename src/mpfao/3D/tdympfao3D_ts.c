@@ -169,8 +169,8 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
 
     // d(rho*phi*s)/dP * dP/dt * Vol
     dmass_dP = tdy->rho[icell]     * dporosity_dP         * tdy->S[icell] +
-               tdy->drho_dP[icell] * tdy->porosity[icell] * tdy->S[icell] +
-               tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dP[icell];
+               tdy->drho_dP[icell] * tdy->matprop_porosity[icell] * tdy->S[icell] +
+               tdy->rho[icell]     * tdy->matprop_porosity[icell] * tdy->dS_dP[icell];
     r[icell] += dmass_dP * dp_dt[icell] * cells->volume[icell];
     r[icell] -= tdy->source_sink[icell] * cells->volume[icell];
   }
@@ -591,18 +591,18 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal 
 
     // d(rho*phi*s)/dP * dP/dt * Vol
     dmass_dP = tdy->rho[icell] * dporosity_dP         * tdy->S[icell] +
-               drho_dP         * tdy->porosity[icell] * tdy->S[icell] +
-               tdy->rho[icell] * tdy->porosity[icell] * tdy->dS_dP[icell];
+               drho_dP         * tdy->matprop_porosity[icell] * tdy->S[icell] +
+               tdy->rho[icell] * tdy->matprop_porosity[icell] * tdy->dS_dP[icell];
 
     d2mass_dP2 = (
       tdy->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP         +
       tdy->S[icell]       * drho_dP                * dporosity_dP         +
       tdy->S[icell]       * tdy->rho[icell]        * d2porosity_dP2       +
-      tdy->dS_dP[icell]   * drho_dP                * tdy->porosity[icell] +
-      tdy->S[icell]       * d2rho_dP2              * tdy->porosity[icell] +
+      tdy->dS_dP[icell]   * drho_dP                * tdy->matprop_porosity[icell] +
+      tdy->S[icell]       * d2rho_dP2              * tdy->matprop_porosity[icell] +
       tdy->S[icell]       * drho_dP                * dporosity_dP         +
-      tdy->d2S_dP2[icell] * tdy->rho[icell]        * tdy->porosity[icell] +
-      tdy->dS_dP[icell]   * drho_dP                * tdy->porosity[icell] +
+      tdy->d2S_dP2[icell] * tdy->rho[icell]        * tdy->matprop_porosity[icell] +
+      tdy->dS_dP[icell]   * drho_dP                * tdy->matprop_porosity[icell] +
       tdy->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP
        );
 
