@@ -127,8 +127,8 @@ PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
       PetscInt count = 0;
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
-          tdy->Kappa[icell*dim*dim + ii*dim + jj] = localKappa[count];
-          tdy->Kappa0[icell*dim*dim + ii*dim + jj] = localKappa[count];
+          tdy->matprop_Kappa[icell*dim*dim + ii*dim + jj] = localKappa[count];
+          tdy->matprop_Kappa0[icell*dim*dim + ii*dim + jj] = localKappa[count];
           count++;
         }
       }

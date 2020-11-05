@@ -232,8 +232,8 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_m)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_n)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_alpha)); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->Kappa)); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->Kappa0 )); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_Kappa)); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_Kappa0 )); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->h)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dP)); CHKERRQ(ierr);
@@ -379,8 +379,8 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->matprop_alpha); CHKERRQ(ierr);
   ierr = PetscFree(tdy->matprop_n); CHKERRQ(ierr);
   ierr = PetscFree(tdy->matprop_m); CHKERRQ(ierr);
-//  ierr = PetscFree(tdy->Kappa); CHKERRQ(ierr);
-//  ierr = PetscFree(tdy->Kappa0); CHKERRQ(ierr);
+//  ierr = PetscFree(tdy->matprop_Kappa); CHKERRQ(ierr);
+//  ierr = PetscFree(tdy->matprop_Kappa0); CHKERRQ(ierr);
   ierr = PetscFree(tdy->h); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dh_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
@@ -962,7 +962,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     ierr = ComputeWaterDensity(P[i], tdy->rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
     if (tdy->mode ==  TH) {
-      for(j=0; j<dim2; j++) tdy->Kappa[i*dim2+j] = tdy->Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
+      for(j=0; j<dim2; j++) tdy->matprop_Kappa[i*dim2+j] = tdy->matprop_Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
       ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);
       tdy->u[i] = tdy->h[i] - P[i]/tdy->rho[i];
     }

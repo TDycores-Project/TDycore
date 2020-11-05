@@ -76,7 +76,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
     if (tdy->mode == TH) {
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
-          Kappa[ii][jj] = tdy->Kappa0[icell*dim*dim + ii*dim + jj];
+          Kappa[ii][jj] = tdy->matprop_Kappa0[icell*dim*dim + ii*dim + jj];
         }
       }
     }

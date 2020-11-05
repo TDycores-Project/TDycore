@@ -72,8 +72,8 @@ struct _p_TDy {
             *dS_dP,              /* saturation and derivative wrt pressure for each cell [1] */
             *d2S_dP2,            /* second derivative of saturation wrt pressure for each cell [1] */
             *dS_dT;
-  PetscReal *Kappa,
-            *Kappa0;             /* thermal conductivity tensor (cell,intrinsic) for each cell [W/(K-m)] */
+  PetscReal *matprop_Kappa,
+            *matprop_Kappa0;     /* thermal conductivity tensor (cell,intrinsic) for each cell [W/(K-m)] */
   PetscReal *Cr;                 /* specific heat capacity for rock [J/(kg-K)] */
   PetscReal *rhor;               /* rock density [kg/m3] */
 
