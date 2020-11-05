@@ -74,8 +74,8 @@ struct _p_TDy {
             *dS_dT;
   PetscReal *matprop_Kappa,
             *matprop_Kappa0;     /* thermal conductivity tensor (cell,intrinsic) for each cell [W/(K-m)] */
-  PetscReal *Cr;                 /* specific heat capacity for rock [J/(kg-K)] */
-  PetscReal *rhor;               /* rock density [kg/m3] */
+  PetscReal *matprop_Cr;         /* specific heat capacity for rock [J/(kg-K)] */
+  PetscReal *matprop_rhor;       /* rock density [kg/m3] */
 
   PetscInt *SatFuncType;         /* type of saturation function */
   PetscInt *RelPermFuncType;     /* type of relative permeability */

@@ -237,8 +237,8 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->h)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Cr)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rhor)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_Cr)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_rhor)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->u)); CHKERRQ(ierr);
@@ -269,8 +269,8 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->h[c] = 0.0;
     tdy->dh_dT[c] = 0.0;
     tdy->dh_dP[c] = 0.0;
-    tdy->Cr[c] = 0.0;
-    tdy->rhor[c] = 0.0;
+    tdy->matprop_Cr[c] = 0.0;
+    tdy->matprop_rhor[c] = 0.0;
     tdy->drho_dT[c] = 0.0;
     tdy->dS_dT[c] = 0.0;
     tdy->u[c] = 0.0;
@@ -384,8 +384,8 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->h); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dh_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->Cr); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->rhor); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->matprop_Cr); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->matprop_rhor); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);

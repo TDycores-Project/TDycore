@@ -11,8 +11,8 @@ PetscErrorCode TDySetSpecificHeatCapacity(TDy tdy,SpatialFunction f) {
   PetscValidPointer(f,2);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(tdy->Cr,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
-  for(c=cStart; c<cEnd; c++) f(&(tdy->X[dim*c]),&(tdy->Cr[c-cStart]));
+  ierr = PetscMemzero(tdy->matprop_Cr,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
+  for(c=cStart; c<cEnd; c++) f(&(tdy->X[dim*c]),&(tdy->matprop_Cr[c-cStart]));
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
@@ -26,8 +26,8 @@ PetscErrorCode TDySetRockDensity(TDy tdy,SpatialFunction f) {
   PetscValidPointer(f,2);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(tdy->rhor,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
-  for(c=cStart; c<cEnd; c++) f(&(tdy->X[dim*c]),&(tdy->rhor[c-cStart]));
+  ierr = PetscMemzero(tdy->matprop_rhor,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
+  for(c=cStart; c<cEnd; c++) f(&(tdy->X[dim*c]),&(tdy->matprop_rhor[c-cStart]));
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
