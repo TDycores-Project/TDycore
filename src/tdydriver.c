@@ -1,12 +1,11 @@
 #include <private/tdycoreimpl.h>
-#include <tdydm.h>
-#include <tdydriver.h>
-#include <tdypermeability.h>
-#include <tdyporosity.h>
-#include <tdyrichards.h>
-#include <tdyrockproperties.h>
-#include <tdyth.h>
+#include <private/tdydmimpl.h>
+#include <private/tdyporosityimpl.h>
+#include <private/tdyrichardsimpl.h>
+#include <private/tdyrockpropertiesimpl.h>
+#include <private/tdythimpl.h>
 #include <tdytimers.h>
+#include <private/tdypermeabilityimpl.h>
 
 PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   PetscErrorCode ierr;
@@ -14,7 +13,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
   PetscReal gravity[3] = {0.,0.,0.};
-  DM dm;
   TS ts;
   SNES snes;
   SNESLineSearch linesearch;

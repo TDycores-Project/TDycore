@@ -77,19 +77,18 @@ PETSC_EXTERN PetscErrorCode TDyInit(int argc, char* argv[]);
 PETSC_EXTERN PetscErrorCode TDyInitNoArguments(void);
 PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 
-PETSC_EXTERN PetscErrorCode TDyCreate(TDy *tdy);
-PETSC_EXTERN PetscErrorCode TDySetMode(TDy tdy, TDyMode mode);
-PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy tdy,
-                                                       TDyMethod method);
-PETSC_EXTERN PetscErrorCode TDySetDM(TDy tdy,DM dm);
-PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy tdy);
-PETSC_EXTERN PetscErrorCode TDySetupNumericalMethods(TDy tdy);
+PETSC_EXTERN PetscErrorCode TDyCreate(TDy*);
+PETSC_EXTERN PetscErrorCode TDySetMode(TDy,TDyMode);
+PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy,TDyMethod);
+PETSC_EXTERN PetscErrorCode TDySetDM(TDy,DM);
+PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy);
+PETSC_EXTERN PetscErrorCode TDySetupNumericalMethods(TDy);
 PETSC_EXTERN PetscErrorCode TDyDestroy(TDy *tdy);
-PETSC_EXTERN PetscErrorCode TDyView(TDy tdy,PetscViewer viewer);
+PETSC_EXTERN PetscErrorCode TDyView(TDy,PetscViewer viewer);
 
-PETSC_EXTERN PetscErrorCode TDyGetDimension(TDy tdy,PetscInt *dim);
-PETSC_EXTERN PetscErrorCode TDyGetDM(TDy tdy,DM *dm);
-PETSC_EXTERN PetscErrorCode TDyGetCentroidArray(TDy tdy,PetscReal **X);
+PETSC_EXTERN PetscErrorCode TDyGetDimension(TDy,PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyGetDM(TDy,DM*);
+PETSC_EXTERN PetscErrorCode TDyGetCentroidArray(TDy,PetscReal**);
 
 PETSC_EXTERN PetscErrorCode TDySetPorosityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
@@ -103,13 +102,13 @@ PETSC_EXTERN PetscErrorCode TDySetDirichletFluxFunction(TDy,PetscErrorCode(*)(TD
 
 PETSC_EXTERN PetscErrorCode TDySetGravityVector(TDy,PetscReal*);
 
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (TDy tdy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy tdy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (TDy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (TDy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetCellPermeability(TDy,PetscInt,PetscReal*);
-PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy tdy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetSpecificHeatCapacity(TDy tdy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetRockDensity         (TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetSpecificHeatCapacity(TDy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetRockDensity         (TDy,SpatialFunction f);
 
 PETSC_EXTERN PetscErrorCode TDySetPorosityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
@@ -131,23 +130,21 @@ PETSC_EXTERN PetscErrorCode TDyGetCellNaturalIDsLocal(TDy,PetscInt*,PetscInt[]);
 PETSC_EXTERN PetscErrorCode TDyGetCellIsLocal(TDy,PetscInt*,PetscInt[]);
 
 
-PETSC_EXTERN PetscErrorCode TDySetDirichletFlux    (TDy tdy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetDirichletFlux(TDy,SpatialFunction);
 
-PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy tdy);
+PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy);
 
-PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy tdy,
-    TDyQuadratureType qtype);
+PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy,TDyQuadratureType);
 PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
 PETSC_EXTERN PetscErrorCode TDySetMPFAOGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
 PETSC_EXTERN PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
 
-PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F);
-PETSC_EXTERN PetscErrorCode TDySetIFunction(TS ts,TDy tdy);
-PETSC_EXTERN PetscErrorCode TDySetIJacobian(TS ts,TDy tdy);
-PETSC_EXTERN PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy);
-PETSC_EXTERN PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy);
-PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
-    PetscReal *normv);
+PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy,Mat,Vec);
+PETSC_EXTERN PetscErrorCode TDySetIFunction(TS,TDy);
+PETSC_EXTERN PetscErrorCode TDySetIJacobian(TS,TDy);
+PETSC_EXTERN PetscErrorCode TDySetSNESFunction(SNES,TDy);
+PETSC_EXTERN PetscErrorCode TDySetSNESJacobian(SNES,TDy);
+PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
 
 PETSC_EXTERN PetscErrorCode TDySetDtimeForSNESSolver(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetPreviousSolutionForSNESSolver(TDy,Vec);
@@ -156,64 +153,59 @@ PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
 
 PETSC_EXTERN PetscErrorCode TDyOutputRegression(TDy,Vec);
 
-PETSC_EXTERN PetscErrorCode TDyTPFInitialize(TDy tdy);
-PETSC_EXTERN PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F);
-PETSC_EXTERN PetscReal TDyTPFPressureNorm(TDy tdy,Vec U);
-PETSC_EXTERN PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U);
-PETSC_EXTERN PetscErrorCode TDyTPFCheckMeshSuitability(TDy tdy);
+PETSC_EXTERN PetscErrorCode TDyTPFInitialize(TDy);
+PETSC_EXTERN PetscErrorCode TDyTPFComputeSystem(TDy,Mat,Vec);
+PETSC_EXTERN PetscReal TDyTPFPressureNorm(TDy,Vec);
+PETSC_EXTERN PetscReal TDyTPFVelocityNorm(TDy,Vec);
+PETSC_EXTERN PetscErrorCode TDyTPFCheckMeshSuitability(TDy);
 
-PETSC_EXTERN PetscErrorCode TDyWYInitialize(TDy tdy);
-PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F);
+PETSC_EXTERN PetscErrorCode TDyWYInitialize(TDy);
+PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy,Mat,Vec);
 
-PETSC_EXTERN PetscErrorCode TDyBDMInitialize(TDy tdy);
-PETSC_EXTERN PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F);
-PETSC_EXTERN PetscReal TDyBDMPressureNorm(TDy tdy,Vec U);
-PETSC_EXTERN PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscErrorCode TDyBDMInitialize(TDy);
+PETSC_EXTERN PetscErrorCode TDyBDMComputeSystem(TDy,Mat,Vec);
+PETSC_EXTERN PetscReal TDyBDMPressureNorm(TDy,Vec);
+PETSC_EXTERN PetscReal TDyBDMVelocityNorm(TDy,Vec);
 
-PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U);
-PETSC_EXTERN PetscReal TDyWYPressureNorm(TDy tdy,Vec U);
-PETSC_EXTERN PetscReal TDyWYVelocityNorm(TDy tdy);
-PETSC_EXTERN PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,
-    void *ctx);
+PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(TDy,Vec);
+PETSC_EXTERN PetscReal TDyWYPressureNorm(TDy,Vec);
+PETSC_EXTERN PetscReal TDyWYVelocityNorm(TDy);
+PETSC_EXTERN PetscErrorCode TDyWYResidual(TS,PetscReal,Vec,Vec,Vec,void *ctx);
 
-PETSC_EXTERN void RelativePermeability_Mualem(PetscReal m,PetscReal Se,
-    PetscReal *Kr,PetscReal *dKr_dSe);
-PETSC_EXTERN void RelativePermeability_Irmay(PetscReal m,PetscReal Se,
-    PetscReal *Kr,PetscReal *dKr_dSe);
-PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *P);
+PETSC_EXTERN void RelativePermeability_Mualem(PetscReal,PetscReal,PetscReal*,PetscReal*);
+PETSC_EXTERN void RelativePermeability_Irmay(PetscReal,PetscReal,PetscReal*,PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*);
 
-PETSC_EXTERN PetscErrorCode Pullback(PetscScalar *K,PetscScalar *DFinv,
-                                     PetscScalar *Kappa,PetscScalar J,PetscInt nn);
-PETSC_EXTERN PetscInt TDyGetNumberOfCellVertices(DM dm);
-PETSC_EXTERN PetscInt TDyGetNumberOfFaceVertices(DM dm);
-PETSC_EXTERN PetscReal TDyL1norm(PetscReal *x,PetscReal *y,PetscInt dim);
-PETSC_EXTERN PetscReal TDyADotBMinusC(PetscReal *a,PetscReal *b,PetscReal *c,
-                                      PetscInt dim);
-PETSC_EXTERN PetscReal TDyADotB(PetscReal *a,PetscReal *b,PetscInt dim);
-PETSC_EXTERN PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **_map);
-PETSC_EXTERN PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,
-    PetscInt **_map);
-PETSC_EXTERN PetscErrorCode TDyQuadrature(PetscQuadrature q,PetscInt dim);
+PETSC_EXTERN PetscErrorCode Pullback(PetscScalar*,PetscScalar*,PetscScalar*,PetscScalar,PetscInt);
+PETSC_EXTERN PetscInt TDyGetNumberOfCellVertices(DM);
+PETSC_EXTERN PetscInt TDyGetNumberOfFaceVertices(DM);
+PETSC_EXTERN PetscReal TDyL1norm(PetscReal*,PetscReal*,PetscInt);
+PETSC_EXTERN PetscReal TDyADotBMinusC(PetscReal*,PetscReal*,PetscReal*,PetscInt);
+PETSC_EXTERN PetscReal TDyADotB(PetscReal*,PetscReal*,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyCreateCellVertexMap(TDy,PetscInt**);
+PETSC_EXTERN PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy,PetscInt**);
+PETSC_EXTERN PetscErrorCode TDyQuadrature(PetscQuadrature,PetscInt);
 
-PETSC_EXTERN void HdivBasisQuad(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J);
-PETSC_EXTERN void HdivBasisHex(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J);
-PETSC_EXTERN PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
-    PetscReal *integral);
+PETSC_EXTERN void HdivBasisQuad(const PetscReal*,PetscReal*,PetscReal*,PetscReal);
+PETSC_EXTERN void HdivBasisHex(const PetscReal*,PetscReal*,PetscReal*,PetscReal);
+PETSC_EXTERN PetscErrorCode IntegrateOnFace(TDy,PetscInt,PetscInt,PetscReal*);
 
-PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy, Mat, Vec);
-PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy, Vec);
+PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
+PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy,Vec);
 PETSC_EXTERN PetscReal TDyMPFAOVelocityNorm(TDy);
-PETSC_EXTERN PetscReal TDyMPFAOPressureNorm(TDy tdy,Vec U);
+PETSC_EXTERN PetscReal TDyMPFAOPressureNorm(TDy,Vec);
 
 /* ---------------------------------------------------------------- */
 
-PETSC_EXTERN void PrintMatrix(PetscReal *A,PetscInt nr,PetscInt nc,
-                              PetscBool row_major);
-PETSC_EXTERN PetscErrorCode CheckSymmetric(PetscReal *A,PetscInt n);
+PETSC_EXTERN void PrintMatrix(PetscReal*,PetscInt,PetscInt,PetscBool);
+PETSC_EXTERN PetscErrorCode CheckSymmetric(PetscReal*,PetscInt);
 
-PETSC_EXTERN PetscErrorCode TDyRichardsInitialize(TDy);
 PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyCreateVectors(TDy);
 PETSC_EXTERN PetscErrorCode TDyCreateJacobian(TDy);
+
+PETSC_EXTERN PetscErrorCode TDyTimeIntegratorRunToTime(TDy,PetscReal);
+
+PETSC_EXTERN PetscErrorCode TDyDriverInitializeTDy(TDy);
 
 #endif

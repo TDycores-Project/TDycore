@@ -202,23 +202,7 @@ struct _TDy_mesh {
   TDyRegion region_connected;
 };
 
-PETSC_EXTERN PetscErrorCode TDyOutputMesh(TDy);
-PETSC_EXTERN PetscErrorCode TDyBuildTwoDimMesh(TDy);
-PETSC_EXTERN PetscErrorCode TDyBuildMesh(TDy);
-PETSC_EXTERN PetscErrorCode TDyAllocateMemoryForMesh(TDy);
-PETSC_EXTERN PetscErrorCode TDySubCell_GetIthNuVector(TDy_subcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDySubCell_GetIthNuStarVector(TDy_subcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDySubCell_GetIthFaceCentroid(TDy_subcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDySubCell_GetFaceIndexForAFace(TDy_subcell*,PetscInt,PetscInt,PetscInt *);
-PETSC_EXTERN PetscErrorCode TDyEdge_GetCentroid(TDy_edge*,PetscInt, PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyEdge_GetNormal(TDy_edge*,PetscInt,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyFace_GetNormal(TDy_face*,PetscInt,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyFace_GetCentroid(TDy_face*,PetscInt,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex*, PetscInt, PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyCell_GetCentroid(TDy_cell*,PetscInt, PetscReal*);
-PETSC_EXTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*,PetscInt,TDy_vertex*,PetscInt,TDy_subcell*,PetscInt*);
-PETSC_EXTERN PetscInt TDyMeshGetNumberOfLocalCells(TDy_mesh*);
-PETSC_EXTERN PetscInt TDyMeshGetNumberOfLocalFacess(TDy_mesh*);
-PETSC_EXTERN PetscInt TDyMeshGetNumberOfNonLocalFacess(TDy_mesh*);
-PETSC_EXTERN PetscInt TDyMeshGetNumberOfNonInternalFacess(TDy_mesh*);
+PETSC_INTERN PetscErrorCode TDyOutputMesh(TDy);
+PETSC_INTERN PetscErrorCode TDyBuildMesh(TDy);
+PETSC_INTERN PetscErrorCode TDyAllocateMemoryForMesh(TDy);
 #endif

@@ -1,7 +1,5 @@
 #include <tdycore.h>
 #include <private/tdycoreimpl.h>
-#include <tdydriver.h>
-#include <tdyti.h>
 #include <tdyio.h>
 
 int main(int argc, char **argv) {
@@ -37,8 +35,10 @@ int main(int argc, char **argv) {
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   ierr = TDyDriverInitializeTDy(tdy); CHKERRQ(ierr);
-  if (!rank) tdy->io->io_process = PETSC_TRUE;
-  tdy->io->print_intermediate = print_intermediate;
+  if (!rank) {
+    ierr = TDyIOSetIOProcess(tdy->io, PETSC_TRUE); CHKERRQ(ierr);
+  }
+  ierr = TDyIOSetPrintIntermediate(tdy->io, print_intermediate); CHKERRQ(ierr);
   PetscPrintf(PETSC_COMM_WORLD,"--\n");
   if (size == 1) {
     ierr = TDyIOSetMode(tdy->io,format);CHKERRQ(ierr);

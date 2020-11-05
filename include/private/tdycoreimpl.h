@@ -7,7 +7,7 @@
 #include <private/tdyregressionimpl.h>
 #include <tdycore.h>
 #include <tdyio.h>
-#include <tdyti.h>
+#include <private/tdytiimpl.h>
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1

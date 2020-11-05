@@ -1,7 +1,7 @@
 #include "petscsys.h"
 #include "petscfix.h"
 #include "petsc/private/fortranimpl.h"
-#include <tdydm.h>
+#include <private/tdydmimpl.h>
 #include <petsc/private/f90impl.h>
 
 #define PetscToPointer(a) (*(PetscFortranAddr *)(a))

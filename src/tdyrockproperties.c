@@ -1,5 +1,5 @@
 #include <private/tdycoreimpl.h>
-#include <tdyrockproperties.h>
+#include <private/tdyrockpropertiesimpl.h>
 #include <tdytimers.h>
 
 PetscErrorCode TDySetSpecificHeatCapacity(TDy tdy,SpatialFunction f) {

@@ -1,5 +1,5 @@
 #include <private/tdycoreimpl.h>
-#include <tdyth.h>
+#include <private/tdythimpl.h>
 
 PetscErrorCode TDyTHInitialize(TDy tdy) {
   PetscErrorCode ierr;

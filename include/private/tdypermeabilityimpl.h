@@ -9,4 +9,7 @@ typedef enum {
 } TDyRelPermFuncType;
 
 
+PETSC_INTERN PetscErrorCode TDyPermeabilityFunctionDefault(TDy,double*,double*,void*);
+PETSC_INTERN PetscErrorCode TDyThermalConductivityFunctionDefault(TDy,double*,double*,void*);
+
 #endif

@@ -5,11 +5,11 @@
 #include <private/tdympfaoimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
-#include <tdydm.h>
-#include <tdyti.h>
+#include <private/tdydmimpl.h>
+#include <private/tdytiimpl.h>
 #include <tdytimers.h>
-#include <tdypermeability.h>
-#include <tdyporosity.h>
+#include <private/tdyporosityimpl.h>
+#include <private/tdyioimpl.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -189,7 +189,6 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
 }
 
 PetscErrorCode TDySetDM(TDy tdy, DM dm) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   if (!dm) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"A DM must be created prior to TDySetDM()");
@@ -199,7 +198,7 @@ PetscErrorCode TDySetDM(TDy tdy, DM dm) {
 }
 
 PetscErrorCode TDyMalloc(TDy tdy) {
-  PetscInt       dim,c,cStart,cEnd,eStart,eEnd,nc;
+  PetscInt       dim,c,cStart,cEnd,nc;
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -284,7 +283,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
 }
 
 PetscErrorCode TDyCreateGrid(TDy tdy) {
-  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,eStart,eEnd,offset,nc;
+  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,eStart,eEnd,offset;
   Vec            coordinates;
   PetscSection   coordSection;
   PetscScalar   *coords;

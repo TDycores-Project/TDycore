@@ -1,15 +1,15 @@
 #include <private/tdycoreimpl.h>
 #include <tdycore.h>
-#include <tdyio.h>
+#include <private/tdyioimpl.h>
 #include <tdytimers.h>
-#include <tdyti.h>
+#include <private/tdytiimpl.h>
 
 PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
   TDyTimeIntegrator ti;
   char time_integration_method[32];
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ti = (TDyTimeIntegrator)malloc(sizeof(struct TDyTimeIntegrator));
+  ti = (TDyTimeIntegrator)malloc(sizeof(struct _p_TDyTimeIntegrator));
   *_ti =ti;
 
   ti->time_integration_method = TDySNES;

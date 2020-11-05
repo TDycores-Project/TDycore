@@ -14,7 +14,7 @@ struct _TDy_regression {
   VecScatter scatter_cells_per_process_gtos;
 };
 
-PETSC_EXTERN PetscErrorCode TDyRegressionInitialize(TDy);
-PETSC_EXTERN PetscErrorCode TDyRegressionOutput(TDy,Vec);
+PETSC_INTERN PetscErrorCode TDyRegressionInitialize(TDy);
+PETSC_INTERN PetscErrorCode TDyRegressionOutput(TDy,Vec);
 
 #endif

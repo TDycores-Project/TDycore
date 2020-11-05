@@ -1,6 +1,7 @@
 #include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
+#include <private/tdymeshutilsimpl.h>
 
 // Timers registry (maps timer names to PetscLogEvents).
 khash_t(TDY_TIMER_MAP)* TDY_TIMERS = NULL;
@@ -114,7 +115,6 @@ PetscErrorCode TDyWriteTimingProfile(const char* filename) {
       return 0;
     }
 
-    khint64_t tdy_addr = kh_key(TDY_PROFILING_METADATA, md_iter);
     TimingMetadata* md = kh_val(TDY_PROFILING_METADATA, md_iter);
 
     // Now write the footer.
