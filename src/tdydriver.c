@@ -4,7 +4,7 @@
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdythimpl.h>
 #include <tdytimers.h>
-#include <private/tdypermeabilityimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
 
 PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   PetscErrorCode ierr;

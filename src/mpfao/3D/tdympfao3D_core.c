@@ -7,7 +7,7 @@
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdysaturationimpl.h>
-#include <private/tdypermeabilityimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 
 /* ---------------------------------------------------------------- */

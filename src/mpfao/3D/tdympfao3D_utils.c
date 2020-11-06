@@ -6,7 +6,7 @@
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdysaturationimpl.h>
-#include <private/tdypermeabilityimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeGtimesZ(PetscReal *gravity, PetscReal *X, PetscInt dim, PetscReal *gz) {
