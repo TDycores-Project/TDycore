@@ -2,7 +2,7 @@
 #include <private/tdyrockpropertiesimpl.h>
 #include <tdytimers.h>
 
-PetscErrorCode TDySetSpecificHeatCapacity(TDy tdy,SpatialFunction f) {
+PetscErrorCode TDySetSoilSpecificHeatCapacity(TDy tdy,SpatialFunction f) {
   PetscInt dim,c,cStart,cEnd;
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -17,7 +17,7 @@ PetscErrorCode TDySetSpecificHeatCapacity(TDy tdy,SpatialFunction f) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetRockDensity(TDy tdy,SpatialFunction f) {
+PetscErrorCode TDySetSoilDensity(TDy tdy,SpatialFunction f) {
   PetscInt dim,c,cStart,cEnd;
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -32,11 +32,11 @@ PetscErrorCode TDySetRockDensity(TDy tdy,SpatialFunction f) {
   PetscFunctionReturn(0);
 }
 
-void TDyRockDensityFunctionDefault(PetscReal *x, PetscReal *den) {
+void TDySoilDensityFunctionDefault(PetscReal *x, PetscReal *den) {
   *den = 2650.;
 }
 
-void TDySpecificHeatCapacityFunctionDefault(PetscReal *x, PetscReal *cr) {
+void TDySpecificSoilHeatCapacityFunctionDefault(PetscReal *x, PetscReal *cr) {
   *cr = 1000.;
 }
 

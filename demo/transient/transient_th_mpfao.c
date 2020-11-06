@@ -180,8 +180,8 @@ int main(int argc, char **argv) {
 
   /* Setup problem parameters */
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
-  ierr = TDySetSpecificHeatCapacity(tdy,SpecificHeatCapacity); CHKERRQ(ierr);
-  ierr = TDySetRockDensity(tdy,RockDensity); CHKERRQ(ierr);
+  ierr = TDySetSoilSpecificHeatCapacity(tdy,SpecificHeatCapacity); CHKERRQ(ierr);
+  ierr = TDySetSoilDensity(tdy,RockDensity); CHKERRQ(ierr);
   //ierr = TDySetPermeabilityScalar(tdy,Permeability); CHKERRQ(ierr);
   ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction3D,NULL); CHKERRQ(ierr);
   ierr = TDySetThermalConductivityFunction(tdy,ThermalConductivityFunction3D,NULL); CHKERRQ(ierr);

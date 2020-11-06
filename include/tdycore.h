@@ -111,8 +111,8 @@ PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (TDy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetCellPermeability(TDy,PetscInt,PetscReal*);
 PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetSpecificHeatCapacity(TDy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetRockDensity         (TDy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeatCapacity(TDy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDySetSoilDensity         (TDy,SpatialFunction f);
 
 // Set boundary condition: via spatial function
 PETSC_EXTERN PetscErrorCode TDySetDirichletFlux(TDy,SpatialFunction);
