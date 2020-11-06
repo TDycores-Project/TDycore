@@ -181,8 +181,6 @@ PETSC_EXTERN PetscReal TDyWYPressureNorm(TDy,Vec);
 PETSC_EXTERN PetscReal TDyWYVelocityNorm(TDy);
 PETSC_EXTERN PetscErrorCode TDyWYResidual(TS,PetscReal,Vec,Vec,Vec,void *ctx);
 
-PETSC_EXTERN void RelativePermeability_Mualem(PetscReal,PetscReal,PetscReal*,PetscReal*);
-PETSC_EXTERN void RelativePermeability_Irmay(PetscReal,PetscReal,PetscReal*,PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*);
 
 PETSC_EXTERN PetscErrorCode Pullback(PetscScalar*,PetscScalar*,PetscScalar*,PetscScalar,PetscInt);
