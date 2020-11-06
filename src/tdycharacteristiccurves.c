@@ -14,7 +14,7 @@ PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const P
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetMaterialPropertyMValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+PetscErrorCode TDySetCharacteristicCurveMValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
 
   PetscInt i;
 
@@ -22,13 +22,13 @@ PetscErrorCode TDySetMaterialPropertyMValuesLocal(TDy tdy, PetscInt ni, const Pe
   if (!ni) PetscFunctionReturn(0);
 
   for(i=0; i<ni; i++) {
-    tdy->matprop_m[ix[i]] = y[i];
+    tdy->cc_m[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetMaterialPropertyNValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+PetscErrorCode TDySetCharacteristicCurveNValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
 
   PetscInt i;
 
@@ -36,13 +36,13 @@ PetscErrorCode TDySetMaterialPropertyNValuesLocal(TDy tdy, PetscInt ni, const Pe
   if (!ni) PetscFunctionReturn(0);
 
   for(i=0; i<ni; i++) {
-    tdy->matprop_n[ix[i]] = y[i];
+    tdy->cc_n[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetMaterialPropertyAlphaValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+PetscErrorCode TDySetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
 
   PetscInt i;
 
@@ -50,7 +50,7 @@ PetscErrorCode TDySetMaterialPropertyAlphaValuesLocal(TDy tdy, PetscInt ni, cons
   if (!ni) PetscFunctionReturn(0);
 
   for(i=0; i<ni; i++) {
-    tdy->matprop_alpha[ix[i]] = y[i];
+    tdy->cc_alpha[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
@@ -100,7 +100,7 @@ PetscErrorCode TDyGetLiquidMassValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyGetMaterialPropertyMValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
+PetscErrorCode TDyGetCharacteristicCurveMValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
 
   PetscInt c,cStart,cEnd;
   PetscInt junkInt, gref;
@@ -114,7 +114,7 @@ PetscErrorCode TDyGetMaterialPropertyMValuesLocal(TDy tdy, PetscInt *ni, PetscSc
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      y[*ni] = tdy->matprop_m[c-cStart];
+      y[*ni] = tdy->cc_m[c-cStart];
       *ni += 1;
     }
   }
@@ -122,7 +122,7 @@ PetscErrorCode TDyGetMaterialPropertyMValuesLocal(TDy tdy, PetscInt *ni, PetscSc
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyGetMaterialPropertyAlphaValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
+PetscErrorCode TDyGetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
 
   PetscInt c,cStart,cEnd;
   PetscInt junkInt, gref;
@@ -136,7 +136,7 @@ PetscErrorCode TDyGetMaterialPropertyAlphaValuesLocal(TDy tdy, PetscInt *ni, Pet
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      y[*ni] = tdy->matprop_alpha[c-cStart];
+      y[*ni] = tdy->cc_alpha[c-cStart];
       *ni += 1;
     }
   }

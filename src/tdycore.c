@@ -228,9 +228,9 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->cc_sr)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->SatFuncType)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->RelPermFuncType)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_m)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_n)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_alpha)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->cc_m)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->cc_n)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->cc_alpha)); CHKERRQ(ierr);
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_Kappa)); CHKERRQ(ierr);
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_Kappa0 )); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->h)); CHKERRQ(ierr);
@@ -249,9 +249,9 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   /* problem constants FIX: add mutators */
   for (c=0; c<nc; c++) {
     tdy->cc_sr[c]   = 0.15;
-    tdy->matprop_n[c] = 0.5;
-    tdy->matprop_m[c] = 0.8;
-    tdy->matprop_alpha[c] = 1.e-4;
+    tdy->cc_n[c] = 0.5;
+    tdy->cc_m[c] = 0.8;
+    tdy->cc_alpha[c] = 1.e-4;
     tdy->SatFuncType[c] = SAT_FUNC_GARDNER;
     tdy->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     tdy->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
@@ -375,9 +375,9 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->cc_sr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->SatFuncType); CHKERRQ(ierr);
   ierr = PetscFree(tdy->RelPermFuncType); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->matprop_alpha); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->matprop_n); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->matprop_m); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->cc_alpha); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->cc_n); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->cc_m); CHKERRQ(ierr);
 //  ierr = PetscFree(tdy->matprop_Kappa); CHKERRQ(ierr);
 //  ierr = PetscFree(tdy->matprop_Kappa0); CHKERRQ(ierr);
   ierr = PetscFree(tdy->h); CHKERRQ(ierr);
@@ -923,9 +923,9 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
 
-    m = tdy->matprop_m[c];
-    n = tdy->matprop_n[c];
-    alpha = tdy->matprop_alpha[c];
+    m = tdy->cc_m[c];
+    n = tdy->cc_n[c];
+    alpha = tdy->cc_alpha[c];
 
     switch (tdy->SatFuncType[i]) {
     case SAT_FUNC_GARDNER :

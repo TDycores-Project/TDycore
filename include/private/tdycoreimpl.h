@@ -61,27 +61,27 @@ struct _p_TDy {
   PetscReal  Pref;       /* reference pressure */
   PetscReal  Tref;       /* reference temperature */
 
-
   /* material parameters */
   PetscReal *matprop_K,
             *matprop_K0;         /* permeability tensor (cell,intrinsic) for each cell [m2] */
-  PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
   PetscReal *matprop_porosity;   /* porosity for each cell [1] */
-  PetscReal *S,
-            *dS_dP,              /* saturation and derivative wrt pressure for each cell [1] */
-            *d2S_dP2,            /* second derivative of saturation wrt pressure for each cell [1] */
-            *dS_dT;
   PetscReal *matprop_Kappa,
             *matprop_Kappa0;     /* thermal conductivity tensor (cell,intrinsic) for each cell [W/(K-m)] */
   PetscReal *matprop_Cr;         /* specific heat capacity for rock [J/(kg-K)] */
   PetscReal *matprop_rhor;       /* rock density [kg/m3] */
 
+/* characteristic curver parameters */
   PetscInt *SatFuncType;         /* type of saturation function */
   PetscInt *RelPermFuncType;     /* type of relative permeability */
-
-/* characteristic curver parameters */
   PetscReal *cc_sr;              /* residual saturation (min) [1] */
-  PetscReal *matprop_m, *matprop_n, *matprop_alpha;
+  PetscReal *cc_m;               /* parameter used in saturation and relative permeability function [-]*/
+  PetscReal *cc_n;               /* parameter used in Gardner saturation function [-] */
+  PetscReal *cc_alpha;           /* parameter used in VanGenuchten saturation function [-] */
+  PetscReal *S,                  /* saturation for each cell */
+            *dS_dP,              /* derivative of saturation wrt pressure for each cell [Pa^-1] */
+            *d2S_dP2,            /* second derivative of saturation wrt pressure for each cell [Pa^-2] */
+            *dS_dT;              /* derivate of saturation wrt to temperature for each cell [K^-1] */
+  PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
 
   /* boundary pressure and auxillary variables that depend on boundary pressure */
   PetscReal *P_BND;
