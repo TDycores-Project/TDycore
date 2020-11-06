@@ -8,7 +8,7 @@
 #include <private/tdydmimpl.h>
 #include <private/tdytiimpl.h>
 #include <tdytimers.h>
-#include <private/tdyporosityimpl.h>
+#include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdyioimpl.h>
 
 const char *const TDyMethods[] = {
