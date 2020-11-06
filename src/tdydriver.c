@@ -2,7 +2,7 @@
 #include <private/tdydmimpl.h>
 #include <private/tdyporosityimpl.h>
 #include <private/tdyrichardsimpl.h>
-#include <private/tdyrockpropertiesimpl.h>
+#include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdythimpl.h>
 #include <tdytimers.h>
 #include <private/tdypermeabilityimpl.h>

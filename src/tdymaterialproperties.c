@@ -1,5 +1,4 @@
 #include <private/tdycoreimpl.h>
-#include <private/tdyrockpropertiesimpl.h>
 #include <tdytimers.h>
 
 /*
@@ -194,7 +193,7 @@ void TDySpecificSoilHeatCapacityFunctionDefault(PetscReal *x, PetscReal *cr) {
   *cr = 1000.;
 }
 
-PetscErrorCode TDyPermeabilityFunctionDefault(TDy tdy, double *x, double *K, void *ctx) {
+PetscErrorCode TDyPermeabilityFunctionDefault(TDy tdy, PetscReal *x, PetscReal *K, void *ctx) {
   PetscErrorCode ierr;
   PetscInt dim;
   PetscFunctionBegin;
