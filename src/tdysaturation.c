@@ -105,34 +105,6 @@ PetscErrorCode TDySetMaterialPropertyAlphaValuesLocal(TDy tdy, PetscInt ni, cons
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetSourceSinkValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
-
-  PetscInt i;
-
-  PetscFunctionBegin;
-  if (!ni) PetscFunctionReturn(0);
-
-  for(i=0; i<ni; i++) {
-    tdy->source_sink[ix[i]] = y[i];
-  }
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetEnergySourceSinkValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
-
-  PetscInt i;
-
-  PetscFunctionBegin;
-  if (!ni) PetscFunctionReturn(0);
-
-  for(i=0; i<ni; i++) {
-    tdy->energy_source_sink[ix[i]] = y[i];
-  }
-
-  PetscFunctionReturn(0);
-}
-
 PetscErrorCode TDyGetSaturationValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
 
   PetscInt c,cStart,cEnd;
