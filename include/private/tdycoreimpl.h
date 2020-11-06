@@ -63,7 +63,6 @@ struct _p_TDy {
 
 
   /* material parameters */
-  PetscReal *Sr;                 /* residual saturation (min) [1] */
   PetscReal *matprop_K,
             *matprop_K0;         /* permeability tensor (cell,intrinsic) for each cell [m2] */
   PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
@@ -80,6 +79,8 @@ struct _p_TDy {
   PetscInt *SatFuncType;         /* type of saturation function */
   PetscInt *RelPermFuncType;     /* type of relative permeability */
 
+/* characteristic curver parameters */
+  PetscReal *cc_sr;              /* residual saturation (min) [1] */
   PetscReal *matprop_m, *matprop_n, *matprop_alpha;
 
   /* boundary pressure and auxillary variables that depend on boundary pressure */

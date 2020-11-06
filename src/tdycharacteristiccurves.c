@@ -8,7 +8,7 @@ PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const P
   if (!ni) PetscFunctionReturn(0);
 
   for(i=0; i<ni; i++) {
-    tdy->Sr[ix[i]] = y[i];
+    tdy->cc_sr[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
