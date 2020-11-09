@@ -110,7 +110,7 @@ PetscErrorCode TDySetPorosity(TDy tdy,SpatialFunction f) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetSoilSpecificHeatCapacity(TDy tdy,SpatialFunction f) {
+PetscErrorCode TDySetSoilSpecificHeat(TDy tdy,SpatialFunction f) {
   PetscInt dim,c,cStart,cEnd;
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -255,7 +255,7 @@ void TDySoilDensityFunctionDefault(PetscReal *x, PetscReal *den) {
   *den = 2650.;
 }
 
-void TDySpecificSoilHeatCapacityFunctionDefault(PetscReal *x, PetscReal *cr) {
+void TDySpecificSoilHeatFunctionDefault(PetscReal *x, PetscReal *cr) {
   *cr = 1000.;
 }
 

@@ -45,7 +45,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
                                          TDyThermalConductivityFunctionDefault,
                                          PETSC_NULL); CHKERRQ(ierr);
     ierr = TDySetSoilDensity(tdy,TDySoilDensityFunctionDefault); CHKERRQ(ierr);
-    ierr = TDySetSoilSpecificHeatCapacity(tdy,TDySpecificSoilHeatCapacityFunctionDefault); CHKERRQ(ierr);
+    ierr = TDySetSoilSpecificHeat(tdy,TDySpecificSoilHeatFunctionDefault); CHKERRQ(ierr);
   }
 
   ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
