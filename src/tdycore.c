@@ -226,7 +226,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dP)); CHKERRQ(ierr);
   //ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_Cr)); CHKERRQ(ierr);
-  //ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_rhor)); CHKERRQ(ierr);
+  //ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_rhosoil)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->u)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
@@ -360,7 +360,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->dh_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
   //ierr = PetscFree(tdy->matprop_Cr); CHKERRQ(ierr);
-  //ierr = PetscFree(tdy->matprop_rhor); CHKERRQ(ierr);
+  //ierr = PetscFree(tdy->matprop_rhosoil); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);

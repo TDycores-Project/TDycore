@@ -10,7 +10,7 @@ struct _MaterialProp {
     PetscReal *porosity;
     PetscReal *Kappa, *Kappa0;
     PetscReal *Cr;
-    PetscReal *rhor;
+    PetscReal *rhosoil;
 };
 
 PETSC_INTERN PetscErrorCode MaterialPropertiesCreate(PetscInt,PetscInt,MaterialProp*);

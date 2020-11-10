@@ -17,7 +17,7 @@ PetscErrorCode MaterialPropertiesCreate(PetscInt ndim, PetscInt ncells, Material
 
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&matprop->porosity); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&matprop->Cr      ); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&matprop->rhor    ); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&matprop->rhosoil    ); CHKERRQ(ierr);
   
   PetscFunctionReturn(0);
 }
@@ -166,8 +166,8 @@ PetscErrorCode TDySetSoilDensity(TDy tdy,SpatialFunction f) {
 
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(matprop->rhor,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
-  for(c=cStart; c<cEnd; c++) f(&(tdy->X[dim*c]),&(matprop->rhor[c-cStart]));
+  ierr = PetscMemzero(matprop->rhosoil,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
+  for(c=cStart; c<cEnd; c++) f(&(tdy->X[dim*c]),&(matprop->rhosoil[c-cStart]));
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }

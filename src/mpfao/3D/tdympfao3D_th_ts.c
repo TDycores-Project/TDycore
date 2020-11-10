@@ -262,7 +262,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
     //              rock_dencpr * (-dpor_dt) * temp            + &
     //              rock_dencpr * (1-por)
 
-    PetscReal rock_dencpr = matprop->rhor[icell]*matprop->Cr[icell];
+    PetscReal rock_dencpr = matprop->rhosoil[icell]*matprop->Cr[icell];
     PetscReal denergy_dP,denergy_dT;
 
     denergy_dP = tdy->drho_dP[icell] * matprop->porosity[icell] * cc->S[icell]     * tdy->u[icell]     +
@@ -673,7 +673,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
     d2u_dTdP = 0.0;
     d2u_dPdT = d2u_dTdP;
 
-    PetscReal rock_dencpr = matprop->rhor[icell]*matprop->Cr[icell];
+    PetscReal rock_dencpr = matprop->rhosoil[icell]*matprop->Cr[icell];
 
 
     // A_M = d(rho*phi*s)/dP * dP_dtime * Vol + d(rho*phi*s)/dT * dT_dtime * Vol
