@@ -54,7 +54,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
       p_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
     }
 
-    switch (tdy->SatFuncType[cell_id]) {
+    switch (tdy->cc->SatFuncType[cell_id]) {
     case SAT_FUNC_GARDNER :
       Sr = tdy->cc->sr[cell_id];
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
