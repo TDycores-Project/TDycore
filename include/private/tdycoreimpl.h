@@ -66,7 +66,7 @@ struct _p_TDy {
   /* material parameters */
   MaterialProp matprop;
 
-  /* characteristic curver parameters */
+  /* characteristic curve parameters */
   CharacteristicCurve cc;
 
   /* boundary pressure and auxillary variables that depend on boundary pressure */
