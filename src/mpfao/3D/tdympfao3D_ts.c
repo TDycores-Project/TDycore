@@ -36,8 +36,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   faces    = &mesh->faces;
   vertices = &mesh->vertices;
   dm       = tdy->dm;
-  CharacteristicCurve cc = tdy->cc;
-  CharacteristicCurve cc_bnd = tdy->cc_bnd;
+  CharacteristicCurve *cc = tdy->cc;
+  CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -130,7 +130,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   MaterialProp matprop = tdy->matprop;
 
 //#define DEBUG
@@ -227,8 +227,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
   faces    = &mesh->faces;
   vertices = &mesh->vertices;
   dm       = tdy->dm;
-  CharacteristicCurve cc = tdy->cc;
-  CharacteristicCurve cc_bnd = tdy->cc_bnd;
+  CharacteristicCurve *cc = tdy->cc;
+  CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -418,7 +418,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   vertices = &mesh->vertices;
   subcells = &mesh->subcells;
   dm       = tdy->dm;
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -586,7 +586,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal 
 
   mesh = tdy->mesh;
   cells = &mesh->cells;
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   MaterialProp matprop = tdy->matprop;
 
   ierr = VecGetArray(Udotl,&dp_dt); CHKERRQ(ierr);

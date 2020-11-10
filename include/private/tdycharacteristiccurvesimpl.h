@@ -14,7 +14,7 @@ typedef enum {
 } TDySatFuncType;
 
 
-typedef struct _CharacteristicCurve* CharacteristicCurve;
+typedef struct _CharacteristicCurve CharacteristicCurve;
 
 struct _CharacteristicCurve {
   PetscInt *SatFuncType;         /* type of saturation function */
@@ -30,7 +30,12 @@ struct _CharacteristicCurve {
   PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
 };
 
-PETSC_INTERN PetscErrorCode CharacteristicCurveCreate(PetscInt,CharacteristicCurve*);
+typedef struct _CCurve CCurve;
+struct _CCurve {
+  PetscReal *sr;
+};
+
+PETSC_INTERN PetscErrorCode CharacteristicCurveCreate(PetscInt,CharacteristicCurve**);
 
 PETSC_INTERN void RelativePermeability_Mualem(PetscReal,PetscReal,PetscReal*,PetscReal*);
 PETSC_INTERN void RelativePermeability_Irmay(PetscReal,PetscReal,PetscReal*,PetscReal*);

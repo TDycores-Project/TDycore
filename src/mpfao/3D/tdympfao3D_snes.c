@@ -22,7 +22,7 @@ PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accu
   PetscFunctionBegin;
 
   TDy_cell *cells = &tdy->mesh->cells;
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   MaterialProp matprop = tdy->matprop;
 
   *accum = tdy->rho[icell] * matprop->porosity[icell] * cc->S[icell] * cells->volume[icell] / tdy->dtime;
@@ -185,7 +185,7 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
   PetscReal dmass_dP, Jac;
   PetscInt icell;
 
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   MaterialProp matprop = tdy->matprop;
 
   for (icell=0;icell<mesh->num_cells;icell++){

@@ -49,8 +49,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
   ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->Temp_TtimesP_vec,&Temp_TtimesP_vec_ptr); CHKERRQ(ierr);
 
-   CharacteristicCurve cc = tdy->cc;
-   CharacteristicCurve cc_bnd = tdy->cc_bnd;
+   CharacteristicCurve *cc = tdy->cc;
+   CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -226,7 +226,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
     temp[c]     = u_p[c*2+1];
   }
 
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   MaterialProp matprop = tdy->matprop;
 
   PetscReal dporosity_dP = 0.0;
@@ -341,8 +341,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
   vertices = &mesh->vertices;
   dm       = tdy->dm;
 
-  CharacteristicCurve cc = tdy->cc;
-  CharacteristicCurve cc_bnd = tdy->cc_bnd;
+  CharacteristicCurve *cc = tdy->cc;
+  CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -655,7 +655,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
     d2rho_dPdT = d2rho_dTdP;
 
     // Saturation
-    CharacteristicCurve cc = tdy->cc;
+    CharacteristicCurve *cc = tdy->cc;
     sat = cc->S[icell];
     dsat_dP = cc->dS_dP[icell];
     dsat_dT = cc->dS_dT[icell];

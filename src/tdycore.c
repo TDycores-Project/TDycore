@@ -238,10 +238,11 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = MaterialPropertiesCreate(dim, nc, &tdy->matprop); CHKERRQ(ierr);
 
   /* problem constants FIX: add mutators */
-   CharacteristicCurve cc = tdy->cc;
+   CharacteristicCurve *cc = tdy->cc;
 
   for (c=0; c<nc; c++) {
     cc->sr[c] = 0.15;
+    //ccurve->sr[c] = 0.15;
     cc->n[c] = 0.5;
     cc->m[c] = 0.8;
     cc->alpha[c] = 1.e-4;
@@ -896,7 +897,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     for (c=0;c<cEnd-cStart;c++) P[c] = U[c];
   }
 
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   MaterialProp matprop = tdy->matprop;
 
   for(c=cStart; c<cEnd; c++) {

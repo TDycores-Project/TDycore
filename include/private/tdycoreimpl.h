@@ -67,7 +67,8 @@ struct _p_TDy {
   MaterialProp matprop;
 
   /* characteristic curve parameters */
-  CharacteristicCurve cc;
+  CharacteristicCurve *cc;
+  CCurve *ccurve;
 
   /* boundary pressure and auxillary variables that depend on boundary pressure */
   PetscReal *P_BND;
@@ -76,7 +77,7 @@ struct _p_TDy {
   PetscReal  *vis_BND;            /* viscosity of water [Pa s] */
   PetscReal  *h_BND;              /* enthalpy of water */
 
-  CharacteristicCurve cc_bnd;
+  CharacteristicCurve *cc_bnd;
   PetscReal *Kr_BND, *dKr_dS_BND; /* relative permeability for each cell [1] */
   PetscReal *S_BND,  *dS_dP_BND,  /* saturation, first derivative wrt boundary pressure, and */
             *d2S_dP2_BND;         /* second derivative of saturation wrt boundary pressure */

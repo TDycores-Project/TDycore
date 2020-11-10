@@ -2,27 +2,26 @@
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdymemoryimpl.h>
 
-PetscErrorCode CharacteristicCurveCreate(PetscInt ncells, CharacteristicCurve *_cc){
+PetscErrorCode CharacteristicCurveCreate(PetscInt ncells, CharacteristicCurve **_cc){
 
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  CharacteristicCurve cc = (CharacteristicCurve)malloc(sizeof(struct _CharacteristicCurve));
-  *_cc = cc;
+  *_cc = (CharacteristicCurve *)malloc(sizeof(struct _CharacteristicCurve));
 
-  ierr = PetscMalloc(ncells*sizeof(PetscInt),&cc->SatFuncType); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscInt),&cc->RelPermFuncType); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscInt),&(*_cc)->SatFuncType); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscInt),&(*_cc)->RelPermFuncType); CHKERRQ(ierr);
 
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->Kr); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->dKr_dS); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->S); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->dS_dP); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->d2S_dP2); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->dS_dT); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->sr); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->m); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->n); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->alpha); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->Kr); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->dKr_dS); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->S); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->dS_dP); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->d2S_dP2); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->dS_dT); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->sr); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->m); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->n); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->alpha); CHKERRQ(ierr);
   
   PetscFunctionReturn(0);
 }
@@ -34,7 +33,7 @@ PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const P
   PetscFunctionBegin;
   if (!ni) PetscFunctionReturn(0);
 
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
 
   for(i=0; i<ni; i++) {
     cc->sr[ix[i]] = y[i];
@@ -50,7 +49,7 @@ PetscErrorCode TDySetCharacteristicCurveMValuesLocal(TDy tdy, PetscInt ni, const
   PetscFunctionBegin;
   if (!ni) PetscFunctionReturn(0);
 
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   for(i=0; i<ni; i++) {
     cc->m[ix[i]] = y[i];
   }
@@ -65,7 +64,7 @@ PetscErrorCode TDySetCharacteristicCurveNValuesLocal(TDy tdy, PetscInt ni, const
   PetscFunctionBegin;
   if (!ni) PetscFunctionReturn(0);
 
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   for(i=0; i<ni; i++) {
     cc->n[ix[i]] = y[i];
   }
@@ -80,7 +79,7 @@ PetscErrorCode TDySetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt ni, c
   PetscFunctionBegin;
   if (!ni) PetscFunctionReturn(0);
 
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   for(i=0; i<ni; i++) {
     cc->alpha[ix[i]] = y[i];
   }
@@ -99,7 +98,7 @@ PetscErrorCode TDyGetSaturationValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   *ni = 0;
 
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
@@ -122,7 +121,7 @@ PetscErrorCode TDyGetLiquidMassValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   *ni = 0;
 
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   MaterialProp matprop = tdy->matprop;
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
@@ -146,7 +145,7 @@ PetscErrorCode TDyGetCharacteristicCurveMValuesLocal(TDy tdy, PetscInt *ni, Pets
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   *ni = 0;
 
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
@@ -169,7 +168,7 @@ PetscErrorCode TDyGetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt *ni, 
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   *ni = 0;
 
-  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve *cc = tdy->cc;
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
