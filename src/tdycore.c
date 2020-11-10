@@ -234,7 +234,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
   TDyStopTimer(t2);
 
-  ierr = CharacteristicCurveCreate(nc, &tdy->cc);
+  ierr = CharacteristicCurveCreate(nc, &tdy->cc); CHKERRQ(ierr);
 
   /* problem constants FIX: add mutators */
    CharacteristicCurve cc = tdy->cc;

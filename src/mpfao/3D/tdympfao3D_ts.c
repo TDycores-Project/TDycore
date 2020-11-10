@@ -37,6 +37,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   vertices = &mesh->vertices;
   dm       = tdy->dm;
   CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve cc_bnd = tdy->cc_bnd;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -83,11 +84,11 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
       if (TtimesP[irow] < 0.0) { // up ---> dn
         // Is the cell_id_up an internal or boundary cell?
         if (cell_id_up>=0) ukvr = cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
-        else               ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+        else               ukvr = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
       } else {
         // Is the cell_id_dn an internal or boundary cell?
         if (cell_id_dn>=0) ukvr = cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
-        else               ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+        else               ukvr = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
       }
 
       den = 0.0;
@@ -226,6 +227,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
   vertices = &mesh->vertices;
   dm       = tdy->dm;
   CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve cc_bnd = tdy->cc_bnd;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -294,8 +296,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
                        cc->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
         } else {
           // "up" is boundary cell
-          ukvr       = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
-          dukvr_dPup = 0.0;//cc->dKr_dS[-cell_id_up-1]*tdy->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          ukvr       = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          dukvr_dPup = 0.0;//cc->dKr_dS[-cell_id_up-1]*cc_bnd->dS_dP[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
         }
 
       } else {
@@ -307,8 +309,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
                        cc->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
         } else {
           // "dn" is a boundary cell
-          ukvr       = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
-          dukvr_dPdn = 0.0;//tdy->dKr_dS_BND[-cell_id_dn-1]*tdy->dS_dP_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          ukvr       = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          dukvr_dPdn = 0.0;//cc_bnd->dKr[-cell_id_dn-1]*cc_bnd->dS_dP[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
         }
       }
 
@@ -480,8 +482,8 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
           dukvr_dPup = cc->dKr_dS[cell_id_up]*cc->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
                        cc->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
         } else {
-          ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
-          dukvr_dPup = 0.0;//cc->dKr_dS[-cell_id_up-1]*tdy->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          ukvr = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          dukvr_dPup = 0.0;//cc->dKr_dS[-cell_id_up-1]*cc_bnd->dS_dP[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
         }
       } else {
         if (cell_id_dn>=0) {
@@ -489,8 +491,8 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
           dukvr_dPdn = cc->dKr_dS[cell_id_dn]*cc->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
                        cc->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
         } else {
-          ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
-          dukvr_dPdn = 0.0;//tdy->dKr_dS_BND[-cell_id_dn-1]*tdy->dS_dP_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          ukvr = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          dukvr_dPdn = 0.0;//cc_bnd->dKr_dS[-cell_id_dn-1]*cc_bnd->dS_dP[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
         }
       }
 

@@ -39,6 +39,8 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
   faces = &mesh->faces;
 
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve cc_bnd = tdy->cc_bnd;
 
   for (iface=0; iface<mesh->num_faces; iface++) {
 
@@ -54,7 +56,6 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
       p_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
     }
 
-    CharacteristicCurve cc = tdy->cc;
     switch (cc->SatFuncType[cell_id]) {
     case SAT_FUNC_GARDNER :
       Sr = cc->sr[cell_id];
@@ -88,11 +89,11 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
       break;
     }
 
-    tdy->S_BND[p_bnd_idx] = S;
-    tdy->dS_dP_BND[p_bnd_idx] = dS_dP;
-    tdy->d2S_dP2_BND[p_bnd_idx] = d2S_dP2;
-    tdy->Kr_BND[p_bnd_idx] = Kr;
-    tdy->dKr_dS_BND[p_bnd_idx] = dKr_dSe * dSe_dS;
+    cc_bnd->S[p_bnd_idx] = S;
+    cc_bnd->dS_dP[p_bnd_idx] = dS_dP;
+    cc_bnd->d2S_dP2[p_bnd_idx] = d2S_dP2;
+    cc_bnd->Kr[p_bnd_idx] = Kr;
+    cc_bnd->dKr_dS[p_bnd_idx] = dKr_dSe * dSe_dS;
 
     //for(j=0; j<dim2; j++) tdy->matprop_K[i*dim2+j] = tdy->matprop_K0[i*dim2+j] * Kr;
   }

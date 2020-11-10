@@ -71,7 +71,7 @@ struct _p_TDy {
   PetscReal *matprop_Cr;         /* specific heat capacity for rock [J/(kg-K)] */
   PetscReal *matprop_rhor;       /* rock density [kg/m3] */
 
-/* characteristic curver parameters */
+  /* characteristic curver parameters */
   CharacteristicCurve cc;
 
   /* boundary pressure and auxillary variables that depend on boundary pressure */
@@ -80,6 +80,8 @@ struct _p_TDy {
   PetscReal  *rho_BND;            /* density of water [kg m-3]*/
   PetscReal  *vis_BND;            /* viscosity of water [Pa s] */
   PetscReal  *h_BND;              /* enthalpy of water */
+
+  CharacteristicCurve cc_bnd;
   PetscReal *Kr_BND, *dKr_dS_BND; /* relative permeability for each cell [1] */
   PetscReal *S_BND,  *dS_dP_BND,  /* saturation, first derivative wrt boundary pressure, and */
             *d2S_dP2_BND;         /* second derivative of saturation wrt boundary pressure */

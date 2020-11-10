@@ -50,6 +50,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
   ierr = VecGetArray(tdy->Temp_TtimesP_vec,&Temp_TtimesP_vec_ptr); CHKERRQ(ierr);
 
    CharacteristicCurve cc = tdy->cc;
+   CharacteristicCurve cc_bnd = tdy->cc_bnd;
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -95,7 +96,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
           uh   = tdy->h[cell_id_up];
         }     
         else {
-          ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          ukvr = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
           uh   = tdy->h_BND[-cell_id_up-1];       
         }
       }
@@ -106,7 +107,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
           uh   = tdy->h[cell_id_dn];
          }       
          else {
-          ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          ukvr = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
           uh   = tdy->h_BND[-cell_id_dn-1];
          }
       }                    
@@ -339,6 +340,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
   dm       = tdy->dm;
 
   CharacteristicCurve cc = tdy->cc;
+  CharacteristicCurve cc_bnd = tdy->cc_bnd;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -422,7 +424,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
           duh_dTup   = tdy->dh_dT[cell_id_up];
         } else {
            // "up" is boundary cell
-          ukvr       = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          ukvr       = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
           dukvr_dPup = 0.0;
           dukvr_dTup = 0.0;
           uh         = tdy->h_BND[-cell_id_up-1];
@@ -443,7 +445,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
             duh_dTdn   = tdy->dh_dT[cell_id_dn];
         } else {
           // "dn" is a boundary cell
-          ukvr       = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          ukvr       = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
           dukvr_dPdn = 0.0;
           dukvr_dTdn = 0.0;
           uh         = tdy->h_BND[-cell_id_dn-1];
