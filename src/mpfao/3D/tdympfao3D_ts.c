@@ -81,11 +81,11 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
       // Upwind the 'ukvr'
       if (TtimesP[irow] < 0.0) { // up ---> dn
         // Is the cell_id_up an internal or boundary cell?
-        if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
+        if (cell_id_up>=0) ukvr = tdy->cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
         else               ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
       } else {
         // Is the cell_id_dn an internal or boundary cell?
-        if (cell_id_dn>=0) ukvr = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+        if (cell_id_dn>=0) ukvr = tdy->cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
         else               ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
       }
 
@@ -286,9 +286,9 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
         // Flow: up --> dn
         if (cell_id_up>=0) {
           // "up" is an internal cell
-          ukvr       = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
+          ukvr       = tdy->cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
           dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
-                       tdy->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
+                       tdy->cc->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
         } else {
           // "up" is boundary cell
           ukvr       = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
@@ -299,9 +299,9 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
         // Flow: up <--- dn
         if (cell_id_dn>=0) {
           // "dn" is an internal cell
-          ukvr       = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+          ukvr       = tdy->cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
           dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
-                       tdy->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
+                       tdy->cc->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
         } else {
           // "dn" is a boundary cell
           ukvr       = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
@@ -472,18 +472,18 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
 
       if (TtimesP[irow] < 0.0) { // up ---> dn
         if (cell_id_up>=0) {
-          ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
+          ukvr = tdy->cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
           dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
-                       tdy->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
+                       tdy->cc->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
         } else {
           ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
           dukvr_dPup = 0.0;//tdy->dKr_dS[-cell_id_up-1]*tdy->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
         }
       } else {
         if (cell_id_dn>=0) {
-          ukvr = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+          ukvr = tdy->cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
           dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
-                       tdy->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
+                       tdy->cc->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
         } else {
           ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
           dukvr_dPdn = 0.0;//tdy->dKr_dS_BND[-cell_id_dn-1]*tdy->dS_dP_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];

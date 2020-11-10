@@ -214,7 +214,6 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_K0)); CHKERRQ(ierr);
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_K )); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_porosity)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Kr)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dKr_dS)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->S)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dP)); CHKERRQ(ierr);
@@ -253,7 +252,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->cc_alpha[c] = 1.e-4;
     tdy->cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     tdy->cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
-    tdy->Kr[c] = 0.0;
+    tdy->cc->Kr[c] = 0.0;
     tdy->dKr_dS[c] = 0.0;
     tdy->S[c] = 0.0;
     tdy->dS_dP[c] = 0.0;
@@ -360,7 +359,6 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->matprop_K); CHKERRQ(ierr);
   ierr = PetscFree(tdy->matprop_K0); CHKERRQ(ierr);
   ierr = PetscFree(tdy->matprop_porosity); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->Kr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dKr_dS); CHKERRQ(ierr);
   ierr = PetscFree(tdy->S); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dS_dP); CHKERRQ(ierr);
@@ -948,7 +946,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown relative permeability function");
       break;
     }
-    tdy->Kr[i] = Kr;
+    tdy->cc->Kr[i] = Kr;
     tdy->dKr_dS[i] = dKr_dSe * dSe_dS;
 
     for(j=0; j<dim2; j++) tdy->matprop_K[i*dim2+j] = tdy->matprop_K0[i*dim2+j] * Kr;

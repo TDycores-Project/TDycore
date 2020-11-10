@@ -90,7 +90,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
       if (TtimesP[irow] < 0.0) { // up ---> dn
          // Is the cell_id_up an internal or boundary cell?
         if (cell_id_up >= 0) {
-          ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
+          ukvr = tdy->cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
           uh   = tdy->h[cell_id_up];
         }     
         else {
@@ -101,7 +101,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
       else {
          // Is the cell_id_dn an internal or boundary cell?
          if (cell_id_dn >= 0) {
-          ukvr = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+          ukvr = tdy->cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
           uh   = tdy->h[cell_id_dn];
          }       
          else {
@@ -409,11 +409,11 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
         // Flow: up --> dn
         if (cell_id_up>=0) {
           // "up" is an internal cell
-          ukvr       = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
+          ukvr       = tdy->cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
           dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
-                      tdy->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
+                      tdy->cc->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
           dukvr_dTup = tdy->dKr_dS[cell_id_up]*tdy->dS_dT[cell_id_up]/tdy->vis[cell_id_up] -
-                      tdy->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dT[cell_id_up];
+                      tdy->cc->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dT[cell_id_up];
           uh         = tdy->h[cell_id_up];
           duh_dPup   = tdy->dh_dP[cell_id_up];
           duh_dTup   = tdy->dh_dT[cell_id_up];
@@ -430,11 +430,11 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
       } else {
         // Flow: up <--- dn
         if (cell_id_dn >= 0) {
-          ukvr       = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+          ukvr       = tdy->cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
             dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
-                        tdy->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
+                        tdy->cc->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
             dukvr_dTdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dT[cell_id_dn]/tdy->vis[cell_id_dn] -
-                        tdy->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dT[cell_id_dn];
+                        tdy->cc->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dT[cell_id_dn];
             uh         = tdy->h[cell_id_dn];
             duh_dPdn   = tdy->dh_dP[cell_id_dn];
             duh_dTdn   = tdy->dh_dT[cell_id_dn];
