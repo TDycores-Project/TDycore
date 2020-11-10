@@ -933,6 +933,9 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
+
+  CharacteristicCurve cc = tdy->cc;
+
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd); CHKERRQ(ierr);
     if (gref < 0) continue;
@@ -954,9 +957,9 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
       }
     }
 
-    r[c] = tdy->matprop_porosity[c-cStart]*tdy->cc->dS_dP[c-cStart]*dp_dt[c] + div - tdy->Flocal[c-cStart];
+    r[c] = tdy->matprop_porosity[c-cStart]*cc->dS_dP[c-cStart]*dp_dt[c] + div - tdy->Flocal[c-cStart];
     //PetscPrintf(PETSC_COMM_WORLD,"R[%2d] = %+e %+e %+e = %+e\n",
-    // 	c,tdy->matprop_porosity[c-cStart]*tdy->cc->dS_dP[c-cStart]*dp_dt[c],
+    // 	c,tdy->matprop_porosity[c-cStart]*cc->dS_dP[c-cStart]*dp_dt[c],
     // 		div,tdy->Flocal[c-cStart],r[c]);
   }
 

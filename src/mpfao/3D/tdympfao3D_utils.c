@@ -54,15 +54,16 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
       p_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
     }
 
-    switch (tdy->cc->SatFuncType[cell_id]) {
+    CharacteristicCurve cc = tdy->cc;
+    switch (cc->SatFuncType[cell_id]) {
     case SAT_FUNC_GARDNER :
-      Sr = tdy->cc->sr[cell_id];
+      Sr = cc->sr[cell_id];
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
 
       PressureSaturation_Gardner(n,m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      Sr = tdy->cc->sr[cell_id];
+      Sr = cc->sr[cell_id];
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
 
       PressureSaturation_VanGenuchten(m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
@@ -75,7 +76,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
     Se = (S - Sr)/(1.0 - Sr);
     dSe_dS = 1.0/(1.0 - Sr);
 
-    switch (tdy->cc->RelPermFuncType[cell_id]) {
+    switch (cc->RelPermFuncType[cell_id]) {
     case REL_PERM_FUNC_IRMAY :
       RelativePermeability_Irmay(m,Se,&Kr,NULL);
       break;

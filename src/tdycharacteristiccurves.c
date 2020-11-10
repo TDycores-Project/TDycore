@@ -34,9 +34,10 @@ PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const P
   PetscFunctionBegin;
   if (!ni) PetscFunctionReturn(0);
 
-  //CharacteristicCurve cc;
+  CharacteristicCurve cc = tdy->cc;
+
   for(i=0; i<ni; i++) {
-    tdy->cc->sr[ix[i]] = y[i];
+    cc->sr[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
@@ -49,8 +50,9 @@ PetscErrorCode TDySetCharacteristicCurveMValuesLocal(TDy tdy, PetscInt ni, const
   PetscFunctionBegin;
   if (!ni) PetscFunctionReturn(0);
 
+  CharacteristicCurve cc = tdy->cc;
   for(i=0; i<ni; i++) {
-    tdy->cc->m[ix[i]] = y[i];
+    cc->m[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
@@ -63,8 +65,9 @@ PetscErrorCode TDySetCharacteristicCurveNValuesLocal(TDy tdy, PetscInt ni, const
   PetscFunctionBegin;
   if (!ni) PetscFunctionReturn(0);
 
+  CharacteristicCurve cc = tdy->cc;
   for(i=0; i<ni; i++) {
-    tdy->cc->n[ix[i]] = y[i];
+    cc->n[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
@@ -77,8 +80,9 @@ PetscErrorCode TDySetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt ni, c
   PetscFunctionBegin;
   if (!ni) PetscFunctionReturn(0);
 
+  CharacteristicCurve cc = tdy->cc;
   for(i=0; i<ni; i++) {
-    tdy->cc->alpha[ix[i]] = y[i];
+    cc->alpha[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
@@ -95,10 +99,11 @@ PetscErrorCode TDyGetSaturationValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   *ni = 0;
 
+  CharacteristicCurve cc = tdy->cc;
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      y[*ni] = tdy->cc->S[c-cStart];
+      y[*ni] = cc->S[c-cStart];
       *ni += 1;
     }
   }
@@ -117,10 +122,11 @@ PetscErrorCode TDyGetLiquidMassValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   *ni = 0;
 
+  CharacteristicCurve cc = tdy->cc;
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      y[*ni] = tdy->rho[c-cStart]*tdy->matprop_porosity[c-cStart]*tdy->cc->S[c-cStart]*tdy->V[c];
+      y[*ni] = tdy->rho[c-cStart]*tdy->matprop_porosity[c-cStart]*cc->S[c-cStart]*tdy->V[c];
       *ni += 1;
     }
   }
@@ -139,10 +145,11 @@ PetscErrorCode TDyGetCharacteristicCurveMValuesLocal(TDy tdy, PetscInt *ni, Pets
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   *ni = 0;
 
+  CharacteristicCurve cc = tdy->cc;
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      y[*ni] = tdy->cc->m[c-cStart];
+      y[*ni] = cc->m[c-cStart];
       *ni += 1;
     }
   }
@@ -161,10 +168,11 @@ PetscErrorCode TDyGetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt *ni, 
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   *ni = 0;
 
+  CharacteristicCurve cc = tdy->cc;
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      y[*ni] = tdy->cc->alpha[c-cStart];
+      y[*ni] = cc->alpha[c-cStart];
       *ni += 1;
     }
   }
