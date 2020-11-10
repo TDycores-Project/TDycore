@@ -73,9 +73,6 @@ struct _p_TDy {
 
 /* characteristic curver parameters */
   CharacteristicCurve cc;
-  PetscReal *cc_m;               /* parameter used in saturation and relative permeability function [-]*/
-  PetscReal *cc_n;               /* parameter used in Gardner saturation function [-] */
-  PetscReal *cc_alpha;           /* parameter used in VanGenuchten saturation function [-] */
 
   /* boundary pressure and auxillary variables that depend on boundary pressure */
   PetscReal *P_BND;

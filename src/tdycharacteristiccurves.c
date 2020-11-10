@@ -50,7 +50,7 @@ PetscErrorCode TDySetCharacteristicCurveMValuesLocal(TDy tdy, PetscInt ni, const
   if (!ni) PetscFunctionReturn(0);
 
   for(i=0; i<ni; i++) {
-    tdy->cc_m[ix[i]] = y[i];
+    tdy->cc->m[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
@@ -64,7 +64,7 @@ PetscErrorCode TDySetCharacteristicCurveNValuesLocal(TDy tdy, PetscInt ni, const
   if (!ni) PetscFunctionReturn(0);
 
   for(i=0; i<ni; i++) {
-    tdy->cc_n[ix[i]] = y[i];
+    tdy->cc->n[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
@@ -78,7 +78,7 @@ PetscErrorCode TDySetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt ni, c
   if (!ni) PetscFunctionReturn(0);
 
   for(i=0; i<ni; i++) {
-    tdy->cc_alpha[ix[i]] = y[i];
+    tdy->cc->alpha[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
@@ -142,7 +142,7 @@ PetscErrorCode TDyGetCharacteristicCurveMValuesLocal(TDy tdy, PetscInt *ni, Pets
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      y[*ni] = tdy->cc_m[c-cStart];
+      y[*ni] = tdy->cc->m[c-cStart];
       *ni += 1;
     }
   }
@@ -164,7 +164,7 @@ PetscErrorCode TDyGetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt *ni, 
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      y[*ni] = tdy->cc_alpha[c-cStart];
+      y[*ni] = tdy->cc->alpha[c-cStart];
       *ni += 1;
     }
   }
