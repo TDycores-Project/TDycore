@@ -56,13 +56,13 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
     switch (tdy->SatFuncType[cell_id]) {
     case SAT_FUNC_GARDNER :
-      Sr = tdy->cc_sr[cell_id];
+      Sr = tdy->cc->sr[cell_id];
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
 
       PressureSaturation_Gardner(n,m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      Sr = tdy->cc_sr[cell_id];
+      Sr = tdy->cc->sr[cell_id];
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
 
       PressureSaturation_VanGenuchten(m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);

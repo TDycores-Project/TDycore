@@ -1,4 +1,30 @@
 #include <private/tdycoreimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
+#include <private/tdymemoryimpl.h>
+
+PetscErrorCode CharacteristicCurveCreate(PetscInt ncells, CharacteristicCurve *_cc){
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  CharacteristicCurve cc = (CharacteristicCurve)malloc(sizeof(struct _CharacteristicCurve));
+  *_cc = cc;
+
+  ierr = PetscMalloc(ncells*sizeof(PetscInt),&cc->SatFuncType); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscInt),&cc->RelPermFuncType); CHKERRQ(ierr);
+
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->Kr); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->dKr_dS); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->S); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->dS_dP); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->d2S_dP2); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->sr); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->m); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->n); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&cc->alpha); CHKERRQ(ierr);
+  
+  PetscFunctionReturn(0);
+}
 
 PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
 
@@ -7,8 +33,9 @@ PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const P
   PetscFunctionBegin;
   if (!ni) PetscFunctionReturn(0);
 
+  //CharacteristicCurve cc;
   for(i=0; i<ni; i++) {
-    tdy->cc_sr[ix[i]] = y[i];
+    tdy->cc->sr[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);

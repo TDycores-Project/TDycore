@@ -225,7 +225,6 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->vis)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2vis_dP2)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->cc_sr)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->SatFuncType)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->RelPermFuncType)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->cc_m)); CHKERRQ(ierr);
@@ -246,13 +245,16 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
   TDyStopTimer(t2);
 
+  ierr = CharacteristicCurveCreate(nc, &tdy->cc);
+
   /* problem constants FIX: add mutators */
   for (c=0; c<nc; c++) {
-    tdy->cc_sr[c]   = 0.15;
+    tdy->cc->sr[c] = 0.15;
     tdy->cc_n[c] = 0.5;
     tdy->cc_m[c] = 0.8;
     tdy->cc_alpha[c] = 1.e-4;
     tdy->SatFuncType[c] = SAT_FUNC_GARDNER;
+    tdy->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     tdy->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     tdy->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
     tdy->Kr[c] = 0.0;
@@ -372,7 +374,6 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->vis); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->d2vis_dP2); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->cc_sr); CHKERRQ(ierr);
   ierr = PetscFree(tdy->SatFuncType); CHKERRQ(ierr);
   ierr = PetscFree(tdy->RelPermFuncType); CHKERRQ(ierr);
   ierr = PetscFree(tdy->cc_alpha); CHKERRQ(ierr);
@@ -929,18 +930,18 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
 
     switch (tdy->SatFuncType[i]) {
     case SAT_FUNC_GARDNER :
-      PressureSaturation_Gardner(n,m,alpha,tdy->cc_sr[i],tdy->Pref-P[i],&(tdy->S[i]),&(tdy->dS_dP[i]),&(tdy->d2S_dP2[i]));
+      PressureSaturation_Gardner(n,m,alpha,tdy->cc->sr[i],tdy->Pref-P[i],&(tdy->S[i]),&(tdy->dS_dP[i]),&(tdy->d2S_dP2[i]));
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      PressureSaturation_VanGenuchten(m,alpha,tdy->cc_sr[i],tdy->Pref-P[i],&(tdy->S[i]),&tdy->dS_dP[i],&(tdy->d2S_dP2[i]));
+      PressureSaturation_VanGenuchten(m,alpha,tdy->cc->sr[i],tdy->Pref-P[i],&(tdy->S[i]),&tdy->dS_dP[i],&(tdy->d2S_dP2[i]));
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
       break;
     }
 
-    Se = (tdy->S[i] - tdy->cc_sr[i])/(1.0 - tdy->cc_sr[i]);
-    dSe_dS = 1.0/(1.0 - tdy->cc_sr[i]);
+    Se = (tdy->S[i] - tdy->cc->sr[i])/(1.0 - tdy->cc->sr[i]);
+    dSe_dS = 1.0/(1.0 - tdy->cc->sr[i]);
 
     switch (tdy->RelPermFuncType[i]) {
     case REL_PERM_FUNC_IRMAY :

@@ -8,6 +8,7 @@
 #include <tdycore.h>
 #include <tdyio.h>
 #include <private/tdytiimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
@@ -71,9 +72,9 @@ struct _p_TDy {
   PetscReal *matprop_rhor;       /* rock density [kg/m3] */
 
 /* characteristic curver parameters */
+  CharacteristicCurve cc;
   PetscInt *SatFuncType;         /* type of saturation function */
   PetscInt *RelPermFuncType;     /* type of relative permeability */
-  PetscReal *cc_sr;              /* residual saturation (min) [1] */
   PetscReal *cc_m;               /* parameter used in saturation and relative permeability function [-]*/
   PetscReal *cc_n;               /* parameter used in Gardner saturation function [-] */
   PetscReal *cc_alpha;           /* parameter used in VanGenuchten saturation function [-] */
