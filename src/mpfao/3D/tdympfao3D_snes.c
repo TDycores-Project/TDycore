@@ -23,7 +23,7 @@ PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accu
 
   TDy_cell *cells = &tdy->mesh->cells;
 
-  *accum = tdy->rho[icell] * tdy->matprop_porosity[icell] * tdy->S[icell] * cells->volume[icell] / tdy->dtime;
+  *accum = tdy->rho[icell] * tdy->matprop_porosity[icell] * tdy->cc->S[icell] * cells->volume[icell] / tdy->dtime;
 
   PetscFunctionReturn(0);
 }
@@ -190,9 +190,9 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
     // d/dP ( d(rho*phi*s)/dt * Vol )
     //  = d/dP [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
     //  = d/dP [(rho*phi*s)^{t+1}]
-    dmass_dP = tdy->rho[icell]     * dporosity_dP         * tdy->S[icell] +
-               tdy->drho_dP[icell] * tdy->matprop_porosity[icell] * tdy->S[icell] +
-               tdy->rho[icell]     * tdy->matprop_porosity[icell] * tdy->dS_dP[icell];
+    dmass_dP = tdy->rho[icell]     * dporosity_dP         * tdy->cc->S[icell] +
+               tdy->drho_dP[icell] * tdy->matprop_porosity[icell] * tdy->cc->S[icell] +
+               tdy->rho[icell]     * tdy->matprop_porosity[icell] * tdy->cc->dS_dP[icell];
     Jac = dmass_dP * cells->volume[icell] * dtInv;
 
     ierr = MatSetValuesLocal(B,1,&icell,1,&icell,&Jac,ADD_VALUES);CHKERRQ(ierr);

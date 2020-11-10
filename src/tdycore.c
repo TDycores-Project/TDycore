@@ -214,10 +214,6 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_K0)); CHKERRQ(ierr);
   ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_K )); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_porosity)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dKr_dS)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->S)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2S_dP2)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rho)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2rho_dP2)); CHKERRQ(ierr);
@@ -235,7 +231,6 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_Cr)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_rhor)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dT)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->u)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dT)); CHKERRQ(ierr);
@@ -253,9 +248,9 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     tdy->cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
     tdy->cc->Kr[c] = 0.0;
-    tdy->dKr_dS[c] = 0.0;
-    tdy->S[c] = 0.0;
-    tdy->dS_dP[c] = 0.0;
+    tdy->cc->dKr_dS[c] = 0.0;
+    tdy->cc->S[c] = 0.0;
+    tdy->cc->dS_dP[c] = 0.0;
     tdy->rho[c] = 0.0;
     tdy->drho_dP[c] = 0.0;
     tdy->vis[c] = 0.0;
@@ -268,7 +263,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->matprop_Cr[c] = 0.0;
     tdy->matprop_rhor[c] = 0.0;
     tdy->drho_dT[c] = 0.0;
-    tdy->dS_dT[c] = 0.0;
+    tdy->cc->dS_dT[c] = 0.0;
     tdy->u[c] = 0.0;
     tdy->du_dP[c] = 0.0;
     tdy->du_dT[c] = 0.0;
@@ -359,10 +354,6 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->matprop_K); CHKERRQ(ierr);
   ierr = PetscFree(tdy->matprop_K0); CHKERRQ(ierr);
   ierr = PetscFree(tdy->matprop_porosity); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->dKr_dS); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->S); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->dS_dP); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->d2S_dP2); CHKERRQ(ierr);
   ierr = PetscFree(tdy->rho); CHKERRQ(ierr);
   ierr = PetscFree(tdy->d2rho_dP2); CHKERRQ(ierr);
   ierr = PetscFree(tdy->vis); CHKERRQ(ierr);
@@ -922,17 +913,17 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
 
     switch (tdy->cc->SatFuncType[i]) {
     case SAT_FUNC_GARDNER :
-      PressureSaturation_Gardner(n,m,alpha,tdy->cc->sr[i],tdy->Pref-P[i],&(tdy->S[i]),&(tdy->dS_dP[i]),&(tdy->d2S_dP2[i]));
+      PressureSaturation_Gardner(n,m,alpha,tdy->cc->sr[i],tdy->Pref-P[i],&(tdy->cc->S[i]),&(tdy->cc->dS_dP[i]),&(tdy->cc->d2S_dP2[i]));
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      PressureSaturation_VanGenuchten(m,alpha,tdy->cc->sr[i],tdy->Pref-P[i],&(tdy->S[i]),&tdy->dS_dP[i],&(tdy->d2S_dP2[i]));
+      PressureSaturation_VanGenuchten(m,alpha,tdy->cc->sr[i],tdy->Pref-P[i],&(tdy->cc->S[i]),&tdy->cc->dS_dP[i],&(tdy->cc->d2S_dP2[i]));
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
       break;
     }
 
-    Se = (tdy->S[i] - tdy->cc->sr[i])/(1.0 - tdy->cc->sr[i]);
+    Se = (tdy->cc->S[i] - tdy->cc->sr[i])/(1.0 - tdy->cc->sr[i]);
     dSe_dS = 1.0/(1.0 - tdy->cc->sr[i]);
 
     switch (tdy->cc->RelPermFuncType[i]) {
@@ -947,7 +938,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
       break;
     }
     tdy->cc->Kr[i] = Kr;
-    tdy->dKr_dS[i] = dKr_dSe * dSe_dS;
+    tdy->cc->dKr_dS[i] = dKr_dSe * dSe_dS;
 
     for(j=0; j<dim2; j++) tdy->matprop_K[i*dim2+j] = tdy->matprop_K0[i*dim2+j] * Kr;
 

@@ -76,11 +76,6 @@ struct _p_TDy {
   PetscReal *cc_m;               /* parameter used in saturation and relative permeability function [-]*/
   PetscReal *cc_n;               /* parameter used in Gardner saturation function [-] */
   PetscReal *cc_alpha;           /* parameter used in VanGenuchten saturation function [-] */
-  PetscReal *S,                  /* saturation for each cell */
-            *dS_dP,              /* derivative of saturation wrt pressure for each cell [Pa^-1] */
-            *d2S_dP2,            /* second derivative of saturation wrt pressure for each cell [Pa^-2] */
-            *dS_dT;              /* derivate of saturation wrt to temperature for each cell [K^-1] */
-  PetscReal *dKr_dS;        /* relative permeability for each cell [1] */
 
   /* boundary pressure and auxillary variables that depend on boundary pressure */
   PetscReal *P_BND;
