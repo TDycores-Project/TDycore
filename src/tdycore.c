@@ -225,7 +225,6 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->vis)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2vis_dP2)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->RelPermFuncType)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->cc_m)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->cc_n)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->cc_alpha)); CHKERRQ(ierr);
@@ -253,7 +252,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->cc_m[c] = 0.8;
     tdy->cc_alpha[c] = 1.e-4;
     tdy->cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
-    tdy->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
+    tdy->cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
     tdy->Kr[c] = 0.0;
     tdy->dKr_dS[c] = 0.0;
     tdy->S[c] = 0.0;
@@ -371,7 +370,6 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->vis); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->d2vis_dP2); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->RelPermFuncType); CHKERRQ(ierr);
   ierr = PetscFree(tdy->cc_alpha); CHKERRQ(ierr);
   ierr = PetscFree(tdy->cc_n); CHKERRQ(ierr);
   ierr = PetscFree(tdy->cc_m); CHKERRQ(ierr);
@@ -939,7 +937,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     Se = (tdy->S[i] - tdy->cc->sr[i])/(1.0 - tdy->cc->sr[i]);
     dSe_dS = 1.0/(1.0 - tdy->cc->sr[i]);
 
-    switch (tdy->RelPermFuncType[i]) {
+    switch (tdy->cc->RelPermFuncType[i]) {
     case REL_PERM_FUNC_IRMAY :
       RelativePermeability_Irmay(m,Se,&Kr,NULL);
       break;

@@ -75,7 +75,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
     Se = (S - Sr)/(1.0 - Sr);
     dSe_dS = 1.0/(1.0 - Sr);
 
-    switch (tdy->RelPermFuncType[cell_id]) {
+    switch (tdy->cc->RelPermFuncType[cell_id]) {
     case REL_PERM_FUNC_IRMAY :
       RelativePermeability_Irmay(m,Se,&Kr,NULL);
       break;
