@@ -122,7 +122,7 @@ PetscErrorCode TDyGetLiquidMassValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[
   *ni = 0;
 
   CharacteristicCurve *cc = tdy->cc;
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {

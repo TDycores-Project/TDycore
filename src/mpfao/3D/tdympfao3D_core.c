@@ -54,7 +54,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
   cells    = &mesh->cells;
   faces = &mesh->faces;
   subcells = &mesh->subcells;
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 

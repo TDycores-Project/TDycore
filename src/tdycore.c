@@ -898,7 +898,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   }
 
   CharacteristicCurve *cc = tdy->cc;
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;

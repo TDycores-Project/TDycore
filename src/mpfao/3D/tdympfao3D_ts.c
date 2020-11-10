@@ -131,7 +131,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
   CharacteristicCurve *cc = tdy->cc;
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
 //#define DEBUG
 #if defined(DEBUG)
@@ -587,7 +587,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal 
   mesh = tdy->mesh;
   cells = &mesh->cells;
   CharacteristicCurve *cc = tdy->cc;
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = VecGetArray(Udotl,&dp_dt); CHKERRQ(ierr);
 

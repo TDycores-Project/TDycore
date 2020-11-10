@@ -28,7 +28,7 @@ PetscErrorCode SetPermeabilityFromFunction(TDy tdy) {
     TDy_mesh *mesh;
 
     mesh = tdy->mesh;
-    MaterialProp matprop = tdy->matprop;
+    MaterialProp *matprop = tdy->matprop;
 
     // If permeability function is set, use it instead.
     // Will need to consolidate this code with code in tdypermeability.c
@@ -63,7 +63,7 @@ PetscErrorCode SetPorosityFromFunction(TDy tdy) {
   TDY_START_FUNCTION_TIMER()
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMemzero(matprop->porosity,sizeof(PetscReal)*(cEnd-cStart));CHKERRQ(ierr);
@@ -119,7 +119,7 @@ PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
     PetscReal *localKappa;
     PetscInt icell, ii, jj;
     TDy_mesh *mesh;
-    MaterialProp matprop = tdy->matprop;
+    MaterialProp *matprop = tdy->matprop;
 
     mesh = tdy->mesh;
 

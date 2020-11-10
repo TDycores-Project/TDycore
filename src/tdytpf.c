@@ -59,7 +59,7 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
   dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   for(f=fStart; f<fEnd; f++) {
 
@@ -183,7 +183,7 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   face_error = 0;
   norm = 0;
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   for(c=cStart; c<cEnd; c++) {
 

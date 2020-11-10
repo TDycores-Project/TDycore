@@ -28,7 +28,7 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
   CharacteristicCurve *cc = tdy->cc;
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 

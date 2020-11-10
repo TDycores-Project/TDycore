@@ -61,7 +61,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   edges    = &mesh->edges;
   vertices = &mesh->vertices;
   subcells = &mesh->subcells;
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 

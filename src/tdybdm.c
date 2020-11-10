@@ -445,7 +445,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = PetscQuadratureGetData(     quadrature,NULL,NULL,&nq ,& quad_x,& quad_w); CHKERRQ(ierr);
   ierr = PetscQuadratureGetData(face_quadrature,NULL,NULL,&nfq,&fquad_x,&fquad_w); CHKERRQ(ierr);
 
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
   for(c=cStart; c<cEnd; c++) {
 
     /* Only assemble the cells that this processor owns */

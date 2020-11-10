@@ -64,7 +64,7 @@ struct _p_TDy {
   PetscReal  Tref;       /* reference temperature */
 
   /* material parameters */
-  MaterialProp matprop;
+  MaterialProp *matprop;
 
   /* characteristic curve parameters */
   CharacteristicCurve *cc;

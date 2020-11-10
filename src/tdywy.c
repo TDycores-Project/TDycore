@@ -165,7 +165,7 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
   PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],n0[3],n1[3],
               f; /* allocated at maximum possible size */
   DM dm = tdy->dm;
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
@@ -225,7 +225,7 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
   PetscInt  closureSize,  *closure;
   PetscSection sec;
   DM dm = tdy->dm;
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -920,7 +920,7 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   Vec      Ul;
   PetscInt c,cStart,cEnd,nv,gref,nf,f,fStart,fEnd,i,j,dim;
   PetscReal *p,*dp_dt,*r,wgt,sign,div;
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
   nv   = tdy->nfv;

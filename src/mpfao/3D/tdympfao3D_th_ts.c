@@ -227,7 +227,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   }
 
   CharacteristicCurve *cc = tdy->cc;
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   PetscReal dporosity_dP = 0.0;
   PetscReal dporosity_dT = 0.0;
@@ -628,7 +628,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
     temp[c]  = u_p[c*2+1];
   }
 
-  MaterialProp matprop = tdy->matprop;
+  MaterialProp *matprop = tdy->matprop;
 
   for (icell=0;icell<mesh->num_cells;icell++){
 
