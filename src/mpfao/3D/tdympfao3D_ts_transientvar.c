@@ -28,6 +28,7 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
   CharacteristicCurve cc = tdy->cc;
+  MaterialProp matprop = tdy->matprop;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
@@ -49,7 +50,7 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) 
 
     if (!cells->is_local[icell]) continue;
 
-    c[icell] = tdy->rho[icell] * tdy->matprop_porosity[icell] * cc->S[icell]* cells->volume[icell];
+    c[icell] = tdy->rho[icell] * matprop->porosity[icell] * cc->S[icell]* cells->volume[icell];
   }
 
   ierr = VecRestoreArray(C,&c); CHKERRQ(ierr);

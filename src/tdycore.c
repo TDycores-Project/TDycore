@@ -211,22 +211,22 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   nc   = cEnd-cStart;
-  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_K0)); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_K )); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_porosity)); CHKERRQ(ierr);
+  //ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_K0)); CHKERRQ(ierr);
+  //ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_K )); CHKERRQ(ierr);
+  //ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_porosity)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rho)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2rho_dP2)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->vis)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2vis_dP2)); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_Kappa)); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_Kappa0 )); CHKERRQ(ierr);
+  //ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_Kappa)); CHKERRQ(ierr);
+  //ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->matprop_Kappa0 )); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->h)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_Cr)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_rhor)); CHKERRQ(ierr);
+  //ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_Cr)); CHKERRQ(ierr);
+  //ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_rhor)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->u)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
@@ -235,6 +235,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   TDyStopTimer(t2);
 
   ierr = CharacteristicCurveCreate(nc, &tdy->cc); CHKERRQ(ierr);
+  ierr = MaterialPropertiesCreate(dim, nc, &tdy->matprop); CHKERRQ(ierr);
 
   /* problem constants FIX: add mutators */
    CharacteristicCurve cc = tdy->cc;
@@ -255,12 +256,9 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->vis[c] = 0.0;
     tdy->dvis_dP[c] = 0.0;
     tdy->d2vis_dP2[c] = 0.0;
-    tdy->matprop_porosity[c] = 0.0;
     tdy->h[c] = 0.0;
     tdy->dh_dT[c] = 0.0;
     tdy->dh_dP[c] = 0.0;
-    tdy->matprop_Cr[c] = 0.0;
-    tdy->matprop_rhor[c] = 0.0;
     tdy->drho_dT[c] = 0.0;
     cc->dS_dT[c] = 0.0;
     tdy->u[c] = 0.0;
@@ -350,9 +348,9 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->V); CHKERRQ(ierr);
   ierr = PetscFree(tdy->X); CHKERRQ(ierr);
   ierr = PetscFree(tdy->N); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->matprop_K); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->matprop_K0); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->matprop_porosity); CHKERRQ(ierr);
+  //ierr = PetscFree(tdy->matprop_K); CHKERRQ(ierr);
+  //ierr = PetscFree(tdy->matprop_K0); CHKERRQ(ierr);
+  //ierr = PetscFree(tdy->matprop_porosity); CHKERRQ(ierr);
   ierr = PetscFree(tdy->rho); CHKERRQ(ierr);
   ierr = PetscFree(tdy->d2rho_dP2); CHKERRQ(ierr);
   ierr = PetscFree(tdy->vis); CHKERRQ(ierr);
@@ -361,8 +359,8 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->h); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dh_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->matprop_Cr); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->matprop_rhor); CHKERRQ(ierr);
+  //ierr = PetscFree(tdy->matprop_Cr); CHKERRQ(ierr);
+  //ierr = PetscFree(tdy->matprop_rhor); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
@@ -899,6 +897,8 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   }
 
   CharacteristicCurve cc = tdy->cc;
+  MaterialProp matprop = tdy->matprop;
+
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
 
@@ -935,12 +935,12 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     cc->Kr[i] = Kr;
     cc->dKr_dS[i] = dKr_dSe * dSe_dS;
 
-    for(j=0; j<dim2; j++) tdy->matprop_K[i*dim2+j] = tdy->matprop_K0[i*dim2+j] * Kr;
+    for(j=0; j<dim2; j++) matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
 
     ierr = ComputeWaterDensity(P[i], tdy->rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
     if (tdy->mode ==  TH) {
-      for(j=0; j<dim2; j++) tdy->matprop_Kappa[i*dim2+j] = tdy->matprop_Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
+      for(j=0; j<dim2; j++) matprop->Kappa[i*dim2+j] = matprop->Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
       ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);
       tdy->u[i] = tdy->h[i] - P[i]/tdy->rho[i];
     }

@@ -445,6 +445,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = PetscQuadratureGetData(     quadrature,NULL,NULL,&nq ,& quad_x,& quad_w); CHKERRQ(ierr);
   ierr = PetscQuadratureGetData(face_quadrature,NULL,NULL,&nfq,&fquad_x,&fquad_w); CHKERRQ(ierr);
 
+  MaterialProp matprop = tdy->matprop;
   for(c=cStart; c<cEnd; c++) {
 
     /* Only assemble the cells that this processor owns */
@@ -457,7 +458,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     ierr = PetscMemzero(Flocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
 
     /* Invert permeability, in place */
-    Inverse(&(tdy->matprop_K[dim2*(c-cStart)]),dim);
+    Inverse(&(matprop->K[dim2*(c-cStart)]),dim);
 
     /* Integrate (Kappa^-1 u_i, v_j) */
     for(q=0; q<nq; q++) {
@@ -479,7 +480,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
             for(dj=0; dj<dim; dj++) {
               local_col = vj*dim+dj;
               /* (K^-1 u, v) */
-              Klocal[local_col*nlocal+local_row] += TDyKDotADotB(&(tdy->matprop_K[dim2*(c-cStart)]),
+              Klocal[local_col*nlocal+local_row] += TDyKDotADotB(&(matprop->K[dim2*(c-cStart)]),
 								 &(basis_hdiv[dim*local_row]),
 								 &(basis_hdiv[dim*local_col]),dim)*quad_w[q]*J[q];
             }

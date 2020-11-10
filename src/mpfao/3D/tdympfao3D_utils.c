@@ -41,6 +41,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   CharacteristicCurve cc = tdy->cc;
   CharacteristicCurve cc_bnd = tdy->cc_bnd;
+  MaterialProp matprop = tdy->matprop;
 
   for (iface=0; iface<mesh->num_faces; iface++) {
 
@@ -95,7 +96,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
     cc_bnd->Kr[p_bnd_idx] = Kr;
     cc_bnd->dKr_dS[p_bnd_idx] = dKr_dSe * dSe_dS;
 
-    //for(j=0; j<dim2; j++) tdy->matprop_K[i*dim2+j] = tdy->matprop_K0[i*dim2+j] * Kr;
+    //for(j=0; j<dim2; j++) matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
   }
   
   PetscFunctionReturn(0);

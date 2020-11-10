@@ -3,6 +3,17 @@
 
 #include <petsc.h>
 
+typedef struct _MaterialProp *MaterialProp;
+
+struct _MaterialProp {
+    PetscReal *K, *K0;
+    PetscReal *porosity;
+    PetscReal *Kappa, *Kappa0;
+    PetscReal *Cr;
+    PetscReal *rhor;
+};
+
+PETSC_INTERN PetscErrorCode MaterialPropertiesCreate(PetscInt,PetscInt,MaterialProp*);
 PETSC_INTERN void TDySoilDensityFunctionDefault(PetscReal*,PetscReal*);
 PETSC_INTERN void TDySpecificSoilHeatFunctionDefault(PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode TDyPermeabilityFunctionDefault(TDy,double*,double*,void*);

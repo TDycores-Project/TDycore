@@ -9,6 +9,7 @@
 #include <tdyio.h>
 #include <private/tdytiimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
+#include <private/tdymaterialpropertiesimpl.h>
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
@@ -63,13 +64,7 @@ struct _p_TDy {
   PetscReal  Tref;       /* reference temperature */
 
   /* material parameters */
-  PetscReal *matprop_K,
-            *matprop_K0;         /* permeability tensor (cell,intrinsic) for each cell [m2] */
-  PetscReal *matprop_porosity;   /* porosity for each cell [1] */
-  PetscReal *matprop_Kappa,
-            *matprop_Kappa0;     /* thermal conductivity tensor (cell,intrinsic) for each cell [W/(K-m)] */
-  PetscReal *matprop_Cr;         /* specific heat capacity for rock [J/(kg-K)] */
-  PetscReal *matprop_rhor;       /* rock density [kg/m3] */
+  MaterialProp matprop;
 
   /* characteristic curver parameters */
   CharacteristicCurve cc;

@@ -28,6 +28,7 @@ PetscErrorCode SetPermeabilityFromFunction(TDy tdy) {
     TDy_mesh *mesh;
 
     mesh = tdy->mesh;
+    MaterialProp matprop = tdy->matprop;
 
     // If permeability function is set, use it instead.
     // Will need to consolidate this code with code in tdypermeability.c
@@ -38,8 +39,8 @@ PetscErrorCode SetPermeabilityFromFunction(TDy tdy) {
       PetscInt count = 0;
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
-          tdy->matprop_K[icell*dim*dim + ii*dim + jj] = localK[count];
-          tdy->matprop_K0[icell*dim*dim + ii*dim + jj] = localK[count];
+          matprop->K[icell*dim*dim + ii*dim + jj] = localK[count];
+          matprop->K0[icell*dim*dim + ii*dim + jj] = localK[count];
           count++;
         }
       }
@@ -62,12 +63,13 @@ PetscErrorCode SetPorosityFromFunction(TDy tdy) {
   TDY_START_FUNCTION_TIMER()
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  MaterialProp matprop = tdy->matprop;
 
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(tdy->matprop_porosity,sizeof(PetscReal)*(cEnd-cStart));CHKERRQ(ierr);
+  ierr = PetscMemzero(matprop->porosity,sizeof(PetscReal)*(cEnd-cStart));CHKERRQ(ierr);
 
   for(c=cStart; c<cEnd; c++) {
-    ierr = (*tdy->ops->computeporosity)(tdy, &(tdy->X[c*dim]), &(tdy->matprop_porosity[c]), tdy->porosityctx);CHKERRQ(ierr);
+    ierr = (*tdy->ops->computeporosity)(tdy, &(tdy->X[c*dim]), &(matprop->porosity[c]), tdy->porosityctx);CHKERRQ(ierr);
   }
 
   /*
@@ -88,8 +90,8 @@ PetscErrorCode SetPorosityFromFunction(TDy tdy) {
       PetscInt count = 0;
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
-          tdy->matprop_K[icell*dim*dim + ii*dim + jj] = localK[count];
-          tdy->matprop_K0[icell*dim*dim + ii*dim + jj] = localK[count];
+          matprop->K[icell*dim*dim + ii*dim + jj] = localK[count];
+          matprop->K0[icell*dim*dim + ii*dim + jj] = localK[count];
           count++;
         }
       }
@@ -117,6 +119,7 @@ PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
     PetscReal *localKappa;
     PetscInt icell, ii, jj;
     TDy_mesh *mesh;
+    MaterialProp matprop = tdy->matprop;
 
     mesh = tdy->mesh;
 
@@ -127,8 +130,8 @@ PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
       PetscInt count = 0;
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
-          tdy->matprop_Kappa[icell*dim*dim + ii*dim + jj] = localKappa[count];
-          tdy->matprop_Kappa0[icell*dim*dim + ii*dim + jj] = localKappa[count];
+          matprop->Kappa[icell*dim*dim + ii*dim + jj] = localKappa[count];
+          matprop->Kappa0[icell*dim*dim + ii*dim + jj] = localKappa[count];
           count++;
         }
       }

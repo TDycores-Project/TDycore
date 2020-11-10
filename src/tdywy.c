@@ -165,6 +165,7 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
   PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],n0[3],n1[3],
               f; /* allocated at maximum possible size */
   DM dm = tdy->dm;
+  MaterialProp matprop = tdy->matprop;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
@@ -188,7 +189,7 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
 		"Determinant of the jacobian is negative");
       }
       // compute Kappa^-1 which will be in column major format (shouldn't matter as it is symmetric)
-      ierr = Pullback(&(tdy->matprop_K[dim2*(c-cStart)]),&DFinv[dim2*q],Kinv,J[q],dim);
+      ierr = Pullback(&(matprop->K[dim2*(c-cStart)]),&DFinv[dim2*q],Kinv,J[q],dim);
       CHKERRQ(ierr);
 
       // at each vertex, we have a dim by dim system which we will store
@@ -224,6 +225,7 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
   PetscInt  closureSize,  *closure;
   PetscSection sec;
   DM dm = tdy->dm;
+  MaterialProp matprop = tdy->matprop;
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -243,7 +245,7 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
       PetscInt count = 0;
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
-          tdy->matprop_K[icell*dim*dim + ii*dim + jj] = localK[count];
+          matprop->K[icell*dim*dim + ii*dim + jj] = localK[count];
           count++;
         }
       }
@@ -918,6 +920,8 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   Vec      Ul;
   PetscInt c,cStart,cEnd,nv,gref,nf,f,fStart,fEnd,i,j,dim;
   PetscReal *p,*dp_dt,*r,wgt,sign,div;
+  MaterialProp matprop = tdy->matprop;
+
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
   nv   = tdy->nfv;
   wgt  = 1/((PetscReal)nv);
@@ -957,9 +961,9 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
       }
     }
 
-    r[c] = tdy->matprop_porosity[c-cStart]*cc->dS_dP[c-cStart]*dp_dt[c] + div - tdy->Flocal[c-cStart];
+    r[c] = matprop->porosity[c-cStart]*cc->dS_dP[c-cStart]*dp_dt[c] + div - tdy->Flocal[c-cStart];
     //PetscPrintf(PETSC_COMM_WORLD,"R[%2d] = %+e %+e %+e = %+e\n",
-    // 	c,tdy->matprop_porosity[c-cStart]*cc->dS_dP[c-cStart]*dp_dt[c],
+    // 	c,matprop->porosity[c-cStart]*cc->dS_dP[c-cStart]*dp_dt[c],
     // 		div,tdy->Flocal[c-cStart],r[c]);
   }
 

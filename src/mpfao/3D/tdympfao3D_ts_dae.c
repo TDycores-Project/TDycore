@@ -29,6 +29,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
   CharacteristicCurve cc = tdy->cc;
+  MaterialProp matprop = tdy->matprop;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
@@ -75,7 +76,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec 
     m_idx = p_idx + 1;
 
     r[p_idx]  = u_t[m_idx] * cells->volume[icell] - tdy->source_sink[icell] * cells->volume[icell]+ r_p[icell];
-    r[m_idx]  = m  [icell] - tdy->rho[icell] * tdy->matprop_porosity[icell] * cc->S[icell]* cells->volume[icell];
+    r[m_idx]  = m  [icell] - tdy->rho[icell] * matprop->porosity[icell] * cc->S[icell]* cells->volume[icell];
   }
 
   /* Cleanup */
