@@ -191,7 +191,7 @@ PetscErrorCode TDySetSoilDensity(TDy tdy,SpatialFunction f) {
   Set material properties cell-by-cell
 */
 
-PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[ni], const PetscScalar y[ni]){
 
   PetscInt i,j;
   PetscInt dim,dim2;
@@ -225,7 +225,7 @@ PetscErrorCode TDySetCellPermeability(TDy tdy,PetscInt c,PetscReal *K) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetPorosityValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+PetscErrorCode TDySetPorosityValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[ni], const PetscScalar y[ni]){
 
   PetscInt i;
 
