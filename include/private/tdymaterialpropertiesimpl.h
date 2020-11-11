@@ -14,6 +14,8 @@ struct _MaterialProp {
 };
 
 PETSC_INTERN PetscErrorCode MaterialPropertiesCreate(PetscInt,PetscInt,MaterialProp**);
+PETSC_INTERN PetscErrorCode MaterialPropertiesDestroy(MaterialProp*);
+
 PETSC_INTERN void TDySoilDensityFunctionDefault(PetscReal*,PetscReal*);
 PETSC_INTERN void TDySpecificSoilHeatFunctionDefault(PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode TDyPermeabilityFunctionDefault(TDy,double*,double*,void*);

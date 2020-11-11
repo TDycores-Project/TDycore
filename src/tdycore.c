@@ -370,7 +370,13 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = TDyIODestroy(&tdy->io); CHKERRQ(ierr);
   ierr = TDyTimeIntegratorDestroy(&tdy->ti); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
+
+  if (tdy->cc) {ierr = CharacteristicCurveDestroy(tdy->cc); CHKERRQ(ierr);}
+  if (tdy->cc_bnd) {ierr = CharacteristicCurveDestroy(tdy->cc_bnd); CHKERRQ(ierr);}
+  if (tdy->matprop) {ierr = MaterialPropertiesDestroy(tdy->matprop); CHKERRQ(ierr);}
+
   ierr = PetscFree(tdy); CHKERRQ(ierr);
+
 
   PetscFunctionReturn(0);
 }

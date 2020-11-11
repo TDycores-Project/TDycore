@@ -36,6 +36,7 @@ struct _CCurve {
 };
 
 PETSC_INTERN PetscErrorCode CharacteristicCurveCreate(PetscInt,CharacteristicCurve**);
+PETSC_INTERN PetscErrorCode CharacteristicCurveDestroy(CharacteristicCurve*);
 
 PETSC_INTERN void RelativePermeability_Mualem(PetscReal,PetscReal,PetscReal*,PetscReal*);
 PETSC_INTERN void RelativePermeability_Irmay(PetscReal,PetscReal,PetscReal*,PetscReal*);

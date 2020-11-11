@@ -9,7 +9,7 @@ PetscErrorCode CharacteristicCurveCreate(PetscInt ncells, CharacteristicCurve **
 
   *_cc = (CharacteristicCurve *)malloc(sizeof(struct _CharacteristicCurve));
 
-  ierr = PetscMalloc(ncells*sizeof(PetscInt),&(*_cc)->SatFuncType); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscInt),&((*_cc)->SatFuncType)); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscInt),&(*_cc)->RelPermFuncType); CHKERRQ(ierr);
 
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->Kr); CHKERRQ(ierr);
@@ -22,6 +22,27 @@ PetscErrorCode CharacteristicCurveCreate(PetscInt ncells, CharacteristicCurve **
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->m); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->n); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->alpha); CHKERRQ(ierr);
+  
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode CharacteristicCurveDestroy(CharacteristicCurve *cc){
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  if (cc->SatFuncType    ) { ierr = PetscFree(cc->SatFuncType    ); CHKERRQ(ierr); }
+  if (cc->RelPermFuncType) { ierr = PetscFree(cc->RelPermFuncType); CHKERRQ(ierr); }
+  if (cc->Kr             ) { ierr = PetscFree(cc->Kr             ); CHKERRQ(ierr); }
+  if (cc->dKr_dS         ) { ierr = PetscFree(cc->dKr_dS         ); CHKERRQ(ierr); }
+  if (cc->S              ) { ierr = PetscFree(cc->S              ); CHKERRQ(ierr); }
+  if (cc->dS_dP          ) { ierr = PetscFree(cc->dS_dP          ); CHKERRQ(ierr); }
+  if (cc->d2S_dP2        ) { ierr = PetscFree(cc->d2S_dP2        ); CHKERRQ(ierr); }
+  if (cc->dS_dT          ) { ierr = PetscFree(cc->dS_dT          ); CHKERRQ(ierr); }
+  if (cc->sr             ) { ierr = PetscFree(cc->sr             ); CHKERRQ(ierr); }
+  if (cc->m              ) { ierr = PetscFree(cc->m              ); CHKERRQ(ierr); }
+  if (cc->n              ) { ierr = PetscFree(cc->n              ); CHKERRQ(ierr); }
+  if (cc->alpha          ) { ierr = PetscFree(cc->alpha          ); CHKERRQ(ierr); }
   
   PetscFunctionReturn(0);
 }

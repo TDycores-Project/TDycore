@@ -21,6 +21,22 @@ PetscErrorCode MaterialPropertiesCreate(PetscInt ndim, PetscInt ncells, Material
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode MaterialPropertiesDestroy(MaterialProp *matprop){
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  if (matprop->K       ) {ierr = PetscFree(matprop->K       ); CHKERRQ(ierr);}
+  if (matprop->K0      ) {ierr = PetscFree(matprop->K0      ); CHKERRQ(ierr);}
+  if (matprop->Kappa   ) {ierr = PetscFree(matprop->Kappa   ); CHKERRQ(ierr);}
+  if (matprop->Kappa0  ) {ierr = PetscFree(matprop->Kappa0  ); CHKERRQ(ierr);}
+  if (matprop->porosity) {ierr = PetscFree(matprop->porosity); CHKERRQ(ierr);}
+  if (matprop->Cr      ) {ierr = PetscFree(matprop->Cr      ); CHKERRQ(ierr);}
+  if (matprop->rhosoil ) {ierr = PetscFree(matprop->rhosoil ); CHKERRQ(ierr);}
+
+  PetscFunctionReturn(0);
+}
+
 /*
   Material properties set by PETSc operations
 */
