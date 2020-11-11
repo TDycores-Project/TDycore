@@ -7,7 +7,7 @@ PetscErrorCode MaterialPropertiesCreate(PetscInt ndim, PetscInt ncells, Material
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  *_matprop = (MaterialProp *)malloc(sizeof(struct _MaterialProp));
+  *_matprop = (MaterialProp *)malloc(sizeof(MaterialProp));
 
   ierr = PetscMalloc(ncells*ndim*ndim*sizeof(PetscReal),&(*_matprop)->K    ); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*ndim*ndim*sizeof(PetscReal),&(*_matprop)->K0   ); CHKERRQ(ierr);

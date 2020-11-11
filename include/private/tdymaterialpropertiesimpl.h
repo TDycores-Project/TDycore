@@ -3,15 +3,13 @@
 
 #include <petsc.h>
 
-typedef struct _MaterialProp MaterialProp;
-
-struct _MaterialProp {
+typedef struct {
     PetscReal *K, *K0;
     PetscReal *porosity;
     PetscReal *Kappa, *Kappa0;
     PetscReal *Cr;
     PetscReal *rhosoil;
-};
+} MaterialProp;
 
 PETSC_INTERN PetscErrorCode MaterialPropertiesCreate(PetscInt,PetscInt,MaterialProp**);
 PETSC_INTERN PetscErrorCode MaterialPropertiesDestroy(MaterialProp*);

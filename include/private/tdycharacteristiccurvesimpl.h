@@ -14,9 +14,7 @@ typedef enum {
 } TDySatFuncType;
 
 
-typedef struct _CharacteristicCurve CharacteristicCurve;
-
-struct _CharacteristicCurve {
+typedef struct {
   PetscInt *SatFuncType;         /* type of saturation function */
   PetscInt *RelPermFuncType;     /* type of relative permeability */
   PetscReal *sr;                 /* residual saturation (min) [1] */
@@ -28,7 +26,7 @@ struct _CharacteristicCurve {
             *d2S_dP2,            /* second derivative of saturation wrt pressure for each cell [Pa^-2] */
             *dS_dT;              /* derivate of saturation wrt to temperature for each cell [K^-1] */
   PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
-};
+} CharacteristicCurve;
 
 typedef struct _CCurve CCurve;
 struct _CCurve {

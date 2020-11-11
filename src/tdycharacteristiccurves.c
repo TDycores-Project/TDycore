@@ -7,7 +7,7 @@ PetscErrorCode CharacteristicCurveCreate(PetscInt ncells, CharacteristicCurve **
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  *_cc = (CharacteristicCurve *)malloc(sizeof(struct _CharacteristicCurve));
+  *_cc = (CharacteristicCurve *)malloc(sizeof(CharacteristicCurve));
 
   ierr = PetscMalloc(ncells*sizeof(PetscInt),&((*_cc)->SatFuncType)); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscInt),&(*_cc)->RelPermFuncType); CHKERRQ(ierr);
