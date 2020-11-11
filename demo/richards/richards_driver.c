@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
   PetscBool print_intermediate = PETSC_FALSE;
   PetscMPIInt rank, size;
   TDy tdy = PETSC_NULL;
-  TDyIOFormat format = ExodusFormat; 
+  TDyIOFormat format = HDF5Format; 
 
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);

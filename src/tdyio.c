@@ -3,6 +3,7 @@
 #include "exodusII.h"
 #include <petsc/private/dmpleximpl.h>
 
+
 PetscReal test=1.0;
 
 PetscErrorCode TDyIOCreate(TDyIO *_io) {
@@ -71,9 +72,10 @@ PetscErrorCode TdyIOInitializeHDF5(char *ofilename, DM dm, Vec U, PetscReal time
   PetscErrorCode ierr;
   char word[32];
   sprintf(word,"%11.5e",time);
+
   
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,ofilename,FILE_MODE_WRITE,&viewer);
-  ierr = DMPlexView_HDF5_Internal(dm, viewer);
+  ierr = DMView_Plex(dm,viewer);
   ierr = PetscObjectSetName((PetscObject) U,word);CHKERRQ(ierr);
   ierr = VecView(U,viewer);CHKERRQ(ierr);
 
