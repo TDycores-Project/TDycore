@@ -37,6 +37,18 @@ comparisons depend on the representation of the supported precision and the
 magnitudes of the quantities under comparison. Instead...
 **Question: Any thoughts about what we encourage instead?**
 
+Pointers
+--------
+
+When declaring a pointer variable, place the asterisk next to the variable name,
+not the type name:::
+
+    PetscInt *int_ptr;
+
+This allows you to declare several variables on one line consistently:::
+
+    PetscInt *i_ptr, *j_ptr;
+
 Structs / PODs
 --------------
 
@@ -46,7 +58,7 @@ have no behavior and internal state to manage. They are defined in header files
 so that their data members are visible and accessible. Examples of structs in
 the TDycore library are the ``MaterialProp`` and ``CharacteristicCurve`` types,
 which represent sets of material properties and parameterized curves (a
-saturation curve, for example), respectively.
+saturation function, for example), respectively.
 
 Since a struct is a simple container without behavior (a "Plain Old Datatype",
 or "POD"), no associated functions are needed. However, such functions can be
@@ -78,23 +90,25 @@ as a ``typedef`` to a pointer to the struct type. For example, if you want to
 declare a "washing machine" class, first declare its underlying struct (without
 defining its body):::
 
-    typedef struct WashingMachine_p;
+    typedef struct TDyWashingMachine_p;
 
 in an appropriate header file. Then define the class itself:::
 
-    typedef WashingMachine_p* WashingMachine;
+    typedef TDyWashingMachine_p* TDyWashingMachine;
 
 Class Constructor(s)
 ^^^^^^^^^^^^^^^^^^^^
 
-Typically, a class has a single constructor function named after the class, with
-``New`` at the end. A constructor takes a number of arguments for initializing
-the class, plus a final argument that stores a pointer to a newly-allocated
-instance of the class. For example, consider the following constructor for our
-``WashingMachine`` class:::
+Typically, a class has a single constructor function named after the class,
+with ``Create`` preceding the class name. A constructor takes a number of
+arguments for initializing the class, plus a final argument that stores a
+pointer to a newly-allocated instance of the class. For example, consider the
+following constructor for our ``TDyWashingMachine`` class:::
 
-    PetscErrorCode WashingMachineNew(PetscInt numCents, WashingMachine* wm);
+    PetscErrorCode TDyCreateWashingMachine(PetscInt numCents, TDyWashingMachine *wm);
 
+**Question: I've seen TDycore code with Create up front, in contrast to
+PETSc's style of always placing the type first. Any opinions on this?**
 This constructor creates a ``WashingMachine`` instance that costs the given
 number of cents to wash a load of laundry. The ``wm`` argument stores the
 new instance. The constructor returns an integer-valued error code described
@@ -106,7 +120,7 @@ In these cases, name each constructor so that it briefly conveys its purpose.
 For example, a constructor that creates a deep copy of an existing washing
 machine might be declared::
 
-    PetscErrorCode WashingMachineClone(WashingMachine* other, WashingMachine** wm);
+    PetscErrorCode TDyCloneWashingMachine(TDyWashingMachine *other, TDyWashingMachine **wm);
 
 A constructor function takes any arguments it needs to completely initialize
 an variable of that class type, and returns a pointer to such an initialized
@@ -144,7 +158,7 @@ the instance of the class, returning that data:::
 
 If you're familiar with contemporary object-oriented programming languages like
 C++ and Java, you can define methods in very similar ways (as long as you don't
-wander too far into inheritance and other "polymorphic" techniques. If it's
+wander too far into inheritance and other "polymorphic" techniques). If it's
 practical, lead the list of parameters with input values, and place output
 parameters at the end.
 
@@ -325,6 +339,9 @@ methods: input arguments come before output arguments. A function that performs
 an operation instead of returning a value should return a ``PetscErrorCode``
 that indicates whether the operation succeeded or failed.
 
+Function declarations in header files should not have named parameters. This
+makes them somewhat easier to maintain.
+
 Length of a Function Body
 -------------------------
 
@@ -407,29 +424,33 @@ markup:
 
 http://www.doxygen.org/
 
-In header files, describe your class types, structs, and enumerated types
-briefly and clearly. Build the Doxygen documentation to get an idea of what
-documentation typically looks like. We use Doxygen's ``///`` delimiters for
-code comments, and ``@`` for Doxygen-specific commands.
+Because we omit function parameters in declarations, we document functions in
+their definitions in source files and not in header files.
+
+Above each type or function definition, describe the entity briefly and clearly.
+Build the Doxygen documentation to get an idea of what documentation typically
+looks like. We use Doxygen's ``///`` delimiters for code comments, and ``@`` for
+Doxygen-specific commands.
 
 A type should be documented with a description of its purpose and usage, just
 above its declaration. Structs should have one-line descriptions above each of
 their fields.
 
-Functions and class methods should each have a description (1-2 sentences) above
-their declarations in a public header file. In addition, use the following
+Each function or class method should have a description (1-2 sentences) above
+its definition in the proper source file. In addition, use the following
 markup to annotate the function/method signature:
 
 * For each parameter (argument) for the function, an entry like the following:::
     @param [INTENT] PARAM_NAME A description of the parameter
 
-  Here, ``intent`` is ``in``, ``out``, or ``inout``.
+  Here, ``INTENT`` is ``in``, ``out``, or ``inout``.
 
 * If the return value needs an explanation, use::
     @returns A description of the return value
 
-Typically, you don't need any documentation markup in implementation source
-files. Commenting your implementation code is always helpful, of course.
+Typically, you don't need any documentation markup for types and functions that
+aren't part of the public API. Commenting your implementation code is always
+helpful, of course.
 
 Formatting
 ==========
