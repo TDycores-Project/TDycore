@@ -103,10 +103,10 @@ in the section on functions.
 Sometimes it's convenient to provide more than one constructor, or a
 constructor that converts another datatype to a given instance of a class.
 In these cases, name each constructor so that it briefly conveys its purpose.
-For example, a constructor that converts an array of ``real_t`` to a point
-might be declared
+For example, a constructor that creates a deep copy of an existing washing
+machine might be declared::
 
-``point_t* point_from_array(real_t* array);``
+    PetscErrorCode WashingMachineClone(WashingMachine* other, WashingMachine** wm);
 
 A constructor function takes any arguments it needs to completely initialize
 an variable of that class type, and returns a pointer to such an initialized
