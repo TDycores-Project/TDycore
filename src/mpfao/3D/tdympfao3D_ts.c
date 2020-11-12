@@ -9,6 +9,8 @@
 #include <private/tdypermeabilityimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 
+PetscInt count = 0;
+
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 
@@ -229,6 +231,18 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
+  PetscLogEvent timer1 = TDyGetTimer("outer loop");
+  PetscLogEvent timer2 = TDyGetTimer("inner loop");
+  PetscLogEvent timer3 = TDyGetTimer("GTimeZ");
+  PetscLogEvent timer4;
+  if (count > -1) { // change to 0 to split out first call
+    timer4 = TDyGetTimer("matsetvalue");
+  }
+  else {
+    timer4 = TDyGetTimer("first matsetvalue");
+  }
+  count++;
+
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
     vertex_id = ivertex;
@@ -271,6 +285,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
     // For k not equal to i and j, jacobian is given as:
     // d(fluxm_ij)/dP_k =   rho_ij       + (kr/mu)_{ij,upwind}         *   T_ik  *  (1+d(rho_k)/dP_k*g*z
     //
+    TDyStartTimer(timer1);
     for (irow=0; irow<nflux_in + npitf_bc; irow++) {
 
       PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
@@ -330,12 +345,15 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
       if (cell_id_up>=0) dden_dPup = 0.5*tdy->drho_dP[cell_id_up];
       if (cell_id_dn>=0) dden_dPdn = 0.5*tdy->drho_dP[cell_id_dn];
 
+      TDyStartTimer(timer2);
       for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
         cell_id = vertices->internal_cell_ids[vOffsetCell + icol];
 
         T = tdy->Trans[vertex_id][irow][icol];
 
+        TDyStartTimer(timer3);
         ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
+        TDyStopTimer(timer3);
 
         if (cell_id_up>-1 && cell_id == cell_id_up) {
           Jac =
@@ -355,6 +373,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
         // Changing sign when bringing the term from RHS to LHS of the equation
         Jac = -Jac;
 
+        TDyStartTimer(timer4);
         if (cell_id_up >= 0 && cells->is_local[cell_id_up]) {
           ierr = MatSetValuesLocal(A,1,&cell_id_up,1,&cell_id,&Jac,ADD_VALUES);CHKERRQ(ierr);
         }
@@ -363,8 +382,11 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
           Jac = -Jac;
           ierr = MatSetValuesLocal(A,1,&cell_id_dn,1,&cell_id,&Jac,ADD_VALUES);CHKERRQ(ierr);
         }
+        TDyStopTimer(timer4);
       }
+      TDyStopTimer(timer2);
     }
+    TDyStopTimer(timer1);
   }
 
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
