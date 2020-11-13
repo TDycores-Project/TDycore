@@ -229,30 +229,23 @@ testexamples:
 .PHONY: check test test-build
 
 #
-# Documentation
+# Code formatting (style)
 #
 style :
 	@astyle --options=.astylerc \
           ${TDYCORE_DIR}/src/*.[ch] ${TDYCORE_DIR}/include/*.[ch] ${TDYCORE_DIR}/demo/*.[ch]
 
 #
-# Documentation
+# Auto-generated API documentation
 #
-SRCDIR=${TDYCORE_DIR}/src
-DOCDIR=${TDYCORE_DIR}/docs/html
-doc:
-	@if [ ! -d ${DOCDIR} ]; then ${MKDIR} ${DOCDIR}; fi
-	-@${RM} ${DOCDIR}/*.html
-	@${PETSC_DIR}/${PETSC_ARCH}/bin/doctext -mpath ${DOCDIR} -html ${SRCDIR}/*.c
-	@echo '<TITLE>TDycore Documentation</TITLE>' > ${DOCDIR}/index.html
-	@echo '<H1>TDycore Documentation</H1>' >> ${DOCDIR}/index.html
-	@echo '<MENU>' >> ${DOCDIR}/index.html
-	@ls -1 ${DOCDIR} | grep .html | grep -v index.html | sed -e 's%^\(.*\).html$$%<LI><A HREF="\1.html">\1</A>%g' >> ${DOCDIR}/index.html
-	@echo '</MENU>' >> ${DOCDIR}/index.html
-deletedoc:
-	-@${RM} ${DOCDIR}/*.html
-.PHONY: doc deletedoc
+DOXYGEN ?= doxygen
+doxygen:
+	@$(DOXYGEN) Doxyfile
 
+doc-html doc-latexpdf doc-epub : doc-% : doxygen
+	make -C doc/sphinx $*
+
+doc: doc-html
 
 #
 # TAGS Generation
