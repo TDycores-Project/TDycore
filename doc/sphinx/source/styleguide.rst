@@ -34,8 +34,15 @@ Floating point comparisons
 
 In general, avoid comparing two floating point numbers for equality. Such
 comparisons depend on the representation of the supported precision and the
-magnitudes of the quantities under comparison. Instead...
-**Question: Any thoughts about what we encourage instead?**
+magnitudes of the quantities under comparison. Instead, use one of the following
+functions:::
+
+    // Returns true iff |x - y| < epsilon, where epsilon is a global tolerance
+    // that determines the equivalence of floating point numbers in TDycore.
+    PetscBool RealsEqual(PetscReal x, PetscReal y);
+
+    // Returns true iff |x - y| < tolerance.
+    PetscBool RealsNearlyEqual(PetscReal x, PetscReal y, PetscReal tolerance);
 
 Pointers
 --------
@@ -100,15 +107,13 @@ Class Constructor(s)
 ^^^^^^^^^^^^^^^^^^^^
 
 Typically, a class has a single constructor function named after the class,
-with ``Create`` preceding the class name. A constructor takes a number of
+with ``Create`` following the class name. A constructor takes a number of
 arguments for initializing the class, plus a final argument that stores a
 pointer to a newly-allocated instance of the class. For example, consider the
 following constructor for our ``TDyWashingMachine`` class:::
 
-    PetscErrorCode TDyCreateWashingMachine(PetscInt numCents, TDyWashingMachine *wm);
+    PetscErrorCode TDyWashingMachineCreate(PetscInt numCents, TDyWashingMachine *wm);
 
-**Question: I've seen TDycore code with Create up front, in contrast to
-PETSc's style of always placing the type first. Any opinions on this?**
 This constructor creates a ``WashingMachine`` instance that costs the given
 number of cents to wash a load of laundry. The ``wm`` argument stores the
 new instance. The constructor returns an integer-valued error code described
@@ -120,7 +125,7 @@ In these cases, name each constructor so that it briefly conveys its purpose.
 For example, a constructor that creates a deep copy of an existing washing
 machine might be declared::
 
-    PetscErrorCode TDyCloneWashingMachine(TDyWashingMachine *other, TDyWashingMachine **wm);
+    PetscErrorCode TDyWashingMachineClone(TDyWashingMachine *other, TDyWashingMachine **wm);
 
 A constructor function takes any arguments it needs to completely initialize
 an variable of that class type, and returns a pointer to such an initialized
@@ -165,8 +170,39 @@ parameters at the end.
 Polymorphism in C
 ^^^^^^^^^^^^^^^^^
 
-**Question: do we use this idea? PETSc does, but it might not be needed in
-TDycore itself.**
+**Polymorphism** is the idea that a variable's instance or type determines its
+behavior. TDycore adopts the same approach to polymorphism that PETSc uses:
+behavior is associated with the *instance* of a class, and not its type. This
+approach to polymorphism is sometimes called "prototype polymorphism," and is
+used in some other programming languages such as Lua and Objective C.
+
+A polymorphic class in TDycore has an "abstract" interface with
+a virtual table that dispatches calls to a set of predetermined methods that
+implements its behavior.
+
+In total, a polymorphic class is defined by:
+
+1. A class type struct possessing a context pointer for an instance
+2. A methods "virtual table" struct consisting of a set of function pointers
+   matching the interface for the class
+3. A constructor function that creates a descendant object using a context
+   pointer, a methods table, and any other data needed
+4. Any other functions needed to implement a destructor and/or methods for the
+   polymorphic class
+
+These elements aren't all exposed via the TDycore public API. Instead, TDycore
+exposes a "registration function" for each polymorphic type that allows end
+users to create named instances of types. For an example of how this is done,
+take a look at PETSc's `KSPRegister <https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPRegister.html>`
+function, which can be used to implement custom linear solvers for use with
+PETSc's matrix and vector types.
+
+A virtue of this approach is that a single instance (represented by a
+context pointer) can assume many different roles as a subtype of several
+base classes, using several different virtual tables. In a sense, this
+ability resembles that of the ``interface`` idiom in the Java and C#
+programming languages, avoiding the difficulties of multiple inheritance one
+encounters in C++.
 
 Header Files
 ============
@@ -213,8 +249,8 @@ I/O subsystem:::
 
     #include <tdycore.h>
 
-**Question**: does anyone have an opinion on the use of quotes in headers vs the
-use of angle brackets?
+Because TDycore stores its headers in a separate directory from source files,
+we use angle brackets to include these headers, and not quotes.
 
 Header Guards
 -------------
