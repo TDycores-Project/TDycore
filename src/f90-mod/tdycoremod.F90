@@ -130,62 +130,62 @@ module tdycore
      end subroutine TDySetResidualSaturationValuesLocal11
   end interface TDySetResidualSaturationValuesLocal
 
-  Interface TDySetMaterialPropertyMValuesLocal
-     subroutine TDySetMaterialPropertyMValuesLocal0(a,b,c,d,z)
+  Interface TDySetCharacteristicCurveMValuesLocal
+     subroutine TDySetCharacteristicCurveMValuesLocal0(a,b,c,d,z)
        use tdycoredef
        TDy a ! Vec
        PetscInt b ! PetscInt
        PetscInt c (*) ! PetscInt
        PetscScalar d (*) ! PetscScalar
        integer z
-     end subroutine TDySetMaterialPropertyMValuesLocal0
-     subroutine TDySetMaterialPropertyMValuesLocal11(a,b,c,d,e,z)
+     end subroutine TDySetCharacteristicCurveMValuesLocal0
+     subroutine TDySetCharacteristicCurveMValuesLocal11(a,b,c,d,e,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
        PetscInt c ! PetscInt
        PetscScalar d ! PetscScalar
        integer z
-     end subroutine TDySetMaterialPropertyMValuesLocal11
-  end interface TDySetMaterialPropertyMValuesLocal
+     end subroutine TDySetCharacteristicCurveMValuesLocal11
+  end interface TDySetCharacteristicCurveMValuesLocal
 
-  Interface TDySetMaterialPropertyNValuesLocal
-     subroutine TDySetMaterialPropertyNValuesLocal0(a,b,c,d,z)
+  Interface TDySetCharacteristicCurveNValuesLocal
+     subroutine TDySetCharacteristicCurveNValuesLocal0(a,b,c,d,z)
        use tdycoredef
        TDy a ! Vec
        PetscInt b ! PetscInt
        PetscInt c (*) ! PetscInt
        PetscScalar d (*) ! PetscScalar
        integer z
-     end subroutine TDySetMaterialPropertyNValuesLocal0
-     subroutine TDySetMaterialPropertyNValuesLocal11(a,b,c,d,e,z)
+     end subroutine TDySetCharacteristicCurveNValuesLocal0
+     subroutine TDySetCharacteristicCurveNValuesLocal11(a,b,c,d,e,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
        PetscInt c ! PetscInt
        PetscScalar d ! PetscScalar
        integer z
-     end subroutine TDySetMaterialPropertyNValuesLocal11
-  end interface TDySetMaterialPropertyNValuesLocal
+     end subroutine TDySetCharacteristicCurveNValuesLocal11
+  end interface TDySetCharacteristicCurveNValuesLocal
 
-  Interface TDySetMaterialPropertyAlphaValuesLocal
-     subroutine TDySetMaterialPropertyAlphaValuesLocal0(a,b,c,d,z)
+  Interface TDySetCharacteristicCurveAlphaValuesLocal
+     subroutine TDySetCharacteristicCurveAlphaValuesLocal0(a,b,c,d,z)
        use tdycoredef
        TDy a ! Vec
        PetscInt b ! PetscInt
        PetscInt c (*) ! PetscInt
        PetscScalar d (*) ! PetscScalar
        integer z
-     end subroutine TDySetMaterialPropertyAlphaValuesLocal0
-     subroutine TDySetMaterialPropertyAlphaValuesLocal11(a,b,c,d,e,z)
+     end subroutine TDySetCharacteristicCurveAlphaValuesLocal0
+     subroutine TDySetCharacteristicCurveAlphaValuesLocal11(a,b,c,d,e,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
        PetscInt c ! PetscInt
        PetscScalar d ! PetscScalar
        integer z
-     end subroutine TDySetMaterialPropertyAlphaValuesLocal11
-  end interface TDySetMaterialPropertyAlphaValuesLocal
+     end subroutine TDySetCharacteristicCurveAlphaValuesLocal11
+  end interface TDySetCharacteristicCurveAlphaValuesLocal
 
   Interface TDySetSourceSinkValuesLocal
      subroutine TDySetSourceSinkValuesLocal0(a,b,c,d,z)
@@ -226,25 +226,25 @@ module tdycore
      end subroutine TDyGetLiquidMassValuesLocal
   end interface TDyGetLiquidMassValuesLocal
 
-  Interface TDyGetMaterialPropertyMValuesLocal
-     subroutine TDyGetMaterialPropertyMValuesLocal(a,b,c,z)
+  Interface TDyGetCharacteristicCurveMValuesLocal
+     subroutine TDyGetCharacteristicCurveMValuesLocal(a,b,c,z)
        use tdycoredef
        TDy a ! tdy
        PetscInt b ! PetscInt
        PetscScalar c (*) ! PetscScalar
        integer z
-     end subroutine TDyGetMaterialPropertyMValuesLocal
-  end interface TDyGetMaterialPropertyMValuesLocal
+     end subroutine TDyGetCharacteristicCurveMValuesLocal
+  end interface TDyGetCharacteristicCurveMValuesLocal
 
-  Interface TDyGetMaterialPropertyAlphaValuesLocal
-     subroutine TDyGetMaterialPropertyAlphaValuesLocal(a,b,c,z)
+  Interface TDyGetCharacteristicCurveAlphaValuesLocal
+     subroutine TDyGetCharacteristicCurveAlphaValuesLocal(a,b,c,z)
        use tdycoredef
        TDy a ! tdy
        PetscInt b ! PetscInt
        PetscScalar c (*) ! PetscScalar
        integer z
-     end subroutine TDyGetMaterialPropertyAlphaValuesLocal
-  end interface TDyGetMaterialPropertyAlphaValuesLocal
+     end subroutine TDyGetCharacteristicCurveAlphaValuesLocal
+  end interface TDyGetCharacteristicCurveAlphaValuesLocal
 
   Interface TDyGetPorosityValuesLocal
      subroutine TDyGetPorosityValuesLocal(a,b,c,z)

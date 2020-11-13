@@ -5,8 +5,7 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
-#include <private/tdysaturationimpl.h>
-#include <private/tdypermeabilityimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F) {

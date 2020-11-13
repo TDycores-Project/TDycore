@@ -266,10 +266,10 @@ implicit none
         call MaterialPropM_PFLOTRAN(m(c))
      enddo
 
-     call TDySetMaterialPropertyAlphaValuesLocal(tdy,ncell,index,alpha,ierr)
+     call TDySetCharacteristicCurveAlphaValuesLocal(tdy,ncell,index,alpha,ierr)
      CHKERRA(ierr);
 
-     call TDySetMaterialPropertyMValuesLocal(tdy,ncell,index,m,ierr)
+     call TDySetCharacteristicCurveMValuesLocal(tdy,ncell,index,m,ierr)
      CHKERRA(ierr);
 
      call TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,blockPerm,ierr);

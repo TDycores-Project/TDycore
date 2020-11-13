@@ -61,6 +61,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   edges    = &mesh->edges;
   vertices = &mesh->vertices;
   subcells = &mesh->subcells;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
@@ -69,7 +70,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
     // extract permeability tensor
     for (ii=0; ii<dim; ii++) {
       for (jj=0; jj<dim; jj++) {
-        K[ii][jj] = tdy->K[icell*dim*dim + ii*dim + jj];
+        K[ii][jj] = matprop->K[icell*dim*dim + ii*dim + jj];
       }
     }
 

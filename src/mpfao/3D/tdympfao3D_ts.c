@@ -5,8 +5,8 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
-#include <private/tdysaturationimpl.h>
-#include <private/tdypermeabilityimpl.h>
+
+#include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 
 /* -------------------------------------------------------------------------- */
@@ -36,6 +36,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   faces    = &mesh->faces;
   vertices = &mesh->vertices;
   dm       = tdy->dm;
+  CharacteristicCurve *cc = tdy->cc;
+  CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -81,12 +83,12 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
       // Upwind the 'ukvr'
       if (TtimesP[irow] < 0.0) { // up ---> dn
         // Is the cell_id_up an internal or boundary cell?
-        if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
-        else               ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+        if (cell_id_up>=0) ukvr = cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
+        else               ukvr = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
       } else {
         // Is the cell_id_dn an internal or boundary cell?
-        if (cell_id_dn>=0) ukvr = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
-        else               ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+        if (cell_id_dn>=0) ukvr = cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+        else               ukvr = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
       }
 
       den = 0.0;
@@ -128,6 +130,8 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
+  CharacteristicCurve *cc = tdy->cc;
+  MaterialProp *matprop = tdy->matprop;
 
 //#define DEBUG
 #if defined(DEBUG)
@@ -168,9 +172,9 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
     if (!cells->is_local[icell]) continue;
 
     // d(rho*phi*s)/dP * dP/dt * Vol
-    dmass_dP = tdy->rho[icell]     * dporosity_dP         * tdy->S[icell] +
-               tdy->drho_dP[icell] * tdy->porosity[icell] * tdy->S[icell] +
-               tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dP[icell];
+    dmass_dP = tdy->rho[icell]     * dporosity_dP         * cc->S[icell] +
+               tdy->drho_dP[icell] * matprop->porosity[icell] * cc->S[icell] +
+               tdy->rho[icell]     * matprop->porosity[icell] * cc->dS_dP[icell];
     r[icell] += dmass_dP * dp_dt[icell] * cells->volume[icell];
     r[icell] -= tdy->source_sink[icell] * cells->volume[icell];
   }
@@ -204,6 +208,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
   TDy_face *faces = &mesh->faces;
   TDy_vertex *vertices = &mesh->vertices;
   DM dm = tdy->dm;
+  CharacteristicCurve *cc = tdy->cc;
+  CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
   PetscInt dim;
   PetscErrorCode ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -271,26 +277,26 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
         // Flow: up --> dn
         if (cell_id_up>=0) {
           // "up" is an internal cell
-          ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
-          dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
-                       tdy->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
+          ukvr       = cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
+          dukvr_dPup = cc->dKr_dS[cell_id_up]*cc->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
+                       cc->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
         } else {
           // "up" is boundary cell
-          PetscReal ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
-          dukvr_dPup = 0.0;//tdy->dKr_dS[-cell_id_up-1]*tdy->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          ukvr = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          dukvr_dPup = 0.0;//cc->dKr_dS[-cell_id_up-1]*cc_bnd->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
         }
 
       } else {
         // Flow: up <--- dn
         if (cell_id_dn>=0) {
           // "dn" is an internal cell
-          ukvr       = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
-          dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
-                       tdy->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
+          ukvr       = cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+          dukvr_dPdn = cc->dKr_dS[cell_id_dn]*cc->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
+                       cc->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
         } else {
           // "dn" is a boundary cell
-          ukvr       = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
-          dukvr_dPdn = 0.0;//tdy->dKr_dS_BND[-cell_id_dn-1]*tdy->dS_dP_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          ukvr       = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          dukvr_dPdn = 0.0;//cc_bnd->dKr[-cell_id_dn-1]*cc_bnd->dS_dP[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
         }
       }
 
@@ -409,6 +415,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   vertices = &mesh->vertices;
   subcells = &mesh->subcells;
   dm       = tdy->dm;
+  CharacteristicCurve *cc = tdy->cc;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -469,21 +476,21 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
 
       if (TtimesP[irow] < 0.0) { // up ---> dn
         if (cell_id_up>=0) {
-          ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
-          dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
-                       tdy->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
+          ukvr = cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
+          dukvr_dPup = cc->dKr_dS[cell_id_up]*cc->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
+                       cc->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
         } else {
-          ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
-          dukvr_dPup = 0.0;//tdy->dKr_dS[-cell_id_up-1]*tdy->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          ukvr = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          dukvr_dPup = 0.0;//cc->dKr_dS[-cell_id_up-1]*cc_bnd->dS_dP[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
         }
       } else {
         if (cell_id_dn>=0) {
-          ukvr = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
-          dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
-                       tdy->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
+          ukvr = cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+          dukvr_dPdn = cc->dKr_dS[cell_id_dn]*cc->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
+                       cc->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
         } else {
-          ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
-          dukvr_dPdn = 0.0;//tdy->dKr_dS_BND[-cell_id_dn-1]*tdy->dS_dP_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          ukvr = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          dukvr_dPdn = 0.0;//cc_bnd->dKr_dS[-cell_id_dn-1]*cc_bnd->dS_dP[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
         }
       }
 
@@ -576,6 +583,8 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal 
 
   mesh = tdy->mesh;
   cells = &mesh->cells;
+  CharacteristicCurve *cc = tdy->cc;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = VecGetArray(Udotl,&dp_dt); CHKERRQ(ierr);
 
@@ -587,20 +596,20 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal 
     d2rho_dP2 = tdy->d2rho_dP2[icell];
 
     // d(rho*phi*s)/dP * dP/dt * Vol
-    dmass_dP = tdy->rho[icell] * dporosity_dP         * tdy->S[icell] +
-               drho_dP         * tdy->porosity[icell] * tdy->S[icell] +
-               tdy->rho[icell] * tdy->porosity[icell] * tdy->dS_dP[icell];
+    dmass_dP = tdy->rho[icell] * dporosity_dP         * cc->S[icell] +
+               drho_dP         * matprop->porosity[icell] * cc->S[icell] +
+               tdy->rho[icell] * matprop->porosity[icell] * cc->dS_dP[icell];
 
     d2mass_dP2 = (
-      tdy->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP         +
-      tdy->S[icell]       * drho_dP                * dporosity_dP         +
-      tdy->S[icell]       * tdy->rho[icell]        * d2porosity_dP2       +
-      tdy->dS_dP[icell]   * drho_dP                * tdy->porosity[icell] +
-      tdy->S[icell]       * d2rho_dP2              * tdy->porosity[icell] +
-      tdy->S[icell]       * drho_dP                * dporosity_dP         +
-      tdy->d2S_dP2[icell] * tdy->rho[icell]        * tdy->porosity[icell] +
-      tdy->dS_dP[icell]   * drho_dP                * tdy->porosity[icell] +
-      tdy->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP
+      cc->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP         +
+      cc->S[icell]       * drho_dP                * dporosity_dP         +
+      cc->S[icell]       * tdy->rho[icell]        * d2porosity_dP2       +
+      cc->dS_dP[icell]   * drho_dP                * matprop->porosity[icell] +
+      cc->S[icell]       * d2rho_dP2              * matprop->porosity[icell] +
+      cc->S[icell]       * drho_dP                * dporosity_dP         +
+      cc->d2S_dP2[icell] * tdy->rho[icell]        * matprop->porosity[icell] +
+      cc->dS_dP[icell]   * drho_dP                * matprop->porosity[icell] +
+      cc->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP
        );
 
     PetscReal value = (shift*dmass_dP + d2mass_dP2*dp_dt[icell])*cells->volume[icell];

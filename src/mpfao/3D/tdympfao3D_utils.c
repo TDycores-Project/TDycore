@@ -5,8 +5,7 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
-#include <private/tdysaturationimpl.h>
-#include <private/tdypermeabilityimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeGtimesZ(PetscReal *gravity, PetscReal *X, PetscInt dim, PetscReal *gz) {
@@ -40,6 +39,8 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
   faces = &mesh->faces;
 
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  CharacteristicCurve *cc = tdy->cc;
+  CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
   for (iface=0; iface<mesh->num_faces; iface++) {
 
@@ -55,15 +56,15 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
       p_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
     }
 
-    switch (tdy->SatFuncType[cell_id]) {
+    switch (cc->SatFuncType[cell_id]) {
     case SAT_FUNC_GARDNER :
-      Sr = tdy->Sr[cell_id];
+      Sr = cc->sr[cell_id];
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
 
       PressureSaturation_Gardner(n,m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      Sr = tdy->Sr[cell_id];
+      Sr = cc->sr[cell_id];
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
 
       PressureSaturation_VanGenuchten(m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
@@ -76,7 +77,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
     Se = (S - Sr)/(1.0 - Sr);
     dSe_dS = 1.0/(1.0 - Sr);
 
-    switch (tdy->RelPermFuncType[cell_id]) {
+    switch (cc->RelPermFuncType[cell_id]) {
     case REL_PERM_FUNC_IRMAY :
       RelativePermeability_Irmay(m,Se,&Kr,NULL);
       break;
@@ -88,13 +89,13 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
       break;
     }
 
-    tdy->S_BND[p_bnd_idx] = S;
-    tdy->dS_dP_BND[p_bnd_idx] = dS_dP;
-    tdy->d2S_dP2_BND[p_bnd_idx] = d2S_dP2;
-    tdy->Kr_BND[p_bnd_idx] = Kr;
-    tdy->dKr_dS_BND[p_bnd_idx] = dKr_dSe * dSe_dS;
+    cc_bnd->S[p_bnd_idx] = S;
+    cc_bnd->dS_dP[p_bnd_idx] = dS_dP;
+    cc_bnd->d2S_dP2[p_bnd_idx] = d2S_dP2;
+    cc_bnd->Kr[p_bnd_idx] = Kr;
+    cc_bnd->dKr_dS[p_bnd_idx] = dKr_dSe * dSe_dS;
 
-    //for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
+    //for(j=0; j<dim2; j++) matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
   }
   
   PetscFunctionReturn(0);

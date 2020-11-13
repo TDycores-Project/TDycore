@@ -5,8 +5,8 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
-#include <private/tdysaturationimpl.h>
-#include <private/tdypermeabilityimpl.h>
+
+#include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 #include <private/tdympfao3Dtsimpl.h>
 
@@ -27,6 +27,8 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) 
 
   mesh     = tdy->mesh;
   cells    = &mesh->cells;
+  CharacteristicCurve *cc = tdy->cc;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
@@ -48,7 +50,7 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) 
 
     if (!cells->is_local[icell]) continue;
 
-    c[icell] = tdy->rho[icell] * tdy->porosity[icell] * tdy->S[icell]* cells->volume[icell];
+    c[icell] = tdy->rho[icell] * matprop->porosity[icell] * cc->S[icell]* cells->volume[icell];
   }
 
   ierr = VecRestoreArray(C,&c); CHKERRQ(ierr);

@@ -6,8 +6,7 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
-#include <private/tdysaturationimpl.h>
-#include <private/tdypermeabilityimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 
 /* ---------------------------------------------------------------- */
@@ -55,6 +54,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
   cells    = &mesh->cells;
   faces = &mesh->faces;
   subcells = &mesh->subcells;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
@@ -66,7 +66,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
 
     for (ii=0; ii<dim; ii++) {
       for (jj=0; jj<dim; jj++) {
-        K[ii][jj] = tdy->K0[icell*dim*dim + ii*dim + jj];
+        K[ii][jj] = matprop->K0[icell*dim*dim + ii*dim + jj];
       }
     }
 
@@ -76,7 +76,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
     if (tdy->mode == TH) {
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
-          Kappa[ii][jj] = tdy->Kappa0[icell*dim*dim + ii*dim + jj];
+          Kappa[ii][jj] = matprop->Kappa0[icell*dim*dim + ii*dim + jj];
         }
       }
     }

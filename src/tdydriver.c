@@ -1,11 +1,10 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdydmimpl.h>
-#include <private/tdyporosityimpl.h>
 #include <private/tdyrichardsimpl.h>
-#include <private/tdyrockpropertiesimpl.h>
+#include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdythimpl.h>
 #include <tdytimers.h>
-#include <private/tdypermeabilityimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
 
 PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   PetscErrorCode ierr;
@@ -45,8 +44,8 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     ierr = TDySetThermalConductivityFunction(tdy,
                                          TDyThermalConductivityFunctionDefault,
                                          PETSC_NULL); CHKERRQ(ierr);
-    ierr = TDySetRockDensity(tdy,TDyRockDensityFunctionDefault); CHKERRQ(ierr);
-    ierr = TDySetSpecificHeatCapacity(tdy,TDySpecificHeatCapacityFunctionDefault); CHKERRQ(ierr);
+    ierr = TDySetSoilDensity(tdy,TDySoilDensityFunctionDefault); CHKERRQ(ierr);
+    ierr = TDySetSoilSpecificHeat(tdy,TDySpecificSoilHeatFunctionDefault); CHKERRQ(ierr);
   }
 
   ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);

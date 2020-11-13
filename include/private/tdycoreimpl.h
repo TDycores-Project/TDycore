@@ -8,6 +8,8 @@
 #include <tdycore.h>
 #include <tdyio.h>
 #include <private/tdytiimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
+#include <private/tdymaterialpropertiesimpl.h>
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
@@ -61,26 +63,12 @@ struct _p_TDy {
   PetscReal  Pref;       /* reference pressure */
   PetscReal  Tref;       /* reference temperature */
 
-
   /* material parameters */
-  PetscReal *Sr;                 /* residual saturation (min) [1] */
-  PetscReal *K,
-            *K0;                 /* permeability tensor (cell,intrinsic) for each cell [m2] */
-  PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
-  PetscReal *porosity;           /* porosity for each cell [1] */
-  PetscReal *S,
-            *dS_dP,              /* saturation and derivative wrt pressure for each cell [1] */
-            *d2S_dP2,            /* second derivative of saturation wrt pressure for each cell [1] */
-            *dS_dT;
-  PetscReal *Kappa,
-            *Kappa0;             /* thermal conductivity tensor (cell,intrinsic) for each cell [W/(K-m)] */
-  PetscReal *Cr;                 /* specific heat capacity for rock [J/(kg-K)] */
-  PetscReal *rhor;               /* rock density [kg/m3] */
+  MaterialProp *matprop;
 
-  PetscInt *SatFuncType;         /* type of saturation function */
-  PetscInt *RelPermFuncType;     /* type of relative permeability */
-
-  PetscReal *matprop_m, *matprop_n, *matprop_alpha;
+  /* characteristic curve parameters */
+  CharacteristicCurve *cc;
+  CCurve *ccurve;
 
   /* boundary pressure and auxillary variables that depend on boundary pressure */
   PetscReal *P_BND;
@@ -88,6 +76,8 @@ struct _p_TDy {
   PetscReal  *rho_BND;            /* density of water [kg m-3]*/
   PetscReal  *vis_BND;            /* viscosity of water [Pa s] */
   PetscReal  *h_BND;              /* enthalpy of water */
+
+  CharacteristicCurve *cc_bnd;
   PetscReal *Kr_BND, *dKr_dS_BND; /* relative permeability for each cell [1] */
   PetscReal *S_BND,  *dS_dP_BND,  /* saturation, first derivative wrt boundary pressure, and */
             *d2S_dP2_BND;         /* second derivative of saturation wrt boundary pressure */

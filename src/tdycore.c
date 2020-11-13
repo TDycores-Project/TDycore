@@ -1,6 +1,5 @@
 #include <private/tdycoreimpl.h>
-#include <private/tdysaturationimpl.h>
-#include <private/tdypermeabilityimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfao3Dcoreimpl.h>
 #include <private/tdympfaoimpl.h>
 #include <private/tdyeosimpl.h>
@@ -8,7 +7,7 @@
 #include <private/tdydmimpl.h>
 #include <private/tdytiimpl.h>
 #include <tdytimers.h>
-#include <private/tdyporosityimpl.h>
+#include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdyioimpl.h>
 
 const char *const TDyMethods[] = {
@@ -212,67 +211,50 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   nc   = cEnd-cStart;
-  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K0)); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->K )); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->porosity)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Kr)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dKr_dS)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->S)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2S_dP2)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rho)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2rho_dP2)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->vis)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2vis_dP2)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Sr)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->SatFuncType)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscInt),&(tdy->RelPermFuncType)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_m)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_n)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->matprop_alpha)); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->Kappa)); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*dim*nc*sizeof(PetscReal),&(tdy->Kappa0 )); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->h)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->Cr)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rhor)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dT)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dS_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->u)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
   TDyStopTimer(t2);
 
+  ierr = CharacteristicCurveCreate(nc, &tdy->cc); CHKERRQ(ierr);
+  ierr = MaterialPropertiesCreate(dim, nc, &tdy->matprop); CHKERRQ(ierr);
+
   /* problem constants FIX: add mutators */
+   CharacteristicCurve *cc = tdy->cc;
+
   for (c=0; c<nc; c++) {
-    tdy->Sr[c]   = 0.15;
-    tdy->matprop_n[c] = 0.5;
-    tdy->matprop_m[c] = 0.8;
-    tdy->matprop_alpha[c] = 1.e-4;
-    tdy->SatFuncType[c] = SAT_FUNC_GARDNER;
-    tdy->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
-    tdy->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
-    tdy->Kr[c] = 0.0;
-    tdy->dKr_dS[c] = 0.0;
-    tdy->S[c] = 0.0;
-    tdy->dS_dP[c] = 0.0;
+    cc->sr[c] = 0.15;
+    //ccurve->sr[c] = 0.15;
+    cc->n[c] = 0.5;
+    cc->m[c] = 0.8;
+    cc->alpha[c] = 1.e-4;
+    cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
+    cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
+    cc->Kr[c] = 0.0;
+    cc->dKr_dS[c] = 0.0;
+    cc->S[c] = 0.0;
+    cc->dS_dP[c] = 0.0;
     tdy->rho[c] = 0.0;
     tdy->drho_dP[c] = 0.0;
     tdy->vis[c] = 0.0;
     tdy->dvis_dP[c] = 0.0;
     tdy->d2vis_dP2[c] = 0.0;
-    tdy->porosity[c] = 0.0;
     tdy->h[c] = 0.0;
     tdy->dh_dT[c] = 0.0;
     tdy->dh_dP[c] = 0.0;
-    tdy->Cr[c] = 0.0;
-    tdy->rhor[c] = 0.0;
     tdy->drho_dT[c] = 0.0;
-    tdy->dS_dT[c] = 0.0;
+    cc->dS_dT[c] = 0.0;
     tdy->u[c] = 0.0;
     tdy->du_dP[c] = 0.0;
     tdy->du_dT[c] = 0.0;
@@ -360,32 +342,14 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->V); CHKERRQ(ierr);
   ierr = PetscFree(tdy->X); CHKERRQ(ierr);
   ierr = PetscFree(tdy->N); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->K); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->K0); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->porosity); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->Kr); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->dKr_dS); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->S); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->dS_dP); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->d2S_dP2); CHKERRQ(ierr);
   ierr = PetscFree(tdy->rho); CHKERRQ(ierr);
   ierr = PetscFree(tdy->d2rho_dP2); CHKERRQ(ierr);
   ierr = PetscFree(tdy->vis); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->d2vis_dP2); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->Sr); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->SatFuncType); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->RelPermFuncType); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->matprop_alpha); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->matprop_n); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->matprop_m); CHKERRQ(ierr);
-//  ierr = PetscFree(tdy->Kappa); CHKERRQ(ierr);
-//  ierr = PetscFree(tdy->Kappa0); CHKERRQ(ierr);
   ierr = PetscFree(tdy->h); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dh_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->Cr); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->rhor); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
@@ -394,7 +358,13 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = TDyIODestroy(&tdy->io); CHKERRQ(ierr);
   ierr = TDyTimeIntegratorDestroy(&tdy->ti); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
+
+  if (tdy->cc) {ierr = CharacteristicCurveDestroy(tdy->cc); CHKERRQ(ierr);}
+  if (tdy->cc_bnd) {ierr = CharacteristicCurveDestroy(tdy->cc_bnd); CHKERRQ(ierr);}
+  if (tdy->matprop) {ierr = MaterialPropertiesDestroy(tdy->matprop); CHKERRQ(ierr);}
+
   ierr = PetscFree(tdy); CHKERRQ(ierr);
+
 
   PetscFunctionReturn(0);
 }
@@ -921,29 +891,32 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     for (c=0;c<cEnd-cStart;c++) P[c] = U[c];
   }
 
+  CharacteristicCurve *cc = tdy->cc;
+  MaterialProp *matprop = tdy->matprop;
+
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
 
-    m = tdy->matprop_m[c];
-    n = tdy->matprop_n[c];
-    alpha = tdy->matprop_alpha[c];
+    m = cc->m[c];
+    n = cc->n[c];
+    alpha = cc->alpha[c];
 
-    switch (tdy->SatFuncType[i]) {
+    switch (cc->SatFuncType[i]) {
     case SAT_FUNC_GARDNER :
-      PressureSaturation_Gardner(n,m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&(tdy->dS_dP[i]),&(tdy->d2S_dP2[i]));
+      PressureSaturation_Gardner(n,m,alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&(cc->dS_dP[i]),&(cc->d2S_dP2[i]));
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      PressureSaturation_VanGenuchten(m,alpha,tdy->Sr[i],tdy->Pref-P[i],&(tdy->S[i]),&tdy->dS_dP[i],&(tdy->d2S_dP2[i]));
+      PressureSaturation_VanGenuchten(m,alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&cc->dS_dP[i],&(cc->d2S_dP2[i]));
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
       break;
     }
 
-    Se = (tdy->S[i] - tdy->Sr[i])/(1.0 - tdy->Sr[i]);
-    dSe_dS = 1.0/(1.0 - tdy->Sr[i]);
+    Se = (cc->S[i] - cc->sr[i])/(1.0 - cc->sr[i]);
+    dSe_dS = 1.0/(1.0 - cc->sr[i]);
 
-    switch (tdy->RelPermFuncType[i]) {
+    switch (cc->RelPermFuncType[i]) {
     case REL_PERM_FUNC_IRMAY :
       RelativePermeability_Irmay(m,Se,&Kr,NULL);
       break;
@@ -954,15 +927,15 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown relative permeability function");
       break;
     }
-    tdy->Kr[i] = Kr;
-    tdy->dKr_dS[i] = dKr_dSe * dSe_dS;
+    cc->Kr[i] = Kr;
+    cc->dKr_dS[i] = dKr_dSe * dSe_dS;
 
-    for(j=0; j<dim2; j++) tdy->K[i*dim2+j] = tdy->K0[i*dim2+j] * Kr;
+    for(j=0; j<dim2; j++) matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
 
     ierr = ComputeWaterDensity(P[i], tdy->rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
     if (tdy->mode ==  TH) {
-      for(j=0; j<dim2; j++) tdy->Kappa[i*dim2+j] = tdy->Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
+      for(j=0; j<dim2; j++) matprop->Kappa[i*dim2+j] = matprop->Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
       ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);
       tdy->u[i] = tdy->h[i] - P[i]/tdy->rho[i];
     }

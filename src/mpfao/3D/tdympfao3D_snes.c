@@ -5,8 +5,7 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
-#include <private/tdysaturationimpl.h>
-#include <private/tdypermeabilityimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 #include <private/tdympfao3Dtsimpl.h>
 
@@ -23,8 +22,10 @@ PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accu
   PetscFunctionBegin;
 
   TDy_cell *cells = &tdy->mesh->cells;
+  CharacteristicCurve *cc = tdy->cc;
+  MaterialProp *matprop = tdy->matprop;
 
-  *accum = tdy->rho[icell] * tdy->porosity[icell] * tdy->S[icell] * cells->volume[icell] / tdy->dtime;
+  *accum = tdy->rho[icell] * matprop->porosity[icell] * cc->S[icell] * cells->volume[icell] / tdy->dtime;
 
   PetscFunctionReturn(0);
 }
@@ -184,6 +185,9 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
   PetscReal dmass_dP, Jac;
   PetscInt icell;
 
+  CharacteristicCurve *cc = tdy->cc;
+  MaterialProp *matprop = tdy->matprop;
+
   for (icell=0;icell<mesh->num_cells;icell++){
 
     if (!cells->is_local[icell]) continue;
@@ -191,9 +195,9 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
     // d/dP ( d(rho*phi*s)/dt * Vol )
     //  = d/dP [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
     //  = d/dP [(rho*phi*s)^{t+1}]
-    dmass_dP = tdy->rho[icell]     * dporosity_dP         * tdy->S[icell] +
-               tdy->drho_dP[icell] * tdy->porosity[icell] * tdy->S[icell] +
-               tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dP[icell];
+    dmass_dP = tdy->rho[icell]     * dporosity_dP         * cc->S[icell] +
+               tdy->drho_dP[icell] * matprop->porosity[icell] * cc->S[icell] +
+               tdy->rho[icell]     * matprop->porosity[icell] * cc->dS_dP[icell];
     Jac = dmass_dP * cells->volume[icell] * dtInv;
 
     ierr = MatSetValuesLocal(B,1,&icell,1,&icell,&Jac,ADD_VALUES);CHKERRQ(ierr);
