@@ -14,7 +14,7 @@
 PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   DM       dm;
   Vec      Ul,P,M,R_P,R_M;
@@ -26,7 +26,6 @@ PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
   CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;

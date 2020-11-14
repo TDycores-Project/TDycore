@@ -13,7 +13,7 @@
 PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 
   TDy tdy = (TDy)ctx;
-  TDy_mesh *mesh;
+  TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells;
   TDy_face *faces;
   TDy_vertex *vertices;
@@ -31,7 +31,6 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
   faces    = &mesh->faces;
   vertices = &mesh->vertices;
@@ -118,7 +117,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   DM       dm;
   Vec      Ul;
@@ -128,7 +127,6 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
   CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;
@@ -385,7 +383,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 
   TDy tdy = (TDy)ctx;
-  TDy_mesh *mesh;
+  TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells;
   TDy_face *faces;
   TDy_vertex *vertices;
@@ -409,7 +407,6 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
   faces    = &mesh->faces;
   vertices = &mesh->vertices;
@@ -568,7 +565,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
 PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal shift,Mat A,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   PetscInt icell;
   PetscReal *dp_dt;
@@ -581,7 +578,6 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh = tdy->mesh;
   cells = &mesh->cells;
   CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;

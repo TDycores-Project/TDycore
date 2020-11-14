@@ -45,12 +45,11 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
   PetscInt dim,icell;
   PetscErrorCode ierr;
 
-  TDy_mesh *mesh;
+  TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells;
   TDy_face *faces;
   TDy_subcell *subcells;
 
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
   faces = &mesh->faces;
   subcells = &mesh->subcells;
@@ -935,7 +934,7 @@ PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
 
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   TDy_vertex     *vertices;
   PetscInt       ivertex;
@@ -944,7 +943,6 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
   vertices = &mesh->vertices;
 

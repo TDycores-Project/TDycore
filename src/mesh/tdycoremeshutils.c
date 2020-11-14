@@ -700,7 +700,7 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
 PetscErrorCode IdentifyLocalVertices(TDy tdy) {
 
   PetscInt       ivertex, icell, c;
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   TDy_vertex     *vertices;
   PetscInt       vStart, vEnd;
@@ -710,7 +710,6 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
   PetscFunctionBegin;
 
   dm       = tdy->dm;
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
   vertices = &mesh->vertices;
   
@@ -733,7 +732,7 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
 PetscErrorCode IdentifyLocalEdges(TDy tdy) {
 
   PetscInt iedge, icell_1, icell_2;
-  TDy_mesh *mesh;
+  TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells;
   TDy_edge *edges;
   PetscInt       eStart, eEnd;
@@ -743,7 +742,6 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
   PetscFunctionBegin;
 
   dm    = tdy->dm;
-  mesh  = tdy->mesh;
   cells = &mesh->cells;
   edges = &mesh->edges;
 
@@ -795,7 +793,7 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
 PetscErrorCode IdentifyLocalFaces(TDy tdy) {
 
   PetscInt iface, icell_1, icell_2;
-  TDy_mesh *mesh;
+  TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells;
   TDy_face *faces;
   PetscInt       fStart, fEnd;
@@ -805,7 +803,6 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
   PetscFunctionBegin;
 
   dm    = tdy->dm;
-  mesh  = tdy->mesh;
   cells = &mesh->cells;
   faces = &mesh->faces;
 
@@ -889,14 +886,13 @@ PetscErrorCode TDyGetNumCellsLocal(TDy tdy, PetscInt *num_cells) {
 
 PetscErrorCode TDyGetCellNaturalIDsLocal(TDy tdy, PetscInt *ni, PetscInt nat_ids[]) {
 
-  TDy_mesh *mesh;
+  TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells;
   PetscInt icell;
 
   PetscFunctionBegin;
   *ni = 0;
 
-  mesh = tdy->mesh;
   cells = &mesh->cells;
 
   for (icell=0; icell<mesh->num_cells; icell++) {
@@ -911,14 +907,13 @@ PetscErrorCode TDyGetCellNaturalIDsLocal(TDy tdy, PetscInt *ni, PetscInt nat_ids
 
 PetscErrorCode TDyGetCellIsLocal(TDy tdy, PetscInt *ni, PetscInt is_local[]) {
 
-  TDy_mesh *mesh;
+  TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells;
   PetscInt icell;
 
   PetscFunctionBegin;
   *ni = 0;
 
-  mesh = tdy->mesh;
   cells = &mesh->cells;
 
   for (icell=0; icell<mesh->num_cells; icell++) {

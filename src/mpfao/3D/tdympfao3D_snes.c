@@ -33,7 +33,7 @@ PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accu
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
 
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   PetscReal *p, *accum_prev;
   PetscInt icell;
@@ -41,7 +41,6 @@ PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
 
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
 
   // Update the auxillary variables
@@ -70,7 +69,7 @@ PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
 PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   DM       dm;
   Vec      Ul;
@@ -80,7 +79,6 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
 
 #if defined(DEBUG)
@@ -156,7 +154,7 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
 
   TDy      tdy = (TDy)ctx;
   DM             dm;
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   Vec Ul, Udotl;
   PetscErrorCode ierr;
@@ -164,7 +162,6 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
 
   dm = tdy->dm;

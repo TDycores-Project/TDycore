@@ -25,7 +25,7 @@ PetscErrorCode ComputeGtimesZ(PetscReal *gravity, PetscReal *X, PetscInt dim, Pe
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
-  TDy_mesh *mesh;
+  TDy_mesh *mesh = tdy->mesh;
   TDy_face *faces;
   PetscErrorCode ierr;
   PetscReal Se,dSe_dS,dKr_dSe,n=0.5,m=0.8,alpha=1.e-4,Kr; /* FIX: generalize */
@@ -35,7 +35,6 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
   PetscFunctionBegin;
 
-  mesh = tdy->mesh;
   faces = &mesh->faces;
 
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
@@ -106,7 +105,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
   DM             dm;
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   TDy_vertex     *vertices;
   TDy_face       *faces;
@@ -127,7 +126,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
   PetscFunctionBegin;
 
   dm       = tdy->dm;
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
   vertices = &mesh->vertices;
   faces    = &mesh->faces;
@@ -220,7 +218,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
   DM             dm;
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   TDy_vertex     *vertices;
   TDy_face       *faces;
@@ -244,7 +242,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
   PetscFunctionBegin;
 
   dm       = tdy->dm;
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
   vertices = &mesh->vertices;
   faces    = &mesh->faces;
@@ -518,7 +515,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
   DM             dm;
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   TDy_vertex     *vertices;
   TDy_face       *faces;
@@ -541,7 +538,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
   PetscFunctionBegin;
 
   dm       = tdy->dm;
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
   vertices = &mesh->vertices;
   faces    = &mesh->faces;
@@ -672,7 +668,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_3DMesh(TDy tdy, Vec U) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
 
-  TDy_mesh *mesh;
+  TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells;
   TDy_face *faces;
   PetscErrorCode ierr;
@@ -698,7 +694,6 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
     for (c=0;c<cEnd-cStart;c++) p[c] = u_p[c];
   }
 
-  mesh = tdy->mesh;
   cells = &mesh->cells;
   faces = &mesh->faces;
   ncells = mesh->num_cells;
@@ -740,7 +735,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
 
-  TDy_mesh *mesh;
+  TDy_mesh *mesh = tdy->mesh;
   TDy_face *faces;
   PetscErrorCode ierr;
   PetscInt dim, ncells;
@@ -760,7 +755,6 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
     t[c] = u_p[c*2+1];
   }
 
-  mesh = tdy->mesh;
   faces = &mesh->faces;
   ncells = mesh->num_cells;
 

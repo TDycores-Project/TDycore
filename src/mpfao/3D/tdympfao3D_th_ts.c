@@ -19,7 +19,7 @@ PetscInt max_count = 5;
 PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
 
   TDy tdy = (TDy)ctx;
-  TDy_mesh *mesh;
+  TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells;
   TDy_face *faces;
   TDy_vertex *vertices;
@@ -37,7 +37,6 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
   faces    = &mesh->faces;
   vertices = &mesh->vertices;
@@ -150,7 +149,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
 PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   DM       dm;
   Vec      Ul;
@@ -160,7 +159,6 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
   cells    = &mesh->cells;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
@@ -306,7 +304,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
 PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
 
   TDy tdy = (TDy)ctx;
-  TDy_mesh *mesh;
+  TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells;
   TDy_face *faces;
   TDy_vertex *vertices;
@@ -335,7 +333,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
+
   cells    = &mesh->cells;
   faces    = &mesh->faces;
   vertices = &mesh->vertices;
@@ -585,7 +583,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
 PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscReal shift,Mat A,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDy_mesh       *mesh;
+  TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   PetscInt icell;
   PetscReal *dp_dt, *dT_dt, *du_dt, *temp, *u_p;
@@ -610,7 +608,6 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh_TH(Vec Ul,Vec Udotl,PetscRe
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh = tdy->mesh;
   cells = &mesh->cells;
 
   ierr = VecGetArray(Udotl,&du_dt); CHKERRQ(ierr);
