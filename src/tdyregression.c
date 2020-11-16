@@ -3,7 +3,7 @@
 
 PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   TDy_regression *regression;
-  DM dm;
+  DM dm = tdy->dm;
   PetscInt c;
   PetscInt increment, global_offset;
   PetscInt myrank, size;
@@ -22,7 +22,6 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm = tdy->dm;
 
   ndof_per_cell = 1;
   if (tdy->mode == TH) ndof_per_cell = 2;
@@ -138,7 +137,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
 
 PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
 
-  DM dm;
+  DM dm = tdy->dm;
   TDy_regression *reg;
   PetscInt myrank, size;
   PetscErrorCode ierr;
@@ -149,7 +148,6 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   TDY_START_FUNCTION_TIMER()
 
   reg = tdy->regression;
-  dm = tdy->dm;
 
   ierr = VecScatterBegin(reg->scatter_cells_per_process_gtos,U,reg->cells_per_process_vec,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);
   ierr = VecScatterEnd(reg->scatter_cells_per_process_gtos,U,reg->cells_per_process_vec,INSERT_VALUES,SCATTER_FORWARD);CHKERRQ(ierr);

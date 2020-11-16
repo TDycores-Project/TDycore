@@ -12,7 +12,7 @@ PetscErrorCode TDyTPFInitialize(TDy tdy) {
   MPI_Comm comm;
   PetscInt dim,c,cStart,cEnd,pStart,pEnd;
   PetscSection sec;
-  DM dm = tdy->dm;
+  DM dm = tdy->dm = tdy->dm;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
@@ -49,7 +49,7 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscErrorCode ierr;
   PetscInt dim,dim2,f,fStart,fEnd,c,cStart,cEnd,row,col,junk,ss;
   PetscReal pnt2pnt[3],dist,Ki,p,force;
-  DM dm = tdy->dm;
+  DM dm = tdy->dm = tdy->dm;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   if(!tdy->allow_unsuitable_mesh) {
@@ -144,7 +144,7 @@ PetscReal TDyTPFPressureNorm(TDy tdy,Vec U) {
   PetscSection sec;
   PetscInt c,cStart,cEnd,offset,dim,gref,junk;
   PetscReal p,*u,norm,norm_sum;
-  DM dm = tdy->dm;
+  DM dm = tdy->dm = tdy->dm;
   if(!(tdy->ops->computedirichletvalue)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
             "Must set the pressure function with TDySetDirichletValueFunction");
@@ -173,7 +173,7 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
   PetscErrorCode ierr;
   PetscInt dim,dim2,i,f,fStart,fEnd,c,cStart,cEnd,row,junk;
   PetscReal pnt2pnt[3],dist,Ki,p,vel[3],va,ve,*u,sign,face_error,norm,norm_sum;
-  DM dm = tdy->dm;
+  DM dm = tdy->dm = tdy->dm;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -240,7 +240,7 @@ PetscErrorCode TDyTPFCheckMeshSuitability(TDy tdy) {
   PetscErrorCode ierr;
   PetscInt dim,f,fStart,fEnd;
   PetscReal diff,dist,pnt2pnt[3];
-  DM dm = tdy->dm;
+  DM dm = tdy->dm = tdy->dm;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   for(f=fStart; f<fEnd; f++) {

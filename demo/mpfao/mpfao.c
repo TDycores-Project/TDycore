@@ -208,7 +208,7 @@ int main(int argc, char **argv) {
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
 
   /* Create and distribute the mesh */
-  DM dm;
+  DM dm = tdy->dm;
   ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
   if (perturb) {ierr = PerturbInteriorVertices(dm,perturbation); CHKERRQ(ierr);}
   ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);

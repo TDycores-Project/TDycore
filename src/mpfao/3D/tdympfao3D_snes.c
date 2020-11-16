@@ -71,7 +71,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   TDy      tdy = (TDy)ctx;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
-  DM       dm;
+  DM       dm = tdy->dm;
   Vec      Ul;
   PetscReal *p,*r;
   PetscErrorCode ierr;
@@ -91,7 +91,6 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
 #endif
 
   //ierr = SNESGetDM(snes,&dm); CHKERRQ(ierr);
-  dm = tdy->dm;
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
@@ -153,7 +152,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
 PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  DM             dm;
+  DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   Vec Ul, Udotl;
@@ -164,7 +163,6 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
 
   cells    = &mesh->cells;
 
-  dm = tdy->dm;
 
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 

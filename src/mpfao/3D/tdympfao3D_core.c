@@ -770,7 +770,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(TDy tdy,
     PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
-  DM             dm;
+  DM             dm = tdy->dm;
   TDy_vertex     *vertices;
   TDy_subcell    *subcells;
   TDy_face       *faces;
@@ -788,7 +788,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm       = tdy->dm;
   subcells = &tdy->mesh->subcells;
   vertices = &tdy->mesh->vertices;
   faces = &tdy->mesh->faces;

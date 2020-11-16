@@ -276,7 +276,7 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
   }
 
   if (!tdy->dm) {
-    DM dm;
+    DM dm = tdy->dm;
     ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
     ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
     tdy->dm = dm;
@@ -379,7 +379,6 @@ PetscErrorCode TDyGetDimension(TDy tdy,PetscInt *dim) {
 PetscErrorCode TDyGetDM(TDy tdy,DM *dm) {
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
-  *dm = tdy->dm;
   PetscFunctionReturn(0);
 }
 
@@ -638,7 +637,7 @@ PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy tdy,TDyMPFAOBoundaryConditio
 PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   PetscInt       dim, num_fields;
   MPI_Comm       comm;
-  DM             dm;
+  DM             dm = tdy->dm;
   PetscSection   sec;
   PetscErrorCode ierr;
   PetscValidPointer( ts,1);
@@ -1103,7 +1102,7 @@ PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
   PetscInt dim,i,v,vStart,vEnd,nv,c,cStart,cEnd,closureSize,*closure;
   PetscQuadrature quad;
   PetscReal x[24],DF[72],DFinv[72],J[8];
-  DM dm = tdy->dm;
+  DM dm = tdy->dm = tdy->dm;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   nv = tdy->ncv;
   ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quad); CHKERRQ(ierr);
@@ -1161,7 +1160,7 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
   PetscFunctionBegin;
   PetscInt d,dim,i,f,fStart,fEnd,v,nv,q,c,cStart,cEnd,closureSize,*closure,
            fclosureSize,*fclosure,local_dirs[24];
-  DM dm = tdy->dm;
+  DM dm = tdy->dm = tdy->dm;
   if(!(tdy->vmap)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
             "Must first create TDyCreateCellVertexMap on tdy->vmap");

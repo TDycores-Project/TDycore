@@ -661,7 +661,7 @@ PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDy_face *fac
 PetscErrorCode IdentifyLocalCells(TDy tdy) {
 
   PetscErrorCode ierr;
-  DM             dm;
+  DM             dm = tdy->dm;
   Vec            junkVec;
   PetscInt       junkInt;
   PetscInt       gref;
@@ -670,7 +670,6 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
 
   PetscFunctionBegin;
 
-  dm = tdy->dm;
   cells = &tdy->mesh->cells;
 
   PetscMPIInt rank;
@@ -704,12 +703,11 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
   TDy_cell       *cells;
   TDy_vertex     *vertices;
   PetscInt       vStart, vEnd;
-  DM             dm;
+  DM             dm = tdy->dm;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
-  dm       = tdy->dm;
   cells    = &mesh->cells;
   vertices = &mesh->vertices;
   
@@ -736,12 +734,11 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
   TDy_cell *cells;
   TDy_edge *edges;
   PetscInt       eStart, eEnd;
-  DM             dm;
+  DM             dm = tdy->dm;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
-  dm    = tdy->dm;
   cells = &mesh->cells;
   edges = &mesh->edges;
 
@@ -797,12 +794,11 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
   TDy_cell *cells;
   TDy_face *faces;
   PetscInt       fStart, fEnd;
-  DM             dm;
+  DM             dm = tdy->dm;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
-  dm    = tdy->dm;
   cells = &mesh->cells;
   faces = &mesh->faces;
 

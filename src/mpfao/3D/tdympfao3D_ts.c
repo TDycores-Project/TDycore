@@ -17,7 +17,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   TDy_cell *cells;
   TDy_face *faces;
   TDy_vertex *vertices;
-  DM dm;
+  DM dm = tdy->dm;
   PetscReal *p,*r;
   PetscInt ivertex;
   PetscInt dim;
@@ -34,7 +34,6 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   cells    = &mesh->cells;
   faces    = &mesh->faces;
   vertices = &mesh->vertices;
-  dm       = tdy->dm;
   CharacteristicCurve *cc = tdy->cc;
   CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
@@ -119,7 +118,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   TDy      tdy = (TDy)ctx;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
-  DM       dm;
+  DM       dm = tdy->dm;
   Vec      Ul;
   PetscReal *p,*dp_dt,*r;
   PetscErrorCode ierr;
@@ -205,7 +204,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
   TDy_cell *cells = &mesh->cells;
   TDy_face *faces = &mesh->faces;
   TDy_vertex *vertices = &mesh->vertices;
-  DM dm = tdy->dm;
+  DM dm = tdy->dm = tdy->dm;
   CharacteristicCurve *cc = tdy->cc;
   CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
@@ -387,7 +386,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   TDy_cell *cells;
   TDy_face *faces;
   TDy_vertex *vertices;
-  DM dm;
+  DM dm = tdy->dm;
   PetscInt fStart, fEnd;
   TDy_subcell    *subcells;
   PetscInt dim;
@@ -411,7 +410,6 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   faces    = &mesh->faces;
   vertices = &mesh->vertices;
   subcells = &mesh->subcells;
-  dm       = tdy->dm;
   CharacteristicCurve *cc = tdy->cc;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -627,14 +625,13 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal 
 PetscErrorCode TDyMPFAOIJacobian_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal shift,Mat A,Mat B,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  DM             dm;
+  DM             dm = tdy->dm;
   Vec Ul, Udotl;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm = tdy->dm;
 
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 

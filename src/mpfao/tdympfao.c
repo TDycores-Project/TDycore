@@ -295,14 +295,13 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   PetscErrorCode ierr;
   MPI_Comm       comm;
-  DM             dm;
+  DM             dm = tdy->dm;
   PetscInt       dim;
   PetscInt       nrow,ncol,nsubcells;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm = tdy->dm;
 
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
 
@@ -569,7 +568,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 
-  DM             dm;
+  DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   PetscInt       icell;
@@ -581,7 +580,6 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm       = tdy->dm;
   cells    = &mesh->cells;
 
   ierr = MatZeroEntries(K);
@@ -648,7 +646,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 /* -------------------------------------------------------------------------- */
 PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 
-  DM             dm;
+  DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells;
   PetscScalar    *u;
@@ -661,7 +659,6 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm    = tdy->dm;
   cells = &mesh->cells;
 
   if (! tdy->ops->computedirichletvalue) {
@@ -703,7 +700,7 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 /* -------------------------------------------------------------------------- */
 PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
 
-  DM             dm;
+  DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_face       *faces;
   TDy_cell       *cells;
@@ -717,7 +714,6 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm    = tdy->dm;
   cells = &mesh->cells;
   faces = &mesh->faces;
 
