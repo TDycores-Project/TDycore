@@ -1679,7 +1679,7 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
 
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
-  TDy_face *faces = &tdy->mesh->faces;
+  TDy_face *faces = &mesh->faces;
   TDy_vertex *vertices = &mesh->vertices;
   PetscInt icell, ncells_int;
 
@@ -1883,7 +1883,7 @@ PetscInt IDofFaceSharedByTwoCellsForACommonVertex(TDy tdy, PetscInt ivertex, Pet
 
   TDy_mesh *mesh = tdy->mesh;
   TDy_vertex *vertices = &mesh->vertices;
-  TDy_face *faces = &tdy->mesh->faces;
+  TDy_face *faces = &mesh->faces;
   PetscBool found;
   PetscInt vOffsetFace, iface, face_id;
 
@@ -1945,7 +1945,7 @@ PetscBool PointsAreInAntiClockDirInXYPlane(PetscReal a[2], PetscReal b[2], Petsc
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
   TDy_vertex *vertices = &mesh->vertices;
-  TDy_face *faces = &tdy->mesh->faces;
+  TDy_face *faces = &mesh->faces;
 
   // Find the face that is shared by first and second cell
   PetscInt face_id = IDofFaceSharedByTwoCellsForACommonVertex(tdy, ivertex, inp_cell_order[0], inp_cell_order[1]);
@@ -2052,7 +2052,7 @@ PetscErrorCode AddTwoBndFacesOfTwoCellsInTraversalDirection(TDy tdy, PetscInt iv
 
   TDy_mesh *mesh = tdy->mesh;
   TDy_vertex *vertices = &mesh->vertices;
-  TDy_face *faces = &tdy->mesh->faces;
+  TDy_face *faces = &mesh->faces;
 
   PetscInt ncells    = vertices->num_internal_cells[ivertex];
   PetscInt nfaces_bnd= vertices->num_boundary_faces[ivertex];
@@ -2119,7 +2119,7 @@ PetscErrorCode AddTwoBndFacesOfACellInTraversalDirection(TDy tdy, PetscInt ivert
 
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
-  TDy_face *faces = &tdy->mesh->faces;
+  TDy_face *faces = &mesh->faces;
   TDy_vertex *vertices = &mesh->vertices;
 
   PetscInt ncells    = vertices->num_internal_cells[ivertex];
@@ -2234,7 +2234,7 @@ PetscErrorCode AddUpDownBndFacesOfCellsInTraversalDirection(TDy tdy, PetscInt iv
 
   TDy_mesh *mesh = tdy->mesh;
   TDy_vertex *vertices = &mesh->vertices;
-  TDy_face *faces = &tdy->mesh->faces;
+  TDy_face *faces = &mesh->faces;
 
   PetscInt ncells,nfaces_bnd;
 
@@ -2402,7 +2402,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
 
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
-  TDy_face *faces = &tdy->mesh->faces;
+  TDy_face *faces = &mesh->faces;
   TDy_subcell *subcells = &tdy->mesh->subcells;
   TDy_vertex *vertices = &mesh->vertices;
 
