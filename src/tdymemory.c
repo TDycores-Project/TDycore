@@ -284,9 +284,9 @@ PetscErrorCode TDyAllocate_TDyVector_1D(PetscInt ndim_1, TDyVector **array_1D) {
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyAllocate_TDyCoordinate_1D(PetscInt ndim_1, TDy_coordinate **array_1D) {
+PetscErrorCode TDyAllocate_TDyCoordinate_1D(PetscInt ndim_1, TDyCoordinate **array_1D) {
 
   PetscFunctionBegin;
-  *array_1D = (TDy_coordinate *)malloc(ndim_1*sizeof(TDy_coordinate));
+  *array_1D = (TDyCoordinate *)malloc(ndim_1*sizeof(TDyCoordinate));
   PetscFunctionReturn(0);
 }

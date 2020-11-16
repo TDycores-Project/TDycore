@@ -5,7 +5,7 @@
 #include "tdycore.h"
 #include "tdyregionimpl.h"
 
-typedef struct _TDy_coordinate TDy_coordinate;
+typedef struct _TDyCoordinate TDyCoordinate;
 typedef struct _TDyVector     TDyVector;
 typedef struct _TDySubcell    TDySubcell;
 typedef struct _TDyCell       TDyCell;
@@ -26,7 +26,7 @@ typedef enum {
   SUBCELL_HEX_TYPE     /* hexahedron subcell for a 3D cell */
 } TDySubcellType;
 
-struct _TDy_coordinate {
+struct _TDyCoordinate {
 
   PetscReal X[3];
 
@@ -49,12 +49,12 @@ struct _TDySubcell {
   PetscInt       *nu_vector_offset;
   TDyVector     *nu_vector;                       /* nu vectors used to compute transmissibility                */
   TDyVector     *nu_star_vector;                  /* nu_star vectors used to compute TPF transmissibility       */
-  TDy_coordinate *variable_continuity_coordinates; /* coordinates at which variable continuity is enforced       */
-  TDy_coordinate *face_centroid;                   /* centroid of faces of subcell */
+  TDyCoordinate *variable_continuity_coordinates; /* coordinates at which variable continuity is enforced       */
+  TDyCoordinate *face_centroid;                   /* centroid of faces of subcell */
 
   PetscInt        *num_vertices;                   /* number of vertices that form the subcell                   */
   PetscInt        *vertex_offset;
-  TDy_coordinate  *vertices_coordinates;           /* vertex coordinates that form the subcell                   */
+  TDyCoordinate  *vertices_coordinates;           /* vertex coordinates that form the subcell                   */
 
   PetscReal *T;                                    /* Double product for 2D and triple product 3D subcell        */
 
@@ -92,7 +92,7 @@ struct _TDyCell {
   PetscInt *face_ids;      /* face IDs that form the cell       */
   PetscInt *neighbor_ids;  /* neighbor IDs that form the cell   */
 
-  TDy_coordinate *centroid; /* cell centroid                     */
+  TDyCoordinate *centroid; /* cell centroid                     */
 
   PetscReal *volume;        /* volume of the cell                */
 
@@ -124,7 +124,7 @@ struct _TDyVertex {
   PetscInt *subcell_ids;        /* subcell IDs of internal cells that share the vertex  */
   PetscInt *boundary_face_ids;  /* IDs of the faces that are on the boundary            */
 
-  TDy_coordinate  *coordinate;    /* (x,y,z) location of the vertex                       */
+  TDyCoordinate  *coordinate;    /* (x,y,z) location of the vertex                       */
 };
 
 struct _TDyEdge {
@@ -148,7 +148,7 @@ struct _TDyEdge {
   PetscBool *is_internal;   /* false if the edge is on the mesh boundary */
 
   TDyVector     *normal;   /* unit normal vector                        */
-  TDy_coordinate *centroid; /* edge centroid                             */
+  TDyCoordinate *centroid; /* edge centroid                             */
 
   PetscReal *length;        /* length of the edge                        */
 
@@ -179,7 +179,7 @@ struct _TDyFace {
   PetscInt *edge_ids;      /* id of edges that form the face */
   PetscInt *cell_ids;      /* id of cells that share the face */
 
-  TDy_coordinate *centroid; /* centroid of the face */
+  TDyCoordinate *centroid; /* centroid of the face */
   TDyVector *normal;       /* unit normal to the face */
   PetscReal *area;          /* area of the face */
 };

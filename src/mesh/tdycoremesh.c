@@ -1064,8 +1064,8 @@ PetscErrorCode UpdateCellOrientationAroundAEdge2DMesh(TDy tdy) {
     PetscInt eOffsetCell = edges->cell_offset[iedge];
 
     if (edges->is_internal[iedge]) {
-      TDy_coordinate *cell_from_centroid = &cells->centroid[edges->cell_ids[eOffsetCell + 0]];
-      TDy_coordinate *cell_to_centroid   = &cells->centroid[edges->cell_ids[eOffsetCell + 1]];
+      TDyCoordinate *cell_from_centroid = &cells->centroid[edges->cell_ids[eOffsetCell + 0]];
+      TDyCoordinate *cell_to_centroid   = &cells->centroid[edges->cell_ids[eOffsetCell + 1]];
 
       dot_product = (cell_to_centroid->X[0] - cell_from_centroid->X[0]) * edges->normal[iedge].V[0] +
                     (cell_to_centroid->X[1] - cell_from_centroid->X[1]) * edges->normal[iedge].V[1];
@@ -1075,7 +1075,7 @@ PetscErrorCode UpdateCellOrientationAroundAEdge2DMesh(TDy tdy) {
         edges->cell_ids[eOffsetCell + 1] = tmp;
       }
     } else {
-      TDy_coordinate *cell_from_centroid = &cells->centroid[edges->cell_ids[eOffsetCell + 0]];
+      TDyCoordinate *cell_from_centroid = &cells->centroid[edges->cell_ids[eOffsetCell + 0]];
 
       dot_product = (edges->centroid[iedge].X[0] - cell_from_centroid->X[0]) *
                     edges->normal[iedge].V[0] +
@@ -1254,7 +1254,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode UpdateFaceOrientationAroundAVertex(TDy_coordinate *cell_centroid, TDyFace *faces,
+PetscErrorCode UpdateFaceOrientationAroundAVertex(TDyCoordinate *cell_centroid, TDyFace *faces,
                                                   TDyVertex *vertices, PetscInt ivertex, PetscInt dim,
                                                   PetscInt f_idx[3]) {
   
