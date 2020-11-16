@@ -2403,7 +2403,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
   TDy_face *faces = &mesh->faces;
-  TDy_subcell *subcells = &tdy->mesh->subcells;
+  TDy_subcell *subcells = &mesh->subcells;
   TDy_vertex *vertices = &mesh->vertices;
 
   PetscInt ncells,nfaces_bnd;
