@@ -2,7 +2,7 @@
 #include <tdytimers.h>
 
 PetscErrorCode TDyRegressionInitialize(TDy tdy) {
-  TDy_regression *regression;
+  TDyRegression *regression;
   DM dm = tdy->dm;
   PetscInt c;
   PetscInt increment, global_offset;
@@ -26,7 +26,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   ndof_per_cell = 1;
   if (tdy->mode == TH) ndof_per_cell = 2;
 
-  regression = (TDy_regression *) malloc(sizeof(TDy_regression));
+  regression = (TDyRegression *) malloc(sizeof(TDyRegression));
 
   regression->num_cells_per_process = 2;
 
@@ -138,7 +138,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
 PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
 
   DM dm = tdy->dm;
-  TDy_regression *reg;
+  TDyRegression *reg;
   PetscInt myrank, size;
   PetscErrorCode ierr;
   PetscInt c;

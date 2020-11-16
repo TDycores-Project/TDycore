@@ -143,7 +143,7 @@ struct _p_TDy {
 
   PetscBool output_mesh;
   PetscBool regression_testing;
-  TDy_regression *regression;
+  TDyRegression *regression;
 
   /* Timers enabled? */
   PetscBool enable_timers;
