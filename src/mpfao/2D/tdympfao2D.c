@@ -41,7 +41,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  TDy_subcell    *subcells = &mesh->subcells;
+  TDySubcell    *subcells = &mesh->subcells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_edge       *edges;
   PetscInt       num_subcells;

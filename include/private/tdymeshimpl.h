@@ -7,7 +7,7 @@
 
 typedef struct _TDy_coordinate TDy_coordinate;
 typedef struct _TDy_vector     TDy_vector;
-typedef struct _TDy_subcell    TDy_subcell;
+typedef struct _TDySubcell    TDySubcell;
 typedef struct _TDyCell       TDyCell;
 typedef struct _TDy_vertex     TDy_vertex;
 typedef struct _TDy_edge       TDy_edge;
@@ -38,7 +38,7 @@ struct _TDy_vector {
 
 };
 
-struct _TDy_subcell {
+struct _TDySubcell {
 
   PetscInt       *id;                              /* id of the subcell                                          */
   TDySubcellType *type;                            /* triangle or tetrahedron                                    */
@@ -194,7 +194,7 @@ struct _TDyMesh {
   PetscInt   num_subcells;
 
   TDyCell    cells;
-  TDy_subcell subcells;
+  TDySubcell subcells;
   TDy_vertex  vertices;
   TDy_edge    edges;
   TDy_face    faces;

@@ -24,7 +24,7 @@ PETSC_EXTERN PetscErrorCode TDyAllocate_TDyCell_1D(PetscInt,TDyCell**);
 PETSC_EXTERN PetscErrorCode TDyAllocate_TDyVertex_1D(PetscInt,TDy_vertex**);
 PETSC_EXTERN PetscErrorCode TDyAllocate_TDyEdge_1D(PetscInt,TDy_edge**);
 PETSC_EXTERN PetscErrorCode TDyAllocate_TDyFace_1D(PetscInt,TDy_face**);
-PETSC_EXTERN PetscErrorCode TDyAllocate_TDySubcell_1D(PetscInt,TDy_subcell**);
+PETSC_EXTERN PetscErrorCode TDyAllocate_TDySubcell_1D(PetscInt,TDySubcell**);
 PETSC_EXTERN PetscErrorCode TDyAllocate_TDyVector_1D(PetscInt,TDy_vector**);
 PETSC_EXTERN PetscErrorCode TDyAllocate_TDyCoordinate_1D(PetscInt,TDy_coordinate**);
 

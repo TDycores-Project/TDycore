@@ -88,7 +88,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   TDyCell       *cells = &mesh->cells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_face       *faces = &mesh->faces;
-  TDy_subcell    *subcells = &mesh->subcells;
+  TDySubcell    *subcells = &mesh->subcells;
   PetscInt       ivertex, icell, isubcell, cell_id_up, cell_id_dn;
   PetscInt       irow, icol, row, col, vertex_id;
   PetscInt       ncells, nfaces_bnd;
@@ -295,7 +295,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   TDyCell       *cells = &mesh->cells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_face       *faces = &mesh->faces;
-  TDy_subcell    *subcells = &mesh->subcells;
+  TDySubcell    *subcells = &mesh->subcells;
   PetscInt       ivertex, icell;
   PetscInt       icol, row, col, iface, isubcell;
   PetscReal      value;

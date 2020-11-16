@@ -91,7 +91,7 @@ PetscErrorCode AllocateMemoryForSubcells(
   PetscInt    num_cells,
   PetscInt    num_subcells_per_cell,
   TDySubcellType subcell_type,
-  TDy_subcell    *subcells) {
+  TDySubcell    *subcells) {
 
   PetscFunctionBegin;
 
@@ -1165,7 +1165,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
 
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  TDy_subcell    *subcells = &mesh->subcells;
+  TDySubcell    *subcells = &mesh->subcells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_edge       *edges;
   PetscInt       cStart, cEnd, num_subcells;
@@ -1402,7 +1402,7 @@ PetscErrorCode UpdateIthTraversalOrder(TDy_vertex *vertices, PetscInt ivertex, T
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex, TDyCell *cells, TDy_face *faces, TDy_subcell *subcells, PetscInt **cell_up2dw, PetscInt nUp2Dw) {
+PetscErrorCode SetupUpwindFacesForSubcell(TDy_vertex *vertices, PetscInt ivertex, TDyCell *cells, TDy_face *faces, TDySubcell *subcells, PetscInt **cell_up2dw, PetscInt nUp2Dw) {
 
   PetscFunctionBegin;
 
@@ -2403,7 +2403,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
   TDy_face *faces = &mesh->faces;
-  TDy_subcell *subcells = &mesh->subcells;
+  TDySubcell *subcells = &mesh->subcells;
   TDy_vertex *vertices = &mesh->vertices;
 
   PetscInt ncells,nfaces_bnd;
@@ -2648,7 +2648,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
   DM dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  TDy_subcell    *subcells = &mesh->subcells;
+  TDySubcell    *subcells = &mesh->subcells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_face       *faces = &mesh->faces;
   PetscInt       cStart, cEnd, num_subcells;
@@ -2941,7 +2941,7 @@ PetscErrorCode OutputCells2DMesh(TDy tdy) {
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  TDy_subcell    *subcells = &mesh->subcells;
+  TDySubcell    *subcells = &mesh->subcells;
   PetscInt       dim;
   PetscInt       icell, d, k;
   PetscErrorCode ierr;

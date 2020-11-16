@@ -386,7 +386,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   TDy_vertex *vertices = &mesh->vertices;
   DM dm = tdy->dm;
   PetscInt fStart, fEnd;
-  TDy_subcell    *subcells = &mesh->subcells;
+  TDySubcell    *subcells = &mesh->subcells;
   PetscInt dim;
   PetscInt ivertex;
   PetscInt isubcell, iface;
