@@ -5,14 +5,6 @@
 #include "tdycore.h"
 #include "tdyregionimpl.h"
 
-typedef struct _TDyCoordinate TDyCoordinate;
-typedef struct _TDyVector     TDyVector;
-typedef struct _TDySubcell    TDySubcell;
-typedef struct _TDyCell       TDyCell;
-typedef struct _TDyVertex     TDyVertex;
-typedef struct _TDyEdge       TDyEdge;
-typedef struct _TDyFace       TDyFace;
-typedef struct _TDyMesh       TDyMesh;
 
 typedef enum {
   CELL_QUAD_TYPE=0, /* quadrilateral cell for a 2D cell */
@@ -20,25 +12,20 @@ typedef enum {
   CELL_HEX_TYPE     /* hexahedron cell for a 3D cell */
 } TDyCellType;
 
-
 typedef enum {
   SUBCELL_QUAD_TYPE=0, /* quadrilateral subcell for a 2D cell */
   SUBCELL_HEX_TYPE     /* hexahedron subcell for a 3D cell */
 } TDySubcellType;
 
-struct _TDyCoordinate {
-
+typedef struct {
   PetscReal X[3];
+} TDyCoordinate;
 
-};
-
-struct _TDyVector {
-
+typedef struct {
   PetscReal V[3];
+} TDyVector;
 
-};
-
-struct _TDySubcell {
+typedef struct {
 
   PetscInt       *id;                              /* id of the subcell                                          */
   TDySubcellType *type;                            /* triangle or tetrahedron                                    */
@@ -66,9 +53,9 @@ struct _TDySubcell {
   PetscInt *face_unknown_idx;                      /* index of the unknown associated with the face within the vector interface unknowns common to a vertex*/
   PetscInt *face_flux_idx;                         /* index of the fluxes (internal, up, and down) associated with the face */
 
-};
+} TDySubcell;
 
-struct _TDyCell {
+typedef struct {
 
   PetscInt  *id;            /* id of the cell in local numbering */
   PetscInt  *global_id;     /* global id of the cell in local numbering */
@@ -96,10 +83,10 @@ struct _TDyCell {
 
   PetscReal *volume;        /* volume of the cell                */
 
-};
+} TDyCell;
 
 
-struct _TDyVertex {
+typedef struct {
 
   PetscInt  *id;                 /* id of the vertex in local numbering                  */
   PetscInt  *global_id;          /* global id of the vertex in local numbering */
@@ -125,9 +112,9 @@ struct _TDyVertex {
   PetscInt *boundary_face_ids;  /* IDs of the faces that are on the boundary            */
 
   TDyCoordinate  *coordinate;    /* (x,y,z) location of the vertex                       */
-};
+} TDyVertex;
 
-struct _TDyEdge {
+typedef struct {
 
   PetscInt  *id;            /* id of the edge in local numbering         */
   PetscInt  *global_id;     /* global id of the edge in local numbering */
@@ -152,9 +139,9 @@ struct _TDyEdge {
 
   PetscReal *length;        /* length of the edge                        */
 
-};
+} TDyEdge;
 
-struct _TDyFace {
+typedef struct {
   PetscInt *id;             /* id of the face in local numbering */
   PetscInt *global_id;      /* global id of the face in local numbering */
 
@@ -182,9 +169,9 @@ struct _TDyFace {
   TDyCoordinate *centroid; /* centroid of the face */
   TDyVector *normal;       /* unit normal to the face */
   PetscReal *area;          /* area of the face */
-};
+} TDyFace;
 
-struct _TDyMesh {
+typedef struct {
 
   PetscInt   num_cells;
   PetscInt   num_faces;
@@ -200,7 +187,7 @@ struct _TDyMesh {
   TDyFace    faces;
 
   TDyRegion region_connected;
-};
+} TDyMesh;
 
 PETSC_INTERN PetscErrorCode TDyOutputMesh(TDy);
 PETSC_INTERN PetscErrorCode TDyBuildMesh(TDy);
