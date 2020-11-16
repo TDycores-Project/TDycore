@@ -25,7 +25,7 @@ PetscErrorCode SetPermeabilityFromFunction(TDy tdy) {
 
     PetscReal *localK;
     PetscInt icell, ii, jj;
-    TDy_mesh *mesh = tdy->mesh;
+    TDyMesh *mesh = tdy->mesh;
 
     MaterialProp *matprop = tdy->matprop;
 
@@ -76,7 +76,7 @@ PetscErrorCode SetPorosityFromFunction(TDy tdy) {
 
     PetscReal *localK;
     PetscInt icell, ii, jj;
-    TDy_mesh *mesh = tdy->mesh;
+    TDyMesh *mesh = tdy->mesh;
 
 
     // If peremeability function is set, use it instead.
@@ -116,7 +116,7 @@ PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
 
     PetscReal *localKappa;
     PetscInt icell, ii, jj;
-    TDy_mesh *mesh = tdy->mesh;
+    TDyMesh *mesh = tdy->mesh;
     MaterialProp *matprop = tdy->matprop;
 
 
@@ -196,7 +196,7 @@ PetscErrorCode ComputeTransmissibilityMatrix(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
 
-  TDy_mesh *mesh = tdy->mesh;
+  TDyMesh *mesh = tdy->mesh;
   PetscInt nbnd_faces;
   PetscErrorCode ierr;
 
@@ -225,7 +225,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy) {
 
-  TDy_mesh *mesh = tdy->mesh;
+  TDyMesh *mesh = tdy->mesh;
   PetscInt nbnd_faces;
   PetscErrorCode ierr;
 
@@ -250,7 +250,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
 
-  TDy_mesh *mesh = tdy->mesh;
+  TDyMesh *mesh = tdy->mesh;
   PetscInt ncells;
   PetscErrorCode ierr;
 
@@ -271,7 +271,7 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(TDy tdy) {
 
-  TDy_mesh *mesh = tdy->mesh;
+  TDyMesh *mesh = tdy->mesh;
   PetscInt ncells;
   PetscErrorCode ierr;
 
@@ -305,7 +305,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
 
-  tdy->mesh = (TDy_mesh *) malloc(sizeof(TDy_mesh));
+  tdy->mesh = (TDyMesh *) malloc(sizeof(TDyMesh));
 
   ierr = TDyAllocateMemoryForMesh(tdy); CHKERRQ(ierr);
 
@@ -569,7 +569,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 
   DM             dm = tdy->dm;
-  TDy_mesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
   PetscInt       icell;
   PetscInt       row;
@@ -647,7 +647,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 
   DM             dm = tdy->dm;
-  TDy_mesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
   PetscScalar    *u;
   Vec            localU;
@@ -701,7 +701,7 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
 
   DM             dm = tdy->dm;
-  TDy_mesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = tdy->mesh;
   TDy_face       *faces = &mesh->faces;
   TDy_cell       *cells = &mesh->cells;
   PetscInt       dim;

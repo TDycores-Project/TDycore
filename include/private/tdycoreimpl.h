@@ -118,7 +118,7 @@ struct _p_TDy {
   PetscInt mpfao_gmatrix_method;
   PetscInt mpfao_bc_type;
 
-  TDy_mesh *mesh;
+  TDyMesh *mesh;
   PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
   PetscReal ***Trans;
   Mat Trans_mat;

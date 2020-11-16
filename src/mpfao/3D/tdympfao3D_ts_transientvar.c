@@ -14,7 +14,7 @@
 PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) {
 
   TDy            tdy = (TDy)ctx;
-  TDy_mesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
   DM             dm = tdy->dm;
   Vec            Ul;
@@ -62,7 +62,7 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) 
 PetscErrorCode TDyMPFAOIFunction_TransientVariable_3DMesh(TS ts,PetscReal t,Vec U,Vec M_t,Vec R,void *ctx) {
 
   TDy            tdy = (TDy)ctx;
-  TDy_mesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
   DM       dm = tdy->dm;
   Vec      Ul;

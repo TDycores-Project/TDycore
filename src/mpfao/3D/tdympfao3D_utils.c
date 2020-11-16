@@ -25,7 +25,7 @@ PetscErrorCode ComputeGtimesZ(PetscReal *gravity, PetscReal *X, PetscInt dim, Pe
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
-  TDy_mesh *mesh = tdy->mesh;
+  TDyMesh *mesh = tdy->mesh;
   TDy_face *faces = &mesh->faces;
   PetscErrorCode ierr;
   PetscReal Se,dSe_dS,dKr_dSe,n=0.5,m=0.8,alpha=1.e-4,Kr; /* FIX: generalize */
@@ -104,7 +104,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
   DM             dm = tdy->dm;
-  TDy_mesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_face       *faces = &mesh->faces;
@@ -213,7 +213,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
   DM             dm = tdy->dm;
-  TDy_mesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_face       *faces = &mesh->faces;
@@ -506,7 +506,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
   DM             dm = tdy->dm;
-  TDy_mesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_face       *faces = &mesh->faces;
@@ -655,7 +655,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_3DMesh(TDy tdy, Vec U) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
 
-  TDy_mesh *mesh = tdy->mesh;
+  TDyMesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
   TDy_face *faces = &mesh->faces;
   PetscErrorCode ierr;
@@ -721,7 +721,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
 
-  TDy_mesh *mesh = tdy->mesh;
+  TDyMesh *mesh = tdy->mesh;
   TDy_face *faces = &mesh->faces;
   PetscErrorCode ierr;
   PetscInt dim, ncells;

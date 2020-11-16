@@ -12,7 +12,7 @@ typedef struct _TDy_cell       TDy_cell;
 typedef struct _TDy_vertex     TDy_vertex;
 typedef struct _TDy_edge       TDy_edge;
 typedef struct _TDy_face       TDy_face;
-typedef struct _TDy_mesh       TDy_mesh;
+typedef struct _TDyMesh       TDyMesh;
 
 typedef enum {
   CELL_QUAD_TYPE=0, /* quadrilateral cell for a 2D cell */
@@ -184,7 +184,7 @@ struct _TDy_face {
   PetscReal *area;          /* area of the face */
 };
 
-struct _TDy_mesh {
+struct _TDyMesh {
 
   PetscInt   num_cells;
   PetscInt   num_faces;

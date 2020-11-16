@@ -21,7 +21,7 @@ PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accu
 
   PetscFunctionBegin;
 
-  TDy_mesh *mesh = tdy->mesh;
+  TDyMesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
   CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;
@@ -34,7 +34,7 @@ PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accu
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
 
-  TDy_mesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
   PetscReal *p, *accum_prev;
   PetscInt icell;
@@ -70,7 +70,7 @@ PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
 PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDy_mesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
   DM       dm = tdy->dm;
   Vec      Ul;
@@ -154,7 +154,7 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
 
   TDy      tdy = (TDy)ctx;
   DM             dm = tdy->dm;
-  TDy_mesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
   Vec Ul, Udotl;
   PetscErrorCode ierr;
