@@ -730,7 +730,7 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
   PetscInt iedge, icell_1, icell_2;
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
-  TDy_edge *edges;
+  TDy_edge *edges = &mesh->edges;
   PetscInt       eStart, eEnd;
   DM             dm = tdy->dm;
   PetscErrorCode ierr;
@@ -738,7 +738,6 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
   PetscFunctionBegin;
 
   cells = &mesh->cells;
-  edges = &mesh->edges;
 
   ierr = DMPlexGetDepthStratum(dm, 1, &eStart, &eEnd); CHKERRQ(ierr);
 

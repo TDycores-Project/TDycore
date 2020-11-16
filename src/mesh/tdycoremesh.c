@@ -385,7 +385,7 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   TDyFace       *faces = &mesh->faces;
   PetscInt       dim;
   PetscInt       cStart, cEnd;
@@ -411,7 +411,6 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
   }
 
   cells    = &mesh->cells;
-  edges    = &mesh->edges;
 
   for (ielement=pStart; ielement<pEnd; ielement++) {
 
@@ -549,7 +548,7 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   TDyFace       *faces = &mesh->faces;
   PetscInt       dim;
   PetscInt       cStart, cEnd;
@@ -585,7 +584,6 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   }
 
   cells    = &mesh->cells;
-  edges    = &mesh->edges;
 
   // cell--to--vertex
   // edge--to--cell
@@ -786,7 +784,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   PetscInt       icell, iedge;
   PetscInt       ncells, nedges;
   PetscReal      x,y;
@@ -803,7 +801,6 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   PetscErrorCode ierr;
 
   cells    = &mesh->cells;
-  edges    = &mesh->edges;
 
   ncells = vertices->num_internal_cells[ivertex];
   nedges = vertices->num_edges[ivertex];
@@ -932,11 +929,10 @@ PetscErrorCode UpdateCellOrientationAroundAVertex2DMesh(TDy tdy) {
   TDyVertex     *vertices = &mesh->vertices;
   PetscInt       ivertex;
   PetscInt       edge_id_1, edge_id_2;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   PetscReal      x,y, theta_1, theta_2;
   PetscErrorCode ierr;
 
-  edges    = &mesh->edges;
 
 
   ierr = DMPlexGetDepthStratum( dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
@@ -1057,11 +1053,10 @@ PetscErrorCode UpdateCellOrientationAroundAEdge2DMesh(TDy tdy) {
   PetscInt       eStart, eEnd;
   PetscInt       iedge;
   TDyCell       *cells = &mesh->cells;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   PetscErrorCode ierr;
 
   cells = &mesh->cells;
-  edges = &mesh->edges;
 
   ierr = DMPlexGetHeightStratum(dm, 1, &eStart, &eEnd); CHKERRQ(ierr);
 
@@ -1167,7 +1162,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
   TDyCell       *cells = &mesh->cells;
   TDySubcell    *subcells = &mesh->subcells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   PetscInt       cStart, cEnd, num_subcells;
   PetscInt       icell, isubcell;
   PetscInt       dim, d;
@@ -1180,7 +1175,6 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
   PetscErrorCode ierr;
 
   cells    = &mesh->cells;
-  edges    = &mesh->edges;
 
   alpha = 1.0;
 
@@ -3074,14 +3068,13 @@ PetscErrorCode OutputEdges2DMesh(TDy tdy) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   PetscInt       dim;
   PetscInt       iedge;
   PetscErrorCode ierr;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
-  edges = &mesh->edges;
 
   Vec edge_cen, edge_nor;
   PetscScalar *edge_cen_v, *edge_nor_v;

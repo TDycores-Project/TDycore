@@ -43,7 +43,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   TDyCell       *cells = &mesh->cells;
   TDySubcell    *subcells = &mesh->subcells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   PetscInt       num_subcells;
   PetscInt       icell, isubcell;
   PetscInt       ii,jj;
@@ -56,7 +56,6 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   PetscErrorCode ierr;
 
   cells    = &mesh->cells;
-  edges    = &mesh->edges;
   MaterialProp *matprop = tdy->matprop;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -630,7 +629,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   PetscInt       ivertex, icell, icell_from, icell_to;
   PetscInt       icol, row, col, vertex_id, edge_id;
   PetscReal      value;
@@ -643,7 +642,6 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
   PetscFunctionBegin;
 
   cells    = &mesh->cells;
-  edges    = &mesh->edges;
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -699,7 +697,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   PetscInt       ivertex, icell, icell_from, icell_to;
   PetscInt       icol, row, col, vertex_id, iedge, edge_id;
   PetscReal      value;
@@ -712,7 +710,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   PetscFunctionBegin;
 
   cells    = &mesh->cells;
-  edges    = &mesh->edges;
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -853,7 +850,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   PetscInt       ivertex, icell, isubcell;
   PetscInt       icol, row, col, iedge, edge_id;
   PetscReal      value;
@@ -868,7 +865,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   PetscFunctionBegin;
 
   cells    = &mesh->cells;
-  edges    = &mesh->edges;
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -970,7 +966,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   PetscInt       ivertex, icell, isubcell;
   PetscInt       icol, row, col, vertex_id, iedge;
   PetscInt       fStart, fEnd;
@@ -984,7 +980,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
 
   PetscFunctionBegin;
 
-  edges    = &mesh->edges;
   row = -1;
 
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -1208,7 +1203,7 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_edge       *edges;
+  TDy_edge       *edges = &mesh->edges;
   TDyCell       *cells = &mesh->cells;
   PetscInt       dim;
   PetscInt       icell, iedge, edge_id;
@@ -1220,7 +1215,6 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
   PetscFunctionBegin;
 
   cells = &mesh->cells;
-  edges = &mesh->edges;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
