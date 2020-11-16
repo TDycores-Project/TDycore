@@ -22,7 +22,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
   TDy_face *faces = &mesh->faces;
-  TDy_vertex *vertices = &mesh->vertices;
+  TDyVertex *vertices = &mesh->vertices;
   DM dm = tdy->dm;
   PetscReal *r;
   PetscInt ivertex;
@@ -304,7 +304,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
   TDy_face *faces = &mesh->faces;
-  TDy_vertex *vertices = &mesh->vertices;
+  TDyVertex *vertices = &mesh->vertices;
   DM dm = tdy->dm;
   PetscInt ivertex, vertex_id;
   PetscInt npitf_bc, nflux_in;

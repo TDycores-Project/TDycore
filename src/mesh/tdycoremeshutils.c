@@ -546,7 +546,7 @@ PetscErrorCode TDyFace_GetNormal(TDy_face *faces, PetscInt iface, PetscInt dim, 
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex *vertices, PetscInt ivertex, PetscInt dim, PetscReal *coor) {
+PetscErrorCode TDyVertex_GetCoordinate(TDyVertex *vertices, PetscInt ivertex, PetscInt dim, PetscReal *coor) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) coor[d] = vertices->coordinate[ivertex].X[d];
@@ -619,7 +619,7 @@ PetscErrorCode FindNeighboringVerticesOfAFace(TDy_face *faces, PetscInt iface, P
 /* -------------------------------------------------------------------------- */
 
 PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDy_face *faces,
-                                                 TDy_vertex *vertices, PetscInt ivertex,
+                                                 TDyVertex *vertices, PetscInt ivertex,
                                                  PetscInt f_idx[3],
                                                  PetscInt *num_shared_faces) {
   
@@ -700,7 +700,7 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
   PetscInt       ivertex, icell, c;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  TDy_vertex     *vertices = &mesh->vertices;
+  TDyVertex     *vertices = &mesh->vertices;
   PetscInt       vStart, vEnd;
   DM             dm = tdy->dm;
   PetscErrorCode ierr;
@@ -840,7 +840,7 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDyCell *cells, PetscInt cell_id, TDy_vertex *vertices, PetscInt ivertex, TDySubcell *subcells, PetscInt *subcell_id) {
+PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDyCell *cells, PetscInt cell_id, TDyVertex *vertices, PetscInt ivertex, TDySubcell *subcells, PetscInt *subcell_id) {
 
   PetscFunctionBegin;
 
