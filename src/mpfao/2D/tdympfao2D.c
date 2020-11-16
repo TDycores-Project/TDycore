@@ -139,7 +139,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex2DMesh(TDy tdy,
   PetscReal *A1d, *B1d, *Cup1d, *AinvB1d, *CuptimesAinvB1d;
   PetscReal **Gmatrix;
   PetscInt idx, vertex_id;
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_vertex *vertices = &mesh->vertices;
   PetscErrorCode ierr;
   PetscBLASInt info, *pivots;
   PetscInt i, j, n, m, ndim;
@@ -257,7 +258,8 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex2DMesh(TDy tdy,
 PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex2DMesh(TDy tdy,
     PetscInt ivertex, TDy_cell *cells) {
 
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_vertex *vertices = &mesh->vertices;
   PetscInt       ncells_in, ncells_bc, icell, isubcell;
 
   PetscReal **Fup, **Cup, **Fdn, **Cdn;

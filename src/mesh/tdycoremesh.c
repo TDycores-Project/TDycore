@@ -1581,7 +1581,8 @@ PetscBool VerticesHaveSameXYCoords(TDy tdy, PetscInt ivertex_1, PetscInt ivertex
 
   PetscFunctionBegin;
 
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_vertex *vertices = &mesh->vertices;
   PetscBool sameXY = PETSC_FALSE;
   PetscReal dist = 0.0, eps = 1.e-14;
   PetscInt d;
@@ -1641,7 +1642,7 @@ PetscBool IsCellAboveTheVertex(TDy tdy, PetscInt icell, PetscInt ivertex) {
 
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_vertex *vertices = &mesh->vertices;
   PetscInt cOffsetVert, iv;
   PetscBool found = PETSC_FALSE;
   
@@ -1679,7 +1680,7 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
   TDy_face *faces = &tdy->mesh->faces;
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_vertex *vertices = &mesh->vertices;
   PetscInt icell, ncells_int;
 
   ncells_int = vertices->num_internal_cells[ivertex];
@@ -1880,7 +1881,8 @@ PetscErrorCode ArrangeCellsInAnCircularOrder(TDy tdy, PetscInt *cellsAbvBlw, Pet
 /* -------------------------------------------------------------------------- */
 PetscInt IDofFaceSharedByTwoCellsForACommonVertex(TDy tdy, PetscInt ivertex, PetscInt icell_1, PetscInt icell_2) {
 
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_vertex *vertices = &mesh->vertices;
   TDy_face *faces = &tdy->mesh->faces;
   PetscBool found;
   PetscInt vOffsetFace, iface, face_id;
@@ -1942,7 +1944,7 @@ PetscBool PointsAreInAntiClockDirInXYPlane(PetscReal a[2], PetscReal b[2], Petsc
 
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_vertex *vertices = &mesh->vertices;
   TDy_face *faces = &tdy->mesh->faces;
 
   // Find the face that is shared by first and second cell
@@ -2048,8 +2050,9 @@ PetscErrorCode AddTwoBndFacesOfTwoCellsInTraversalDirection(TDy tdy, PetscInt iv
 
   PetscFunctionBegin;
 
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_vertex *vertices = &mesh->vertices;
   TDy_face *faces = &tdy->mesh->faces;
-  TDy_vertex *vertices = &tdy->mesh->vertices;
 
   PetscInt ncells    = vertices->num_internal_cells[ivertex];
   PetscInt nfaces_bnd= vertices->num_boundary_faces[ivertex];
@@ -2117,7 +2120,7 @@ PetscErrorCode AddTwoBndFacesOfACellInTraversalDirection(TDy tdy, PetscInt ivert
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
   TDy_face *faces = &tdy->mesh->faces;
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_vertex *vertices = &mesh->vertices;
 
   PetscInt ncells    = vertices->num_internal_cells[ivertex];
   PetscInt nfaces_bnd= vertices->num_boundary_faces[ivertex];
@@ -2177,7 +2180,8 @@ PetscErrorCode ConvertCellsAntiClockwiseDirInTraversalDir(TDy tdy, PetscInt iver
   
   PetscFunctionBegin;
 
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_vertex *vertices = &mesh->vertices;
 
   PetscInt ncells,nfaces_bnd;
 
@@ -2228,8 +2232,9 @@ PetscErrorCode AddUpDownBndFacesOfCellsInTraversalDirection(TDy tdy, PetscInt iv
   
   PetscFunctionBegin;
 
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_vertex *vertices = &mesh->vertices;
   TDy_face *faces = &tdy->mesh->faces;
-  TDy_vertex *vertices = &tdy->mesh->vertices;
 
   PetscInt ncells,nfaces_bnd;
 
@@ -2274,7 +2279,8 @@ PetscErrorCode SetUpToDownConnections(TDy tdy, PetscInt ivertex, PetscInt **cell
 
   PetscFunctionBegin;
 
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_vertex *vertices = &mesh->vertices;
 
   PetscInt ncells,nfaces_bnd;
   PetscInt count, level;
@@ -2398,7 +2404,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   TDy_cell *cells = &mesh->cells;
   TDy_face *faces = &tdy->mesh->faces;
   TDy_subcell *subcells = &tdy->mesh->subcells;
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_vertex *vertices = &mesh->vertices;
 
   PetscInt ncells,nfaces_bnd;
   PetscInt **cell_traversal;

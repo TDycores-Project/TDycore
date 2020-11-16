@@ -210,7 +210,7 @@ PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
 
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_vertex *vertices = &mesh->vertices;
   TDy_subcell *subcells = &tdy->mesh->subcells;
 
   PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
@@ -284,7 +284,7 @@ PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex
 
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_vertex *vertices = &mesh->vertices;
   TDy_subcell *subcells = &tdy->mesh->subcells;
   TDy_face *faces = &tdy->mesh->faces;
 
@@ -405,7 +405,8 @@ PetscReal ***F_1, PetscReal ***F_2, PetscReal ***F_3){
 PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
     PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
 
-  TDy_vertex *vertices = &tdy->mesh->vertices;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_vertex *vertices = &mesh->vertices;
   TDy_subcell *subcells = &tdy->mesh->subcells;
   TDy_face *faces = &tdy->mesh->faces;
   PetscInt icell;
@@ -768,7 +769,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(TDy tdy,
     PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
   DM             dm = tdy->dm;
-  TDy_vertex     *vertices = &tdy->mesh->vertices;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_vertex *vertices = &mesh->vertices;
   TDy_subcell    *subcells = &tdy->mesh->subcells;
   TDy_face       *faces = &tdy->mesh->faces;
   PetscInt       icell;
