@@ -666,7 +666,8 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
   PetscInt       junkInt;
   PetscInt       gref;
   PetscInt       cStart, cEnd, c;
-  TDy_cell       *cells = &tdy->mesh->cells;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_cell *cells = &mesh->cells;
 
   PetscFunctionBegin;
 

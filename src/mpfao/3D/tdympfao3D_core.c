@@ -208,8 +208,9 @@ PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
 
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_cell *cells = &mesh->cells;
   TDy_vertex *vertices = &tdy->mesh->vertices;
-  TDy_cell   *cells    = &tdy->mesh->cells;
   TDy_subcell *subcells = &tdy->mesh->subcells;
 
   PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
@@ -281,9 +282,10 @@ PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_cell *cells = &mesh->cells;
   TDy_vertex *vertices = &tdy->mesh->vertices;
   TDy_subcell *subcells = &tdy->mesh->subcells;
-  TDy_cell *cells = &tdy->mesh->cells;
   TDy_face *faces = &tdy->mesh->faces;
 
   PetscInt npcen = vertices->num_internal_cells[ivertex];

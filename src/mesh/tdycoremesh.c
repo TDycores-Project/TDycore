@@ -1600,7 +1600,8 @@ PetscInt VertexIdWithSameXYInACell(TDy tdy, PetscInt icell, PetscInt ivertex) {
 
   PetscFunctionBegin;
 
-  TDy_cell *cells = &tdy->mesh->cells;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_cell *cells = &mesh->cells;
   PetscInt cOffsetVert, iv;
   PetscInt result;
   PetscBool found = PETSC_FALSE;
@@ -1638,7 +1639,8 @@ PetscBool IsCellAboveTheVertex(TDy tdy, PetscInt icell, PetscInt ivertex) {
   
   PetscBool is_above;
 
-  TDy_cell *cells = &tdy->mesh->cells;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_cell *cells = &mesh->cells;
   TDy_vertex *vertices = &tdy->mesh->vertices;
   PetscInt cOffsetVert, iv;
   PetscBool found = PETSC_FALSE;
@@ -1674,7 +1676,8 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
 
   PetscFunctionBegin;
 
-  TDy_cell *cells = &tdy->mesh->cells;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_cell *cells = &mesh->cells;
   TDy_face *faces = &tdy->mesh->faces;
   TDy_vertex *vertices = &tdy->mesh->vertices;
   PetscInt icell, ncells_int;
@@ -1812,7 +1815,8 @@ PetscBool AreCellsNeighbors(TDy tdy, PetscInt cell_id_1, PetscInt cell_id_2) {
 
   PetscFunctionBegin;
 
-  TDy_cell *cells = &tdy->mesh->cells;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_cell *cells = &mesh->cells;
   PetscInt ii,jj;
   PetscBool are_neighbors = PETSC_FALSE;
 
@@ -1936,7 +1940,8 @@ PetscBool PointsAreInAntiClockDirInXYPlane(PetscReal a[2], PetscReal b[2], Petsc
 
   PetscFunctionBegin;
 
-  TDy_cell *cells = &tdy->mesh->cells;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_cell *cells = &mesh->cells;
   TDy_vertex *vertices = &tdy->mesh->vertices;
   TDy_face *faces = &tdy->mesh->faces;
 
@@ -2109,7 +2114,8 @@ PetscErrorCode AddTwoBndFacesOfACellInTraversalDirection(TDy tdy, PetscInt ivert
 
   PetscFunctionBegin;
 
-  TDy_cell *cells = &tdy->mesh->cells;
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_cell *cells = &mesh->cells;
   TDy_face *faces = &tdy->mesh->faces;
   TDy_vertex *vertices = &tdy->mesh->vertices;
 
@@ -2388,8 +2394,9 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
 
   PetscFunctionBegin;
 
+  TDy_mesh *mesh = tdy->mesh;
+  TDy_cell *cells = &mesh->cells;
   TDy_face *faces = &tdy->mesh->faces;
-  TDy_cell *cells = &tdy->mesh->cells;
   TDy_subcell *subcells = &tdy->mesh->subcells;
   TDy_vertex *vertices = &tdy->mesh->vertices;
 
