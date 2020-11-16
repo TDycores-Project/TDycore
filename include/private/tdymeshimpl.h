@@ -6,7 +6,7 @@
 #include "tdyregionimpl.h"
 
 typedef struct _TDy_coordinate TDy_coordinate;
-typedef struct _TDy_vector     TDy_vector;
+typedef struct _TDyVector     TDyVector;
 typedef struct _TDySubcell    TDySubcell;
 typedef struct _TDyCell       TDyCell;
 typedef struct _TDyVertex     TDyVertex;
@@ -32,7 +32,7 @@ struct _TDy_coordinate {
 
 };
 
-struct _TDy_vector {
+struct _TDyVector {
 
   PetscReal V[3];
 
@@ -47,8 +47,8 @@ struct _TDySubcell {
 
   PetscInt       *num_nu_vectors;                  /* number of nu vectors of the subcell                        */
   PetscInt       *nu_vector_offset;
-  TDy_vector     *nu_vector;                       /* nu vectors used to compute transmissibility                */
-  TDy_vector     *nu_star_vector;                  /* nu_star vectors used to compute TPF transmissibility       */
+  TDyVector     *nu_vector;                       /* nu vectors used to compute transmissibility                */
+  TDyVector     *nu_star_vector;                  /* nu_star vectors used to compute TPF transmissibility       */
   TDy_coordinate *variable_continuity_coordinates; /* coordinates at which variable continuity is enforced       */
   TDy_coordinate *face_centroid;                   /* centroid of faces of subcell */
 
@@ -147,7 +147,7 @@ struct _TDyEdge {
 
   PetscBool *is_internal;   /* false if the edge is on the mesh boundary */
 
-  TDy_vector     *normal;   /* unit normal vector                        */
+  TDyVector     *normal;   /* unit normal vector                        */
   TDy_coordinate *centroid; /* edge centroid                             */
 
   PetscReal *length;        /* length of the edge                        */
@@ -180,7 +180,7 @@ struct _TDyFace {
   PetscInt *cell_ids;      /* id of cells that share the face */
 
   TDy_coordinate *centroid; /* centroid of the face */
-  TDy_vector *normal;       /* unit normal to the face */
+  TDyVector *normal;       /* unit normal to the face */
   PetscReal *area;          /* area of the face */
 };
 

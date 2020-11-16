@@ -276,10 +276,10 @@ PetscErrorCode TDyAllocate_TDySubcell_1D(PetscInt ndim_1, TDySubcell **array_1D)
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyAllocate_TDyVector_1D(PetscInt ndim_1, TDy_vector **array_1D) {
+PetscErrorCode TDyAllocate_TDyVector_1D(PetscInt ndim_1, TDyVector **array_1D) {
 
   PetscFunctionBegin;
-  *array_1D = (TDy_vector *)malloc(ndim_1*sizeof(TDy_vector));
+  *array_1D = (TDyVector *)malloc(ndim_1*sizeof(TDyVector));
   PetscFunctionReturn(0);
 }
 
