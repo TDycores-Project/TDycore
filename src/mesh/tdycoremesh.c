@@ -1165,7 +1165,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
 
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
-  TDy_subcell    *subcells;
+  TDy_subcell    *subcells = &mesh->subcells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_edge       *edges;
   PetscInt       cStart, cEnd, num_subcells;
@@ -1181,7 +1181,6 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
 
   cells    = &mesh->cells;
   edges    = &mesh->edges;
-  subcells = &mesh->subcells;
 
   alpha = 1.0;
 
@@ -2391,7 +2390,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
 
   TDy_face *faces = &tdy->mesh->faces;
   TDy_cell *cells = &tdy->mesh->cells;
-  TDy_subcell *subcells;
+  TDy_subcell *subcells = &tdy->mesh->subcells;
   TDy_vertex *vertices = &tdy->mesh->vertices;
 
   PetscInt ncells,nfaces_bnd;
@@ -2399,8 +2398,6 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   PetscInt ncells_abv,ncells_blw;
   PetscInt **cell_up2dw;
   PetscErrorCode ierr;
-
-  subcells = &tdy->mesh->subcells;
 
   ncells    = vertices->num_internal_cells[ivertex];
   nfaces_bnd= vertices->num_boundary_faces[ivertex];
@@ -2638,7 +2635,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
   DM dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
-  TDy_subcell    *subcells;
+  TDy_subcell    *subcells = &mesh->subcells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_face       *faces = &mesh->faces;
   PetscInt       cStart, cEnd, num_subcells;
@@ -2648,7 +2645,6 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
   PetscErrorCode ierr;
 
   cells    = &mesh->cells;
-  subcells = &mesh->subcells;
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
 
@@ -2932,7 +2928,7 @@ PetscErrorCode OutputCells2DMesh(TDy tdy) {
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
-  TDy_subcell    *subcells;
+  TDy_subcell    *subcells = &mesh->subcells;
   PetscInt       dim;
   PetscInt       icell, d, k;
   PetscErrorCode ierr;
@@ -2941,7 +2937,6 @@ PetscErrorCode OutputCells2DMesh(TDy tdy) {
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   cells    = &mesh->cells;
-  subcells = &mesh->subcells;
 
   Vec cell_cen, cell_vol;
   Vec cell_neigh_ids, cell_vertex_ids, cell_edge_ids;
