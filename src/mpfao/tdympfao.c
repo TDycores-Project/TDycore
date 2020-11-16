@@ -702,7 +702,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_face       *faces = &mesh->faces;
+  TDyFace       *faces = &mesh->faces;
   TDyCell       *cells = &mesh->cells;
   PetscInt       dim;
   PetscInt       icell, iface, face_id;

@@ -15,7 +15,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   TDy tdy = (TDy)ctx;
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
-  TDy_face *faces = &mesh->faces;
+  TDyFace *faces = &mesh->faces;
   TDyVertex *vertices = &mesh->vertices;
   DM dm = tdy->dm;
   PetscReal *p,*r;
@@ -200,7 +200,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 
   TDyMesh *mesh  = tdy->mesh;
   TDyCell *cells = &mesh->cells;
-  TDy_face *faces = &mesh->faces;
+  TDyFace *faces = &mesh->faces;
   TDyVertex *vertices = &mesh->vertices;
   DM dm = tdy->dm = tdy->dm;
   CharacteristicCurve *cc = tdy->cc;
@@ -382,7 +382,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   TDy tdy = (TDy)ctx;
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
-  TDy_face *faces = &mesh->faces;
+  TDyFace *faces = &mesh->faces;
   TDyVertex *vertices = &mesh->vertices;
   DM dm = tdy->dm;
   PetscInt fStart, fEnd;

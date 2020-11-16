@@ -11,7 +11,7 @@ typedef struct _TDySubcell    TDySubcell;
 typedef struct _TDyCell       TDyCell;
 typedef struct _TDyVertex     TDyVertex;
 typedef struct _TDy_edge       TDy_edge;
-typedef struct _TDy_face       TDy_face;
+typedef struct _TDyFace       TDyFace;
 typedef struct _TDyMesh       TDyMesh;
 
 typedef enum {
@@ -154,7 +154,7 @@ struct _TDy_edge {
 
 };
 
-struct _TDy_face {
+struct _TDyFace {
   PetscInt *id;             /* id of the face in local numbering */
   PetscInt *global_id;      /* global id of the face in local numbering */
 
@@ -197,7 +197,7 @@ struct _TDyMesh {
   TDySubcell subcells;
   TDyVertex  vertices;
   TDy_edge    edges;
-  TDy_face    faces;
+  TDyFace    faces;
 
   TDyRegion region_connected;
 };

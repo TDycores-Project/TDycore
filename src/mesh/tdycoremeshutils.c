@@ -429,7 +429,7 @@ PetscInt TDyMeshGetNumberOfNonInternalFacess(TDyMesh *mesh) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode AreFacesNeighbors(TDy_face *faces, PetscInt face_id_1, PetscInt face_id_2) {
+PetscErrorCode AreFacesNeighbors(TDyFace *faces, PetscInt face_id_1, PetscInt face_id_2) {
 
   PetscBool are_neighbors;
   PetscInt iedge_1, iedge_2;
@@ -530,7 +530,7 @@ PetscErrorCode TDyEdge_GetNormal(TDy_edge *edges, PetscInt iedge, PetscInt dim, 
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyFace_GetCentroid(TDy_face *faces, PetscInt iface, PetscInt dim, PetscReal *centroid) {
+PetscErrorCode TDyFace_GetCentroid(TDyFace *faces, PetscInt iface, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) centroid[d] = faces->centroid[iface].X[d];
@@ -538,7 +538,7 @@ PetscErrorCode TDyFace_GetCentroid(TDy_face *faces, PetscInt iface, PetscInt dim
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyFace_GetNormal(TDy_face *faces, PetscInt iface, PetscInt dim, PetscReal *normal) {
+PetscErrorCode TDyFace_GetNormal(TDyFace *faces, PetscInt iface, PetscInt dim, PetscReal *normal) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) normal[d] = faces->normal[iface].V[d];
@@ -573,7 +573,7 @@ PetscErrorCode TDyCell_GetCentroid2(TDyCell *cells, PetscInt icell, PetscInt dim
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode FindNeighboringVerticesOfAFace(TDy_face *faces, PetscInt iface, PetscInt vertex_id,
+PetscErrorCode FindNeighboringVerticesOfAFace(TDyFace *faces, PetscInt iface, PetscInt vertex_id,
                                               PetscInt neighboring_vertex_ids[2]) {
 
   PetscFunctionBegin;
@@ -618,7 +618,7 @@ PetscErrorCode FindNeighboringVerticesOfAFace(TDy_face *faces, PetscInt iface, P
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDy_face *faces,
+PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDyFace *faces,
                                                  TDyVertex *vertices, PetscInt ivertex,
                                                  PetscInt f_idx[3],
                                                  PetscInt *num_shared_faces) {
@@ -790,7 +790,7 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
   PetscInt iface, icell_1, icell_2;
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
-  TDy_face *faces = &mesh->faces;
+  TDyFace *faces = &mesh->faces;
   PetscInt       fStart, fEnd;
   DM             dm = tdy->dm;
   PetscErrorCode ierr;
@@ -951,7 +951,7 @@ PetscErrorCode TDyPrintFaceInfo(TDy tdy, PetscInt iface) {
   PetscFunctionBegin;
 
   TDyMesh *mesh = tdy->mesh;
-  TDy_face *faces = &mesh->faces;
+  TDyFace *faces = &mesh->faces;
 
   printf("Face_id = %d; ",iface);
 
