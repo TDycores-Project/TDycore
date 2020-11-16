@@ -14,7 +14,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 
   TDy tdy = (TDy)ctx;
   TDy_mesh *mesh = tdy->mesh;
-  TDy_cell *cells;
+  TDy_cell *cells = &mesh->cells;
   TDy_face *faces;
   TDy_vertex *vertices;
   DM dm = tdy->dm;
@@ -117,7 +117,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
 
   TDy      tdy = (TDy)ctx;
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   DM       dm = tdy->dm;
   Vec      Ul;
   PetscReal *p,*dp_dt,*r;
@@ -383,7 +383,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
 
   TDy tdy = (TDy)ctx;
   TDy_mesh *mesh = tdy->mesh;
-  TDy_cell *cells;
+  TDy_cell *cells = &mesh->cells;
   TDy_face *faces;
   TDy_vertex *vertices;
   DM dm = tdy->dm;
@@ -564,7 +564,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal 
 
   TDy      tdy = (TDy)ctx;
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   PetscInt icell;
   PetscReal *dp_dt;
   PetscErrorCode ierr;

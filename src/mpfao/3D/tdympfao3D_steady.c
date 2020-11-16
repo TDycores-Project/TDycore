@@ -12,7 +12,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
 
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   TDy_vertex     *vertices;
   TDy_face       *faces;
   PetscInt       ivertex, cell_id_up, cell_id_dn;
@@ -87,7 +87,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   TDy_vertex     *vertices;
   TDy_face       *faces;
   TDy_subcell    *subcells;
@@ -297,7 +297,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   TDy_vertex     *vertices;
   TDy_face       *faces;
   TDy_subcell    *subcells;

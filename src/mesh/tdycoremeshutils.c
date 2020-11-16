@@ -666,11 +666,9 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
   PetscInt       junkInt;
   PetscInt       gref;
   PetscInt       cStart, cEnd, c;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &tdy->mesh->cells;
 
   PetscFunctionBegin;
-
-  cells = &tdy->mesh->cells;
 
   PetscMPIInt rank;
   ierr = MPI_Comm_rank(PetscObjectComm((PetscObject) dm), &rank);CHKERRQ(ierr);
@@ -700,7 +698,7 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
 
   PetscInt       ivertex, icell, c;
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   TDy_vertex     *vertices;
   PetscInt       vStart, vEnd;
   DM             dm = tdy->dm;
@@ -731,7 +729,7 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
 
   PetscInt iedge, icell_1, icell_2;
   TDy_mesh *mesh = tdy->mesh;
-  TDy_cell *cells;
+  TDy_cell *cells = &mesh->cells;
   TDy_edge *edges;
   PetscInt       eStart, eEnd;
   DM             dm = tdy->dm;
@@ -791,7 +789,7 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
 
   PetscInt iface, icell_1, icell_2;
   TDy_mesh *mesh = tdy->mesh;
-  TDy_cell *cells;
+  TDy_cell *cells = &mesh->cells;
   TDy_face *faces;
   PetscInt       fStart, fEnd;
   DM             dm = tdy->dm;
@@ -883,7 +881,7 @@ PetscErrorCode TDyGetNumCellsLocal(TDy tdy, PetscInt *num_cells) {
 PetscErrorCode TDyGetCellNaturalIDsLocal(TDy tdy, PetscInt *ni, PetscInt nat_ids[]) {
 
   TDy_mesh *mesh = tdy->mesh;
-  TDy_cell *cells;
+  TDy_cell *cells = &mesh->cells;
   PetscInt icell;
 
   PetscFunctionBegin;
@@ -904,7 +902,7 @@ PetscErrorCode TDyGetCellNaturalIDsLocal(TDy tdy, PetscInt *ni, PetscInt nat_ids
 PetscErrorCode TDyGetCellIsLocal(TDy tdy, PetscInt *ni, PetscInt is_local[]) {
 
   TDy_mesh *mesh = tdy->mesh;
-  TDy_cell *cells;
+  TDy_cell *cells = &mesh->cells;
   PetscInt icell;
 
   PetscFunctionBegin;

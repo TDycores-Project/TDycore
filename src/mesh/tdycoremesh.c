@@ -383,7 +383,7 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
 
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   TDy_vertex     *vertices;
   TDy_edge       *edges;
   TDy_face       *faces;
@@ -549,7 +549,7 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
 
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   TDy_vertex     *vertices;
   TDy_edge       *edges;
   TDy_face       *faces;
@@ -788,7 +788,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   PetscFunctionBegin;
 
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   TDy_vertex     *vertices;
   TDy_edge       *edges;
   PetscInt       icell, iedge;
@@ -1064,7 +1064,7 @@ PetscErrorCode UpdateCellOrientationAroundAEdge2DMesh(TDy tdy) {
   PetscReal      dot_product;
   PetscInt       eStart, eEnd;
   PetscInt       iedge;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   TDy_edge       *edges;
   PetscErrorCode ierr;
 
@@ -1172,7 +1172,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
   PetscFunctionBegin;
 
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   TDy_subcell    *subcells;
   TDy_vertex     *vertices;
   TDy_edge       *edges;
@@ -1612,13 +1612,11 @@ PetscInt VertexIdWithSameXYInACell(TDy tdy, PetscInt icell, PetscInt ivertex) {
 
   PetscFunctionBegin;
 
-  TDy_cell *cells;
+  TDy_cell *cells = &tdy->mesh->cells;
   PetscInt cOffsetVert, iv;
   PetscInt result;
   PetscBool found = PETSC_FALSE;
   
-  cells = &tdy->mesh->cells;
-
   cOffsetVert = cells->vertex_offset[icell];
 
   for (iv=0; iv<cells->num_vertices[icell]; iv++) {
@@ -1652,12 +1650,11 @@ PetscBool IsCellAboveTheVertex(TDy tdy, PetscInt icell, PetscInt ivertex) {
   
   PetscBool is_above;
 
-  TDy_cell *cells;
+  TDy_cell *cells = &tdy->mesh->cells;
   TDy_vertex *vertices;
   PetscInt cOffsetVert, iv;
   PetscBool found = PETSC_FALSE;
   
-  cells = &tdy->mesh->cells;
   vertices = &tdy->mesh->vertices;
 
   cOffsetVert = cells->vertex_offset[icell];
@@ -1691,7 +1688,7 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
 
   PetscFunctionBegin;
 
-  TDy_cell *cells;
+  TDy_cell *cells = &tdy->mesh->cells;
   TDy_face *faces;
   TDy_vertex *vertices;
   PetscInt icell, ncells_int;
@@ -1833,11 +1830,10 @@ PetscBool AreCellsNeighbors(TDy tdy, PetscInt cell_id_1, PetscInt cell_id_2) {
 
   PetscFunctionBegin;
 
-  TDy_cell *cells;
+  TDy_cell *cells = &tdy->mesh->cells;
   PetscInt ii,jj;
   PetscBool are_neighbors = PETSC_FALSE;
 
-  cells = &tdy->mesh->cells;
 
   PetscInt cOffsetFace1 = cells->face_offset[cell_id_1];
   PetscInt cOffsetFace2 = cells->face_offset[cell_id_2];
@@ -1960,11 +1956,10 @@ PetscBool PointsAreInAntiClockDirInXYPlane(PetscReal a[2], PetscReal b[2], Petsc
 
   PetscFunctionBegin;
 
-  TDy_cell *cells;
+  TDy_cell *cells = &tdy->mesh->cells;
   TDy_vertex *vertices;
   TDy_face *faces;
 
-  cells = &tdy->mesh->cells;
   vertices = &tdy->mesh->vertices;
   faces = &tdy->mesh->faces;
 
@@ -2140,11 +2135,10 @@ PetscErrorCode AddTwoBndFacesOfACellInTraversalDirection(TDy tdy, PetscInt ivert
 
   PetscFunctionBegin;
 
-  TDy_cell *cells;
+  TDy_cell *cells = &tdy->mesh->cells;
   TDy_face *faces;
   TDy_vertex *vertices;
 
-  cells = &tdy->mesh->cells;
   faces = &tdy->mesh->faces;
   vertices = &tdy->mesh->vertices;
 
@@ -2430,7 +2424,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   PetscFunctionBegin;
 
   TDy_face *faces;
-  TDy_cell *cells;
+  TDy_cell *cells = &tdy->mesh->cells;
   TDy_subcell *subcells;
   TDy_vertex *vertices;
 
@@ -2440,7 +2434,6 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   PetscInt **cell_up2dw;
   PetscErrorCode ierr;
 
-  cells = &tdy->mesh->cells;
   faces = &tdy->mesh->faces;
   subcells = &tdy->mesh->subcells;
   vertices = &tdy->mesh->vertices;
@@ -2683,7 +2676,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
   DM dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   TDy_subcell    *subcells;
   TDy_vertex     *vertices;
   TDy_face       *faces;
@@ -2902,7 +2895,7 @@ PetscErrorCode UpdateCellOrientationAroundAFace3DMesh(TDy tdy) {
   TDy_mesh       *mesh = tdy->mesh;
   PetscInt       iface, dim;
   TDy_vertex     *vertices;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   TDy_face       *faces;
   PetscErrorCode ierr;
 
@@ -2981,7 +2974,7 @@ PetscErrorCode OutputCells2DMesh(TDy tdy) {
 
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_cell       *cells;
+  TDy_cell       *cells = &mesh->cells;
   TDy_subcell    *subcells;
   PetscInt       dim;
   PetscInt       icell, d, k;
