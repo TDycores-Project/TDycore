@@ -8,7 +8,7 @@
 typedef struct _TDy_coordinate TDy_coordinate;
 typedef struct _TDy_vector     TDy_vector;
 typedef struct _TDy_subcell    TDy_subcell;
-typedef struct _TDy_cell       TDy_cell;
+typedef struct _TDyCell       TDyCell;
 typedef struct _TDy_vertex     TDy_vertex;
 typedef struct _TDy_edge       TDy_edge;
 typedef struct _TDy_face       TDy_face;
@@ -68,7 +68,7 @@ struct _TDy_subcell {
 
 };
 
-struct _TDy_cell {
+struct _TDyCell {
 
   PetscInt  *id;            /* id of the cell in local numbering */
   PetscInt  *global_id;     /* global id of the cell in local numbering */
@@ -193,7 +193,7 @@ struct _TDyMesh {
   PetscInt num_boundary_faces;
   PetscInt   num_subcells;
 
-  TDy_cell    cells;
+  TDyCell    cells;
   TDy_subcell subcells;
   TDy_vertex  vertices;
   TDy_edge    edges;

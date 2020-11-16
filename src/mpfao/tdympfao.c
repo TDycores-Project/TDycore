@@ -570,7 +570,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_cell       *cells = &mesh->cells;
+  TDyCell       *cells = &mesh->cells;
   PetscInt       icell;
   PetscInt       row;
   PetscReal      value;
@@ -648,7 +648,7 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_cell       *cells = &mesh->cells;
+  TDyCell       *cells = &mesh->cells;
   PetscScalar    *u;
   Vec            localU;
   PetscInt       dim;
@@ -703,7 +703,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDy_face       *faces = &mesh->faces;
-  TDy_cell       *cells = &mesh->cells;
+  TDyCell       *cells = &mesh->cells;
   PetscInt       dim;
   PetscInt       icell, iface, face_id;
   PetscInt       fStart, fEnd;

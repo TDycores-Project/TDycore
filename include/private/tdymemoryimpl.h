@@ -20,7 +20,7 @@ PETSC_EXTERN PetscErrorCode TDyDeallocate_IntegerArray_2D(PetscInt**,PetscInt);
 PETSC_EXTERN PetscErrorCode TDyDeallocate_RealArray_2D(PetscReal**,PetscInt);
 PETSC_EXTERN PetscErrorCode TDyDeallocate_RealArray_3D(PetscReal***,PetscInt,PetscInt);
 PETSC_EXTERN PetscErrorCode TDyDeallocate_RealArray_4D(PetscReal****,PetscInt,PetscInt,PetscInt);
-PETSC_EXTERN PetscErrorCode TDyAllocate_TDyCell_1D(PetscInt,TDy_cell**);
+PETSC_EXTERN PetscErrorCode TDyAllocate_TDyCell_1D(PetscInt,TDyCell**);
 PETSC_EXTERN PetscErrorCode TDyAllocate_TDyVertex_1D(PetscInt,TDy_vertex**);
 PETSC_EXTERN PetscErrorCode TDyAllocate_TDyEdge_1D(PetscInt,TDy_edge**);
 PETSC_EXTERN PetscErrorCode TDyAllocate_TDyFace_1D(PetscInt,TDy_face**);

@@ -15,7 +15,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec 
 
   TDy      tdy = (TDy)ctx;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_cell       *cells = &mesh->cells;
+  TDyCell       *cells = &mesh->cells;
   DM       dm = tdy->dm;
   Vec      Ul,P,M,R_P,R_M;
   PetscReal *p,*u_t,*r,*r_p,*m;

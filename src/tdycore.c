@@ -943,7 +943,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   if ( (tdy->method == MPFA_O || tdy->method == MPFA_O_DAE || tdy->method == MPFA_O_TRANSIENTVAR) && dim == 3) {
     PetscReal *p_vec_ptr, gz;
     TDyMesh *mesh = tdy->mesh;
-    TDy_cell *cells = &mesh->cells;
+    TDyCell *cells = &mesh->cells;
 
     ierr = VecGetArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
     for (c=cStart; c<cEnd; c++) {

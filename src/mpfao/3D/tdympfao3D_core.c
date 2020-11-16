@@ -46,7 +46,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
   PetscErrorCode ierr;
 
   TDyMesh *mesh = tdy->mesh;
-  TDy_cell *cells = &mesh->cells;
+  TDyCell *cells = &mesh->cells;
   TDy_face *faces = &mesh->faces;
   TDy_subcell *subcells = &mesh->subcells;
 
@@ -209,7 +209,7 @@ PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
   PetscErrorCode ierr;
 
   TDyMesh *mesh = tdy->mesh;
-  TDy_cell *cells = &mesh->cells;
+  TDyCell *cells = &mesh->cells;
   TDy_vertex *vertices = &mesh->vertices;
   TDy_subcell *subcells = &mesh->subcells;
 
@@ -283,7 +283,7 @@ PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex
   TDY_START_FUNCTION_TIMER()
 
   TDyMesh *mesh = tdy->mesh;
-  TDy_cell *cells = &mesh->cells;
+  TDyCell *cells = &mesh->cells;
   TDy_vertex *vertices = &mesh->vertices;
   TDy_subcell *subcells = &mesh->subcells;
   TDy_face *faces = &mesh->faces;
@@ -403,7 +403,7 @@ PetscReal ***F_1, PetscReal ***F_2, PetscReal ***F_3){
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
-    PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
+    PetscInt ivertex, TDyCell *cells, PetscInt varID) {
 
   TDyMesh *mesh = tdy->mesh;
   TDy_vertex *vertices = &mesh->vertices;
@@ -767,7 +767,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(TDy tdy,
-    PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
+    PetscInt ivertex, TDyCell *cells, PetscInt varID) {
   DM             dm = tdy->dm;
   TDyMesh *mesh = tdy->mesh;
   TDy_vertex *vertices = &mesh->vertices;
@@ -929,7 +929,7 @@ PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
 PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
 
   TDyMesh       *mesh = tdy->mesh;
-  TDy_cell       *cells = &mesh->cells;
+  TDyCell       *cells = &mesh->cells;
   TDy_vertex     *vertices = &mesh->vertices;
   PetscInt       ivertex;
   PetscErrorCode ierr;

@@ -555,7 +555,7 @@ PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex *vertices, PetscInt ivertex, P
 
 /* -------------------------------------------------------------------------- */
 /*
-PetscErrorCode TDyCell_GetCentroid(TDy_cell *cell, PetscInt dim, PetscReal *centroid) {
+PetscErrorCode TDyCell_GetCentroid(TDyCell *cell, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) centroid[d] = cell->centroid.X[d];
@@ -564,7 +564,7 @@ PetscErrorCode TDyCell_GetCentroid(TDy_cell *cell, PetscInt dim, PetscReal *cent
 */
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyCell_GetCentroid2(TDy_cell *cells, PetscInt icell, PetscInt dim, PetscReal *centroid) {
+PetscErrorCode TDyCell_GetCentroid2(TDyCell *cells, PetscInt icell, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) centroid[d] = cells->centroid[icell].X[d];
@@ -667,7 +667,7 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
   PetscInt       gref;
   PetscInt       cStart, cEnd, c;
   TDyMesh *mesh = tdy->mesh;
-  TDy_cell *cells = &mesh->cells;
+  TDyCell *cells = &mesh->cells;
 
   PetscFunctionBegin;
 
@@ -699,7 +699,7 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
 
   PetscInt       ivertex, icell, c;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_cell       *cells = &mesh->cells;
+  TDyCell       *cells = &mesh->cells;
   TDy_vertex     *vertices = &mesh->vertices;
   PetscInt       vStart, vEnd;
   DM             dm = tdy->dm;
@@ -729,7 +729,7 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
 
   PetscInt iedge, icell_1, icell_2;
   TDyMesh *mesh = tdy->mesh;
-  TDy_cell *cells = &mesh->cells;
+  TDyCell *cells = &mesh->cells;
   TDy_edge *edges;
   PetscInt       eStart, eEnd;
   DM             dm = tdy->dm;
@@ -789,7 +789,7 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
 
   PetscInt iface, icell_1, icell_2;
   TDyMesh *mesh = tdy->mesh;
-  TDy_cell *cells = &mesh->cells;
+  TDyCell *cells = &mesh->cells;
   TDy_face *faces = &mesh->faces;
   PetscInt       fStart, fEnd;
   DM             dm = tdy->dm;
@@ -840,7 +840,7 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell *cells, PetscInt cell_id, TDy_vertex *vertices, PetscInt ivertex, TDy_subcell *subcells, PetscInt *subcell_id) {
+PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDyCell *cells, PetscInt cell_id, TDy_vertex *vertices, PetscInt ivertex, TDy_subcell *subcells, PetscInt *subcell_id) {
 
   PetscFunctionBegin;
 
@@ -880,7 +880,7 @@ PetscErrorCode TDyGetNumCellsLocal(TDy tdy, PetscInt *num_cells) {
 PetscErrorCode TDyGetCellNaturalIDsLocal(TDy tdy, PetscInt *ni, PetscInt nat_ids[]) {
 
   TDyMesh *mesh = tdy->mesh;
-  TDy_cell *cells = &mesh->cells;
+  TDyCell *cells = &mesh->cells;
   PetscInt icell;
 
   PetscFunctionBegin;
@@ -901,7 +901,7 @@ PetscErrorCode TDyGetCellNaturalIDsLocal(TDy tdy, PetscInt *ni, PetscInt nat_ids
 PetscErrorCode TDyGetCellIsLocal(TDy tdy, PetscInt *ni, PetscInt is_local[]) {
 
   TDyMesh *mesh = tdy->mesh;
-  TDy_cell *cells = &mesh->cells;
+  TDyCell *cells = &mesh->cells;
   PetscInt icell;
 
   PetscFunctionBegin;
@@ -925,7 +925,7 @@ PetscErrorCode TDyPrintSubcellInfo(TDy tdy, PetscInt icell, PetscInt isubcell) {
   PetscFunctionBegin;
 
   TDyMesh *mesh = tdy->mesh;
-  TDy_cell *cells = &mesh->cells;
+  TDyCell *cells = &mesh->cells;
   TDy_subcell *subcells = &mesh->subcells;
 
   PetscInt subcell_id = icell*cells->num_subcells[icell] + isubcell;

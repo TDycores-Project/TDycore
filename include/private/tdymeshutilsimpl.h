@@ -30,15 +30,15 @@ PETSC_INTERN PetscErrorCode TDyEdge_GetCentroid(TDy_edge*, PetscInt, PetscInt, P
 PETSC_INTERN PetscErrorCode TDyFace_GetCentroid(TDy_face*, PetscInt, PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyFace_GetNormal(TDy_face*, PetscInt, PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex*, PetscInt, PetscInt, PetscReal *);
-PETSC_INTERN PetscErrorCode TDyCell_GetCentroid2(TDy_cell*, PetscInt, PetscInt, PetscReal*);
+PETSC_INTERN PetscErrorCode TDyCell_GetCentroid2(TDyCell*, PetscInt, PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode FindNeighboringVerticesOfAFace(TDy_face*, PetscInt, PetscInt, PetscInt[2]);
-PETSC_INTERN PetscErrorCode SetupCell2CellConnectivity(TDy_vertex*, PetscInt, TDy_cell*, TDy_face*, TDy_subcell*, PetscInt**);
+PETSC_INTERN PetscErrorCode SetupCell2CellConnectivity(TDy_vertex*, PetscInt, TDyCell*, TDy_face*, TDy_subcell*, PetscInt**);
 PETSC_INTERN PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt, TDy_face*, TDy_vertex*, PetscInt,PetscInt[3],PetscInt*);
 PETSC_INTERN PetscErrorCode IdentifyLocalCells(TDy);
 PETSC_INTERN PetscErrorCode IdentifyLocalVertices(TDy);
 PETSC_INTERN PetscErrorCode IdentifyLocalEdges(TDy);
 PETSC_INTERN PetscErrorCode IdentifyLocalFaces(TDy);
-PETSC_INTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell*, PetscInt, TDy_vertex*, PetscInt, TDy_subcell*, PetscInt*);
+PETSC_INTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDyCell*, PetscInt, TDy_vertex*, PetscInt, TDy_subcell*, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyPrintSubcellInfo(TDy, PetscInt, PetscInt);
 PETSC_INTERN PetscErrorCode TDyPrintFaceInfo(TDy, PetscInt);
 PETSC_INTERN PetscErrorCode TDySubCell_GetIthNuStarVector(TDy_subcell*,PetscInt,PetscInt,PetscInt, PetscReal*);

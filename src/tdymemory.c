@@ -236,10 +236,10 @@ PetscErrorCode TDyDeallocate_RealArray_4D(PetscReal ****array_4D, PetscInt ndim_
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyAllocate_TDyCell_1D(PetscInt ndim_1, TDy_cell **array_1D) {
+PetscErrorCode TDyAllocate_TDyCell_1D(PetscInt ndim_1, TDyCell **array_1D) {
 
   PetscFunctionBegin;
-  *array_1D = (TDy_cell *)malloc(ndim_1*sizeof(TDy_cell));
+  *array_1D = (TDyCell *)malloc(ndim_1*sizeof(TDyCell));
   PetscFunctionReturn(0);
 }
 

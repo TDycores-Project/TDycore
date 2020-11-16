@@ -40,7 +40,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_cell       *cells = &mesh->cells;
+  TDyCell       *cells = &mesh->cells;
   TDy_subcell    *subcells = &mesh->subcells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_edge       *edges;
@@ -129,7 +129,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex2DMesh(TDy tdy,
-    PetscInt ivertex, TDy_cell *cells) {
+    PetscInt ivertex, TDyCell *cells) {
 
   PetscInt       ncells, icell, isubcell;
 
@@ -256,7 +256,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex2DMesh(TDy tdy,
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex2DMesh(TDy tdy,
-    PetscInt ivertex, TDy_cell *cells) {
+    PetscInt ivertex, TDyCell *cells) {
 
   TDyMesh *mesh = tdy->mesh;
   TDy_vertex *vertices = &mesh->vertices;
@@ -597,7 +597,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex2DMesh(TDy tdy,
 PetscErrorCode TDyComputeTransmissibilityMatrix2DMesh(TDy tdy) {
 
   TDyMesh       *mesh = tdy->mesh;
-  TDy_cell       *cells = &mesh->cells;
+  TDyCell       *cells = &mesh->cells;
   TDy_vertex     *vertices = &mesh->vertices;
   PetscInt       ivertex;
   PetscErrorCode ierr;
@@ -628,7 +628,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_cell       *cells = &mesh->cells;
+  TDyCell       *cells = &mesh->cells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_edge       *edges;
   PetscInt       ivertex, icell, icell_from, icell_to;
@@ -697,7 +697,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_cell       *cells = &mesh->cells;
+  TDyCell       *cells = &mesh->cells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_edge       *edges;
   PetscInt       ivertex, icell, icell_from, icell_to;
@@ -851,7 +851,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_cell       *cells = &mesh->cells;
+  TDyCell       *cells = &mesh->cells;
   TDy_vertex     *vertices = &mesh->vertices;
   TDy_edge       *edges;
   PetscInt       ivertex, icell, isubcell;
@@ -1209,7 +1209,7 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDy_edge       *edges;
-  TDy_cell       *cells = &mesh->cells;
+  TDyCell       *cells = &mesh->cells;
   PetscInt       dim;
   PetscInt       icell, iedge, edge_id;
   PetscInt       fStart, fEnd;
