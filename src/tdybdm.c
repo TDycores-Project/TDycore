@@ -142,7 +142,7 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
   PetscSection sec;
   PetscInt d,dim,dofs_per_face = 1;
   PetscBool found;
-  DM dm = tdy->dm = tdy->dm;
+  DM dm = tdy->dm;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   /* Get plex limits */
@@ -325,7 +325,7 @@ PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal
   PetscReal *single_point,*single_weight,lside[24],x[3],DF[9],DFinv[9],J[1],basis[72],g;
   PetscReal fJ[9],dummy[200],normal[3];
   PetscInt i,j,q,v,d,dim,ncv,nfq,nq1d,face_side,face_dir;
-  DM dm = tdy->dm = tdy->dm;
+  DM dm = tdy->dm;
   ncv = tdy->ncv;
   nq1d = 3;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -421,7 +421,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   const PetscScalar *quad_w,*fquad_w;
   PetscQuadrature quadrature;
   PetscQuadrature face_quadrature;
-  DM dm = tdy->dm = tdy->dm;
+  DM dm = tdy->dm;
 
   /* Get domain constants */
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr); dim2 = dim*dim;
@@ -546,7 +546,7 @@ PetscReal TDyBDMPressureNorm(TDy tdy,Vec U) {
   PetscSection sec;
   PetscInt c,cStart,cEnd,offset,dim,gref,junk;
   PetscReal p,*u,norm,norm_sum;
-  DM dm = tdy->dm = tdy->dm;
+  DM dm = tdy->dm;
   if(!(tdy->ops->computedirichletvalue)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
             "Must set the pressure function with TDySetDirichletValueFunction");
@@ -586,7 +586,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscInt c,cStart,cEnd,dim,gref,fStart,fEnd,junk,d,s,f;
-  DM dm = tdy->dm = tdy->dm;
+  DM dm = tdy->dm;
   if(!(tdy->ops->computedirichletflux)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
             "Must set the velocity function with TDySetDirichletFluxFunction");

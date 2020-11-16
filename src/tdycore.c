@@ -1102,7 +1102,7 @@ PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
   PetscInt dim,i,v,vStart,vEnd,nv,c,cStart,cEnd,closureSize,*closure;
   PetscQuadrature quad;
   PetscReal x[24],DF[72],DFinv[72],J[8];
-  DM dm = tdy->dm = tdy->dm;
+  DM dm = tdy->dm;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   nv = tdy->ncv;
   ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quad); CHKERRQ(ierr);
@@ -1160,7 +1160,7 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
   PetscFunctionBegin;
   PetscInt d,dim,i,f,fStart,fEnd,v,nv,q,c,cStart,cEnd,closureSize,*closure,
            fclosureSize,*fclosure,local_dirs[24];
-  DM dm = tdy->dm = tdy->dm;
+  DM dm = tdy->dm;
   if(!(tdy->vmap)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
             "Must first create TDyCreateCellVertexMap on tdy->vmap");

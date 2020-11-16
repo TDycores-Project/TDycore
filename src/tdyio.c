@@ -46,7 +46,7 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   char *ofilename = tdy->io->exodus_filename;
   int num_vars = tdy->io->num_vars;
   Vec v = tdy->solution;
-  DM dm = tdy->dm = tdy->dm;
+  DM dm = tdy->dm;
   PetscReal time = tdy->ti->time;
   zonalVarNames[0] = tdy->io->zonalVarNames[0];
   

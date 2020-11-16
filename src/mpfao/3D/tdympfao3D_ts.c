@@ -202,7 +202,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   TDyVertex *vertices = &mesh->vertices;
-  DM dm = tdy->dm = tdy->dm;
+  DM dm = tdy->dm;
   CharacteristicCurve *cc = tdy->cc;
   CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
