@@ -699,7 +699,7 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
   PetscInt       ivertex, icell, c;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
-  TDy_vertex     *vertices;
+  TDy_vertex     *vertices = &mesh->vertices;
   PetscInt       vStart, vEnd;
   DM             dm = tdy->dm;
   PetscErrorCode ierr;
@@ -707,7 +707,6 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
   PetscFunctionBegin;
 
   cells    = &mesh->cells;
-  vertices = &mesh->vertices;
   
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
 

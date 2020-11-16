@@ -42,7 +42,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
   TDy_subcell    *subcells;
-  TDy_vertex     *vertices;
+  TDy_vertex     *vertices = &mesh->vertices;
   TDy_edge       *edges;
   PetscInt       num_subcells;
   PetscInt       icell, isubcell;
@@ -57,7 +57,6 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
 
   cells    = &mesh->cells;
   edges    = &mesh->edges;
-  vertices = &mesh->vertices;
   subcells = &mesh->subcells;
   MaterialProp *matprop = tdy->matprop;
 
@@ -141,7 +140,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex2DMesh(TDy tdy,
   PetscReal *A1d, *B1d, *Cup1d, *AinvB1d, *CuptimesAinvB1d;
   PetscReal **Gmatrix;
   PetscInt idx, vertex_id;
-  TDy_vertex *vertices;
+  TDy_vertex *vertices = &tdy->mesh->vertices;
   PetscErrorCode ierr;
   PetscBLASInt info, *pivots;
   PetscInt i, j, n, m, ndim;
@@ -149,7 +148,6 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex2DMesh(TDy tdy,
 
   PetscFunctionBegin;
 
-  vertices = &tdy->mesh->vertices;
   ndim      = 2;
   ncells    = vertices->num_internal_cells[ivertex];
   vertex_id = ivertex;
@@ -260,7 +258,7 @@ PetscErrorCode ComputeTransmissibilityMatrixForInternalVertex2DMesh(TDy tdy,
 PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex2DMesh(TDy tdy,
     PetscInt ivertex, TDy_cell *cells) {
 
-  TDy_vertex *vertices;
+  TDy_vertex *vertices = &tdy->mesh->vertices;
   PetscInt       ncells_in, ncells_bc, icell, isubcell;
 
   PetscReal **Fup, **Cup, **Fdn, **Cdn;
@@ -300,7 +298,6 @@ PetscErrorCode ComputeTransmissibilityMatrixForBoundaryVertex2DMesh(TDy tdy,
 
   PetscFunctionBegin;
 
-  vertices = &tdy->mesh->vertices;
   PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
   PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
 
@@ -600,14 +597,13 @@ PetscErrorCode TDyComputeTransmissibilityMatrix2DMesh(TDy tdy) {
 
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
-  TDy_vertex     *vertices;
+  TDy_vertex     *vertices = &mesh->vertices;
   PetscInt       ivertex;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
   cells    = &mesh->cells;
-  vertices = &mesh->vertices;
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     if (vertices->num_boundary_faces[ivertex] == 0) {
@@ -632,7 +628,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
-  TDy_vertex     *vertices;
+  TDy_vertex     *vertices = &mesh->vertices;
   TDy_edge       *edges;
   PetscInt       ivertex, icell, icell_from, icell_to;
   PetscInt       icol, row, col, vertex_id, edge_id;
@@ -646,7 +642,6 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
   PetscFunctionBegin;
 
   cells    = &mesh->cells;
-  vertices = &mesh->vertices;
   edges    = &mesh->edges;
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
@@ -702,7 +697,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
-  TDy_vertex     *vertices;
+  TDy_vertex     *vertices = &mesh->vertices;
   TDy_edge       *edges;
   PetscInt       ivertex, icell, icell_from, icell_to;
   PetscInt       icol, row, col, vertex_id, iedge, edge_id;
@@ -716,7 +711,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   PetscFunctionBegin;
 
   cells    = &mesh->cells;
-  vertices = &mesh->vertices;
   edges    = &mesh->edges;
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
@@ -857,7 +851,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
-  TDy_vertex     *vertices;
+  TDy_vertex     *vertices = &mesh->vertices;
   TDy_edge       *edges;
   PetscInt       ivertex, icell, isubcell;
   PetscInt       icol, row, col, iedge, edge_id;
@@ -873,7 +867,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   PetscFunctionBegin;
 
   cells    = &mesh->cells;
-  vertices = &mesh->vertices;
   edges    = &mesh->edges;
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
@@ -975,7 +968,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
 
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_vertex     *vertices;
+  TDy_vertex     *vertices = &mesh->vertices;
   TDy_edge       *edges;
   PetscInt       ivertex, icell, isubcell;
   PetscInt       icol, row, col, vertex_id, iedge;
@@ -990,7 +983,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
 
   PetscFunctionBegin;
 
-  vertices = &mesh->vertices;
   edges    = &mesh->edges;
   row = -1;
 

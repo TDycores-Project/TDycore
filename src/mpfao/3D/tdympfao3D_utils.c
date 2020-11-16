@@ -107,7 +107,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
-  TDy_vertex     *vertices;
+  TDy_vertex     *vertices = &mesh->vertices;
   TDy_face       *faces;
   TDy_subcell    *subcells;
   PetscInt       ivertex, cell_id_up;
@@ -126,7 +126,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
   PetscFunctionBegin;
 
   cells    = &mesh->cells;
-  vertices = &mesh->vertices;
   faces    = &mesh->faces;
   subcells = &mesh->subcells;
 
@@ -219,7 +218,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
-  TDy_vertex     *vertices;
+  TDy_vertex     *vertices = &mesh->vertices;
   TDy_face       *faces;
   TDy_subcell    *subcells;
   PetscInt       ivertex, icell, cell_id_up, cell_id_dn;
@@ -241,7 +240,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
   PetscFunctionBegin;
 
   cells    = &mesh->cells;
-  vertices = &mesh->vertices;
   faces    = &mesh->faces;
   subcells = &mesh->subcells;
 
@@ -515,7 +513,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
   TDy_cell       *cells = &mesh->cells;
-  TDy_vertex     *vertices;
+  TDy_vertex     *vertices = &mesh->vertices;
   TDy_face       *faces;
   TDy_subcell    *subcells;
   PetscInt       ivertex, icell;
@@ -536,7 +534,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
   PetscFunctionBegin;
 
   cells    = &mesh->cells;
-  vertices = &mesh->vertices;
   faces    = &mesh->faces;
   subcells = &mesh->subcells;
 
