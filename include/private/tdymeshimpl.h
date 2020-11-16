@@ -10,7 +10,7 @@ typedef struct _TDy_vector     TDy_vector;
 typedef struct _TDySubcell    TDySubcell;
 typedef struct _TDyCell       TDyCell;
 typedef struct _TDyVertex     TDyVertex;
-typedef struct _TDy_edge       TDy_edge;
+typedef struct _TDyEdge       TDyEdge;
 typedef struct _TDyFace       TDyFace;
 typedef struct _TDyMesh       TDyMesh;
 
@@ -127,7 +127,7 @@ struct _TDyVertex {
   TDy_coordinate  *coordinate;    /* (x,y,z) location of the vertex                       */
 };
 
-struct _TDy_edge {
+struct _TDyEdge {
 
   PetscInt  *id;            /* id of the edge in local numbering         */
   PetscInt  *global_id;     /* global id of the edge in local numbering */
@@ -196,7 +196,7 @@ struct _TDyMesh {
   TDyCell    cells;
   TDySubcell subcells;
   TDyVertex  vertices;
-  TDy_edge    edges;
+  TDyEdge    edges;
   TDyFace    faces;
 
   TDyRegion region_connected;

@@ -207,7 +207,7 @@ PetscErrorCode AllocateMemoryForVertices(
 PetscErrorCode AllocateMemoryForEdges(
   PetscInt num_edges,
   TDyCellType cell_type,
-  TDy_edge *edges) {
+  TDyEdge *edges) {
 
   PetscFunctionBegin;
 
@@ -385,7 +385,7 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   TDyFace       *faces = &mesh->faces;
   PetscInt       dim;
   PetscInt       cStart, cEnd;
@@ -548,7 +548,7 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   TDyFace       *faces = &mesh->faces;
   PetscInt       dim;
   PetscInt       cStart, cEnd;
@@ -784,7 +784,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   PetscInt       icell, iedge;
   PetscInt       ncells, nedges;
   PetscReal      x,y;
@@ -929,7 +929,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex2DMesh(TDy tdy) {
   TDyVertex     *vertices = &mesh->vertices;
   PetscInt       ivertex;
   PetscInt       edge_id_1, edge_id_2;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   PetscReal      x,y, theta_1, theta_2;
   PetscErrorCode ierr;
 
@@ -1053,7 +1053,7 @@ PetscErrorCode UpdateCellOrientationAroundAEdge2DMesh(TDy tdy) {
   PetscInt       eStart, eEnd;
   PetscInt       iedge;
   TDyCell       *cells = &mesh->cells;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   PetscErrorCode ierr;
 
   cells = &mesh->cells;
@@ -1162,7 +1162,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
   TDyCell       *cells = &mesh->cells;
   TDySubcell    *subcells = &mesh->subcells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   PetscInt       cStart, cEnd, num_subcells;
   PetscInt       icell, isubcell;
   PetscInt       dim, d;
@@ -3068,7 +3068,7 @@ PetscErrorCode OutputEdges2DMesh(TDy tdy) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   PetscInt       dim;
   PetscInt       iedge;
   PetscErrorCode ierr;

@@ -43,7 +43,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   TDyCell       *cells = &mesh->cells;
   TDySubcell    *subcells = &mesh->subcells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   PetscInt       num_subcells;
   PetscInt       icell, isubcell;
   PetscInt       ii,jj;
@@ -629,7 +629,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   PetscInt       ivertex, icell, icell_from, icell_to;
   PetscInt       icol, row, col, vertex_id, edge_id;
   PetscReal      value;
@@ -697,7 +697,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   PetscInt       ivertex, icell, icell_from, icell_to;
   PetscInt       icol, row, col, vertex_id, iedge, edge_id;
   PetscReal      value;
@@ -850,7 +850,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   PetscInt       ivertex, icell, isubcell;
   PetscInt       icol, row, col, iedge, edge_id;
   PetscReal      value;
@@ -966,7 +966,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDyVertex     *vertices = &mesh->vertices;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   PetscInt       ivertex, icell, isubcell;
   PetscInt       icol, row, col, vertex_id, iedge;
   PetscInt       fStart, fEnd;
@@ -1203,7 +1203,7 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
-  TDy_edge       *edges = &mesh->edges;
+  TDyEdge       *edges = &mesh->edges;
   TDyCell       *cells = &mesh->cells;
   PetscInt       dim;
   PetscInt       icell, iedge, edge_id;

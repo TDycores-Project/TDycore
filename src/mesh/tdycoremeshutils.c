@@ -514,7 +514,7 @@ PetscErrorCode TDySubCell_GetFaceIndexForAFace(TDySubcell* subcells, PetscInt is
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyEdge_GetCentroid(TDy_edge *edges, PetscInt iedge, PetscInt dim, PetscReal *centroid) {
+PetscErrorCode TDyEdge_GetCentroid(TDyEdge *edges, PetscInt iedge, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) centroid[d] = edges->centroid[iedge].X[d];
@@ -522,7 +522,7 @@ PetscErrorCode TDyEdge_GetCentroid(TDy_edge *edges, PetscInt iedge, PetscInt dim
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyEdge_GetNormal(TDy_edge *edges, PetscInt iedge, PetscInt dim, PetscReal *normal) {
+PetscErrorCode TDyEdge_GetNormal(TDyEdge *edges, PetscInt iedge, PetscInt dim, PetscReal *normal) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) normal[d] = edges->normal[iedge].V[d];
@@ -730,7 +730,7 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
   PetscInt iedge, icell_1, icell_2;
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
-  TDy_edge *edges = &mesh->edges;
+  TDyEdge *edges = &mesh->edges;
   PetscInt       eStart, eEnd;
   DM             dm = tdy->dm;
   PetscErrorCode ierr;
