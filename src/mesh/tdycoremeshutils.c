@@ -789,7 +789,7 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
   PetscInt iface, icell_1, icell_2;
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
-  TDy_face *faces;
+  TDy_face *faces = &mesh->faces;
   PetscInt       fStart, fEnd;
   DM             dm = tdy->dm;
   PetscErrorCode ierr;
@@ -797,7 +797,6 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
   PetscFunctionBegin;
 
   cells = &mesh->cells;
-  faces = &mesh->faces;
 
   mesh->num_boundary_faces = 0;
 

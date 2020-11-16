@@ -15,7 +15,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   TDy tdy = (TDy)ctx;
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
-  TDy_face *faces;
+  TDy_face *faces = &mesh->faces;
   TDy_vertex *vertices = &mesh->vertices;
   DM dm = tdy->dm;
   PetscReal *p,*r;
@@ -32,7 +32,6 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   TDY_START_FUNCTION_TIMER()
 
   cells    = &mesh->cells;
-  faces    = &mesh->faces;
   CharacteristicCurve *cc = tdy->cc;
   CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
@@ -383,7 +382,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   TDy tdy = (TDy)ctx;
   TDy_mesh *mesh = tdy->mesh;
   TDy_cell *cells = &mesh->cells;
-  TDy_face *faces;
+  TDy_face *faces = &mesh->faces;
   TDy_vertex *vertices = &mesh->vertices;
   DM dm = tdy->dm;
   PetscInt fStart, fEnd;
@@ -406,7 +405,6 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   TDY_START_FUNCTION_TIMER()
 
   cells    = &mesh->cells;
-  faces    = &mesh->faces;
   subcells = &mesh->subcells;
   CharacteristicCurve *cc = tdy->cc;
 

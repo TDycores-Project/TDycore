@@ -702,7 +702,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
 
   DM             dm = tdy->dm;
   TDy_mesh       *mesh = tdy->mesh;
-  TDy_face       *faces;
+  TDy_face       *faces = &mesh->faces;
   TDy_cell       *cells = &mesh->cells;
   PetscInt       dim;
   PetscInt       icell, iface, face_id;
@@ -715,7 +715,6 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
   TDY_START_FUNCTION_TIMER()
 
   cells = &mesh->cells;
-  faces = &mesh->faces;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
