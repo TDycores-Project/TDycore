@@ -37,8 +37,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  cells    = &mesh->cells;
-
+  
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
@@ -148,7 +147,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   TDy      tdy = (TDy)ctx;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  DM       dm = tdy->dm;
+  DM       dm;
   Vec      Ul;
   PetscReal *p,*du_dt,*r,*temp,*u_p,*dp_dt,*dtemp_dt;
   PetscErrorCode ierr;
@@ -156,8 +155,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  cells    = &mesh->cells;
-
+  
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
 #if defined(DEBUG)
@@ -331,8 +329,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
   TDY_START_FUNCTION_TIMER()
 
 
-  cells    = &mesh->cells;
-
+  
   CharacteristicCurve *cc = tdy->cc;
   CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 

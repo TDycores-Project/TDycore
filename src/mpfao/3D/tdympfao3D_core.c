@@ -50,8 +50,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
   TDyFace *faces = &mesh->faces;
   TDySubcell *subcells = &mesh->subcells;
 
-  cells    = &mesh->cells;
-  MaterialProp *matprop = tdy->matprop;
+    MaterialProp *matprop = tdy->matprop;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
@@ -937,8 +936,7 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  cells    = &mesh->cells;
-
+  
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
     if (!vertices->is_local[ivertex]) continue;

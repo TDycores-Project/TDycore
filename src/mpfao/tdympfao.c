@@ -580,8 +580,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  cells    = &mesh->cells;
-
+  
   ierr = MatZeroEntries(K);
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);

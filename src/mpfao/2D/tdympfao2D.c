@@ -55,8 +55,7 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
   PetscReal      K[3][3], nu_up[3], nu_dn[3];
   PetscErrorCode ierr;
 
-  cells    = &mesh->cells;
-  MaterialProp *matprop = tdy->matprop;
+    MaterialProp *matprop = tdy->matprop;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
@@ -603,8 +602,7 @@ PetscErrorCode TDyComputeTransmissibilityMatrix2DMesh(TDy tdy) {
 
   PetscFunctionBegin;
 
-  cells    = &mesh->cells;
-
+  
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
     if (vertices->num_boundary_faces[ivertex] == 0) {
 
@@ -641,8 +639,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_2DMesh(TDy tdy,Mat K,Vec F
 
   PetscFunctionBegin;
 
-  cells    = &mesh->cells;
-
+  
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -709,8 +706,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
   PetscFunctionBegin;
 
-  cells    = &mesh->cells;
-
+  
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -864,8 +860,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
   PetscFunctionBegin;
 
-  cells    = &mesh->cells;
-
+  
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -1213,8 +1208,6 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-
-  cells = &mesh->cells;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);

@@ -916,7 +916,7 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   TDy      tdy = (TDy)ctx;
-  DM       dm = tdy->dm;
+  DM       dm;
   Vec      Ul;
   PetscInt c,cStart,cEnd,nv,gref,nf,f,fStart,fEnd,i,j,dim;
   PetscReal *p,*dp_dt,*r,wgt,sign,div;

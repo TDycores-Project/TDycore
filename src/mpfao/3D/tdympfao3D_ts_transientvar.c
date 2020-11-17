@@ -16,7 +16,7 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) 
   TDy            tdy = (TDy)ctx;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  DM             dm = tdy->dm;
+  DM             dm;
   Vec            Ul;
   PetscScalar    *c,*p;
   PetscInt       icell;
@@ -25,8 +25,7 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  cells    = &mesh->cells;
-  CharacteristicCurve *cc = tdy->cc;
+    CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
@@ -62,10 +61,10 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) 
 PetscErrorCode TDyMPFAOIFunction_TransientVariable_3DMesh(TS ts,PetscReal t,Vec U,Vec M_t,Vec R,void *ctx) {
 
   TDy            tdy = (TDy)ctx;
-  TDyMesh       *mesh = tdy->mesh;
-  TDyCell       *cells = &mesh->cells;
-  DM       dm = tdy->dm;
-  Vec      Ul;
+  TDyMesh        *mesh = tdy->mesh;
+  TDyCell        *cells = &mesh->cells;
+  DM             dm;
+  Vec            Ul;
   PetscReal      *p,*dm_dt,*r;
   PetscInt       icell;
   PetscErrorCode ierr;
@@ -73,8 +72,7 @@ PetscErrorCode TDyMPFAOIFunction_TransientVariable_3DMesh(TS ts,PetscReal t,Vec 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  cells    = &mesh->cells;
-
+  
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);

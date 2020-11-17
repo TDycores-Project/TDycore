@@ -31,8 +31,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  cells    = &mesh->cells;
-  CharacteristicCurve *cc = tdy->cc;
+    CharacteristicCurve *cc = tdy->cc;
   CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -116,7 +115,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   TDy      tdy = (TDy)ctx;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  DM       dm = tdy->dm;
+  DM       dm;
   Vec      Ul;
   PetscReal *p,*dp_dt,*r;
   PetscErrorCode ierr;
@@ -124,8 +123,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  cells    = &mesh->cells;
-  CharacteristicCurve *cc = tdy->cc;
+    CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;
 
 //#define DEBUG
@@ -404,8 +402,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  cells    = &mesh->cells;
-  CharacteristicCurve *cc = tdy->cc;
+    CharacteristicCurve *cc = tdy->cc;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 

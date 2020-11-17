@@ -410,8 +410,6 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
     fStart = 0; fEnd = 0;
   }
 
-  cells    = &mesh->cells;
-
   for (ielement=pStart; ielement<pEnd; ielement++) {
 
     if (IsClosureWithinBounds(ielement, vStart, vEnd)) { // is the element a vertex?
@@ -582,8 +580,6 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   } else {
     fStart = 0; fEnd = 0;
   }
-
-  cells    = &mesh->cells;
 
   // cell--to--vertex
   // edge--to--cell
@@ -799,8 +795,6 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   PetscBool      boundary_edge_present;
   PetscInt       i;
   PetscErrorCode ierr;
-
-  cells    = &mesh->cells;
 
   ncells = vertices->num_internal_cells[ivertex];
   nedges = vertices->num_edges[ivertex];
@@ -1172,8 +1166,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
   PetscReal      normal[2], centroid;
   PetscErrorCode ierr;
 
-  cells    = &mesh->cells;
-
+  
   alpha = 1.0;
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
@@ -2649,8 +2642,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
   PetscReal      cell_cen[3], v_c[3];
   PetscErrorCode ierr;
 
-  cells    = &mesh->cells;
-
+  
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -2939,8 +2931,7 @@ PetscErrorCode OutputCells2DMesh(TDy tdy) {
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
-  cells    = &mesh->cells;
-
+  
   Vec cell_cen, cell_vol;
   Vec cell_neigh_ids, cell_vertex_ids, cell_edge_ids;
   Vec scell_nu, scell_cp, scell_vol, scell_gmatrix;

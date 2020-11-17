@@ -42,8 +42,7 @@ PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
 
   TDY_START_FUNCTION_TIMER()
 
-  cells    = &mesh->cells;
-
+  
   // Update the auxillary variables
   ierr = VecGetArray(tdy->soln_prev,&p); CHKERRQ(ierr);
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
@@ -80,8 +79,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  cells    = &mesh->cells;
-
+  
 #if defined(DEBUG)
   PetscViewer viewer;
   char word[32];
@@ -162,8 +160,7 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  cells    = &mesh->cells;
-
+  
 
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 

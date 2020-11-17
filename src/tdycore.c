@@ -276,7 +276,7 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
   }
 
   if (!tdy->dm) {
-    DM dm = tdy->dm;
+    DM dm;
     ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
     ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
     tdy->dm = dm;
@@ -379,6 +379,7 @@ PetscErrorCode TDyGetDimension(TDy tdy,PetscInt *dim) {
 PetscErrorCode TDyGetDM(TDy tdy,DM *dm) {
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
+  *dm = tdy->dm;
   PetscFunctionReturn(0);
 }
 
@@ -637,7 +638,7 @@ PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy tdy,TDyMPFAOBoundaryConditio
 PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   PetscInt       dim, num_fields;
   MPI_Comm       comm;
-  DM             dm = tdy->dm;
+  DM             dm;
   PetscSection   sec;
   PetscErrorCode ierr;
   PetscValidPointer( ts,1);
