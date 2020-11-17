@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
   tdy->io->print_intermediate = print_intermediate;
   PetscPrintf(PETSC_COMM_WORLD,"--\n");
   if (size == 1) {
-    ierr = TDyIOSetMode(tdy->io,format);CHKERRQ(ierr);
+    ierr = TDyIOSetMode(tdy,format);CHKERRQ(ierr);
     ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);
   }
   ierr = TDyTimeIntegratorRunToTime(tdy,tdy->ti->final_time); 
