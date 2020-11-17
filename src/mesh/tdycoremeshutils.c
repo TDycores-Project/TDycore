@@ -737,8 +737,6 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
 
   PetscFunctionBegin;
 
-  cells = &mesh->cells;
-
   ierr = DMPlexGetDepthStratum(dm, 1, &eStart, &eEnd); CHKERRQ(ierr);
 
   for (iedge=0; iedge<mesh->num_edges; iedge++) {
@@ -795,8 +793,6 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-
-  cells = &mesh->cells;
 
   mesh->num_boundary_faces = 0;
 
@@ -885,8 +881,6 @@ PetscErrorCode TDyGetCellNaturalIDsLocal(TDy tdy, PetscInt *ni, PetscInt nat_ids
   PetscFunctionBegin;
   *ni = 0;
 
-  cells = &mesh->cells;
-
   for (icell=0; icell<mesh->num_cells; icell++) {
     nat_ids[*ni] = cells->natural_id[icell];
     *ni += 1;
@@ -905,8 +899,6 @@ PetscErrorCode TDyGetCellIsLocal(TDy tdy, PetscInt *ni, PetscInt is_local[]) {
 
   PetscFunctionBegin;
   *ni = 0;
-
-  cells = &mesh->cells;
 
   for (icell=0; icell<mesh->num_cells; icell++) {
     if (cells->is_local[icell]) is_local[*ni] = 1;

@@ -681,7 +681,6 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
     for (c=0;c<cEnd-cStart;c++) p[c] = u_p[c];
   }
 
-  cells = &mesh->cells;
   ncells = mesh->num_cells;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);

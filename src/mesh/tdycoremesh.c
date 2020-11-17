@@ -1056,8 +1056,6 @@ PetscErrorCode UpdateCellOrientationAroundAEdge2DMesh(TDy tdy) {
   TDyEdge       *edges = &mesh->edges;
   PetscErrorCode ierr;
 
-  cells = &mesh->cells;
-
   ierr = DMPlexGetHeightStratum(dm, 1, &eStart, &eEnd); CHKERRQ(ierr);
 
   for (iedge=0; iedge<eEnd-eStart; iedge++) {
@@ -2860,8 +2858,6 @@ PetscErrorCode UpdateCellOrientationAroundAFace3DMesh(TDy tdy) {
   TDyCell       *cells = &mesh->cells;
   TDyFace       *faces = &mesh->faces;
   PetscErrorCode ierr;
-
-  cells = &mesh->cells;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
