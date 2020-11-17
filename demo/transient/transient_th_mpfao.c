@@ -100,7 +100,7 @@ PetscErrorCode PostProcess(TS ts)
   PetscViewer    viewer;
   PetscInt       stepi;
   Vec            sol;
-  DM             dm = tdy->dm;
+  DM             dm;
   char           filename[PETSC_MAX_PATH_LEN];
 
   PetscFunctionBegin;

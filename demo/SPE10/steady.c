@@ -34,7 +34,7 @@ PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
   const char filename[] = "spe_perm.dat";
   FILE *f = fopen(filename,"r");
   PetscReal *buffer,*X;
-  DM dm = tdy->dm;
+  DM dm;
   ierr = TDyGetDimension(tdy,&dim); CHKERRQ(ierr);
   ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
   ierr = TDyGetCentroidArray(tdy,&X); CHKERRQ(ierr);

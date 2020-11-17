@@ -362,7 +362,7 @@ PetscErrorCode OperatorApplicationResidual(TDy tdy,Vec U,Mat K,PetscErrorCode (*
   PetscQuadrature quadrature;
   PetscReal x[81],J[27],DF[243],DFinv[243],value,mean,volume;
   const PetscScalar *quad_x,*quad_w;
-  DM dm = tdy->dm;
+  DM dm;
   ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
