@@ -236,57 +236,57 @@ PetscErrorCode TDyDeallocate_RealArray_4D(PetscReal ****array_4D, PetscInt ndim_
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyAllocate_TDyCell_1D(PetscInt ndim_1, TDy_cell **array_1D) {
+PetscErrorCode TDyAllocate_TDyCell_1D(PetscInt ndim_1, TDyCell **array_1D) {
 
   PetscFunctionBegin;
-  *array_1D = (TDy_cell *)malloc(ndim_1*sizeof(TDy_cell));
+  *array_1D = (TDyCell *)malloc(ndim_1*sizeof(TDyCell));
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyAllocate_TDyVertex_1D(PetscInt ndim_1, TDy_vertex **array_1D) {
+PetscErrorCode TDyAllocate_TDyVertex_1D(PetscInt ndim_1, TDyVertex **array_1D) {
 
   PetscFunctionBegin;
-  *array_1D = (TDy_vertex *)malloc(ndim_1*sizeof(TDy_vertex));
+  *array_1D = (TDyVertex *)malloc(ndim_1*sizeof(TDyVertex));
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyAllocate_TDyEdge_1D(PetscInt ndim_1, TDy_edge **array_1D) {
+PetscErrorCode TDyAllocate_TDyEdge_1D(PetscInt ndim_1, TDyEdge **array_1D) {
 
   PetscFunctionBegin;
-  *array_1D = (TDy_edge *)malloc(ndim_1*sizeof(TDy_edge));
+  *array_1D = (TDyEdge *)malloc(ndim_1*sizeof(TDyEdge));
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyAllocate_TDyFace_1D(PetscInt ndim_1, TDy_face **array_1D) {
+PetscErrorCode TDyAllocate_TDyFace_1D(PetscInt ndim_1, TDyFace **array_1D) {
 
   PetscFunctionBegin;
-  *array_1D = (TDy_face *)malloc(ndim_1*sizeof(TDy_face));
+  *array_1D = (TDyFace *)malloc(ndim_1*sizeof(TDyFace));
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyAllocate_TDySubcell_1D(PetscInt ndim_1, TDy_subcell **array_1D) {
+PetscErrorCode TDyAllocate_TDySubcell_1D(PetscInt ndim_1, TDySubcell **array_1D) {
 
   PetscFunctionBegin;
-  *array_1D = (TDy_subcell *)malloc(ndim_1*sizeof(TDy_subcell));
+  *array_1D = (TDySubcell *)malloc(ndim_1*sizeof(TDySubcell));
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyAllocate_TDyVector_1D(PetscInt ndim_1, TDy_vector **array_1D) {
+PetscErrorCode TDyAllocate_TDyVector_1D(PetscInt ndim_1, TDyVector **array_1D) {
 
   PetscFunctionBegin;
-  *array_1D = (TDy_vector *)malloc(ndim_1*sizeof(TDy_vector));
+  *array_1D = (TDyVector *)malloc(ndim_1*sizeof(TDyVector));
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyAllocate_TDyCoordinate_1D(PetscInt ndim_1, TDy_coordinate **array_1D) {
+PetscErrorCode TDyAllocate_TDyCoordinate_1D(PetscInt ndim_1, TDyCoordinate **array_1D) {
 
   PetscFunctionBegin;
-  *array_1D = (TDy_coordinate *)malloc(ndim_1*sizeof(TDy_coordinate));
+  *array_1D = (TDyCoordinate *)malloc(ndim_1*sizeof(TDyCoordinate));
   PetscFunctionReturn(0);
 }

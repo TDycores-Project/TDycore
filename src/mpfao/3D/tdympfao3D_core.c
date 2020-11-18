@@ -45,16 +45,12 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
   PetscInt dim,icell;
   PetscErrorCode ierr;
 
-  TDy_mesh *mesh;
-  TDy_cell *cells;
-  TDy_face *faces;
-  TDy_subcell *subcells;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
+  TDySubcell *subcells = &mesh->subcells;
 
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-  faces = &mesh->faces;
-  subcells = &mesh->subcells;
-  MaterialProp *matprop = tdy->matprop;
+    MaterialProp *matprop = tdy->matprop;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
@@ -211,9 +207,10 @@ PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
 
-  TDy_vertex *vertices = &tdy->mesh->vertices;
-  TDy_cell   *cells    = &tdy->mesh->cells;
-  TDy_subcell *subcells = &tdy->mesh->subcells;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyVertex *vertices = &mesh->vertices;
+  TDySubcell *subcells = &mesh->subcells;
 
   PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
   PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
@@ -284,10 +281,11 @@ PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  TDy_vertex *vertices = &tdy->mesh->vertices;
-  TDy_subcell *subcells = &tdy->mesh->subcells;
-  TDy_cell *cells = &tdy->mesh->cells;
-  TDy_face *faces = &tdy->mesh->faces;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyVertex *vertices = &mesh->vertices;
+  TDySubcell *subcells = &mesh->subcells;
+  TDyFace *faces = &mesh->faces;
 
   PetscInt npcen = vertices->num_internal_cells[ivertex];
   PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
@@ -404,11 +402,12 @@ PetscReal ***F_1, PetscReal ***F_2, PetscReal ***F_3){
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
-    PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
+    PetscInt ivertex, TDyCell *cells, PetscInt varID) {
 
-  TDy_vertex *vertices;
-  TDy_subcell *subcells;
-  TDy_face *faces;
+  TDyMesh *mesh = tdy->mesh;
+  TDyVertex *vertices = &mesh->vertices;
+  TDySubcell *subcells = &mesh->subcells;
+  TDyFace *faces = &mesh->faces;
   PetscInt icell;
   PetscReal **Gmatrix;
   PetscReal **Fup_all, **Cup_all, **Fdn_all, **Cdn_all;
@@ -426,13 +425,10 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  vertices = &tdy->mesh->vertices;
-  faces = &tdy->mesh->faces;
   PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
   PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
   PetscInt vOffsetFace = vertices->face_offset[ivertex];
 
-  subcells = &tdy->mesh->subcells;
   vertex_id = ivertex;
 
   ierr = DMGetDimension(tdy->dm, &ndim); CHKERRQ(ierr);
@@ -770,11 +766,12 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(TDy tdy,
-    PetscInt ivertex, TDy_cell *cells, PetscInt varID) {
-  DM             dm;
-  TDy_vertex     *vertices;
-  TDy_subcell    *subcells;
-  TDy_face       *faces;
+    PetscInt ivertex, TDyCell *cells, PetscInt varID) {
+  DM             dm = tdy->dm;
+  TDyMesh *mesh = tdy->mesh;
+  TDyVertex *vertices = &mesh->vertices;
+  TDySubcell    *subcells = &mesh->subcells;
+  TDyFace       *faces = &mesh->faces;
   PetscInt       icell;
   PetscInt       iface, isubcell;
   PetscInt       vStart, vEnd;
@@ -788,11 +785,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-
-  dm       = tdy->dm;
-  subcells = &tdy->mesh->subcells;
-  vertices = &tdy->mesh->vertices;
-  faces = &tdy->mesh->faces;
 
   PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
   PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
@@ -894,8 +886,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
 
-  TDy_mesh       *mesh = tdy->mesh;
-  TDy_face       *faces = &mesh->faces;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyFace       *faces = &mesh->faces;
   TDyRegion     *region = &mesh->region_connected;
   PetscInt       iface, isubface;
   PetscInt       num_subfaces = 4;
@@ -935,19 +927,16 @@ PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
 
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
-  TDy_vertex     *vertices;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  TDyVertex     *vertices = &mesh->vertices;
   PetscInt       ivertex;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-  vertices = &mesh->vertices;
-
+  
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
     if (!vertices->is_local[ivertex]) continue;

@@ -409,7 +409,7 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   if (tdy->orient) { ierr = PetscFree(tdy->orient); CHKERRQ(ierr); }
   if (tdy->quad  ) { ierr = PetscQuadratureDestroy(&(tdy->quad)); CHKERRQ(ierr); }
 
-  // Need call to destroy TDy_Mesh
+  // Need call to destroy TDyMesh
   switch (dim) {
   case 2:
     break;
@@ -943,9 +943,9 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
 
   if ( (tdy->method == MPFA_O || tdy->method == MPFA_O_DAE || tdy->method == MPFA_O_TRANSIENTVAR) && dim == 3) {
     PetscReal *p_vec_ptr, gz;
-    TDy_cell *cells;
+    TDyMesh *mesh = tdy->mesh;
+    TDyCell *cells = &mesh->cells;
 
-    cells = &(tdy->mesh->cells);
     ierr = VecGetArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
     for (c=cStart; c<cEnd; c++) {
       i = c-cStart;

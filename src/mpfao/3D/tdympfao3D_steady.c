@@ -10,11 +10,11 @@
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F) {
 
-  DM             dm;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
-  TDy_vertex     *vertices;
-  TDy_face       *faces;
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  TDyVertex     *vertices = &mesh->vertices;
+  TDyFace       *faces = &mesh->faces;
   PetscInt       ivertex, cell_id_up, cell_id_dn;
   PetscInt       irow, icol, row, col, vertex_id;
   PetscReal      value;
@@ -27,12 +27,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm       = tdy->dm;
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-  vertices = &mesh->vertices;
-  faces    = &mesh->faces;
-
+  
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -87,12 +82,12 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices_3DMesh(TDy tdy,Mat K,Vec F) {
 
-  DM             dm;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
-  TDy_vertex     *vertices;
-  TDy_face       *faces;
-  TDy_subcell    *subcells;
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  TDyVertex     *vertices = &mesh->vertices;
+  TDyFace       *faces = &mesh->faces;
+  TDySubcell    *subcells = &mesh->subcells;
   PetscInt       ivertex, icell, isubcell, cell_id_up, cell_id_dn;
   PetscInt       irow, icol, row, col, vertex_id;
   PetscInt       ncells, nfaces_bnd;
@@ -107,13 +102,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm       = tdy->dm;
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-  vertices = &mesh->vertices;
-  faces    = &mesh->faces;
-  subcells = &mesh->subcells;
-
+  
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum( dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -299,12 +288,12 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(TDy tdy,Mat K,Vec F) {
 
-  DM             dm;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
-  TDy_vertex     *vertices;
-  TDy_face       *faces;
-  TDy_subcell    *subcells;
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  TDyVertex     *vertices = &mesh->vertices;
+  TDyFace       *faces = &mesh->faces;
+  TDySubcell    *subcells = &mesh->subcells;
   PetscInt       ivertex, icell;
   PetscInt       icol, row, col, iface, isubcell;
   PetscReal      value;
@@ -318,13 +307,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm       = tdy->dm;
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-  vertices = &mesh->vertices;
-  faces    = &mesh->faces;
-  subcells = &mesh->subcells;
-
+  
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
 

@@ -21,7 +21,8 @@ PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accu
 
   PetscFunctionBegin;
 
-  TDy_cell *cells = &tdy->mesh->cells;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
   CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;
 
@@ -33,17 +34,15 @@ PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accu
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
 
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
   PetscReal *p, *accum_prev;
   PetscInt icell;
   PetscErrorCode ierr;
 
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-
+  
   // Update the auxillary variables
   ierr = VecGetArray(tdy->soln_prev,&p); CHKERRQ(ierr);
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
@@ -70,9 +69,9 @@ PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
 PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
-  DM       dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  DM       dm = tdy->dm;
   Vec      Ul;
   PetscReal *p,*r;
   PetscErrorCode ierr;
@@ -80,9 +79,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-
+  
 #if defined(DEBUG)
   PetscViewer viewer;
   char word[32];
@@ -93,7 +90,6 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
 #endif
 
   //ierr = SNESGetDM(snes,&dm); CHKERRQ(ierr);
-  dm = tdy->dm;
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
@@ -155,19 +151,16 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
 PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  DM             dm;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
   Vec Ul, Udotl;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-
-  dm = tdy->dm;
+  
 
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 

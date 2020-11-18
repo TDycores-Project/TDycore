@@ -118,7 +118,7 @@ struct _p_TDy {
   PetscInt mpfao_gmatrix_method;
   PetscInt mpfao_bc_type;
 
-  TDy_mesh *mesh;
+  TDyMesh *mesh;
   PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
   PetscReal ***Trans;
   Mat Trans_mat;
@@ -143,7 +143,7 @@ struct _p_TDy {
 
   PetscBool output_mesh;
   PetscBool regression_testing;
-  TDy_regression *regression;
+  TDyRegression *regression;
 
   /* Timers enabled? */
   PetscBool enable_timers;

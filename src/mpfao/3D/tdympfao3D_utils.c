@@ -25,8 +25,8 @@ PetscErrorCode ComputeGtimesZ(PetscReal *gravity, PetscReal *X, PetscInt dim, Pe
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
-  TDy_mesh *mesh;
-  TDy_face *faces;
+  TDyMesh *mesh = tdy->mesh;
+  TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
   PetscReal Se,dSe_dS,dKr_dSe,n=0.5,m=0.8,alpha=1.e-4,Kr; /* FIX: generalize */
   PetscInt dim;
@@ -35,8 +35,6 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
   PetscFunctionBegin;
 
-  mesh = tdy->mesh;
-  faces = &mesh->faces;
 
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   CharacteristicCurve *cc = tdy->cc;
@@ -105,12 +103,12 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
 PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
-  DM             dm;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
-  TDy_vertex     *vertices;
-  TDy_face       *faces;
-  TDy_subcell    *subcells;
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  TDyVertex     *vertices = &mesh->vertices;
+  TDyFace       *faces = &mesh->faces;
+  TDySubcell    *subcells = &mesh->subcells;
   PetscInt       ivertex, cell_id_up;
   PetscInt       irow, icol, vertex_id;
   PetscInt       vStart, vEnd;
@@ -126,13 +124,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 
   PetscFunctionBegin;
 
-  dm       = tdy->dm;
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-  vertices = &mesh->vertices;
-  faces    = &mesh->faces;
-  subcells = &mesh->subcells;
-
+  
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -219,12 +211,12 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
-  DM             dm;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
-  TDy_vertex     *vertices;
-  TDy_face       *faces;
-  TDy_subcell    *subcells;
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  TDyVertex     *vertices = &mesh->vertices;
+  TDyFace       *faces = &mesh->faces;
+  TDySubcell    *subcells = &mesh->subcells;
   PetscInt       ivertex, icell, cell_id_up, cell_id_dn;
   PetscInt       irow, icol, vertex_id;
   PetscInt       ncells, nfaces_bnd;
@@ -243,13 +235,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
   PetscFunctionBegin;
 
-  dm       = tdy->dm;
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-  vertices = &mesh->vertices;
-  faces    = &mesh->faces;
-  subcells = &mesh->subcells;
-
+  
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum( dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -517,12 +503,12 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
-  DM             dm;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
-  TDy_vertex     *vertices;
-  TDy_face       *faces;
-  TDy_subcell    *subcells;
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  TDyVertex     *vertices = &mesh->vertices;
+  TDyFace       *faces = &mesh->faces;
+  TDySubcell    *subcells = &mesh->subcells;
   PetscInt       ivertex, icell;
   PetscInt       row, iface, isubcell;
   PetscReal      value;
@@ -540,13 +526,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
 
   PetscFunctionBegin;
 
-  dm       = tdy->dm;
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-  vertices = &mesh->vertices;
-  faces    = &mesh->faces;
-  subcells = &mesh->subcells;
-
+  
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -672,9 +652,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_3DMesh(TDy tdy, Vec U) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
 
-  TDy_mesh *mesh;
-  TDy_cell *cells;
-  TDy_face *faces;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
   PetscInt dim, ncells;
   PetscInt p_bnd_idx, cell_id, iface;
@@ -698,9 +678,6 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
     for (c=0;c<cEnd-cStart;c++) p[c] = u_p[c];
   }
 
-  mesh = tdy->mesh;
-  cells = &mesh->cells;
-  faces = &mesh->faces;
   ncells = mesh->num_cells;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
@@ -740,8 +717,8 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
 
-  TDy_mesh *mesh;
-  TDy_face *faces;
+  TDyMesh *mesh = tdy->mesh;
+  TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
   PetscInt dim, ncells;
   PetscInt t_bnd_idx, cell_id, iface;
@@ -760,8 +737,6 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
     t[c] = u_p[c*2+1];
   }
 
-  mesh = tdy->mesh;
-  faces = &mesh->faces;
   ncells = mesh->num_cells;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
