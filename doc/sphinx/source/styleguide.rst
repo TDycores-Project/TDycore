@@ -140,7 +140,7 @@ The destructor function is named after the class with a ``Destroy`` suffix,
 accepts a pointer to the instance of the class to be destroyed, and returns an
 error code indicating whether an error was encountered. For example:::
 
-    PetscErrorCode WashingMachineDestroy(WashingMachine* wm);
+    PetscErrorCode TDyWashingMachineDestroy(TDyWashingMachine* wm);
 
 Class Functions / Methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -151,7 +151,7 @@ concepts). The name of a class method begins with the name of the associated
 class, followed by a descriptive name for the method itself. For example:::
 
     // Washes a load of laundry, changing its state from DIRTY to CLEAN.
-    PetscError WashingMachineWash(WashingMachine* wm, Laundry* load);
+    PetscError TDyWashingMachineWash(TDyWashingMachine* wm, Laundry* load);
 
 A method can perform a task involving the instance and other data provided as
 arguments, as shown above. In this case, it returns a ``PetscErrorCode``
@@ -159,7 +159,7 @@ indicating success or failure. A method can also provide access to data within
 the instance of the class, returning that data:::
 
     // Returns the cost (in cents) of washing a load.
-    PetscInt WashingMachineCost(WashingMachine* wm);
+    PetscInt TDyWashingMachineCost(TDyWashingMachine* wm);
 
 If you're familiar with contemporary object-oriented programming languages like
 C++ and Java, you can define methods in very similar ways (as long as you don't
@@ -487,6 +487,63 @@ markup to annotate the function/method signature:
 Typically, you don't need any documentation markup for types and functions that
 aren't part of the public API. Commenting your implementation code is always
 helpful, of course.
+
+An Example
+----------
+
+To see how Doxygen markup looks in practice, let's return to the
+``TDyWashingMachine`` we used in our discussion of classes.
+
+Here's a documented constructor function, with Doxygen markup placed in the
+source file in which the function is implemented:::
+
+    /// Creates a washing machine object that costs the given number of cents
+    /// to wash a load of clothes.
+    /// @param [in] numCents The number of cents required to wash a load
+    /// @param [out] wm A pointer that stores the newly-created instance of
+    ///                 the washing machine.
+    /// @returns PETSC_SUCCESS (0) on success, or a non-zero error code on
+    ///          failure.
+    PetscErrorCode TDyWashingMachineCreate(PetscInt numCents, TDyWashingMachine *wm) {
+      ...
+    }
+
+Here's the destructor function:::
+
+    /// Destroys an existing washing machine object, releaseing all resources
+    /// allocated to it.
+    /// @param [inout] wm A pointer to the existing washing machine object.
+    /// @returns PETSC_SUCCESS (0) on success, or a non-zero error code on
+    ///          failure.
+    PetscErrorCode WashingMachineDestroy(WashingMachine* wm) {
+      ...
+    }
+
+Arguably, you can skip documenting the parameter, since all destructors accept
+exactly one argument: the object to be destroyed. However, it's easy enough to
+include for consistency.
+
+Finally, here are examples of markup for the methods we discussed earlier:::
+
+    /// Washes a load of laundry, changing its state from DIRTY to CLEAN.
+    /// @param [in] wm A pointer to an existing washing machine object.
+    /// @param [inout] load A load of laundry whose state will be changed from
+    ///                     DIRTY to CLEAN. If load is already CLEAN, this
+    ///                     function has no effect.
+    /// @returns PETSC_SUCCESS (0) on success, or a non-zero error code on
+    ///          failure.
+    PetscError TDyWashingMachineWash(TDyWashingMachine* wm, Laundry* load) {
+      ...
+    }
+
+    /// Returns the cost (in cents) of washing a load.
+    /// @param [in] wm A pointer to an existing washing machine object.
+    PetscInt TDyWashingMachineCost(TDyWashingMachine* wm) {
+      ...
+    }
+
+In "accessor functions", where the description explains clearly what is
+returned, the ``@returns`` markup can be omitted.
 
 Formatting
 ==========
