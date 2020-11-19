@@ -1,7 +1,9 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdyioimpl.h>
 #include <tdyio.h>
+#if defined(PETSC_HAVE_EXODUSII)
 #include "exodusII.h"
+#endif
 #include <petsc/private/dmpleximpl.h>
 
 PetscErrorCode TDyIOCreate(TDyIO *_io) {
@@ -69,6 +71,7 @@ PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM 
   PetscErrorCode ierr;
   int exoid = -1;
   
+#if defined(PETSC_HAVE_EXODUSII)
   CPU_word_size = sizeof(PetscReal);
   IO_word_size  = sizeof(PetscReal);
 
@@ -80,6 +83,9 @@ PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM 
   ierr = ex_put_variable_param(exoid, EX_ELEM_BLOCK, num_vars);CHKERRQ(ierr);
   ierr = ex_put_variable_names(exoid,EX_ELEM_BLOCK, num_vars, zonalVarNames);CHKERRQ(ierr);
   ierr = ex_close(exoid);CHKERRQ(ierr);
+#else
+  SETERRQ(PETSC_COMM_SELF,PETSC_ERR_SUP, "PETSc not compiled with Exodus II support.");
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -90,6 +96,7 @@ PetscErrorCode TdyIOAddExodusTime(char *ofilename, PetscReal time, TDyIO io){
   PetscErrorCode ierr;
   int exoid = -1;
   
+#if defined(PETSC_HAVE_EXODUSII)
   CPU_word_size = sizeof(PetscReal);
   IO_word_size  = sizeof(PetscReal);
   
@@ -98,6 +105,7 @@ PetscErrorCode TdyIOAddExodusTime(char *ofilename, PetscReal time, TDyIO io){
   if (exoid < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_FILE_UNEXPECTED, "Unable to open exodus file %\n", ofilename);
   ierr = ex_put_time(exoid,io->num_times,&time);CHKERRQ(ierr);
   ierr = ex_close(exoid);CHKERRQ(ierr);
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -108,6 +116,7 @@ PetscErrorCode TdyIOWriteExodusVar(char *ofilename, Vec U, TDyIO io){
   float version;
   int exoid = -1;
   
+#if defined(PETSC_HAVE_EXODUSII)
   CPU_word_size = sizeof(PetscReal);
   IO_word_size  = sizeof(PetscReal);
 
@@ -115,6 +124,7 @@ PetscErrorCode TdyIOWriteExodusVar(char *ofilename, Vec U, TDyIO io){
   if (exoid < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_FILE_UNEXPECTED, "Unable to open exodus file %\n", ofilename);
   ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, io->num_times);CHKERRQ(ierr);       
   ierr = ex_close(exoid);CHKERRQ(ierr);
+#endif
 
   PetscFunctionReturn(0);
 }
