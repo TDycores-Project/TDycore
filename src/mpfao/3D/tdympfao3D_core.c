@@ -140,7 +140,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
 
                 for (kk=0; kk<dim; kk++) {
                   for (mm=0; mm<dim; mm++) {
-                    K_neighbor[kk][mm] = tdy->K0[neighbor_cell_id*dim*dim + kk*dim + mm];
+                    K_neighbor[kk][mm] = matprop->K0[neighbor_cell_id*dim*dim + kk*dim + mm];
                   }
                 }
               } else {
@@ -148,7 +148,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
                 ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
                 for (kk=0; kk<dim; kk++) {
                   for (mm=0; mm<dim; mm++) {
-                    K_neighbor[kk][mm] = tdy->K0[icell*dim*dim + kk*dim + mm];
+                    K_neighbor[kk][mm] = matprop->K0[icell*dim*dim + kk*dim + mm];
                   }
                 }
               }
