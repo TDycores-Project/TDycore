@@ -502,8 +502,7 @@ source file in which the function is implemented:::
     /// @param [in] numCents The number of cents required to wash a load
     /// @param [out] wm A pointer that stores the newly-created instance of
     ///                 the washing machine.
-    /// @returns PETSC_SUCCESS (0) on success, or a non-zero error code on
-    ///          failure.
+    /// @returns 0 on success, or a non-zero error code on failure.
     PetscErrorCode TDyWashingMachineCreate(PetscInt numCents, TDyWashingMachine *wm) {
       ...
     }
@@ -513,8 +512,7 @@ Here's the destructor function:::
     /// Destroys an existing washing machine object, releaseing all resources
     /// allocated to it.
     /// @param [inout] wm A pointer to the existing washing machine object.
-    /// @returns PETSC_SUCCESS (0) on success, or a non-zero error code on
-    ///          failure.
+    /// @returns 0 on success, or a non-zero error code on failure.
     PetscErrorCode WashingMachineDestroy(WashingMachine* wm) {
       ...
     }
@@ -530,8 +528,7 @@ Finally, here are examples of markup for the methods we discussed earlier:::
     /// @param [inout] load A load of laundry whose state will be changed from
     ///                     DIRTY to CLEAN. If load is already CLEAN, this
     ///                     function has no effect.
-    /// @returns PETSC_SUCCESS (0) on success, or a non-zero error code on
-    ///          failure.
+    /// @returns 0 on success, or a non-zero error code on failure.
     PetscError TDyWashingMachineWash(TDyWashingMachine* wm, Laundry* load) {
       ...
     }
