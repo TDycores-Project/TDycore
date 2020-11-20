@@ -4,8 +4,6 @@
 #include <petsc/private/dmpleximpl.h>
 #include <petscviewerhdf5.h>
 
-PetscReal test=1.0;
-
 PetscErrorCode TDyIOCreate(TDyIO *_io) {
   TDyIO io;
   PetscFunctionBegin;
@@ -77,10 +75,11 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
 PetscErrorCode TdyIOInitializeHDF5(char *ofilename, DM dm){
   PetscViewer viewer; 
   PetscErrorCode ierr;
-  char word[32];
-
+  PetscViewerFormat format;
+  format = PETSC_VIEWER_HDF5_XDMF;
   
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,ofilename,FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
+  ierr = PetscViewerPushFormat(viewer, format);CHKERRQ(ierr);
   ierr = DMView(dm,viewer);CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
   
