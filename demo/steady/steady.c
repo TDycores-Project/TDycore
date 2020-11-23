@@ -265,6 +265,33 @@ PetscErrorCode Forcing3(TDy tdy,double *x,double *f,void *ctx) {
   PetscFunctionReturn(0);
 }
 
+/*--- -dim 1 -quartic ---------------------------------------------------------------*/
+// p = x (1-x), gradp = [(1-2x)]
+void PermQuartic1D(double *x,double *K) {
+  K[0] = 1;
+}
+// p =x(1-x)
+PetscErrorCode PressureQuartic1D(TDy tdy, double *x, double *p, void *ctx) {
+  *p = x[0]*(1.0 - x[0]);
+  PetscFunctionReturn(0);
+}
+//gradp = [(1-2x)], v=-K[0] gradp
+PetscErrorCode VelocityQuartic1D(TDy tdy, double *x, double *v, void *ctx) {
+  double gradpx, K[1];
+  PermQuartic1D(x,K);
+  gradpx = (1-2*x[0]);
+  v[0] = -(K[0]*gradpx);
+  PetscFunctionReturn(0);
+}
+//f=div(v) = -K[0](-2)
+PetscErrorCode ForcingQuartic1D(TDy tdy, double *x, double *f, void *ctx) {
+  double K[1];
+  PermQuartic1D(x,K);
+  PetscReal vx_x =  2*K[0];
+  (*f) = vx_x;
+  PetscFunctionReturn(0);
+}
+
 /*--- -dim 2 -quartic ---------------------------------------------------------------*/
 // p = x (1-x) y (1-y), gradp = [(1-2x)y(1-y),x(1-x)(1-2y)]
 void PermQuartic2D(double *x,double *K) {
@@ -272,12 +299,12 @@ void PermQuartic2D(double *x,double *K) {
   K[2] = 0; K[3] = 1;
 }
 // p =x(1-x)y(1-y)
-PetscErrorCode PressureQuartic(TDy tdy, double *x, double *p, void *ctx) {
+PetscErrorCode PressureQuartic2D(TDy tdy, double *x, double *p, void *ctx) {
   *p = x[0]*(1.0 - x[0])*x[1]*(1.0 - x[1]);
   PetscFunctionReturn(0);
 }
 //gradp = [(1-2x)y(1-y);x(1-x)(1-2y)], v=-K gradp
-PetscErrorCode VelocityQuartic(TDy tdy, double *x, double *v, void *ctx) {
+PetscErrorCode VelocityQuartic2D(TDy tdy, double *x, double *v, void *ctx) {
   double gradpx, gradpy, K[4];
   PermQuartic2D(x,K);
   gradpx = (1-2*x[0])*x[1]*(1-x[1]);
@@ -287,7 +314,7 @@ PetscErrorCode VelocityQuartic(TDy tdy, double *x, double *v, void *ctx) {
   PetscFunctionReturn(0);
 }
 //f=div(v) = (2K[0]y(1-y) -K[1](1-2x)(1-2y)) + (-K[2](1-2x)(1-2y)+2K[3]x(1-x))
-PetscErrorCode ForcingQuartic(TDy tdy, double *x, double *f, void *ctx) {
+PetscErrorCode ForcingQuartic2D(TDy tdy, double *x, double *f, void *ctx) {
   double K[4];
   PermQuartic2D(x,K);
   PetscReal vx_x =  2*K[0]*x[1]*(1-x[1]) - K[1]*(1-2*x[0])*(1-2*x[1]);
@@ -711,9 +738,9 @@ int main(int argc, char **argv) {
     }
   } else if (quartic) {
           ierr = TDySetPermeabilityTensor(tdy,PermQuartic2D); CHKERRQ(ierr);
-          ierr = TDySetForcingFunction(tdy,ForcingQuartic,NULL); CHKERRQ(ierr);
-          ierr = TDySetDirichletValueFunction(tdy,PressureQuartic,NULL); CHKERRQ(ierr);
-          ierr = TDySetDirichletFluxFunction(tdy,VelocityQuartic,NULL); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,ForcingQuartic2D,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletValueFunction(tdy,PressureQuartic2D,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletFluxFunction(tdy,VelocityQuartic2D,NULL); CHKERRQ(ierr);
   } else{
     switch(problem) {
         case 1:
