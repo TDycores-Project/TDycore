@@ -66,6 +66,14 @@ PetscErrorCode InvPermWheeler2012_2(const PetscReal x[],PetscScalar *K_inv) {
   PetscFunctionReturn(0);
 }
 
+// p(x) = (sin(3*pi*x))^2==> f(x) = div(u) = div(-K[0]*dp/dx)
+PetscErrorCode Forcing1D(const PetscReal x[],PetscScalar *f) {
+  PetscScalar K[1]; Perm1D(x,K);
+  (*f)  = -K[0]*PetscCosReal(6*PETSC_PI*x[0]);
+  (*f) *= 18*PETSC_PI*PETSC_PI;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode ForcingWheeler2012_1(const PetscReal x[],PetscScalar *f) {
   PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
   PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
@@ -82,7 +90,6 @@ PetscErrorCode ForcingWheeler2012_1(const PetscReal x[],PetscScalar *f) {
   (*f) *= 18*PETSC_PI*PETSC_PI;
   PetscFunctionReturn(0);
 }
-
 
 PetscErrorCode ForcingWheeler2012_2(const PetscReal x[],PetscScalar *f) {
   PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
