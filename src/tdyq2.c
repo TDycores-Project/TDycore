@@ -129,7 +129,12 @@ static void f0_u(
   }
   */
   // If we add K_inv
-  if (dim == 2){
+  if (dim == 1){
+  PetscScalar K_inv[1];
+  InvPerm1D(x,K_inv);
+  f0[0] = K_inv[0]*u[uOff[0] + 0];   
+  }
+  else if (dim == 2){
   PetscScalar K_inv[4];
   InvPermWheeler2012_1(x,K_inv);
   f0[0] = K_inv[0]*u[uOff[0] + 0] + K_inv[1]*u[uOff[0] + 1];
@@ -186,8 +191,12 @@ static void f0_p(
   for (PetscInt d=0; d<dim; d++){
     div -= u_x[d*dim + d];
   }
-  
-  if (dim == 2){
+  if (dim == 1){
+  PetscScalar f;
+  Forcing1D(x,&f);
+  f0[0] = div + f;  
+  }
+  else if (dim == 2){
     PetscScalar f;
     ForcingWheeler2012_1(x,&f);
     f0[0] = div + f;
