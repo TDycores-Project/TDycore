@@ -17,6 +17,11 @@ weak form:
 
 PetscReal alpha = 1;
 
+PetscErrorCode Perm1D(const PetscReal x[], PetscScalar *K) {
+  K[0] = 2;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode PermWheeler2012_1(const PetscReal x[], PetscScalar *K) {
   K[0] = 2; K[1] = 1.25;
   K[2] = 1.25; K[3] = 3;
@@ -27,6 +32,14 @@ PetscErrorCode PermWheeler2012_2(const PetscReal x[], PetscScalar *K) {
   K[0] = alpha;     K[1] = 1;     K[2] = 1;
   K[3] = 1;         K[4] = 2;     K[5] = 1;
   K[6] = 1;         K[7] = 1;     K[8] = 2;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode InvPerm1D(const PetscReal x[], PetscScalar *K_inv) {
+  PetscScalar K[1];
+  Perm1D(x,K);
+
+  K_inv[0] =  1/K[0];
   PetscFunctionReturn(0);
 }
 
