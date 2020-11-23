@@ -736,11 +736,16 @@ int main(int argc, char **argv) {
         default:
         SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2012 only valid for -problem {1,2}");
     }
-  } else if (quartic) {
+  } else if (quartic && dim == 2) {
           ierr = TDySetPermeabilityTensor(tdy,PermQuartic2D); CHKERRQ(ierr);
           ierr = TDySetForcingFunction(tdy,ForcingQuartic2D,NULL); CHKERRQ(ierr);
           ierr = TDySetDirichletValueFunction(tdy,PressureQuartic2D,NULL); CHKERRQ(ierr);
           ierr = TDySetDirichletFluxFunction(tdy,VelocityQuartic2D,NULL); CHKERRQ(ierr);
+  } else if (quartic && dim == 1) {
+          ierr = TDySetPermeabilityTensor(tdy,PermQuartic1D); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,ForcingQuartic1D,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletValueFunction(tdy,PressureQuartic1D,NULL); CHKERRQ(ierr);
+          ierr = TDySetDirichletFluxFunction(tdy,VelocityQuartic1D,NULL); CHKERRQ(ierr);
   } else{
     switch(problem) {
         case 1:
