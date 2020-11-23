@@ -224,7 +224,12 @@ static void f0_u_J(
   }
   */
   //If we add K_inv 
-  if (dim == 2){
+  if (dim == 1){
+  PetscScalar K_inv[1];
+  InvPerm1D(x,K_inv);
+  g0[0] = K_inv[0];  
+  }
+  else if (dim == 2){
   PetscScalar K_inv[4];
   InvPermWheeler2012_1(x,K_inv);
   g0[0] = K_inv[0] + K_inv[1];
@@ -295,7 +300,11 @@ PetscErrorCode TDyQ2Initialize(TDy tdy) {
   ierr = PetscDSSetJacobian(ds, 0, 1, NULL, NULL,  f1_u_J, NULL);CHKERRQ(ierr);
   ierr = PetscDSSetJacobian(ds, 1, 0, NULL, f0_p_J, NULL,  NULL);CHKERRQ(ierr);
   ierr = PetscDSSetBdResidual(ds, 0, f0_bd_u, NULL);CHKERRQ(ierr);
-  if (dim ==2){
+  if (dim == 1){
+  const PetscInt   ids[] = {1, 2};
+  ierr = DMAddBoundary(dm, DM_BC_NATURAL, "flux", "Face Sets", 0, 0, NULL, (void (*)(void))NULL, NULL, 2, ids, NULL);CHKERRQ(ierr);  
+  }
+  else if (dim ==2){
   const PetscInt   ids[] = {1, 2, 3, 4};
   ierr = DMAddBoundary(dm, DM_BC_NATURAL, "flux", "Face Sets", 0, 0, NULL, (void (*)(void))NULL, NULL, 4, ids, NULL);CHKERRQ(ierr);
   }
@@ -316,6 +325,10 @@ static PetscErrorCode TDyQ2ApplyResidual(DM dm, Vec U, Vec F, void *dummy)
   PetscFunctionReturn(0);
 }
 
+void PermTest1D(const double *x,double *K) {
+  K[0] = 1;
+}
+
 void PermTest2D(const double *x,double *K) {
   K[0] = 1; K[1] = 0;
   K[2] = 0; K[3] = 1;
@@ -329,7 +342,10 @@ void PermTest3D(const double *x,double *K) {
 PetscErrorCode func_p(PetscInt dim, PetscReal time, const PetscReal x[0],
                       PetscInt Nf, PetscScalar *p, void *ctx)
 {
-if(dim == 2){
+if (dim == 1){
+*p = x[0]*(1.0 - x[0]);
+} 
+else if(dim == 2){
 //*p = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1]);
 *p = x[0]*(1.0 - x[0])*x[1]*(1.0 - x[1]);
 }
@@ -342,7 +358,13 @@ return 0;
 PetscErrorCode func_u(PetscInt dim, PetscReal time, const PetscReal x[0],
                       PetscInt Nf, PetscScalar *v, void *ctx)
 {
-if(dim == 2){
+if (dim == 1){
+  double gradpx, K[1];
+  PermTest1D(x,K);
+  gradpx = (1-2*x[0]);
+  v[0] = -(K[0]*gradpx);
+}
+else if(dim == 2){
 //double K[4]; PermTest2D(x,K);
 //  v[0] = -K[0]*(1-2*x[0]) - K[1]*(1-2*x[1]);
 //  v[1] = -K[2]*(1-2*x[0]) - K[3]*(1-2*x[1]);}
