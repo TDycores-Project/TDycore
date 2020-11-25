@@ -67,11 +67,11 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
 }
 
 PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM dm, int num_vars){
+#if defined(PETSC_HAVE_EXODUSII)
   int CPU_word_size, IO_word_size;
   PetscErrorCode ierr;
   int exoid = -1;
   
-#if defined(PETSC_HAVE_EXODUSII)
   CPU_word_size = sizeof(PetscReal);
   IO_word_size  = sizeof(PetscReal);
 
@@ -91,12 +91,12 @@ PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM 
 }
 
 PetscErrorCode TdyIOAddExodusTime(char *ofilename, PetscReal time, TDyIO io){
+#if defined(PETSC_HAVE_EXODUSII)
   int CPU_word_size, IO_word_size;
   float version;
   PetscErrorCode ierr;
   int exoid = -1;
   
-#if defined(PETSC_HAVE_EXODUSII)
   CPU_word_size = sizeof(PetscReal);
   IO_word_size  = sizeof(PetscReal);
   
@@ -111,12 +111,12 @@ PetscErrorCode TdyIOAddExodusTime(char *ofilename, PetscReal time, TDyIO io){
 }
   
 PetscErrorCode TdyIOWriteExodusVar(char *ofilename, Vec U, TDyIO io){ 
+#if defined(PETSC_HAVE_EXODUSII)
   int CPU_word_size, IO_word_size;
   PetscErrorCode ierr;
   float version;
   int exoid = -1;
   
-#if defined(PETSC_HAVE_EXODUSII)
   CPU_word_size = sizeof(PetscReal);
   IO_word_size  = sizeof(PetscReal);
 
