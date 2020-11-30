@@ -24,8 +24,8 @@ TDycore-based program:::
 
     PetscErrorCode TDyFinalize(void);
 
-Use this instead of ``MPI_Finalize`` or ``PetscFinalize``. This ensures that all
-TDycore subsystems properly free their resources.
+Use this function instead of ``MPI_Finalize`` or ``PetscFinalize``. This ensures
+that all TDycore subsystems properly free their resources.
 
 Fortran 90 Interface
 ^^^^^^^^^^^^^^^^^^^^
