@@ -1,11 +1,12 @@
-# This action build and publishes the Sphinx documentation for TDycore to a
-# GitHub Pages site.
+# This action build and publishes the Sphinx documentation for TDycore to its
+# GitHub Pages site. Adapted from
+# https://github.com/ammaraskar/sphinx-action-test/blob/master/.github/workflows/default.yml
 name: auto_publish_docs
 
 on:
   push:
     branches:
-      - master
+      - jeff-cohere/publish_docs # change to master when ready
 
 jobs:
   build:
@@ -18,25 +19,25 @@ jobs:
       with:
         pre-build-command: "pip install -r requirements.txt"
         build-command: "make doc-html"
-        docs-folder: "doc/sphinx"
+        docs-folder: "doc/sphinx/source"
     ## Great extra actions to compose with:
     ## Create an artifact of the html output.
     #- uses: actions/upload-artifact@v1
     #  with:
     #    name: DocumentationHTML
-    #    path: docs/_build/html/
+    #    path: doc/sphinx/build/html/
     ## Create an artifact out of the previously built pdf.
     #- uses: actions/upload-artifact@v1
     #  with:
     #    name: Documentation
-    #    path: docs2/_build/latex/pdfexample.pdf
-    # Publish built docs to gh-pages branch.
+    #    path: doc/sphinx/build/latex/pdfexample.pdf
+    # Publish built docs to github_pages branch.
     # ===============================
     - name: Commit documentation changes
       run: |
-        git clone https://github.com/ammaraskar/TDycore-site.git --branch gh-pages --single-branch gh-pages
-        cp -r doc/sphinx/build/html/* gh-pages/
-        cd gh-pages
+        git clone https://github.com/TDycore/TDycore.git --branch github_pages --single-branch github_pages
+        cp -r doc/sphinx/build/html/* docs/
+        cd docs
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add .
@@ -46,7 +47,7 @@ jobs:
     - name: Push changes
       uses: ad-m/github-push-action@master
       with:
-        branch: gh-pages
-        directory: gh-pages
+        branch: github_pages
+        directory: github_pages
         github_token: ${{ secrets.GITHUB_TOKEN }}
     # ===============================
