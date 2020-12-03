@@ -48,6 +48,6 @@ jobs:
       uses: ad-m/github-push-action@master
       with:
         branch: github_pages
-        directory: github_pages
+        directory: docs
         github_token: ${{ secrets.GITHUB_TOKEN }}
     # ===============================
