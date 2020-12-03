@@ -19,7 +19,7 @@ jobs:
       with:
         pre-build-command: "pip install -r requirements.txt"
         build-command: "make doc-html"
-        docs-folder: "doc/sphinx/source"
+        docs-folder: "doc/sphinx"
     ## Great extra actions to compose with:
     ## Create an artifact of the html output.
     #- uses: actions/upload-artifact@v1
