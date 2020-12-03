@@ -159,7 +159,7 @@ katex_options = r'''{
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'TYdcoredoc'
+htmlhelp_basename = 'TDycoredoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
