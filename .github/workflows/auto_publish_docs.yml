@@ -6,7 +6,7 @@ name: auto_publish_docs
 on:
   push:
     branches:
-      - jeff-cohere/publish-docs # change to master when ready
+      - master
 
 jobs:
   build:
