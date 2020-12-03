@@ -37,7 +37,8 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git clone https://github.com/TDycore/TDycore.git --branch github_pages --single-branch github_pages
+        #        git clone https://github.com/TDycore/TDycore.git --branch github_pages --single-branch github_pages
+        git checkout github_pages
         cp -r doc/sphinx/build/html/* docs/
         cd docs
         git add .
