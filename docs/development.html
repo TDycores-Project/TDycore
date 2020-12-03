@@ -1,0 +1,423 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>TDycore Development &mdash; TDycore unknown documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster.custom.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster.bundle.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-shadow.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-punk.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-noir.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-light.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-borderless.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/micromodal.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/sphinx_rtd_theme.css" type="text/css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/katex-math.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script src="_static/js/hoverxref.js"></script>
+        <script src="_static/js/tooltipster.bundle.min.js"></script>
+        <script src="_static/js/micromodal.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/contrib/auto-render.min.js"></script>
+        <script src="_static/katex_autorenderer.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Style Guide" href="styleguide.html" />
+    <link rel="prev" title="Getting Started" href="gettingstarted.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> TDycore
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                unknown
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gettingstarted.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">TDycore Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#initializing-the-tdycore-library">Initializing the TDycore Library</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#fortran-90-interface">Fortran 90 Interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#timers-and-profiling">Timers and Profiling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-tdycore-timers-subsystem">The TDycore Timers Subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#function-level-profiling">Function-Level Profiling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#manually-created-timers">Manually-Created Timers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#profiling-stages">Profiling Stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#generating-profiling-logs">Generating Profiling Logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#interpreting-profile-data-with-tdyprof">Interpreting Profile Data with TDyProf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#generating-scaling-study-plots-with-tdyperfplot">Generating Scaling Study Plots with TDyPerfPlot</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html">Style Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#data-types">Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#header-files">Header Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#scoping">Scoping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#id1">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#memory-management">Memory Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#naming">Naming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#comments-and-code-markup">Comments and Code Markup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#formatting">Formatting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CODE_OF_CONDUCT.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Changes/Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">Bibliography</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">TDycore</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>TDycore Development</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/development.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="tdycore-development">
+<h1>TDycore Development<a class="headerlink" href="#tdycore-development" title="Permalink to this headline">¶</a></h1>
+<p>This section contains topics that are useful to anyone developing the TDycore
+library or trying to use it in an application.</p>
+<div class="section" id="initializing-the-tdycore-library">
+<h2>Initializing the TDycore Library<a class="headerlink" href="#initializing-the-tdycore-library" title="Permalink to this headline">¶</a></h2>
+<p>Because the TDycore library uses MPI, PETSc, and other subsystems, we have
+defined a function to initialize these various subsystems at the beginning of
+any TDycore-based driver/program::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PetscErrorCode</span> <span class="n">TDyInit</span><span class="p">(</span><span class="nb">int</span> <span class="n">argc</span><span class="p">,</span> <span class="n">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[]);</span>
+</pre></div>
+</div>
+<p>Call this function where you would ordinarily call <code class="docutils literal notranslate"><span class="pre">MPI_Init</span></code> or
+<code class="docutils literal notranslate"><span class="pre">PetscInitialize</span></code>. It has no effect on subsequent calls. You can check whether
+the library has been initialized with a call to:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PetscBool</span> <span class="n">TDyInitialized</span><span class="p">(</span><span class="n">void</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Similarly, we have defined a finalization function to be called at the end of a
+TDycore-based program::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PetscErrorCode</span> <span class="n">TDyFinalize</span><span class="p">(</span><span class="n">void</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Use this function instead of <code class="docutils literal notranslate"><span class="pre">MPI_Finalize</span></code> or <code class="docutils literal notranslate"><span class="pre">PetscFinalize</span></code>. This ensures
+that all TDycore subsystems properly free their resources.</p>
+<div class="section" id="fortran-90-interface">
+<h3>Fortran 90 Interface<a class="headerlink" href="#fortran-90-interface" title="Permalink to this headline">¶</a></h3>
+<p>We offer two equivalent subroutines for Fortran 90, similar to their PETSc
+counterparts::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TDyInit</span><span class="p">(</span><span class="n">ierr</span><span class="p">)</span>
+<span class="n">TDyFinalize</span><span class="p">(</span><span class="n">ierr</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Both accept an integer that stores an error code if these subroutines encounter
+an issue.</p>
+</div>
+</div>
+<div class="section" id="timers-and-profiling">
+<h2>Timers and Profiling<a class="headerlink" href="#timers-and-profiling" title="Permalink to this headline">¶</a></h2>
+<p>We use PETSc’s <cite>Logging machinery &lt;https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/Profiling/index.html&gt;</cite>
+to understand the performance of the dycores. In particular, we’ve provided some
+high-level wrappers around the <cite>PetscLogEvent &lt;https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/Profiling/PetscLogEvent.html&gt;</cite>
+object that make it very easy to add timers for functions and blocks of code.</p>
+<div class="section" id="the-tdycore-timers-subsystem">
+<h3>The TDycore Timers Subsystem<a class="headerlink" href="#the-tdycore-timers-subsystem" title="Permalink to this headline">¶</a></h3>
+<p>The subsystem for timers and profiling is defined almost entirely in <code class="docutils literal notranslate"><span class="pre">tdytimers.h</span></code>.</p>
+<p>When a dycore is initialized, a registry of timers is created when you call
+<code class="docutils literal notranslate"><span class="pre">TDyInit()</span></code>. Once this is done, you can manipulate timers with functions and
+macros as described below. Make sure you include the <code class="docutils literal notranslate"><span class="pre">tdytimers.h</span></code> file
+wherever you use these timers.</p>
+</div>
+<div class="section" id="function-level-profiling">
+<h3>Function-Level Profiling<a class="headerlink" href="#function-level-profiling" title="Permalink to this headline">¶</a></h3>
+<p>The easiest way to use a timer is to instrument a function with a timer using
+<code class="docutils literal notranslate"><span class="pre">TDY_START_FUNCTION_TIMER()</span></code> and <code class="docutils literal notranslate"><span class="pre">TDY_STOP_FUNCTION_TIMER()</span></code>. These macros
+automatically create/retrieve a timer for the function and start/stop it as
+you’d expect. You place the <code class="docutils literal notranslate"><span class="pre">START</span></code> macro at the top of a function, and the
+<code class="docutils literal notranslate"><span class="pre">STOP</span></code> one at the bottom. For example::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">void</span> <span class="n">do_some_expensive_things</span><span class="p">(</span><span class="n">TDy</span> <span class="n">dy</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="n">TDY_START_FUNCTION_TIMER</span><span class="p">()</span>
+  <span class="o">...</span> <span class="o">//</span> <span class="n">Do</span> <span class="n">the</span> <span class="n">expensive</span> <span class="n">things</span>
+  <span class="n">TDY_STOP_FUNCTION_TIMER</span><span class="p">()</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>There’s no need to understand PETSc’s logging objects–everything is done for
+you. These function-level timers are named after the functions in which they
+appear.</p>
+</div>
+<div class="section" id="manually-created-timers">
+<h3>Manually-Created Timers<a class="headerlink" href="#manually-created-timers" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes you want to time something that happens in the middle of a function.
+You can do this by calling the <code class="docutils literal notranslate"><span class="pre">TDyGetTimer</span></code> function with the
+<code class="docutils literal notranslate"><span class="pre">TDyStartTimer</span></code> and <code class="docutils literal notranslate"><span class="pre">TDyStopTimer</span></code> macros::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>void do_various_things(TDy dy)
+{
+  ... // Stuff happens here
+
+  // Now we want to time a block of code in the middle of the function.
+  PetscLogEvent timer = TDyGetTimer(&quot;important things&quot;);
+  TDyStartTimer(timer);
+  ... // Important things happen here!
+  TDyStopTimer(timer);
+
+  ... // Other stuff happens here
+}
+</pre></div>
+</div>
+<p>This is a bit more involved–you need to know that timers are <code class="docutils literal notranslate"><span class="pre">PetscLogEvent</span></code>
+objects, for example, and you need to name your timers–but not too difficult.
+As you might have guessed, <code class="docutils literal notranslate"><span class="pre">TDY_START_FUNCTION_TIMER</span></code> and
+<code class="docutils literal notranslate"><span class="pre">TDY_STOP_FUNCTION_TIMER</span></code> are just wrappers around these constructs.
+<code class="docutils literal notranslate"><span class="pre">TDyStartTimer</span></code> and <code class="docutils literal notranslate"><span class="pre">TDyStopTimer</span></code> are themselves just macros that call
+<code class="docutils literal notranslate"><span class="pre">PetscLogEventBegin</span></code> and <code class="docutils literal notranslate"><span class="pre">PetscLogEventEnd</span></code>, so you can always use those if
+you want more control.</p>
+</div>
+<div class="section" id="profiling-stages">
+<h3>Profiling Stages<a class="headerlink" href="#profiling-stages" title="Permalink to this headline">¶</a></h3>
+<p>PETSc allows an arbitrary number of logging/profiling “stages” to be defined so
+that you can organize your profiling into sections. These stages can be named
+for convenience. You can enter and exit a named stage with calls to
+<code class="docutils literal notranslate"><span class="pre">TDyEnterProfilingStage(stageName)</span></code> and <code class="docutils literal notranslate"><span class="pre">TDyExitProfilingStage(stageName)</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">stageName</span></code> is a string containing the name of the stage.</p>
+<p>TDycore provides these named stages, registering them in <code class="docutils literal notranslate"><span class="pre">TDyInit</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;TDycore</span> <span class="pre">Setup&quot;</span></code>: for creating meshes, setting up initial conditions,
+calculating time-independent matrices and vectors, etc.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;TDycore</span> <span class="pre">Stepping&quot;</span></code>, for timestepping</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;TDycore</span> <span class="pre">I/O&quot;</span></code>, for checkpointing, restarting, generating visualizations</p></li>
+</ul>
+<p>You can register your own named stages with <code class="docutils literal notranslate"><span class="pre">TDyAddProfilingStage(stageName)</span></code>.
+All of this machinery is a thin wrapper around PETSc’s <code class="docutils literal notranslate"><span class="pre">PetscLogStage</span></code>
+mechanism, which you can use if you prefer. The functions and macros above just
+simplify the bookkeeping.</p>
+</div>
+<div class="section" id="generating-profiling-logs">
+<h3>Generating Profiling Logs<a class="headerlink" href="#generating-profiling-logs" title="Permalink to this headline">¶</a></h3>
+<p>Adding timers to a code is only part of profiling. You also need to generate
+profiling reports for runs of interest! Fortunately, this is easy–just add the
+<code class="docutils literal notranslate"><span class="pre">-tdy_timers</span></code> flag to your command line arguments to generate a performance
+log. This log is named <code class="docutils literal notranslate"><span class="pre">tdycore_profile.csv</span></code>. It’s a comma-separated variable
+file containing all performance data collected by PETSc. The timers you’ve
+created show up in the profile just like those embedded in the PETSc library.</p>
+<p>If you’d rather look at the traditional profiling/log data dumped by PETSc, you
+can use the <code class="docutils literal notranslate"><span class="pre">-log_view</span></code> flag to have PETSc print that information to the
+standard output.</p>
+</div>
+<div class="section" id="interpreting-profile-data-with-tdyprof">
+<h3>Interpreting Profile Data with TDyProf<a class="headerlink" href="#interpreting-profile-data-with-tdyprof" title="Permalink to this headline">¶</a></h3>
+<p>If you’ve generated a <code class="docutils literal notranslate"><span class="pre">tdycore_profile.csv</span></code> file, you can use a tool called
+<code class="docutils literal notranslate"><span class="pre">tdyprof</span></code> (located in the <code class="docutils literal notranslate"><span class="pre">tools/</span></code> subdirectory of the source tree). This
+Python script digests the contents of the CSV file you give it and generates
+nicely-formatted reports for desired information. Use it thus::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tdyprof</span> <span class="o">&lt;</span><span class="n">profile</span><span class="o">.</span><span class="n">csv</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">command</span><span class="o">&gt;</span> <span class="p">[</span><span class="n">options</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>or just type <code class="docutils literal notranslate"><span class="pre">tdyprof</span></code> by itself to see its usage information. For example,
+to see the top 10 “hotspots” in the performance profile::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tdyprof</span> <span class="n">tdycore_profile</span><span class="o">.</span><span class="n">csv</span> <span class="n">top10</span>
+<span class="n">tdyprof</span><span class="p">:</span> <span class="n">showing</span> <span class="n">top</span> <span class="mi">10</span> <span class="n">hits</span><span class="p">:</span>
+      <span class="n">Stage</span> <span class="n">Name</span>                               <span class="n">Event</span> <span class="n">Name</span>             <span class="n">Time</span>             <span class="n">FLOP</span>
+      <span class="n">Main</span> <span class="n">Stage</span>               <span class="n">TDyTimeIntegratorRunToTime</span>         <span class="mf">0.139049</span>      <span class="mf">1.85991e+07</span>
+      <span class="n">Main</span> <span class="n">Stage</span>                                <span class="n">SNESSolve</span>          <span class="mf">0.13895</span>      <span class="mf">1.85991e+07</span>
+      <span class="n">Main</span> <span class="n">Stage</span>                         <span class="n">SNESJacobianEval</span>         <span class="mf">0.120045</span>          <span class="mf">609812.</span>
+      <span class="n">Main</span> <span class="n">Stage</span>              <span class="n">TDyMPFAOSNESJacobian_3DMesh</span>         <span class="mf">0.120032</span>          <span class="mf">609812.</span>
+      <span class="n">Main</span> <span class="n">Stage</span>        <span class="n">TDyMPFAOIJacobian_Vertices_3DMesh</span>         <span class="mf">0.118853</span>          <span class="mf">606312.</span>
+   <span class="n">TDycore</span> <span class="n">Setup</span>                   <span class="n">TDyDriverInitializeTDy</span>        <span class="mf">0.0912797</span>           <span class="mf">52040.</span>
+   <span class="n">TDycore</span> <span class="n">Setup</span>                                 <span class="n">TDySetup</span>        <span class="mf">0.0533342</span>           <span class="mf">52040.</span>
+   <span class="n">TDycore</span> <span class="n">Setup</span>                       <span class="n">TDyMPFAOInitialize</span>        <span class="mf">0.0533217</span>           <span class="mf">52040.</span>
+      <span class="n">Main</span> <span class="n">Stage</span>                         <span class="n">DMPlexDistribute</span>        <span class="mf">0.0386017</span>               <span class="mf">0.</span>
+   <span class="n">TDycore</span> <span class="n">Setup</span>                        <span class="n">TDyCreateJacobian</span>        <span class="mf">0.0370897</span>               <span class="mf">0.</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="generating-scaling-study-plots-with-tdyperfplot">
+<h3>Generating Scaling Study Plots with TDyPerfPlot<a class="headerlink" href="#generating-scaling-study-plots-with-tdyperfplot" title="Permalink to this headline">¶</a></h3>
+<p>TODO</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="styleguide.html" class="btn btn-neutral float-right" title="Style Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="gettingstarted.html" class="btn btn-neutral float-left" title="Getting Started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright TBD
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

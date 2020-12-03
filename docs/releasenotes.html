@@ -1,0 +1,317 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Changes/Release Notes &mdash; TDycore unknown documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster.custom.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster.bundle.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-shadow.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-punk.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-noir.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-light.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-borderless.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/micromodal.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/sphinx_rtd_theme.css" type="text/css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/katex-math.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script src="_static/js/hoverxref.js"></script>
+        <script src="_static/js/tooltipster.bundle.min.js"></script>
+        <script src="_static/js/micromodal.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/contrib/auto-render.min.js"></script>
+        <script src="_static/katex_autorenderer.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Bibliography" href="references.html" />
+    <link rel="prev" title="TDycore Code of Conduct" href="CODE_OF_CONDUCT.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> TDycore
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                unknown
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gettingstarted.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">TDycore Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html">Style Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#data-types">Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#header-files">Header Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#scoping">Scoping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#id1">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#memory-management">Memory Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#naming">Naming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#comments-and-code-markup">Comments and Code Markup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#formatting">Formatting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CODE_OF_CONDUCT.html">Code of Conduct</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Changes/Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#current-master">Current Master</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#interface-changes">Interface changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#new-features">New features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#performance-improvements">Performance improvements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-1-nov-1-2020-just-an-example">v0.1 (Nov 1, 2020, Just an Example)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Interface changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">New features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Performance improvements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Examples</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#deprecated-backends">Deprecated backends</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">Bibliography</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">TDycore</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Changes/Release Notes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/releasenotes.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="changes-release-notes">
+<h1>Changes/Release Notes<a class="headerlink" href="#changes-release-notes" title="Permalink to this headline">¶</a></h1>
+<p>On this page we provide a summary of the main API changes, new features and examples
+for each release of TDycore.</p>
+<div class="section" id="current-master">
+<span id="main"></span><h2>Current Master<a class="headerlink" href="#current-master" title="Permalink to this headline">¶</a></h2>
+<p>The current <code class="docutils literal notranslate"><span class="pre">master</span></code> branch contains bug fixes and interfaces changes.</p>
+<div class="section" id="interface-changes">
+<h3>Interface changes<a class="headerlink" href="#interface-changes" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="new-features">
+<h3>New features<a class="headerlink" href="#new-features" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="performance-improvements">
+<h3>Performance improvements<a class="headerlink" href="#performance-improvements" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h3>
+</div>
+</div>
+<div class="section" id="v0-1-nov-1-2020-just-an-example">
+<span id="v0-1"></span><h2>v0.1 (Nov 1, 2020, Just an Example)<a class="headerlink" href="#v0-1-nov-1-2020-just-an-example" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id1">
+<h3>Interface changes<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Bullets go here</p></li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h3>New features<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Bullets go here</p></li>
+</ul>
+</div>
+<div class="section" id="id3">
+<h3>Performance improvements<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Bullets go here</p></li>
+</ul>
+</div>
+<div class="section" id="id4">
+<h3>Examples<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Bullets go here</p></li>
+</ul>
+</div>
+<div class="section" id="deprecated-backends">
+<h3>Deprecated backends<a class="headerlink" href="#deprecated-backends" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Bullets go here</p></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="references.html" class="btn btn-neutral float-right" title="Bibliography" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="CODE_OF_CONDUCT.html" class="btn btn-neutral float-left" title="TDycore Code of Conduct" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright TBD
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

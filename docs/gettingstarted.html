@@ -1,0 +1,355 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Getting Started &mdash; TDycore unknown documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster.custom.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster.bundle.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-shadow.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-punk.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-noir.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-light.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-borderless.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/micromodal.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/sphinx_rtd_theme.css" type="text/css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/katex-math.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script src="_static/js/hoverxref.js"></script>
+        <script src="_static/js/tooltipster.bundle.min.js"></script>
+        <script src="_static/js/micromodal.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/contrib/auto-render.min.js"></script>
+        <script src="_static/katex_autorenderer.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="TDycore Development" href="development.html" />
+    <link rel="prev" title="Introduction" href="intro.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> TDycore
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                unknown
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installing-petsc-and-dependencies">Installing PETSc and Dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-tdycore">Building TDycore</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-the-regression-tests">Running the Regression Tests</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">TDycore Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html">Style Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#data-types">Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#header-files">Header Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#scoping">Scoping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#id1">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#memory-management">Memory Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#naming">Naming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#comments-and-code-markup">Comments and Code Markup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#formatting">Formatting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CODE_OF_CONDUCT.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Changes/Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">Bibliography</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">TDycore</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Getting Started</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/gettingstarted.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h1>
+<p>To build TDycores, you need</p>
+<ul class="simple">
+<li><p><cite>CMake &lt;https://cmake.org/&gt;</cite> version 3.10+</p></li>
+<li><p>GNU Make</p></li>
+<li><p>Decent C, C++, and Fortran compilers</p></li>
+<li><p><cite>PETSc &lt;https://www.mcs.anl.gov/petsc/&gt;</cite>, release 3.14 (tagged <code class="docutils literal notranslate"><span class="pre">v3.14</span></code>),
+installed as described below, with <cite>PETSC_DIR</cite> and <cite>PETSC_ARCH</cite> environment
+variables set accordingly.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">autoconf</span></code> and <code class="docutils literal notranslate"><span class="pre">automake</span></code> for Pnetcdf. On Mac you can use Homebrew to get
+these.</p></li>
+</ul>
+<p>For the purpose of illustration, let’s assume you’re using the <code class="docutils literal notranslate"><span class="pre">gcc</span></code>, <code class="docutils literal notranslate"><span class="pre">g++</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">gfortran</span></code> compilers.</p>
+<div class="section" id="installing-petsc-and-dependencies">
+<h2>Installing PETSc and Dependencies<a class="headerlink" href="#installing-petsc-and-dependencies" title="Permalink to this headline">¶</a></h2>
+<p>TDycore relies on PETSc to provide several required libraries. Here’s how you
+can properly configure and install PETSc on your system.</p>
+<ol class="arabic">
+<li><p>Clone the PETSc repo somewhere in your workspace.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">gitlab</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">petsc</span><span class="o">/</span><span class="n">petsc</span><span class="o">.</span><span class="n">git</span>
+</pre></div>
+</div>
+</li>
+<li><p>Set the repo to the correct revision.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">petsc</span>
+<span class="n">git</span> <span class="n">checkout</span> <span class="n">v3</span><span class="o">.</span><span class="mi">14</span>
+</pre></div>
+</div>
+</li>
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">PETSC_DIR</span></code> and <code class="docutils literal notranslate"><span class="pre">PETSC_ARCH</span></code>, and then run PETSc’s <code class="docutils literal notranslate"><span class="pre">configure</span></code>
+script. The value of <code class="docutils literal notranslate"><span class="pre">PETSC_ARCH</span></code> doesn’t matter–it’s just a name for your
+build configuration. It might be good to name it <code class="docutils literal notranslate"><span class="pre">debug</span></code> or <code class="docutils literal notranslate"><span class="pre">opt</span></code>, for
+example, depending on how you’re configuring it.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>export PETSC_DIR=$PWD    # (e.g. if you&#39;re using bash)
+export PETSC_ARCH=debug   # (for debug config)
+./configure \
+  --with-cc=mpicc \
+  --with-cxx=mpicxx \
+  --with-fc=mpif90 \
+  --CFLAGS=&#39;-g -O0&#39; --CXXFLAGS=&#39;-g -O0&#39; --FFLAGS=&#39;-g -O0 -Wno-unused-function&#39; \
+  --with-clanguage=c \
+  --with-debug=1  \
+  --with-shared-libraries=0 \
+  --download-hdf5 \
+  --download-metis \
+  --download-parmetis \
+  --download-exodusii \
+  --download-netcdf \
+  --download-pnetcdf \
+  --download-zlib \
+  --download-fblaslapack
+</pre></div>
+</div>
+</li>
+<li><p>Build PETSc.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">make</span> <span class="nb">all</span>
+</pre></div>
+</div>
+</li>
+<li><p>Run PETSc’s tests to make sure it’s properly built.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">make</span> <span class="n">test</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Above, we build PETSc in a “debug” configuration, for use in development. To
+build a “production” version of PETSc for performant simulations, run
+<code class="docutils literal notranslate"><span class="pre">configure</span></code> with <code class="docutils literal notranslate"><span class="pre">--with-debug=0</span></code> instead.</p>
+</div>
+<div class="section" id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this headline">¶</a></h2>
+<p>If you get errors about undefined symbols during the configuration/build
+process, you can try to fix it using the <code class="docutils literal notranslate"><span class="pre">--LIBS</span></code> flag to pass arguments to
+the linker. For example, you might need <code class="docutils literal notranslate"><span class="pre">--LIBS='-ldl</span> <span class="pre">-lz'</span></code> to get some of the
+I/O libraries to install properly.</p>
+<p>On some systems, it may be easier to use shared libraries instead of static
+libraries (<code class="docutils literal notranslate"><span class="pre">--with-shared-libraries=1</span></code>).</p>
+<p><cite>Look here &lt;https://www.mcs.anl.gov/petsc/documentation/installation.html&gt;</cite>
+for more information on getting PETSc to build successfully in various
+configurations.</p>
+</div>
+<div class="section" id="building-tdycore">
+<h2>Building TDycore<a class="headerlink" href="#building-tdycore" title="Permalink to this headline">¶</a></h2>
+<p>When you’ve successully installed PETSc, you can build TDycore with <code class="docutils literal notranslate"><span class="pre">make</span></code> from
+the top-level source directory::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">make</span> <span class="o">-</span><span class="n">j</span> <span class="n">V</span><span class="o">=</span><span class="mi">1</span>
+</pre></div>
+</div>
+<p>Here, <code class="docutils literal notranslate"><span class="pre">V=1</span></code> isn’t strictly needed–it just provides verbose reporting of
+compiler and linker activity, for those of us who like to know that things are
+happening.</p>
+</div>
+<div class="section" id="running-the-regression-tests">
+<h2>Running the Regression Tests<a class="headerlink" href="#running-the-regression-tests" title="Permalink to this headline">¶</a></h2>
+<p>You can run TDycore’s regression test suite with <code class="docutils literal notranslate"><span class="pre">make</span></code> from the top-level
+source directory:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">make</span> <span class="n">test</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="development.html" class="btn btn-neutral float-right" title="TDycore Development" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="intro.html" class="btn btn-neutral float-left" title="Introduction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright TBD
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

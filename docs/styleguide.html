@@ -1,0 +1,809 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Style Guide &mdash; TDycore unknown documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster.custom.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster.bundle.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-shadow.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-punk.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-noir.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-light.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-borderless.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/micromodal.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/sphinx_rtd_theme.css" type="text/css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/katex-math.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script src="_static/js/hoverxref.js"></script>
+        <script src="_static/js/tooltipster.bundle.min.js"></script>
+        <script src="_static/js/micromodal.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/contrib/auto-render.min.js"></script>
+        <script src="_static/katex_autorenderer.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="TDycore: How to Contribute" href="CONTRIBUTING.html" />
+    <link rel="prev" title="TDycore Development" href="development.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> TDycore
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                unknown
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gettingstarted.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">TDycore Development</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Style Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#data-types">Data Types</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#numeric-datatypes">Numeric Datatypes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#floating-point-comparisons">Floating point comparisons</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pointers">Pointers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#structs-pods">Structs / PODs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#classes">Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#class-type-struct">Class Type (Struct)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#class-constructor-s">Class Constructor(s)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#class-destructor">Class Destructor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#class-functions-methods">Class Functions / Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#polymorphism-in-c">Polymorphism in C</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#header-files">Header Files</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#self-contained-headers">Self-Contained Headers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#header-file-location">Header File Location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#header-guards">Header Guards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#including-headers-within-tdycore-source-code">Including Headers within TDycore Source Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#public-and-private-headers-structs-and-classes">Public and Private Headers, Structs and Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#functions">Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#global-variables">Global variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#other-symbols">Other Symbols</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#scoping">Scoping</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#internal-functions">Internal Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#local-variables">Local Variables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scoping-operators">Scoping Operators</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#id1">Functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#length-of-a-function-body">Length of a Function Body</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#memory-management">Memory Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#naming">Naming</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#types">Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id2">Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#variables-and-fields">Variables and Fields</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#constants-enums-macros">Constants, Enums, Macros</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#comments-and-code-markup">Comments and Code Markup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#formatting">Formatting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CODE_OF_CONDUCT.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Changes/Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">Bibliography</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">TDycore</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Style Guide</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/styleguide.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="style-guide">
+<h1><a class="toc-backref" href="#id3">Style Guide</a><a class="headerlink" href="#style-guide" title="Permalink to this headline">¶</a></h1>
+<p>This document describes rules, guidelines, and best practices for writing
+code for the TDycore library. The structure of this guide was inspired by
+Google’s C++ style guide, which appears at</p>
+<p><a class="reference external" href="https://google.github.io/styleguide/cppguide.html">https://google.github.io/styleguide/cppguide.html</a></p>
+<div class="contents topic" id="table-of-contents">
+<p class="topic-title">Table of Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#style-guide" id="id3">Style Guide</a></p></li>
+<li><p><a class="reference internal" href="#data-types" id="id4">Data Types</a></p>
+<ul>
+<li><p><a class="reference internal" href="#numeric-datatypes" id="id5">Numeric Datatypes</a></p>
+<ul>
+<li><p><a class="reference internal" href="#floating-point-comparisons" id="id6">Floating point comparisons</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#pointers" id="id7">Pointers</a></p></li>
+<li><p><a class="reference internal" href="#structs-pods" id="id8">Structs / PODs</a></p></li>
+<li><p><a class="reference internal" href="#classes" id="id9">Classes</a></p>
+<ul>
+<li><p><a class="reference internal" href="#class-type-struct" id="id10">Class Type (Struct)</a></p></li>
+<li><p><a class="reference internal" href="#class-constructor-s" id="id11">Class Constructor(s)</a></p></li>
+<li><p><a class="reference internal" href="#class-destructor" id="id12">Class Destructor</a></p></li>
+<li><p><a class="reference internal" href="#class-functions-methods" id="id13">Class Functions / Methods</a></p></li>
+<li><p><a class="reference internal" href="#polymorphism-in-c" id="id14">Polymorphism in C</a></p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#header-files" id="id15">Header Files</a></p>
+<ul>
+<li><p><a class="reference internal" href="#self-contained-headers" id="id16">Self-Contained Headers</a></p></li>
+<li><p><a class="reference internal" href="#header-file-location" id="id17">Header File Location</a></p></li>
+<li><p><a class="reference internal" href="#header-guards" id="id18">Header Guards</a></p></li>
+<li><p><a class="reference internal" href="#including-headers-within-tdycore-source-code" id="id19">Including Headers within TDycore Source Code</a></p></li>
+<li><p><a class="reference internal" href="#public-and-private-headers-structs-and-classes" id="id20">Public and Private Headers, Structs and Classes</a></p></li>
+<li><p><a class="reference internal" href="#functions" id="id21">Functions</a></p></li>
+<li><p><a class="reference internal" href="#global-variables" id="id22">Global variables</a></p></li>
+<li><p><a class="reference internal" href="#other-symbols" id="id23">Other Symbols</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#scoping" id="id24">Scoping</a></p>
+<ul>
+<li><p><a class="reference internal" href="#internal-functions" id="id25">Internal Functions</a></p></li>
+<li><p><a class="reference internal" href="#local-variables" id="id26">Local Variables</a></p></li>
+<li><p><a class="reference internal" href="#scoping-operators" id="id27">Scoping Operators</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#id1" id="id28">Functions</a></p>
+<ul>
+<li><p><a class="reference internal" href="#length-of-a-function-body" id="id29">Length of a Function Body</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#memory-management" id="id30">Memory Management</a></p></li>
+<li><p><a class="reference internal" href="#naming" id="id31">Naming</a></p>
+<ul>
+<li><p><a class="reference internal" href="#types" id="id32">Types</a></p></li>
+<li><p><a class="reference internal" href="#id2" id="id33">Functions</a></p></li>
+<li><p><a class="reference internal" href="#variables-and-fields" id="id34">Variables and Fields</a></p></li>
+<li><p><a class="reference internal" href="#constants-enums-macros" id="id35">Constants, Enums, Macros</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#comments-and-code-markup" id="id36">Comments and Code Markup</a></p></li>
+<li><p><a class="reference internal" href="#formatting" id="id37">Formatting</a></p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="data-types">
+<h1><a class="toc-backref" href="#id4">Data Types</a><a class="headerlink" href="#data-types" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="numeric-datatypes">
+<h2><a class="toc-backref" href="#id5">Numeric Datatypes</a><a class="headerlink" href="#numeric-datatypes" title="Permalink to this headline">¶</a></h2>
+<p>TDycore relies on the <cite>PETSC &lt;https://www.mcs.anl.gov/petsc/&gt;</cite> library, and
+adopts many of its conventions. In particular, the floating point precision of
+TDycore is determined by its underlying PETSc library. The following numeric
+data types are supported by PETSc and used by TDycore:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PetscScalar</span></code>: A floating point number at the supported level of precision
+(single or double), that is real-valued or complex-valued, depending on how
+PETSc is configured</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PetscReal</span></code>: A real-valued floating point number at the supported level of
+precision</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PetscInt</span></code>: An integer whose size is determined by PETSc.</p></li>
+</ul>
+<p>Use these types for numeric calculations within TDycore.</p>
+<div class="section" id="floating-point-comparisons">
+<h3><a class="toc-backref" href="#id6">Floating point comparisons</a><a class="headerlink" href="#floating-point-comparisons" title="Permalink to this headline">¶</a></h3>
+<p>In general, avoid comparing two floating point numbers for equality. Such
+comparisons depend on the representation of the supported precision and the
+magnitudes of the quantities under comparison. Instead, use one of the following
+functions::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">Returns</span> <span class="n">true</span> <span class="n">iff</span> <span class="o">|</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="o">|</span> <span class="o">&lt;</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">where</span> <span class="n">epsilon</span> <span class="ow">is</span> <span class="n">a</span> <span class="k">global</span> <span class="n">tolerance</span>
+<span class="o">//</span> <span class="n">that</span> <span class="n">determines</span> <span class="n">the</span> <span class="n">equivalence</span> <span class="n">of</span> <span class="n">floating</span> <span class="n">point</span> <span class="n">numbers</span> <span class="ow">in</span> <span class="n">TDycore</span><span class="o">.</span>
+<span class="n">PetscBool</span> <span class="n">RealsEqual</span><span class="p">(</span><span class="n">PetscReal</span> <span class="n">x</span><span class="p">,</span> <span class="n">PetscReal</span> <span class="n">y</span><span class="p">);</span>
+
+<span class="o">//</span> <span class="n">Returns</span> <span class="n">true</span> <span class="n">iff</span> <span class="o">|</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="o">|</span> <span class="o">&lt;</span> <span class="n">tolerance</span><span class="o">.</span>
+<span class="n">PetscBool</span> <span class="n">RealsNearlyEqual</span><span class="p">(</span><span class="n">PetscReal</span> <span class="n">x</span><span class="p">,</span> <span class="n">PetscReal</span> <span class="n">y</span><span class="p">,</span> <span class="n">PetscReal</span> <span class="n">tolerance</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="pointers">
+<h2><a class="toc-backref" href="#id7">Pointers</a><a class="headerlink" href="#pointers" title="Permalink to this headline">¶</a></h2>
+<p>When declaring a pointer variable, place the asterisk next to the variable name,
+not the type name::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PetscInt</span> <span class="o">*</span><span class="n">int_ptr</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>This allows you to declare several variables on one line consistently::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PetscInt</span> <span class="o">*</span><span class="n">i_ptr</span><span class="p">,</span> <span class="o">*</span><span class="n">j_ptr</span><span class="p">;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="structs-pods">
+<h2><a class="toc-backref" href="#id8">Structs / PODs</a><a class="headerlink" href="#structs-pods" title="Permalink to this headline">¶</a></h2>
+<p>In the TDycore library, a “struct” is a C struct containing data that can
+be freely exposed, with no invariants and no restrictions on values. Structs
+have no behavior and internal state to manage. They are defined in header files
+so that their data members are visible and accessible. Examples of structs in
+the TDycore library are the <code class="docutils literal notranslate"><span class="pre">MaterialProp</span></code> and <code class="docutils literal notranslate"><span class="pre">CharacteristicCurve</span></code> types,
+which represent sets of material properties and parameterized curves (a
+saturation function, for example), respectively.</p>
+<p>Since a struct is a simple container without behavior (a “Plain Old Datatype”,
+or “POD”), no associated functions are needed. However, such functions can be
+provided if they make the struct/POD more convenient to use.</p>
+</div>
+<div class="section" id="classes">
+<h2><a class="toc-backref" href="#id9">Classes</a><a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h2>
+<p>A “class” in TDycore is a struct whose definition is <strong>private</strong>–not exposed
+within the public interface defined by the set of header files intended for use
+by external developers. This means that a developer cannot directly manipulate
+the fields within a “class”. Instead, one manipulates a class using its
+<strong>interface</strong>–a set of functions associated with that class.</p>
+<p>Define class bodies in source files only, unless their internal structure is
+intended to be explicitly exposed to developers. “Typedef” your class type so
+the <code class="docutils literal notranslate"><span class="pre">struct</span></code> keyword can be omitted from its type.</p>
+<p>The struct and functions defining a class are governed by a few simple
+conventions described below. PETSc uses similar conventions.</p>
+<div class="section" id="class-type-struct">
+<h3><a class="toc-backref" href="#id10">Class Type (Struct)</a><a class="headerlink" href="#class-type-struct" title="Permalink to this headline">¶</a></h3>
+<p>The struct representing the class type has the same name as the class itself.
+The type of the class itself is a pointer to its underlying struct. The
+underlying struct is declared with a <code class="docutils literal notranslate"><span class="pre">_p</span></code> suffix. Then the class is declared
+as a <code class="docutils literal notranslate"><span class="pre">typedef</span></code> to a pointer to the struct type. For example, if you want to
+declare a “washing machine” class, first declare its underlying struct (without
+defining its body)::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">typedef</span> <span class="n">struct</span> <span class="n">TDyWashingMachine_p</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>in an appropriate header file. Then define the class itself::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">typedef</span> <span class="n">TDyWashingMachine_p</span><span class="o">*</span> <span class="n">TDyWashingMachine</span><span class="p">;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="class-constructor-s">
+<h3><a class="toc-backref" href="#id11">Class Constructor(s)</a><a class="headerlink" href="#class-constructor-s" title="Permalink to this headline">¶</a></h3>
+<p>Typically, a class has a single constructor function named after the class,
+with <code class="docutils literal notranslate"><span class="pre">Create</span></code> following the class name. A constructor takes a number of
+arguments for initializing the class, plus a final argument that stores a
+pointer to a newly-allocated instance of the class. For example, consider the
+following constructor for our <code class="docutils literal notranslate"><span class="pre">TDyWashingMachine</span></code> class::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PetscErrorCode</span> <span class="n">TDyWashingMachineCreate</span><span class="p">(</span><span class="n">PetscInt</span> <span class="n">numCents</span><span class="p">,</span> <span class="n">TDyWashingMachine</span> <span class="o">*</span><span class="n">wm</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>This constructor creates a <code class="docutils literal notranslate"><span class="pre">WashingMachine</span></code> instance that costs the given
+number of cents to wash a load of laundry. The <code class="docutils literal notranslate"><span class="pre">wm</span></code> argument stores the
+new instance. The constructor returns an integer-valued error code described
+in the section on functions.</p>
+<p>Sometimes it’s convenient to provide more than one constructor, or a
+constructor that converts another datatype to a given instance of a class.
+In these cases, name each constructor so that it briefly conveys its purpose.
+For example, a constructor that creates a deep copy of an existing washing
+machine might be declared:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PetscErrorCode</span> <span class="n">TDyWashingMachineClone</span><span class="p">(</span><span class="n">TDyWashingMachine</span> <span class="o">*</span><span class="n">other</span><span class="p">,</span> <span class="n">TDyWashingMachine</span> <span class="o">**</span><span class="n">wm</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>A constructor function takes any arguments it needs to completely initialize
+an variable of that class type, and returns a pointer to such an initialized
+variable. We refer to these variables as objects.</p>
+</div>
+<div class="section" id="class-destructor">
+<h3><a class="toc-backref" href="#id12">Class Destructor</a><a class="headerlink" href="#class-destructor" title="Permalink to this headline">¶</a></h3>
+<p>A destructor function frees the resources allocated to a class by its
+constructor. Define a single destructor function for each class.
+The destructor function is named after the class with a <code class="docutils literal notranslate"><span class="pre">Destroy</span></code> suffix,
+accepts a pointer to the instance of the class to be destroyed, and returns an
+error code indicating whether an error was encountered. For example::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PetscErrorCode</span> <span class="n">WashingMachineDestroy</span><span class="p">(</span><span class="n">WashingMachine</span><span class="o">*</span> <span class="n">wm</span><span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="class-functions-methods">
+<h3><a class="toc-backref" href="#id13">Class Functions / Methods</a><a class="headerlink" href="#class-functions-methods" title="Permalink to this headline">¶</a></h3>
+<p>Functions associated with a class are sometimes referred to as methods (some
+object-oriented programming languages make a bigger distinction between these
+concepts). The name of a class method begins with the name of the associated
+class, followed by a descriptive name for the method itself. For example::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">Washes</span> <span class="n">a</span> <span class="n">load</span> <span class="n">of</span> <span class="n">laundry</span><span class="p">,</span> <span class="n">changing</span> <span class="n">its</span> <span class="n">state</span> <span class="kn">from</span> <span class="nn">DIRTY</span> <span class="n">to</span> <span class="n">CLEAN</span><span class="o">.</span>
+<span class="n">PetscError</span> <span class="n">WashingMachineWash</span><span class="p">(</span><span class="n">WashingMachine</span><span class="o">*</span> <span class="n">wm</span><span class="p">,</span> <span class="n">Laundry</span><span class="o">*</span> <span class="n">load</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>A method can perform a task involving the instance and other data provided as
+arguments, as shown above. In this case, it returns a <code class="docutils literal notranslate"><span class="pre">PetscErrorCode</span></code>
+indicating success or failure. A method can also provide access to data within
+the instance of the class, returning that data::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">//</span> <span class="n">Returns</span> <span class="n">the</span> <span class="n">cost</span> <span class="p">(</span><span class="ow">in</span> <span class="n">cents</span><span class="p">)</span> <span class="n">of</span> <span class="n">washing</span> <span class="n">a</span> <span class="n">load</span><span class="o">.</span>
+<span class="n">PetscInt</span> <span class="n">WashingMachineCost</span><span class="p">(</span><span class="n">WashingMachine</span><span class="o">*</span> <span class="n">wm</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>If you’re familiar with contemporary object-oriented programming languages like
+C++ and Java, you can define methods in very similar ways (as long as you don’t
+wander too far into inheritance and other “polymorphic” techniques). If it’s
+practical, lead the list of parameters with input values, and place output
+parameters at the end.</p>
+</div>
+<div class="section" id="polymorphism-in-c">
+<h3><a class="toc-backref" href="#id14">Polymorphism in C</a><a class="headerlink" href="#polymorphism-in-c" title="Permalink to this headline">¶</a></h3>
+<p><strong>Polymorphism</strong> is the idea that a variable’s instance or type determines its
+behavior. TDycore adopts the same approach to polymorphism that PETSc uses:
+behavior is associated with the <em>instance</em> of a class, and not its type. This
+approach to polymorphism is sometimes called “prototype polymorphism,” and is
+used in some other programming languages such as Lua and Objective C.</p>
+<p>A polymorphic class in TDycore has an “abstract” interface with
+a virtual table that dispatches calls to a set of predetermined methods that
+implements its behavior.</p>
+<p>In total, a polymorphic class is defined by:</p>
+<ol class="arabic simple">
+<li><p>A class type struct possessing a context pointer for an instance</p></li>
+<li><p>A methods “virtual table” struct consisting of a set of function pointers
+matching the interface for the class</p></li>
+<li><p>A constructor function that creates a descendant object using a context
+pointer, a methods table, and any other data needed</p></li>
+<li><p>Any other functions needed to implement a destructor and/or methods for the
+polymorphic class</p></li>
+</ol>
+<p>These elements aren’t all exposed via the TDycore public API. Instead, TDycore
+exposes a “registration function” for each polymorphic type that allows end
+users to create named instances of types. For an example of how this is done,
+take a look at PETSc’s <cite>KSPRegister &lt;https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/KSP/KSPRegister.html&gt;</cite>
+function, which can be used to implement custom linear solvers for use with
+PETSc’s matrix and vector types.</p>
+<p>A virtue of this approach is that a single instance (represented by a
+context pointer) can assume many different roles as a subtype of several
+base classes, using several different virtual tables. In a sense, this
+ability resembles that of the <code class="docutils literal notranslate"><span class="pre">interface</span></code> idiom in the Java and C#
+programming languages, avoiding the difficulties of multiple inheritance one
+encounters in C++.</p>
+</div>
+</div>
+</div>
+<div class="section" id="header-files">
+<h1><a class="toc-backref" href="#id15">Header Files</a><a class="headerlink" href="#header-files" title="Permalink to this headline">¶</a></h1>
+<p>In general, there should be a header file for each significant type that
+possesses behaviors in TDycore. Header file names are all lowercase.
+In some cases, a single function (unrelated to a type) may occupy a header
+file, and that header file would be named after the function.  In others, a
+header file may contain a set of related functions, and its name should
+concisely reflect the purpose of those functions.</p>
+<div class="section" id="self-contained-headers">
+<h2><a class="toc-backref" href="#id16">Self-Contained Headers</a><a class="headerlink" href="#self-contained-headers" title="Permalink to this headline">¶</a></h2>
+<p>Header files are self-contained and have a <code class="docutils literal notranslate"><span class="pre">.h</span></code> suffix. A “self-contained”
+header file can be included in a translation unit without regard for rules
+relating to the order of its inclusion, or for other headers that are
+“understood” to be included when it is used.</p>
+<p>Briefly, a TDycore header file
+* is located in the <code class="docutils literal notranslate"><span class="pre">include/tdycore</span></code> subdirectory of the TDycore repo
+* requires header guards
+* should include all the files that it needs
+* should not require any particular symbols to be defined</p>
+</div>
+<div class="section" id="header-file-location">
+<h2><a class="toc-backref" href="#id17">Header File Location</a><a class="headerlink" href="#header-file-location" title="Permalink to this headline">¶</a></h2>
+<p>To make it easier to deploy TDycore as part of a larger application, we place
+most header files in a <code class="docutils literal notranslate"><span class="pre">tdycore</span></code> subdirectory within the <code class="docutils literal notranslate"><span class="pre">include</span></code> directory
+of the repository. There is a high-level header file called <code class="docutils literal notranslate"><span class="pre">tdycore.h</span></code> within
+the <code class="docutils literal notranslate"><span class="pre">include</span></code> directory that includes all the basic headers within this
+<code class="docutils literal notranslate"><span class="pre">tdycore/</span></code> subdirectory.</p>
+<p>This means that headers and source files that reference specific TDycore headers
+must include the <code class="docutils literal notranslate"><span class="pre">tdycore/</span></code> directory as part of the header file’s path. For
+example, if you want to use TDycore’s I/O subsystem in a source file, you would
+place the following near the top of the file::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &lt;tdycore/tdyio.h&gt;</span>
+</pre></div>
+</div>
+<p>Alternatively, you can rely on the high-level TDycore header to bring in the
+I/O subsystem::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &lt;tdycore.h&gt;</span>
+</pre></div>
+</div>
+<p>Because TDycore stores its headers in a separate directory from source files,
+we use angle brackets to include these headers, and not quotes.</p>
+</div>
+<div class="section" id="header-guards">
+<h2><a class="toc-backref" href="#id18">Header Guards</a><a class="headerlink" href="#header-guards" title="Permalink to this headline">¶</a></h2>
+<p>A header file uses <code class="docutils literal notranslate"><span class="pre">#define</span></code> guards to prevent multiple inclusion. The
+format of the guard is <code class="docutils literal notranslate"><span class="pre">&lt;HEADER_BASE_NAME&gt;_H</span></code>, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#ifndef TDYCORE_H</span>
+<span class="c1">#define TDYCORE_H</span>
+</pre></div>
+</div>
+<p>“C++” guards that use the <code class="docutils literal notranslate"><span class="pre">extern</span> <span class="pre">&quot;C&quot;</span></code> specification are not necessary for C++
+interoperability, since TDycore has a high-level header safe for inclusion in
+C++ programs.</p>
+</div>
+<div class="section" id="including-headers-within-tdycore-source-code">
+<h2><a class="toc-backref" href="#id19">Including Headers within TDycore Source Code</a><a class="headerlink" href="#including-headers-within-tdycore-source-code" title="Permalink to this headline">¶</a></h2>
+<p>Any header files included in a header or source file should be included in the
+following order:</p>
+<ol class="arabic simple">
+<li><p>The header file corresponding to the source file (if applicable)</p></li>
+<li><p>TDycore library headers</p></li>
+<li><p>Third-party library headers</p></li>
+<li><p>System-level headers</p></li>
+</ol>
+<p>Including files in this order makes it obvious when a TDycore header can’t be
+included without prerequisites.</p>
+</div>
+<div class="section" id="public-and-private-headers-structs-and-classes">
+<h2><a class="toc-backref" href="#id20">Public and Private Headers, Structs and Classes</a><a class="headerlink" href="#public-and-private-headers-structs-and-classes" title="Permalink to this headline">¶</a></h2>
+<p>There are three types of header files in the TDycore library.</p>
+<ol class="arabic simple">
+<li><p><strong>Public headers</strong>: these headers form the public application programming
+interface (API) for TDycore, and live at the top level of the <code class="docutils literal notranslate"><span class="pre">include/</span></code>
+directory of the TDycore source tree. All functions and types contained in
+these headers may be called by software that uses TDycore.</p></li>
+<li><p><strong>Private headers</strong>: these headers contain implementation details, and are
+not part of the public API for TDycore. As such, they are not supported for
+usage by external software, and their contents may change without warning.</p></li>
+<li><p><strong>Fortran headers</strong>: these headers expose an interface for using the TDycore
+library within Fortran programs. They form the public Fortran API for
+TDycore.</p></li>
+</ol>
+<p>Recall that a TDycore <em>struct</em> is a container for data that has no associated
+behavior and may be freely manipulated by developers. Structs are declared and
+defined within public header files. <strong>TODO: example?</strong></p>
+<p>In contrast, a <em>class</em> is a data structure with behaviors and invariants. It is
+implemented by a pointer to a struct whose fields are hidden from developers.
+Its behaviors are implemented by a set of functions that form its interface. A
+class struct is declared in a public header file, but its body іs defined in a
+private header file. Meanwhile, the functions that make up the interface for a
+class are declared in public header files and defined in source files.
+<strong>TODO: example?</strong></p>
+</div>
+<div class="section" id="functions">
+<h2><a class="toc-backref" href="#id21">Functions</a><a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h2>
+<p>Any function that is part of TDycore’s API is declared within a public header
+file and implemented in a source file. More than one function may “live” in the
+same source file. Prepend each public function’s declaration with
+<code class="docutils literal notranslate"><span class="pre">PETSC_EXTERN</span></code> to make it available to external callers.</p>
+<p>A function may be “inlined” using the <code class="docutils literal notranslate"><span class="pre">PETSC_STATIC_INLINE</span></code> macro.
+Functions with no arguments are declared with <code class="docutils literal notranslate"><span class="pre">void</span></code> in their argument list,
+in accordance with the C standard.</p>
+<p>Functions that implement functionality internal to TDycore may be declared in
+a private header file, or may be declared <code class="docutils literal notranslate"><span class="pre">static</span></code> and implemented within a
+single source file, if they are used only within that file.</p>
+</div>
+<div class="section" id="global-variables">
+<h2><a class="toc-backref" href="#id22">Global variables</a><a class="headerlink" href="#global-variables" title="Permalink to this headline">¶</a></h2>
+<p>In general, avoid global variables in header files, apart from constants (which
+are preferred to macros, since they can be checked by the compiler). Mutable
+global variables should be restricted to translation units in which they are
+manipulated, and should be declared as <code class="docutils literal notranslate"><span class="pre">static</span></code>. If you must expose a global
+resource, design an appropriate interface so that it can be properly managed.</p>
+</div>
+<div class="section" id="other-symbols">
+<h2><a class="toc-backref" href="#id23">Other Symbols</a><a class="headerlink" href="#other-symbols" title="Permalink to this headline">¶</a></h2>
+<p>Use inlined functions instead of macros where possible. Similarly, use
+constants instead of macros where possible.</p>
+</div>
+</div>
+<div class="section" id="scoping">
+<h1><a class="toc-backref" href="#id24">Scoping</a><a class="headerlink" href="#scoping" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="internal-functions">
+<h2><a class="toc-backref" href="#id25">Internal Functions</a><a class="headerlink" href="#internal-functions" title="Permalink to this headline">¶</a></h2>
+<p>A function that is used only within a single translation unit should be declared
+with the <code class="docutils literal notranslate"><span class="pre">PETSC_INTERN</span></code> macro. This prevents its name from appearing in the
+list of exported symbols for the TDycore library.</p>
+</div>
+<div class="section" id="local-variables">
+<h2><a class="toc-backref" href="#id26">Local Variables</a><a class="headerlink" href="#local-variables" title="Permalink to this headline">¶</a></h2>
+<p>Declare a local variable as close as possible to where it is used, and not at
+the beginning of a function body. Declaring variables where they are used makes
+it easier to identify issues involving that variable.</p>
+<p>Initialize a variable when you declare it wherever practical.</p>
+</div>
+<div class="section" id="scoping-operators">
+<h2><a class="toc-backref" href="#id27">Scoping Operators</a><a class="headerlink" href="#scoping-operators" title="Permalink to this headline">¶</a></h2>
+<p>If a function has a large number of localized variables that perform work,
+curly braces can be used to create a local scope containing these variables.
+This eases the process of debugging functions by eliminating these variables
+from portions of the function that don’t use them.</p>
+</div>
+</div>
+<div class="section" id="id1">
+<h1><a class="toc-backref" href="#id28">Functions</a><a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<p>Functions not associated with classes follow very similar guidelines to
+methods: input arguments come before output arguments. A function that performs
+an operation instead of returning a value should return a <code class="docutils literal notranslate"><span class="pre">PetscErrorCode</span></code>
+that indicates whether the operation succeeded or failed.</p>
+<p>Function declarations in header files should not have named parameters. This
+makes them somewhat easier to maintain.</p>
+<div class="section" id="length-of-a-function-body">
+<h2><a class="toc-backref" href="#id29">Length of a Function Body</a><a class="headerlink" href="#length-of-a-function-body" title="Permalink to this headline">¶</a></h2>
+<p>There is no formal limit to the length of a TDycore function implementation.
+If breaking up a function into separate functions is practical, feel free to
+do so. However, creating lots of ancillary structure just to break up a long
+function can be counterproductive. Use your judgement.</p>
+<p>A function may be poorly designed if it is difficult to break up. On the other
+hand, if the function performs a complicated task with lots of tightly-coupled
+steps, attempting to break it up may make it even more confusing.</p>
+<p>At the end of the day, arguments about the optimal length of a function are
+aesthetic. These arguments often exert strange and unnatural pressures on code
+development. At worst, they encourage people to write code with few comments,
+lots of side effects, and/or excessive numbers of tightly-coupled
+“sub-functions.” Your mileage may vary.</p>
+</div>
+</div>
+<div class="section" id="memory-management">
+<h1><a class="toc-backref" href="#id30">Memory Management</a><a class="headerlink" href="#memory-management" title="Permalink to this headline">¶</a></h1>
+<p>For simplicity, TDycore uses PETSc’s memory allocation functions:</p>
+<ul class="simple">
+<li><p><cite>PetscMalloc &lt;https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/Sys/PetscMalloc.html&gt;</cite></p></li>
+<li><p><cite>PetscMalloc1 &lt;&gt;https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/Sys/PetscMalloc1.html&gt;</cite></p></li>
+<li><p><cite>PetscNew &lt;https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/Sys/PetscNew.html&gt;</cite></p></li>
+<li><p><cite>PetscFree &lt;&gt;https://www.mcs.anl.gov/petsc/petsc-current/docs/manualpages/Sys/PetscFree.html&gt;</cite></p></li>
+</ul>
+<p>Prefer these to the standard C <code class="docutils literal notranslate"><span class="pre">malloc</span></code> and <code class="docutils literal notranslate"><span class="pre">free</span></code> functions. This gives
+PETSc more information about how much memory is used, and how it is used.</p>
+</div>
+<div class="section" id="naming">
+<h1><a class="toc-backref" href="#id31">Naming</a><a class="headerlink" href="#naming" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="types">
+<h2><a class="toc-backref" href="#id32">Types</a><a class="headerlink" href="#types" title="Permalink to this headline">¶</a></h2>
+<p>Names of structs, classes, and enumerated types follow the “camel case”,
+consisting of one or more words with no delimiters, each word beginning with a
+capital letter followed by lower-case letters. Each type has a <code class="docutils literal notranslate"><span class="pre">TDy</span></code> prefix to
+indicate that they belong to the TDycore library. Abbreviations are allowed if
+their meaning is reasonably clear. For example: <code class="docutils literal notranslate"><span class="pre">TDyMesh</span></code>, <code class="docutils literal notranslate"><span class="pre">TDyRegion</span></code>.</p>
+</div>
+<div class="section" id="id2">
+<h2><a class="toc-backref" href="#id33">Functions</a><a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>Function and “method” names also use “camel case” with a <code class="docutils literal notranslate"><span class="pre">TDy</span></code> prefix, and
+should clearly indicate their purpose, with abbreviations allowed when their
+meaning is clear. Methods that implement behaviors for classes should begin
+with the name of the class, as discussed above.</p>
+</div>
+<div class="section" id="variables-and-fields">
+<h2><a class="toc-backref" href="#id34">Variables and Fields</a><a class="headerlink" href="#variables-and-fields" title="Permalink to this headline">¶</a></h2>
+<p>Variables (local or global, including fields in structs and classes) follow the
+“snake-case” convention, in which names consist of lower-case words separated by
+underscores. Exceptions can be made if it makes code clearer. For example,
+capital letters and/or abbreviations may help a variable representing a
+quantity resemble a mathematical symbol whose role is clear from the context
+in which it is used. Use your judgement. Examples of good variable names are
+<code class="docutils literal notranslate"><span class="pre">mat_prop</span></code>, <code class="docutils literal notranslate"><span class="pre">mesh</span></code>, <code class="docutils literal notranslate"><span class="pre">model</span></code>, <code class="docutils literal notranslate"><span class="pre">precond</span></code>, <code class="docutils literal notranslate"><span class="pre">integ</span></code>, and <code class="docutils literal notranslate"><span class="pre">xc</span></code>.</p>
+</div>
+<div class="section" id="constants-enums-macros">
+<h2><a class="toc-backref" href="#id35">Constants, Enums, Macros</a><a class="headerlink" href="#constants-enums-macros" title="Permalink to this headline">¶</a></h2>
+<p>Constants, fields within enumerated types, and preprocessor macros should use
+all capital letters with words separated by underscores. If these appear in
+header files, they should have descriptive names that are unique within the
+library.</p>
+</div>
+</div>
+<div class="section" id="comments-and-code-markup">
+<h1><a class="toc-backref" href="#id36">Comments and Code Markup</a><a class="headerlink" href="#comments-and-code-markup" title="Permalink to this headline">¶</a></h1>
+<p>Use C++ style comments (<code class="docutils literal notranslate"><span class="pre">//</span></code>), which have been supported in C since the
+C99 standard. C-style comments (<code class="docutils literal notranslate"><span class="pre">/*</span> <span class="pre">*/</span></code>) may be used sparingly when the C++
+style is less convenient.</p>
+<p>To formally document a type or a function in a public header file, use Doxygen’s
+markup:</p>
+<p><a class="reference external" href="http://www.doxygen.org/">http://www.doxygen.org/</a></p>
+<p>Because we omit function parameters in declarations, we document functions in
+their definitions in source files and not in header files.</p>
+<p>Above each type or function definition, describe the entity briefly and clearly.
+Build the Doxygen documentation to get an idea of what documentation typically
+looks like. We use Doxygen’s <code class="docutils literal notranslate"><span class="pre">///</span></code> delimiters for code comments, and <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> for
+Doxygen-specific commands.</p>
+<p>A type should be documented with a description of its purpose and usage, just
+above its declaration. Structs should have one-line descriptions above each of
+their fields.</p>
+<p>Each function or class method should have a description (1-2 sentences) above
+its definition in the proper source file. In addition, use the following
+markup to annotate the function/method signature:</p>
+<ul>
+<li><dl class="simple">
+<dt>For each parameter (argument) for the function, an entry like the following:::</dt><dd><p>&#64;param [INTENT] PARAM_NAME A description of the parameter</p>
+</dd>
+</dl>
+<p>Here, <code class="docutils literal notranslate"><span class="pre">INTENT</span></code> is <code class="docutils literal notranslate"><span class="pre">in</span></code>, <code class="docutils literal notranslate"><span class="pre">out</span></code>, or <code class="docutils literal notranslate"><span class="pre">inout</span></code>.</p>
+</li>
+<li><dl class="simple">
+<dt>If the return value needs an explanation, use::</dt><dd><p>&#64;returns A description of the return value</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>Typically, you don’t need any documentation markup for types and functions that
+aren’t part of the public API. Commenting your implementation code is always
+helpful, of course.</p>
+</div>
+<div class="section" id="formatting">
+<h1><a class="toc-backref" href="#id37">Formatting</a><a class="headerlink" href="#formatting" title="Permalink to this headline">¶</a></h1>
+<p>The following formatting rules are non-negotiable for source code in TDycore:</p>
+<ul class="simple">
+<li><p>Use 2 spaces per indentation level.</p></li>
+<li><p>No tabs are allowed in source files–use only spaces.</p></li>
+</ul>
+<p>The following guidelines are offered for readably-formatted code:</p>
+<ul class="simple">
+<li><p>If a function declaration doesn’t fit neatly on a line, break the line after
+an argument and align the following argument with its first. As long as the
+declaration and definition are clearly readable, it’s fine.</p></li>
+<li><p>Place curly braces that open a new scope at the end of the line for which the
+scope is declared, not on their own line. Closing curly braces go on a line
+by themselves, at the level of indentation outside of their scope.</p></li>
+<li><p>If a line is excessively long (in other words, if it doesn’t fit on a single
+screen on a luxuriously large monitor), consider breaking it up.</p></li>
+<li><p>C preprocessor directives are not indented at all.</p></li>
+<li><p>For functions with several parameters, consider linebreaks after each
+parameter, and consider aligning the parameters to improve readability.</p></li>
+</ul>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="CONTRIBUTING.html" class="btn btn-neutral float-right" title="TDycore: How to Contribute" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="development.html" class="btn btn-neutral float-left" title="TDycore Development" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright TBD
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

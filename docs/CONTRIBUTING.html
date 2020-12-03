@@ -1,0 +1,345 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>TDycore: How to Contribute &mdash; TDycore unknown documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster.custom.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster.bundle.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-shadow.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-punk.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-noir.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-light.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/tooltipster-sideTip-borderless.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/micromodal.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/sphinx_rtd_theme.css" type="text/css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css" type="text/css" />
+  <link rel="stylesheet" href="_static/katex-math.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+        <script src="_static/js/hoverxref.js"></script>
+        <script src="_static/js/tooltipster.bundle.min.js"></script>
+        <script src="_static/js/micromodal.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/contrib/auto-render.min.js"></script>
+        <script src="_static/katex_autorenderer.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="TDycore Code of Conduct" href="CODE_OF_CONDUCT.html" />
+    <link rel="prev" title="Style Guide" href="styleguide.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> TDycore
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                unknown
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gettingstarted.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">TDycore Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html">Style Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#data-types">Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#header-files">Header Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#scoping">Scoping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#id1">Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#memory-management">Memory Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#naming">Naming</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#comments-and-code-markup">Comments and Code Markup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="styleguide.html#formatting">Formatting</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#developer-s-certificate-of-origin-1-1">Developer’s Certificate of Origin 1.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#authorship">Authorship</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CODE_OF_CONDUCT.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="releasenotes.html">Changes/Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">Bibliography</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">TDycore</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>TDycore: How to Contribute</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/CONTRIBUTING.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="tdycore-how-to-contribute">
+<h1>TDycore: How to Contribute<a class="headerlink" href="#tdycore-how-to-contribute" title="Permalink to this headline">¶</a></h1>
+<p>Contributions to TDycore are encouraged.</p>
+<!---
+Please use a pull request to the appropriate branch ('stable' for
+backward-compatible bug fixes for the last stable release, main' for
+new features and everything else).
+--><p>Please make your commits well-organized and
+<a class="reference external" href="https://en.wikipedia.org/wiki/Atomic_commit#Atomic_commit_convention">atomic</a>,
+using <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">rebase</span> <span class="pre">--interactive</span></code> as needed.  Check that tests
+(including “examples”) pass using <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">prove-all</span></code>.  If adding a new
+feature, please add or extend a test so that your new feature is
+tested.</p>
+<p>In typical development, every commit should compile, be covered by the
+test suite, and pass all tests.  This improves the efficiency of
+reviewing and facilitates use of
+<a class="reference external" href="https://git-scm.com/docs/git-bisect"><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">bisect</span></code></a>.</p>
+<p>Open an issue or RFC (request for comments) pull request to discuss
+any significant changes before investing time.  It is useful to create
+a WIP (work in progress) pull request for any long-running development
+so that others can be aware of your work and help to avoid creating
+merge conflicts.</p>
+<p>Write commit messages for a reviewer of your pull request and for a
+future developer (maybe you) that bisects and finds that a bug was
+introduced in your commit.  The assumptions that are clear in your
+mind while committing are likely not in the mind of whomever (possibly
+you) needs to understand it in the future.</p>
+<p>Give credit where credit is due using tags such as <code class="docutils literal notranslate"><span class="pre">Reported-by:</span> <span class="pre">Helpful</span> <span class="pre">User</span> <span class="pre">&lt;helpful&#64;example.com&gt;</span></code> or
+<a class="reference external" href="https://help.github.com/en/github/committing-changes-to-your-project/creating-a-commit-with-multiple-authors#creating-co-authored-commits-on-the-command-line"><code class="docutils literal notranslate"><span class="pre">Co-authored-by:</span> <span class="pre">Snippet</span> <span class="pre">Mentor</span> <span class="pre">&lt;code.by&#64;comment.com&gt;</span></code></a>.
+Please use a real name and email for your author information (<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">config</span> <span class="pre">user.name</span></code> and <code class="docutils literal notranslate"><span class="pre">user.email</span></code>).  If your author information or
+email becomes inconsistent (look at <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">shortlog</span> <span class="pre">-se</span></code>), please edit
+<code class="docutils literal notranslate"><span class="pre">.mailmap</span></code> to obtain your preferred name and email address.</p>
+<p>When contributors make a major contribution and support it, their names
+are included in the automatically generated user-manual documentation.</p>
+<p>Please avoid “merging from upstream” (like merging ‘main’ into your
+feature branch) unless there is a specific reason to do so, in which
+case you should explain why in the merge commit.
+<a class="reference external" href="https://lwn.net/Articles/328436/">Rationale</a> from
+<a class="reference external" href="https://gitster.livejournal.com/42247.html">Junio</a> and
+<a class="reference external" href="http://yarchive.net/comp/linux/git_merges_from_upstream.html">Linus</a>.</p>
+<p>You can use <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">style</span></code> to help conform to coding conventions of the
+project, but try to avoid mixing whitespace or formatting changes with
+content changes (see atomicity above).</p>
+<p>By submitting a pull request, you are affirming the following.</p>
+<div class="section" id="developer-s-certificate-of-origin-1-1">
+<h2><a class="reference external" href="https://developercertificate.org/">Developer’s Certificate of Origin 1.1</a><a class="headerlink" href="#developer-s-certificate-of-origin-1-1" title="Permalink to this headline">¶</a></h2>
+<p>By making a contribution to this project, I certify that:</p>
+<p>(a) The contribution was created in whole or in part by me and I
+have the right to submit it under the open source license
+indicated in the file; or</p>
+<p>(b) The contribution is based upon previous work that, to the best
+of my knowledge, is covered under an appropriate open source
+license and I have the right under that license to submit that
+work with modifications, whether created in whole or in part
+by me, under the same open source license (unless I am
+permitted to submit under a different license), as indicated
+in the file; or</p>
+<p>(c) The contribution was provided directly to me by some other
+person who certified (a), (b) or (c) and I have not modified
+it.</p>
+<p>(d) I understand and agree that this project and the contribution
+are public and that a record of the contribution (including all
+personal information I submit with it, including my sign-off) is
+maintained indefinitely and may be redistributed consistent with
+this project or the open source license(s) involved.</p>
+</div>
+<div class="section" id="authorship">
+<h2>Authorship<a class="headerlink" href="#authorship" title="Permalink to this headline">¶</a></h2>
+<p>TDycore contains components authored by many individuals.  It is
+important that contributors receive appropriate recognition through
+informal and academically-recognized credit systems such as
+publications.  Status as a named author on the users manual and
+TDycore software publications will be granted for those who</p>
+<ol class="simple">
+<li><p>make significant contributions to TDycore (in implementation,
+documentation, conceptualization, review, etc.) and</p></li>
+<li><p>maintain and support those contributions.</p></li>
+</ol>
+<p>Maintainers will do their best to notice when contributions reach this
+level and add your name to <code class="docutils literal notranslate"><span class="pre">AUTHORS</span></code>, but please email or create an
+issue if you believe your contributions have met these criteria and
+haven’t yet been acknowledged.</p>
+<p>Authors of publications about TDycore as a whole, including
+DOI-bearing archives, shall offer co-authorship to all individuals
+listed in the <code class="docutils literal notranslate"><span class="pre">AUTHORS</span></code> file.  Authors of publications claiming
+specific TDycore contributions shall evaluate those listed in
+<code class="docutils literal notranslate"><span class="pre">AUTHORS</span></code> and offer co-authorship to those who made significant
+intellectual contributions to the work.</p>
+<p>Note that there is no co-authorship expectation for those publishing
+about use of TDycore (versus creation of new features in TDycore), but
+see the <a class="reference external" href="https://tdycore.readthedocs.io/en/latest/gettingstarted/#how-to-cite">citing section</a>
+and use your judgment regarding significance of support/advice you may have
+received in developing your use case and interpreting results.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="CODE_OF_CONDUCT.html" class="btn btn-neutral float-right" title="TDycore Code of Conduct" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="styleguide.html" class="btn btn-neutral float-left" title="Style Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright TBD
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
