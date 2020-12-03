@@ -35,11 +35,11 @@ jobs:
     # ===============================
     - name: Commit documentation changes
       run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
         git clone https://github.com/TDycore/TDycore.git --branch github_pages --single-branch github_pages
         cp -r doc/sphinx/build/html/* docs/
         cd docs
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
         git add .
         git commit -m "Update documentation" -a || true
         # The above command will fail if no changes were present, so we ignore
