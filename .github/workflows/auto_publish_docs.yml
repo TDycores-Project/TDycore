@@ -37,10 +37,10 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        #git clone https://github.com/TDycores-Project/TDycore.git --branch github_pages --single-branch github_pages
         git checkout github_pages
         cp -r doc/sphinx/build/html/* docs/
         cd docs
+        touch .nojekyll
         git add .
         git commit -m "Update documentation" -a || true
         # The above command will fail if no changes were present, so we ignore
