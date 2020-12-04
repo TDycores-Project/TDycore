@@ -29,6 +29,11 @@ ifneq ($(strip $(MPIEXEC)),)
 	TEST_OPTIONS += --mpiexec "$(MPIEXEC)"
 endif
 
+SUITES = --suite standard standard_parallel
+ifneq ($(strip $(EXODUSII_LIB)),)
+SUITES += standard_exodus standard_parallel_exodus
+endif
+
 #
 # standard tests that are run to verify executable is built correctly
 #
@@ -37,61 +42,61 @@ test : test-mpfao test-steadyf90 test-steady test-transient test-transient-mpfao
 
 test-steady :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/steady/steady $(TEST_OPTIONS) \
-		--suite standard standard_parallel \
+		$(SUITES) \
 		--config-files ../demo/steady/steady.cfg \
 		--logfile_prefix steady
 
 test-transient :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/transient $(TEST_OPTIONS) \
-		--suite standard standard_parallel \
+		$(SUITES) \
 		--config-files ../demo/transient/transient.cfg \
 		--logfile_prefix transient
 
 test-transient-mpfao :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/transient_mpfao $(TEST_OPTIONS) \
-		--suite standard standard_parallel \
+		$(SUITES) \
 		--config-files ../demo/transient/transient_mpfao.cfg \
 		--logfile_prefix transient_mpfao
 
 test-transient-mpfaof90 :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/transient_mpfaof90 $(TEST_OPTIONS) \
-		--suite standard standard_parallel \
+		$(SUITES) \
 		--config-files ../demo/transient/transient_mpfaof90.cfg \
 		--logfile_prefix transient_mpfaof90
 
 test-transient-snes-mpfaof90 :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/transient_snes_mpfaof90 $(TEST_OPTIONS) \
-		--suite standard standard_parallel \
+                $(SUITES) \
 		--config-files ../demo/transient/transient_snes_mpfaof90.cfg \
 		--logfile_prefix transient_snes_mpfaof90
 
 test-transient-th-mpfao :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/transient_th_mpfao $(TEST_OPTIONS) \
-		--suite standard standard_parallel \
+		$(SUITES) \
 		--config-files ../demo/transient/transient_th_mpfao.cfg \
 		--logfile_prefix transient_th_mpfao
 
 test-mpfao :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/mpfao/mpfao $(TEST_OPTIONS) \
-		--suite standard standard_parallel \
+		$(SUITES) \
 		--config-files ../demo/mpfao/mpfao.cfg \
 		--logfile_prefix mpfao
 
 test-steadyf90 :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/steadyf90/steadyf90 $(TEST_OPTIONS) \
-		--suite standard standard_parallel \
+		$(SUITES) \
 		--config-files ../demo/steadyf90/steadyf90.cfg \
 		--logfile_prefix steadyf90
 
 test-richards :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/richards/richards_driver $(TEST_OPTIONS) \
-		--suite standard standard_parallel \
+		$(SUITES) \
 		--config-files ../demo/richards/richards.cfg \
 		--logfile_prefix richards
 
 test-th :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/th/th_driver $(TEST_OPTIONS) \
-		--suite standard standard_parallel \
+		$(SUITES) \
 		--config-files ../demo/th/th.cfg \
 		--logfile_prefix th
 
