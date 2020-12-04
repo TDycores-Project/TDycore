@@ -25,4 +25,6 @@ PETSC_INTERN PetscInt TDySavePetscVecAsBinary(Vec vec, const char filename[]);
 PETSC_INTERN PetscInt TDySavePetscMatAsBinary(Mat, const char []);
 PETSC_INTERN PetscErrorCode ExtractSubVectors(Vec,PetscInt,Vec *);
 PETSC_INTERN PetscErrorCode ComputeTheta(PetscReal, PetscReal, PetscReal *);
+PETSC_INTERN PetscErrorCode ComputeDeterminantOf3by3Matrix(PetscReal [9], PetscReal *);
+PETSC_INTERN PetscErrorCode ComputeInverseOf3by3Matrix(PetscReal[9], PetscReal[9]);
 #endif

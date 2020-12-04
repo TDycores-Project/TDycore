@@ -558,3 +558,38 @@ PetscErrorCode ComputeTheta(PetscReal x, PetscReal y, PetscReal *theta) {
 
   PetscFunctionReturn(0);
 }
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode ComputeDeterminantOf3by3Matrix(PetscReal a[9], PetscReal *det_a) {  
+
+  PetscFunctionBegin;
+
+  *det_a = a[0]*(a[4]*a[8] - a[5]*a[7]) - a[1]*(a[3]*a[8] - a[5]*a[6]) + a[2]*(a[3]*a[7] - a[4]*a[6]);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode ComputeInverseOf3by3Matrix(PetscReal a[9], PetscReal inv_a[9]) {
+
+  PetscFunctionBegin;
+
+  PetscReal det_a;
+  PetscErrorCode ierr;
+
+  ierr = ComputeDeterminantOf3by3Matrix(a, &det_a); CHKERRQ(ierr);
+
+  inv_a[0] = +1.0/det_a*(a[4]*a[8]-a[7]*a[5]);
+  inv_a[1] = -1.0/det_a*(a[1]*a[8]-a[7]*a[2]);
+  inv_a[2] = +1.0/det_a*(a[1]*a[5]-a[4]*a[2]);
+  inv_a[3] = -1.0/det_a*(a[3]*a[8]-a[6]*a[5]);
+  inv_a[4] = +1.0/det_a*(a[0]*a[8]-a[6]*a[2]);
+  inv_a[5] = -1.0/det_a*(a[0]*a[5]-a[3]*a[2]);
+  inv_a[6] = +1.0/det_a*(a[3]*a[7]-a[6]*a[4]);
+  inv_a[7] = -1.0/det_a*(a[0]*a[7]-a[6]*a[1]);
+  inv_a[8] = +1.0/det_a*(a[0]*a[4]-a[3]*a[1]);
+
+  PetscFunctionReturn(0);
+}
