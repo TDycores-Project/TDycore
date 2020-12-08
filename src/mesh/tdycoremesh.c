@@ -284,9 +284,10 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
 
   DM dm = tdy->dm;
   TDyMesh *mesh = tdy->mesh;
+  PetscErrorCode ierr;
 
   PetscInt dim;
-  PetscErrorCode ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   if (dim!= 2 && dim!=3 ) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Only 2D and 3D grids are supported");
@@ -361,10 +362,11 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
   TDyVertex     *vertices = &mesh->vertices;
   TDyEdge       *edges = &mesh->edges;
   TDyFace       *faces = &mesh->faces;
+  PetscErrorCode ierr;
 
   // Determine the number of cells, edges, and vertices of the mesh
   PetscInt c_start, c_end;
-  PetscErrorCode ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
 
   PetscInt e_start, e_end;
   ierr = DMPlexGetDepthStratum(dm, 1, &e_start, &e_end); CHKERRQ(ierr);
@@ -532,12 +534,13 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   TDyVertex     *vertices = &mesh->vertices;
   TDyEdge       *edges = &mesh->edges;
   TDyFace       *faces = &mesh->faces;
+  PetscErrorCode ierr;
 
   PetscInt nverts_per_cell = tdy->ncv;
 
   // Determine the number of cells, edges, and vertices of the mesh
   PetscInt c_start, c_end;
-  PetscErrorCode ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
 
   PetscInt e_start, e_end;
   ierr = DMPlexGetDepthStratum( dm, 1, &e_start, &e_end); CHKERRQ(ierr);
@@ -771,6 +774,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
   TDyEdge       *edges = &mesh->edges;
+  PetscErrorCode ierr;
 
   PetscInt ncells = vertices->num_internal_cells[ivertex];
   PetscInt nedges = vertices->num_edges[ivertex];
@@ -797,7 +801,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
     is_cell[count]          = PETSC_TRUE;
     is_internal_edge[count] = PETSC_FALSE;
 
-    PetscErrorCode ierr = ComputeTheta(x, y, &theta[count]); CHKERRQ(ierr);
+    ierr = ComputeTheta(x, y, &theta[count]); CHKERRQ(ierr);
     count++;
   }
 
@@ -819,7 +823,7 @@ PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
       boundary_edge_present = PETSC_TRUE;
     }
 
-    PetscErrorCode ierr = ComputeTheta(x, y, &theta[count]); CHKERRQ(ierr);
+    ierr = ComputeTheta(x, y, &theta[count]); CHKERRQ(ierr);
     count++;
   }
 
@@ -909,9 +913,10 @@ PetscErrorCode UpdateCellOrientationAroundAVertex2DMesh(TDy tdy) {
   TDyMesh       *mesh = tdy->mesh;
   TDyVertex     *vertices = &mesh->vertices;
   TDyEdge       *edges = &mesh->edges;
+  PetscErrorCode ierr;
 
   PetscInt v_start, v_end;
-  PetscErrorCode ierr = DMPlexGetDepthStratum( dm, 0, &v_start, &v_end); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum( dm, 0, &v_start, &v_end); CHKERRQ(ierr);
 
   for (PetscInt ivertex=0; ivertex<v_end-v_start; ivertex++) {
 
@@ -972,9 +977,10 @@ PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
   TDyMesh       *mesh = tdy->mesh;
   TDyVertex     *vertices = &mesh->vertices;
   TDyFace       *faces = &mesh->faces;
+  PetscErrorCode ierr;
 
   PetscInt v_start, v_end;
-  PetscErrorCode ierr = DMPlexGetDepthStratum( dm, 0, &v_start, &v_end); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum( dm, 0, &v_start, &v_end); CHKERRQ(ierr);
 
   for (PetscInt ivertex=0; ivertex<v_end-v_start; ivertex++) {
 
@@ -1237,7 +1243,8 @@ PetscErrorCode UpdateFaceOrientationAroundAVertex(TDyCoordinate *cell_centroid, 
     c[d] = cell_centroid->X[d] - vertices->coordinate[ivertex].X[d];
   }
 
-  PetscErrorCode ierr = TDyCrossProduct(a,b,axb); CHKERRQ(ierr);
+  PetscErrorCode ierr;
+  ierr = TDyCrossProduct(a,b,axb); CHKERRQ(ierr);
   ierr = TDyDotProduct(axb,c,&dot_prod);
 
   // If the dot prod is positive (f_idx[0], f_idx[1], f_idx[2]) form a plane such
@@ -1989,8 +1996,9 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
   }
 
   PetscInt cell_order[ncells];
+  PetscErrorCode ierr;
 
-  PetscErrorCode ierr = ArrangeCellsInAnCircularOrder(tdy, cellsAbvBlw[level], ncells, &cell_order[0]); CHKERRQ(ierr);
+  ierr = ArrangeCellsInAnCircularOrder(tdy, cellsAbvBlw[level], ncells, &cell_order[0]); CHKERRQ(ierr);
 
   ierr = ArrangeCellsInAntiClockwiseDirection(tdy, ivertex, cell_order, ncells, cellsAbvBlw[level]); CHKERRQ(ierr);
 
@@ -2386,7 +2394,8 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
 
   PetscInt **cell_ids_abv_blw;
 
-  PetscErrorCode ierr = TDyAllocate_IntegerArray_2D(&cell_ids_abv_blw, 2, ncells+nfaces_bnd); CHKERRQ(ierr);
+  PetscErrorCode ierr;
+  ierr = TDyAllocate_IntegerArray_2D(&cell_ids_abv_blw, 2, ncells+nfaces_bnd); CHKERRQ(ierr);
 
   PetscInt ncells_abv = 0;
   PetscInt ncells_blw = 0;
@@ -2471,9 +2480,10 @@ PetscErrorCode FindCellsAboveAndBelowAVertex(TDy tdy, PetscInt ivertex, PetscInt
   TDyVertex *vertices = &mesh->vertices;
   PetscInt ncells    = vertices->num_internal_cells[ivertex];
   PetscInt nfaces_bnd= vertices->num_boundary_faces[ivertex];
+  PetscErrorCode ierr;
 
   PetscInt **cell_ids_abv_blw;
-  PetscErrorCode ierr = TDyAllocate_IntegerArray_2D(&cell_ids_abv_blw, 2, ncells+nfaces_bnd); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&cell_ids_abv_blw, 2, ncells+nfaces_bnd); CHKERRQ(ierr);
 
   PetscInt ncells_abv = 0;
   PetscInt ncells_blw = 0;
@@ -2608,9 +2618,10 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
   TDySubcell    *subcells = &mesh->subcells;
   TDyVertex     *vertices = &mesh->vertices;
   TDyFace       *faces = &mesh->faces;
+  PetscErrorCode ierr;
 
   PetscInt c_start, c_end;
-  PetscErrorCode ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
 
   PetscInt dim;
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -2750,10 +2761,10 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         PetscInt neighbor_cell_id;
         PetscReal neighbor_cell_cen[dim], dist;
 
-        if ( (faces->cell_ids[faceCellOffset]==icell) ) {
-           neighbor_cell_id = faces->cell_ids[faceCellOffset+1];
+        if (faces->cell_ids[faceCellOffset]==icell) {
+          neighbor_cell_id = faces->cell_ids[faceCellOffset+1];
         } else {
-           neighbor_cell_id = faces->cell_ids[faceCellOffset];
+          neighbor_cell_id = faces->cell_ids[faceCellOffset];
         }
 
         if (neighbor_cell_id >=0) {
@@ -2822,9 +2833,10 @@ PetscErrorCode UpdateCellOrientationAroundAFace3DMesh(TDy tdy) {
   TDyVertex     *vertices = &mesh->vertices;
   TDyCell       *cells = &mesh->cells;
   TDyFace       *faces = &mesh->faces;
+  PetscErrorCode ierr;
 
   PetscInt dim;
-  PetscErrorCode ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
 
@@ -2895,9 +2907,10 @@ PetscErrorCode OutputCells2DMesh(TDy tdy) {
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDySubcell    *subcells = &mesh->subcells;
+  PetscErrorCode ierr;
 
   PetscInt       dim;
-  PetscErrorCode ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   Vec cell_cen, cell_vol;
   Vec cell_neigh_ids, cell_vertex_ids, cell_edge_ids;
@@ -3023,9 +3036,10 @@ PetscErrorCode OutputEdges2DMesh(TDy tdy) {
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDyEdge       *edges = &mesh->edges;
+  PetscErrorCode ierr;
 
   PetscInt       dim;
-  PetscErrorCode ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   Vec edge_cen, edge_nor;
   PetscScalar *edge_cen_v, *edge_nor_v;
@@ -3063,9 +3077,10 @@ PetscErrorCode OutputVertices2DMesh(TDy tdy) {
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDyVertex     *vertices = &mesh->vertices;
+  PetscErrorCode ierr;
 
   PetscInt       dim;
-  PetscErrorCode ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   Vec vert_coord, vert_icell_ids, vert_edge_ids, vert_subcell_ids;
   PetscScalar *vert_coord_v, *vert_icell_ids_v, *vert_edge_ids_v,
@@ -3120,9 +3135,10 @@ PetscErrorCode OutputTransmissibilityMatrix2DMesh(TDy tdy) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
+  PetscErrorCode ierr;
 
   PetscInt       dim;
-  PetscErrorCode ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   Vec tmat;
   ierr = VecCreateSeq(PETSC_COMM_SELF, mesh->num_vertices*5*5, &tmat);
@@ -3167,9 +3183,10 @@ PetscErrorCode Output2DMesh(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyOutputMesh(TDy tdy) {
   PetscFunctionBegin;
+  PetscErrorCode ierr;
 
   PetscInt dim;
-  PetscErrorCode ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
   switch(dim) {
     case 2:
       ierr = Output2DMesh(tdy); CHKERRQ(ierr);
@@ -3184,9 +3201,10 @@ PetscErrorCode TDyOutputMesh(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyBuildMesh(TDy tdy) {
   PetscFunctionBegin;
+  PetscErrorCode ierr;
 
   PetscInt dim;
-  PetscErrorCode ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
   ierr = SaveMeshGeometricAttributes(tdy); CHKERRQ(ierr);
   ierr = SaveMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
