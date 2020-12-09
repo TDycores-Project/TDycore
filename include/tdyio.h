@@ -29,8 +29,12 @@ PETSC_EXTERN PetscErrorCode TdyIOInitializeExodus(char*,char*[],DM ,int);
 PETSC_EXTERN PetscErrorCode TdyIOInitializeHDF5(char*,DM);
 PETSC_EXTERN PetscErrorCode TdyIOAddExodusTime(char*,PetscReal,TDyIO);
 PETSC_EXTERN PetscErrorCode TdyIOWriteExodusVar(char*,Vec,TDyIO);
-PETSC_EXTERN PetscErrorCode TdyIOWriteHDF5Var(char*,Vec,PetscReal);
+PETSC_EXTERN PetscErrorCode TdyIOWriteHDF5Var(char*,Vec,PetscReal,PetscInt);
 PETSC_EXTERN PetscErrorCode TDyIOWriteAsciiViewer(Vec,PetscReal);
+PETSC_EXTERN PetscErrorCode TDyIOWriteXMFHeader(PetscInt,PetscInt,PetscInt,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyIOWriteXMFAttribute(char*,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyIOWriteXMFFooter();
 PETSC_EXTERN PetscErrorCode TDyIODestroy(TDyIO*);
 
 #endif
+
