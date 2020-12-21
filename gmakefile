@@ -42,6 +42,14 @@ else                   # Show the full command line
   quiet = $($1)
 endif
 
+# Set paths for CMocka-based unit tests.
+ifneq ($(CMOCKA_INCLUDE_DIR),)
+	ifneq ($(CMOCKA_LIBRARY_DIR),)
+		CFLAGS += "-I$(CMOCKA_INCLUDE_DIR)"
+		LDLAGS += "-L$(CMOCKA_LIBRARY_DIR) -lcmocka-static"
+	endif
+endif
+
 pcc = $(if $(findstring CONLY,$(PETSC_LANGUAGE)),CC,CXX)
 COMPILE.c = $(call quiet,$(pcc)) $(PCC_FLAGS) $(CFLAGS) $(CCPPFLAGS) $(C_DEPFLAGS) -c
 COMPILE.cxx = $(call quiet,CXX) $(CXX_FLAGS) $(CFLAGS) $(CCPPFLAGS) $(CXX_DEPFLAGS) -c
@@ -142,7 +150,24 @@ $(foreach demo_src,$(TEST.c) $(TEST.F90),$(eval $(call target_specific_var,$(dem
 $(ALLTESTS) : test-% : $$(DEMO_EXE)
 	+@$(MAKE) -C regression_tests $@
 
-test : $(ALLTESTS)
+UTEST.c = \
+	src/tests/test_tdyinit.c \
+
+ALLUNITTESTS = $(foreach path,$(UTEST.c),$(call testname,$(path)))
+# Set target-specific variables for each test
+define target_specific_utest_exe
+  $(call testname,$(1)) : UTEST_EXE = $(basename $(1))
+endef
+$(foreach utest_src,$(UTEST.c),$(eval $(call target_specific_utest_exe,$(utest_src))))
+
+$(ALLUNITTESTS) : test-% : $$(UTEST_EXE)
+	+@if [ $(CMOCKA_INCLUDE_DIR) != "" ] && [ $(CMOCKA_LIBRARY_DIR) != ""]; then \
+	+@$@ \
+	fi
+
+unit-test : $(ALLUNITTESTS)
+
+test : unit-test $(ALLTESTS)
 
 # make print VAR=the-variable
 print : ; @echo $($(VAR))
