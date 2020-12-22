@@ -160,13 +160,6 @@ $(UTEST.c:%.c=%.o) : %.o : %.c
 $(UTEST.c:%.c=%) : % : %.o $$^ $(libtdycore)
 	$(call quiet,CLINKER) -L$(CMOCKA_LIBRARY_DIR) -o $@ $^ -lcmocka-static $(TDYCORE_LIB) $(LIBS)
 
-# Make a list of all the unit test exes.
-utestname = $(basename $(1))
-#utestname = utest-$(subst _,-,$(basename $(notdir $(1))))
-ALLUNITTESTS = $(foreach path,$(UTEST.c),$(call utestname,$(path)))
-
-$(ALLUNITTESTS) : % : $$(UTEST_EXE)
-
 unit-test : % : $(UTEST.c:%.c=%)
 	+@find src -name "test_*" -executable -exec mpiexec -np ${MPI_NPROC} {} \;
 
