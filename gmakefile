@@ -144,6 +144,10 @@ $(ALLTESTS) : test-% : $$(DEMO_EXE)
 
 ifdef CMOCKA_INCLUDE_DIR # Begin unit tests
 
+ifndef MPI_NPROC
+MPI_NPROC=1
+endif
+
 # Unit test source files
 UTEST.c = \
 	src/tests/test_tdyinit.c \
@@ -164,7 +168,7 @@ ALLUNITTESTS = $(foreach path,$(UTEST.c),$(call utestname,$(path)))
 $(ALLUNITTESTS) : % : $$(UTEST_EXE)
 
 unit-test : % : $(UTEST.c:%.c=%)
-	+@find src -name "test_*" -executable -exec {} \;
+	+@find src -name "test_*" -executable -exec mpiexec -np ${MPI_NPROC} {} \;
 
 endif  # ifdef CMOCKA_INCLUDE_DIR
 
