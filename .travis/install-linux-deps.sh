@@ -3,4 +3,5 @@ sudo apt-get update -qq
 #sudo apt-get install -y cmake gcc gfortran g++ liblapack-dev libopenmpi-dev openmpi-bin
 sudo apt-get install -y cmake gcc gfortran g++
 sudo apt-get install -y netcdf-bin libnetcdf-dev
+sudo apt-get install -y libcmocka-dev
 

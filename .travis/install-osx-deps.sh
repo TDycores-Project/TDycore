@@ -8,6 +8,7 @@ brew tap homebrew/science
 brew install gcc@7
 #brew install open-mpi
 #brew install netcdf
+brew install cmocka
 
 # Make sure the weird gfortran library links are in place.
 #ln -s /usr/local/lib/gcc/5/libgfortran.dylib /usr/local/lib/libgfortran.dylib
