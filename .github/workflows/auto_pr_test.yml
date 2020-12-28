@@ -18,7 +18,7 @@ jobs:
     # A build matrix storing all desired configurations.
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest] #, macos-latest]
         build-type: [Debug] #, Release]
 
     # Environment variables
@@ -31,13 +31,13 @@ jobs:
 
     - name: Installing compilers and tools (Linux)
       if: contains(matrix.os, 'ubuntu')
-      run: sudo apt-get install cmake gcc gfortran g++
+      run: sudo apt-get install cmake lcov gcc gfortran g++
 
     - name: Installing compilers and tools (Mac)
       if: contains(matrix.os, 'macos')
       run: |
         brew update
-        brew install git gcc
+        brew install git gcc lcov
 
     - name: Installing PETSc
       run: |
