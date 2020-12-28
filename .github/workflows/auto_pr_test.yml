@@ -24,7 +24,7 @@ jobs:
     # Environment variables
     env:
       PETSC_ARCH: ${{ matrix.os }}
-      PETSC_DIR: $GITHUB_WORKSPACE/petsc
+      PETSC_DIR: ${GITHUB_WORKSPACE}/petsc
       PETSC_GIT_HASH: a826417c4d
       DEBUG: 1
 
@@ -46,7 +46,6 @@ jobs:
 
     - name: Installing PETSc
       run: |
-        cd $GITHUB_WORKSPACE
         git clone https://gitlab.com/petsc/petsc.git
         cd petsc
         git checkout $PETSC_GIT_HASH
