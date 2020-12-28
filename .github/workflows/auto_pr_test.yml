@@ -74,17 +74,20 @@ jobs:
 
     - name: Running tests (${{ matrix.build-type }})
       run: |
-        cd demo; make V=1 codecov=1
-        cd regression_tests; make test-mpfao
-        cd regression_tests; make test-steady
-        cd regression_tests; make test-steadyf90
-        cd regression_tests; make test-transient
-        cd regression_tests; make test-transient-mpfao
-        cd regression_tests; make test-transient-mpfaof90
-        cd regression_tests; make test-transient-snes-mpfaof90
-        cd regression_tests; make test-transient-th-mpfao
-        cd regression_tests; make test-richards
-        cd regression_tests; make test-th
+        cd demo
+        make V=1 codecov=1
+        cd ../regression_tests
+        make test-mpfao
+        make test-steady
+        make test-steadyf90
+        make test-transient
+        make test-transient-mpfao
+        make test-transient-mpfaof90
+        make test-transient-snes-mpfaof90
+        make test-transient-th-mpfao
+        make test-richards
+        make test-th
+        cd ..
         cat regression_tests/*testlog
         cat demo/transient/transient-mpfaof90.stdout
         cat demo/transient/transient-snes-mpfaof90.stdout
