@@ -42,7 +42,9 @@ jobs:
         brew install git gcc lcov
 
     - name: Installing PETSc
+      uses: actions/checkout@v2
       run: |
+        cd $GITHUB_WORKSPACE
         git clone https://gitlab.com/petsc/petsc.git
         cd petsc
         git checkout $PETSC_GIT_HASH
