@@ -24,7 +24,6 @@ jobs:
     # Environment variables
     env:
       PETSC_ARCH: ${{ matrix.os }}
-      PETSC_DIR: ${GITHUB_WORKSPACE}/petsc
       PETSC_GIT_HASH: a826417c4d
       DEBUG: 1
 
@@ -70,10 +69,13 @@ jobs:
         make all
 
     - name: Building TDycore (${{ matrix.build-type }})
-      run: make -j codecov=1 V=1
+      run: |
+        export PETSC_DIR=$PWD/petsc
+        make -j codecov=1 V=1
 
     - name: Running tests (${{ matrix.build-type }})
       run: |
+        export PETSC_DIR=$PWD/petsc
         cd demo
         make V=1 codecov=1
         cd ../regression_tests
