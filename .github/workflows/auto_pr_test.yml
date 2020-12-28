@@ -41,8 +41,10 @@ jobs:
         brew update
         brew install git gcc lcov
 
-    - name: Installing PETSc
+    - name: Checking out repository
       uses: actions/checkout@v2
+
+    - name: Installing PETSc
       run: |
         cd $GITHUB_WORKSPACE
         git clone https://gitlab.com/petsc/petsc.git
@@ -66,9 +68,6 @@ jobs:
         --download-fblaslapack \
         --download-mpich=http://www.mpich.org/static/downloads/3.2/mpich-3.2.tar.gz
         make all
-
-    - name: Checking out repository
-      uses: actions/checkout@v2
 
     - name: Building TDycore (${{ matrix.build-type }})
       run: make -j codecov=1 V=1
