@@ -23,6 +23,8 @@ jobs:
 
     # Environment variables
     env:
+      PETSC_ARCH: ${{ matrix.os }}
+      PETSC_DIR: $GITHUB_WORKSPACE/petsc
       PETSC_GIT_HASH: a826417c4d
       DEBUG: 1
 
@@ -44,7 +46,6 @@ jobs:
         git clone https://gitlab.com/petsc/petsc.git
         cd petsc
         git checkout $PETSC_GIT_HASH
-        export PETSC_DIR=$PWD; PETSC_ARCH=${{ matrix.os }}
         ./configure \
         --with-cc=gcc \
         --with-cxx=g++ \
@@ -68,13 +69,10 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Building TDycore (${{ matrix.build-type }})
-      run: |
-        export PETSC_DIR=$PWD/petsc; export PETSC_ARCH=${{ matrix.os }}
-        make -j codecov=1 V=1
+      run: make -j codecov=1 V=1
 
     - name: Running tests (${{ matrix.build-type }})
       run: |
-        export PETSC_DIR=$PWD/petsc; export PETSC_ARCH=petsc-arch
         cd demo; make V=1 codecov=1
         cd regression_tests; make test-mpfao
         cd regression_tests; make test-steady
