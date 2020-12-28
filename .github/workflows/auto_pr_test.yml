@@ -1,0 +1,99 @@
+name: auto_pr_test
+
+# This action is triggered:
+# 1. when someone creates a pull request for a merge to the main branch
+# 2. when changes are merged into the main branch (via a pull request)
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# Below are jobs, each of which runs sequentially.
+jobs:
+  # This job builds the box model and runs our test suite.
+  build:
+    runs-on: ${{ matrix.os }}
+
+    # A build matrix storing all desired configurations.
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        build-type: [Debug] #, Release]
+
+    # Environment variables
+    env:
+      PETSC_GIT_HASH: a826417c4d
+      DEBUG: 1
+
+    # Steps for building and running tests.
+    steps:
+
+    - name: Installing compilers and tools (Linux)
+      if: contains(matrix.os, 'ubuntu')
+      run: sudo apt-get install cmake gcc gfortran g++ netcdf-bin libnetcdf-dev
+
+    - name: Installing compilers and tools (Mac)
+      if: contains(matrix.os, 'macos')
+      run: |
+        brew update
+        brew install git cmake gcc
+
+    - name: Installing PETSc
+      run: |
+        git clone https://gitlab.com/petsc/petsc.git
+        cd petsc
+        git checkout $PETSC_GIT_HASH
+        export PETSC_DIR=$PWD; PETSC_ARCH=${{ matrix.os }}
+        ./configure \
+        --with-cc=gcc \
+        --with-cxx=g++ \
+        --with-fc=gfortran \
+        --CFLAGS='-g -O0' --CXXFLAGS='-g -O0' --FFLAGS='-g -O0 -Wno-unused-function' \
+        --with-clanguage=c \
+        --with-debug=$DEBUG  \
+        --with-shared-libraries=0 \
+        --download-hdf5 \
+        --download-metis \
+        --download-parmetis \
+        --download-exodusii \
+        --download-netcdf \
+        --download-pnetcdf \
+        --download-zlib \
+        --download-fblaslapack \
+        --download-mpich=http://www.mpich.org/static/downloads/3.2/mpich-3.2.tar.gz
+        make all
+
+    - name: Checking out repository
+      uses: actions/checkout@v2
+
+    - name: Building TDycore (${{ matrix.build-type }})
+      run: |
+        export PETSC_DIR=$PWD/petsc; export PETSC_ARCH=${{ matrix.os }}
+        make -j codecov=1 V=1
+
+    - name: Running tests (${{ matrix.build-type }})
+      run: |
+        export PETSC_DIR=$PWD/petsc; export PETSC_ARCH=petsc-arch
+        cd demo; make V=1 codecov=1
+        cd regression_tests; make test-mpfao
+        cd regression_tests; make test-steady
+        cd regression_tests; make test-steadyf90
+        cd regression_tests; make test-transient
+        cd regression_tests; make test-transient-mpfao
+        cd regression_tests; make test-transient-mpfaof90
+        cd regression_tests; make test-transient-snes-mpfaof90
+        cd regression_tests; make test-transient-th-mpfao
+        cd regression_tests; make test-richards
+        cd regression_tests; make test-th
+        cat regression_tests/*testlog
+        cat demo/transient/transient-mpfaof90.stdout
+        cat demo/transient/transient-snes-mpfaof90.stdout
+        ls $PETSC_ARCH/obj/src/
+
+    - name: Evaluating test coverage
+      run: |
+        lcov --capture --directory . --output-file coverage.info
+        lcov --list coverage.info # debug info
+        bash <(curl -s https://codecov.io/bash  -f coverage.info)
+
