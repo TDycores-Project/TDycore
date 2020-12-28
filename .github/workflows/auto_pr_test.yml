@@ -50,6 +50,7 @@ jobs:
         git clone https://gitlab.com/petsc/petsc.git
         cd petsc
         git checkout $PETSC_GIT_HASH
+        export PETSC_DIR=$PWD
         ./configure \
         --with-cc=gcc \
         --with-cxx=g++ \
