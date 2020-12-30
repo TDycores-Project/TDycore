@@ -17,13 +17,7 @@ jobs:
 
     # We use a pre-fab container with PETSc and MPICH included.
     # NOTE: Docker containers may only work for Linux builds currently.
-    container:
-      image: jedbrown/petsc-root:latest
-      env:
-        # These PETSC variables depend where PETSc is installed
-        # See https://github.com/jedbrown/jedbrown-dockerfiles/blob/main/petsc/Dockerfile
-        PETSC_DIR: /usr/local/petsc
-        PETSC_ARCH: mpich-int32-real-opt
+    container: jedbrown/petsc-root:latest
 
     # A build matrix storing all desired configurations.
     strategy:
