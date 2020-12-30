@@ -18,7 +18,7 @@ jobs:
     # We use a pre-fab container with PETSc and MPICH included.
     # NOTE: Docker containers may only work for Linux builds currently.
     container:
-      image: jedbrown/petsc:latest
+      image: jedbrown/petsc-root:latest
       env:
         # These PETSC variables depend where PETSc is installed
         # See https://github.com/jedbrown/jedbrown-dockerfiles/blob/main/petsc/Dockerfile
@@ -66,4 +66,3 @@ jobs:
         lcov --capture --directory . --output-file coverage.info
         lcov --list coverage.info # debug info
         bash <(curl -s https://codecov.io/bash  -f coverage.info)
-
