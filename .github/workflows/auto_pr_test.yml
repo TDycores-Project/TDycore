@@ -17,7 +17,13 @@ jobs:
 
     # We use a pre-fab container with PETSc and MPICH included.
     # NOTE: Docker containers may only work for Linux builds currently.
-    container: jedbrown/petsc:latest
+    container:
+      image: jedbrown/petsc:latest
+      env:
+        # These PETSC variables depend where PETSc is installed
+        # See https://github.com/jedbrown/jedbrown-dockerfiles/blob/main/petsc/Dockerfile
+        PETSC_DIR: /usr/local/petsc
+        PETSC_ARCH: mpich-int32-real-opt
 
     # A build matrix storing all desired configurations.
     strategy:
@@ -25,12 +31,6 @@ jobs:
         os: [ubuntu-latest] #, macos-latest]
         build-type: [Debug] #, Release]
 
-    # Environment variables
-    env:
-      # These PETSC variables depend where PETSc is installed
-      # See https://github.com/jedbrown/jedbrown-dockerfiles/blob/main/petsc/Dockerfile
-      PETSC_DIR: /usr/local/petsc
-      PETSC_ARCH: mpich-int32-real-opt
 
     # Steps for building and running tests.
     steps:
@@ -45,8 +45,8 @@ jobs:
 #        brew update
 #        brew install git gcc lcov
 
-#    - name: Checking out repository
-#      uses: actions/checkout@v2
+    - name: Checking out repository
+      uses: actions/checkout@v2
 
 #    - name: Installing PETSc
 #      run: |
