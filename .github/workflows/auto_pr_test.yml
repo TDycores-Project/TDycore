@@ -17,7 +17,7 @@ jobs:
 
     # We use a pre-fab container with PETSc and MPICH included.
     # NOTE: Docker containers may only work for Linux builds currently.
-    container: jedbrown/petsc-root:latest
+    container: jedbrown/petsc-root:rolling
 
     # A build matrix storing all desired configurations.
     strategy:
