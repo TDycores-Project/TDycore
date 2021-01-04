@@ -37,7 +37,7 @@ jobs:
     - name: Running tests (${{ matrix.build-type }})
       run: |
         cd demo
-        make CI=1 V=1 codecov=1
+        make -j CI=1 V=1 codecov=1
         cd ../regression_tests
         make test-mpfao
         make test-steady
