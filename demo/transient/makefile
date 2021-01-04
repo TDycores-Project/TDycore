@@ -9,7 +9,7 @@ endif
 CFLAGS   = ${LIBS}
 FFLAGS   = ${LIBS}
 CPPFLAGS = ${MYFLAGS}
-FPPFLAGS = ${MYFLAGS}
+#FPPFLAGS = ${MYFLAGS}
 
 ALL: $(TARGETS)
 clean::
