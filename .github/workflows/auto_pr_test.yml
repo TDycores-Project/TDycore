@@ -32,12 +32,12 @@ jobs:
 
     - name: Building TDycore (${{ matrix.build-type }})
       run: |
-        make -j codecov=1 V=1
+        make -j CI=1 codecov=1 V=1
 
     - name: Running tests (${{ matrix.build-type }})
       run: |
         cd demo
-        make V=1 codecov=1
+        make CI=1 V=1 codecov=1
         cd ../regression_tests
         make test-mpfao
         make test-steady

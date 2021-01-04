@@ -9,7 +9,9 @@ endif
 CFLAGS   = ${LIBS}
 FFLAGS   = ${LIBS}
 CPPFLAGS = ${MYFLAGS}
-FPPFLAGS = ${MYFLAGS}
+ifndef CI # Internal compiler error in CI environment with GFortran 10.2
+  FPPFLAGS = ${MYFLAGS}
+endif
 
 ALL: $(TARGETS)
 clean::
