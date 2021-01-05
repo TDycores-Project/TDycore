@@ -2156,7 +2156,12 @@ def main(options):
             "gold standard test results in your revision control commit message!\n")
         print(''.join(['\n', message, '\n']))
 
+    testlogname = testlog.name
     testlog.close()
+    num_failures = sum([report[filename].fail for filename in report])
+    if num_failures > 0:
+        with open(testlogname, 'r') as f:
+            print(f.read())
 
     return status
 

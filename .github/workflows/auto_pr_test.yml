@@ -44,7 +44,7 @@ jobs:
         make test-steadyf90
         make test-transient
         make test-transient-mpfao
-        make test-transient-mpfaof90; cat test-transient_mpfaof90*.testlog
+        make test-transient-mpfaof90
         make test-transient-snes-mpfaof90
         make test-transient-th-mpfao
         make test-richards
