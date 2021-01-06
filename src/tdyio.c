@@ -76,9 +76,7 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   }
   else if (tdy->io->format == HDF5Format) {
     char *ofilename = tdy->io->filename;
-    ierr = DMPlexGetHeightStratum(dm,0,&istart,&iend);CHKERRQ(ierr);
-    numCell = iend-istart;
-    ierr = TdyIOWriteHDF5Var(ofilename,v,time,numCell);CHKERRQ(ierr);
+    ierr = TdyIOWriteHDF5Var(ofilename,v,time);CHKERRQ(ierr);
   }
   else{
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unrecognized IO format, must call TDyIOSetMode");
@@ -100,10 +98,14 @@ PetscErrorCode TdyIOInitializeHDF5(char *ofilename, DM dm){
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TdyIOWriteHDF5Var(char *ofilename, Vec U,PetscReal time,PetscInt numCell){   
+PetscErrorCode TdyIOWriteHDF5Var(char *ofilename, Vec U,PetscReal time){   
   PetscViewer viewer;
   PetscErrorCode ierr;
+  PetscInt numCell;
   char word[32];
+  PetscMPIInt rank;
+
+  ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank); CHKERRQ(ierr);
   
   sprintf(word,"%11.5e",time);
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,ofilename,FILE_MODE_APPEND,&viewer);CHKERRQ(ierr);
@@ -111,7 +113,10 @@ PetscErrorCode TdyIOWriteHDF5Var(char *ofilename, Vec U,PetscReal time,PetscInt 
   ierr = VecView(U,viewer);CHKERRQ(ierr);  
   ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
   
+  if (rank == 0){
+  ierr = VecGetSize(U, &numCell);CHKERRQ(ierr);
   ierr = TDyIOWriteXMFAttribute(word,numCell);CHKERRQ(ierr);
+  }
   
   PetscFunctionReturn(0);
 }
@@ -189,6 +194,15 @@ PetscErrorCode TDyIOWriteAsciiViewer(Vec v,PetscReal time) {
 PetscErrorCode TDyIOWriteXMFHeader(PetscInt numCell,PetscInt dim,PetscInt numVert,PetscInt numCorner){
 
   FILE *fid;
+
+  char *cellMap[24] = {"0"};
+  cellMap[1] = "Polyvertex";
+  cellMap[2] = "Polyline";
+  cellMap[6] = "Triangle";
+  cellMap[8] = "Quadrilateral";
+  cellMap[12] = "Tetrahedron";
+  cellMap[18] = "Wedge";
+  cellMap[24] = "Hexahedron";
  
   //  xmf_filename = "out.xmf";
   fid = fopen("out.xmf","w");
@@ -218,7 +232,7 @@ PetscErrorCode TDyIOWriteXMFHeader(PetscInt numCell,PetscInt dim,PetscInt numVer
   //Topology and Geometry
   fprintf(fid,"\n      <Grid Name=\"domain\" GridType=\"Uniform\">"); 
   fprintf(fid,"\n        <Topology");
-  fprintf(fid,"\n           TopologyType=\"%s\"","Hexahedron");//todo
+  fprintf(fid,"\n           TopologyType=\"%s\"","Hexahedron");//cellMap[dim*numCorner]);//todo
   fprintf(fid,"\n           NumberOfElements=\"%i\">",numCell);
   fprintf(fid,"\n          <DataItem Reference=\"XML\">");
   fprintf(fid,"\n            /Xdmf/Domain/DataItem[@Name=\"cells\"]");
@@ -226,7 +240,7 @@ PetscErrorCode TDyIOWriteXMFHeader(PetscInt numCell,PetscInt dim,PetscInt numVer
   fprintf(fid,"\n        </Topology>");
   
   if (dim > 2) {
-    fprintf(fid,"\n        <Geometry GeometryType=\"XYZ\">"); //todo dim
+    fprintf(fid,"\n        <Geometry GeometryType=\"XYZ\">");
     }
   else {
     fprintf(fid,"\n        <Geometry GeometryType=\"XY\">");
