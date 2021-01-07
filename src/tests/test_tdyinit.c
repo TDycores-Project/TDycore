@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <setjmp.h>
 #include <string.h>
+#include <stdlib.h>
 #include <cmocka.h>
 
 #include <tdycore.h>
@@ -60,12 +61,46 @@ static void TestTDyFinalize(void **state)
   TDyFinalize();
 }
 
+static int run_selected_tests(int argc, char* argv[],
+                              const struct CMUnitTest tests[]) {
+  // If we're asked for a count of the tests available, print that number to
+  // stdout.
+  if (argc > 1) {
+    int num_tests = sizeof(tests)/sizeof((tests)[0]);
+    if (strcasecmp(argv[1], "count") == 0) {
+      fprintf(stdout, "%d\n", num_tests);
+      exit(0);
+    } else {
+      // Try to interpret the argument as an index for the desired test.
+      char *endptr;
+      long index = strtol(argv[1], &endptr, 10);
+      if (*endptr == '\0') { // got a valid index!
+        if ((index < 0) || (index >= num_tests)) {
+          fprintf(stderr, "Invalid test index: %ld (must be in [0, %d])\n",
+            index, num_tests);
+          exit(1);
+        } else {
+          return cmocka_run_group_tests(&tests[index], NULL, NULL);
+        }
+      } else {
+        fprintf(stderr, "Invalid argument: %s (must be 'count' or index)\n",
+          argv[1]);
+        exit(1);
+      }
+    }
+  } else {
+    // Just run all the tests in one go.
+    return cmocka_run_group_tests(tests, NULL, NULL);
+  }
+}
+
 int main(int argc, char* argv[])
 {
   // Stash command line arguments.
   argc_ = argc;
   argv_ = argv;
 
+  // Define our set of unit tests.
   const struct CMUnitTest tests[] =
   {
     cmocka_unit_test(TestTDyInit),
@@ -73,5 +108,6 @@ int main(int argc, char* argv[])
     cmocka_unit_test(TestMPIAllreduce),
     cmocka_unit_test(TestTDyFinalize),
   };
-  return cmocka_run_group_tests(tests, NULL, NULL);
+
+  return run_selected_tests(argc, argv, tests);
 }
