@@ -61,19 +61,19 @@ static void TestTDyFinalize(void **state)
   TDyFinalize();
 }
 
-static int run_selected_tests(int argc, char* argv[],
-                              const struct CMUnitTest tests[]) {
+static int _run_selected_tests(const char* command,
+                               int num_tests,
+                               const struct CMUnitTest tests[num_tests]) {
   // If we're asked for a count of the tests available, print that number to
   // stdout.
-  if (argc > 1) {
-    int num_tests = sizeof(tests)/sizeof((tests)[0]);
-    if (strcasecmp(argv[1], "count") == 0) {
+  if (command != NULL) {
+    if (strcasecmp(command, "count") == 0) {
       fprintf(stdout, "%d\n", num_tests);
       exit(0);
     } else {
       // Try to interpret the argument as an index for the desired test.
       char *endptr;
-      long index = strtol(argv[1], &endptr, 10);
+      long index = strtol(command, &endptr, 10);
       if (*endptr == '\0') { // got a valid index!
         if ((index < 0) || (index >= num_tests)) {
           fprintf(stderr, "Invalid test index: %ld (must be in [0, %d])\n",
@@ -93,6 +93,11 @@ static int run_selected_tests(int argc, char* argv[],
     return cmocka_run_group_tests(tests, NULL, NULL);
   }
 }
+
+#define run_selected_tests(argc, argv, tests) { \
+  const char* command = (argc > 1) ? argv[1] : NULL; \
+  int num_tests = sizeof(tests) / sizeof((tests)[0])); \
+  _run_selected_tests(command, num_tests, tests)
 
 int main(int argc, char* argv[])
 {
