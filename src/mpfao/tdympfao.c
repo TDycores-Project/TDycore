@@ -456,20 +456,6 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOSetup(TDy tdy) {
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  PetscErrorCode ierr;
-
-  ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
-  ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOSetFromOptions(TDy tdy) {
 
   PetscFunctionBegin;
