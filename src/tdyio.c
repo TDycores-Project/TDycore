@@ -59,6 +59,7 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
 PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscErrorCode ierr;
   PetscInt numCell,istart,iend;
+  PetscBool useNatural;
   
   int num_vars = tdy->io->num_vars;
   Vec v = tdy->solution;
@@ -76,7 +77,18 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   }
   else if (tdy->io->format == HDF5Format) {
     char *ofilename = tdy->io->filename;
-    ierr = TdyIOWriteHDF5Var(ofilename,v,time);CHKERRQ(ierr);
+        
+    ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);
+    if (useNatural) {
+      Vec natural;
+      ierr = DMCreateGlobalVector(dm, &natural);
+      ierr = DMPlexGlobalToNaturalBegin(dm, v, natural);CHKERRQ(ierr);
+      ierr = DMPlexGlobalToNaturalEnd(dm, v, natural);CHKERRQ(ierr);
+      ierr = TdyIOWriteHDF5Var(ofilename,natural,time);CHKERRQ(ierr);
+    }
+    else {
+      ierr = TdyIOWriteHDF5Var(ofilename,v,time);CHKERRQ(ierr);
+    }
   }
   else{
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unrecognized IO format, must call TDyIOSetMode");
@@ -232,7 +244,7 @@ PetscErrorCode TDyIOWriteXMFHeader(PetscInt numCell,PetscInt dim,PetscInt numVer
   //Topology and Geometry
   fprintf(fid,"\n      <Grid Name=\"domain\" GridType=\"Uniform\">"); 
   fprintf(fid,"\n        <Topology");
-  fprintf(fid,"\n           TopologyType=\"%s\"","Hexahedron");//cellMap[dim*numCorner]);//todo
+  fprintf(fid,"\n           TopologyType=\"%s\"",cellMap[dim*numCorner]);
   fprintf(fid,"\n           NumberOfElements=\"%i\">",numCell);
   fprintf(fid,"\n          <DataItem Reference=\"XML\">");
   fprintf(fid,"\n            /Xdmf/Domain/DataItem[@Name=\"cells\"]");
