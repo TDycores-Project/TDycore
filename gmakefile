@@ -147,24 +147,20 @@ CMOCKA_CFLAGS := $(shell pkg-config cmocka --cflags --silence-errors)
 CMOCKA_LDFLAGS := $(shell pkg-config cmocka --libs --silence-errors)
 ifneq ($(CMOCKA_LDFLAGS),) # begin unit tests
 
-ifndef MPI_NPROC
-MPI_NPROC=1
-endif
-
 # Unit test source files
 UTEST.c = \
 	src/tests/test_tdyinit.c \
 
 # Compile the unit tests
-$(UTEST.c:%.c=%.o) : %.o : %.c
-	$(COMPILE.c) $(CMOCKA_CFLAGS) $(abspath $<) -o $@
+$(UTEST.c:%.c=%.o) : %.o : %.c src/tests/tdycore_tests.h
+	$(COMPILE.c) $(CMOCKA_CFLAGS) -Isrc/tests $(abspath $<) -o $@
 
 # Link the unit tests into executables
 $(UTEST.c:%.c=%) : % : %.o $$^ $(libtdycore)
-	$(call quiet,CLINKER) $(CMOCKA_LDFLAGS) -o $@ $^ $(TDYCORE_LIB) $(LIBS)
+	$(call quiet,CLINKER) -o $@ $^ $(CMOCKA_LDFLAGS) $(TDYCORE_LIB) $(LIBS)
 
 unit-tests : % : $(UTEST.c:%.c=%)
-	+@find src -name "test_*" -executable -exec mpiexec -np ${MPI_NPROC} {} \;
+	+@find src -name "test_*" -executable -exec ./src/tests/run_unit_tests.sh {} \;
 
 endif  # cmocka unit tests
 
