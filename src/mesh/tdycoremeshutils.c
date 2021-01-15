@@ -906,7 +906,7 @@ PetscErrorCode TDyGetSubcellIDGivenCellIdVertexIdFaceId(TDy tdy, PetscInt cell_i
   TDySubcell *subcells = &mesh->subcells;
 
   PetscInt num_subcells_per_cell = 8;
-  PetscInt num_faces = 4;
+  PetscInt num_faces = 3;
   PetscInt num = num_subcells_per_cell * num_faces;
 
   *subcell_id = -1;
@@ -921,6 +921,10 @@ PetscErrorCode TDyGetSubcellIDGivenCellIdVertexIdFaceId(TDy tdy, PetscInt cell_i
         break;
       }
     }
+  }
+
+  if (*subcell_id == -1) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Subcell ID not found.");
   }
 
   PetscFunctionReturn(0);
