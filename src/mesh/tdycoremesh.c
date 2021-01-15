@@ -111,6 +111,7 @@ PetscErrorCode AllocateMemoryForSubcells(
   ierr = TDyAllocate_IntegerArray_1D(&subcells->face_unknown_idx,num_cells*num_subcells_per_cell*num_faces); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&subcells->face_flux_idx   ,num_cells*num_subcells_per_cell*num_faces); CHKERRQ(ierr);
   ierr = TDyAllocate_RealArray_1D(   &subcells->face_area       ,num_cells*num_subcells_per_cell*num_faces); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&subcells->vertex_ids      ,num_cells*num_subcells_per_cell*num_faces); CHKERRQ(ierr);
 
   ierr = TDyAllocate_RealArray_1D(   &subcells->T               ,num_cells*num_subcells_per_cell           ); CHKERRQ(ierr);
 
@@ -2657,6 +2658,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
       ierr = UpdateFaceOrientationAroundAVertex(&cells->centroid[icell], faces, vertices, ivertex, dim, f_idx);
       for (PetscInt d=0;d<3;d++) {
         subcells->face_ids[sOffsetFace + d] = f_idx[d];
+        subcells->vertex_ids[sOffsetFace + d] = ivertex;
       }
 
       PetscReal face_cen[3][3];

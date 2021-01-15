@@ -194,6 +194,31 @@ PetscErrorCode ComputeTransmissibilityMatrix(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode ComputeGravityDiscretization(TDy tdy) {
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+  PetscInt dim;
+  PetscErrorCode ierr;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  switch (dim) {
+  case 2:
+    break;
+  case 3:
+    ierr = TDyComputeGravityDiscretizationFor3DMesh(tdy); CHKERRQ(ierr);
+    break;
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in ComputeGravityDiscretization");
+    break;
+  }
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
 
   TDyMesh *mesh = tdy->mesh;
@@ -422,6 +447,8 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     ierr = MatSetOption(tdy->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
     ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&tdy->P_vec);
     ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->TtimesP_vec);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->GravDisVec);
+    ierr = VecZeroEntries(tdy->GravDisVec);
 
     if (tdy->mode == TH){
       ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&tdy->Temp_Trans_mat); CHKERRQ(ierr);
@@ -440,6 +467,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   // why must these be placed after SetPermeabilityFromFunction()?
   ierr = ComputeGMatrix(tdy); CHKERRQ(ierr);
   ierr = ComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
+  ierr = ComputeGravityDiscretization(tdy); CHKERRQ(ierr);
 
   if (dim == 3) {
     ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);

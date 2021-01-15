@@ -6,6 +6,7 @@
 PETSC_INTERN PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy);
 PETSC_INTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy);
+PETSC_INTERN PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy);
 PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy,Mat,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices_3DMesh(TDy,Mat,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(TDy,Mat,Vec);

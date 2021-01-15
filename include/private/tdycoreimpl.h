@@ -123,6 +123,7 @@ struct _p_TDy {
   PetscReal ***Trans;
   Mat Trans_mat;
   Vec P_vec, TtimesP_vec;
+  Vec GravDisVec;
 
   /* For temperature */
   PetscReal ****Temp_subc_Gmatrix; /* Gmatrix for subcells */
