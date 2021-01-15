@@ -1285,6 +1285,25 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
       // Skip the face that is not locally owned
       if (!faces->is_local[face_id]) continue;
 
+      // Determine the subcell id
+      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
+      PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+
+      // Currently, only zero-flux neumann boundary condition is implemented.
+      // If the boundary condition is neumann, then gravity discretization term is zero
+      if (tdy->mpfao_bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
+
+      PetscInt cell_id;
+      if (cell_id_up < 0) cell_id = cell_id_dn;
+      else cell_id = cell_id_up;
+
+      PetscInt subcell_id;
+      ierr = TDyGetSubcellIDGivenCellIdVertexIdFaceId(tdy, cell_id, ivertex, face_id, &subcell_id); CHKERRQ(ierr);
+
+      // area of subface
+      PetscReal area = subcells->face_area[subcell_id];
+
       PetscReal u_up2dn[dim];
       ierr = ComputeUpDownUnitVector(tdy, face_id, u_up2dn); CHKERRQ(ierr);
 
@@ -1299,21 +1318,6 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
           Ku[ii] += K_face[ii*dim + jj] * u_up2dn[jj];
         }
       }
-
-      // Determine the subcell id
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
-      PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
-
-      PetscInt cell_id;
-      if (cell_id_up < 0) cell_id = cell_id_dn;
-      else cell_id = cell_id_up;
-
-      PetscInt subcell_id;
-      ierr = TDyGetSubcellIDGivenCellIdVertexIdFaceId(tdy, cell_id, ivertex, face_id, &subcell_id); CHKERRQ(ierr);
-
-      // area of subface
-      PetscReal area = subcells->face_area[subcell_id];
 
       PetscReal n_face[dim];
       ierr = TDyFace_GetNormal(faces, face_id, dim, &n_face[0]); CHKERRQ(ierr);
