@@ -35,7 +35,7 @@ PetscErrorCode TDyIOSetPrintIntermediate(TDyIO io, PetscBool flag){
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyIOSetMode(TDyIO tdy, TDyIOFormat format){
+PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   
@@ -58,10 +58,9 @@ PetscErrorCode TDyIOSetMode(TDyIO tdy, TDyIOFormat format){
     char *ofilename = tdy->io->filename;
     numCorner = TDyGetNumberOfCellVertices(dm);
     ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr); 
-    ierr = DMPlexGetHeightStratum(dm,3,&istart,&iend);CHKERRQ(ierr); //just for box example?
+    ierr = DMPlexGetHeightStratum(dm,3,&istart,&iend);CHKERRQ(ierr); 
     numVert = iend-istart;
-    ierr = DMPlexGetHeightStratum(dm,0,&istart,&iend);CHKERRQ(ierr);
-    numCell = iend-istart;
+    ierr = VecGetSize(tdy->solution, &numCell);CHKERRQ(ierr);
     
       
     ierr = TdyIOInitializeHDF5(ofilename,dm);CHKERRQ(ierr);
