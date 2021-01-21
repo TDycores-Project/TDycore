@@ -761,6 +761,14 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
     }
   }
 
+  for (PetscInt icell = 0; icell<mesh->num_cells; icell++) TDyPrintCellInfo(tdy, icell);
+  printf("\n");
+
+  for (PetscInt iface = 0; iface<mesh->num_faces; iface++) TDyPrintFaceInfo(tdy, iface);
+  printf("\n");
+
+  for (PetscInt ivertex = 0; ivertex<mesh->num_vertices; ivertex++) TDyPrintVertexInfo(tdy, ivertex);
+
   PetscFunctionReturn(0);
 }
 
