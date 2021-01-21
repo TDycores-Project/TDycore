@@ -943,7 +943,7 @@ PetscErrorCode TDyPrintFaceInfo(TDy tdy, PetscInt iface) {
   TDyMesh *mesh = tdy->mesh;
   TDyFace *faces = &mesh->faces;
 
-  printf("Face_id = %d; ",iface);
+  printf("Face_id = %03d; ",iface);
 
   PetscInt dim, d;
   PetscErrorCode ierr;
@@ -953,6 +953,75 @@ PetscErrorCode TDyPrintFaceInfo(TDy tdy, PetscInt iface) {
   for (d = 0; d<dim; d++) {
     printf(" %+e ",faces->centroid[iface].X[d]);
   }
+
+  printf("Cell Ids: ");
+  PetscInt fOffsetCell = faces->cell_offset[iface];
+  printf("%+03d %+03d",faces->cell_ids[fOffsetCell], faces->cell_ids[fOffsetCell+1]);
+  printf("\n");
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyPrintCellInfo(TDy tdy, PetscInt icell) {
+
+  PetscFunctionBegin;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+
+  printf("Cell_id = %03d; ",icell);
+
+  PetscInt dim, d;
+  PetscErrorCode ierr;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  printf(" Centroid: ");
+  for (d = 0; d<dim; d++) {
+    printf(" %+e ",cells->centroid[icell].X[d]);
+  }
+
+  printf("Face: ");
+  PetscInt cOffsetFace = cells->face_offset[icell];
+  for (PetscInt iface = 0; iface < cells->num_faces[icell]; iface++)
+    printf("%03d ",cells->face_ids[cOffsetFace + iface]);
+
+  printf("Vertex: ");
+  PetscInt cOffsetVert = cells->vertex_offset[icell];
+  for (PetscInt ivertex = 0; ivertex < cells->num_vertices[icell]; ivertex++)
+    printf("%03d ",cells->vertex_ids[cOffsetVert + ivertex]);
+
+  printf("\n");
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyPrintVertexInfo(TDy tdy, PetscInt ivertex) {
+
+  PetscFunctionBegin;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyVertex *vertices = &mesh->vertices;
+
+  printf("Vertex_id = %03d; ",ivertex);
+
+  PetscInt dim, d;
+  PetscErrorCode ierr;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  printf(" Centroid: ");
+  for (d = 0; d<dim; d++) {
+    printf(" %+e ",vertices->coordinate[ivertex].X[d]);
+  }
+
+  printf(" Face IDs: ");
+  PetscInt vOffsetFace = vertices->face_offset[ivertex];
+  for (PetscInt iface = 0; iface<vertices->num_faces[ivertex]; iface++)
+    printf("%03d ",vertices->face_ids[vOffsetFace + iface]);
+
   printf("\n");
 
   PetscFunctionReturn(0);

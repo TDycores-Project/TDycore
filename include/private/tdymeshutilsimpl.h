@@ -41,6 +41,8 @@ PETSC_INTERN PetscErrorCode IdentifyLocalFaces(TDy);
 PETSC_INTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDyCell*, PetscInt, TDyVertex*, PetscInt, TDySubcell*, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyPrintSubcellInfo(TDy, PetscInt, PetscInt);
 PETSC_INTERN PetscErrorCode TDyPrintFaceInfo(TDy, PetscInt);
+PETSC_INTERN PetscErrorCode TDyPrintCellInfo(TDy, PetscInt);
+PETSC_INTERN PetscErrorCode TDyPrintVertexInfo(TDy, PetscInt);
 PETSC_INTERN PetscErrorCode TDySubCell_GetIthNuStarVector(TDySubcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyEdge_GetNormal(TDyEdge*,PetscInt,PetscInt, PetscReal*);
 
