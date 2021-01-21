@@ -1,0 +1,54 @@
+# This action build and publishes the Sphinx documentation for TDycore to its
+# GitHub Pages site. Adapted from
+# https://github.com/ammaraskar/sphinx-action-test/blob/master/.github/workflows/default.yml
+name: auto_publish_docs
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - uses: ammaraskar/sphinx-action@master
+      with:
+        pre-build-command: "pip install -r requirements.txt"
+        build-command: "make html"
+        docs-folder: "doc/sphinx"
+    ## Great extra actions to compose with:
+    ## Create an artifact of the html output.
+    #- uses: actions/upload-artifact@v1
+    #  with:
+    #    name: DocumentationHTML
+    #    path: doc/sphinx/build/html/
+    ## Create an artifact out of the previously built pdf.
+    #- uses: actions/upload-artifact@v1
+    #  with:
+    #    name: Documentation
+    #    path: doc/sphinx/build/latex/pdfexample.pdf
+    # Publish built docs to github_pages branch.
+    # ===============================
+    - name: Commit documentation changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git checkout github_pages
+        cp -r doc/sphinx/build/html/* docs/
+        cd docs
+        touch .nojekyll
+        git add .
+        git commit -m "Updated documentation" -a || true
+        # The above command will fail if no changes were present, so we ignore
+        # that.
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        branch: github_pages
+        directory: docs
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+    # ===============================

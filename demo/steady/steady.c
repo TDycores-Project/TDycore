@@ -432,7 +432,7 @@ PetscErrorCode SaveCentroids(DM dm, char filename[256]){
 }
 
 PetscErrorCode SaveTrueSolution(TDy tdy, char filename[256]){
-  DM dm;
+  DM dm = tdy->dm;
   Vec coordinates,pressure;
   PetscScalar *coords,*pres;
   PetscInt c,cStart,cEnd;
@@ -442,7 +442,6 @@ PetscErrorCode SaveTrueSolution(TDy tdy, char filename[256]){
 
   PetscFunctionBegin;
 
-  dm = tdy->dm;
   ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
 
   ierr = DMCreateGlobalVector(dm,&pressure); CHKERRQ(ierr);
@@ -466,7 +465,7 @@ PetscErrorCode SaveTrueSolution(TDy tdy, char filename[256]){
 }
 
 PetscErrorCode SaveForcing(TDy tdy, char filename[256]){
-  DM dm;
+  DM dm = tdy->dm;
   Vec forcing;
   PetscScalar *f;
   PetscInt c,cStart,cEnd;
@@ -476,7 +475,6 @@ PetscErrorCode SaveForcing(TDy tdy, char filename[256]){
 
   PetscFunctionBegin;
 
-  dm = tdy->dm;
   ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
 
   ierr = DMCreateGlobalVector(dm,&forcing); CHKERRQ(ierr);

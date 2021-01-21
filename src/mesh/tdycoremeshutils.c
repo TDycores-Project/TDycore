@@ -369,7 +369,7 @@ PetscInt GetNumFacesForSubcellType(TDySubcellType subcell_type) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscInt TDyMeshGetNumberOfLocalCells(TDy_mesh *mesh) {
+PetscInt TDyMeshGetNumberOfLocalCells(TDyMesh *mesh) {
 
   PetscInt nLocalCells = 0;
   PetscInt icell;
@@ -384,7 +384,7 @@ PetscInt TDyMeshGetNumberOfLocalCells(TDy_mesh *mesh) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscInt TDyMeshGetNumberOfLocalFacess(TDy_mesh *mesh) {
+PetscInt TDyMeshGetNumberOfLocalFacess(TDyMesh *mesh) {
 
   PetscInt nLocalFaces = 0;
   PetscInt iface;
@@ -399,7 +399,7 @@ PetscInt TDyMeshGetNumberOfLocalFacess(TDy_mesh *mesh) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscInt TDyMeshGetNumberOfNonLocalFacess(TDy_mesh *mesh) {
+PetscInt TDyMeshGetNumberOfNonLocalFacess(TDyMesh *mesh) {
 
   PetscInt nNonLocalFaces = 0;
   PetscInt iface;
@@ -414,7 +414,7 @@ PetscInt TDyMeshGetNumberOfNonLocalFacess(TDy_mesh *mesh) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscInt TDyMeshGetNumberOfNonInternalFacess(TDy_mesh *mesh) {
+PetscInt TDyMeshGetNumberOfNonInternalFacess(TDyMesh *mesh) {
 
   PetscInt nNonInternalFaces = 0;
   PetscInt iface;
@@ -429,7 +429,7 @@ PetscInt TDyMeshGetNumberOfNonInternalFacess(TDy_mesh *mesh) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode AreFacesNeighbors(TDy_face *faces, PetscInt face_id_1, PetscInt face_id_2) {
+PetscErrorCode AreFacesNeighbors(TDyFace *faces, PetscInt face_id_1, PetscInt face_id_2) {
 
   PetscBool are_neighbors;
   PetscInt iedge_1, iedge_2;
@@ -452,7 +452,7 @@ PetscErrorCode AreFacesNeighbors(TDy_face *faces, PetscInt face_id_1, PetscInt f
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDySubCell_GetIthNuVector(TDy_subcell *subcells, PetscInt isubcell, PetscInt i, PetscInt dim, PetscReal *nu_vec) {
+PetscErrorCode TDySubCell_GetIthNuVector(TDySubcell *subcells, PetscInt isubcell, PetscInt i, PetscInt dim, PetscReal *nu_vec) {
   PetscFunctionBegin;
   PetscInt d;
   PetscInt sOffsetNu = subcells->nu_vector_offset[isubcell];
@@ -466,7 +466,7 @@ PetscErrorCode TDySubCell_GetIthNuVector(TDy_subcell *subcells, PetscInt isubcel
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDySubCell_GetIthNuStarVector(TDy_subcell *subcells, PetscInt isubcell, PetscInt i, PetscInt dim, PetscReal *nu_vec) {
+PetscErrorCode TDySubCell_GetIthNuStarVector(TDySubcell *subcells, PetscInt isubcell, PetscInt i, PetscInt dim, PetscReal *nu_vec) {
   PetscFunctionBegin;
   PetscInt d;
   PetscInt sOffsetNu = subcells->nu_vector_offset[isubcell];
@@ -480,7 +480,7 @@ PetscErrorCode TDySubCell_GetIthNuStarVector(TDy_subcell *subcells, PetscInt isu
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDySubCell_GetIthFaceCentroid(TDy_subcell *subcells, PetscInt isubcell, PetscInt i, PetscInt dim, PetscReal *centroid) {
+PetscErrorCode TDySubCell_GetIthFaceCentroid(TDySubcell *subcells, PetscInt isubcell, PetscInt i, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;
   PetscInt sOffsetNu = subcells->nu_vector_offset[isubcell];
@@ -494,7 +494,7 @@ PetscErrorCode TDySubCell_GetIthFaceCentroid(TDy_subcell *subcells, PetscInt isu
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDySubCell_GetFaceIndexForAFace(TDy_subcell* subcells, PetscInt isubcell, PetscInt face_id, PetscInt *face_idx) {
+PetscErrorCode TDySubCell_GetFaceIndexForAFace(TDySubcell* subcells, PetscInt isubcell, PetscInt face_id, PetscInt *face_idx) {
 
   PetscFunctionBegin;
   PetscInt i;
@@ -514,7 +514,7 @@ PetscErrorCode TDySubCell_GetFaceIndexForAFace(TDy_subcell* subcells, PetscInt i
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyEdge_GetCentroid(TDy_edge *edges, PetscInt iedge, PetscInt dim, PetscReal *centroid) {
+PetscErrorCode TDyEdge_GetCentroid(TDyEdge *edges, PetscInt iedge, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) centroid[d] = edges->centroid[iedge].X[d];
@@ -522,7 +522,7 @@ PetscErrorCode TDyEdge_GetCentroid(TDy_edge *edges, PetscInt iedge, PetscInt dim
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyEdge_GetNormal(TDy_edge *edges, PetscInt iedge, PetscInt dim, PetscReal *normal) {
+PetscErrorCode TDyEdge_GetNormal(TDyEdge *edges, PetscInt iedge, PetscInt dim, PetscReal *normal) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) normal[d] = edges->normal[iedge].V[d];
@@ -530,7 +530,7 @@ PetscErrorCode TDyEdge_GetNormal(TDy_edge *edges, PetscInt iedge, PetscInt dim, 
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyFace_GetCentroid(TDy_face *faces, PetscInt iface, PetscInt dim, PetscReal *centroid) {
+PetscErrorCode TDyFace_GetCentroid(TDyFace *faces, PetscInt iface, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) centroid[d] = faces->centroid[iface].X[d];
@@ -538,7 +538,7 @@ PetscErrorCode TDyFace_GetCentroid(TDy_face *faces, PetscInt iface, PetscInt dim
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyFace_GetNormal(TDy_face *faces, PetscInt iface, PetscInt dim, PetscReal *normal) {
+PetscErrorCode TDyFace_GetNormal(TDyFace *faces, PetscInt iface, PetscInt dim, PetscReal *normal) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) normal[d] = faces->normal[iface].V[d];
@@ -546,7 +546,7 @@ PetscErrorCode TDyFace_GetNormal(TDy_face *faces, PetscInt iface, PetscInt dim, 
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex *vertices, PetscInt ivertex, PetscInt dim, PetscReal *coor) {
+PetscErrorCode TDyVertex_GetCoordinate(TDyVertex *vertices, PetscInt ivertex, PetscInt dim, PetscReal *coor) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) coor[d] = vertices->coordinate[ivertex].X[d];
@@ -555,7 +555,7 @@ PetscErrorCode TDyVertex_GetCoordinate(TDy_vertex *vertices, PetscInt ivertex, P
 
 /* -------------------------------------------------------------------------- */
 /*
-PetscErrorCode TDyCell_GetCentroid(TDy_cell *cell, PetscInt dim, PetscReal *centroid) {
+PetscErrorCode TDyCell_GetCentroid(TDyCell *cell, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) centroid[d] = cell->centroid.X[d];
@@ -564,7 +564,7 @@ PetscErrorCode TDyCell_GetCentroid(TDy_cell *cell, PetscInt dim, PetscReal *cent
 */
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyCell_GetCentroid2(TDy_cell *cells, PetscInt icell, PetscInt dim, PetscReal *centroid) {
+PetscErrorCode TDyCell_GetCentroid2(TDyCell *cells, PetscInt icell, PetscInt dim, PetscReal *centroid) {
   PetscFunctionBegin;
   PetscInt d;
   for (d=0; d<dim; d++) centroid[d] = cells->centroid[icell].X[d];
@@ -573,7 +573,7 @@ PetscErrorCode TDyCell_GetCentroid2(TDy_cell *cells, PetscInt icell, PetscInt di
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode FindNeighboringVerticesOfAFace(TDy_face *faces, PetscInt iface, PetscInt vertex_id,
+PetscErrorCode FindNeighboringVerticesOfAFace(TDyFace *faces, PetscInt iface, PetscInt vertex_id,
                                               PetscInt neighboring_vertex_ids[2]) {
 
   PetscFunctionBegin;
@@ -618,8 +618,8 @@ PetscErrorCode FindNeighboringVerticesOfAFace(TDy_face *faces, PetscInt iface, P
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDy_face *faces,
-                                                 TDy_vertex *vertices, PetscInt ivertex,
+PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDyFace *faces,
+                                                 TDyVertex *vertices, PetscInt ivertex,
                                                  PetscInt f_idx[3],
                                                  PetscInt *num_shared_faces) {
   
@@ -661,17 +661,15 @@ PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDy_face *fac
 PetscErrorCode IdentifyLocalCells(TDy tdy) {
 
   PetscErrorCode ierr;
-  DM             dm;
+  DM             dm = tdy->dm;
   Vec            junkVec;
   PetscInt       junkInt;
   PetscInt       gref;
   PetscInt       cStart, cEnd, c;
-  TDy_cell       *cells;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
 
   PetscFunctionBegin;
-
-  dm = tdy->dm;
-  cells = &tdy->mesh->cells;
 
   PetscMPIInt rank;
   ierr = MPI_Comm_rank(PetscObjectComm((PetscObject) dm), &rank);CHKERRQ(ierr);
@@ -700,20 +698,16 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
 PetscErrorCode IdentifyLocalVertices(TDy tdy) {
 
   PetscInt       ivertex, icell, c;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
-  TDy_vertex     *vertices;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  TDyVertex     *vertices = &mesh->vertices;
   PetscInt       vStart, vEnd;
-  DM             dm;
+  DM             dm = tdy->dm;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
-  dm       = tdy->dm;
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-  vertices = &mesh->vertices;
-  
+    
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
@@ -733,19 +727,14 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
 PetscErrorCode IdentifyLocalEdges(TDy tdy) {
 
   PetscInt iedge, icell_1, icell_2;
-  TDy_mesh *mesh;
-  TDy_cell *cells;
-  TDy_edge *edges;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyEdge *edges = &mesh->edges;
   PetscInt       eStart, eEnd;
-  DM             dm;
+  DM             dm = tdy->dm;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-
-  dm    = tdy->dm;
-  mesh  = tdy->mesh;
-  cells = &mesh->cells;
-  edges = &mesh->edges;
 
   ierr = DMPlexGetDepthStratum(dm, 1, &eStart, &eEnd); CHKERRQ(ierr);
 
@@ -795,19 +784,14 @@ PetscErrorCode IdentifyLocalEdges(TDy tdy) {
 PetscErrorCode IdentifyLocalFaces(TDy tdy) {
 
   PetscInt iface, icell_1, icell_2;
-  TDy_mesh *mesh;
-  TDy_cell *cells;
-  TDy_face *faces;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
   PetscInt       fStart, fEnd;
-  DM             dm;
+  DM             dm = tdy->dm;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-
-  dm    = tdy->dm;
-  mesh  = tdy->mesh;
-  cells = &mesh->cells;
-  faces = &mesh->faces;
 
   mesh->num_boundary_faces = 0;
 
@@ -850,7 +834,7 @@ PetscErrorCode IdentifyLocalFaces(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDy_cell *cells, PetscInt cell_id, TDy_vertex *vertices, PetscInt ivertex, TDy_subcell *subcells, PetscInt *subcell_id) {
+PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDyCell *cells, PetscInt cell_id, TDyVertex *vertices, PetscInt ivertex, TDySubcell *subcells, PetscInt *subcell_id) {
 
   PetscFunctionBegin;
 
@@ -889,15 +873,12 @@ PetscErrorCode TDyGetNumCellsLocal(TDy tdy, PetscInt *num_cells) {
 
 PetscErrorCode TDyGetCellNaturalIDsLocal(TDy tdy, PetscInt *ni, PetscInt nat_ids[]) {
 
-  TDy_mesh *mesh;
-  TDy_cell *cells;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
   PetscInt icell;
 
   PetscFunctionBegin;
   *ni = 0;
-
-  mesh = tdy->mesh;
-  cells = &mesh->cells;
 
   for (icell=0; icell<mesh->num_cells; icell++) {
     nat_ids[*ni] = cells->natural_id[icell];
@@ -911,15 +892,12 @@ PetscErrorCode TDyGetCellNaturalIDsLocal(TDy tdy, PetscInt *ni, PetscInt nat_ids
 
 PetscErrorCode TDyGetCellIsLocal(TDy tdy, PetscInt *ni, PetscInt is_local[]) {
 
-  TDy_mesh *mesh;
-  TDy_cell *cells;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
   PetscInt icell;
 
   PetscFunctionBegin;
   *ni = 0;
-
-  mesh = tdy->mesh;
-  cells = &mesh->cells;
 
   for (icell=0; icell<mesh->num_cells; icell++) {
     if (cells->is_local[icell]) is_local[*ni] = 1;
@@ -936,9 +914,9 @@ PetscErrorCode TDyPrintSubcellInfo(TDy tdy, PetscInt icell, PetscInt isubcell) {
 
   PetscFunctionBegin;
 
-  TDy_mesh *mesh = tdy->mesh;
-  TDy_cell *cells = &mesh->cells;
-  TDy_subcell *subcells = &mesh->subcells;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDySubcell *subcells = &mesh->subcells;
 
   PetscInt subcell_id = icell*cells->num_subcells[icell] + isubcell;
   PetscInt sOffsetFace = subcells->face_offset[subcell_id];
@@ -962,8 +940,8 @@ PetscErrorCode TDyPrintFaceInfo(TDy tdy, PetscInt iface) {
 
   PetscFunctionBegin;
 
-  TDy_mesh *mesh = tdy->mesh;
-  TDy_face *faces = &mesh->faces;
+  TDyMesh *mesh = tdy->mesh;
+  TDyFace *faces = &mesh->faces;
 
   printf("Face_id = %d; ",iface);
 

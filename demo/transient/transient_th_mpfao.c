@@ -4,7 +4,7 @@ void Porosity(double *x,double *theta) {
   (*theta) = 0.115;
 }
 
-void SpecificHeatCapacity(double *x,double *theta) {
+void SpecificHeat(double *x,double *theta) {
   (*theta) = 1000.0;
 }
 
@@ -180,8 +180,8 @@ int main(int argc, char **argv) {
 
   /* Setup problem parameters */
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
-  ierr = TDySetSpecificHeatCapacity(tdy,SpecificHeatCapacity); CHKERRQ(ierr);
-  ierr = TDySetRockDensity(tdy,RockDensity); CHKERRQ(ierr);
+  ierr = TDySetSoilSpecificHeat(tdy,SpecificHeat); CHKERRQ(ierr);
+  ierr = TDySetSoilDensity(tdy,RockDensity); CHKERRQ(ierr);
   //ierr = TDySetPermeabilityScalar(tdy,Permeability); CHKERRQ(ierr);
   ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction3D,NULL); CHKERRQ(ierr);
   ierr = TDySetThermalConductivityFunction(tdy,ThermalConductivityFunction3D,NULL); CHKERRQ(ierr);

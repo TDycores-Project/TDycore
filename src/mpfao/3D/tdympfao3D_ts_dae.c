@@ -5,8 +5,8 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
-#include <private/tdysaturationimpl.h>
-#include <private/tdypermeabilityimpl.h>
+
+#include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 #include <private/tdympfao3Dtsimpl.h>
 
@@ -14,8 +14,8 @@
 PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
   DM       dm;
   Vec      Ul,P,M,R_P,R_M;
   PetscReal *p,*u_t,*r,*r_p,*m;
@@ -26,8 +26,8 @@ PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
+    CharacteristicCurve *cc = tdy->cc;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
@@ -74,7 +74,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec 
     m_idx = p_idx + 1;
 
     r[p_idx]  = u_t[m_idx] * cells->volume[icell] - tdy->source_sink[icell] * cells->volume[icell]+ r_p[icell];
-    r[m_idx]  = m  [icell] - tdy->rho[icell] * tdy->porosity[icell] * tdy->S[icell]* cells->volume[icell];
+    r[m_idx]  = m  [icell] - tdy->rho[icell] * matprop->porosity[icell] * cc->S[icell]* cells->volume[icell];
   }
 
   /* Cleanup */

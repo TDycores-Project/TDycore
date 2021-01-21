@@ -1,6 +1,7 @@
 #include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
+#include <private/tdymeshutilsimpl.h>
 #include <private/tdyutils.h>
 #include <private/tdymemoryimpl.h>
 #include <private/tdympfaoutilsimpl.h>
@@ -24,9 +25,9 @@ PetscErrorCode SetPermeabilityFromFunction(TDy tdy) {
 
     PetscReal *localK;
     PetscInt icell, ii, jj;
-    TDy_mesh *mesh;
+    TDyMesh *mesh = tdy->mesh;
 
-    mesh = tdy->mesh;
+    MaterialProp *matprop = tdy->matprop;
 
     // If permeability function is set, use it instead.
     // Will need to consolidate this code with code in tdypermeability.c
@@ -37,8 +38,8 @@ PetscErrorCode SetPermeabilityFromFunction(TDy tdy) {
       PetscInt count = 0;
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
-          tdy->K[icell*dim*dim + ii*dim + jj] = localK[count];
-          tdy->K0[icell*dim*dim + ii*dim + jj] = localK[count];
+          matprop->K[icell*dim*dim + ii*dim + jj] = localK[count];
+          matprop->K0[icell*dim*dim + ii*dim + jj] = localK[count];
           count++;
         }
       }
@@ -61,12 +62,13 @@ PetscErrorCode SetPorosityFromFunction(TDy tdy) {
   TDY_START_FUNCTION_TIMER()
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(tdy->porosity,sizeof(PetscReal)*(cEnd-cStart));CHKERRQ(ierr);
+  ierr = PetscMemzero(matprop->porosity,sizeof(PetscReal)*(cEnd-cStart));CHKERRQ(ierr);
 
   for(c=cStart; c<cEnd; c++) {
-    ierr = (*tdy->ops->computeporosity)(tdy, &(tdy->X[c*dim]), &(tdy->porosity[c]), tdy->porosityctx);CHKERRQ(ierr);
+    ierr = (*tdy->ops->computeporosity)(tdy, &(tdy->X[c*dim]), &(matprop->porosity[c]), tdy->porosityctx);CHKERRQ(ierr);
   }
 
   /*
@@ -74,9 +76,8 @@ PetscErrorCode SetPorosityFromFunction(TDy tdy) {
 
     PetscReal *localK;
     PetscInt icell, ii, jj;
-    TDy_mesh *mesh;
+    TDyMesh *mesh = tdy->mesh;
 
-    mesh = tdy->mesh;
 
     // If peremeability function is set, use it instead.
     // Will need to consolidate this code with code in tdypermeability.c
@@ -87,8 +88,8 @@ PetscErrorCode SetPorosityFromFunction(TDy tdy) {
       PetscInt count = 0;
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
-          tdy->K[icell*dim*dim + ii*dim + jj] = localK[count];
-          tdy->K0[icell*dim*dim + ii*dim + jj] = localK[count];
+          matprop->K[icell*dim*dim + ii*dim + jj] = localK[count];
+          matprop->K0[icell*dim*dim + ii*dim + jj] = localK[count];
           count++;
         }
       }
@@ -115,9 +116,9 @@ PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
 
     PetscReal *localKappa;
     PetscInt icell, ii, jj;
-    TDy_mesh *mesh;
+    TDyMesh *mesh = tdy->mesh;
+    MaterialProp *matprop = tdy->matprop;
 
-    mesh = tdy->mesh;
 
     ierr = PetscMalloc(9*sizeof(PetscReal),&localKappa); CHKERRQ(ierr);
     for (icell=0; icell<mesh->num_cells; icell++) {
@@ -126,8 +127,8 @@ PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
       PetscInt count = 0;
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
-          tdy->Kappa[icell*dim*dim + ii*dim + jj] = localKappa[count];
-          tdy->Kappa0[icell*dim*dim + ii*dim + jj] = localKappa[count];
+          matprop->Kappa[icell*dim*dim + ii*dim + jj] = localKappa[count];
+          matprop->Kappa0[icell*dim*dim + ii*dim + jj] = localKappa[count];
           count++;
         }
       }
@@ -195,24 +196,20 @@ PetscErrorCode ComputeTransmissibilityMatrix(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
 
-  TDy_mesh *mesh;
+  TDyMesh *mesh = tdy->mesh;
   PetscInt nbnd_faces;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh  = tdy->mesh;
   nbnd_faces = mesh->num_boundary_faces;
+
+  ierr = CharacteristicCurveCreate(nbnd_faces, &tdy->cc_bnd); CHKERRQ(ierr);
 
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->P_BND)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->rho_BND)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->vis_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->Kr_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->dKr_dS_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->S_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->dS_dP_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->d2S_dP2_BND)); CHKERRQ(ierr);
 
   PetscInt i;
   PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
@@ -228,14 +225,13 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy) {
 
-  TDy_mesh *mesh;
+  TDyMesh *mesh = tdy->mesh;
   PetscInt nbnd_faces;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh  = tdy->mesh;
   nbnd_faces = mesh->num_boundary_faces;
 
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->T_BND)); CHKERRQ(ierr);
@@ -254,14 +250,13 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
 
-  TDy_mesh *mesh;
+  TDyMesh *mesh = tdy->mesh;
   PetscInt ncells;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh  = tdy->mesh;
   ncells = mesh->num_cells;
 
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(tdy->source_sink)); CHKERRQ(ierr);
@@ -276,14 +271,13 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(TDy tdy) {
 
-  TDy_mesh *mesh;
+  TDyMesh *mesh = tdy->mesh;
   PetscInt ncells;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh  = tdy->mesh;
   ncells = mesh->num_cells;
 
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(tdy->energy_source_sink)); CHKERRQ(ierr);
@@ -301,18 +295,17 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   PetscErrorCode ierr;
   MPI_Comm       comm;
-  DM             dm;
+  DM             dm = tdy->dm;
   PetscInt       dim;
   PetscInt       nrow,ncol,nsubcells;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm = tdy->dm;
 
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
 
-  tdy->mesh = (TDy_mesh *) malloc(sizeof(TDy_mesh));
+  tdy->mesh = (TDyMesh *) malloc(sizeof(TDyMesh));
 
   ierr = TDyAllocateMemoryForMesh(tdy); CHKERRQ(ierr);
 
@@ -575,9 +568,9 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 
-  DM             dm;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
   PetscInt       icell;
   PetscInt       row;
   PetscReal      value;
@@ -587,10 +580,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm       = tdy->dm;
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-
+  
   ierr = MatZeroEntries(K);
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
@@ -655,9 +645,9 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 /* -------------------------------------------------------------------------- */
 PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 
-  DM             dm;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
   PetscScalar    *u;
   Vec            localU;
   PetscInt       dim;
@@ -668,8 +658,6 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm    = tdy->dm;
-  mesh  = tdy->mesh;
   cells = &mesh->cells;
 
   if (! tdy->ops->computedirichletvalue) {
@@ -711,10 +699,10 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 /* -------------------------------------------------------------------------- */
 PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
 
-  DM             dm;
-  TDy_mesh       *mesh;
-  TDy_face       *faces;
-  TDy_cell       *cells;
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyFace       *faces = &mesh->faces;
+  TDyCell       *cells = &mesh->cells;
   PetscInt       dim;
   PetscInt       icell, iface, face_id;
   PetscInt       fStart, fEnd;
@@ -725,10 +713,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm    = tdy->dm;
-  mesh  = tdy->mesh;
   cells = &mesh->cells;
-  faces = &mesh->faces;
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);

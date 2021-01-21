@@ -7,117 +7,117 @@
 #define PetscToPointer(a) (*(PetscFortranAddr *)(a))
 
 #ifdef PETSC_HAVE_FORTRAN_CAPS
-#define tdyinitnoarguments_                         TDYINITNOARGUMENTS
-#define tdyfinalize_                                TDYFINALIZE
-#define tdycreate_                                  TDYCREATE
-#define tdycreatesetdm_                             TDYSETDM
-#define tdysetmode_                                 TDYSETMODE
-#define tdysetdiscretizationmethod_                 TDYSETDISCRETIZATIONMETHOD
-#define tdysetfromoptions_                          TDYSETFROMOPTIONS
-#define tdysetupnumericalmethods_                   TDYSETUPNUMERICALMETHODS
-#define tdysetwaterdensitytype_                     TDYSETWATERDENSITYTYPE
-#define tdysetmpfaogmatrixmethod_                   TDYSETMPFAOGMATRIXMETHOD
-#define tdysetmpfaoboundaryconditiontype_           TDYSETMPFAOGBOUNDARYCONDITIONTYPE
-#define tdysetifunction_                            TDYSETIFUNCTION
-#define tdysetijacobian_                            TDYSETIJACOBIAN
-#define tdysetsnesfunction_                         TDYSETSNESFUNCTION
-#define tdysetsnesjacobian_                         TDYSETSNESJACOBIAN
-#define tdycreatevectors_                           TDYCREATEVECTORS
-#define tdycreatejacobian_                          TDYCREATEJACOBIAN
-#define tdysetdtimeforsnessolver_                   TDYSETDTIMEFORSNESSOLVER
-#define tdysetprevioussolutionforsnessolver_        TDYSETPREVIOUSSOLUTIONFORSNESSOLVER
-#define tdypresolvesnessolver_                      TDYSETPRESOLVESNESSOLVER
-#define tdypostsolvesnessolver_                     TDYSETPOSTSOLVESNESSOLVER
-#define tdycomputesystem_                           TDYCOMPUTESYSTEM
-#define tdycomputeerrornorms_                       TDYCOMPUTEERRORNORMS
-#define tdysetporosityfunction_                     TDYSETPOROSITYFUNCTION
-#define tdysetpermeabilityfunction_                 TDYSETPERMEABILITYFUNCTION
-#define tdysetresidualsaturationfunction_           TDYSETRESIDUALSATURATIONFUNCTION
-#define tdysetforcingfunction_                      TDYSETFORCINGFUNCTION
-#define tdysetdirichletvaluefunction_               TDYSETDIRICHLETVALUEFUNCTION
-#define tdysetdirichletfluxfunction_                TDYSETDIRICHLETFLUXFUNCTION
-#define tdysetporosityvalueslocal0_                 TDYSETPOROSITYVALUESLOCAL0
-#define tdysetporosityvalueslocal11_                TDYSETPOROSITYVALUESLOCAL11
-#define tdysetblockpermeabilityueslocal0_           TDYSETBLOCKPERMEABILITYVALUESLOCAL0
-#define tdysetblockpermeabilityvalueslocal11_       TDYSETBLOCKPERMEABILITYVALUESLOCAL11
-#define tdysetresidualsaturationvalueslocal0_       TDYSETRESIDUALSATURATIONVALUESLOCAL0
-#define tdysetresidualsaturationvalueslocal11_      TDYSETRESIDUALSATURATIONVALUESLOCAL11
-#define tdysetresidualsaturationvalueslocal0_       TDYSETRESIDUALSATURATIONVALUESLOCAL0
-#define tdysetresidualsaturationvalueslocal11_      TDYSETRESIDUALSATURATIONVALUESLOCAL11
-#define tdysetmaterialpropertymvalueslocal0_        TDYSETMATERIALPROPERTYMVALUESLOCAL0
-#define tdysetmaterialpropertymvalueslocal11_       TDYSETMATERIALPROPERTYMVALUESLOCAL11
-#define tdysetmaterialpropertynvalueslocal0_        TDYSETMATERIALPROPERTYNVALUESLOCAL0
-#define tdysetmaterialpropertynvalueslocal11_       TDYSETMATERIALPROPERTYNVALUESLOCAL11
-#define tdysetmaterialpropertyalphavalueslocal0_    TDYSETMATERIALPROPERTYALPHAVALUESLOCAL0
-#define tdysetmaterialpropertyalphavalueslocal11_   TDYSETMATERIALPROPERTYALPHAVALUESLOCAL11
-#define tdysetsourcesinkvalueslocal0_               TDYSETSOURCESINKVALUESLOCAL0
-#define tdysetsourcesinkvalueslocal11_              TDYSETSOURCESINKVALUESLOCAL11
-#define tdygetsatruationvalueslocal_                TDYGETSATURATIONVALUESLOCAL
-#define tdygetliquidmassvalueslocal_                TDYGETLIQUIDMASSVALUESLOCAL
-#define tdygetmaterialpropertymvalueslocal_         TDYGETMATERIALPROPERTYMVALUESLOCAL
-#define tdygetmaterialpropertyalphavalueslocal_     TDYGETMATERIALPROPERTYALPHAVALUESLOCAL
-#define tdygetporosityalueslocal_                   TDYGETPOROSITYVALUESLOCAL
-#define tdygetblockpermeabilityueslocal_            TDYGETBLOCKPERMEABILITYVALUESLOCAL
-#define tdygetnumcellslocal_                        TDYGETNUMCELLSLOCAL
-#define tdygetcellnaturalidslocal_                  TDYGETCELLNATURALIDSLOCAL
-#define tdyupdatestate_                             TDYUPDATESTATE
-#define tdyoutputregression_                        TDYOUTPUTREGRESSION
-#define tdydestroy_                                 TDYDESTROY
+#define tdyinitnoarguments_                            TDYINITNOARGUMENTS
+#define tdyfinalize_                                   TDYFINALIZE
+#define tdycreate_                                     TDYCREATE
+#define tdycreatesetdm_                                TDYSETDM
+#define tdysetmode_                                    TDYSETMODE
+#define tdysetdiscretizationmethod_                    TDYSETDISCRETIZATIONMETHOD
+#define tdysetfromoptions_                             TDYSETFROMOPTIONS
+#define tdysetupnumericalmethods_                      TDYSETUPNUMERICALMETHODS
+#define tdysetwaterdensitytype_                        TDYSETWATERDENSITYTYPE
+#define tdysetmpfaogmatrixmethod_                      TDYSETMPFAOGMATRIXMETHOD
+#define tdysetmpfaoboundaryconditiontype_              TDYSETMPFAOGBOUNDARYCONDITIONTYPE
+#define tdysetifunction_                               TDYSETIFUNCTION
+#define tdysetijacobian_                               TDYSETIJACOBIAN
+#define tdysetsnesfunction_                            TDYSETSNESFUNCTION
+#define tdysetsnesjacobian_                            TDYSETSNESJACOBIAN
+#define tdycreatevectors_                              TDYCREATEVECTORS
+#define tdycreatejacobian_                             TDYCREATEJACOBIAN
+#define tdysetdtimeforsnessolver_                      TDYSETDTIMEFORSNESSOLVER
+#define tdysetprevioussolutionforsnessolver_           TDYSETPREVIOUSSOLUTIONFORSNESSOLVER
+#define tdypresolvesnessolver_                         TDYSETPRESOLVESNESSOLVER
+#define tdypostsolvesnessolver_                        TDYSETPOSTSOLVESNESSOLVER
+#define tdycomputesystem_                              TDYCOMPUTESYSTEM
+#define tdycomputeerrornorms_                          TDYCOMPUTEERRORNORMS
+#define tdysetporosityfunction_                        TDYSETPOROSITYFUNCTION
+#define tdysetpermeabilityfunction_                    TDYSETPERMEABILITYFUNCTION
+#define tdysetresidualsaturationfunction_              TDYSETRESIDUALSATURATIONFUNCTION
+#define tdysetforcingfunction_                         TDYSETFORCINGFUNCTION
+#define tdysetdirichletvaluefunction_                  TDYSETDIRICHLETVALUEFUNCTION
+#define tdysetdirichletfluxfunction_                   TDYSETDIRICHLETFLUXFUNCTION
+#define tdysetporosityvalueslocal0_                    TDYSETPOROSITYVALUESLOCAL0
+#define tdysetporosityvalueslocal11_                   TDYSETPOROSITYVALUESLOCAL11
+#define tdysetblockpermeabilityueslocal0_              TDYSETBLOCKPERMEABILITYVALUESLOCAL0
+#define tdysetblockpermeabilityvalueslocal11_          TDYSETBLOCKPERMEABILITYVALUESLOCAL11
+#define tdysetresidualsaturationvalueslocal0_          TDYSETRESIDUALSATURATIONVALUESLOCAL0
+#define tdysetresidualsaturationvalueslocal11_         TDYSETRESIDUALSATURATIONVALUESLOCAL11
+#define tdysetresidualsaturationvalueslocal0_          TDYSETRESIDUALSATURATIONVALUESLOCAL0
+#define tdysetresidualsaturationvalueslocal11_         TDYSETRESIDUALSATURATIONVALUESLOCAL11
+#define tdysetcharacteristiccurvemvalueslocal0_        TDYSETCHARACTERISTICCURVEMVALUESLOCAL0
+#define tdysetcharacteristiccurvemvalueslocal11_       TDYSETCHARACTERISTICCURVEMVALUESLOCAL11
+#define tdysetcharacteristiccurvenvalueslocal0_        TDYSETCHARACTERISTICCURVENVALUESLOCAL0
+#define tdysetcharacteristiccurvenvalueslocal11_       TDYSETCHARACTERISTICCURVENVALUESLOCAL11
+#define tdysetcharacteristiccurvealphavalueslocal0_    TDYSETCHARACTERISTICCURVEALPHAVALUESLOCAL0
+#define tdysetcharacteristiccurvealphavalueslocal11_   TDYSETCHARACTERISTICCURVEALPHAVALUESLOCAL11
+#define tdysetsourcesinkvalueslocal0_                  TDYSETSOURCESINKVALUESLOCAL0
+#define tdysetsourcesinkvalueslocal11_                 TDYSETSOURCESINKVALUESLOCAL11
+#define tdygetsatruationvalueslocal_                   TDYGETSATURATIONVALUESLOCAL
+#define tdygetliquidmassvalueslocal_                   TDYGETLIQUIDMASSVALUESLOCAL
+#define tdygetcharacteristiccurvemvalueslocal_         TDYGETCHARACTERISTICCURVEMVALUELOCAL
+#define tdygetcharacteristiccurvephavalueslocal_       TDYGETCHARACTERISTICCURVEALPHAVALUESLOCAL
+#define tdygetporosityalueslocal_                      TDYGETPOROSITYVALUESLOCAL
+#define tdygetblockpermeabilityueslocal_               TDYGETBLOCKPERMEABILITYVALUESLOCAL
+#define tdygetnumcellslocal_                           TDYGETNUMCELLSLOCAL
+#define tdygetcellnaturalidslocal_                     TDYGETCELLNATURALIDSLOCAL
+#define tdyupdatestate_                                TDYUPDATESTATE
+#define tdyoutputregression_                           TDYOUTPUTREGRESSION
+#define tdydestroy_                                    TDYDESTROY
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
-#define tdyinitnoarguments_                         tdyinitnoarguments
-#define tdyfinalize_                                tdyfinalize
-#define tdycreate_                                  tdycreate
-#define tdysetdm_                                   tdysetdm
-#define tdysetmode_                                 tdysetmode
-#define tdysetdiscretizationmethod_                 tdysetdiscretizationmethod
-#define tdysetfromoptions_                          tdysetfromoptions
-#define tdysetupnumericalmethods_                   tdysetupnumericalmethods
-#define tdysetwaterdensitytype_                     tdysetwaterdensitytype
-#define tdysetmpfaogmatrixmethod_                   tdysetmpfaogmatrixmethod
-#define tdysetmpfaoboundaryconditiontype_           tdysetmpfaoboundaryconditiontype
-#define tdysetifunction_                            tdysetifunction
-#define tdysetijacobian_                            tdysetijacobian
-#define tdysetsnesfunction_                         tdysetsnesfunction
-#define tdysetsnesjacobian_                         tdysetsnesjacobian
-#define tdycreatevectors_                           tdycreatevectors
-#define tdycreatejacobian_                          tdycreatejacobian
-#define tdysetdtimeforsnessolver_                   tdysetdtimeforsnessolver
-#define tdysetprevioussolutionforsnessolver_        tdysetprevioussolutionforsnessolver
-#define tdypresolvesnessolver_                      tdypresolvesnessolver
-#define tdypostsolvesnessolver_                     tdypostsolvesnessolver
-#define tdycomputesystem_                           tdycomputesystem
-#define tdycomputeerrornorms_                       tdycomputeerrornorms
-#define tdysetporosityfunction_                     tdysetporosityfunction
-#define tdysetpermeabilityfunction_                 tdysetpermeabilityfunction
-#define tdysetresidualsaturationfunction_           tdysetresidualsaturationfunction
-#define tdysetforcingfunction_                      tdysetforcingfunction
-#define tdysetdirichletvaluefunction_               tdysetdirichletvaluefunction
-#define tdysetdirichletfluxfunction_                tdysetdirichletfluxfunction
-#define tdysetporosityvalueslocal0_                 tdysetporosityvalueslocal0
-#define tdysetporosityvalueslocal11_                tdysetporosityvalueslocal11
-#define tdysetblockpermeabilityueslocal0_           tdysetblockpermeabilityvalueslocal0
-#define tdysetblockpermeabilityvalueslocal11_       tdysetblockpermeabilityvalueslocal11
-#define tdysetresidualsaturationvalueslocal0_       tdysetresidualsaturationvalueslocal0
-#define tdysetresidualsaturationvalueslocal11_      tdysetresidualsaturationvalueslocal11
-#define tdysetmaterialpropertymvalueslocal0_        tdysetmaterialpropertymvalueslocal0
-#define tdysetmaterialpropertymvalueslocal11_       tdysetmaterialpropertymvalueslocal11
-#define tdysetmaterialpropertynvalueslocal0_        tdysetmaterialpropertynvalueslocal0
-#define tdysetmaterialpropertynvalueslocal11_       tdysetmaterialpropertynvalueslocal11
-#define tdysetmaterialpropertyalphavalueslocal0_    tdysetmaterialpropertyalphavalueslocal0
-#define tdysetmaterialpropertyalphavalueslocal11_   tdysetmaterialpropertyalphavalueslocal11
-#define tdysetsourcesinkvalueslocal0_               tdysetsourcesinkvalueslocal0
-#define tdysetsourcesinkvalueslocal11_              tdysetsourcesinkvalueslocal11
-#define tdygetsatruationvalueslocal_                tdygetsaturationvalueslocal
-#define tdygetliquidmassvalueslocal_                tdygetliquidmassvalueslocal
-#define tdygetmaterialpropertymvalueslocal_         tdygetmaterialpropertymvalueslocal
-#define tdygetmaterialpropertyalphavalueslocal_     tdygetmaterialpropertyalphavalueslocal
-#define tdygetporosityvalueslocal_                  tdygetporosityvalueslocal
-#define tdygetblockpermeabilityueslocal_            tdygetblockpermeabilityvalueslocal
-#define tdygetnumcellslocal_                        tdygetnumcellslocal
-#define tdygetcellnaturalidslocal_                  tdygetcellnaturalidslocal
-#define tdyupdatestate_                             tdyupdatestate
-#define tdyoutputregression_                        tdyoutputregression
-#define tdydestroy_                                 tdydestroy
+#define tdyinitnoarguments_                            tdyinitnoarguments
+#define tdyfinalize_                                   tdyfinalize
+#define tdycreate_                                     tdycreate
+#define tdysetdm_                                      tdysetdm
+#define tdysetmode_                                    tdysetmode
+#define tdysetdiscretizationmethod_                    tdysetdiscretizationmethod
+#define tdysetfromoptions_                             tdysetfromoptions
+#define tdysetupnumericalmethods_                      tdysetupnumericalmethods
+#define tdysetwaterdensitytype_                        tdysetwaterdensitytype
+#define tdysetmpfaogmatrixmethod_                      tdysetmpfaogmatrixmethod
+#define tdysetmpfaoboundaryconditiontype_              tdysetmpfaoboundaryconditiontype
+#define tdysetifunction_                               tdysetifunction
+#define tdysetijacobian_                               tdysetijacobian
+#define tdysetsnesfunction_                            tdysetsnesfunction
+#define tdysetsnesjacobian_                            tdysetsnesjacobian
+#define tdycreatevectors_                              tdycreatevectors
+#define tdycreatejacobian_                             tdycreatejacobian
+#define tdysetdtimeforsnessolver_                      tdysetdtimeforsnessolver
+#define tdysetprevioussolutionforsnessolver_           tdysetprevioussolutionforsnessolver
+#define tdypresolvesnessolver_                         tdypresolvesnessolver
+#define tdypostsolvesnessolver_                        tdypostsolvesnessolver
+#define tdycomputesystem_                              tdycomputesystem
+#define tdycomputeerrornorms_                          tdycomputeerrornorms
+#define tdysetporosityfunction_                        tdysetporosityfunction
+#define tdysetpermeabilityfunction_                    tdysetpermeabilityfunction
+#define tdysetresidualsaturationfunction_              tdysetresidualsaturationfunction
+#define tdysetforcingfunction_                         tdysetforcingfunction
+#define tdysetdirichletvaluefunction_                  tdysetdirichletvaluefunction
+#define tdysetdirichletfluxfunction_                   tdysetdirichletfluxfunction
+#define tdysetporosityvalueslocal0_                    tdysetporosityvalueslocal0
+#define tdysetporosityvalueslocal11_                   tdysetporosityvalueslocal11
+#define tdysetblockpermeabilityueslocal0_              tdysetblockpermeabilityvalueslocal0
+#define tdysetblockpermeabilityvalueslocal11_          tdysetblockpermeabilityvalueslocal11
+#define tdysetresidualsaturationvalueslocal0_          tdysetresidualsaturationvalueslocal0
+#define tdysetresidualsaturationvalueslocal11_         tdysetresidualsaturationvalueslocal11
+#define tdysetcharacteristiccurvemvalueslocal0_        tdysetcharacteristiccurvemvalueslocal0
+#define tdysetcharacteristiccurvemvalueslocal11_       tdysetcharacteristiccurvemvalueslocal11
+#define tdysetcharacteristiccurvenvalueslocal0_        tdysetcharacteristiccurvenvalueslocal0
+#define tdysetcharacteristiccurvenvalueslocal11_       tdysetcharacteristiccurvenvalueslocal11
+#define tdysetcharacteristiccurvealphavalueslocal0_    tdysetcharacteristiccurvealphavalueslocal0
+#define tdysetcharacteristiccurvealphavalueslocal11_   tdysetcharacteristiccurvealphavalueslocal11
+#define tdysetsourcesinkvalueslocal0_                  tdysetsourcesinkvalueslocal0
+#define tdysetsourcesinkvalueslocal11_                 tdysetsourcesinkvalueslocal11
+#define tdygetsatruationvalueslocal_                   tdygetsaturationvalueslocal
+#define tdygetliquidmassvalueslocal_                   tdygetliquidmassvalueslocal
+#define tdygetcharacteristiccurvemvalueslocal_         tdygetcharacteristicvurvesmvalueslocal
+#define tdygetcharacteristiccurvealphavalueslocal_     tdygetcharacteristicvurvesalphavalueslocal
+#define tdygetporosityvalueslocal_                     tdygetporosityvalueslocal
+#define tdygetblockpermeabilityueslocal_               tdygetblockpermeabilityvalueslocal
+#define tdygetnumcellslocal_                           tdygetnumcellslocal
+#define tdygetcellnaturalidslocal_                     tdygetcellnaturalidslocal
+#define tdyupdatestate_                                tdyupdatestate
+#define tdyoutputregression_                           tdyoutputregression
+#define tdydestroy_                                    tdydestroy
 #endif
 
 static struct {
@@ -564,49 +564,49 @@ PETSC_EXTERN void tdysetresidualsaturationvalueslocal11_(TDy *tdy,PetscInt *ni, 
   tdysetresidualsaturationvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void tdysetmaterialpropertymvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvemvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
-  *ierr = TDySetMaterialPropertyMValuesLocal(*tdy,*ni,ix,y);
+  *ierr = TDySetCharacteristicCurveMValuesLocal(*tdy,*ni,ix,y);
 }
 
-PETSC_EXTERN void tdysetmaterialpropertymvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvemvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
-  tdysetmaterialpropertymvalueslocal_(tdy,ni,ix,y,ierr);
+  tdysetcharacteristiccurvemvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void tdysetmaterialpropertymvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvemvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
-  tdysetmaterialpropertymvalueslocal_(tdy,ni,ix,y,ierr);
+  tdysetcharacteristiccurvemvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void tdysetmaterialpropertynvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvenvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
-  *ierr = TDySetMaterialPropertyNValuesLocal(*tdy,*ni,ix,y);
+  *ierr = TDySetCharacteristicCurveNValuesLocal(*tdy,*ni,ix,y);
 }
 
-PETSC_EXTERN void tdysetmaterialpropertynvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvenvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
-  tdysetmaterialpropertynvalueslocal_(tdy,ni,ix,y,ierr);
+  tdysetcharacteristiccurvenvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void tdysetmaterialpropertynvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvenvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
-  tdysetmaterialpropertynvalueslocal_(tdy,ni,ix,y,ierr);
+  tdysetcharacteristiccurvenvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void tdysetmaterialpropertyalphavalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvealphavalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
-  *ierr = TDySetMaterialPropertyAlphaValuesLocal(*tdy,*ni,ix,y);
+  *ierr = TDySetCharacteristicCurveAlphaValuesLocal(*tdy,*ni,ix,y);
 }
 
-PETSC_EXTERN void tdysetmaterialpropertyalphavalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvealphavalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
-  tdysetmaterialpropertyalphavalueslocal_(tdy,ni,ix,y,ierr);
+  tdysetcharacteristiccurvealphavalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void tdysetmaterialpropertyalphavalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvealphavalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
-  tdysetmaterialpropertyalphavalueslocal_(tdy,ni,ix,y,ierr);
+  tdysetcharacteristiccurvealphavalueslocal_(tdy,ni,ix,y,ierr);
 }
 
 PETSC_EXTERN void tdysetsourcesinkvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
@@ -634,14 +634,14 @@ PETSC_EXTERN void tdygetliquidmassvalueslocal_(TDy *tdy,PetscInt *ni, PetscScala
   *ierr = TDyGetLiquidMassValuesLocal(*tdy,ni,y);
 }
 
-PETSC_EXTERN void tdygetmaterialpropertymvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+PETSC_EXTERN void TDyGetCharacteristicCurveMValuesLocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
 {
-  *ierr = TDyGetMaterialPropertyMValuesLocal(*tdy,ni,y);
+  *ierr = TDyGetCharacteristicCurveMValuesLocal(*tdy,ni,y);
 }
 
-PETSC_EXTERN void tdygetmaterialpropertyalphavalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdygetcharacteristiccurvealphavalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
 {
-  *ierr = TDyGetMaterialPropertyAlphaValuesLocal(*tdy,ni,y);
+  *ierr = TDyGetCharacteristicCurveAlphaValuesLocal(*tdy,ni,y);
 }
 
 PETSC_EXTERN void tdygetporosityvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )

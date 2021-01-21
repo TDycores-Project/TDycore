@@ -5,6 +5,7 @@ transient
 transient_mpfao
 transient_mpfaof90
 transient_snes_mpfaof90
+transient_th_mpfao
 *.bin*
 *.regression
 *.stdout*

@@ -5,19 +5,19 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
-#include <private/tdysaturationimpl.h>
-#include <private/tdypermeabilityimpl.h>
+
+#include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 
   TDy tdy = (TDy)ctx;
-  TDy_mesh *mesh;
-  TDy_cell *cells;
-  TDy_face *faces;
-  TDy_vertex *vertices;
-  DM dm;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
+  TDyVertex *vertices = &mesh->vertices;
+  DM dm = tdy->dm;
   PetscReal *p,*r;
   PetscInt ivertex;
   PetscInt dim;
@@ -31,11 +31,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-  faces    = &mesh->faces;
-  vertices = &mesh->vertices;
-  dm       = tdy->dm;
+    CharacteristicCurve *cc = tdy->cc;
+  CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -81,12 +78,12 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
       // Upwind the 'ukvr'
       if (TtimesP[irow] < 0.0) { // up ---> dn
         // Is the cell_id_up an internal or boundary cell?
-        if (cell_id_up>=0) ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
-        else               ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+        if (cell_id_up>=0) ukvr = cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
+        else               ukvr = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
       } else {
         // Is the cell_id_dn an internal or boundary cell?
-        if (cell_id_dn>=0) ukvr = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
-        else               ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+        if (cell_id_dn>=0) ukvr = cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+        else               ukvr = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
       }
 
       den = 0.0;
@@ -116,8 +113,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
   DM       dm;
   Vec      Ul;
   PetscReal *p,*dp_dt,*r;
@@ -126,8 +123,8 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
+    CharacteristicCurve *cc = tdy->cc;
+  MaterialProp *matprop = tdy->matprop;
 
 //#define DEBUG
 #if defined(DEBUG)
@@ -168,9 +165,9 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
     if (!cells->is_local[icell]) continue;
 
     // d(rho*phi*s)/dP * dP/dt * Vol
-    dmass_dP = tdy->rho[icell]     * dporosity_dP         * tdy->S[icell] +
-               tdy->drho_dP[icell] * tdy->porosity[icell] * tdy->S[icell] +
-               tdy->rho[icell]     * tdy->porosity[icell] * tdy->dS_dP[icell];
+    dmass_dP = tdy->rho[icell]     * dporosity_dP         * cc->S[icell] +
+               tdy->drho_dP[icell] * matprop->porosity[icell] * cc->S[icell] +
+               tdy->rho[icell]     * matprop->porosity[icell] * cc->dS_dP[icell];
     r[icell] += dmass_dP * dp_dt[icell] * cells->volume[icell];
     r[icell] -= tdy->source_sink[icell] * cells->volume[icell];
   }
@@ -195,55 +192,41 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
 PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 
   TDy tdy = (TDy)ctx;
-  TDy_mesh *mesh;
-  TDy_cell *cells;
-  TDy_face *faces;
-  TDy_vertex *vertices;
-  DM dm;
-  PetscInt ivertex, vertex_id;
-  PetscInt npitf_bc, nflux_in;
-  PetscInt cell_id, cell_id_up, cell_id_dn;
-  PetscInt irow, icol;
-  PetscInt dim;
-  PetscReal gz;
-  PetscReal *p;
-  PetscReal ukvr, den;
-  PetscReal dukvr_dPup, dukvr_dPdn, Jac;
-  PetscReal dden_dPup, dden_dPdn;
-  PetscReal T;
-  PetscScalar *TtimesP_vec_ptr;
-
-  PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-  faces    = &mesh->faces;
-  vertices = &mesh->vertices;
-  dm       = tdy->dm;
+  TDyMesh *mesh  = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
+  TDyVertex *vertices = &mesh->vertices;
+  DM dm = tdy->dm;
+  CharacteristicCurve *cc = tdy->cc;
+  CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  PetscInt dim;
+  PetscErrorCode ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
+  PetscReal* p;
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+  PetscScalar *TtimesP_vec_ptr;
   ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
 
-  for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+  for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
-    vertex_id = ivertex;
+    PetscInt vertex_id = ivertex;
 
     if (vertices->num_boundary_faces[ivertex] > 0 && vertices->num_internal_cells[ivertex] < 2) continue;
 
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
     PetscInt vOffsetFace    = vertices->face_offset[ivertex];
 
-    npitf_bc = vertices->num_boundary_faces[ivertex];
-    nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
+    PetscInt npitf_bc = vertices->num_boundary_faces[ivertex];
+    PetscInt nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
 
     // Compute T*P
     PetscScalar TtimesP[nflux_in + npitf_bc];
-    for (irow=0; irow<nflux_in + npitf_bc; irow++) {
+    for (PetscInt irow=0; irow < nflux_in + npitf_bc; irow++) {
 
       PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
       PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
@@ -271,45 +254,46 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
     // For k not equal to i and j, jacobian is given as:
     // d(fluxm_ij)/dP_k =   rho_ij       + (kr/mu)_{ij,upwind}         *   T_ik  *  (1+d(rho_k)/dP_k*g*z
     //
-    for (irow=0; irow<nflux_in + npitf_bc; irow++) {
+    for (PetscInt irow=0; irow<nflux_in + npitf_bc; irow++) {
 
       PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
-      cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
+      PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
 
-      dukvr_dPup = 0.0;
-      dukvr_dPdn = 0.0;
+      PetscReal dukvr_dPup = 0.0;
+      PetscReal dukvr_dPdn = 0.0;
+      PetscReal ukvr;
 
       if (TtimesP[irow] < 0.0) {
         // Flow: up --> dn
         if (cell_id_up>=0) {
           // "up" is an internal cell
-          ukvr       = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
-          dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
-                       tdy->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
+          ukvr       = cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
+          dukvr_dPup = cc->dKr_dS[cell_id_up]*cc->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
+                       cc->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
         } else {
           // "up" is boundary cell
-          ukvr       = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
-          dukvr_dPup = 0.0;//tdy->dKr_dS[-cell_id_up-1]*tdy->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          ukvr = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          dukvr_dPup = 0.0;//cc->dKr_dS[-cell_id_up-1]*cc_bnd->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
         }
 
       } else {
         // Flow: up <--- dn
         if (cell_id_dn>=0) {
           // "dn" is an internal cell
-          ukvr       = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
-          dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
-                       tdy->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
+          ukvr       = cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+          dukvr_dPdn = cc->dKr_dS[cell_id_dn]*cc->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
+                       cc->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
         } else {
           // "dn" is a boundary cell
-          ukvr       = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
-          dukvr_dPdn = 0.0;//tdy->dKr_dS_BND[-cell_id_dn-1]*tdy->dS_dP_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          ukvr       = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          dukvr_dPdn = 0.0;//cc_bnd->dKr[-cell_id_dn-1]*cc_bnd->dS_dP[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
         }
       }
 
-      den = 0.0;
+      PetscReal den = 0.0;
       if (cell_id_up>=0) den += tdy->rho[cell_id_up];
       else               den += tdy->rho_BND[-cell_id_up-1];
       if (cell_id_dn>=0) den += tdy->rho[cell_id_dn];
@@ -324,19 +308,26 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
       if (cell_id_up<0) cell_id_up = cell_id_dn;
       if (cell_id_dn<0) cell_id_dn = cell_id_up;
 
-      dden_dPup = 0.0;
-      dden_dPdn = 0.0;
+      PetscReal dden_dPup = 0.0;
+      PetscReal dden_dPdn = 0.0;
 
       if (cell_id_up>=0) dden_dPup = 0.5*tdy->drho_dP[cell_id_up];
       if (cell_id_dn>=0) dden_dPdn = 0.5*tdy->drho_dP[cell_id_dn];
 
-      for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
-        cell_id = vertices->internal_cell_ids[vOffsetCell + icol];
+      PetscInt num_int_cells = vertices->num_internal_cells[ivertex];
+      PetscInt up_cols[num_int_cells], dn_cols[num_int_cells];
+      PetscReal up_Jac[num_int_cells], dn_Jac[num_int_cells];
+      for (PetscInt icol=0; icol < num_int_cells; ++icol) {
+        up_cols[icol] = -1;
+        dn_cols[icol] = -1;
+        PetscInt cell_id = vertices->internal_cell_ids[vOffsetCell + icol];
 
-        T = tdy->Trans[vertex_id][irow][icol];
+        PetscReal T = tdy->Trans[vertex_id][irow][icol];
 
+        PetscReal gz;
         ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
 
+        PetscReal Jac;
         if (cell_id_up>-1 && cell_id == cell_id_up) {
           Jac =
             dden_dPup * ukvr       * TtimesP[irow] +
@@ -356,14 +347,19 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
         Jac = -Jac;
 
         if (cell_id_up >= 0 && cells->is_local[cell_id_up]) {
-          ierr = MatSetValuesLocal(A,1,&cell_id_up,1,&cell_id,&Jac,ADD_VALUES);CHKERRQ(ierr);
+          up_cols[icol] = cell_id;
+          up_Jac[icol] = Jac;
         }
 
         if (cell_id_dn >= 0 && cells->is_local[cell_id_dn]) {
-          Jac = -Jac;
-          ierr = MatSetValuesLocal(A,1,&cell_id_dn,1,&cell_id,&Jac,ADD_VALUES);CHKERRQ(ierr);
+          dn_cols[icol] = cell_id;
+          dn_Jac[icol] = -Jac;
         }
       }
+
+      // Set rows for the upward and downward fluxes.
+      ierr = MatSetValuesLocal(A,1,&cell_id_up,num_int_cells,up_cols,up_Jac,ADD_VALUES); CHKERRQ(ierr);
+      ierr = MatSetValuesLocal(A,1,&cell_id_dn,num_int_cells,dn_cols,dn_Jac,ADD_VALUES);CHKERRQ(ierr);
     }
   }
 
@@ -382,13 +378,13 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 
   TDy tdy = (TDy)ctx;
-  TDy_mesh *mesh;
-  TDy_cell *cells;
-  TDy_face *faces;
-  TDy_vertex *vertices;
-  DM dm;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
+  TDyVertex *vertices = &mesh->vertices;
+  DM dm = tdy->dm;
   PetscInt fStart, fEnd;
-  TDy_subcell    *subcells;
+  TDySubcell    *subcells = &mesh->subcells;
   PetscInt dim;
   PetscInt ivertex;
   PetscInt isubcell, iface;
@@ -406,12 +402,7 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh     = tdy->mesh;
-  cells    = &mesh->cells;
-  faces    = &mesh->faces;
-  vertices = &mesh->vertices;
-  subcells = &mesh->subcells;
-  dm       = tdy->dm;
+    CharacteristicCurve *cc = tdy->cc;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -472,21 +463,21 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
 
       if (TtimesP[irow] < 0.0) { // up ---> dn
         if (cell_id_up>=0) {
-          ukvr = tdy->Kr[cell_id_up]/tdy->vis[cell_id_up];
-          dukvr_dPup = tdy->dKr_dS[cell_id_up]*tdy->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
-                       tdy->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
+          ukvr = cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
+          dukvr_dPup = cc->dKr_dS[cell_id_up]*cc->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
+                       cc->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
         } else {
-          ukvr = tdy->Kr_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
-          dukvr_dPup = 0.0;//tdy->dKr_dS[-cell_id_up-1]*tdy->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          ukvr = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          dukvr_dPup = 0.0;//cc->dKr_dS[-cell_id_up-1]*cc_bnd->dS_dP[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
         }
       } else {
         if (cell_id_dn>=0) {
-          ukvr = tdy->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
-          dukvr_dPdn = tdy->dKr_dS[cell_id_dn]*tdy->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
-                       tdy->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
+          ukvr = cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
+          dukvr_dPdn = cc->dKr_dS[cell_id_dn]*cc->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
+                       cc->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
         } else {
-          ukvr = tdy->Kr_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
-          dukvr_dPdn = 0.0;//tdy->dKr_dS_BND[-cell_id_dn-1]*tdy->dS_dP_BND[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          ukvr = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          dukvr_dPdn = 0.0;//cc_bnd->dKr_dS[-cell_id_dn-1]*cc_bnd->dS_dP[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
         }
       }
 
@@ -564,8 +555,8 @@ PetscErrorCode TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_
 PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal shift,Mat A,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDy_mesh       *mesh;
-  TDy_cell       *cells;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
   PetscInt icell;
   PetscReal *dp_dt;
   PetscErrorCode ierr;
@@ -577,8 +568,9 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  mesh = tdy->mesh;
   cells = &mesh->cells;
+  CharacteristicCurve *cc = tdy->cc;
+  MaterialProp *matprop = tdy->matprop;
 
   ierr = VecGetArray(Udotl,&dp_dt); CHKERRQ(ierr);
 
@@ -590,20 +582,20 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal 
     d2rho_dP2 = tdy->d2rho_dP2[icell];
 
     // d(rho*phi*s)/dP * dP/dt * Vol
-    dmass_dP = tdy->rho[icell] * dporosity_dP         * tdy->S[icell] +
-               drho_dP         * tdy->porosity[icell] * tdy->S[icell] +
-               tdy->rho[icell] * tdy->porosity[icell] * tdy->dS_dP[icell];
+    dmass_dP = tdy->rho[icell] * dporosity_dP         * cc->S[icell] +
+               drho_dP         * matprop->porosity[icell] * cc->S[icell] +
+               tdy->rho[icell] * matprop->porosity[icell] * cc->dS_dP[icell];
 
     d2mass_dP2 = (
-      tdy->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP         +
-      tdy->S[icell]       * drho_dP                * dporosity_dP         +
-      tdy->S[icell]       * tdy->rho[icell]        * d2porosity_dP2       +
-      tdy->dS_dP[icell]   * drho_dP                * tdy->porosity[icell] +
-      tdy->S[icell]       * d2rho_dP2              * tdy->porosity[icell] +
-      tdy->S[icell]       * drho_dP                * dporosity_dP         +
-      tdy->d2S_dP2[icell] * tdy->rho[icell]        * tdy->porosity[icell] +
-      tdy->dS_dP[icell]   * drho_dP                * tdy->porosity[icell] +
-      tdy->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP
+      cc->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP         +
+      cc->S[icell]       * drho_dP                * dporosity_dP         +
+      cc->S[icell]       * tdy->rho[icell]        * d2porosity_dP2       +
+      cc->dS_dP[icell]   * drho_dP                * matprop->porosity[icell] +
+      cc->S[icell]       * d2rho_dP2              * matprop->porosity[icell] +
+      cc->S[icell]       * drho_dP                * dporosity_dP         +
+      cc->d2S_dP2[icell] * tdy->rho[icell]        * matprop->porosity[icell] +
+      cc->dS_dP[icell]   * drho_dP                * matprop->porosity[icell] +
+      cc->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP
        );
 
     PetscReal value = (shift*dmass_dP + d2mass_dP2*dp_dt[icell])*cells->volume[icell];
@@ -625,14 +617,13 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal 
 PetscErrorCode TDyMPFAOIJacobian_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal shift,Mat A,Mat B,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  DM             dm;
+  DM             dm = tdy->dm;
   Vec Ul, Udotl;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  dm = tdy->dm;
 
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 

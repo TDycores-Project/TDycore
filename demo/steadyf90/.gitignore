@@ -6,3 +6,4 @@ mpfaof90
 *.regression
 *.stdout*
 *.regression.old
+steadyf90
