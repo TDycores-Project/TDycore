@@ -170,7 +170,14 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
   ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
 
-  ierr = TDyMPFAOIJacobian_Vertices_3DMesh(Ul, B, ctx);
+  switch (tdy->mpfao_gmatrix_method){
+    case MPFAO_GMATRIX_DEFAULT:
+      ierr = TDyMPFAOIJacobian_Vertices_3DMesh(Ul, B, ctx); CHKERRQ(ierr);
+      break;
+    case MPFAO_GMATRIX_TPF:
+      ierr = TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Ul, B, ctx); CHKERRQ(ierr);
+      break;
+  }
 
   PetscReal dtInv = 1.0/tdy->dtime;
 
