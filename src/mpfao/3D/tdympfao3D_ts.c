@@ -530,9 +530,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
 
         PetscReal T = tdy->Trans[vertex_id][irow][icol];
 
-        PetscReal gz;
-        ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
-
         PetscReal Jac;
         PetscReal G = GravDis_ptr[face_id*num_subfaces + subface_id];
 
