@@ -233,7 +233,6 @@ PETSC_EXTERN PetscErrorCode TDyMeshDestroy(TDyMesh*);
 PETSC_EXTERN PetscErrorCode TDyMeshGetCellVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyMeshGetCellFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyMeshGetCellNeighbors(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_EXTERN PetscErrorCode TDyMeshGetCellSubcells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyMeshGetCellCentroid(TDyMesh*, PetscInt, TDyCoordinate*);
 PETSC_EXTERN PetscErrorCode TDyMeshGetCellVolume(TDyMesh*, PetscInt, PetscReal*);
 
@@ -248,7 +247,6 @@ PETSC_EXTERN PetscErrorCode TDyMeshGetFaceCentroid(TDyMesh*, PetscInt, TDyCoordi
 PETSC_EXTERN PetscErrorCode TDyMeshGetFaceNormal(TDyMesh*, PetscInt, TDyVector*);
 PETSC_EXTERN PetscErrorCode TDyMeshGetFaceArea(TDyMesh*, PetscInt, PetscReal*);
 
-PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
 
 #endif

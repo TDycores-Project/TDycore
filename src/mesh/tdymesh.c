@@ -27,6 +27,9 @@ PetscErrorCode TDyMeshGetCellVertices(TDyMesh *mesh,
                                       PetscInt cell,
                                       PetscInt **vertices,
                                       PetscInt *num_vertices) {
+  PetscInt offset = mesh->cells.vertex_offset[cell];
+  *vertices = &mesh->cells.vertex_ids[offset];
+  *num_vertices = mesh->cells.vertex_offset[cell+1] - offset;
   return 0;
 }
 
@@ -41,6 +44,9 @@ PetscErrorCode TDyMeshGetCellFaces(TDyMesh *mesh,
                                    PetscInt cell,
                                    PetscInt **faces,
                                    PetscInt *num_faces) {
+  PetscInt offset = mesh->cells.face_offset[cell];
+  *faces = &mesh->cells.face_ids[offset];
+  *num_faces = mesh->cells.face_offset[cell+1] - offset;
   return 0;
 }
 
@@ -56,21 +62,9 @@ PetscErrorCode TDyMeshGetCellNeighbors(TDyMesh *mesh,
                                        PetscInt cell,
                                        PetscInt **neighbors,
                                        PetscInt *num_neighbors) {
-  return 0;
-}
-
-/// Given a mesh and a cell index, retrieve an array of indices of neighboring
-/// cells, and their number.
-/// @param [in] mesh A mesh object
-/// @param [in] cell The index of a cell within the mesh
-/// @param [out] neighbors Stores a pointer to an array of cells neighboring the
-///                        given cell
-/// @param [out] num_neighbors Stores the number of cells neighboring the given
-///                            cell
-PetscErrorCode TDyMeshGetCellSubcells(TDyMesh *mesh,
-                                      PetscInt cell,
-                                      PetscInt **subcells,
-                                      PetscInt *num_subcells) {
+  PetscInt offset = mesh->cells.neighbor_offset[cell];
+  *neighbors = &mesh->cells.neighbor_ids[offset];
+  *num_neighbors = mesh->cells.neighbor_offset[cell+1] - offset;
   return 0;
 }
 
@@ -81,6 +75,7 @@ PetscErrorCode TDyMeshGetCellSubcells(TDyMesh *mesh,
 PetscErrorCode TDyMeshGetCellCentroid(TDyMesh *mesh,
                                       PetscInt cell,
                                       TDyCoordinate *centroid) {
+  *centroid = mesh->cells.centroid[cell];
   return 0;
 }
 
@@ -91,6 +86,7 @@ PetscErrorCode TDyMeshGetCellCentroid(TDyMesh *mesh,
 PetscErrorCode TDyMeshGetCellVolume(TDyMesh *mesh,
                                     PetscInt cell,
                                     PetscReal *volume) {
+  *volume = mesh->cells.volume[cell];
   return 0;
 }
 
@@ -106,6 +102,9 @@ PetscErrorCode TDyMeshGetVertexInternalCells(TDyMesh *mesh,
                                              PetscInt vertex,
                                              PetscInt **int_cells,
                                              PetscInt *num_int_cells) {
+  PetscInt offset = mesh->vertices.internal_cell_offset[vertex];
+  *int_cells = &mesh->vertices.internal_cell_ids[offset];
+  *num_int_cells = mesh->vertices.internal_cell_offset[vertex+1] - offset;
   return 0;
 }
 
@@ -121,6 +120,9 @@ PetscErrorCode TDyMeshGetVertexSubcells(TDyMesh *mesh,
                                         PetscInt vertex,
                                         PetscInt **subcells,
                                         PetscInt *num_subcells) {
+  PetscInt offset = mesh->vertices.subcell_offset[vertex];
+  *subcells = &mesh->vertices.subcell_ids[offset];
+  *num_subcells = mesh->vertices.subcell_offset[vertex+1] - offset;
   return 0;
 }
 
@@ -136,6 +138,9 @@ PetscErrorCode TDyMeshGetVertexFaces(TDyMesh *mesh,
                                      PetscInt vertex,
                                      PetscInt **faces,
                                      PetscInt *num_faces) {
+  PetscInt offset = mesh->vertices.face_offset[vertex];
+  *faces = &mesh->vertices.face_ids[offset];
+  *num_faces = mesh->vertices.face_offset[vertex+1] - offset;
   return 0;
 }
 
@@ -151,6 +156,9 @@ PetscErrorCode TDyMeshGetVertexBoundaryFaces(TDyMesh *mesh,
                                              PetscInt vertex,
                                              PetscInt **faces,
                                              PetscInt *num_faces) {
+  PetscInt offset = mesh->vertices.boundary_face_offset[vertex];
+  *faces = &mesh->vertices.boundary_face_ids[offset];
+  *num_faces = mesh->vertices.boundary_face_offset[vertex+1] - offset;
   return 0;
 }
 
@@ -166,6 +174,9 @@ PetscErrorCode TDyMeshGetFaceCells(TDyMesh *mesh,
                                    PetscInt face,
                                    PetscInt **cells,
                                    PetscInt *num_cells) {
+  PetscInt offset = mesh->faces.cell_offset[face];
+  *cells = &mesh->faces.cell_ids[offset];
+  *num_cells = mesh->faces.cell_offset[face+1] - offset;
   return 0;
 }
 
@@ -181,6 +192,9 @@ PetscErrorCode TDyMeshGetFaceVertices(TDyMesh *mesh,
                                       PetscInt face,
                                       PetscInt **vertices,
                                       PetscInt *num_vertices) {
+  PetscInt offset = mesh->faces.vertex_offset[face];
+  *vertices = &mesh->faces.vertex_ids[offset];
+  *num_vertices = mesh->faces.vertex_offset[face+1] - offset;
   return 0;
 }
 
@@ -191,6 +205,7 @@ PetscErrorCode TDyMeshGetFaceVertices(TDyMesh *mesh,
 PetscErrorCode TDyMeshGetFaceCentroid(TDyMesh *mesh,
                                       PetscInt face,
                                       TDyCoordinate *centroid) {
+  *centroid = mesh->faces.centroid[face];
   return 0;
 }
 
@@ -201,6 +216,7 @@ PetscErrorCode TDyMeshGetFaceCentroid(TDyMesh *mesh,
 PetscErrorCode TDyMeshGetFaceNormal(TDyMesh *mesh,
                                     PetscInt face,
                                     TDyVector *normal) {
+  *normal = mesh->faces.normal[face];
   return 0;
 }
 
@@ -211,21 +227,7 @@ PetscErrorCode TDyMeshGetFaceNormal(TDyMesh *mesh,
 PetscErrorCode TDyMeshGetFaceArea(TDyMesh *mesh,
                                   PetscInt face,
                                   PetscReal *area) {
-  return 0;
-}
-
-/// Given a mesh and a subcell index, retrieve an array of associated vertex
-/// indices and their number.
-/// @param [in] mesh A mesh object
-/// @param [in] subcell The index of a subcell within the mesh
-/// @param [out] vertices Stores a pointer to an array of vertices attached to
-///                       the given subcell
-/// @param [out] num_vertices Stores the number of subcells attached to the
-///                           given subcell
-PetscErrorCode TDyMeshGetSubcellVertices(TDyMesh *mesh,
-                                         PetscInt subcell,
-                                         PetscInt **vertices,
-                                         PetscInt *num_vertices) {
+  *area = mesh->faces.area[face];
   return 0;
 }
 
@@ -241,6 +243,9 @@ PetscErrorCode TDyMeshGetSubcellFaces(TDyMesh *mesh,
                                       PetscInt subcell,
                                       PetscInt **faces,
                                       PetscInt *num_faces) {
+  PetscInt offset = mesh->subcells.face_offset[subcell];
+  *faces = &mesh->subcells.face_ids[offset];
+  *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
   return 0;
 }
 
