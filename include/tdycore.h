@@ -215,4 +215,40 @@ PETSC_EXTERN PetscErrorCode TDyTimeIntegratorRunToTime(TDy,PetscReal);
 
 PETSC_EXTERN PetscErrorCode TDyDriverInitializeTDy(TDy);
 
+/* ---------------------------------------------------------------- */
+
+typedef struct TDyMesh TDyMesh;
+
+typedef struct {
+  PetscReal X[3];
+} TDyCoordinate;
+
+typedef struct {
+  PetscReal V[3];
+} TDyVector;
+
+PETSC_EXTERN PetscErrorCode TDyMeshCreateFromDM(DM, TDyMesh*);
+PETSC_EXTERN PetscErrorCode TDyMeshDestroy(TDyMesh*);
+
+PETSC_EXTERN PetscErrorCode TDyMeshGetCellVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetCellFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetCellNeighbors(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetCellSubcells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetCellCentroid(TDyMesh*, PetscInt, TDyCoordinate*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetCellVolume(TDyMesh*, PetscInt, PetscReal*);
+
+PETSC_EXTERN PetscErrorCode TDyMeshGetVertexInternalCells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetVertexSubcells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetVertexFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetVertexBoundaryFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+
+PETSC_EXTERN PetscErrorCode TDyMeshGetFaceCells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetFaceVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetFaceCentroid(TDyMesh*, PetscInt, TDyCoordinate*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetFaceNormal(TDyMesh*, PetscInt, TDyVector*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetFaceArea(TDyMesh*, PetscInt, PetscReal*);
+
+PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+
 #endif
