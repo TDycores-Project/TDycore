@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/TDycores-Project/TDycore.svg?branch=master)](https://travis-ci.org/TDycores-Project/TDycore)
+[![Build Status](https://github.com/TDycores-Project/TDycore/workflows/auto_pr_test/badge.svg)](https://github.com/TDycores-Project/TDycore/actions)
 [![Code Coverage](https://codecov.io/gh/TDycores-Project/TDycore/branch/master/graph/badge.svg)](https://codecov.io/gh/TDycores-Project/TDycore)
 
 # The Terrestrial Dynamical Core (TDycore)
@@ -21,4 +21,3 @@ with planar faces. The prismatic cells are aligned logically along a z axis.
 Check out the [Wiki](https://github.com/TDycores-Project/TDycore/wiki) for
 documentation, including instructions for
 [building and installing TDycore](https://github.com/TDycores-Project/TDycore/wiki/Building-and-Installing-TDycore).
-
