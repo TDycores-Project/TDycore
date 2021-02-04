@@ -520,26 +520,43 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
         // Flow: up --> dn
         if (cell_id_up>=0) {
           // "up" is an internal cell
-          ukvr       = cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
-          dukvr_dPup = cc->dKr_dS[cell_id_up]*cc->dS_dP[cell_id_up]/tdy->vis[cell_id_up] -
-                       cc->Kr[cell_id_up]/(tdy->vis[cell_id_up]*tdy->vis[cell_id_up])*tdy->dvis_dP[cell_id_up];
+          PetscReal Kr = cc->Kr[cell_id_up];
+          PetscReal dKr_dS = cc->dKr_dS[cell_id_up];
+          PetscReal vis = tdy->vis[cell_id_up];
+          PetscReal dvis_dP = tdy->dvis_dP[cell_id_up];
+          PetscReal dS_dP = cc->dS_dP[cell_id_up];
+
+          ukvr       = Kr/vis;
+          dukvr_dPup = dKr_dS*dS_dP/vis - Kr/(vis*vis)*dvis_dP;
         } else {
           // "up" is boundary cell
-          ukvr = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
-          dukvr_dPup = 0.0;//cc->dKr_dS[-cell_id_up-1]*cc_bnd->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          PetscReal Kr = cc_bnd->Kr[-cell_id_up-1];
+          PetscReal vis = tdy->vis_BND[-cell_id_up-1];
+
+          ukvr = Kr/vis;
+          dukvr_dPup = 0.0;
         }
 
       } else {
         // Flow: up <--- dn
         if (cell_id_dn>=0) {
           // "dn" is an internal cell
-          ukvr       = cc->Kr[cell_id_dn]/tdy->vis[cell_id_dn];
-          dukvr_dPdn = cc->dKr_dS[cell_id_dn]*cc->dS_dP[cell_id_dn]/tdy->vis[cell_id_dn] -
-                       cc->Kr[cell_id_dn]/(tdy->vis[cell_id_dn]*tdy->vis[cell_id_dn])*tdy->dvis_dP[cell_id_dn];
+          PetscReal Kr = cc->Kr[cell_id_dn];
+          PetscReal dKr_dS = cc->dKr_dS[cell_id_dn];
+          PetscReal vis = tdy->vis[cell_id_dn];
+          PetscReal dvis_dP = tdy->dvis_dP[cell_id_dn];
+          PetscReal dS_dP = cc->dS_dP[cell_id_dn];
+
+          ukvr       = Kr/vis;
+          dukvr_dPdn = dKr_dS*dS_dP/vis - Kr/(vis*vis)*dvis_dP;
+
         } else {
           // "dn" is a boundary cell
-          ukvr       = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
-          dukvr_dPdn = 0.0;//cc_bnd->dKr[-cell_id_dn-1]*cc_bnd->dS_dP[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          PetscReal Kr = cc_bnd->Kr[-cell_id_dn-1];
+          PetscReal vis = tdy->vis_BND[-cell_id_dn-1];
+
+          ukvr       = Kr/vis;
+          dukvr_dPdn = 0.0;
         }
       }
 

@@ -1030,6 +1030,7 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
 
 /* -------------------------------------------------------------------------- */
 /// Computes unit vector joining upwind and downwind cells that share a face.
+/// The unit vector points from upwind to downwind cell.
 ///
 /// @param [in] tdy A TDy struct
 /// @param [in] face_id ID of the face
@@ -1290,8 +1291,11 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
       if (tdy->mpfao_bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
 
       PetscInt cell_id;
-      if (cell_id_up < 0) cell_id = cell_id_dn;
-      else cell_id = cell_id_up;
+      if (cell_id_up < 0) {
+        cell_id = cell_id_dn;
+      } else {
+        cell_id = cell_id_up;
+      }
 
       PetscInt subcell_id;
       ierr = TDyGetSubcellIDGivenCellIdVertexIdFaceId(tdy, cell_id, ivertex, face_id, &subcell_id); CHKERRQ(ierr);
