@@ -93,7 +93,12 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
       den *= 0.5;
 
       // Upwind the 'ukvr'
-      PetscReal G = GravDis_ptr[face_id*num_subfaces + subface_id];
+      PetscReal G;
+      if (tdy->mpfao_gmatrix_method == MPFAO_GMATRIX_TPF) {
+        G = GravDis_ptr[face_id*num_subfaces + subface_id];
+      } else {
+        G = 0.0;
+      }
 
       if (TtimesP[irow] + den * G < 0.0) { // up ---> dn
         // Is the cell_id_up an internal or boundary cell?
