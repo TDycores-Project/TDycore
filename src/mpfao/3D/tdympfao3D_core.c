@@ -111,11 +111,6 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
 
           case MPFAO_GMATRIX_TPF:
             if (ii == jj) {
-              /*
-              ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
-              ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
-                                         &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
-              */
 
               PetscInt neighbor_cell_id;
               PetscReal neighbor_cell_cen[dim],cell_cen[dim], dist;
@@ -1038,7 +1033,7 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
 ///
 /// @param [in] tdy A TDy struct
 /// @param [in] face_id ID of the face
-/// @param [out] *up2dn_uvec[3] Unit vector from upwind to downwind cell
+/// @param [out] up2dn_uvec Unit vector from upwind to downwind cell
 /// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode ComputeUpDownUnitVector(TDy tdy, PetscInt face_id, PetscReal up2dn_uvec[3]) {
 
@@ -1086,8 +1081,8 @@ PetscErrorCode ComputeUpDownUnitVector(TDy tdy, PetscInt face_id, PetscReal up2d
 ///
 /// @param [in] tdy A TDy struct
 /// @param [in] face_id ID of the face
-/// @param [out] *dist_up Distance between the upwind cell centroid and face centroid
-/// @param [out] *dist_dn Distance between the downwind cell centroid and face centroid
+/// @param [out] dist_up Distance between the upwind cell centroid and face centroid
+/// @param [out] dist_dn Distance between the downwind cell centroid and face centroid
 /// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode ComputeUpAndDownDist(TDy tdy, PetscInt face_id, PetscReal *dist_up, PetscReal *dist_dn) {
 
@@ -1136,8 +1131,8 @@ PetscErrorCode ComputeUpAndDownDist(TDy tdy, PetscInt face_id, PetscReal *dist_u
 ///
 /// @param [in] tdy A TDy struct
 /// @param [in] face_id ID of the face
-/// @param [out] Kup[9] upwind permeability tensor
-/// @param [out] Kdn[9] downwind permeability tensor
+/// @param [out] Kup components of the upwind permeability tensor in a row-major order
+/// @param [out] Kdn components of the downwind permeability tensor in a row-major order
 PetscErrorCode ExtractUpAndDownPermeabilityTensors(TDy tdy, PetscInt face_id, PetscInt dim, PetscReal Kup[dim*dim], PetscReal Kdn[dim*dim]) {
 
   PetscFunctionBegin;
@@ -1177,7 +1172,7 @@ PetscErrorCode ExtractUpAndDownPermeabilityTensors(TDy tdy, PetscInt face_id, Pe
 ///
 /// @param [in] tdy A TDy struct
 /// @param [in] face_id ID of the face
-/// @param [out] Kface[9] face permeability tensor
+/// @param [out] Kface components of face permeability tensor in row-major order
 PetscErrorCode ComputeFacePermeabilityTensor(TDy tdy, PetscInt face_id, PetscReal Kface[9]){
 
   PetscFunctionBegin;
