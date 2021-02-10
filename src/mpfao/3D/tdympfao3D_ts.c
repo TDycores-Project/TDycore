@@ -62,7 +62,6 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
       if (!faces->is_local[face_id]) continue;
 
       TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
-      if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
 
        //
        // fluxm_ij = rho_ij * (kr/mu)_{ij,upwind} * [ T ] *  [ P+rho*g*z ]^T
@@ -267,7 +266,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
       if (!faces->is_local[face_id]) continue;
 
       TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
-      if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) TtimesP[irow] = 0.0;
     }
 
     //
@@ -384,7 +382,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
         } else {
           Jac = den * ukvr * T * (1.0 + 0.0*gz);
         }
-        if (fabs(Jac)<PETSC_MACHINE_EPSILON) Jac = 0.0;
 
         // Changing sign when bringing the term from RHS to LHS of the equation
         Jac = -Jac;
@@ -468,9 +465,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
       if (!faces->is_local[face_id]) continue;
 
       TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
-      if (fabs(TtimesP[irow])<PETSC_MACHINE_EPSILON) {
-        TtimesP[irow] = 0.0;
-      }
     }
 
     //
@@ -612,9 +606,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
             pow(den,2.0)     * dukvr_dPdn * G;
         } else {
           Jac = den * ukvr * T;
-        }
-        if (fabs(Jac)<PETSC_MACHINE_EPSILON) {
-          Jac = 0.0;
         }
 
         // Changing sign when bringing the term from RHS to LHS of the equation
