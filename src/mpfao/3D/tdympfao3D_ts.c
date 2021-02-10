@@ -24,7 +24,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   PetscInt irow;
   PetscInt cell_id_up, cell_id_dn;
   PetscInt npitf_bc, nflux_in;
-  PetscReal den,fluxm,ukvr;
+  PetscReal fluxm,ukvr;
   PetscScalar *TtimesP_vec_ptr;
   PetscScalar *GravDis_ptr;
   PetscErrorCode ierr;
@@ -76,20 +76,20 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
       cell_id_dn = faces->cell_ids[fOffsetCell + 1];
 
-      den = 0.0;
+      PetscReal den_aveg = 0.0;
       if (cell_id_up>=0) {
-        den += tdy->rho[cell_id_up];
+        den_aveg += tdy->rho[cell_id_up];
       } else {
-        den += tdy->rho_BND[-cell_id_up-1];
+        den_aveg += tdy->rho_BND[-cell_id_up-1];
       }
 
       if (cell_id_dn>=0) {
-        den += tdy->rho[cell_id_dn];
+        den_aveg += tdy->rho[cell_id_dn];
       } else {
-        den += tdy->rho_BND[-cell_id_dn-1];
+        den_aveg += tdy->rho_BND[-cell_id_dn-1];
       }
 
-      den *= 0.5;
+      den_aveg *= 0.5;
 
       // Upwind the 'ukvr'
       PetscReal G;
@@ -99,7 +99,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
         G = 0.0;
       }
 
-      if (TtimesP[irow] + den * G < 0.0) { // up ---> dn
+      if (TtimesP[irow] + den_aveg * G < 0.0) { // up ---> dn
         // Is the cell_id_up an internal or boundary cell?
         if (cell_id_up>=0) {
           ukvr = cc->Kr[cell_id_up]/tdy->vis[cell_id_up];
@@ -115,8 +115,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
         }
       }
 
-      fluxm = den*ukvr*(-TtimesP[irow]);
-      fluxm += - pow(den,2.0) * ukvr * G;
+      fluxm = den_aveg*ukvr*(-TtimesP[irow]);
+      fluxm += - pow(den_aveg,2.0) * ukvr * G;
 
       // fluxm > 0 implies flow is from 'up' to 'dn'
       if (cell_id_up >= 0 && cells->is_local[cell_id_up]) {
@@ -338,22 +338,22 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
         }
       }
 
-      PetscReal den = 0.0;
-      if (cell_id_up>=0) den += tdy->rho[cell_id_up];
-      else               den += tdy->rho_BND[-cell_id_up-1];
-      if (cell_id_dn>=0) den += tdy->rho[cell_id_dn];
-      else               den += tdy->rho_BND[-cell_id_dn-1];
-      den *= 0.5;
+      PetscReal den_aveg = 0.0;
+      if (cell_id_up>=0) den_aveg += tdy->rho[cell_id_up];
+      else               den_aveg += tdy->rho_BND[-cell_id_up-1];
+      if (cell_id_dn>=0) den_aveg += tdy->rho[cell_id_dn];
+      else               den_aveg += tdy->rho_BND[-cell_id_dn-1];
+      den_aveg *= 0.5;
 
       // If one of the cell is on the boundary
       if (cell_id_up<0) cell_id_up = cell_id_dn;
       if (cell_id_dn<0) cell_id_dn = cell_id_up;
 
-      PetscReal dden_dPup = 0.0;
-      PetscReal dden_dPdn = 0.0;
+      PetscReal dden_aveg_dPup = 0.0;
+      PetscReal dden_aveg_dPdn = 0.0;
 
-      if (cell_id_up>=0) dden_dPup = 0.5*tdy->drho_dP[cell_id_up];
-      if (cell_id_dn>=0) dden_dPdn = 0.5*tdy->drho_dP[cell_id_dn];
+      if (cell_id_up>=0) dden_aveg_dPup = 0.5*tdy->drho_dP[cell_id_up];
+      if (cell_id_dn>=0) dden_aveg_dPdn = 0.5*tdy->drho_dP[cell_id_dn];
 
       PetscInt num_int_cells = vertices->num_internal_cells[ivertex];
       PetscInt up_cols[num_int_cells], dn_cols[num_int_cells];
@@ -371,16 +371,16 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
         PetscReal Jac;
         if (cell_id_up>-1 && cell_id == cell_id_up) {
           Jac =
-            dden_dPup * ukvr       * TtimesP[irow] +
-            den       * dukvr_dPup * TtimesP[irow] +
-            den       * ukvr       * T * (1.0 + dden_dPup*gz) ;
+            dden_aveg_dPup * ukvr       * TtimesP[irow] +
+            den_aveg       * dukvr_dPup * TtimesP[irow] +
+            den_aveg       * ukvr       * T * (1.0 + dden_aveg_dPup*gz) ;
         } else if (cell_id_dn>-1 && cell_id == cell_id_dn) {
           Jac =
-            dden_dPdn * ukvr       * TtimesP[irow] +
-            den       * dukvr_dPdn * TtimesP[irow] +
-            den       * ukvr       * T * (1.0 + dden_dPdn*gz) ;
+            dden_aveg_dPdn * ukvr       * TtimesP[irow] +
+            den_aveg       * dukvr_dPdn * TtimesP[irow] +
+            den_aveg       * ukvr       * T * (1.0 + dden_aveg_dPdn*gz) ;
         } else {
-          Jac = den * ukvr * T * (1.0 + 0.0*gz);
+          Jac = den_aveg * ukvr * T * (1.0 + 0.0*gz);
         }
 
         // Changing sign when bringing the term from RHS to LHS of the equation
@@ -498,24 +498,24 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
       PetscReal dukvr_dPdn = 0.0;
       PetscReal ukvr;
 
-      PetscReal den = 0.0;
+      PetscReal den_aveg = 0.0;
       if (cell_id_up>=0) {
-        den += tdy->rho[cell_id_up];
+        den_aveg += tdy->rho[cell_id_up];
       } else {
-        den += tdy->rho_BND[-cell_id_up-1];
+        den_aveg += tdy->rho_BND[-cell_id_up-1];
       }
 
       if (cell_id_dn>=0) {
-        den += tdy->rho[cell_id_dn];
+        den_aveg += tdy->rho[cell_id_dn];
       } else {
-        den += tdy->rho_BND[-cell_id_dn-1];
+        den_aveg += tdy->rho_BND[-cell_id_dn-1];
       }
-      den *= 0.5;
+      den_aveg *= 0.5;
 
       PetscInt num_subfaces = 4;
       PetscReal G = GravDis_ptr[face_id*num_subfaces + subface_id];
 
-      if (TtimesP[irow] + den * G < 0.0) { // up ---> dn
+      if (TtimesP[irow] + den_aveg * G < 0.0) { // up ---> dn
         // Flow: up --> dn
         if (cell_id_up>=0) {
           // "up" is an internal cell
@@ -568,14 +568,14 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
         cell_id_dn = cell_id_up;
       }
 
-      PetscReal dden_dPup = 0.0;
-      PetscReal dden_dPdn = 0.0;
+      PetscReal dden_aveg_dPup = 0.0;
+      PetscReal dden_aveg_dPdn = 0.0;
 
       if (cell_id_up>=0) {
-        dden_dPup = 0.5*tdy->drho_dP[cell_id_up];
+        dden_aveg_dPup = 0.5*tdy->drho_dP[cell_id_up];
       }
       if (cell_id_dn>=0) {
-        dden_dPdn = 0.5*tdy->drho_dP[cell_id_dn];
+        dden_aveg_dPdn = 0.5*tdy->drho_dP[cell_id_dn];
       }
 
       PetscInt num_int_cells = vertices->num_internal_cells[ivertex];
@@ -592,20 +592,20 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
 
         if (cell_id_up>-1 && cell_id == cell_id_up) {
           Jac =
-            dden_dPup * ukvr       * TtimesP[irow] +
-            den       * dukvr_dPup * TtimesP[irow] +
-            den       * ukvr       * T             +
-            2*den *dden_dPup * ukvr       * G +
-            pow(den,2.0)     * dukvr_dPup * G;
+            dden_aveg_dPup * ukvr       * TtimesP[irow] +
+            den_aveg       * dukvr_dPup * TtimesP[irow] +
+            den_aveg       * ukvr       * T             +
+            2*den_aveg *dden_aveg_dPup * ukvr       * G +
+            pow(den_aveg,2.0)     * dukvr_dPup * G;
         } else if (cell_id_dn>-1 && cell_id == cell_id_dn) {
           Jac =
-            dden_dPdn * ukvr       * TtimesP[irow] +
-            den       * dukvr_dPdn * TtimesP[irow] +
-            den       * ukvr       * T             +
-            2*den *dden_dPdn * ukvr       * G +
-            pow(den,2.0)     * dukvr_dPdn * G;
+            dden_aveg_dPdn * ukvr       * TtimesP[irow] +
+            den_aveg       * dukvr_dPdn * TtimesP[irow] +
+            den_aveg       * ukvr       * T             +
+            2*den_aveg *dden_aveg_dPdn * ukvr       * G +
+            pow(den_aveg,2.0)     * dukvr_dPdn * G;
         } else {
-          Jac = den * ukvr * T;
+          Jac = den_aveg * ukvr * T;
         }
 
         // Changing sign when bringing the term from RHS to LHS of the equation
