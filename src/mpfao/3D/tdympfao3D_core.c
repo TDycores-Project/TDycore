@@ -8,6 +8,7 @@
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
+#include <private/tdymeshutilsimpl.h>
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyComputeEntryOfGMatrix3D(PetscReal area, PetscReal n[3],
@@ -110,9 +111,56 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
 
           case MPFAO_GMATRIX_TPF:
             if (ii == jj) {
-              ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
-              ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
-                                         &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+
+              PetscInt neighbor_cell_id;
+              PetscReal neighbor_cell_cen[dim],cell_cen[dim], dist;
+
+              PetscInt faceCellOffset = faces->cell_offset[face_id];
+
+              ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen[0]); CHKERRQ(ierr);
+
+              if ( (faces->cell_ids[faceCellOffset]==icell) ) {
+                neighbor_cell_id = faces->cell_ids[faceCellOffset+1];
+              } else {
+                neighbor_cell_id = faces->cell_ids[faceCellOffset];
+              }
+
+              PetscReal K_neighbor[3][3];
+              PetscInt kk,mm;
+
+              if (neighbor_cell_id >=0) {
+                ierr = TDyCell_GetCentroid2(cells, neighbor_cell_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
+                ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
+                dist *= 0.50;
+
+                for (kk=0; kk<dim; kk++) {
+                  for (mm=0; mm<dim; mm++) {
+                    K_neighbor[kk][mm] = matprop->K0[neighbor_cell_id*dim*dim + kk*dim + mm];
+                  }
+                }
+              } else {
+                ierr = TDyFace_GetCentroid(faces, face_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
+                ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
+                for (kk=0; kk<dim; kk++) {
+                  for (mm=0; mm<dim; mm++) {
+                    K_neighbor[kk][mm] = matprop->K0[icell*dim*dim + kk*dim + mm];
+                  }
+                }
+              }
+              PetscReal K_neighbor_value = 0.0, K_value = 0.0, K_aveg;
+
+              PetscReal dot_prod, normal_up2dn[dim];
+              ierr = TDyUnitNormalVectorJoiningTwoVertices(neighbor_cell_cen, cell_cen, normal_up2dn); CHKERRQ(ierr);
+              ierr = TDyDotProduct(normal,normal_up2dn,&dot_prod); CHKERRQ(ierr);
+
+              for (kk=0;kk<dim;kk++) K_neighbor_value += pow(normal_up2dn[kk],2.0)/K_neighbor[kk][kk];
+              for (kk=0;kk<dim;kk++) K_value          += pow(normal_up2dn[kk],2.0)/K[kk][kk];
+              K_neighbor_value = 1.0/K_neighbor_value;
+              K_value = 1.0/K_value;
+              K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
+
+              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist)*2.0;
+
             } else {
               tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
             }
@@ -614,7 +662,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   }
 
   // Solve A^-1 * B
-  ierr = ComputeAinvB(nflux_in + nflux_neu_bc_all, AINBCxINBC_1d, npcen+npitf_dir_bc_all, BINBCxCDBC_1d, AinvB_1d);
+  ierr = ComputeAinvB(nflux_in + nflux_neu_bc_all, AINBCxINBC_1d, npcen+npitf_dir_bc_all, BINBCxCDBC_1d, AinvB_1d); CHKERRQ(ierr);
 
   // Solve C * (A^-1 * B) for internal, upwind, and downwind fluxes
   ierr = ComputeCtimesAinvB(
@@ -978,4 +1026,322 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
+}
+
+/* -------------------------------------------------------------------------- */
+/// Computes unit vector joining upwind and downwind cells that share a face.
+/// The unit vector points from upwind to downwind cell.
+///
+/// @param [in] tdy A TDy struct
+/// @param [in] face_id ID of the face
+/// @param [out] up2dn_uvec Unit vector from upwind to downwind cell
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ComputeUpDownUnitVector(TDy tdy, PetscInt face_id, PetscReal up2dn_uvec[3]) {
+
+  PetscFunctionBegin;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
+  PetscErrorCode ierr;
+
+  PetscInt fOffsetCell = faces->cell_offset[face_id];
+  PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
+  PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+
+  if (cell_id_up < 0 && cell_id_dn < 0) {
+    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Both cell IDs sharing a face are not valid");
+  }
+
+  PetscInt dim = 3;
+  PetscReal coord_up[dim], coord_dn[dim], coord_face[dim];
+
+  ierr = TDyFace_GetCentroid(faces, face_id, dim, &coord_face[0]);
+  CHKERRQ(ierr);
+
+  if (cell_id_up >= 0) {
+    ierr = TDyCell_GetCentroid2(cells, cell_id_up, dim, &coord_up[0]); CHKERRQ(ierr);
+  } else {
+    for (PetscInt d = 0; d < 3; d++) coord_up[d] = coord_face[d];
+  }
+
+  if (cell_id_dn >= 0) {
+    ierr = TDyCell_GetCentroid2(cells, cell_id_dn, dim, &coord_dn[0]); CHKERRQ(ierr);
+  } else {
+    for (PetscInt d = 0; d < 3; d++) coord_dn[d] = coord_face[d];
+  }
+
+  ierr = TDyUnitNormalVectorJoiningTwoVertices(coord_up, coord_dn, up2dn_uvec); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Computes upwind and downwind distance of cells sharing a face. If the face is a
+/// boundary face, one of the distance is zero
+///
+/// @param [in] tdy A TDy struct
+/// @param [in] face_id ID of the face
+/// @param [out] dist_up Distance between the upwind cell centroid and face centroid
+/// @param [out] dist_dn Distance between the downwind cell centroid and face centroid
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ComputeUpAndDownDist(TDy tdy, PetscInt face_id, PetscReal *dist_up, PetscReal *dist_dn) {
+
+  PetscFunctionBegin;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
+  PetscErrorCode ierr;
+
+  PetscInt fOffsetCell = faces->cell_offset[face_id];
+  PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
+  PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+
+  if (cell_id_up < 0 && cell_id_dn < 0) {
+    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Both cell IDs sharing a face are not valid");
+  }
+
+  PetscInt dim = 3;
+
+  PetscReal coord_face[dim];
+  ierr = TDyFace_GetCentroid(faces, face_id, dim, &coord_face[0]); CHKERRQ(ierr);
+
+  if (cell_id_up >= 0) {
+    PetscReal coord_up[dim];
+    ierr = TDyCell_GetCentroid2(cells, cell_id_up, dim, &coord_up[0]); CHKERRQ(ierr);
+    ierr = TDyComputeLength(coord_up, coord_face, dim, dist_up); CHKERRQ(ierr);
+  } else {
+    *dist_up = 0.0;
+  }
+
+  if (cell_id_dn >= 0) {
+    PetscReal coord_dn[dim];
+    ierr = TDyCell_GetCentroid2(cells, cell_id_dn, dim, &coord_dn[0]); CHKERRQ(ierr);
+    ierr = TDyComputeLength(coord_dn, coord_face, dim, dist_dn); CHKERRQ(ierr);
+  } else {
+    *dist_dn = 0.0;
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Computes face permeability tensor as a harmonically distance-weighted
+//  permeability of upwind and downwind permeability tensors
+///
+/// @param [in] tdy A TDy struct
+/// @param [in] face_id ID of the face
+/// @param [out] Kup components of the upwind permeability tensor in a row-major order
+/// @param [out] Kdn components of the downwind permeability tensor in a row-major order
+PetscErrorCode ExtractUpAndDownPermeabilityTensors(TDy tdy, PetscInt face_id, PetscInt dim, PetscReal Kup[dim*dim], PetscReal Kdn[dim*dim]) {
+
+  PetscFunctionBegin;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyFace *faces = &mesh->faces;
+  MaterialProp *matprop = tdy->matprop;
+
+  PetscInt fOffsetCell = faces->cell_offset[face_id];
+  PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
+  PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+
+  if (cell_id_up < 0 && cell_id_dn < 0) {
+    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Both cell IDs sharing a face are not valid");
+  }
+
+  for (PetscInt kk = 0; kk < dim; kk++)
+  {
+    for (PetscInt mm = 0; mm < dim; mm++)
+    {
+      if (cell_id_up >= 0) Kup[mm * dim + kk] = matprop->K0[cell_id_up * dim * dim + kk * dim + mm];
+      else                 Kup[mm * dim + kk] = matprop->K0[cell_id_dn * dim * dim + kk * dim + mm];
+
+      if (cell_id_dn >= 0) Kdn[mm * dim + kk] = matprop->K0[cell_id_dn * dim * dim + kk * dim + mm];
+      else                 Kdn[mm * dim + kk] = matprop->K0[cell_id_up * dim * dim + kk * dim + mm];
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Computes face permeability tensor as a harmonically distance-weighted
+//  permeability of upwind and downwind permeability tensors
+///
+/// K = (wt_1 * K_u^{-1} + (1-wt_1) * K_d^{-1})^{-1}
+///
+/// @param [in] tdy A TDy struct
+/// @param [in] face_id ID of the face
+/// @param [out] Kface components of face permeability tensor in row-major order
+PetscErrorCode ComputeFacePermeabilityTensor(TDy tdy, PetscInt face_id, PetscReal Kface[9]){
+
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+  PetscReal dist_up, dist_dn;
+
+  ierr = ComputeUpAndDownDist(tdy, face_id, &dist_up, &dist_dn); CHKERRQ(ierr);
+
+  PetscInt dim = 3;
+
+  PetscReal Kup[dim*dim], Kdn[dim*dim];
+  PetscReal KupInv[dim*dim], KdnInv[dim*dim];
+
+  ierr = ExtractUpAndDownPermeabilityTensors(tdy, face_id, dim, Kup, Kdn); CHKERRQ(ierr);
+
+  ierr = ComputeInverseOf3by3Matrix(Kup, KupInv); CHKERRQ(ierr);
+  ierr = ComputeInverseOf3by3Matrix(Kdn, KdnInv); CHKERRQ(ierr);
+
+  PetscReal KfaceInv[dim*dim];
+  PetscReal wt_up = dist_up / (dist_up + dist_dn);
+
+  PetscInt idx;
+
+  // Compute (wt_1 * K_u^{-1} + (1-wt_1) * K_d^{-1})
+  idx = 0;
+  for (PetscInt kk = 0; kk < dim; kk++) {
+    for (PetscInt mm = 0; mm < dim; mm++) {
+      KfaceInv[idx] = wt_up * KupInv[idx] + (1.0 - wt_up) * KdnInv[idx];
+      idx++;
+    }
+  }
+
+  ierr = ComputeInverseOf3by3Matrix(KfaceInv, Kface); CHKERRQ(ierr);
+
+  idx = 0;
+  for (PetscInt kk = 0; kk < dim; kk++) {
+    for (PetscInt mm = 0; mm < dim; mm++) {
+      if (Kface[idx] < 0.0 || fabs(Kface[idx] < PETSC_MACHINE_EPSILON) ) Kface[idx] = 0.0;
+      idx++;
+    }
+  }
+
+ PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Computes the two-point flux discretization of the gravity term in Richards equation
+///
+/// Flux associated with the gravity term is given as
+///
+/// flux_m = rho^2 * ukvr * A_face * dot (n_face, K_face x u_up2dn) * dot(g, u_up2dn)
+///        = rho^2 * ukvr * GravDis
+///
+/// where
+///   rho     = distance weighted density
+///   ukvr    = upwind relative permeability divided by viscosity
+///   A_face  = face area
+///   n_face  = normal to face area
+///   K_face  = permeability tensor at the face
+///   u_up2dn = unit vector from upwind to downwind cell connected through a common face
+///   g       = gravity vector
+///   GravDis = gravity discretization term that is not dependent on the unknown variable(s)
+///             such as pressure, temperautre. Thus, this term is precomputed.
+/// 
+/// Starnoni, M., Berre, I., Keilegavlen, E., & Nordbotten, J. M. (2019).
+/// Consistent mpfa discretization for flow in the presence of gravity. Water
+/// Resources Research, 55, 10105– 10118. https://doi.org/10.1029/2019WR025384
+/// 
+/// @param [in] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  TDY_START_FUNCTION_TIMER()
+
+  DM dm = tdy->dm;
+  TDyMesh *mesh = tdy->mesh;
+  TDyFace *faces = &mesh->faces;
+  TDyVertex *vertices = &mesh->vertices;
+  TDySubcell *subcells = &mesh->subcells;
+  PetscErrorCode ierr;
+
+  PetscInt dim;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  PetscScalar *gradDisPtr;
+  ierr = VecGetArray(tdy->GravDisVec, &gradDisPtr); CHKERRQ(ierr);
+
+  // Loop over all vertices
+  for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++){
+
+    // Skip the vertex that is not locally owned
+    if (!vertices->is_local[ivertex]) continue;
+
+    PetscInt vOffsetFace = vertices->face_offset[ivertex];
+    PetscInt num_face = vertices->num_faces[ivertex];
+
+    // Loop over all faces sharing ivertex
+    for (PetscInt iface=0; iface<num_face; iface++){
+
+      PetscInt face_id = vertices->face_ids[vOffsetFace + iface];
+
+      // Skip the face that is not locally owned
+      if (!faces->is_local[face_id]) continue;
+
+      // Determine the subcell id
+      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
+      PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+
+      // Currently, only zero-flux neumann boundary condition is implemented.
+      // If the boundary condition is neumann, then gravity discretization term is zero
+      if (tdy->mpfao_bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
+
+      PetscInt cell_id;
+      if (cell_id_up < 0) {
+        cell_id = cell_id_dn;
+      } else {
+        cell_id = cell_id_up;
+      }
+
+      PetscInt subcell_id;
+      ierr = TDyGetSubcellIDGivenCellIdVertexIdFaceId(tdy, cell_id, ivertex, face_id, &subcell_id); CHKERRQ(ierr);
+
+      // area of subface
+      PetscReal area = subcells->face_area[subcell_id];
+
+      PetscReal u_up2dn[dim];
+      ierr = ComputeUpDownUnitVector(tdy, face_id, u_up2dn); CHKERRQ(ierr);
+
+      PetscReal K_face[dim*dim];
+      ierr = ComputeFacePermeabilityTensor(tdy, face_id, K_face);
+
+      // Ku = K_face x u_up2dn
+      PetscReal Ku[dim];
+      for (PetscInt ii = 0; ii < dim; ii++ ){
+        Ku[ii] = 0.0;
+        for (PetscInt jj = 0; jj < dim; jj++ ){
+          Ku[ii] += K_face[ii*dim + jj] * u_up2dn[jj];
+        }
+      }
+
+      PetscReal n_face[dim];
+      ierr = TDyFace_GetNormal(faces, face_id, dim, &n_face[0]); CHKERRQ(ierr);
+
+      // dot (n_face, K_face x u_up2dn)
+      PetscReal dot_prod_1;
+      ierr = TDyDotProduct(n_face, Ku, &dot_prod_1); CHKERRQ(ierr);
+
+      // dot(g, u_up2dn)
+      PetscReal dot_prod_2;
+      ierr = ComputeGtimesZ(tdy->gravity,u_up2dn, dim, &dot_prod_2); CHKERRQ(ierr);
+
+      // GravDis = A_face * dot (n_face, K_face x u_up2dn) * dot(g, u_up2dn)
+      PetscReal GravDis = area * dot_prod_1 * dot_prod_2;
+
+      PetscInt isubcell = vertices->subface_ids[vOffsetFace + iface];
+      PetscInt num_subcells = 4;
+      PetscInt irow = face_id*num_subcells + isubcell;
+      gradDisPtr[irow] = GravDis;
+
+    }
+  }
+
+  ierr = VecRestoreArray(tdy->GravDisVec, &gradDisPtr); CHKERRQ(ierr);
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
 }

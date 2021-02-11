@@ -43,5 +43,6 @@ PETSC_INTERN PetscErrorCode TDyPrintSubcellInfo(TDy, PetscInt, PetscInt);
 PETSC_INTERN PetscErrorCode TDyPrintFaceInfo(TDy, PetscInt);
 PETSC_INTERN PetscErrorCode TDySubCell_GetIthNuStarVector(TDySubcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyEdge_GetNormal(TDyEdge*,PetscInt,PetscInt, PetscReal*);
+PETSC_INTERN PetscErrorCode TDyGetSubcellIDGivenCellIdVertexIdFaceId(TDy,PetscInt,PetscInt,PetscInt,PetscInt*);
 
 #endif

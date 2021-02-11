@@ -889,6 +889,48 @@ PetscErrorCode TDyGetCellNaturalIDsLocal(TDy tdy, PetscInt *ni, PetscInt nat_ids
 }
 
 /* -------------------------------------------------------------------------- */
+/// Finds the id of subcell in the mesh->subcells struct that corresponds to
+/// cell_id and vertex_id and face_id.
+/// 
+/// @param [in] tdy A TDy struct
+/// @param [in] cell_id ID of cell
+/// @param [in] vertix_id ID of vertex
+/// @param [in] face_id ID of face
+/// @param [out] *subcell_id ID of subcell
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyGetSubcellIDGivenCellIdVertexIdFaceId(TDy tdy, PetscInt cell_id, PetscInt vertex_id, PetscInt face_id, PetscInt *subcell_id){
+
+  PetscFunctionBegin;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDySubcell *subcells = &mesh->subcells;
+
+  PetscInt num_subcells_per_cell = 8;
+  PetscInt num_faces = 3;
+  PetscInt num = num_subcells_per_cell * num_faces;
+
+  *subcell_id = -1;
+
+  for (PetscInt isubcell = 0; isubcell < num; isubcell++)
+  {
+    if (face_id == subcells->face_ids[cell_id * num + isubcell])
+    {
+      if (vertex_id == subcells->vertex_ids[cell_id * num + isubcell])
+      {
+        *subcell_id = cell_id * num + isubcell;
+        break;
+      }
+    }
+  }
+
+  if (*subcell_id == -1) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Subcell ID not found.");
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 
 PetscErrorCode TDyGetCellIsLocal(TDy tdy, PetscInt *ni, PetscInt is_local[]) {
 

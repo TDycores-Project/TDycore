@@ -950,7 +950,11 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     for (c=cStart; c<cEnd; c++) {
       i = c-cStart;
       ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[i].X,dim,&gz);
-      p_vec_ptr[i] = P[i] + tdy->rho[i]*gz;
+      if (tdy->mpfao_gmatrix_method == MPFAO_GMATRIX_TPF){
+        p_vec_ptr[i] = P[i];
+      } else {
+        p_vec_ptr[i] = P[i] + tdy->rho[i]*gz;
+      }
     }
     ierr = VecRestoreArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
 

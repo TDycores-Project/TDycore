@@ -137,6 +137,7 @@ implicit none
   PetscViewer         :: viewer
   PetscInt            :: step_mod
   PetscFE             :: fe
+  SNESConvergedReason :: reason
 
   call TDyInit(ierr);
   CHKERRA(ierr);
@@ -346,6 +347,12 @@ implicit none
 
     call SNESSolve(snes,PETSC_NULL_VEC,U,ierr);
     CHKERRA(ierr);
+
+    call SNESGetConvergedReason(snes,reason,ierr)
+    CHKERRA(ierr)
+    if (reason<0) then
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SNES did not converge");
+    endif
 
     call TDyPostSolveSNESSolver(tdy,U,ierr);
     CHKERRA(ierr);
