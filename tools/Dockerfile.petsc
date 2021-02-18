@@ -1,0 +1,99 @@
+# This Docker file builds PETSc specifically for the TDycore project. It's based
+# loosely off of the jedbrown/petsc image, without building MPICH from source,
+# and with the USER removed (since GitHub Actions only support Docker images
+# with a root user).
+
+FROM ubuntu:20.10
+
+RUN echo Etc/UTC > /etc/timezone && ln -s /usr/share/zoneinfo/Etc/UTC /etc/localtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  autoconf \
+  automake \
+  bash-completion \
+  chrpath \
+  cmake \
+  curl \
+  g++ \
+  gcc \
+  gfortran \
+  git \
+  libmpich-dev \
+  libblis-serial-dev \
+  liblapack-dev \
+  libtool \
+  locales \
+  m4 \
+  make \
+  pkg-config \
+  python3-distutils \
+  zlib1g-dev \
+  ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+
+WORKDIR /build
+
+#  git reset --hard $PETSC_HASH && \
+ARG PETSC_HASH=48a67072e60
+ENV PETSC_DIR=/usr/local/petsc/mpich-int32-real-opt
+RUN git clone --depth=1 --branch=master https://gitlab.com/petsc/petsc && \
+  cd petsc && \
+  OPT='-O2 -march=native -ffp-contract=fast'; \
+  PETSC_INSTALL_PREFIX=$PETSC_DIR; unset PETSC_DIR; \
+  python3 configure \
+    --prefix=$PETSC_INSTALL_PREFIX \
+    --with-cc=mpicc \
+    --with-cxx=mpicxx \
+    --with-fc=mpif90 \
+    --with-cxx-dialect=C++14 \
+    --with-debugging=0 COPTFLAGS="$OPT" CXXOPTFLAGS="$OPT" FOPTFLAGS="$OPT" \
+    --download-ctetgen \
+    --download-exodusii \
+    --download-hdf5 \
+    --download-hypre \
+    --download-med \
+    --download-metis \
+    --download-ml \
+    --download-mumps \
+    --download-netcdf \
+    --download-parmetis \
+    --download-pnetcdf \
+    --download-scalapack \
+    --download-sundials \
+    --download-suitesparse \
+    --download-superlu \
+    --download-superlu_dist \
+    --download-triangle \
+    --with-zlib \
+    && \
+  make -j; \
+  cat configure.log && \
+  make install && \
+  export PETSC_DIR=$PETSC_INSTALL_PREFIX && \
+  unset OPT PETSC_INSTALL_PREFIX && \
+  chrpath --delete \
+    $PETSC_DIR/lib/libhdf5.so \
+    $PETSC_DIR/lib/libmetis.so \
+    $PETSC_DIR/lib/libpnetcdf.so \
+    $PETSC_DIR/lib/libsuperlu.so \
+    $PETSC_DIR/lib/libsuperlu_dist.so \
+    && \
+  chrpath --replace $PETSC_DIR/lib \
+    $PETSC_DIR/lib/libexoIIv2for32.so \
+    $PETSC_DIR/lib/libexodus.so \
+    $PETSC_DIR/lib/libexodus_for.so \
+    $PETSC_DIR/lib/libexodus_for.so \
+    $PETSC_DIR/lib/libhdf5_fortran.so \
+    $PETSC_DIR/lib/libhdf5_hl.so \
+    $PETSC_DIR/lib/libhdf5hl_fortran.so \
+    $PETSC_DIR/lib/libnetcdf.so \
+    $PETSC_DIR/lib/libparmetis.so \
+    $PETSC_DIR/lib/libpetsc.so \
+    && \
+  cd /build && \
+  rm -rf /build/petsc
+
+LABEL maintainer='Jeffrey Johnson <jeff@cohere-llc.com>'
+LABEL description='PETSc built with various libraries for TDycore'
