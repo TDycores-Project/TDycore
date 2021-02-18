@@ -4,22 +4,22 @@
 # configured specifically for TDycore. PETSc is installed in /opt/haero,
 # on top of a recent Ubuntu image. Run it like so:
 #
-# `./build-petsc-docker-image.sh <petsc-hash>`
+# ./build-petsc-docker-image.sh [petsc-hash]
 #
 # The arguments are:
-# <petsc-hash> - A Git hash identifying the revision of PETSc to build
+# [petsc-hash] - A Git hash identifying the revision of PETSc to build. If
+#                omitted, the HEAD of the repository is built.
 #
 # For this script to work, Docker must be installed on your machine.
 PETSC_HASH=$1
 
 if [[ "$1" == "" ]]; then
-  echo "Usage: $0 <petsc-hash>"
-  exit
+  PETSC_HASH=HEAD
 fi
 
 DOCKERHUB_USER=coherellc
 IMAGE_NAME=tdycore-petsc
-TAG=$PETSC_HASH
+TAG=latest
 
 # Build the image locally.
 mkdir -p docker-build

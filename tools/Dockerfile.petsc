@@ -35,11 +35,12 @@ ENV LANG=en_US.UTF-8
 
 WORKDIR /build
 
-#  git reset --hard $PETSC_HASH && \
-ARG PETSC_HASH=48a67072e60
+ARG PETSC_HASH=HEAD
+ENV PETSC_HASH=$PETSC_HASH
 ENV PETSC_DIR=/usr/local/petsc/mpich-int32-real-opt
 RUN git clone --depth=1 --branch=master https://gitlab.com/petsc/petsc && \
   cd petsc && \
+  git reset --hard $PETSC_HASH && \
   OPT='-O2 -march=native -ffp-contract=fast'; \
   PETSC_INSTALL_PREFIX=$PETSC_DIR; unset PETSC_DIR; \
   python3 configure \
