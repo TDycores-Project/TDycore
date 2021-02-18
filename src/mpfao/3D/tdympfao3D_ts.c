@@ -321,7 +321,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
         } else {
           // "up" is boundary cell
           ukvr = cc_bnd->Kr[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
-          dukvr_dPup = 0.0;//cc->dKr_dS[-cell_id_up-1]*cc_bnd->dS_dP_BND[-cell_id_up-1]/tdy->vis_BND[-cell_id_up-1];
+          dukvr_dPup = 0.0;
         }
 
       } else {
@@ -334,7 +334,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
         } else {
           // "dn" is a boundary cell
           ukvr       = cc_bnd->Kr[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
-          dukvr_dPdn = 0.0;//cc_bnd->dKr[-cell_id_dn-1]*cc_bnd->dS_dP[-cell_id_dn-1]/tdy->vis_BND[-cell_id_dn-1];
+          dukvr_dPdn = 0.0;
         }
       }
 
