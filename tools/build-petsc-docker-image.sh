@@ -28,13 +28,16 @@ cd docker-build
 docker build -t $IMAGE_NAME:$TAG --network=host \
   --build-arg PETSC_HASH=$PETSC_HASH \
   .
+STATUS=$?
 cd ..
 rm -rd docker-build
 
-# Tag the image.
-docker image tag $IMAGE_NAME:$TAG $DOCKERHUB_USER/$IMAGE_NAME:$TAG
+if [[ "$STATUS" == "0" ]]; then
+  # Tag the image.
+  docker image tag $IMAGE_NAME:$TAG $DOCKERHUB_USER/$IMAGE_NAME:$TAG
 
-echo "To upload this image to DockerHub, use the following:"
-echo "docker login"
-echo "docker image push $DOCKERHUB_USER/$IMAGE_NAME:$TAG"
-echo "docker logout"
+  echo "To upload this image to DockerHub, use the following:"
+  echo "docker login"
+  echo "docker image push $DOCKERHUB_USER/$IMAGE_NAME:$TAG"
+  echo "docker logout"
+fi

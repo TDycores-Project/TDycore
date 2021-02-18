@@ -22,10 +22,6 @@ jobs:
         os: [ubuntu-latest] #, macos-latest]
         build-type: [Debug] #, Release]
 
-    # Environment variables
-    env:
-      DEBUG: 1
-
     # Steps for building and running tests.
     steps:
 
@@ -38,7 +34,7 @@ jobs:
 
     - name: Running tests (${{ matrix.build-type }})
       run: |
-        export PETSC_DIR=$PWD/petsc
+        set +e # disable "fast fail" (continue on test failures)
         cd demo/mpfao; make V=1 codecov=1
         cd ../richards; make V=1 codecov=1
         cd ../steady; make V=1 codecov=1
@@ -60,13 +56,13 @@ jobs:
         make test-th
         cd ..
         cat regression_tests/*testlog
-        cat demo/transient/transient-mpfaof90.stdout
-        cat demo/transient/transient-snes-mpfaof90.stdout
-        ls $PETSC_ARCH/obj/src/
 
     - name: Evaluating test coverage
       run: |
         lcov --capture --directory . --output-file coverage.info
         lcov --list coverage.info # debug info
-        bash <(curl -s https://codecov.io/bash  -f coverage.info)
+        curl -s https://codecov.io/bash > .codecov
+        chmod +x .codecov
+        ./.codecov
+        #bash <(curl -s https://codecov.io/bash  -f coverage.info)
 
