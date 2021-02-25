@@ -39,6 +39,20 @@ contains
       ierr = 0
   end subroutine PermeabilityFunction
 
+  subroutine PressureFunction(tdy,x,pressure,dummy,ierr)
+     implicit none
+
+      TDy                    :: tdy
+      PetscReal, intent(in)  :: x(2)
+      PetscReal, intent(out) :: pressure
+      integer                :: dummy(*)
+      PetscErrorCode         :: ierr
+
+      pressure = 100000.d0
+
+      ierr = 0
+    end subroutine PressureFunction
+
 end module mpfaof90mod
 
 program main
@@ -138,6 +152,9 @@ implicit none
   call TDySetPermeabilityFunction(tdy,PermeabilityFunction,0,ierr);
   CHKERRA(ierr);
 
+  call TDySetDirichletValueFunction(tdy,PressureFunction,0,ierr);
+  CHKERRA(ierr);
+
   call TDySetBlockPermeabilityValuesLocal(tdy,cEnd-cStart,index,blockPerm,ierr);
   CHKERRA(ierr);
 
@@ -195,13 +212,13 @@ implicit none
   call VecGetArrayF90(U,p_loc,ierr);
   CHKERRA(ierr);
 
-  call TDyUpdateState(tdy,p_loc,ierr);
-  CHKERRA(ierr);
+  !call TDyUpdateState(tdy,p_loc,ierr);
+  !CHKERRA(ierr);
 
   call VecRestoreArrayF90(U,p_loc,ierr);
   CHKERRA(ierr);
 
-  call VecSet(U,91325.d0,ierr);
+  !call VecSet(U,91325.d0,ierr);
 
   call TSSolve(ts,U,ierr);
   CHKERRA(ierr);

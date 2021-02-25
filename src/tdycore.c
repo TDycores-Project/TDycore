@@ -894,6 +894,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;
 
+  printf("TDyUpdateState: \n");
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
 
@@ -906,6 +907,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
       PressureSaturation_Gardner(n,m,alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&(cc->dS_dP[i]),&(cc->d2S_dP2[i]));
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
+      printf("  c = %02d; P = %19.18e; m = %+19.18e; alpha = %19.18e\n",c,P[i],m,alpha);
       PressureSaturation_VanGenuchten(m,alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&cc->dS_dP[i],&(cc->d2S_dP2[i]));
       break;
     default:

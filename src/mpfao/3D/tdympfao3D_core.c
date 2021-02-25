@@ -81,6 +81,8 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
     PetscInt isubcell;
 
     for (isubcell=0; isubcell<cells->num_subcells[icell]; isubcell++) {
+      if (icell == 0)  printf("Cell: %d isubcell = %d\n",icell, isubcell);
+      if (icell == 6 && isubcell == 1)  printf("Cell: %d isubcell = %d\n",icell, isubcell);
 
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
       PetscInt sOffsetFace = subcells->face_offset[subcell_id];
@@ -93,6 +95,8 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
         PetscReal normal[3];
 
         PetscInt face_id = subcells->face_ids[sOffsetFace + ii];
+        if (icell == 0 ) printf("  face_id = %03d ",face_id);
+        if (icell == 6 && isubcell == 1) printf("  face_id = %03d ",face_id);
 
         area = subcells->face_area[sOffsetFace + ii];
 
@@ -124,8 +128,11 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
               } else {
                 neighbor_cell_id = faces->cell_ids[faceCellOffset];
               }
+              if ((icell == 0 ) || (icell == 6 && isubcell == 1) )
+                printf(" up = %+03d dn = %+03d",faces->cell_ids[faceCellOffset],faces->cell_ids[faceCellOffset+1]);
 
               PetscReal K_neighbor[3][3];
+              PetscReal factor = 2.0;
               PetscInt kk,mm;
 
               if (neighbor_cell_id >=0) {
@@ -139,6 +146,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
                   }
                 }
               } else {
+                factor = 1.0;
                 ierr = TDyFace_GetCentroid(faces, face_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
                 ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
                 for (kk=0; kk<dim; kk++) {
@@ -159,7 +167,13 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
               K_value = 1.0/K_value;
               K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
 
-              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist)*2.0;
+              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist)*factor;
+              if ((icell == 0 ) || (icell == 6 && isubcell == 1) )
+                printf("  G = %+e normal = [%e %+e %e]; u2d = %e %e %e dot_prod = %+e",
+                  tdy->subc_Gmatrix[icell][isubcell][ii][jj], 
+                  normal[0],normal[1],normal[2],
+                  normal_up2dn[0],normal_up2dn[1],normal_up2dn[2],
+                  dot_prod);
 
             } else {
               tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
@@ -188,10 +202,12 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
                 break;
             }
           }
-        }
-      }
-    }
-  }
+        } // jj-subcell-faces
+        if (icell == 0 ) printf("\n");
+        if (icell == 6 && isubcell == 1) printf("\n");
+      } // ii-isubcell faces
+    } // isubcell
+  } // icell
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -776,6 +792,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
     for (j=0; j<npcen; j++) {
       col = vertices->internal_cell_ids[vOffsetCell + j];
+      if (col == 0) printf("row = %03d; col = %03d; Trans[%02d][%d][%d] = %e\n",row,col,vertex_id,i,j,(*Trans)[vertex_id][i][j]);
       ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[vertex_id][i][j],ADD_VALUES); CHKERRQ(ierr);
     }
 
@@ -850,6 +867,9 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   //  - Dirichlet pressure value
   //  - Cell IDs connecting the boundary edge in the direction of unit normal
   PetscInt subcell_id;
+  PetscInt print_info = 0;
+  if (ivertex == 0 || ivertex == 12) print_info = 1;
+  printf("ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices %d\n",ivertex);
 
   icell    = vertices->internal_cell_ids[vOffsetCell + 0];
   isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
@@ -865,13 +885,25 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     Trans_mat = &tdy->Temp_Trans_mat;
   }
 
+  if (print_info){
+    printf("ivertex = %03d\n",ivertex);
+    printf("G:\n");
+  for (PetscInt i=0; i<3; i++) {
+    for (PetscInt j=0; j<3; j++) printf("%+19.18e ",Gmatrix[i][j]);
+    printf("\n");
+  }
+  printf("T\n");
+  }
+
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
     for (j=0; j<dim; j++) {
       (*Trans)[vertices->id[ivertex]][iface][j] = Gmatrix[iface][j];
+      if(print_info) printf("%+19.18e ",(*Trans)[vertices->id[ivertex]][iface][j]);
     }
     (*Trans)[vertices->id[ivertex]][iface][dim] = 0.0;
     for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] -= (Gmatrix[iface][j]);
+    if(print_info) printf("%+19.18e\n",(*Trans)[vertices->id[ivertex]][iface][dim]);
   }
 
 
@@ -918,13 +950,30 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
     for (j=0; j<numBnd; j++) {
       col = idxBnd[j] + tdy->mesh->num_cells;
+      //if (ivertex == 0) printf("[%d,%d] idxBnd = %03d; col %03d; %+19.18e\n",i,j,idxBnd[j],col,(*Trans)[ivertex][i][j]);
+      if (col == 0) printf("row = %03d; col = %03d; Trans[%02d][%d][%d] = %e\n",row,col,ivertex,i,j,(*Trans)[ivertex][i][j]);
       ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][j],ADD_VALUES); CHKERRQ(ierr);
     }
 
     icell  = vertices->internal_cell_ids[vOffsetCell + 0];
     col = icell;
+    //if (ivertex == 0) printf("[%d,%d]               col %03d; %+19.18e\n",i,numBnd,col,(*Trans)[ivertex][i][numBnd]);
+    if (col == 0) printf("row = %03d; col = %03d; Trans[%02d][%d][%d] = %e\n",row,col,ivertex,i,j,(*Trans)[ivertex][i][j]);
     ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][numBnd],ADD_VALUES); CHKERRQ(ierr);
   }
+
+  if(print_info)printf("T_new \n");
+  for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+    (*Trans)[vertices->id[ivertex]][iface][0] = 0.0;
+    for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][0] -= (Gmatrix[iface][j]);
+    if(print_info) printf("%+19.18e ",(*Trans)[vertices->id[ivertex]][iface][dim]);
+    for (j=0; j<dim; j++) {
+      (*Trans)[vertices->id[ivertex]][iface][j+1] = Gmatrix[iface][j];
+      if(print_info) printf("%+19.18e ",(*Trans)[vertices->id[ivertex]][iface][j]);
+    }
+    if (print_info) printf("\n");
+  }
+  exit(0);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -1260,6 +1309,7 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
 
   PetscInt dim;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  printf("\nTDyComputeGravityDiscretizationFor3DMesh\n");
 
   PetscScalar *gradDisPtr;
   ierr = VecGetArray(tdy->GravDisVec, &gradDisPtr); CHKERRQ(ierr);
@@ -1288,6 +1338,7 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
 
       // Currently, only zero-flux neumann boundary condition is implemented.
       // If the boundary condition is neumann, then gravity discretization term is zero
+      //if (face_id == 72) printf(" Will skip? %d\n", (tdy->mpfao_bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0))  );
       if (tdy->mpfao_bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
 
       PetscInt cell_id;
@@ -1336,6 +1387,10 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
       PetscInt num_subcells = 4;
       PetscInt irow = face_id*num_subcells + isubcell;
       gradDisPtr[irow] = GravDis;
+      if (face_id == 72) {
+        printf("   GravDis = %+19.18e; area = %+19.18e d1 = %+19.18e d2 = %+19.18e\n",GravDis,area,dot_prod_1,dot_prod_2);
+        //exit(0);
+      }
 
     }
   }
