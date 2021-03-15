@@ -18,14 +18,6 @@ typedef enum {
 } TDySubcellType;
 
 typedef struct {
-  PetscReal X[3];
-} TDyCoordinate;
-
-typedef struct {
-  PetscReal V[3];
-} TDyVector;
-
-typedef struct {
 
   PetscInt       *id;                              /* id of the subcell                                          */
   TDySubcellType *type;                            /* triangle or tetrahedron                                    */
@@ -172,7 +164,7 @@ typedef struct {
   PetscReal *area;          /* area of the face */
 } TDyFace;
 
-typedef struct {
+typedef struct TDyMesh {
 
   PetscInt   num_cells;
   PetscInt   num_faces;
