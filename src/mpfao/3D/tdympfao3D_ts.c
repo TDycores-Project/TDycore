@@ -506,18 +506,24 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
       PetscReal ukvr;
 
       PetscReal den_aveg = 0.0;
+      PetscReal dden_aveg_dPup = 0.0;
+      PetscReal dden_aveg_dPdn = 0.0;
+
       if (cell_id_up>=0) {
-        den_aveg += tdy->rho[cell_id_up];
+        den_aveg += 0.5*tdy->rho[cell_id_up];
+        dden_aveg_dPup = 0.5*tdy->drho_dP[cell_id_up];
       } else {
-        den_aveg += tdy->rho_BND[-cell_id_up-1];
+        den_aveg += 0.5*tdy->rho_BND[-cell_id_up-1];
+        dden_aveg_dPup = 0.0;
       }
 
       if (cell_id_dn>=0) {
-        den_aveg += tdy->rho[cell_id_dn];
+        den_aveg += 0.5*tdy->rho[cell_id_dn];
+        dden_aveg_dPup = 0.5*tdy->drho_dP[cell_id_dn];
       } else {
-        den_aveg += tdy->rho_BND[-cell_id_dn-1];
+        den_aveg += 0.5*tdy->rho_BND[-cell_id_dn-1];
+        dden_aveg_dPup = 0.0;
       }
-      den_aveg *= 0.5;
 
       PetscInt num_subfaces = 4;
       PetscReal G = GravDis_ptr[face_id*num_subfaces + subface_id];
@@ -564,25 +570,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
           ukvr       = Kr/vis;
           dukvr_dPdn = 0.0;
         }
-      }
-
-      // If one of the cell is on the boundary
-      if (cell_id_up<0) {
-        cell_id_up = cell_id_dn;
-      }
-
-      if (cell_id_dn<0) {
-        cell_id_dn = cell_id_up;
-      }
-
-      PetscReal dden_aveg_dPup = 0.0;
-      PetscReal dden_aveg_dPdn = 0.0;
-
-      if (cell_id_up>=0) {
-        dden_aveg_dPup = 0.5*tdy->drho_dP[cell_id_up];
-      }
-      if (cell_id_dn>=0) {
-        dden_aveg_dPdn = 0.5*tdy->drho_dP[cell_id_dn];
       }
 
       PetscInt num_int_cells = vertices->num_internal_cells[ivertex];
