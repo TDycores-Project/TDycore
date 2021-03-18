@@ -34,9 +34,11 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   ierr = VecGetArray(tdy->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
 
   for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+
     if (!vertices->is_local[ivertex]) continue;
     //if (vertices->num_boundary_faces[ivertex] != 0) continue;
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
+
     PetscInt npitf_bc = vertices->num_boundary_faces[ivertex];
     PetscInt nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
 
