@@ -778,7 +778,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
     for (j=0; j<npcen; j++) {
       col = vertices->internal_cell_ids[vOffsetCell + j];
-      //if (col == 0) printf("row = %03d; col = %03d; Trans[%02d][%d][%d] = %+19.18e\n",row,col,vertex_id,i,j,(*Trans)[vertex_id][i][j]);
       ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[vertex_id][i][j],ADD_VALUES); CHKERRQ(ierr);
     }
 
@@ -1365,7 +1364,6 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
 
   PetscInt dim;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  printf("\nTDyComputeGravityDiscretizationFor3DMesh\n");
 
   PetscScalar *gradDisPtr;
   ierr = VecGetArray(tdy->GravDisVec, &gradDisPtr); CHKERRQ(ierr);
@@ -1394,7 +1392,6 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
 
       // Currently, only zero-flux neumann boundary condition is implemented.
       // If the boundary condition is neumann, then gravity discretization term is zero
-      //if (face_id == 72) printf(" Will skip? %d\n", (tdy->mpfao_bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0))  );
       if (tdy->mpfao_bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
 
       PetscInt cell_id;
@@ -1443,10 +1440,6 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
       PetscInt num_subcells = 4;
       PetscInt irow = face_id*num_subcells + isubcell;
       gradDisPtr[irow] = GravDis;
-      if (face_id == 72 || face_id == 80) {
-        printf("   face_id = %03d GravDis[%03d] = %+19.18e; area = %+19.18e d1 = %+19.18e d2 = %+19.18e\n",face_id, irow, GravDis,area,dot_prod_1,dot_prod_2);
-        //exit(0);
-      }
 
     }
   }

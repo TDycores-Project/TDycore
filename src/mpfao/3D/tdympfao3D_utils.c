@@ -40,7 +40,6 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
   CharacteristicCurve *cc = tdy->cc;
   CharacteristicCurve *cc_bnd = tdy->cc_bnd;
 
-  printf("TDyUpdateBoundaryState: \n");
   for (iface=0; iface<mesh->num_faces; iface++) {
 
     if (faces->is_internal[iface]) continue;
