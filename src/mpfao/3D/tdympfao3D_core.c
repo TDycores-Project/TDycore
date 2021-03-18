@@ -869,7 +869,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   PetscInt subcell_id;
   PetscInt print_info = 0;
   if (ivertex == 3 || ivertex == 2 || ivertex == 6 || ivertex == 7) print_info = 1;
-  if (ivertex == 0) print_info = 1;
   if (print_info) printf("ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices %d\n",ivertex);
 
   icell    = vertices->internal_cell_ids[vOffsetCell + 0];
@@ -1012,44 +1011,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
       }
       printf("\n");
     }
-    //exit(0);
   }
-
-
-  //if (print_info) exit(0);
-
-
-  /*
-  if(print_info)printf("T_old \n");
-  for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-    (*Trans)[vertices->id[ivertex]][iface][0] = 0.0;
-    for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][0] += (Gmatrix[iface][j]);
-    for (j=0; j<dim+1; j++) {
-      (*Trans)[vertices->id[ivertex]][iface][j+1] = -Gmatrix[iface][j];
-      if(print_info) printf("%+19.18e ",(*Trans)[vertices->id[ivertex]][iface][j]);
-    }
-    if (print_info) printf("\n");
-  }
-  */
-
-  //if (print_info ) exit(0);
-
-  /*
-  for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-    for (j=0; j<dim; j++) {
-      (*Trans)[vertices->id[ivertex]][iface][j+1] = Gmatrix[iface][j];
-    }
-    (*Trans)[vertices->id[ivertex]][iface][0] = 0.0;
-    for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][0] -= (Gmatrix[iface][j]);
-    //if (print_info) printf("%+19.18e\n",(*Trans)[vertices->id[ivertex]][iface][0]);
-    if (print_info) {
-      for (j=0; j<dim+1; j++)
-        printf("%+19.18e ",(*Trans)[vertices->id[ivertex]][iface][j]);
-    }
-    if (print_info) printf("\n");
-  }
-  */
-
 
   PetscInt i, face_id, subface_id;
   PetscInt row, col, ncells;
@@ -1118,17 +1080,12 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
     for (j=0; j<numBnd; j++) {
       col = idxBnd[j] + tdy->mesh->num_cells;
-      //if (ivertex == 0) printf("[%d,%d] idxBnd = %03d; col %03d; %+19.18e\n",i,j,idxBnd[j],col,(*Trans)[ivertex][i][j]);
-      //if (col == 0) 
-      //col = -cols[j] - 1 + tdy->mesh->num_cells;
       if (print_info) printf("MatSetValues row = %03d; col = %03d; Trans[%02d][%02d][%d] = %+19.18e\n",row,col,ivertex,i,j,(*Trans)[ivertex][i][j]);
       ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][j],ADD_VALUES); CHKERRQ(ierr);
     }
 
     icell  = vertices->internal_cell_ids[vOffsetCell + 0];
     col = icell;
-    //if (ivertex == 0) printf("[%d,%d]               col %03d; %+19.18e\n",i,numBnd,col,(*Trans)[ivertex][i][numBnd]);
-    //if (col == 0) 
     if (print_info) printf("MatSetValues row = %03d; col = %03d; Trans[%02d][%02d][%d] = %+19.18e\n",row,col,ivertex,i,j,(*Trans)[ivertex][i][j]);
     ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][numBnd],ADD_VALUES); CHKERRQ(ierr);
   }
@@ -1138,7 +1095,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   PetscReal T_old[subcells->num_faces[subcell_id]][dim+1];
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++){
     for (j = 0; j<dim+1; j++){
-      //T_old[iface][j] = (*Trans)[vertices->id[ivertex]][iface][j];
       T_old[iface][j] = T_2[iface][j];
     }
   }
@@ -1155,22 +1111,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   }
   }
 
-  /*
-  for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-    (*Trans)[vertices->id[ivertex]][iface][0] = 0.0;
-    for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][0] += (Gmatrix[iface][j]);
-    if(print_info) printf("%+19.18e ",(*Trans)[vertices->id[ivertex]][iface][dim]);
-    for (j=0; j<dim; j++) {
-      (*Trans)[vertices->id[ivertex]][iface][j+1] = -Gmatrix[iface][j];
-      if(print_info) printf("%+19.18e ",(*Trans)[vertices->id[ivertex]][iface][j+1]);
-    }
-    if (print_info) printf("\n");
-  }
-  */
-  
-  //exit(0);
   if (print_info) printf("+++++++++++++++++++++++++++++++++++++++++++++\n");
-  //if (print_info) exit(0);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
