@@ -868,12 +868,11 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
     for (j=0; j<dim; j++) {
-      (*Trans)[vertices->id[ivertex]][iface][j] = Gmatrix[iface][j];
+      (*Trans)[vertices->id[ivertex]][iface][j] = -Gmatrix[iface][j];
     }
     (*Trans)[vertices->id[ivertex]][iface][dim] = 0.0;
-    for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] -= (Gmatrix[iface][j]);
+    for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] += (Gmatrix[iface][j]);
   }
-
 
   PetscInt i, face_id, subface_id;
   PetscInt row, col, ncells;
