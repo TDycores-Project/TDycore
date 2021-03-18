@@ -853,9 +853,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   //  - Dirichlet pressure value
   //  - Cell IDs connecting the boundary edge in the direction of unit normal
   PetscInt subcell_id;
-  PetscInt print_info = 0;
-  if (ivertex == 3 || ivertex == 2 || ivertex == 6 || ivertex == 7) print_info = 1;
-  if (print_info) printf("ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices %d\n",ivertex);
 
   icell    = vertices->internal_cell_ids[vOffsetCell + 0];
   isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
@@ -871,15 +868,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     Trans_mat = &tdy->Temp_Trans_mat;
   }
 
-  if (print_info){
-    printf("ivertex = %03d\n",ivertex);
-    printf("G:\n");
-  for (PetscInt i=0; i<3; i++) {
-    for (PetscInt j=0; j<3; j++) printf("%+19.18e ",Gmatrix[i][j]);
-    printf("\n");
-  }
-  if (print_info) printf("T\n");
-  }
   PetscReal T_1[3][4], T_2[3][4];
 
   // Swap rows
@@ -912,32 +900,16 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
         break;
       }
     }
-    if (print_info) {
-      printf(" face_id_wrt_vertex = %03d; subcells->face_ids = %03d; row = %d\n", face_id_wrt_vertex, subcells->face_ids[sOffsetFace + row],row);
-    }
     //row = iface;
 
     for (j=0; j<dim; j++) {
       (*Trans)[vertices->id[ivertex]][iface][j] = -Gmatrix[iface][j];
       T_1[iface][j]                             = -Gmatrix[row][j];
-      //if(print_info) printf("%+19.18e ",(*Trans)[vertices->id[ivertex]][iface][j]);
     }
     (*Trans)[vertices->id[ivertex]][iface][dim] = 0.0;
     T_1[iface][dim] = 0.0;
     for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] += (Gmatrix[iface][j]);
     for (j=0; j<dim; j++) T_1[iface][dim]                             += (Gmatrix[row][j]);
-    //if(print_info) printf("%+19.18e\n",(*Trans)[vertices->id[ivertex]][iface][dim]);
-  }
-
-  if (print_info) {
-    printf("T_1\n");
-    for (PetscInt mm=0; mm<3; mm++){
-      for (PetscInt nn=0; nn<4; nn++){
-        printf("%+19.18e ",T_1[mm][nn]);
-      }
-      printf("\n");
-    }
-    //exit(0);
   }
 
   // Swap columns
@@ -963,11 +935,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     }
     cols[iface] = vertex_boundary_cell_id[iface];
 
-    if (print_info) {
-      printf("[%02d] subcell = %+03d;  face_id_wrt_vertex = %02d vertex = %+03d\n",
-       iface, subcell_boundary_cell_id[iface], face_id_wrt_vertex, vertex_boundary_cell_id[iface]);
-    }
-
   }
   cols[dim] = icell;
 
@@ -989,15 +956,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   for (PetscInt row=0; row<dim; row++) T_2[row][dim] = T_1[row][dim];
 
   }
-    if (print_info) {
-    printf("T_2\n");
-    for (PetscInt mm=0; mm<3; mm++){
-      for (PetscInt nn=0; nn<4; nn++){
-        printf("%+19.18e ",T_2[mm][nn]);
-      }
-      printf("\n");
-    }
-  }
 
   PetscInt i, face_id, subface_id;
   PetscInt row, col, ncells;
@@ -1011,7 +969,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
   for (i=0; i<ncells; i++) {
     icell = vertices->internal_cell_ids[vOffsetCell + i];
-    if (print_info) printf("icell = %02d ",icell);
     PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
 
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
@@ -1042,7 +999,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   subcell_id = icell*cells->num_subcells[icell]+isubcell;
   vOffsetFace = vertices->face_offset[ivertex];
 
-  //if (print_info) printf("MatSetValues: numBnd = %d\n",numBnd);
   for (i=0; i<subcells->num_faces[subcell_id]; i++) {
     //face_id = vertices->face_ids[vOffsetFace + i];    
     subface_id = vertices->subface_ids[vOffsetFace + i];
@@ -1056,23 +1012,14 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
       }
     }
     row = face_id * 4 + subface_id;
-    if (print_info) printf("i = %d; face_id = %02d; face_ids = %02d; subface_id = %d; subcell_id = %02d \n",i,face_id, face_ids[i], subface_id, subcell_id);
-    if (print_info) {
-      PetscInt offset = subcells->face_offset[subcell_id];
-      printf("  subcell: face_ids = %03d %03d %03d\n",subcells->face_ids[offset], subcells->face_ids[offset+1], subcells->face_ids[offset+2]);
-      offset = vertices->face_offset[ivertex];
-      printf("  vertex : face_ids = %03d %03d %03d\n",vertices->face_ids[offset], vertices->face_ids[offset+1], vertices->face_ids[offset+2]);
-    }
 
     for (j=0; j<numBnd; j++) {
       col = idxBnd[j] + tdy->mesh->num_cells;
-      if (print_info) printf("MatSetValues row = %03d; col = %03d; Trans[%02d][%02d][%d] = %+19.18e\n",row,col,ivertex,i,j,(*Trans)[ivertex][i][j]);
       ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][j],ADD_VALUES); CHKERRQ(ierr);
     }
 
     icell  = vertices->internal_cell_ids[vOffsetCell + 0];
     col = icell;
-    if (print_info) printf("MatSetValues row = %03d; col = %03d; Trans[%02d][%02d][%d] = %+19.18e\n",row,col,ivertex,i,j,(*Trans)[ivertex][i][j]);
     ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][numBnd],ADD_VALUES); CHKERRQ(ierr);
   }
 
@@ -1085,20 +1032,13 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     }
   }
   
-  if (print_info)printf("T_new \n");
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++){
     (*Trans)[vertices->id[ivertex]][iface][0] = T_old[iface][dim];
-    if (print_info) printf("%+19.18e ",(*Trans)[vertices->id[ivertex]][iface][0]);
     for (j = 0; j<dim; j++){
       (*Trans)[vertices->id[ivertex]][iface][j+1] = T_old[iface][j];
-      if (print_info) printf("%+19.18e ",(*Trans)[vertices->id[ivertex]][iface][j+1]);
     }
-    if (print_info) printf("\n");
   }
   }
-
-  if (print_info) printf("+++++++++++++++++++++++++++++++++++++++++++++\n");
-
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
