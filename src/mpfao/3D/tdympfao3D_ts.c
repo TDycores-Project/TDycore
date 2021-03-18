@@ -219,8 +219,8 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
 
     PetscReal volume = cells->volume[icell];
 
-    //r[icell] += dmass_dP * dp_dt[icell] * volume;
-    //r[icell] -= tdy->source_sink[icell] * volume;
+    r[icell] += dmass_dP * dp_dt[icell] * volume;
+    r[icell] -= tdy->source_sink[icell] * volume;
   }
 
   /* Cleanup */
