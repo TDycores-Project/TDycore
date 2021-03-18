@@ -79,15 +79,11 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
     }
 
     PetscInt isubcell;
-    PetscInt print_info;
 
     for (isubcell=0; isubcell<cells->num_subcells[icell]; isubcell++) {
-      print_info = 0;
-      if ((icell == 2 ) || (icell == 2)) print_info = 1;
 
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
       PetscInt sOffsetFace = subcells->face_offset[subcell_id];
-      if (print_info)  printf("Cell: %d isubcell = %d; subcell_id = %d\n",icell, isubcell, subcell_id);
 
       PetscInt ii,jj;
 
@@ -97,7 +93,6 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
         PetscReal normal[3];
 
         PetscInt face_id = subcells->face_ids[sOffsetFace + ii];
-        if (print_info ) printf("  face_id = %03d ",face_id);
 
         area = subcells->face_area[sOffsetFace + ii];
 
@@ -129,8 +124,6 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
               } else {
                 neighbor_cell_id = faces->cell_ids[faceCellOffset];
               }
-              if (print_info)
-                printf(" up = %+03d dn = %+03d",faces->cell_ids[faceCellOffset],faces->cell_ids[faceCellOffset+1]);
 
               PetscReal K_neighbor[3][3];
               PetscReal factor = 1.0;
@@ -169,12 +162,6 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
               K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
 
               tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist)*factor;
-              if (print_info)
-                printf("  G = %+e normal = [%e %+e %e]; u2d = %e %e %e dot_prod = %+e",
-                  tdy->subc_Gmatrix[icell][isubcell][ii][jj], 
-                  normal[0],normal[1],normal[2],
-                  normal_up2dn[0],normal_up2dn[1],normal_up2dn[2],
-                  dot_prod);
 
             } else {
               tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
@@ -204,7 +191,6 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
             }
           }
         } // jj-subcell-faces
-        if (print_info) printf("\n");
       } // ii-isubcell faces
     } // isubcell
   } // icell
