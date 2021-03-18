@@ -39,13 +39,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
     if (!vertices->is_local[ivertex]) continue;
     //if (vertices->num_boundary_faces[ivertex] != 0) continue;
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
-    PetscInt print_info = 0;
-    //if (ivertex == 0 || ivertex == 3 || ivertex == 12) print_info = 1;
-    //if (ivertex == 0) print_info = 1;
-
     PetscInt npitf_bc = vertices->num_boundary_faces[ivertex];
     PetscInt nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
-    if (print_info) printf("ivertex = %03d\n",ivertex);
 
     // Compute = T*P
     PetscScalar TtimesP[nflux_in + npitf_bc];
@@ -70,7 +65,6 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
       PetscInt fOffsetCell = faces->cell_offset[face_id];
       PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
       PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
-      if (print_info) printf("   [%d] face_id = %03d; %+03d %+03d",face_id*num_subfaces + subface_id, face_id, cell_id_up, cell_id_dn);
 
       PetscReal den_aveg = 0.0;
       if (cell_id_up>=0) {
@@ -96,48 +90,37 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 
       // Upwind the 'ukvr'
       PetscReal ukvr = 0.0;
-      if (print_info) 
-        printf("   G_index = %03d TtimesP[%03d * %03d + %03d] + den_aveg * G = %19.18e + %19.18e = %19.18e", 
-          face_id * num_subfaces +  subface_id, face_id, num_subfaces, subface_id, TtimesP[irow],  den_aveg * G, TtimesP[irow] + den_aveg * G);
       if (TtimesP[irow] + den_aveg * G < 0.0) { // up ---> dn
         // Is the cell_id_up an internal or boundary cell?
-        if (print_info) printf("  up --> dn\n");
         if (cell_id_up>=0) {
           PetscReal Kr = cc->Kr[cell_id_up];
           PetscReal vis = tdy->vis[cell_id_up];
 
           ukvr = Kr/vis;
-          if (print_info) printf("   (a) Kr = %+19.18e; vis = %+19.18e ",Kr,vis);
         } else {
           PetscReal Kr = cc_bnd->Kr[-cell_id_up-1];
           PetscReal vis = tdy->vis_BND[-cell_id_up-1];
 
           ukvr = Kr/vis;
-          if (print_info) printf("   (b) Kr = %+19.18e; vis = %+19.18e ",Kr,vis);
         }
       } else {
-        if (print_info) printf("  up <-- dn\n");
         // Is the cell_id_dn an internal or boundary cell?
         if (cell_id_dn>=0) {
           PetscReal Kr = cc->Kr[cell_id_dn];
           PetscReal vis = tdy->vis[cell_id_dn];
 
           ukvr = Kr/vis;
-          if (print_info) printf("   (c) Kr = %+19.18e; vis = %+19.18e ",Kr,vis);
         } else {
           PetscReal Kr = cc_bnd->Kr[-cell_id_dn-1];
           PetscReal vis = tdy->vis_BND[-cell_id_dn-1];
 
           ukvr = Kr/vis;
-          if (print_info) printf("   (d) Kr = %+19.18e; vis = %+19.18e ",Kr,vis);
         }
       }
 
       PetscReal fluxm = 0.0;
       fluxm = den_aveg*ukvr*(-TtimesP[irow]);
       fluxm += - pow(den_aveg,2.0) * ukvr * G;
-      if (print_info) printf("\n       flux_m = %+19.18e; den = %+19.18e; ukvr = %+19.18e;\n       G = %+19.18e TxP = %+19.18e\n\n",
-        fluxm, den_aveg, ukvr, G, (TtimesP[irow]));
 
       // fluxm > 0 implies flow is from 'up' to 'dn'
       if (cell_id_up >= 0 && cells->is_local[cell_id_up]) {
