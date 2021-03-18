@@ -28,7 +28,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
   TDyMesh *mesh = tdy->mesh;
   TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
-  PetscReal Se,dSe_dS,dKr_dSe,n=0.5,m=0.8,alpha=1.e-4,Kr; /* FIX: generalize */
+  PetscReal Se,dSe_dS,dKr_dSe,n,m,alpha,Kr;
   PetscInt dim;
   PetscInt p_bnd_idx, cell_id, iface;
   PetscReal Sr,S,dS_dP,d2S_dP2,P;
@@ -56,12 +56,18 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
     switch (cc->SatFuncType[cell_id]) {
     case SAT_FUNC_GARDNER :
+      n = cc->n[cell_id];
+      m = cc->m[cell_id];
+      alpha = cc->alpha[cell_id];
       Sr = cc->sr[cell_id];
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
 
       PressureSaturation_Gardner(n,m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
+      n = cc->n[cell_id];
+      m = cc->m[cell_id];
+      alpha = cc->alpha[cell_id];
       Sr = cc->sr[cell_id];
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
 
