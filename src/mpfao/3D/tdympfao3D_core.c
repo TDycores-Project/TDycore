@@ -874,6 +874,12 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   PetscInt subcell_boundary_cell_id[dim];
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
+    for (j=0; j<dim; j++) {
+      (*Trans)[vertices->id[ivertex]][iface][j] = -Gmatrix[iface][j];
+    }
+    (*Trans)[vertices->id[ivertex]][iface][dim] = 0.0;
+    for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] += (Gmatrix[iface][j]);
+
     PetscInt row = -1;
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
     PetscInt face_id_wrt_vertex = vertices->face_ids[vOffsetFace + iface];
@@ -900,17 +906,13 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     }
 
     for (j=0; j<dim; j++) {
-      (*Trans)[vertices->id[ivertex]][iface][j] = -Gmatrix[iface][j];
-      T_1[iface][j]                             = -Gmatrix[row][j];
+      T_1[iface][j] = -Gmatrix[row][j];
     }
-    (*Trans)[vertices->id[ivertex]][iface][dim] = 0.0;
     T_1[iface][dim] = 0.0;
-    for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] += (Gmatrix[iface][j]);
-    for (j=0; j<dim; j++) T_1[iface][dim]                             += (Gmatrix[row][j]);
+    for (j=0; j<dim; j++) T_1[iface][dim] += (Gmatrix[row][j]);
   }
 
   // Swap columns
-  {
   PetscReal Told[subcells->num_faces[subcell_id]][dim];
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
     for (j = 0; j < dim; j++) {
@@ -947,8 +949,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
   }
   for (PetscInt row=0; row<dim; row++) T_2[row][dim] = T_1[row][dim];
-
-  }
 
   PetscInt i, face_id, subface_id;
   PetscInt row, col, ncells;
