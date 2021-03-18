@@ -877,7 +877,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   PetscInt i, face_id, subface_id;
   PetscInt row, col, ncells;
   PetscInt numBnd, idxBnd[3];
-  PetscInt vOffsetFace;
 
   ncells = vertices->num_internal_cells[ivertex];
   numBnd = 0;
@@ -914,7 +913,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   icell    = vertices->internal_cell_ids[vOffsetCell + 0];
   isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
   subcell_id = icell*cells->num_subcells[icell]+isubcell;
-  vOffsetFace = vertices->face_offset[ivertex];
 
   for (i=0; i<subcells->num_faces[subcell_id]; i++) {
 
