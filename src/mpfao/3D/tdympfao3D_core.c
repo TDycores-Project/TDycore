@@ -881,6 +881,9 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
   ncells = vertices->num_internal_cells[ivertex];
   numBnd = 0;
+  PetscInt face_ids_of_subcell[ncells*6];
+  PetscInt count = 0;
+
   for (i=0; i<ncells; i++) {
     icell = vertices->internal_cell_ids[vOffsetCell + i];
     PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
@@ -893,6 +896,9 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
+
+      face_ids_of_subcell[count] = face_id;
+      count++;
 
       if (faces->is_internal[face_id] == 0) {
 
@@ -911,8 +917,17 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   vOffsetFace = vertices->face_offset[ivertex];
 
   for (i=0; i<subcells->num_faces[subcell_id]; i++) {
-    face_id = vertices->face_ids[vOffsetFace + i];
-    subface_id = vertices->subface_ids[vOffsetFace + i];
+
+    face_id = face_ids_of_subcell[i];
+
+    // Determine the subface ID of 'face_id' that includes 'ivertex'
+    PetscInt fOffsetVertex = faces->vertex_offset[face_id];
+    for (PetscInt ii=0; ii<faces->num_vertices[face_id]; ii++){
+      if (ivertex == faces->vertex_ids[fOffsetVertex + ii]) {
+        subface_id = ii;
+        break;
+      }
+    }
     row = face_id * 4 + subface_id;
 
     for (j=0; j<numBnd; j++) {
