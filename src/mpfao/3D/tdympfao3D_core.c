@@ -868,10 +868,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     Trans_mat = &tdy->Temp_Trans_mat;
   }
 
-  PetscReal T_1[3][4], T_2[3][4];
-
-  // Swap rows
-  PetscInt subcell_boundary_cell_id[dim];
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
     for (j=0; j<dim; j++) {
@@ -879,6 +875,12 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     }
     (*Trans)[vertices->id[ivertex]][iface][dim] = 0.0;
     for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] += (Gmatrix[iface][j]);
+  }
+
+  PetscReal T_1[3][4], T_2[3][4];
+  // Swap rows
+  PetscInt subcell_boundary_cell_id[dim];
+  for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
     PetscInt row = -1;
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
