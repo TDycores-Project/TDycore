@@ -537,18 +537,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
 
       PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
       PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
-      PetscInt print_info = 0;
-      if (ivertex == 3) print_info = 1;
-      //if (ivertex == 2 || ivertex == 3 || ivertex == 6 || ivertex == 7) print_info = 1;
-      //if (ivertex == 18 || ivertex == 19 || ivertex == 22 || ivertex == 23) print_info = 1;
-      //if (cell_id_up == 0 && cell_id_dn == 1) print_info = 1;
-      //if ((cell_id_up == 2 || cell_id_dn == 2) && (cell_id_up < 0 || cell_id_dn < 0)) print_info = 1;
-      //if ((cell_id_up == 2 || cell_id_dn == 2) && (cell_id_up >= 0 && cell_id_dn >= 0)) print_info = 1;
-
-      if (print_info) {
-        printf("vertex_id: %d\n",vertex_id);
-        printf("  [irow = %d]face_id = %03d cell_id_up/dn = %+03d %+03d\n",irow,face_id,cell_id_up,cell_id_dn);
-      }
 
       // If using neumann bc (which is currently no-flux), then skip the face
       if ( tdy->mpfao_bc_type == MPFAO_NEUMANN_BC  && (cell_id_up<0 || cell_id_dn <0))  continue;
@@ -586,9 +574,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
       //printf("  G = %+19.18e\n",G);
 
       if (TtimesP[irow] + den_aveg * G < 0.0) { // up ---> dn
-        if (print_info) printf("up --> dn\n");
         // Flow: up --> dn
-        //printf("  up --> dn\n");
         if (cell_id_up>=0) {
           // "up" is an internal cell
           PetscReal Kr = cc->Kr[cell_id_up];
@@ -606,12 +592,10 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
 
           ukvr = Kr/vis;
           dukvr_dPup = 0.0;
-          if (print_info) printf("  (2) Kr = %+19.18e; vis = %+19.18e; ukvr = %+19.18e\n",Kr,vis,ukvr);
         }
 
       } else {
         // Flow: up <--- dn
-        if (print_info) printf("up --> dn\n");
         if (cell_id_dn>=0) {
           // "dn" is an internal cell
           PetscReal Kr = cc->Kr[cell_id_dn];
@@ -630,7 +614,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
 
           ukvr       = Kr/vis;
           dukvr_dPdn = 0.0;
-          if (print_info) printf("  (2) Kr = %+19.18e; vis = %+19.18e; ukvr = %+19.18e\n",Kr,vis,ukvr);
         }
       }
 
@@ -659,7 +642,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
         up_cols[icol] = -1;
         dn_cols[icol] = -1;
         PetscInt cell_id = vertices->internal_cell_ids[vOffsetCell + icol];
-        if (print_info) printf("    [icol = %d] cell_id = %d\n",icol,cell_id);
 
         PetscReal T = tdy->Trans[vertex_id][irow][icol];
 
@@ -672,19 +654,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
             den_aveg       * ukvr       * T             +
             2*den_aveg *dden_aveg_dPup * ukvr       * G +
             pow(den_aveg,2.0)     * dukvr_dPup * G;
-            if (print_info && cell_id == 2) {
-            //if (cell_id == -2) {
-            printf("    (a) Jac = %+19.18e\n",Jac);
-            printf("      term 1 = %+19.18e\n",dden_aveg_dPdn * ukvr       * TtimesP[irow]);
-            printf("      term 2 = %+19.18e\n",den_aveg       * dukvr_dPdn * TtimesP[irow]);
-            printf("      term 3 = %+19.18e\n",den_aveg       * ukvr       * T);
-            printf("      term 4 = %+19.18e\n",2*den_aveg *dden_aveg_dPup * ukvr       * G);
-            printf("      term 5 = %+19.18e\n",pow(den_aveg,2.0)     * dukvr_dPup * G);
-            printf("      TxP    = %+19.18e\n",TtimesP[irow]);
-            printf("      ukvr   = %+19.18e\n",ukvr);
-            printf("      T      = %+19.18e\n",T);
-            printf("      G      = %+19.18e\n",G);
-            }
         } else if (cell_id_dn>-1 && cell_id == cell_id_dn) {
           Jac =
             dden_aveg_dPdn * ukvr       * TtimesP[irow] +
@@ -692,48 +661,22 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
             den_aveg       * ukvr       * T             +
             2*den_aveg *dden_aveg_dPdn * ukvr       * G +
             pow(den_aveg,2.0)     * dukvr_dPdn * G;
-            if (print_info && cell_id == 2) {
-            //if (cell_id == -2) {
-            printf("    (b) Jac = %+19.18e\n",Jac);
-            printf("      term 1 = %+19.18e\n",dden_aveg_dPdn * ukvr       * TtimesP[irow]);
-            printf("      term 2 = %+19.18e\n",den_aveg       * dukvr_dPdn * TtimesP[irow]);
-            printf("      term 3 = %+19.18e\n",den_aveg       * ukvr       * T);
-            printf("      term 4 = %+19.18e\n",2*den_aveg *dden_aveg_dPup * ukvr       * G);
-            printf("      term 5 = %+19.18e\n",pow(den_aveg,2.0)     * dukvr_dPup * G);
-            printf("      TxP    = %+19.18e\n",TtimesP[irow]);
-            printf("      ukvr   = %+19.18e\n",ukvr);
-            printf("      T      = %+19.18e\n",T);
-            printf("      G      = %+19.18e\n",G);
-            }
             
         } else {
           Jac = den_aveg * ukvr * T;
-          //if (print_info && cell_id == 2) printf("    (c) Jac = %+19.18e\n",Jac);
-          if (cell_id == -2) printf("    (c) Jac = %+19.18e\n",Jac);
         }
-        //if (face_id == 72 && ivertex == 1) exit(0);
-        if (print_info) printf("\n");
 
         // Changing sign when bringing the term from RHS to LHS of the equation
         Jac = -Jac;
-        PetscInt cell_id_of_interest = 2;
 
         if (cell_id_up >= 0 && cells->is_local[cell_id_up]) {
           up_cols[icol] = cell_id;
           up_Jac[icol] = Jac;
-          //if (cell_id_up == 2 || cell_id == 2) printf("up Jac = %+19.18e\n",Jac);
-          if (cell_id_up == cell_id_of_interest && cell_id == cell_id_of_interest) 
-            printf("(%d, %d) up Jac = %+19.18e; vertex_id = %02d face_id = %03d; cell_up/dn = %03d %03d; cell_id = %02d; T = %+19.18e\n",
-              irow,icol,Jac,ivertex,face_id,cell_id_up,cell_id_dn,cell_id,T);
         }
 
         if (cell_id_dn >= 0 && cells->is_local[cell_id_dn]) {
           dn_cols[icol] = cell_id;
           dn_Jac[icol] = -Jac;
-          //if (cell_id_dn == 2 || cell_id == 2) printf("dn Jac = %+19.18e\n",-Jac);
-          if (cell_id_dn == cell_id_of_interest && cell_id == cell_id_of_interest) 
-            printf("(%d, %d) dn Jac = %+19.18e; vertex_id = %02d face_id = %03d; cell_up/dn = %03d %03d; cell_id = %02d; T = %+19.18e\n",
-              irow,icol,Jac,ivertex,face_id,cell_id_up,cell_id_dn,cell_id,T);
         }
       }
 
@@ -745,9 +688,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Vec Ul, Mat A, void *ctx) {
         ierr = MatSetValuesLocal(A,1,&cell_id_dn,num_int_cells,dn_cols,dn_Jac,ADD_VALUES);CHKERRQ(ierr);
       }
     }
-    //exit(0);
   }
-//  exit(0);
 
   ierr = VecRestoreArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
   ierr = VecRestoreArray(tdy->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
