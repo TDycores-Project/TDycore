@@ -877,6 +877,71 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] += (Gmatrix[iface][j]);
   }
 
+  PetscInt i, face_id, subface_id;
+  PetscInt row, col, ncells;
+  PetscInt numBnd, idxBnd[3];
+  PetscInt vOffsetFace;
+
+  ncells = vertices->num_internal_cells[ivertex];
+  numBnd = 0;
+  PetscInt face_ids[ncells*6];
+  PetscInt count = 0;
+
+  for (i=0; i<ncells; i++) {
+    icell = vertices->internal_cell_ids[vOffsetCell + i];
+    PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
+
+    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
+    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+    PetscInt iface;
+    for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
+
+      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+      PetscInt fOffsetCell = faces->cell_offset[face_id];
+
+      face_ids[count] = face_id;
+      count++;
+
+      if (faces->is_internal[face_id] == 0) {
+
+        // Extract pressure value at the boundary
+        if (faces->cell_ids[fOffsetCell + 0] >= 0) idxBnd[numBnd] = -faces->cell_ids[fOffsetCell + 1] - 1;
+        else                                       idxBnd[numBnd] = -faces->cell_ids[fOffsetCell + 0] - 1;
+
+        numBnd++;
+      }
+    }
+  }
+
+  icell    = vertices->internal_cell_ids[vOffsetCell + 0];
+  isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
+  subcell_id = icell*cells->num_subcells[icell]+isubcell;
+  vOffsetFace = vertices->face_offset[ivertex];
+
+  for (i=0; i<subcells->num_faces[subcell_id]; i++) {
+    subface_id = vertices->subface_ids[vOffsetFace + i];
+    subface_id = -1;
+    face_id = face_ids[i];
+    PetscInt fOffsetVertex = faces->vertex_offset[face_id];
+    for (PetscInt ii=0; ii<faces->num_vertices[face_id]; ii++){
+      if (ivertex == faces->vertex_ids[fOffsetVertex + ii]) {
+        subface_id = ii;
+        break;
+      }
+    }
+    row = face_id * 4 + subface_id;
+
+    for (j=0; j<numBnd; j++) {
+      col = idxBnd[j] + tdy->mesh->num_cells;
+      ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][j],ADD_VALUES); CHKERRQ(ierr);
+    }
+
+    icell  = vertices->internal_cell_ids[vOffsetCell + 0];
+    col = icell;
+    ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][numBnd],ADD_VALUES); CHKERRQ(ierr);
+  }
+
   PetscReal T_1[3][4], T_2[3][4];
   // Swap rows
   PetscInt subcell_boundary_cell_id[dim];
@@ -951,72 +1016,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
   }
   for (PetscInt row=0; row<dim; row++) T_2[row][dim] = T_1[row][dim];
-
-  PetscInt i, face_id, subface_id;
-  PetscInt row, col, ncells;
-  PetscInt numBnd, idxBnd[3];
-  PetscInt vOffsetFace;
-
-  ncells = vertices->num_internal_cells[ivertex];
-  numBnd = 0;
-  PetscInt face_ids[ncells*6];
-  PetscInt count = 0;
-
-  for (i=0; i<ncells; i++) {
-    icell = vertices->internal_cell_ids[vOffsetCell + i];
-    PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
-
-    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
-
-    PetscInt iface;
-    for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
-
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
-
-      face_ids[count] = face_id;
-      count++;
-
-      if (faces->is_internal[face_id] == 0) {
-
-        // Extract pressure value at the boundary
-        if (faces->cell_ids[fOffsetCell + 0] >= 0) idxBnd[numBnd] = -faces->cell_ids[fOffsetCell + 1] - 1;
-        else                                       idxBnd[numBnd] = -faces->cell_ids[fOffsetCell + 0] - 1;
-
-        numBnd++;
-      }
-    }
-  }
-
-  icell    = vertices->internal_cell_ids[vOffsetCell + 0];
-  isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
-  subcell_id = icell*cells->num_subcells[icell]+isubcell;
-  vOffsetFace = vertices->face_offset[ivertex];
-
-  for (i=0; i<subcells->num_faces[subcell_id]; i++) {
-    subface_id = vertices->subface_ids[vOffsetFace + i];
-    subface_id = -1;
-    face_id = face_ids[i];
-    PetscInt fOffsetVertex = faces->vertex_offset[face_id];
-    for (PetscInt ii=0; ii<faces->num_vertices[face_id]; ii++){
-      if (ivertex == faces->vertex_ids[fOffsetVertex + ii]) {
-        subface_id = ii;
-        break;
-      }
-    }
-    row = face_id * 4 + subface_id;
-
-    for (j=0; j<numBnd; j++) {
-      col = idxBnd[j] + tdy->mesh->num_cells;
-      ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][j],ADD_VALUES); CHKERRQ(ierr);
-    }
-
-    icell  = vertices->internal_cell_ids[vOffsetCell + 0];
-    col = icell;
-    ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][numBnd],ADD_VALUES); CHKERRQ(ierr);
-  }
-
+  
   PetscReal T_old[subcells->num_faces[subcell_id]][dim+1];
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++){
     for (j = 0; j<dim+1; j++){
