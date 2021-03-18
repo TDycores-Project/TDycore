@@ -159,7 +159,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
               K_value = 1.0/K_value;
               K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
 
-              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist)*2.0;
+              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist);
 
             } else {
               tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
@@ -188,10 +188,10 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
                 break;
             }
           }
-        }
-      }
-    }
-  }
+        } // jj-subcell-faces
+      } // ii-isubcell faces
+    } // isubcell
+  } // icell
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
