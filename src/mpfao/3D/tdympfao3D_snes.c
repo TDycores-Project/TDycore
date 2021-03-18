@@ -212,10 +212,6 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
                tdy->drho_dP[icell] * matprop->porosity[icell] * cc->S[icell] +
                tdy->rho[icell]     * matprop->porosity[icell] * cc->dS_dP[icell];
     Jac = dmass_dP * cells->volume[icell] * dtInv;
-    printf("term1 = %+19.18e\n",tdy->rho[icell]     * dporosity_dP         * cc->S[icell]);
-    printf("term2 = %+19.18e\n",tdy->drho_dP[icell] * matprop->porosity[icell] * cc->S[icell] );
-    printf("term3 = %+19.18e; %+19.18e; %+19.18e; %+19.18e\n",tdy->rho[icell]     * matprop->porosity[icell] * cc->dS_dP[icell], 
-      tdy->rho[icell], matprop->porosity[icell], cc->dS_dP[icell]);
 
     ierr = MatSetValuesLocal(B,1,&icell,1,&icell,&Jac,ADD_VALUES);CHKERRQ(ierr);
   }
