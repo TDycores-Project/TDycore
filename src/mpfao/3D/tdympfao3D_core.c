@@ -126,7 +126,6 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
               }
 
               PetscReal K_neighbor[3][3];
-              PetscReal factor = 1.0;
               PetscInt kk,mm;
 
               if (neighbor_cell_id >=0) {
@@ -140,7 +139,6 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
                   }
                 }
               } else {
-                factor = 1.0;
                 ierr = TDyFace_GetCentroid(faces, face_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
                 ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
                 for (kk=0; kk<dim; kk++) {
@@ -161,7 +159,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
               K_value = 1.0/K_value;
               K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
 
-              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist)*factor;
+              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist);
 
             } else {
               tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
