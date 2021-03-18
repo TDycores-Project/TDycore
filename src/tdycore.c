@@ -261,6 +261,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->dvis_dT[c] = 0.0;
   }
   tdy->gravity[dim-1] = -9.81;
+  tdy->gravity[dim-1] = -0.0;
   PetscFunctionReturn(0);
 }
 

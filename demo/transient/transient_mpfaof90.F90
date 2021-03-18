@@ -169,6 +169,7 @@ implicit none
   CHKERRA(ierr);
   CHKERRA(ierr);
   call VecSet(U,91325.d0,ierr);
+  call VecSet(U,90325.d0,ierr);
   CHKERRA(ierr);
 
   call TSCreate(PETSC_COMM_WORLD,ts,ierr);

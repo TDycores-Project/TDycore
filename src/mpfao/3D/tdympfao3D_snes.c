@@ -106,6 +106,15 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
 
+  PetscViewer viewer;
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"T.bin",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+  ierr = MatView(tdy->Trans_mat,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"P.bin",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+  ierr = VecView(tdy->P_vec,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
   PetscReal *accum_prev;
 
   ierr = TDyMPFAOIFunction_Vertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
@@ -134,6 +143,10 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
 
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"R.bin",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+  ierr = VecView(R,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  
 #if defined(DEBUG)
   sprintf(word,"Function%d.vec",icount_f);
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
@@ -199,6 +212,10 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
                tdy->drho_dP[icell] * matprop->porosity[icell] * cc->S[icell] +
                tdy->rho[icell]     * matprop->porosity[icell] * cc->dS_dP[icell];
     Jac = dmass_dP * cells->volume[icell] * dtInv;
+    printf("term1 = %+19.18e\n",tdy->rho[icell]     * dporosity_dP         * cc->S[icell]);
+    printf("term2 = %+19.18e\n",tdy->drho_dP[icell] * matprop->porosity[icell] * cc->S[icell] );
+    printf("term3 = %+19.18e; %+19.18e; %+19.18e; %+19.18e\n",tdy->rho[icell]     * matprop->porosity[icell] * cc->dS_dP[icell], 
+      tdy->rho[icell], matprop->porosity[icell], cc->dS_dP[icell]);
 
     ierr = MatSetValuesLocal(B,1,&icell,1,&icell,&Jac,ADD_VALUES);CHKERRQ(ierr);
   }
@@ -210,6 +227,12 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
     ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
+
+  PetscViewer viewer;
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,"J.bin",FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+  ierr = MatView(A,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  exit(0);
 
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Udotl); CHKERRQ(ierr);

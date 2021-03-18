@@ -15,6 +15,7 @@ contains
      PetscErrorCode :: ierr
 
      theta = 0.115d0
+     theta = 0.25d0
      ierr = 0
    end subroutine PorosityFunction
 
@@ -45,6 +46,20 @@ contains
 
     resSat = 0.115d0
   end subroutine ResidualSaturation
+
+  subroutine PressureFunction(tdy,x,pressure,dummy,ierr)
+    implicit none
+
+    TDy                    :: tdy
+    PetscReal, intent(in)  :: x(2)
+    PetscReal, intent(out) :: pressure
+    integer                :: dummy(*)
+    PetscErrorCode         :: ierr
+
+    pressure = 100000.d0
+
+    ierr = 0
+  end subroutine PressureFunction
 
   subroutine PorosityFunctionPFLOTRAN(tdy,x,theta,dummy,ierr)
     implicit none
@@ -147,11 +162,13 @@ implicit none
   CHKERRA(ierr);
 
   nx = 1; ny = 1; nz = 15;
+  nx = 3; ny = 3; nz = 3;
   dim = 3
   successful_exit_code= 0
   max_steps = 2
   dtime = 1800.d0
   ic_value = 102325.d0
+  ic_value =  90325.d0
   pflotran_consistent = PETSC_FALSE
 
   call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr);
@@ -248,7 +265,7 @@ implicit none
     index(c) = c-1;
     residualSat(c) = resSat
     do j = 1,dim*dim
-      blockPerm((c-1)*dim*dim+j) = perm(j)
+       blockPerm((c-1)*dim*dim+j) = perm(j)
     enddo
   enddo
 
@@ -290,6 +307,8 @@ implicit none
      call TDySetResidualSaturationValuesLocal(tdy,ncell,index,residualSat,ierr);
      CHKERRA(ierr);
 
+     call TDySetDirichletValueFunction(tdy,PressureFunction,0,ierr);
+     CHKERRA(ierr);
   end if
 
   call TDySetupNumericalMethods(tdy,ierr);

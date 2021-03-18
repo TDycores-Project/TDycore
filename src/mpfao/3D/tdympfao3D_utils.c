@@ -73,7 +73,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
 
       PressureSaturation_VanGenuchten(m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
-      printf("  p_bnd_idx = %03d; P = %19.18e; m = %19.18e alpha = %19.18e; S = %19.18e\n",p_bnd_idx, tdy->P_BND[p_bnd_idx],m,alpha,S);
+      //printf("  p_bnd_idx = %03d; P = %19.18e; m = %19.18e alpha = %19.18e; S = %19.18e\n",p_bnd_idx, tdy->P_BND[p_bnd_idx],m,alpha,S);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
