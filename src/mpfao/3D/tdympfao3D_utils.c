@@ -705,12 +705,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
     if (tdy->ops->computedirichletvalue) {
       ierr = (*tdy->ops->computedirichletvalue)(tdy, (faces->centroid[iface].X), &(tdy->P_BND[p_bnd_idx]), tdy->dirichletvaluectx);CHKERRQ(ierr);
     } else {
-      if (tdy->mpfao_gmatrix_method == MPFAO_GMATRIX_TPF) {
-        tdy->P_BND[p_bnd_idx] = p[cell_id];
-      } else {
-        ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[cell_id].X,dim,&gz); CHKERRQ(ierr);
-        tdy->P_BND[p_bnd_idx] = p[cell_id] + tdy->rho[cell_id]*gz;
-      }
+      tdy->P_BND[p_bnd_idx] = p[cell_id];
     }
 
     p_vec_ptr[p_bnd_idx + ncells] = tdy->P_BND[p_bnd_idx];
