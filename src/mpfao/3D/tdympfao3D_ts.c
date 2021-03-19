@@ -81,12 +81,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 
       den_aveg *= 0.5;
 
-      PetscReal G;
-      if (tdy->mpfao_gmatrix_method == MPFAO_GMATRIX_TPF) {
-        G = GravDis_ptr[face_id*num_subfaces + subface_id];
-      } else {
-        G = 0.0;
-      }
+      PetscReal G = GravDis_ptr[face_id*num_subfaces + subface_id];
 
       // Upwind the 'ukvr'
       PetscReal ukvr = 0.0;
@@ -722,14 +717,8 @@ PetscErrorCode TDyMPFAOIJacobian_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,PetscRea
   ierr = DMGlobalToLocalBegin(dm,U_t,INSERT_VALUES,Udotl); CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd  (dm,U_t,INSERT_VALUES,Udotl); CHKERRQ(ierr);
 
-  switch (tdy->mpfao_gmatrix_method){
-    case MPFAO_GMATRIX_DEFAULT:
-      ierr = TDyMPFAOIJacobian_Vertices_3DMesh(Ul, B, ctx); CHKERRQ(ierr);
-      break;
-    case MPFAO_GMATRIX_TPF:
-      ierr = TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Ul, B, ctx); CHKERRQ(ierr);
-      break;
-  }
+  ierr = TDyMPFAOIJacobian_Vertices_3DMesh_TPF(Ul, B, ctx); CHKERRQ(ierr);
+
   //ierr = TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(Ul, A, ctx);
   ierr = TDyMPFAOIJacobian_Accumulation_3DMesh(Ul, Udotl, shift, B, ctx);
 
