@@ -317,10 +317,10 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 
       if (cell_id_dn>=0) {
         den_aveg += 0.5*tdy->rho[cell_id_dn];
-        dden_aveg_dPup = 0.5*tdy->drho_dP[cell_id_dn];
+        dden_aveg_dPdn = 0.5*tdy->drho_dP[cell_id_dn];
       } else {
         den_aveg += 0.5*tdy->rho_BND[-cell_id_dn-1];
-        dden_aveg_dPup = 0.0;
+        dden_aveg_dPdn = 0.0;
       }
 
       PetscInt num_subfaces = 4;
