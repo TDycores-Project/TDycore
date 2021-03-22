@@ -24,7 +24,7 @@ jobs:
     # Environment variables
     env:
       PETSC_ARCH: ${{ matrix.os }}
-      PETSC_GIT_HASH: a826417c4d
+      PETSC_GIT_HASH: 03cacdc99d
       DEBUG: 1
 
     # Steps for building and running tests.
@@ -76,9 +76,15 @@ jobs:
     - name: Running tests (${{ matrix.build-type }})
       run: |
         export PETSC_DIR=$PWD/petsc
-        cd demo
-        make V=1 codecov=1
-        cd ../regression_tests
+        cd demo/mpfao; make V=1 codecov=1
+        cd ../richards; make V=1 codecov=1
+        cd ../steady; make V=1 codecov=1
+        cd ../steadyf90; make V=1
+        cd ../th; make V=1 codecov=1
+        cd ../transient;
+        make V=1 codecov=1 transient transient_mpfao transient_th_mpfao
+        make V=1 transient_mpfaof90 transient_snes_mpfaof90
+        cd ../../regression_tests
         make test-mpfao
         make test-steady
         make test-steadyf90

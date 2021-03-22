@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
   PetscBool print_intermediate = PETSC_FALSE;
   PetscMPIInt rank, size;
   TDy tdy = PETSC_NULL;
-  TDyIOFormat format = ExodusFormat; 
+  TDyIOFormat format = HDF5Format; 
 
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);
@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
   ierr = TDyIOSetPrintIntermediate(tdy->io, print_intermediate); CHKERRQ(ierr);
   PetscPrintf(PETSC_COMM_WORLD,"--\n");
   if (size == 1) {
-    ierr = TDyIOSetMode(tdy->io,format);CHKERRQ(ierr);
+    ierr = TDyIOSetMode(tdy,format);CHKERRQ(ierr);
     ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);
   }
   ierr = TDyTimeIntegratorRunToTime(tdy,tdy->ti->final_time); 
