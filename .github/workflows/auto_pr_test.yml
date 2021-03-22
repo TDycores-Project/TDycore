@@ -77,7 +77,7 @@ jobs:
       run: |
         export PETSC_DIR=$PWD/petsc
         cd demo
-        make V=1 codecov=1
+        make V=1
         cd ../regression_tests
         make test-mpfao
         make test-steady
