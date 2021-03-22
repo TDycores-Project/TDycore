@@ -24,7 +24,7 @@ jobs:
     # Environment variables
     env:
       PETSC_ARCH: ${{ matrix.os }}
-      PETSC_GIT_HASH: a826417c4d
+      PETSC_GIT_HASH: 03cacdc99d
       DEBUG: 1
 
     # Steps for building and running tests.
