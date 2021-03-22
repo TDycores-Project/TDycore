@@ -28,11 +28,6 @@ typedef struct {
   PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
 } CharacteristicCurve;
 
-typedef struct _CCurve CCurve;
-struct _CCurve {
-  PetscReal *sr;
-};
-
 PETSC_INTERN PetscErrorCode CharacteristicCurveCreate(PetscInt,CharacteristicCurve**);
 PETSC_INTERN PetscErrorCode CharacteristicCurveDestroy(CharacteristicCurve*);
 

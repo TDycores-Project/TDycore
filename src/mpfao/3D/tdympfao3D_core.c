@@ -159,7 +159,7 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
               K_value = 1.0/K_value;
               K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
 
-              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist)*2.0;
+              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist);
 
             } else {
               tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
@@ -188,10 +188,10 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
                 break;
             }
           }
-        }
-      }
-    }
-  }
+        } // jj-subcell-faces
+      } // ii-isubcell faces
+    } // isubcell
+  } // icell
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -868,20 +868,21 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
     for (j=0; j<dim; j++) {
-      (*Trans)[vertices->id[ivertex]][iface][j] = Gmatrix[iface][j];
+      (*Trans)[vertices->id[ivertex]][iface][j] = -Gmatrix[iface][j];
     }
     (*Trans)[vertices->id[ivertex]][iface][dim] = 0.0;
-    for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] -= (Gmatrix[iface][j]);
+    for (j=0; j<dim; j++) (*Trans)[vertices->id[ivertex]][iface][dim] += (Gmatrix[iface][j]);
   }
-
 
   PetscInt i, face_id, subface_id;
   PetscInt row, col, ncells;
   PetscInt numBnd, idxBnd[3];
-  PetscInt vOffsetFace;
 
   ncells = vertices->num_internal_cells[ivertex];
   numBnd = 0;
+  PetscInt face_ids_of_subcell[ncells*6];
+  PetscInt count = 0;
+
   for (i=0; i<ncells; i++) {
     icell = vertices->internal_cell_ids[vOffsetCell + i];
     PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
@@ -894,6 +895,9 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
       PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
+
+      face_ids_of_subcell[count] = face_id;
+      count++;
 
       if (faces->is_internal[face_id] == 0) {
 
@@ -909,11 +913,19 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   icell    = vertices->internal_cell_ids[vOffsetCell + 0];
   isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
   subcell_id = icell*cells->num_subcells[icell]+isubcell;
-  vOffsetFace = vertices->face_offset[ivertex];
 
   for (i=0; i<subcells->num_faces[subcell_id]; i++) {
-    face_id = vertices->face_ids[vOffsetFace + i];
-    subface_id = vertices->subface_ids[vOffsetFace + i];
+
+    face_id = face_ids_of_subcell[i];
+
+    // Determine the subface ID of 'face_id' that includes 'ivertex'
+    PetscInt fOffsetVertex = faces->vertex_offset[face_id];
+    for (PetscInt ii=0; ii<faces->num_vertices[face_id]; ii++){
+      if (ivertex == faces->vertex_ids[fOffsetVertex + ii]) {
+        subface_id = ii;
+        break;
+      }
+    }
     row = face_id * 4 + subface_id;
 
     for (j=0; j<numBnd; j++) {
@@ -924,6 +936,102 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     icell  = vertices->internal_cell_ids[vOffsetCell + 0];
     col = icell;
     ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][numBnd],ADD_VALUES); CHKERRQ(ierr);
+  }
+
+  // Need to swap entries in (*Trans)[vertices->id][:][:] such that
+  // Step-1. Rows correspond to faces saved in the order of vertices->face_ids[:]
+  // Step-2. Columns are such that boundary cells are followed by the internal cell.
+  //         The boundary cells are in the order of vertices->cell_ids[1:3] 
+  //         Note: vertices->cell_ids[0] correspond to internal cell
+  // Step-3. Finally move the last column as the first column. So, columns
+  //         are in the order of vertices->cell_ids[0:3]
+
+  PetscReal T_1[3][4], T_2[3][4];
+  // Swap rows
+  PetscInt subcell_boundary_cell_id[dim];
+  for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+
+    PetscInt row = -1;
+    PetscInt vOffsetFace = vertices->face_offset[ivertex];
+    PetscInt face_id_wrt_vertex = vertices->face_ids[vOffsetFace + iface];
+
+    PetscInt i = 0;
+    PetscInt icell = vertices->internal_cell_ids[vOffsetCell + i];
+    PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
+    PetscInt subcell_id = icell*cells->num_subcells[icell] + isubcell;
+    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+    for (PetscInt mm=0; mm<dim; mm++){
+      PetscInt face_id_wrt_subcell = subcells->face_ids[sOffsetFace + mm];
+      PetscInt offset = faces->cell_offset[face_id_wrt_subcell];
+
+      if (faces->cell_ids[offset] < 0) {
+        subcell_boundary_cell_id[mm] = faces->cell_ids[offset];
+      } else {
+        subcell_boundary_cell_id[mm] = faces->cell_ids[offset + 1];
+      }
+      if (face_id_wrt_vertex == face_id_wrt_subcell){
+        row = mm;
+        break;
+      }
+    }
+
+    for (j=0; j<dim; j++) {
+      T_1[iface][j] = -Gmatrix[row][j];
+    }
+    T_1[iface][dim] = 0.0;
+    for (j=0; j<dim; j++) T_1[iface][dim] += (Gmatrix[row][j]);
+  }
+
+  // Swap columns
+  PetscReal Told[subcells->num_faces[subcell_id]][dim];
+  for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+    for (j = 0; j < dim; j++) {
+      Told[iface][j] = T_1[iface][j];
+    }
+  }
+
+  PetscInt vertex_boundary_cell_id [subcells->num_faces[subcell_id]];
+  for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+    PetscInt vOffsetFace = vertices->face_offset[ivertex];
+    PetscInt face_id_wrt_vertex = vertices->face_ids[vOffsetFace + iface];
+    PetscInt fOffsetCell = faces->cell_offset[face_id_wrt_vertex];
+
+    if (faces->cell_ids[fOffsetCell] < 0){
+      vertex_boundary_cell_id[iface] = faces->cell_ids[fOffsetCell];
+    } else {
+      vertex_boundary_cell_id[iface] = faces->cell_ids[fOffsetCell + 1];
+    }
+  }
+
+  for (j = 0; j < dim; j++){
+    PetscInt col = -1;
+    for (PetscInt mm=0; mm<dim; mm++){
+      if (vertex_boundary_cell_id[j] == subcell_boundary_cell_id[mm]) {
+        col = mm;
+        break;
+      }
+    }
+
+    for (PetscInt row=0; row<dim; row++){
+      T_2[row][col] = Told[row][j];
+    }
+
+  }
+  for (PetscInt row=0; row<dim; row++) T_2[row][dim] = T_1[row][dim];
+
+  PetscReal T_old[subcells->num_faces[subcell_id]][dim+1];
+  for (iface=0; iface<subcells->num_faces[subcell_id]; iface++){
+    for (j = 0; j<dim+1; j++){
+      T_old[iface][j] = T_2[iface][j];
+    }
+  }
+
+  for (iface=0; iface<subcells->num_faces[subcell_id]; iface++){
+    (*Trans)[vertices->id[ivertex]][iface][0] = T_old[iface][dim];
+    for (j = 0; j<dim; j++){
+      (*Trans)[vertices->id[ivertex]][iface][j+1] = T_old[iface][j];
+    }
   }
 
   TDY_STOP_FUNCTION_TIMER()

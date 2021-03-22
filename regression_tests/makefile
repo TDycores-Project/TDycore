@@ -109,6 +109,6 @@ test-th :
 # removed.
 #
 clean-tests :
-	-@find . -type f -name '*.testlog' -print0 | xargs -0 rm
-	-@find . -type f -name '*.out' -print0 | xargs -0 rm
+	-@find . -type f -name '*.testlog' -print0 | xargs -0 rm -f
+	-@find . -type f -name '*.out' -print0 | xargs -0 rm -f
 
