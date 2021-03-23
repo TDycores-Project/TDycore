@@ -720,6 +720,7 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
         }
         if (!found) {
           vertices->face_ids[vOffsetFace+vertices->num_faces[ivertex]] = iface;
+          printf("iface[%03d] = %d\n",vOffsetFace+vertices->num_faces[ivertex], iface);
           vertices->subface_ids[vOffsetFace+vertices->num_faces[ivertex]] = faces->num_vertices[iface] - 1;
           vertices->num_faces[ivertex]++;
         }
@@ -773,6 +774,92 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
 
 /* -------------------------------------------------------------------------- */
 
+PetscErrorCode ConvertMeshElementToCompressedFormat(TDy tdy, PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
+  PetscInt **subelement_num, PetscInt **subelement_offset, PetscInt **subelement_id) {
+
+  PetscFunctionBegin;
+
+  PetscInt count = 0, new_offset = 0;
+
+  count = *subelement_num[0];
+  for (PetscInt ielem=1; ielem<num_element; ielem++) {
+
+    new_offset += *subelement_num[ielem-1];
+    PetscInt old_offset = *subelement_offset[ielem];
+
+    *subelement_offset[ielem] = new_offset;
+
+    for (PetscInt isubelem=0; isubelem<*subelement_num[ielem]; isubelem++){
+
+      *subelement_id[new_offset + isubelem] = *subelement_id[old_offset + isubelem];
+      count++;
+
+    }
+    if (update_offset) {
+      *subelement_offset[ielem] = new_offset;
+    }
+  }
+
+  if (update_offset) {
+    new_offset += *subelement_num[num_element];
+    *subelement_offset[num_element+1] = new_offset;
+  }
+
+  for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
+    *subelement_id[ii] = -1;
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode ConvertVerticesToCompressedFormat(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyVertex     *vertices = &mesh->vertices;
+  PetscErrorCode ierr;
+
+  PetscInt v_start, v_end, num_vertices;
+  ierr = DMPlexGetDepthStratum( dm, 0, &v_start, &v_end); CHKERRQ(ierr);
+  num_vertices = v_end-v_start;
+
+  PetscInt ncells_per_vertex = TDyMaxNumberOfCellsSharingAVertex(dm, tdy->closureSize, tdy->closure);
+  PetscInt nfaces_per_vertex = TDyMaxNumberOfFacesSharingAVertex(dm, tdy->closureSize, tdy->closure);
+  PetscInt nedges_per_vertex = TDyMaxNumberOfEdgesSharingAVertex(dm, tdy->closureSize, tdy->closure);
+
+  PetscInt update_offset;
+
+  /* Convert face_id */
+
+  // Note: face_id and subface_id use the same offset (vertices->face_offset)
+  //       So, the offsets are not updated when updating face_ids.
+  //       The vertices->face_offset are updated in the second round 
+  //       i.e. when the subface_ids are updated.
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormat(tdy, num_vertices, nfaces_per_vertex, update_offset,
+    &vertices->num_faces, &vertices->face_offset, &vertices->face_ids); CHKERRQ(ierr);
+
+  /* Convert subface_id */
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormat(tdy, num_vertices, nfaces_per_vertex, update_offset,
+    &vertices->num_faces, &vertices->face_offset, &vertices->subface_ids); CHKERRQ(ierr);
+
+  for (PetscInt ivertex=1; ivertex<num_vertices; ivertex++) {
+    printf("ivertex = %d; num_faces = %d\n",ivertex, vertices->num_faces[ivertex]);
+    for (PetscInt ioffset=vertices->face_offset[ivertex]; ioffset<vertices->face_offset[ivertex+1]; ioffset++){
+      printf("  [%03d] %03d \n",ioffset, vertices->face_ids[ioffset]);
+    }
+
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
 
   PetscFunctionBegin;
@@ -990,7 +1077,11 @@ PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
 
   for (PetscInt ivertex=0; ivertex<v_end-v_start; ivertex++) {
 
-    PetscInt num_faces = vertices->num_faces[ivertex];
+    PetscInt num_faces;
+    PetscInt *face_ids;
+    ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
+    num_faces = vertices->num_faces[ivertex];
+
     PetscInt face_ids_sorted[num_faces];
     PetscInt subface_ids_sorted[num_faces];
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
@@ -1518,14 +1609,17 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyVertex *vertices, PetscInt ivertex,
       if (faces->is_internal[face_id]) {
         vertices->face_ids[vOffsetFace + idx_flux] = face_id;
         subcells->face_flux_idx[sOffsetFace + iface] = idx_flux;
+        printf("vertices->face_ids[%d] = %d\n",vOffsetFace + idx_flux,vertices->face_ids[vOffsetFace + idx_flux]);
       } else {
         if (subcells->is_face_up[sOffsetFace + iface]) {
           vertices->face_ids[vOffsetFace + nflux_in + nup_bnd_flux] = face_id;
           subcells->face_flux_idx[sOffsetFace + iface] = nflux_in+nup_bnd_flux;
+          printf("vertices->face_ids[%d] = %d\n",vOffsetFace + nflux_in + nup_bnd_flux,vertices->face_ids[vOffsetFace + nflux_in + nup_bnd_flux]);
           nup_bnd_flux++;
         } else {
           vertices->face_ids[vOffsetFace + nflux_in + nflux_bc_up + ndn_bnd_flux] = face_id;
           subcells->face_flux_idx[sOffsetFace + iface] = nflux_in+ndn_bnd_flux;
+          printf("vertices->face_ids[%d] = %d\n",vOffsetFace + nflux_in + nflux_bc_up + ndn_bnd_flux,vertices->face_ids[vOffsetFace + nflux_in + nflux_bc_up + ndn_bnd_flux]);
           ndn_bnd_flux++;
         }
       }
@@ -3211,6 +3305,7 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
     break;
 
   case 3:
+    ierr = ConvertVerticesToCompressedFormat(tdy); CHKERRQ(ierr);
     ierr = UpdateFaceOrderAroundAVertex3DMesh(tdy); CHKERRQ(ierr);
     ierr = UpdateCellOrientationAroundAFace3DMesh(  tdy); CHKERRQ(ierr);
     break;
