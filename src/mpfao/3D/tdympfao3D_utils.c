@@ -659,12 +659,11 @@ PetscErrorCode TDyMPFAORecoverVelocity_3DMesh(TDy tdy, Vec U) {
 PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
 
   TDyMesh *mesh = tdy->mesh;
-  TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
   PetscInt dim, ncells;
   PetscInt p_bnd_idx, cell_id, iface;
-  PetscReal *p, gz, *p_vec_ptr, *u_p;
+  PetscReal *p, *p_vec_ptr, *u_p;
   PetscInt c, cStart, cEnd;
 
   PetscFunctionBegin;

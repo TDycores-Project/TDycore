@@ -72,10 +72,8 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
 
 PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscErrorCode ierr;
-  PetscInt numCell,istart,iend;
   PetscBool useNatural;
   
-  int num_vars = tdy->io->num_vars;
   Vec v = tdy->solution;
   DM dm = tdy->dm;
   PetscReal time = tdy->ti->time;
@@ -229,7 +227,7 @@ PetscErrorCode TDyIOWriteXMFHeader(PetscInt numCell,PetscInt dim,PetscInt numVer
 
   FILE *fid;
 
-  char *cellMap[24] = {"0"};
+  const char *cellMap[24] = {"0"};
   cellMap[1] = "Polyvertex";
   cellMap[2] = "Polyline";
   cellMap[6] = "Triangle";
@@ -285,6 +283,8 @@ PetscErrorCode TDyIOWriteXMFHeader(PetscInt numCell,PetscInt dim,PetscInt numVer
   fprintf(fid,"\n        </Geometry>");
 
   fclose(fid);
+
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyIOWriteXMFAttribute(char* name,PetscInt numCell){
@@ -320,6 +320,8 @@ PetscErrorCode TDyIOWriteXMFAttribute(char* name,PetscInt numCell){
   fprintf(fid,"\n        </Attribute>");
 
   fclose(fid);
+
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyIOWriteXMFFooter(){
@@ -332,6 +334,7 @@ PetscErrorCode TDyIOWriteXMFFooter(){
   fprintf(fid,"\n  </Domain>");
   fprintf(fid,"\n</Xdmf>\n");
   fclose(fid);
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyIODestroy(TDyIO *io) {
