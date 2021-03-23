@@ -970,13 +970,12 @@ PetscErrorCode UpdateCellOrientationAroundAVertex2DMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-
+/// For each vertex, reorder faces and subfaces such that all internal faces/subfaces
+/// are listed first followed by boundary faces
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
-
-  /*
-    For a vertex, save face ids such that all internal faces
-    are listed first followed by boundary faces.
-  */
 
   PetscFunctionBegin;
 
@@ -991,13 +990,15 @@ PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
 
   for (PetscInt ivertex=0; ivertex<v_end-v_start; ivertex++) {
 
-    PetscInt face_ids_sorted[vertices->num_faces[ivertex]];
-    PetscInt subface_ids_sorted[vertices->num_faces[ivertex]];
+    PetscInt num_faces = vertices->num_faces[ivertex];
+    PetscInt face_ids_sorted[num_faces];
+    PetscInt subface_ids_sorted[num_faces];
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
     PetscInt count=0;
 
     // First find all internal faces (i.e. face shared by two cells)
-    for (PetscInt iface=0;iface<vertices->num_faces[ivertex];iface++) {
+    // and the corresponding subface
+    for (PetscInt iface=0;iface<num_faces;iface++) {
       PetscInt face_id = vertices->face_ids[vOffsetFace + iface];
       PetscInt subface_id = vertices->subface_ids[vOffsetFace + iface];
       if (faces->num_cells[face_id]==2) {
@@ -1008,7 +1009,8 @@ PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
     }
 
     // Now find all boundary faces (i.e. face shared by a single cell)
-    for (PetscInt iface=0;iface<vertices->num_faces[ivertex];iface++) {
+    // and the corresponding subfaces
+    for (PetscInt iface=0;iface<num_faces;iface++) {
       PetscInt face_id = vertices->face_ids[vOffsetFace+iface];
       PetscInt subface_id = vertices->subface_ids[vOffsetFace+iface];
       if (faces->num_cells[face_id]==1) {
@@ -1018,8 +1020,8 @@ PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
       }
     }
 
-    // Save the sorted faces
-    for (PetscInt iface=0;iface<vertices->num_faces[ivertex];iface++) {
+    // Save the sorted faces/subfaces
+    for (PetscInt iface=0;iface<num_faces;iface++) {
       vertices->face_ids[vOffsetFace+iface] = face_ids_sorted[iface];
       vertices->subface_ids[vOffsetFace+iface] = subface_ids_sorted[iface];
     }
