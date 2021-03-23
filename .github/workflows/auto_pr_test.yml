@@ -14,6 +14,7 @@ jobs:
   # This job builds the box model and runs our test suite.
   build:
     runs-on: ${{ matrix.os }}
+    container: coherellc/tdycore-petsc:latest
 
     # A build matrix storing all desired configurations.
     strategy:
@@ -21,61 +22,19 @@ jobs:
         os: [ubuntu-latest] #, macos-latest]
         build-type: [Debug] #, Release]
 
-    # Environment variables
-    env:
-      PETSC_ARCH: ${{ matrix.os }}
-      PETSC_GIT_HASH: 03cacdc99d
-      DEBUG: 1
-
     # Steps for building and running tests.
     steps:
-
-    - name: Installing compilers and tools (Linux)
-      if: contains(matrix.os, 'ubuntu')
-      run: sudo apt-get install cmake lcov gcc gfortran g++
-
-    - name: Installing compilers and tools (Mac)
-      if: contains(matrix.os, 'macos')
-      run: |
-        brew update
-        brew install git gcc lcov
 
     - name: Checking out repository
       uses: actions/checkout@v2
 
-    - name: Installing PETSc
-      run: |
-        git clone https://gitlab.com/petsc/petsc.git
-        cd petsc
-        git checkout $PETSC_GIT_HASH
-        export PETSC_DIR=$PWD
-        ./configure \
-        --with-cc=gcc \
-        --with-cxx=g++ \
-        --with-fc=gfortran \
-        --CFLAGS='-g -O0' --CXXFLAGS='-g -O0' --FFLAGS='-g -O0 -Wno-unused-function' \
-        --with-clanguage=c \
-        --with-debug=$DEBUG  \
-        --with-shared-libraries=0 \
-        --download-hdf5 \
-        --download-metis \
-        --download-parmetis \
-        --download-exodusii \
-        --download-netcdf \
-        --download-pnetcdf \
-        --download-zlib \
-        --download-fblaslapack \
-        --download-mpich=http://www.mpich.org/static/downloads/3.2/mpich-3.2.tar.gz
-        make all
-
     - name: Building TDycore (${{ matrix.build-type }})
       run: |
-        export PETSC_DIR=$PWD/petsc
         make -j codecov=1 V=1
 
     - name: Running tests (${{ matrix.build-type }})
       run: |
-        export PETSC_DIR=$PWD/petsc
+        set +e # disable "fast fail" (continue on test failures)
         cd demo/mpfao; make V=1 codecov=1
         cd ../richards; make V=1 codecov=1
         cd ../steady; make V=1 codecov=1
@@ -97,13 +56,13 @@ jobs:
         make test-th
         cd ..
         cat regression_tests/*testlog
-        cat demo/transient/transient-mpfaof90.stdout
-        cat demo/transient/transient-snes-mpfaof90.stdout
-        ls $PETSC_ARCH/obj/src/
 
     - name: Evaluating test coverage
       run: |
         lcov --capture --directory . --output-file coverage.info
         lcov --list coverage.info # debug info
-        bash <(curl -s https://codecov.io/bash  -f coverage.info)
+        curl -s https://codecov.io/bash > .codecov
+        chmod +x .codecov
+        ./.codecov
+        #bash <(curl -s https://codecov.io/bash  -f coverage.info)
 

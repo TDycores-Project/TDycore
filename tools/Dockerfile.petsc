@@ -1,0 +1,79 @@
+# This Docker file builds PETSc specifically for the TDycore project. It's based
+# loosely off of the jedbrown/petsc image, without building MPICH from source,
+# and with the USER removed (since GitHub Actions only support Docker images
+# with a root user).
+
+# We use the latest Ubuntu, but we install GCC/GFortran 8 (and build MPICH
+# against it) because versions of GFortran between 8.4 and 10.2 exhibit an
+# internal compiler error when building some of our Fortran assets with code
+# coverage enabled. (See https://github.com/TDycores-Project/TDycore/pull/145)
+FROM ubuntu:20.10
+
+RUN echo Etc/UTC > /etc/timezone && ln -s /usr/share/zoneinfo/Etc/UTC /etc/localtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  autoconf \
+  automake \
+  bash-completion \
+  chrpath \
+  cmake \
+  curl \
+  gcc \
+  g++ \
+  gfortran \
+  git \
+  lcov \
+  liblapack-dev \
+  libtool \
+  locales \
+  m4 \
+  make \
+  pkg-config \
+  python3-distutils \
+  zlib1g-dev \
+  ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
+ENV LANG=en_US.UTF-8
+
+WORKDIR /build
+
+ARG PETSC_HASH=HEAD
+ENV PETSC_HASH=$PETSC_HASH
+ENV PETSC_DIR=/usr/local/petsc/mpich-int32-real-opt
+RUN git clone --depth=1 --branch=main https://gitlab.com/petsc/petsc && \
+  cd petsc && \
+  git reset --hard $PETSC_HASH && \
+  PETSC_INSTALL_PREFIX=$PETSC_DIR; unset PETSC_DIR; \
+  python3 configure \
+    --prefix=$PETSC_INSTALL_PREFIX \
+    --with-cc=gcc \
+    --with-cxx=g++ \
+    --with-fc=gfortran \
+    --CFLAGS='-g -O0' --CXXFLAGS='-g -O0' --FFLAGS='-g -O0 -Wno-unused-function' \
+    --with-clanguage=c \
+    --with-debug=1 \
+    --with-shared-libraries=0 \
+    --download-exodusii \
+    --download-fblaslapack \
+    --download-hdf5 \
+    --download-metis \
+    --download-mpich=http://www.mpich.org/static/downloads/3.2/mpich-3.2.tar.gz \
+    --download-netcdf \
+    --download-parmetis \
+    --download-pnetcdf \
+    --with-zlib \
+    && \
+  make all -j; \
+  cat configure.log && \
+  make install && \
+  export PETSC_DIR=$PETSC_INSTALL_PREFIX && \
+  unset PETSC_INSTALL_PREFIX && \
+  cd /build && \
+  rm -rf /build/petsc
+
+# Change the default shell to bash.
+SHELL ["/bin/bash", "-c"]
+
+LABEL maintainer='Jeffrey Johnson <jeff@cohere-llc.com>'
+LABEL description='PETSc built with various libraries for TDycore'
