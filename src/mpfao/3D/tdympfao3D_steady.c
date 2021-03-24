@@ -38,15 +38,18 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
     vertex_id = ivertex;
-    PetscInt vOffsetFace = vertices->face_offset[ivertex];
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
+
+    PetscInt *face_ids, num_faces;
+    ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
+
 
     if (vertices->num_boundary_faces[ivertex] == 0) {
       PetscInt nflux_in = vertices->num_faces[ivertex];
 
       for (irow=0; irow<nflux_in; irow++) {
 
-        PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
+        PetscInt face_id = face_ids[irow];
         PetscInt fOffsetCell = faces->cell_offset[face_id];
 
         cell_id_up = faces->cell_ids[fOffsetCell + 0];
@@ -140,7 +143,9 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
     PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
-    PetscInt vOffsetFace    = vertices->face_offset[ivertex];
+
+    PetscInt *face_ids, num_faces;
+    ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
 
     npcen    = vertices->num_internal_cells[ivertex];
     npitf_bc = vertices->num_boundary_faces[ivertex];
@@ -183,7 +188,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
     for (irow=0; irow<nflux_in; irow++){
 
-      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
+      PetscInt face_id = face_ids[irow];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
@@ -231,7 +236,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
       //row = cell_ids_from_to[irow][0];
 
-      PetscInt face_id = vertices->face_ids[vOffsetFace + irow + nflux_in];
+      PetscInt face_id = face_ids[irow + nflux_in];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       cell_id_up = faces->cell_ids[fOffsetCell + 0];
