@@ -155,7 +155,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
       PetscScalar Vcomputed[nflux_in];
 
       PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
-      PetscInt vOffsetFace    = vertices->face_offset[ivertex];
+
+      PetscInt *face_ids, num_faces;
+      ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
 
       // Save local pressure stencil and initialize veloctiy
       PetscInt icell, cell_id;
@@ -172,7 +174,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
       // F = T*P
       for (irow=0; irow<nflux_in; irow++) {
 
-        PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
+        PetscInt face_id = face_ids[irow];
         PetscInt fOffsetCell = faces->cell_offset[face_id];
 
         if (!faces->is_local[face_id]) continue;
@@ -285,7 +287,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
     PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
-    PetscInt vOffsetFace    = vertices->face_offset[ivertex];
+
+    PetscInt *face_ids, num_faces;
+    ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
 
     npcen    = vertices->num_internal_cells[ivertex];
     npitf_bc = vertices->num_boundary_faces[ivertex];
@@ -333,7 +337,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
     for (irow=0; irow<nflux_in; irow++){
 
-      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
+      PetscInt face_id = face_ids[irow];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       if (!faces->is_local[face_id]) continue;
@@ -419,7 +423,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
     // For fluxes through boundary edges, only add contribution to the vector
     for (irow=0; irow<npitf_bc; irow++) {
 
-      PetscInt face_id = vertices->face_ids[vOffsetFace + irow + nflux_in];
+      PetscInt face_id = face_ids[irow + nflux_in];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       if (!faces->is_local[face_id]) continue;
