@@ -36,8 +36,11 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
     if (!vertices->is_local[ivertex]) continue;
-    //if (vertices->num_boundary_faces[ivertex] != 0) continue;
-    PetscInt vOffsetFace = vertices->face_offset[ivertex];
+
+    PetscInt *face_ids, num_faces;
+    PetscInt *subface_ids, num_subfaces;
+    ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetVertexSubfaces(mesh, ivertex, &subface_ids, &num_subfaces); CHKERRQ(ierr);
 
     PetscInt npitf_bc = vertices->num_boundary_faces[ivertex];
     PetscInt nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
@@ -46,8 +49,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
     PetscScalar TtimesP[nflux_in + npitf_bc];
     for (PetscInt irow=0; irow<nflux_in + npitf_bc; irow++) {
 
-      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
-      PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
+      PetscInt face_id = face_ids[irow];
+      PetscInt subface_id = subface_ids[irow];
       PetscInt num_subfaces = 4;
 
       if (!faces->is_local[face_id]) continue;
@@ -254,7 +257,11 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
     PetscInt vertex_id = ivertex;
 
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
-    PetscInt vOffsetFace    = vertices->face_offset[ivertex];
+
+    PetscInt *face_ids, num_faces;
+    PetscInt *subface_ids, num_subfaces;
+    ierr = TDyMeshGetVertexFaces(mesh, vertex_id, &face_ids, &num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetVertexSubfaces(mesh, vertex_id, &subface_ids, &num_subfaces); CHKERRQ(ierr);
 
     PetscInt npitf_bc = vertices->num_boundary_faces[ivertex];
     PetscInt nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
@@ -263,8 +270,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
     PetscScalar TtimesP[nflux_in + npitf_bc];
     for (PetscInt irow=0; irow < nflux_in + npitf_bc; irow++) {
 
-      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
-      PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
+      PetscInt face_id = face_ids[irow];
+      PetscInt subface_id = subface_ids[irow];
       PetscInt num_subfaces = 4;
 
       if (!faces->is_local[face_id]) continue;
@@ -289,8 +296,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
     //
     for (PetscInt irow=0; irow<nflux_in + npitf_bc; irow++) {
 
-      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
-      PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
+      PetscInt face_id = face_ids[irow];
+      PetscInt subface_id = subface_ids[irow];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
