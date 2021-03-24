@@ -831,7 +831,12 @@ PetscErrorCode ConvertVerticesToCompressedFormat(TDy tdy) {
 
   PetscInt update_offset;
 
-  /* Convert face_id */
+  /* Convert edge_ids */
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormat(tdy, num_vertices, nedges_per_vertex, update_offset,
+    &vertices->num_edges, &vertices->edge_offset, &vertices->edge_ids); CHKERRQ(ierr);
+
+  /* Convert face_ids */
 
   // Note: face_id and subface_id use the same offset (vertices->face_offset)
   //       So, the offsets are not updated when updating face_ids.
@@ -841,10 +846,26 @@ PetscErrorCode ConvertVerticesToCompressedFormat(TDy tdy) {
   ierr = ConvertMeshElementToCompressedFormat(tdy, num_vertices, nfaces_per_vertex, update_offset,
     &vertices->num_faces, &vertices->face_offset, &vertices->face_ids); CHKERRQ(ierr);
 
-  /* Convert subface_id */
+  /* Convert subface_ids */
   update_offset = 1;
   ierr = ConvertMeshElementToCompressedFormat(tdy, num_vertices, nfaces_per_vertex, update_offset,
     &vertices->num_faces, &vertices->face_offset, &vertices->subface_ids); CHKERRQ(ierr);
+
+
+  /* Convert internal_cell_ids */
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormat(tdy, num_vertices, ncells_per_vertex, update_offset,
+    &vertices->num_internal_cells, &vertices->internal_cell_offset, &vertices->internal_cell_ids); CHKERRQ(ierr);
+
+  /* Convert subcell_ids */
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormat(tdy, num_vertices, nfaces_per_vertex, update_offset,
+    &vertices->num_internal_cells, &vertices->subcell_offset, &vertices->subcell_ids); CHKERRQ(ierr);
+
+  /* Convert boundary_face_ids */
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormat(tdy, num_vertices, nfaces_per_vertex, update_offset,
+    &vertices->num_boundary_faces, &vertices->boundary_face_offset, &vertices->boundary_face_ids); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
