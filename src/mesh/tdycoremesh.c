@@ -781,32 +781,30 @@ PetscErrorCode ConvertMeshElementToCompressedFormat(TDy tdy, PetscInt num_elemen
 
   PetscInt count = 0, new_offset = 0;
 
-  count = *subelement_num[0];
+  count = (*subelement_num)[0];
   for (PetscInt ielem=1; ielem<num_element; ielem++) {
 
-    new_offset += *subelement_num[ielem-1];
-    PetscInt old_offset = *subelement_offset[ielem];
+    new_offset += (*subelement_num)[ielem-1];
+    PetscInt old_offset = (*subelement_offset)[ielem];
 
-    *subelement_offset[ielem] = new_offset;
+    for (PetscInt isubelem=0; isubelem<(*subelement_num)[ielem]; isubelem++){
 
-    for (PetscInt isubelem=0; isubelem<*subelement_num[ielem]; isubelem++){
-
-      *subelement_id[new_offset + isubelem] = *subelement_id[old_offset + isubelem];
+      (*subelement_id)[new_offset + isubelem] = (*subelement_id)[old_offset + isubelem];
       count++;
 
     }
     if (update_offset) {
-      *subelement_offset[ielem] = new_offset;
+      (*subelement_offset)[ielem] = new_offset;
     }
   }
 
   if (update_offset) {
-    new_offset += *subelement_num[num_element];
-    *subelement_offset[num_element+1] = new_offset;
+    new_offset += (*subelement_num)[num_element];
+    (*subelement_offset)[num_element+1] = new_offset;
   }
 
   for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
-    *subelement_id[ii] = -1;
+    (*subelement_id)[ii] = -1;
   }
 
   PetscFunctionReturn(0);
@@ -847,14 +845,6 @@ PetscErrorCode ConvertVerticesToCompressedFormat(TDy tdy) {
   update_offset = 1;
   ierr = ConvertMeshElementToCompressedFormat(tdy, num_vertices, nfaces_per_vertex, update_offset,
     &vertices->num_faces, &vertices->face_offset, &vertices->subface_ids); CHKERRQ(ierr);
-
-  for (PetscInt ivertex=1; ivertex<num_vertices; ivertex++) {
-    printf("ivertex = %d; num_faces = %d\n",ivertex, vertices->num_faces[ivertex]);
-    for (PetscInt ioffset=vertices->face_offset[ivertex]; ioffset<vertices->face_offset[ivertex+1]; ioffset++){
-      printf("  [%03d] %03d \n",ioffset, vertices->face_ids[ioffset]);
-    }
-
-  }
 
   PetscFunctionReturn(0);
 }
