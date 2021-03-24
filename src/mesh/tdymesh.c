@@ -144,6 +144,24 @@ PetscErrorCode TDyMeshGetVertexFaces(TDyMesh *mesh,
   return 0;
 }
 
+/// Given a mesh and a vertex index, retrieve an array of associated subface
+/// indices and their number.
+/// @param [in] mesh A mesh object
+/// @param [in] vertex The index of a vertex within the mesh
+/// @param [out] subfaces Stores a pointer to an array of faces attached to
+///                    the given vertex
+/// @param [out] num_subfaces Stores the number of faces attached to the given
+///                        vertex
+PetscErrorCode TDyMeshGetVertexSubfaces(TDyMesh *mesh,
+                                     PetscInt vertex,
+                                     PetscInt **subfaces,
+                                     PetscInt *num_subfaces) {
+  PetscInt offset = mesh->vertices.face_offset[vertex];
+  *subfaces = &mesh->vertices.subface_ids[offset];
+  *num_subfaces = mesh->vertices.face_offset[vertex+1] - offset;
+  return 0;
+}
+
 /// Given a mesh and a vertex index, retrieve an array of associated boundary
 ////face indices and their number.
 /// @param [in] mesh A mesh object
