@@ -475,7 +475,11 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
   PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
   PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
-  PetscInt vOffsetFace = vertices->face_offset[ivertex];
+
+  PetscInt *face_ids, num_faces;
+  PetscInt *subface_ids, num_subfaces;
+  ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
+  ierr = TDyMeshGetVertexSubfaces(mesh, ivertex, &subface_ids, &num_subfaces); CHKERRQ(ierr);
 
   vertex_id = ivertex;
 
@@ -768,11 +772,11 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
     }
   }
 
-  PetscInt num_subfaces = 4;
+  PetscInt num_subfaces_per_face = 4;
   for (i=0; i<nflux_in+nflux_dir_bc_up+nflux_dir_bc_dn; i++) {
-    face_id = vertices->face_ids[vOffsetFace + i];
-    subface_id = vertices->subface_ids[vOffsetFace + i];
-    row = face_id*num_subfaces + subface_id;
+    face_id = face_ids[i];
+    subface_id = subface_ids[i];
+    row = face_id*num_subfaces_per_face + subface_id;
 
     for (j=0; j<npcen; j++) {
       col = vertices->internal_cell_ids[vOffsetCell + j];
@@ -952,8 +956,11 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
     PetscInt row = -1;
-    PetscInt vOffsetFace = vertices->face_offset[ivertex];
-    PetscInt face_id_wrt_vertex = vertices->face_ids[vOffsetFace + iface];
+
+    PetscInt *face_ids, num_faces;
+    ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
+
+    PetscInt face_id_wrt_vertex = face_ids[iface];
 
     PetscInt i = 0;
     PetscInt icell = vertices->internal_cell_ids[vOffsetCell + i];
@@ -993,8 +1000,11 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
   PetscInt vertex_boundary_cell_id [subcells->num_faces[subcell_id]];
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-    PetscInt vOffsetFace = vertices->face_offset[ivertex];
-    PetscInt face_id_wrt_vertex = vertices->face_ids[vOffsetFace + iface];
+
+    PetscInt *face_ids, num_faces;
+    ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
+
+    PetscInt face_id_wrt_vertex = face_ids[iface];
     PetscInt fOffsetCell = faces->cell_offset[face_id_wrt_vertex];
 
     if (faces->cell_ids[fOffsetCell] < 0){
@@ -1378,13 +1388,17 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
     // Skip the vertex that is not locally owned
     if (!vertices->is_local[ivertex]) continue;
 
-    PetscInt vOffsetFace = vertices->face_offset[ivertex];
+    PetscInt *face_ids, num_faces;
+    PetscInt *subface_ids, num_subfaces;
+    ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetVertexSubfaces(mesh, ivertex, &subface_ids, &num_subfaces); CHKERRQ(ierr);
+
     PetscInt num_face = vertices->num_faces[ivertex];
 
     // Loop over all faces sharing ivertex
     for (PetscInt iface=0; iface<num_face; iface++){
 
-      PetscInt face_id = vertices->face_ids[vOffsetFace + iface];
+      PetscInt face_id = face_ids[iface];
 
       // Skip the face that is not locally owned
       if (!faces->is_local[face_id]) continue;
@@ -1440,7 +1454,7 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
       // GravDis = A_face * dot (n_face, K_face x u_up2dn) * dot(g, u_up2dn)
       PetscReal GravDis = area * dot_prod_1 * dot_prod_2;
 
-      PetscInt isubcell = vertices->subface_ids[vOffsetFace + iface];
+      PetscInt isubcell = subface_ids[iface];
       PetscInt num_subcells = 4;
       PetscInt irow = face_id*num_subcells + isubcell;
       gradDisPtr[irow] = GravDis;
