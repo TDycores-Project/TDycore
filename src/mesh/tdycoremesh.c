@@ -857,7 +857,10 @@ PetscErrorCode ConvertCellsToCompressedFormat(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-
+/// Converts all member variables of a TDyVertex struct in compressed format
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode ConvertVerticesToCompressedFormat(TDy tdy) {
 
   PetscFunctionBegin;
