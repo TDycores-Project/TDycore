@@ -810,6 +810,53 @@ PetscErrorCode ConvertMeshElementToCompressedFormat(TDy tdy, PetscInt num_elemen
 }
 
 /* -------------------------------------------------------------------------- */
+/// Converts all member variables of a TDyCell struct in compressed format
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ConvertCellsToCompressedFormat(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  DM dm = tdy->dm;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  PetscErrorCode ierr;
+
+  PetscInt c_start, c_end;
+  ierr = DMPlexGetHeightStratum( dm, 0, &c_start, &c_end); CHKERRQ(ierr);
+  PetscInt num_cells = c_end - c_start;
+
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  // compute number of vertices per grid cell
+  PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
+  TDyCellType cell_type = GetCellType(dim, nverts_per_cell);
+
+  PetscInt num_vertices  = GetNumVerticesForCellType(cell_type);
+  PetscInt num_edges     = GetNumEdgesForCellType(cell_type);
+  PetscInt num_neighbors = GetNumNeighborsForCellType(cell_type);
+  PetscInt num_faces     = GetNumFacesForCellType(cell_type);
+
+  PetscInt update_offset = 1;
+
+  ierr = ConvertMeshElementToCompressedFormat(tdy, num_cells, num_vertices, update_offset,
+    &cells->num_vertices, &cells->vertex_offset, &cells->vertex_ids); CHKERRQ(ierr);
+
+  ierr = ConvertMeshElementToCompressedFormat(tdy, num_cells, num_edges, update_offset,
+    &cells->num_edges, &cells->edge_offset, &cells->edge_ids); CHKERRQ(ierr);
+
+  ierr = ConvertMeshElementToCompressedFormat(tdy, num_cells, num_neighbors, update_offset,
+    &cells->num_neighbors, &cells->neighbor_offset, &cells->neighbor_ids); CHKERRQ(ierr);
+
+  ierr = ConvertMeshElementToCompressedFormat(tdy, num_cells, num_faces, update_offset,
+    &cells->num_faces, &cells->face_offset, &cells->face_ids); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 
 PetscErrorCode ConvertVerticesToCompressedFormat(TDy tdy) {
 
