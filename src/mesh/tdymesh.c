@@ -284,3 +284,183 @@ PetscErrorCode TDyMeshGetSubcellFaces(TDyMesh *mesh,
   return 0;
 }
 
+/// Given a mesh and a subcell index, retrieve an array of associated is_face_up
+/// array and their number.
+/// @param [in] mesh A mesh object
+/// @param [in] subcell The index of a subcell within the mesh
+/// @param [out] is_face_up Stores a pointer to an array of is_face_up array attached to
+///                         the given subcell
+/// @param [out] num_faces Stores the number of faces attached to the
+///                        given subcell
+PetscErrorCode TDyMeshGetSubcellIsFaceUp(TDyMesh *mesh,
+                                      PetscInt subcell,
+                                      PetscInt **is_face_up,
+                                      PetscInt *num_faces) {
+  PetscInt offset = mesh->subcells.face_offset[subcell];
+  *is_face_up = &mesh->subcells.face_ids[offset];
+  *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
+  return 0;
+}
+
+/// Given a mesh and a subcell index, retrieve an array of associated face_unknown_idx
+/// array and their number.
+/// @param [in] mesh A mesh object
+/// @param [in] subcell The index of a subcell within the mesh
+/// @param [out] is_face_up Stores a pointer to an array of face_unkown_idx array attached to
+///                         the given subcell
+/// @param [out] num_faces Stores the number of faces attached to the
+///                        given subcell
+PetscErrorCode TDyMeshGetSubcellFaceUnknownIdxs(TDyMesh *mesh,
+                                      PetscInt subcell,
+                                      PetscInt **face_unknown_idx,
+                                      PetscInt *num_faces) {
+  PetscInt offset = mesh->subcells.face_offset[subcell];
+  *face_unknown_idx = &mesh->subcells.face_unknown_idx[offset];
+  *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
+  return 0;
+}
+
+/// Given a mesh and a subcell index, retrieve an array of associated face_flux_idx
+/// array and their number.
+/// @param [in] mesh A mesh object
+/// @param [in] subcell The index of a subcell within the mesh
+/// @param [out] is_face_up Stores a pointer to an array of face_flux_idx array attached to
+///                         the given subcell
+/// @param [out] num_faces Stores the number of faces attached to the
+///                        given subcell
+PetscErrorCode TDyMeshGetSubcellFaceFluxIdxs(TDyMesh *mesh,
+                                      PetscInt subcell,
+                                      PetscInt **face_flux_idx,
+                                      PetscInt *num_faces) {
+  PetscInt offset = mesh->subcells.face_offset[subcell];
+  *face_flux_idx = &mesh->subcells.face_flux_idx[offset];
+  *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
+  return 0;
+}
+
+/// Given a mesh and a subcell index, retrieve an array of associated face areas
+/// array and their number.
+/// @param [in] mesh A mesh object
+/// @param [in] subcell The index of a subcell within the mesh
+/// @param [out] is_face_up Stores a pointer to an array of face areas array attached to
+///                         the given subcell
+/// @param [out] num_faces Stores the number of faces attached to the
+///                        given subcell
+PetscErrorCode TDyMeshGetSubcellFaceAreas(TDyMesh *mesh,
+                                      PetscInt subcell,
+                                      PetscReal **face_area,
+                                      PetscInt *num_faces) {
+  PetscInt offset = mesh->subcells.face_offset[subcell];
+  *face_area = &mesh->subcells.face_area[offset];
+  *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
+  return 0;
+}
+
+/// Given a mesh and a subcell index, retrieve an array of associated vertices
+/// array and their number.
+/// @param [in] mesh A mesh object
+/// @param [in] subcell The index of a subcell within the mesh
+/// @param [out] is_face_up Stores a pointer to an array of vertices array attached to
+///                         the given subcell
+/// @param [out] num_faces Stores the number of faces attached to the
+///                        given subcell
+PetscErrorCode TDyMeshGetSubcellVertices(TDyMesh *mesh,
+                                      PetscInt subcell,
+                                      PetscInt **vertices,
+                                      PetscInt *num_faces) {
+  PetscInt offset = mesh->subcells.face_offset[subcell];
+  *vertices = &mesh->subcells.vertex_ids[offset];
+  *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
+  return 0;
+}
+
+/// Given a mesh and a subcell index, retrieve an array of associated nu_vectors
+/// array and their number.
+/// @param [in] mesh A mesh object
+/// @param [in] subcell The index of a subcell within the mesh
+/// @param [out] is_face_up Stores a pointer to an array of nu_vectors array attached to
+///                         the given subcell
+/// @param [out] num_faces Stores the number of faces attached to the
+///                        given subcell
+PetscErrorCode TDyMeshGetSubcellNuVectors(TDyMesh *mesh,
+                                      PetscInt subcell,
+                                      TDyVector **nu_vectors,
+                                      PetscInt *num_nu_vectors) {
+  PetscInt offset = mesh->subcells.face_offset[subcell];
+  *nu_vectors = &mesh->subcells.nu_vector[offset];
+  *num_nu_vectors = mesh->subcells.nu_vector_offset[subcell+1] - offset;
+  return 0;
+}
+
+/// Given a mesh and a subcell index, retrieve an array of associated nu_star_vectors
+/// array and their number.
+/// @param [in] mesh A mesh object
+/// @param [in] subcell The index of a subcell within the mesh
+/// @param [out] is_face_up Stores a pointer to an array of nu_star_vectors array attached to
+///                         the given subcell
+/// @param [out] num_faces Stores the number of faces attached to the
+///                        given subcell
+PetscErrorCode TDyMeshGetSubcellNuStarVectors(TDyMesh *mesh,
+                                      PetscInt subcell,
+                                      TDyVector **nu_star_vectors,
+                                      PetscInt *num_nu_star_vectors) {
+  PetscInt offset = mesh->subcells.face_offset[subcell];
+  *nu_star_vectors = &mesh->subcells.nu_star_vector[offset];
+  *num_nu_star_vectors = mesh->subcells.nu_vector_offset[subcell+1] - offset;
+  return 0;
+}
+
+/// Given a mesh and a subcell index, retrieve an array of associated variable_continuity_coordinates
+/// array and their number.
+/// @param [in] mesh A mesh object
+/// @param [in] subcell The index of a subcell within the mesh
+/// @param [out] is_face_up Stores a pointer to an array of variable_continuity_coordinates array attached to
+///                         the given subcell
+/// @param [out] num_faces Stores the number of faces attached to the
+///                        given subcell
+PetscErrorCode TDyMeshGetSubcellVariableContinutiyCoordinates(TDyMesh *mesh,
+                                      PetscInt subcell,
+                                      TDyCoordinate **variable_continuity_coordinates,
+                                      PetscInt *num_variable_continuity_coordinates) {
+  PetscInt offset = mesh->subcells.face_offset[subcell];
+  *variable_continuity_coordinates = &mesh->subcells.variable_continuity_coordinates[offset];
+  *num_variable_continuity_coordinates = mesh->subcells.nu_vector_offset[subcell+1] - offset;
+  return 0;
+}
+
+/// Given a mesh and a subcell index, retrieve an array of associated face_centroid
+/// array and their number.
+/// @param [in] mesh A mesh object
+/// @param [in] subcell The index of a subcell within the mesh
+/// @param [out] is_face_up Stores a pointer to an array of face_centroid array attached to
+///                         the given subcell
+/// @param [out] num_faces Stores the number of faces attached to the
+///                        given subcell
+PetscErrorCode TDyMeshGetSubcellFaceCentroids(TDyMesh *mesh,
+                                      PetscInt subcell,
+                                      TDyCoordinate **face_centroids,
+                                      PetscInt *num_face_centroids) {
+  PetscInt offset = mesh->subcells.face_offset[subcell];
+  *face_centroids = &mesh->subcells.variable_continuity_coordinates[offset];
+  *num_face_centroids = mesh->subcells.nu_vector_offset[subcell+1] - offset;
+  return 0;
+}
+
+/// Given a mesh and a subcell index, retrieve an array of associated vertices_coordinates
+/// array and their number.
+/// @param [in] mesh A mesh object
+/// @param [in] subcell The index of a subcell within the mesh
+/// @param [out] is_face_up Stores a pointer to an array of vertices_coordinates array attached to
+///                         the given subcell
+/// @param [out] num_faces Stores the number of faces attached to the
+///                        given subcell
+PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh *mesh,
+                                      PetscInt subcell,
+                                      TDyCoordinate **vertices_coordinates,
+                                      PetscInt *num_vertices_coordinates) {
+  PetscInt offset = mesh->subcells.face_offset[subcell];
+  *vertices_coordinates = &mesh->subcells.vertices_coordinates[offset];
+  *num_vertices_coordinates = mesh->subcells.nu_vector_offset[subcell+1] - offset;
+  return 0;
+}
+

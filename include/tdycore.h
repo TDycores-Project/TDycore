@@ -250,5 +250,15 @@ PETSC_EXTERN PetscErrorCode TDyMeshGetFaceNormal(TDyMesh*, PetscInt, TDyVector*)
 PETSC_EXTERN PetscErrorCode TDyMeshGetFaceArea(TDyMesh*, PetscInt, PetscReal*);
 
 PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellIsFaceUp(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellFaceUnknownIdxs(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellFaceFluxIdxs(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellFaceAreas(TDyMesh*, PetscInt, PetscReal**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellNuVectors(TDyMesh*, PetscInt, TDyVector**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellNuStarVectors(TDyMesh*, PetscInt, TDyVector**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellVariableContinutiyCoordinates(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellFaceCentroids(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
 
 #endif
