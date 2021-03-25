@@ -895,6 +895,67 @@ PetscErrorCode ConvertCellsToCompressedFormat(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+/// Converts all member variables of a TDySubcell struct in compressed format
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ConvertSubcellsToCompressedFormat(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  DM dm = tdy->dm;
+  TDyMesh *mesh = tdy->mesh;
+  TDySubcell *subcells = &mesh->subcells;
+  PetscErrorCode ierr;
+
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  PetscInt c_start, c_end;
+  ierr = DMPlexGetHeightStratum( dm, 0, &c_start, &c_end); CHKERRQ(ierr);
+  PetscInt num_cells = c_end - c_start;
+
+  PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
+  TDyCellType cell_type = GetCellType(dim, nverts_per_cell);
+  TDySubcellType subcell_type = GetSubcellTypeForCellType(cell_type);
+
+  PetscInt num_subcells   = GetNumSubcellsForSubcellType(subcell_type);
+  PetscInt num_nu_vectors = GetNumOfNuVectorsForSubcellType(subcell_type);
+  PetscInt num_vertices   = GetNumVerticesForSubcellType(subcell_type);
+  PetscInt num_faces      = GetNumFacesForSubcellType(subcell_type);
+
+  PetscInt num_subcells_per_cell = num_cells * num_subcells;
+
+  PetscInt update_offset;
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_subcells_per_cell, num_faces, update_offset,
+    &subcells->num_faces, &subcells->face_offset, &subcells->face_ids); CHKERRQ(ierr);
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_subcells_per_cell, num_faces, update_offset,
+    &subcells->num_faces, &subcells->face_offset, &subcells->is_face_up); CHKERRQ(ierr);
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_subcells_per_cell, num_faces, update_offset,
+    &subcells->num_faces, &subcells->face_offset, &subcells->face_unknown_idx); CHKERRQ(ierr);
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_subcells_per_cell, num_faces, update_offset,
+    &subcells->num_faces, &subcells->face_offset, &subcells->face_flux_idx); CHKERRQ(ierr);
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatRealValues(tdy, num_subcells_per_cell, num_faces, update_offset,
+    &subcells->num_faces, &subcells->face_offset, &subcells->face_area); CHKERRQ(ierr);
+
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_subcells_per_cell, num_faces, update_offset,
+    &subcells->num_faces, &subcells->face_offset, &subcells->vertex_ids); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 /// Converts all member variables of a TDyVertex struct in compressed format
 ///
 /// @param [inout] tdy A TDy struct
