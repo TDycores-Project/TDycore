@@ -811,6 +811,99 @@ PetscErrorCode ConvertMeshElementToCompressedFormatIntegerValues(TDy tdy, PetscI
 
 /* -------------------------------------------------------------------------- */
 
+PetscErrorCode ConvertMeshElementToCompressedFormatTDyVectorValues(TDy tdy, PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
+  PetscInt **subelement_num, PetscInt **subelement_offset, TDyVector **subelement_value) {
+
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  PetscInt count = 0, new_offset = 0;
+
+  count = (*subelement_num)[0];
+  for (PetscInt ielem=1; ielem<num_element; ielem++) {
+
+    new_offset += (*subelement_num)[ielem-1];
+    PetscInt old_offset = (*subelement_offset)[ielem];
+
+    for (PetscInt isubelem=0; isubelem<(*subelement_num)[ielem]; isubelem++){
+
+      for (PetscInt d=0; d<dim; d++) {
+        (*subelement_value)[new_offset + isubelem].V[d] = (*subelement_value)[old_offset + isubelem].V[d];
+      }
+      count++;
+
+    }
+    if (update_offset) {
+      (*subelement_offset)[ielem] = new_offset;
+    }
+  }
+
+  if (update_offset) {
+    new_offset += (*subelement_num)[num_element];
+    (*subelement_offset)[num_element+1] = new_offset;
+  }
+
+  for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
+    for (PetscInt d=0; d<dim; d++) {
+      (*subelement_value)[ii].V[d] = -1;
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode ConvertMeshElementToCompressedFormatTDyCoordinateValues(TDy tdy, PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
+  PetscInt **subelement_num, PetscInt **subelement_offset, TDyCoordinate **subelement_value) {
+
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  PetscInt count = 0, new_offset = 0;
+
+  count = (*subelement_num)[0];
+  for (PetscInt ielem=1; ielem<num_element; ielem++) {
+
+    new_offset += (*subelement_num)[ielem-1];
+    PetscInt old_offset = (*subelement_offset)[ielem];
+
+    for (PetscInt isubelem=0; isubelem<(*subelement_num)[ielem]; isubelem++){
+
+      for (PetscInt d=0; d<dim; d++) {
+        (*subelement_value)[new_offset + isubelem].X[d] = (*subelement_value)[old_offset + isubelem].X[d];
+      }
+      count++;
+
+    }
+    if (update_offset) {
+      (*subelement_offset)[ielem] = new_offset;
+    }
+  }
+
+  if (update_offset) {
+    new_offset += (*subelement_num)[num_element];
+    (*subelement_offset)[num_element+1] = new_offset;
+  }
+
+  for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
+    for (PetscInt d=0; d<dim; d++) {
+      (*subelement_value)[ii].X[d] = -1;
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
 PetscErrorCode ConvertMeshElementToCompressedFormatRealValues(TDy tdy, PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
   PetscInt **subelement_num, PetscInt **subelement_offset, PetscReal **subelement_value) {
 
@@ -928,6 +1021,7 @@ PetscErrorCode ConvertSubcellsToCompressedFormat(TDy tdy) {
 
   PetscInt update_offset;
 
+  /* Change variables that have subelement size of 'num_faces'*/
   update_offset = 0;
   ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_subcells_per_cell, num_faces, update_offset,
     &subcells->num_faces, &subcells->face_offset, &subcells->face_ids); CHKERRQ(ierr);
@@ -951,6 +1045,27 @@ PetscErrorCode ConvertSubcellsToCompressedFormat(TDy tdy) {
   update_offset = 1;
   ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_subcells_per_cell, num_faces, update_offset,
     &subcells->num_faces, &subcells->face_offset, &subcells->vertex_ids); CHKERRQ(ierr);
+
+  /* Change variables that have subelement size of 'num_nu_vectors'*/
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatTDyVectorValues(tdy, num_subcells_per_cell, num_nu_vectors, update_offset,
+    &subcells->num_nu_vectors, &subcells->nu_vector_offset, &subcells->nu_vector); CHKERRQ(ierr);
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatTDyVectorValues(tdy, num_subcells_per_cell, num_nu_vectors, update_offset,
+    &subcells->num_nu_vectors, &subcells->nu_vector_offset, &subcells->nu_star_vector); CHKERRQ(ierr);
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(tdy, num_subcells_per_cell, num_nu_vectors, update_offset,
+    &subcells->num_nu_vectors, &subcells->nu_vector_offset, &subcells->variable_continuity_coordinates); CHKERRQ(ierr);
+
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(tdy, num_subcells_per_cell, num_nu_vectors, update_offset,
+    &subcells->num_nu_vectors, &subcells->nu_vector_offset, &subcells->face_centroid); CHKERRQ(ierr);
+
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(tdy, num_subcells_per_cell, num_vertices, update_offset,
+    &subcells->num_vertices, &subcells->vertex_offset, &subcells->vertices_coordinates); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
