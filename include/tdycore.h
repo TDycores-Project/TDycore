@@ -231,6 +231,7 @@ PETSC_EXTERN PetscErrorCode TDyMeshCreateFromDM(DM, TDyMesh*);
 PETSC_EXTERN PetscErrorCode TDyMeshDestroy(TDyMesh*);
 
 PETSC_EXTERN PetscErrorCode TDyMeshGetCellVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyMeshGetCellEdges(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyMeshGetCellFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyMeshGetCellNeighbors(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyMeshGetCellCentroid(TDyMesh*, PetscInt, TDyCoordinate*);

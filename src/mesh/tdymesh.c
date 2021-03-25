@@ -16,6 +16,23 @@ PetscErrorCode TDyMeshDestroy(TDyMesh *mesh) {
   return 0;
 }
 
+/// Given a mesh and a cell index, retrieve an array of cell edge indices, and
+/// their number.
+/// @param [in] mesh A mesh object
+/// @param [in] cell The index of a cell within the mesh
+/// @param [out] edges Stores a pointer to an array of edges for the
+///                    given cell
+/// @param [out] num_edges Stores the number of edges for the given cell
+PetscErrorCode TDyMeshGetCellEdges(TDyMesh *mesh,
+                                      PetscInt cell,
+                                      PetscInt **edges,
+                                      PetscInt *num_edges) {
+  PetscInt offset = mesh->cells.edge_offset[cell];
+  *edges = &mesh->cells.edge_ids[offset];
+  *num_edges = mesh->cells.edge_offset[cell+1] - offset;
+  return 0;
+}
+
 /// Given a mesh and a cell index, retrieve an array of cell vertex indices, and
 /// their number.
 /// @param [in] mesh A mesh object
