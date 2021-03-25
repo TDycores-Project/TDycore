@@ -1063,6 +1063,7 @@ PetscErrorCode ConvertSubcellsToCompressedFormat(TDy tdy) {
   ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(tdy, num_subcells_per_cell, num_nu_vectors, update_offset,
     &subcells->num_nu_vectors, &subcells->nu_vector_offset, &subcells->face_centroid); CHKERRQ(ierr);
 
+  /* Change variables that have subelement size of 'num_vertices'*/
   update_offset = 1;
   ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(tdy, num_subcells_per_cell, num_vertices, update_offset,
     &subcells->num_vertices, &subcells->vertex_offset, &subcells->vertices_coordinates); CHKERRQ(ierr);
