@@ -70,10 +70,12 @@ PetscErrorCode TDyComputeGMatrixFor2DMesh(TDy tdy) {
 
     num_subcells = cells->num_subcells[icell];
 
+    PetscInt *vertex_ids, num_vertices;
+    ierr = TDyMeshGetCellVertices(mesh, icell, &vertex_ids, &num_vertices); CHKERRQ(ierr);
+
     for (isubcell=0; isubcell<num_subcells; isubcell++) {
 
-      PetscInt cOffsetVertex = cells->vertex_offset[icell];
-      PetscInt ivertex = cells->vertex_ids[cOffsetVertex + isubcell];
+      PetscInt ivertex = vertex_ids[isubcell];
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
 
       // determine ids of up & down edges
@@ -1219,9 +1221,11 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
 
     if (!cells->is_local[icell]) continue;
 
+    PetscInt *edge_ids, num_edges;
+    ierr = TDyMeshGetCellEdges(mesh, icell, &edge_ids, &num_edges); CHKERRQ(ierr);
+
     for (iedge=0; iedge<cells->num_edges[icell]; iedge++) {
-      PetscInt cOffsetEdge = cells->edge_offset[icell];
-      edge_id = cells->edge_ids[cOffsetEdge + iedge];
+      edge_id = edge_ids[iedge];
 
       ierr = (*tdy->ops->computedirichletflux)(tdy, &(tdy->X[(edge_id + fStart)*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);
       vel_normal = vel[0]*edges->normal[edge_id].V[0] + vel[1]*edges->normal[edge_id].V[1];
