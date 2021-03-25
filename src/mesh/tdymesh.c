@@ -297,7 +297,7 @@ PetscErrorCode TDyMeshGetSubcellIsFaceUp(TDyMesh *mesh,
                                       PetscInt **is_face_up,
                                       PetscInt *num_faces) {
   PetscInt offset = mesh->subcells.face_offset[subcell];
-  *is_face_up = &mesh->subcells.face_ids[offset];
+  *is_face_up = &mesh->subcells.is_face_up[offset];
   *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
   return 0;
 }
