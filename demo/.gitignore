@@ -4,3 +4,7 @@
 *.regression
 *.stdout*
 *.regression.old
+*.txt
+*.h5
+*.xmf
+*.csv
