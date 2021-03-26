@@ -186,7 +186,10 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 
         ierr = TDyFindSubcellOfACellThatIncludesAVertex(cells, cell_id_up, vertices, vertex_id, subcells, &subcell_id); CHKERRQ(ierr);
         ierr = TDySubCell_GetFaceIndexForAFace(subcells, subcell_id, face_id, &iface); CHKERRQ(ierr);
-        PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+        PetscInt num_faces;
+        PetscReal *face_areas;
+        ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &face_areas, &num_faces); CHKERRQ(ierr);
 
         for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
 
@@ -199,7 +202,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
         if (tdy->ops->computedirichletflux) {
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-          vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*subcells->face_area[sOffsetFace + iface];
+          vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)* face_areas[iface];
 
           *vel_error += PetscPowReal( (Vcomputed[irow] - vel_normal), 2.0);
           (*count)++;
@@ -310,12 +313,14 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + irow];
 
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-      PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+      PetscInt *face_ids, num_faces;
+      ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &face_ids, &num_faces); CHKERRQ(ierr);
 
       PetscInt iface;
       for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
-        PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+        PetscInt face_id = face_ids[iface];
         PetscInt fOffsetCell = faces->cell_offset[face_id];
 
         cell_id_up = faces->cell_ids[fOffsetCell + 0];
@@ -353,7 +358,10 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         ierr = TDyFindSubcellOfACellThatIncludesAVertex(cells, cell_id_up, vertices, vertex_id, subcells, &subcell_id); CHKERRQ(ierr);
         ierr = TDySubCell_GetFaceIndexForAFace(subcells, subcell_id, face_id, &iface); CHKERRQ(ierr);
-        PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+        PetscInt num_faces;
+        PetscReal *face_areas;
+        ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &face_areas, &num_faces); CHKERRQ(ierr);
 
         // +T_00 * Pcen
         value = 0.0;
@@ -376,7 +384,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
         if (tdy->ops->computedirichletflux) {
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-          vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*subcells->face_area[sOffsetFace + iface];
+          vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)* face_areas[iface];
 
           *vel_error += PetscPowReal( (value - vel_normal), 2.0);
           (*count)++;
@@ -389,7 +397,10 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         ierr = TDyFindSubcellOfACellThatIncludesAVertex(cells, cell_id_dn, vertices, vertex_id, subcells, &subcell_id); CHKERRQ(ierr);
         ierr = TDySubCell_GetFaceIndexForAFace(subcells, subcell_id, face_id, &iface); CHKERRQ(ierr);
-        PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+        PetscInt num_faces;
+        PetscReal *face_areas;
+        ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &face_areas, &num_faces); CHKERRQ(ierr);
 
         // -T_00 * Pcen
         value = 0.0;
@@ -412,7 +423,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
         if (tdy->ops->computedirichletflux) {
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-          vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*subcells->face_area[sOffsetFace + iface];
+          vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*face_areas[iface];
 
           *vel_error += PetscPowReal( (value - vel_normal), 2.0);
           (*count)++;
@@ -438,7 +449,10 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         ierr = TDyFindSubcellOfACellThatIncludesAVertex(cells, cell_id_up, vertices, vertex_id, subcells, &subcell_id); CHKERRQ(ierr);
         ierr = TDySubCell_GetFaceIndexForAFace(subcells, subcell_id, face_id, &iface); CHKERRQ(ierr);
-        PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+        PetscInt num_faces;
+        PetscReal *face_areas;
+        ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &face_areas, &num_faces); CHKERRQ(ierr);
 
         // +T_10 * Pcen
         value = 0.0;
@@ -459,7 +473,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
         if (tdy->ops->computedirichletflux) {
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-          vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*subcells->face_area[sOffsetFace + iface];
+          vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*face_areas[iface];
 
           *vel_error += PetscPowReal( (value - vel_normal), 2.0);
           (*count)++;
@@ -472,7 +486,10 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         ierr = TDyFindSubcellOfACellThatIncludesAVertex(cells,cell_id_dn, vertices, vertex_id, subcells, &subcell_id); CHKERRQ(ierr);
         ierr = TDySubCell_GetFaceIndexForAFace(subcells, subcell_id, face_id, &iface); CHKERRQ(ierr);
-        PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+        PetscInt num_faces;
+        PetscReal *face_areas;
+        ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &face_areas, &num_faces); CHKERRQ(ierr);
 
         // -T_10 * Pcen
         value = 0.0;
@@ -493,7 +510,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
         if (tdy->ops->computedirichletflux) {
           ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-          vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*subcells->face_area[sOffsetFace + iface];
+          vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*face_areas[ iface];
 
           *vel_error += PetscPowReal( (value - vel_normal), 2.0);
           (*count)++;
@@ -568,15 +585,19 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
     isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
 
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
     PetscScalar pBoundary[subcells->num_faces[subcell_id]];
 
     ierr = ExtractSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
 
+    PetscInt *face_ids, num_faces;
+    PetscReal *face_areas;
+    ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &face_ids, &num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &face_areas, &num_faces); CHKERRQ(ierr);
+
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
       
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+      PetscInt face_id = face_ids[iface];
 
       PetscInt f;
       f = face_id + fStart;
@@ -590,7 +611,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
 
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+      PetscInt face_id = face_ids[iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       if (!faces->is_local[face_id]) continue;
@@ -612,7 +633,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
       ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
       if (tdy->ops->computedirichletflux) {
         ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
-        vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*subcells->face_area[sOffsetFace + iface];
+        vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim) * face_areas[iface];
 
         *vel_error += PetscPowReal( (value - vel_normal), 2.0);
         (*count)++;
