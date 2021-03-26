@@ -167,12 +167,14 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
       isubcell = vertices->subcell_ids[vOffsetSubcell + irow];
 
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-      PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+      PetscInt *face_ids, num_faces;
+      ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &face_ids, &num_faces); CHKERRQ(ierr);
 
       PetscInt iface;
       for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
-        PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+        PetscInt face_id = face_ids[iface];
         PetscInt fOffsetCell = faces->cell_offset[face_id];
         cell_id_up = faces->cell_ids[fOffsetCell + 0];
         cell_id_dn = faces->cell_ids[fOffsetCell + 1];
@@ -339,12 +341,14 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
     isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
 
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+    PetscInt *face_ids, num_faces;
+    ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &face_ids, &num_faces); CHKERRQ(ierr);
 
     numBoundary = 0;
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+      PetscInt face_id = face_ids[iface];
 
       PetscInt f;
       f = faces->id[face_id] + fStart;
@@ -355,7 +359,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+      PetscInt face_id = face_ids[iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       row = faces->cell_ids[fOffsetCell + 0];
@@ -376,7 +380,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
     // For fluxes through boundary edges, only add contribution to the vector
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+      PetscInt face_id = face_ids[iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       row = faces->cell_ids[fOffsetCell + 0];
