@@ -772,7 +772,16 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-
+/// Converts an integer datatype of TDy mesh element in compressed format
+///
+/// @param [in] tdy                  A TDy struct
+/// @param [in] num_elements         Number of elements
+/// @param [in] default_offset_size  Default offset size for elements
+/// @param [in] update_offset        Determines if subelement_offset should be updated
+/// @param [inout] subelement_num    Number of subelements for a given element
+/// @param [inout] subelement_offset Offset of subelements for a given element
+/// @param [inout] subelement_id     Subelement ids
+/// @returns 0                       on success, or a non-zero error code on failure
 PetscErrorCode ConvertMeshElementToCompressedFormatIntegerValues(TDy tdy, PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
   PetscInt **subelement_num, PetscInt **subelement_offset, PetscInt **subelement_id) {
 
@@ -810,7 +819,16 @@ PetscErrorCode ConvertMeshElementToCompressedFormatIntegerValues(TDy tdy, PetscI
 }
 
 /* -------------------------------------------------------------------------- */
-
+/// Converts TDyVector datatype of TDy mesh element in compressed format
+///
+/// @param [in] tdy                  A TDy struct
+/// @param [in] num_elements         Number of elements
+/// @param [in] default_offset_size  Default offset size for elements
+/// @param [in] update_offset        Determines if subelement_offset should be updated
+/// @param [inout] subelement_num    Number of subelements for a given element
+/// @param [inout] subelement_offset Offset of subelements for a given element
+/// @param [inout] subelement_id     Subelement ids
+/// @returns 0                       on success, or a non-zero error code on failure
 PetscErrorCode ConvertMeshElementToCompressedFormatTDyVectorValues(TDy tdy, PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
   PetscInt **subelement_num, PetscInt **subelement_offset, TDyVector **subelement_value) {
 
@@ -856,7 +874,16 @@ PetscErrorCode ConvertMeshElementToCompressedFormatTDyVectorValues(TDy tdy, Pets
   PetscFunctionReturn(0);
 }
 /* -------------------------------------------------------------------------- */
-
+/// Converts TDyCoordinate datatype of TDy mesh element in compressed format
+///
+/// @param [in] tdy                  A TDy struct
+/// @param [in] num_elements         Number of elements
+/// @param [in] default_offset_size  Default offset size for elements
+/// @param [in] update_offset        Determines if subelement_offset should be updated
+/// @param [inout] subelement_num    Number of subelements for a given element
+/// @param [inout] subelement_offset Offset of subelements for a given element
+/// @param [inout] subelement_id     Subelement ids
+/// @returns 0                       on success, or a non-zero error code on failure
 PetscErrorCode ConvertMeshElementToCompressedFormatTDyCoordinateValues(TDy tdy, PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
   PetscInt **subelement_num, PetscInt **subelement_offset, TDyCoordinate **subelement_value) {
 
@@ -903,7 +930,16 @@ PetscErrorCode ConvertMeshElementToCompressedFormatTDyCoordinateValues(TDy tdy, 
 }
 
 /* -------------------------------------------------------------------------- */
-
+/// Converts a real datatype of TDy mesh element in compressed format
+///
+/// @param [in] tdy                  A TDy struct
+/// @param [in] num_elements         Number of elements
+/// @param [in] default_offset_size  Default offset size for elements
+/// @param [in] update_offset        Determines if subelement_offset should be updated
+/// @param [inout] subelement_num    Number of subelements for a given element
+/// @param [inout] subelement_offset Offset of subelements for a given element
+/// @param [inout] subelement_id     Subelement ids
+/// @returns 0                       on success, or a non-zero error code on failure
 PetscErrorCode ConvertMeshElementToCompressedFormatRealValues(TDy tdy, PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
   PetscInt **subelement_num, PetscInt **subelement_offset, PetscReal **subelement_value) {
 
