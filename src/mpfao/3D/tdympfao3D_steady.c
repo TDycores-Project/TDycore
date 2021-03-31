@@ -14,7 +14,6 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
-  TDyFace       *faces = &mesh->faces;
   PetscInt       ivertex, cell_id_up, cell_id_dn;
   PetscInt       irow, icol, row, col, vertex_id;
   PetscReal      value;
@@ -50,10 +49,11 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
       for (irow=0; irow<nflux_in; irow++) {
 
         PetscInt face_id = face_ids[irow];
-        PetscInt fOffsetCell = faces->cell_offset[face_id];
+        PetscInt *cell_ids, num_cells;
+        ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-        cell_id_up = faces->cell_ids[fOffsetCell + 0];
-        cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+        cell_id_up = cell_ids[0];
+        cell_id_dn = cell_ids[1];
 
         for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
           col   = vertices->internal_cell_ids[vOffsetCell + icol];
@@ -175,9 +175,11 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
       for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
         PetscInt face_id = face_ids[iface];
-        PetscInt fOffsetCell = faces->cell_offset[face_id];
-        cell_id_up = faces->cell_ids[fOffsetCell + 0];
-        cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+        PetscInt *cell_ids, num_cells;
+        ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
+
+        cell_id_up = cell_ids[0];
+        cell_id_dn = cell_ids[1];
 
         if (faces->is_internal[face_id] == 0) {
           PetscInt f;
@@ -191,10 +193,11 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
     for (irow=0; irow<nflux_in; irow++){
 
       PetscInt face_id = face_ids[irow];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-      cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      cell_id_up = cell_ids[0];
+      cell_id_dn = cell_ids[1];
 
       if (cells->is_local[cell_id_up]) {
         row   = cells->global_id[cell_id_up];
@@ -239,10 +242,11 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
       //row = cell_ids_from_to[irow][0];
 
       PetscInt face_id = face_ids[irow + nflux_in];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-      cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      cell_id_up = cell_ids[0];
+      cell_id_dn = cell_ids[1];
 
       if (cell_id_up>-1 && cells->is_local[cell_id_up]) {
 
@@ -360,9 +364,10 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
       PetscInt face_id = face_ids[iface];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-      row = faces->cell_ids[fOffsetCell + 0];
+      row = cell_ids[0];
       if (row>-1) sign = -1.0;
       else        sign = +1.0;
 
@@ -381,11 +386,12 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
       PetscInt face_id = face_ids[iface];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-      row = faces->cell_ids[fOffsetCell + 0];
-      PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      row = cell_ids[0];
+      PetscInt cell_id_up = cell_ids[0];
+      PetscInt cell_id_dn = cell_ids[1];
 
       if (cell_id_up>-1 && cells->is_local[cell_id_up]) {
         row   = cells->global_id[cell_id_up];
