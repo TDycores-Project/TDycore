@@ -66,7 +66,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
        //      T includes product of K and A_{ij}
 
       PetscInt *cell_ids, num_cells;
-      ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
       PetscInt cell_id_up = cell_ids[0];
       PetscInt cell_id_dn = cell_ids[1];
 
@@ -300,7 +300,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
       PetscInt face_id = face_ids[irow];
       PetscInt subface_id = subface_ids[irow];
       PetscInt *cell_ids, num_cells;
-      ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
       PetscInt cell_id_up = cell_ids[0];
       PetscInt cell_id_dn = cell_ids[1];
