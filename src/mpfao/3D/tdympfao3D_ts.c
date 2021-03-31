@@ -37,8 +37,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 
     if (!vertices->is_local[ivertex]) continue;
 
-    PetscInt *face_ids, num_faces;
-    PetscInt *subface_ids, num_subfaces;
+    PetscInt *face_ids, *subface_ids;
+    PetscInt num_faces, num_subfaces;
     ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
     ierr = TDyMeshGetVertexSubfaces(mesh, ivertex, &subface_ids, &num_subfaces); CHKERRQ(ierr);
 
@@ -258,8 +258,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
 
-    PetscInt *face_ids, num_faces;
-    PetscInt *subface_ids, num_subfaces;
+    PetscInt *face_ids, *subface_ids;
+    PetscInt num_faces, num_subfaces;
     ierr = TDyMeshGetVertexFaces(mesh, vertex_id, &face_ids, &num_faces); CHKERRQ(ierr);
     ierr = TDyMeshGetVertexSubfaces(mesh, vertex_id, &subface_ids, &num_subfaces); CHKERRQ(ierr);
 
