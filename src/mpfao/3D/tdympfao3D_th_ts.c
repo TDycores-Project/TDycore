@@ -83,10 +83,11 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh_TH(Vec Ul, Vec R, void *ctx) {
     //      (kr/mu)_{ij,upwind} = (kr/mu)_{i} if velocity is from i to j
     //                          = (kr/mu)_{j} otherwise
     //      T includes product of K and A_{ij}
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-      cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      cell_id_up = cell_ids[0];
+      cell_id_dn = cell_ids[1];
       
       if (TtimesP[irow] < 0.0) { // up ---> dn
          // Is the cell_id_up an internal or boundary cell?
@@ -395,10 +396,11 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh_TH(Vec Ul, Mat A, void *ctx) {
     for (irow=0; irow<nflux_in + npitf_bc; irow++) {
       
       PetscInt face_id = face_ids[irow];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-      cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      cell_id_up = cell_ids[0];
+      cell_id_dn = cell_ids[1];
 
       dukvr_dPup = 0.0;
       dukvr_dPdn = 0.0;
