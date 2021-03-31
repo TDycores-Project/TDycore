@@ -3631,6 +3631,7 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
 
   case 3:
     ierr = ConvertVerticesToCompressedFormat(tdy); CHKERRQ(ierr);
+    ierr = ConvertSubcellsToCompressedFormat(tdy); CHKERRQ(ierr);
     ierr = UpdateFaceOrderAroundAVertex3DMesh(tdy); CHKERRQ(ierr);
     ierr = UpdateCellOrientationAroundAFace3DMesh(  tdy); CHKERRQ(ierr);
     break;
