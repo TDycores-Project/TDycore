@@ -65,9 +65,10 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
        //                          = (kr/mu)_{j} otherwise
        //      T includes product of K and A_{ij}
 
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
-      PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
+      PetscInt cell_id_up = cell_ids[0];
+      PetscInt cell_id_dn = cell_ids[1];
 
       PetscReal den_aveg = 0.0;
       if (cell_id_up>=0) {
@@ -298,10 +299,11 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 
       PetscInt face_id = face_ids[irow];
       PetscInt subface_id = subface_ids[irow];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-      PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      PetscInt cell_id_up = cell_ids[0];
+      PetscInt cell_id_dn = cell_ids[1];
 
       // If using neumann bc (which is currently no-flux), then skip the face
       if ( tdy->mpfao_bc_type == MPFAO_NEUMANN_BC  && (cell_id_up<0 || cell_id_dn <0))  continue;
