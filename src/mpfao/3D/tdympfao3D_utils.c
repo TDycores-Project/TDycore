@@ -44,14 +44,15 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
     if (faces->is_internal[iface]) continue;
 
-    PetscInt fOffsetCell = faces->cell_offset[iface];
+    PetscInt *cell_ids, num_cells;
+    ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-    if (faces->cell_ids[fOffsetCell + 0] >= 0) {
-      cell_id = faces->cell_ids[fOffsetCell + 0];
-      p_bnd_idx = -faces->cell_ids[fOffsetCell + 1] - 1;
+    if (cell_ids[0] >= 0) {
+      cell_id = cell_ids[0];
+      p_bnd_idx = -cell_ids[1] - 1;
     } else {
-      cell_id = faces->cell_ids[fOffsetCell + 1];
-      p_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
+      cell_id = cell_ids[1];
+      p_bnd_idx = -cell_ids[0] - 1;
     }
 
     switch (cc->SatFuncType[cell_id]) {
@@ -175,11 +176,12 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
       for (irow=0; irow<nflux_in; irow++) {
 
         PetscInt face_id = face_ids[irow];
-        PetscInt fOffsetCell = faces->cell_offset[face_id];
+        PetscInt *cell_ids, num_cells;
+        ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
         if (!faces->is_local[face_id]) continue;
 
-        cell_id_up = faces->cell_ids[fOffsetCell + 0];
+        cell_id_up = cell_ids[0];
 
         PetscInt iface=-1;
         PetscInt subcell_id;
@@ -321,10 +323,11 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
       for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
         PetscInt face_id = face_ids[iface];
-        PetscInt fOffsetCell = faces->cell_offset[face_id];
+        PetscInt *cell_ids, num_cells;
+        ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-        cell_id_up = faces->cell_ids[fOffsetCell + 0];
-        cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+        cell_id_up = cell_ids[0];
+        cell_id_dn = cell_ids[1];
 
         if (faces->is_internal[face_id] == 0) {
           PetscInt f;
@@ -343,12 +346,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
     for (irow=0; irow<nflux_in; irow++){
 
       PetscInt face_id = face_ids[irow];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
       if (!faces->is_local[face_id]) continue;
 
-      cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      cell_id_up = cell_ids[0];
+      cell_id_dn = cell_ids[1];
       icell = vertices->internal_cell_ids[vOffsetCell + irow];
 
       if (cells->is_local[cell_id_up]) {
@@ -435,12 +439,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
     for (irow=0; irow<npitf_bc; irow++) {
 
       PetscInt face_id = face_ids[irow + nflux_in];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
       if (!faces->is_local[face_id]) continue;
 
-      cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      cell_id_up = cell_ids[0];
+      cell_id_dn = cell_ids[1];
 
       if (cell_id_up>-1 && cells->is_local[cell_id_up]) {
 
@@ -612,11 +617,12 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
       PetscInt face_id = face_ids[iface];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
 
       if (!faces->is_local[face_id]) continue;
 
-      row = faces->cell_ids[fOffsetCell + 0];
+      row = cell_ids[0];
       if (row>-1) sign = -1.0;
       else        sign = +1.0;
 
@@ -716,14 +722,15 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
 
     if (faces->is_internal[iface]) continue;
 
-      PetscInt fOffsetCell = faces->cell_offset[iface];
+    PetscInt *cell_ids, num_cells;
+    ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-    if (faces->cell_ids[fOffsetCell + 0] >= 0) {
-      cell_id = faces->cell_ids[fOffsetCell + 0];
-      p_bnd_idx = -faces->cell_ids[fOffsetCell + 1] - 1;
+    if (cell_ids[0] >= 0) {
+      cell_id = cell_ids[0];
+      p_bnd_idx = -cell_ids[1] - 1;
     } else {
-      cell_id = faces->cell_ids[fOffsetCell + 1];
-      p_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
+      cell_id = cell_ids[1];
+      p_bnd_idx = -cell_ids[0] - 1;
     }
 
     if (tdy->ops->computedirichletvalue) {
@@ -772,14 +779,15 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
 
     if (faces->is_internal[iface]) continue;
 
-      PetscInt fOffsetCell = faces->cell_offset[iface];
+    PetscInt *cell_ids, num_cells;
+    ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-    if (faces->cell_ids[fOffsetCell + 0] >= 0) {
-      cell_id = faces->cell_ids[fOffsetCell + 0];
-      t_bnd_idx = -faces->cell_ids[fOffsetCell + 1] - 1;
+    if (cell_ids[0] >= 0) {
+      cell_id = cell_ids[0];
+      t_bnd_idx = -cell_ids[1] - 1;
     } else {
-      cell_id = faces->cell_ids[fOffsetCell + 1];
-      t_bnd_idx = -faces->cell_ids[fOffsetCell + 0] - 1;
+      cell_id = cell_ids[1];
+      t_bnd_idx = -cell_ids[0] - 1;
     }
 
     if (tdy->ops->computetemperaturedirichletvalue) {
