@@ -83,22 +83,24 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
     for (isubcell=0; isubcell<cells->num_subcells[icell]; isubcell++) {
 
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-      PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
-      PetscInt ii,jj;
+      PetscInt *subcell_face_ids, subcell_num_faces;
+      PetscReal *subcell_face_areas;
+      ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
+      ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &subcell_face_areas, &subcell_num_faces); CHKERRQ(ierr);
 
-      for (ii=0;ii<subcells->num_faces[subcell_id];ii++) {
+      for (PetscInt ii=0;ii<subcells->num_faces[subcell_id];ii++) {
 
         PetscReal area;
         PetscReal normal[3];
 
-        PetscInt face_id = subcells->face_ids[sOffsetFace + ii];
+        PetscInt face_id = subcell_face_ids[ii];
 
-        area = subcells->face_area[sOffsetFace + ii];
+        area = subcell_face_areas[ii];
 
         ierr = TDyFace_GetNormal(faces, face_id, dim, &normal[0]); CHKERRQ(ierr);
 
-        for (jj=0;jj<subcells->num_faces[subcell_id];jj++) {
+        for (PetscInt jj=0;jj<subcells->num_faces[subcell_id];jj++) {
           PetscReal nu[dim];
 
           switch (tdy->mpfao_gmatrix_method){
@@ -275,7 +277,11 @@ PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
     PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
 
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+    PetscInt *face_unknown_idx, *is_face_up, *face_flux_idx, subcell_num_faces;
+    ierr = TDyMeshGetSubcellFaceUnknownIdxs(mesh, subcell_id, &face_unknown_idx, &subcell_num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellIsFaceUp(mesh, subcell_id, &is_face_up, &subcell_num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellFaceFluxIdxs(mesh, subcell_id, &face_flux_idx, &subcell_num_faces); CHKERRQ(ierr);
 
     if (varID == VAR_PRESSURE) {
       ierr = ExtractSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
@@ -285,19 +291,17 @@ PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
 
     PetscInt idx_interface_p0, idx_interface_p1, idx_interface_p2;
 
-    idx_interface_p0 = subcells->face_unknown_idx[sOffsetFace +0];
-    idx_interface_p1 = subcells->face_unknown_idx[sOffsetFace +1];
-    idx_interface_p2 = subcells->face_unknown_idx[sOffsetFace +2];
+    idx_interface_p0 = face_unknown_idx[0];
+    idx_interface_p1 = face_unknown_idx[1];
+    idx_interface_p2 = face_unknown_idx[2];
 
     PetscInt idx_flux, iface;
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
 
-      PetscBool upwind_entries;
-
-      upwind_entries = (subcells->is_face_up[sOffsetFace + iface]==1);
+      PetscBool upwind_entries = (is_face_up[iface] == 1);
 
       if (upwind_entries) {
-        idx_flux = subcells->face_flux_idx[sOffsetFace + iface];
+        idx_flux = face_flux_idx[iface];
 
         Cup[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
         Cup[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
@@ -306,7 +310,7 @@ PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
         Fup[idx_flux][i] = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
 
       } else {
-        idx_flux = subcells->face_flux_idx[sOffsetFace + iface];
+        idx_flux = face_flux_idx[iface];
 
         Cdn[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
         Cdn[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
@@ -339,24 +343,27 @@ PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex
   PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
   PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
 
-  PetscInt i, iface;
+  PetscErrorCode ierr;
 
   *nflux_bc_up = 0;
   *nflux_bc_dn = 0;
 
-  for (i=0; i<npcen; i++) {
+  for (PetscInt i=0; i<npcen; i++) {
     PetscInt icell    = vertices->internal_cell_ids[vOffsetCell + i];
     PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
 
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
-    for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+    PetscInt *face_ids, *is_face_up, num_faces;
+    ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &face_ids, &num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellIsFaceUp(mesh, subcell_id, &is_face_up, &num_faces); CHKERRQ(ierr);
 
-      PetscInt faceID = subcells->face_ids[sOffsetFace+iface];
+    for (PetscInt iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+
+      PetscInt faceID = face_ids[iface];
       if (faces->is_internal[faceID]) continue;
 
-      if ((subcells->is_face_up[sOffsetFace + iface]==1)) {
+      if ((is_face_up[iface]==1)) {
         (*nflux_bc_up)++;
       } else {
         (*nflux_bc_dn)++;
@@ -752,22 +759,25 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
       PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
 
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-      PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
-      PetscInt iface;
-      for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
+      PetscInt *subcell_face_ids, num_faces;
+      ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &num_faces); CHKERRQ(ierr);
 
-	PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
-	PetscInt fOffsetCell = faces->cell_offset[face_id];
+      for (PetscInt iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
-	if (faces->is_internal[face_id] == 0) {
+        PetscInt face_id = subcell_face_ids[iface];
 
-	  // Extract pressure value at the boundary
-	  if (faces->cell_ids[fOffsetCell + 0] >= 0) idxBnd[numBnd] = -faces->cell_ids[fOffsetCell + 1] - 1;
-	  else                                       idxBnd[numBnd] = -faces->cell_ids[fOffsetCell + 0] - 1;
+        PetscInt *face_cell_ids, num_cell_ids;
+        ierr = TDyMeshGetFaceCells(mesh, face_id, &face_cell_ids, &num_cell_ids); CHKERRQ(ierr);
 
-	  numBnd++;
-	}
+        if (faces->is_internal[face_id] == 0) {
+
+          // Extract pressure value at the boundary
+          if (face_cell_ids[0] >= 0) idxBnd[numBnd] = -face_cell_ids[1] - 1;
+          else                       idxBnd[numBnd] = -face_cell_ids[0] - 1;
+
+          numBnd++;
+        }
       }
     }
   }
@@ -892,12 +902,14 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
 
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+    PetscInt *subcell_face_ids, subcell_num_faces;
+    ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
 
     PetscInt iface;
     for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+      PetscInt face_id = subcell_face_ids[iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       face_ids_of_subcell[count] = face_id;
@@ -966,10 +978,12 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     PetscInt icell = vertices->internal_cell_ids[vOffsetCell + i];
     PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
     PetscInt subcell_id = icell*cells->num_subcells[icell] + isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+    PetscInt *subcell_face_ids, subcell_num_faces;
+    ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
 
     for (PetscInt mm=0; mm<dim; mm++){
-      PetscInt face_id_wrt_subcell = subcells->face_ids[sOffsetFace + mm];
+      PetscInt face_id_wrt_subcell = subcell_face_ids[mm];
       PetscInt offset = faces->cell_offset[face_id_wrt_subcell];
 
       if (faces->cell_ids[offset] < 0) {
