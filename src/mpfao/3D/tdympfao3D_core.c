@@ -910,7 +910,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     for (iface=0;iface<subcells->num_faces[subcell_id];iface++) {
 
       PetscInt face_id = subcell_face_ids[iface];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt *face_cell_ids, num_cell_ids;
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &face_cell_ids, &num_cell_ids); CHKERRQ(ierr);
 
       face_ids_of_subcell[count] = face_id;
       count++;
@@ -918,8 +919,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
       if (faces->is_internal[face_id] == 0) {
 
         // Extract pressure value at the boundary
-        if (faces->cell_ids[fOffsetCell + 0] >= 0) idxBnd[numBnd] = -faces->cell_ids[fOffsetCell + 1] - 1;
-        else                                       idxBnd[numBnd] = -faces->cell_ids[fOffsetCell + 0] - 1;
+        if (face_cell_ids[0] >= 0) idxBnd[numBnd] = -face_cell_ids[1] - 1;
+        else                       idxBnd[numBnd] = -face_cell_ids[0] - 1;
 
         numBnd++;
       }
@@ -935,9 +936,10 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     face_id = face_ids_of_subcell[i];
 
     // Determine the subface ID of 'face_id' that includes 'ivertex'
-    PetscInt fOffsetVertex = faces->vertex_offset[face_id];
+    PetscInt *vertex_ids, num_vertices;
+    ierr = TDyMeshGetFaceVertices(mesh, face_id, &vertex_ids, &num_vertices); CHKERRQ(ierr);
     for (PetscInt ii=0; ii<faces->num_vertices[face_id]; ii++){
-      if (ivertex == faces->vertex_ids[fOffsetVertex + ii]) {
+      if (ivertex == vertex_ids[ii]) {
         subface_id = ii;
         break;
       }
@@ -1019,12 +1021,13 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
 
     PetscInt face_id_wrt_vertex = face_ids[iface];
-    PetscInt fOffsetCell = faces->cell_offset[face_id_wrt_vertex];
+    PetscInt *face_cell_ids, num_cell_ids;
+    ierr = TDyMeshGetFaceCells(mesh, face_id_wrt_vertex, &face_cell_ids, &num_cell_ids); CHKERRQ(ierr);
 
-    if (faces->cell_ids[fOffsetCell] < 0){
-      vertex_boundary_cell_id[iface] = faces->cell_ids[fOffsetCell];
+    if (face_cell_ids[0] < 0){
+      vertex_boundary_cell_id[iface] = face_cell_ids[0];
     } else {
-      vertex_boundary_cell_id[iface] = faces->cell_ids[fOffsetCell + 1];
+      vertex_boundary_cell_id[iface] = face_cell_ids[1];
     }
   }
 
@@ -1067,7 +1070,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
 
   TDyMesh       *mesh = tdy->mesh;
-  TDyFace       *faces = &mesh->faces;
   TDyRegion     *region = &mesh->region_connected;
   PetscInt       iface, isubface;
   PetscInt       num_subfaces = 4;
@@ -1081,9 +1083,10 @@ PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
 
   for (iface=0; iface<tdy->mesh->num_faces; iface++) {
 
-    PetscInt fOffsetCell = faces->cell_offset[iface];
-    PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
-    PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+    PetscInt *face_cell_ids, num_cell_ids;
+    ierr = TDyMeshGetFaceCells(mesh, iface, &face_cell_ids, &num_cell_ids); CHKERRQ(ierr);
+    PetscInt cell_id_up = face_cell_ids[0];
+    PetscInt cell_id_dn = face_cell_ids[1];
 
     if (cell_id_up>=0 && cell_id_dn>=0) {
       if (!TDyRegionAreCellsInTheSameRegion(region, cell_id_up, cell_id_dn)) {
@@ -1177,9 +1180,10 @@ PetscErrorCode ComputeUpDownUnitVector(TDy tdy, PetscInt face_id, PetscReal up2d
   TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
 
-  PetscInt fOffsetCell = faces->cell_offset[face_id];
-  PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
-  PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+    PetscInt *face_cell_ids, num_cell_ids;
+    ierr = TDyMeshGetFaceCells(mesh, face_id, &face_cell_ids, &num_cell_ids); CHKERRQ(ierr);
+    PetscInt cell_id_up = face_cell_ids[0];
+    PetscInt cell_id_dn = face_cell_ids[1];
 
   if (cell_id_up < 0 && cell_id_dn < 0) {
     SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Both cell IDs sharing a face are not valid");
@@ -1226,9 +1230,10 @@ PetscErrorCode ComputeUpAndDownDist(TDy tdy, PetscInt face_id, PetscReal *dist_u
   TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
 
-  PetscInt fOffsetCell = faces->cell_offset[face_id];
-  PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
-  PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+  PetscInt *face_cell_ids, num_cell_ids;
+  ierr = TDyMeshGetFaceCells(mesh, face_id, &face_cell_ids, &num_cell_ids); CHKERRQ(ierr);
+  PetscInt cell_id_up = face_cell_ids[0];
+  PetscInt cell_id_dn = face_cell_ids[1];
 
   if (cell_id_up < 0 && cell_id_dn < 0) {
     SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Both cell IDs sharing a face are not valid");
@@ -1271,12 +1276,13 @@ PetscErrorCode ExtractUpAndDownPermeabilityTensors(TDy tdy, PetscInt face_id, Pe
   PetscFunctionBegin;
 
   TDyMesh *mesh = tdy->mesh;
-  TDyFace *faces = &mesh->faces;
   MaterialProp *matprop = tdy->matprop;
+  PetscErrorCode ierr;
 
-  PetscInt fOffsetCell = faces->cell_offset[face_id];
-  PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
-  PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+  PetscInt *face_cell_ids, num_cell_ids;
+  ierr = TDyMeshGetFaceCells(mesh, face_id, &face_cell_ids, &num_cell_ids); CHKERRQ(ierr);
+  PetscInt cell_id_up = face_cell_ids[0];
+  PetscInt cell_id_dn = face_cell_ids[1];
 
   if (cell_id_up < 0 && cell_id_dn < 0) {
     SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Both cell IDs sharing a face are not valid");
@@ -1418,9 +1424,10 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
       if (!faces->is_local[face_id]) continue;
 
       // Determine the subcell id
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
-      PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      PetscInt *face_cell_ids, num_cell_ids;
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &face_cell_ids, &num_cell_ids); CHKERRQ(ierr);
+      PetscInt cell_id_up = face_cell_ids[0];
+      PetscInt cell_id_dn = face_cell_ids[1];
 
       // Currently, only zero-flux neumann boundary condition is implemented.
       // If the boundary condition is neumann, then gravity discretization term is zero
