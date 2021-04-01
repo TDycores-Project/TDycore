@@ -1224,7 +1224,7 @@ PetscReal TDyMPFAOVelocityNorm_2DMesh(TDy tdy) {
     PetscInt *edge_ids, num_edges;
     ierr = TDyMeshGetCellEdges(mesh, icell, &edge_ids, &num_edges); CHKERRQ(ierr);
 
-    for (iedge=0; iedge<cells->num_edges[icell]; iedge++) {
+    for (iedge=0; iedge<num_edges; iedge++) {
       edge_id = edge_ids[iedge];
 
       ierr = (*tdy->ops->computedirichletflux)(tdy, &(tdy->X[(edge_id + fStart)*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);

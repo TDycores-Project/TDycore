@@ -600,7 +600,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
     ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &face_ids, &num_faces); CHKERRQ(ierr);
     ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &face_areas, &num_faces); CHKERRQ(ierr);
 
-    for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+    for (iface=0; iface<num_faces; iface++) {
       
       PetscInt face_id = face_ids[iface];
 

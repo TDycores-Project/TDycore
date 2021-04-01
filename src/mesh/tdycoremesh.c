@@ -1392,7 +1392,7 @@ PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
     PetscInt *subface_ids, num_subfaces;
     ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
     ierr = TDyMeshGetVertexSubfaces(mesh, ivertex, &subface_ids, &num_subfaces); CHKERRQ(ierr);
-    num_faces = vertices->num_faces[ivertex];
+    //num_faces = vertices->num_faces[ivertex];
 
     PetscInt face_ids_sorted[num_faces];
     PetscInt subface_ids_sorted[num_faces];
@@ -1807,7 +1807,7 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyMesh *mesh, TDyVertex *vertices, Pe
 
   // Compute number of fluxes through internal faces
   PetscInt nflux_in = 0;
-  for (PetscInt iface=0; iface<vertices->num_faces[ivertex]; iface++) {
+  for (PetscInt iface=0; iface<vertex_num_faces; iface++) {
     PetscInt faceID = vertex_face_ids[iface];
     if (faces->is_internal[faceID]) nflux_in++;
   }
@@ -1830,7 +1830,7 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyMesh *mesh, TDyVertex *vertices, Pe
     ierr = TDyMeshGetSubcellFaceUnknownIdxs(mesh, subcell_id, &subcell_face_unknown_idx, &subcell_num_faces); CHKERRQ(ierr);
 
     // Loop over all faces of the subcell
-    for (PetscInt iface=0;iface<subcells->num_faces[subcell_id];iface++) {
+    for (PetscInt iface=0;iface<subcell_num_faces;iface++) {
 
       PetscInt face_id = subcell_face_ids[iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
@@ -1894,7 +1894,7 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyMesh *mesh, TDyVertex *vertices, Pe
     ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
     ierr = TDyMeshGetSubcellIsFaceUp(mesh, subcell_id, &subcell_is_face_up, &subcell_num_faces); CHKERRQ(ierr);
 
-    for (PetscInt iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+    for (PetscInt iface=0; iface<subcell_num_faces; iface++) {
 
       PetscInt faceID = subcell_face_ids[iface];
       if (faces->is_internal[faceID]) continue;
@@ -1932,7 +1932,7 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyMesh *mesh, TDyVertex *vertices, Pe
     // - Similary, the index of the flux through the faces of a
     //   subcell are identifed. The internal fluxes are first,
     //   followed by upwind boundary and downwind boundary faces.
-    for (PetscInt iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+    for (PetscInt iface=0; iface<subcell_num_faces; iface++) {
       PetscInt face_id = subcell_face_ids[iface];
 
       PetscInt idx_flux = subcell_face_unknown_idx[iface];
@@ -2007,7 +2007,7 @@ PetscInt VertexIdWithSameXYInACell(TDy tdy, PetscInt icell, PetscInt ivertex) {
   PetscInt *vertex_ids, num_vertices;
   ierr = TDyMeshGetCellVertices(mesh, icell, &vertex_ids, &num_vertices); CHKERRQ(ierr);
 
-  for (PetscInt iv=0; iv<cells->num_vertices[icell]; iv++) {
+  for (PetscInt iv=0; iv<num_vertices; iv++) {
 
     PetscInt ivertex_2 = vertex_ids[iv];
 
@@ -2047,7 +2047,7 @@ PetscBool IsCellAboveTheVertex(TDy tdy, PetscInt icell, PetscInt ivertex) {
   PetscInt *vertex_ids, num_vertices;
   ierr = TDyMeshGetCellVertices(mesh, icell, &vertex_ids, &num_vertices); CHKERRQ(ierr);
 
-  for (PetscInt iv=0; iv<cells->num_vertices[icell]; iv++) {
+  for (PetscInt iv=0; iv<num_vertices; iv++) {
 
     PetscInt ivertex_2 = vertex_ids[iv];
 
@@ -2123,7 +2123,7 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
       ierr = TDyMeshGetCellVertices(mesh, cellID, &vertex_ids, &num_vertices); CHKERRQ(ierr);
 
       // Find the vertex that is above/below ivertex
-      for (PetscInt iv=0; iv<cells->num_vertices[cellID]; iv++) {
+      for (PetscInt iv=0; iv<num_vertices; iv++) {
         ivertexAbvBlw[level] = vertex_ids[iv];
         if (ivertex != ivertexAbvBlw[level]) {
           if (VerticesHaveSameXYCoords(tdy, ivertex, ivertexAbvBlw[level])) {
@@ -2141,7 +2141,7 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
       ierr = TDyMeshGetCellFaces(mesh, cellID, &face_ids, &num_faces); CHKERRQ(ierr);
 
       PetscInt faceCount = 0;
-      for (PetscInt iface=0; iface<cells->num_faces[cellID]; iface++) {
+      for (PetscInt iface=0; iface<num_faces; iface++) {
         PetscInt faceID = face_ids[iface];
         PetscInt fOffsetVert = faces->vertex_offset[faceID];
 
@@ -2231,8 +2231,8 @@ PetscBool AreCellsNeighbors(TDy tdy, PetscInt cell_id_1, PetscInt cell_id_2) {
   ierr = TDyMeshGetCellFaces(mesh, cell_id_2, &face_ids_2, &num_faces_2); CHKERRQ(ierr);
 
   PetscBool are_neighbors = PETSC_FALSE;
-  for (PetscInt ii=0; ii<cells->num_faces[cell_id_1]; ii++) {
-    for (PetscInt jj=0; jj<cells->num_faces[cell_id_2]; jj++) {
+  for (PetscInt ii=0; ii<num_faces_1; ii++) {
+    for (PetscInt jj=0; jj<num_faces_2; jj++) {
       if (face_ids_1[ii] == face_ids_2[jj] ) {
         are_neighbors = PETSC_TRUE;
         break;
@@ -2297,7 +2297,7 @@ PetscInt IDofFaceSharedByTwoCellsForACommonVertex(TDy tdy, PetscInt ivertex, Pet
 
   PetscInt face_id;
   PetscBool found;
-  for (PetscInt iface=0; iface<vertices->num_faces[ivertex]; iface++) {
+  for (PetscInt iface=0; iface<num_faces; iface++) {
     face_id = face_ids[iface];
 
     found = PETSC_FALSE;
