@@ -184,7 +184,7 @@ PetscErrorCode TDyComputeGMatrixTPFFor3DMesh(TDy tdy) {
         for (PetscInt jj=0;jj<subcell_num_faces;jj++) {
           PetscReal nu[dim];
 
-          if (ii /= jj) {
+          if (ii != jj) {
 
             tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
 
