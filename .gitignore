@@ -3,3 +3,4 @@
 *.o
 *.vtk
 *.DIR
+.DS_Store

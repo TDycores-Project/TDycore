@@ -959,9 +959,11 @@ PetscErrorCode TDyPrintSubcellInfo(TDy tdy, PetscInt icell, PetscInt isubcell) {
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
   TDySubcell *subcells = &mesh->subcells;
+  PetscErrorCode ierr;
 
   PetscInt subcell_id = icell*cells->num_subcells[icell] + isubcell;
-  PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+  PetscInt *face_ids, num_faces;
+  ierr = TDyMeshGetSubcellFaces(mesh, isubcell, &face_ids, &num_faces); CHKERRQ(ierr);
 
   printf("Subcell_id = %02d is %d-th subcell of cell_id = %d; ",subcell_id, isubcell, icell);
   printf(" No. faces = %d; ",subcells->num_faces[subcell_id]);
@@ -969,7 +971,7 @@ PetscErrorCode TDyPrintSubcellInfo(TDy tdy, PetscInt icell, PetscInt isubcell) {
   PetscInt iface;
   printf(" Face Ids: ");
   for (iface = 0; iface<subcells->num_faces[subcell_id]; iface++) {
-    printf("  %02d ",subcells->face_ids[sOffsetFace + iface]);
+    printf("  %02d ",face_ids[iface]);
   }
   printf("\n");
 

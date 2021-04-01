@@ -36,8 +36,11 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
     if (!vertices->is_local[ivertex]) continue;
-    //if (vertices->num_boundary_faces[ivertex] != 0) continue;
-    PetscInt vOffsetFace = vertices->face_offset[ivertex];
+
+    PetscInt *face_ids, *subface_ids;
+    PetscInt num_faces, num_subfaces;
+    ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetVertexSubfaces(mesh, ivertex, &subface_ids, &num_subfaces); CHKERRQ(ierr);
 
     PetscInt npitf_bc = vertices->num_boundary_faces[ivertex];
     PetscInt nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
@@ -46,8 +49,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
     PetscScalar TtimesP[nflux_in + npitf_bc];
     for (PetscInt irow=0; irow<nflux_in + npitf_bc; irow++) {
 
-      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
-      PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
+      PetscInt face_id = face_ids[irow];
+      PetscInt subface_id = subface_ids[irow];
       PetscInt num_subfaces = 4;
 
       if (!faces->is_local[face_id]) continue;
@@ -62,9 +65,10 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
        //                          = (kr/mu)_{j} otherwise
        //      T includes product of K and A_{ij}
 
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
-      PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
+      PetscInt cell_id_up = cell_ids[0];
+      PetscInt cell_id_dn = cell_ids[1];
 
       PetscReal den_aveg = 0.0;
       if (cell_id_up>=0) {
@@ -254,7 +258,11 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
     PetscInt vertex_id = ivertex;
 
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
-    PetscInt vOffsetFace    = vertices->face_offset[ivertex];
+
+    PetscInt *face_ids, *subface_ids;
+    PetscInt num_faces, num_subfaces;
+    ierr = TDyMeshGetVertexFaces(mesh, vertex_id, &face_ids, &num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetVertexSubfaces(mesh, vertex_id, &subface_ids, &num_subfaces); CHKERRQ(ierr);
 
     PetscInt npitf_bc = vertices->num_boundary_faces[ivertex];
     PetscInt nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
@@ -263,8 +271,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
     PetscScalar TtimesP[nflux_in + npitf_bc];
     for (PetscInt irow=0; irow < nflux_in + npitf_bc; irow++) {
 
-      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
-      PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
+      PetscInt face_id = face_ids[irow];
+      PetscInt subface_id = subface_ids[irow];
       PetscInt num_subfaces = 4;
 
       if (!faces->is_local[face_id]) continue;
@@ -289,12 +297,13 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
     //
     for (PetscInt irow=0; irow<nflux_in + npitf_bc; irow++) {
 
-      PetscInt face_id = vertices->face_ids[vOffsetFace + irow];
-      PetscInt subface_id = vertices->subface_ids[vOffsetFace + irow];
-      PetscInt fOffsetCell = faces->cell_offset[face_id];
+      PetscInt face_id = face_ids[irow];
+      PetscInt subface_id = subface_ids[irow];
+      PetscInt *cell_ids, num_cells;
+      ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-      PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
-      PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+      PetscInt cell_id_up = cell_ids[0];
+      PetscInt cell_id_dn = cell_ids[1];
 
       // If using neumann bc (which is currently no-flux), then skip the face
       if ( tdy->mpfao_bc_type == MPFAO_NEUMANN_BC  && (cell_id_up<0 || cell_id_dn <0))  continue;

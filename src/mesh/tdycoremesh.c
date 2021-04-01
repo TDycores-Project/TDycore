@@ -772,7 +772,405 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+/// Converts an integer datatype of TDy mesh element in compressed format
+///
+/// @param [in] tdy                  A TDy struct
+/// @param [in] num_elements         Number of elements
+/// @param [in] default_offset_size  Default offset size for elements
+/// @param [in] update_offset        Determines if subelement_offset should be updated
+/// @param [inout] subelement_num    Number of subelements for a given element
+/// @param [inout] subelement_offset Offset of subelements for a given element
+/// @param [inout] subelement_id     Subelement ids
+/// @returns 0                       on success, or a non-zero error code on failure
+PetscErrorCode ConvertMeshElementToCompressedFormatIntegerValues(TDy tdy, PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
+  PetscInt **subelement_num, PetscInt **subelement_offset, PetscInt **subelement_id) {
 
+  PetscFunctionBegin;
+
+  PetscInt count = 0, new_offset = 0;
+
+  count = (*subelement_num)[0];
+  for (PetscInt ielem=1; ielem<num_element; ielem++) {
+
+    new_offset += (*subelement_num)[ielem-1];
+    PetscInt old_offset = (*subelement_offset)[ielem];
+
+    for (PetscInt isubelem=0; isubelem<(*subelement_num)[ielem]; isubelem++){
+
+      (*subelement_id)[new_offset + isubelem] = (*subelement_id)[old_offset + isubelem];
+      count++;
+
+    }
+    if (update_offset) {
+      (*subelement_offset)[ielem] = new_offset;
+    }
+  }
+
+  if (update_offset) {
+    new_offset += (*subelement_num)[num_element];
+    (*subelement_offset)[num_element+1] = new_offset;
+  }
+
+  for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
+    (*subelement_id)[ii] = -1;
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Converts TDyVector datatype of TDy mesh element in compressed format
+///
+/// @param [in] tdy                  A TDy struct
+/// @param [in] num_elements         Number of elements
+/// @param [in] default_offset_size  Default offset size for elements
+/// @param [in] update_offset        Determines if subelement_offset should be updated
+/// @param [inout] subelement_num    Number of subelements for a given element
+/// @param [inout] subelement_offset Offset of subelements for a given element
+/// @param [inout] subelement_id     Subelement ids
+/// @returns 0                       on success, or a non-zero error code on failure
+PetscErrorCode ConvertMeshElementToCompressedFormatTDyVectorValues(TDy tdy, PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
+  PetscInt **subelement_num, PetscInt **subelement_offset, TDyVector **subelement_value) {
+
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  PetscInt count = 0, new_offset = 0;
+
+  count = (*subelement_num)[0];
+  for (PetscInt ielem=1; ielem<num_element; ielem++) {
+
+    new_offset += (*subelement_num)[ielem-1];
+    PetscInt old_offset = (*subelement_offset)[ielem];
+
+    for (PetscInt isubelem=0; isubelem<(*subelement_num)[ielem]; isubelem++){
+
+      for (PetscInt d=0; d<dim; d++) {
+        (*subelement_value)[new_offset + isubelem].V[d] = (*subelement_value)[old_offset + isubelem].V[d];
+      }
+      count++;
+
+    }
+    if (update_offset) {
+      (*subelement_offset)[ielem] = new_offset;
+    }
+  }
+
+  if (update_offset) {
+    new_offset += (*subelement_num)[num_element];
+    (*subelement_offset)[num_element+1] = new_offset;
+  }
+
+  for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
+    for (PetscInt d=0; d<dim; d++) {
+      (*subelement_value)[ii].V[d] = -1;
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+/* -------------------------------------------------------------------------- */
+/// Converts TDyCoordinate datatype of TDy mesh element in compressed format
+///
+/// @param [in] tdy                  A TDy struct
+/// @param [in] num_elements         Number of elements
+/// @param [in] default_offset_size  Default offset size for elements
+/// @param [in] update_offset        Determines if subelement_offset should be updated
+/// @param [inout] subelement_num    Number of subelements for a given element
+/// @param [inout] subelement_offset Offset of subelements for a given element
+/// @param [inout] subelement_id     Subelement ids
+/// @returns 0                       on success, or a non-zero error code on failure
+PetscErrorCode ConvertMeshElementToCompressedFormatTDyCoordinateValues(TDy tdy, PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
+  PetscInt **subelement_num, PetscInt **subelement_offset, TDyCoordinate **subelement_value) {
+
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  PetscInt count = 0, new_offset = 0;
+
+  count = (*subelement_num)[0];
+  for (PetscInt ielem=1; ielem<num_element; ielem++) {
+
+    new_offset += (*subelement_num)[ielem-1];
+    PetscInt old_offset = (*subelement_offset)[ielem];
+
+    for (PetscInt isubelem=0; isubelem<(*subelement_num)[ielem]; isubelem++){
+
+      for (PetscInt d=0; d<dim; d++) {
+        (*subelement_value)[new_offset + isubelem].X[d] = (*subelement_value)[old_offset + isubelem].X[d];
+      }
+      count++;
+
+    }
+    if (update_offset) {
+      (*subelement_offset)[ielem] = new_offset;
+    }
+  }
+
+  if (update_offset) {
+    new_offset += (*subelement_num)[num_element];
+    (*subelement_offset)[num_element+1] = new_offset;
+  }
+
+  for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
+    for (PetscInt d=0; d<dim; d++) {
+      (*subelement_value)[ii].X[d] = -1;
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Converts a real datatype of TDy mesh element in compressed format
+///
+/// @param [in] tdy                  A TDy struct
+/// @param [in] num_elements         Number of elements
+/// @param [in] default_offset_size  Default offset size for elements
+/// @param [in] update_offset        Determines if subelement_offset should be updated
+/// @param [inout] subelement_num    Number of subelements for a given element
+/// @param [inout] subelement_offset Offset of subelements for a given element
+/// @param [inout] subelement_id     Subelement ids
+/// @returns 0                       on success, or a non-zero error code on failure
+PetscErrorCode ConvertMeshElementToCompressedFormatRealValues(TDy tdy, PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
+  PetscInt **subelement_num, PetscInt **subelement_offset, PetscReal **subelement_value) {
+
+  PetscFunctionBegin;
+
+  PetscInt count = 0, new_offset = 0;
+
+  count = (*subelement_num)[0];
+  for (PetscInt ielem=1; ielem<num_element; ielem++) {
+
+    new_offset += (*subelement_num)[ielem-1];
+    PetscInt old_offset = (*subelement_offset)[ielem];
+
+    for (PetscInt isubelem=0; isubelem<(*subelement_num)[ielem]; isubelem++){
+
+      (*subelement_value)[new_offset + isubelem] = (*subelement_value)[old_offset + isubelem];
+      count++;
+
+    }
+    if (update_offset) {
+      (*subelement_offset)[ielem] = new_offset;
+    }
+  }
+
+  if (update_offset) {
+    new_offset += (*subelement_num)[num_element];
+    (*subelement_offset)[num_element+1] = new_offset;
+  }
+
+  for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
+    (*subelement_value)[ii] = -1;
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Converts all member variables of a TDyCell struct in compressed format
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ConvertCellsToCompressedFormat(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  DM dm = tdy->dm;
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  PetscErrorCode ierr;
+
+  PetscInt c_start, c_end;
+  ierr = DMPlexGetHeightStratum( dm, 0, &c_start, &c_end); CHKERRQ(ierr);
+  PetscInt num_cells = c_end - c_start;
+
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  // compute number of vertices per grid cell
+  PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
+  TDyCellType cell_type = GetCellType(dim, nverts_per_cell);
+
+  PetscInt num_vertices  = GetNumVerticesForCellType(cell_type);
+  PetscInt num_edges     = GetNumEdgesForCellType(cell_type);
+  PetscInt num_neighbors = GetNumNeighborsForCellType(cell_type);
+  PetscInt num_faces     = GetNumFacesForCellType(cell_type);
+
+  PetscInt update_offset = 1;
+
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_cells, num_vertices, update_offset,
+    &cells->num_vertices, &cells->vertex_offset, &cells->vertex_ids); CHKERRQ(ierr);
+
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_cells, num_edges, update_offset,
+    &cells->num_edges, &cells->edge_offset, &cells->edge_ids); CHKERRQ(ierr);
+
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_cells, num_neighbors, update_offset,
+    &cells->num_neighbors, &cells->neighbor_offset, &cells->neighbor_ids); CHKERRQ(ierr);
+
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_cells, num_faces, update_offset,
+    &cells->num_faces, &cells->face_offset, &cells->face_ids); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Converts all member variables of a TDySubcell struct in compressed format
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ConvertSubcellsToCompressedFormat(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  DM dm = tdy->dm;
+  TDyMesh *mesh = tdy->mesh;
+  TDySubcell *subcells = &mesh->subcells;
+  PetscErrorCode ierr;
+
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  PetscInt c_start, c_end;
+  ierr = DMPlexGetHeightStratum( dm, 0, &c_start, &c_end); CHKERRQ(ierr);
+  PetscInt num_cells = c_end - c_start;
+
+  PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
+  TDyCellType cell_type = GetCellType(dim, nverts_per_cell);
+  TDySubcellType subcell_type = GetSubcellTypeForCellType(cell_type);
+
+  PetscInt num_subcells   = GetNumSubcellsForSubcellType(subcell_type);
+  PetscInt num_nu_vectors = GetNumOfNuVectorsForSubcellType(subcell_type);
+  PetscInt num_vertices   = GetNumVerticesForSubcellType(subcell_type);
+  PetscInt num_faces      = GetNumFacesForSubcellType(subcell_type);
+
+  PetscInt num_subcells_per_cell = num_cells * num_subcells;
+
+  PetscInt update_offset;
+
+  /* Change variables that have subelement size of 'num_faces'*/
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_subcells_per_cell, num_faces, update_offset,
+    &subcells->num_faces, &subcells->face_offset, &subcells->face_ids); CHKERRQ(ierr);
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_subcells_per_cell, num_faces, update_offset,
+    &subcells->num_faces, &subcells->face_offset, &subcells->is_face_up); CHKERRQ(ierr);
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_subcells_per_cell, num_faces, update_offset,
+    &subcells->num_faces, &subcells->face_offset, &subcells->face_unknown_idx); CHKERRQ(ierr);
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_subcells_per_cell, num_faces, update_offset,
+    &subcells->num_faces, &subcells->face_offset, &subcells->face_flux_idx); CHKERRQ(ierr);
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatRealValues(tdy, num_subcells_per_cell, num_faces, update_offset,
+    &subcells->num_faces, &subcells->face_offset, &subcells->face_area); CHKERRQ(ierr);
+
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_subcells_per_cell, num_faces, update_offset,
+    &subcells->num_faces, &subcells->face_offset, &subcells->vertex_ids); CHKERRQ(ierr);
+
+  /* Change variables that have subelement size of 'num_nu_vectors'*/
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatTDyVectorValues(tdy, num_subcells_per_cell, num_nu_vectors, update_offset,
+    &subcells->num_nu_vectors, &subcells->nu_vector_offset, &subcells->nu_vector); CHKERRQ(ierr);
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatTDyVectorValues(tdy, num_subcells_per_cell, num_nu_vectors, update_offset,
+    &subcells->num_nu_vectors, &subcells->nu_vector_offset, &subcells->nu_star_vector); CHKERRQ(ierr);
+
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(tdy, num_subcells_per_cell, num_nu_vectors, update_offset,
+    &subcells->num_nu_vectors, &subcells->nu_vector_offset, &subcells->variable_continuity_coordinates); CHKERRQ(ierr);
+
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(tdy, num_subcells_per_cell, num_nu_vectors, update_offset,
+    &subcells->num_nu_vectors, &subcells->nu_vector_offset, &subcells->face_centroid); CHKERRQ(ierr);
+
+  /* Change variables that have subelement size of 'num_vertices'*/
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(tdy, num_subcells_per_cell, num_vertices, update_offset,
+    &subcells->num_vertices, &subcells->vertex_offset, &subcells->vertices_coordinates); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Converts all member variables of a TDyVertex struct in compressed format
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ConvertVerticesToCompressedFormat(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyVertex     *vertices = &mesh->vertices;
+  PetscErrorCode ierr;
+
+  PetscInt v_start, v_end, num_vertices;
+  ierr = DMPlexGetDepthStratum( dm, 0, &v_start, &v_end); CHKERRQ(ierr);
+  num_vertices = v_end-v_start;
+
+  PetscInt ncells_per_vertex = TDyMaxNumberOfCellsSharingAVertex(dm, tdy->closureSize, tdy->closure);
+  PetscInt nfaces_per_vertex = TDyMaxNumberOfFacesSharingAVertex(dm, tdy->closureSize, tdy->closure);
+  PetscInt nedges_per_vertex = TDyMaxNumberOfEdgesSharingAVertex(dm, tdy->closureSize, tdy->closure);
+
+  PetscInt update_offset;
+
+  /* Convert edge_ids */
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_vertices, nedges_per_vertex, update_offset,
+    &vertices->num_edges, &vertices->edge_offset, &vertices->edge_ids); CHKERRQ(ierr);
+
+  /* Convert face_ids */
+
+  // Note: face_id and subface_id use the same offset (vertices->face_offset)
+  //       So, the offsets are not updated when updating face_ids.
+  //       The vertices->face_offset are updated in the second round 
+  //       i.e. when the subface_ids are updated.
+  update_offset = 0;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_vertices, nfaces_per_vertex, update_offset,
+    &vertices->num_faces, &vertices->face_offset, &vertices->face_ids); CHKERRQ(ierr);
+
+  /* Convert subface_ids */
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_vertices, nfaces_per_vertex, update_offset,
+    &vertices->num_faces, &vertices->face_offset, &vertices->subface_ids); CHKERRQ(ierr);
+
+
+  /* Convert internal_cell_ids */
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_vertices, ncells_per_vertex, update_offset,
+    &vertices->num_internal_cells, &vertices->internal_cell_offset, &vertices->internal_cell_ids); CHKERRQ(ierr);
+
+  /* Convert subcell_ids */
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_vertices, nfaces_per_vertex, update_offset,
+    &vertices->num_internal_cells, &vertices->subcell_offset, &vertices->subcell_ids); CHKERRQ(ierr);
+
+  /* Convert boundary_face_ids */
+  update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_vertices, nfaces_per_vertex, update_offset,
+    &vertices->num_boundary_faces, &vertices->boundary_face_offset, &vertices->boundary_face_ids); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
 
   PetscFunctionBegin;
@@ -970,13 +1368,12 @@ PetscErrorCode UpdateCellOrientationAroundAVertex2DMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-
+/// For each vertex, reorder faces and subfaces such that all internal faces/subfaces
+/// are listed first followed by boundary faces
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
-
-  /*
-    For a vertex, save face ids such that all internal faces
-    are listed first followed by boundary faces.
-  */
 
   PetscFunctionBegin;
 
@@ -991,15 +1388,21 @@ PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
 
   for (PetscInt ivertex=0; ivertex<v_end-v_start; ivertex++) {
 
-    PetscInt face_ids_sorted[vertices->num_faces[ivertex]];
-    PetscInt subface_ids_sorted[vertices->num_faces[ivertex]];
-    PetscInt vOffsetFace = vertices->face_offset[ivertex];
+    PetscInt *face_ids, num_faces;
+    PetscInt *subface_ids, num_subfaces;
+    ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetVertexSubfaces(mesh, ivertex, &subface_ids, &num_subfaces); CHKERRQ(ierr);
+    //num_faces = vertices->num_faces[ivertex];
+
+    PetscInt face_ids_sorted[num_faces];
+    PetscInt subface_ids_sorted[num_faces];
     PetscInt count=0;
 
     // First find all internal faces (i.e. face shared by two cells)
-    for (PetscInt iface=0;iface<vertices->num_faces[ivertex];iface++) {
-      PetscInt face_id = vertices->face_ids[vOffsetFace + iface];
-      PetscInt subface_id = vertices->subface_ids[vOffsetFace + iface];
+    // and the corresponding subface
+    for (PetscInt iface=0;iface<num_faces;iface++) {
+      PetscInt face_id = face_ids[iface];
+      PetscInt subface_id = subface_ids[iface];
       if (faces->num_cells[face_id]==2) {
         face_ids_sorted[count] = face_id;
         subface_ids_sorted[count] = subface_id;
@@ -1008,9 +1411,10 @@ PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
     }
 
     // Now find all boundary faces (i.e. face shared by a single cell)
-    for (PetscInt iface=0;iface<vertices->num_faces[ivertex];iface++) {
-      PetscInt face_id = vertices->face_ids[vOffsetFace+iface];
-      PetscInt subface_id = vertices->subface_ids[vOffsetFace+iface];
+    // and the corresponding subfaces
+    for (PetscInt iface=0;iface<num_faces;iface++) {
+      PetscInt face_id = face_ids[iface];
+      PetscInt subface_id = subface_ids[iface];
       if (faces->num_cells[face_id]==1) {
         face_ids_sorted[count] = face_id;
         subface_ids_sorted[count] = subface_id;
@@ -1018,10 +1422,10 @@ PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
       }
     }
 
-    // Save the sorted faces
-    for (PetscInt iface=0;iface<vertices->num_faces[ivertex];iface++) {
-      vertices->face_ids[vOffsetFace+iface] = face_ids_sorted[iface];
-      vertices->subface_ids[vOffsetFace+iface] = subface_ids_sorted[iface];
+    // Save the sorted faces/subfaces
+    for (PetscInt iface=0;iface<num_faces;iface++) {
+      face_ids[iface] = face_ids_sorted[iface];
+      subface_ids[iface] = subface_ids_sorted[iface];
     }
 
   }
@@ -1165,6 +1569,11 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
 
   for (PetscInt icell=0; icell<c_end-c_start; icell++) {
 
+    PetscInt *vertex_ids, num_vertices;
+    PetscInt *edge_ids, num_edges;
+    ierr = TDyMeshGetCellVertices(mesh, icell, &vertex_ids, &num_vertices); CHKERRQ(ierr);
+    ierr = TDyMeshGetCellEdges(mesh, icell, &edge_ids, &num_edges); CHKERRQ(ierr);
+
     // save cell centroid
     ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen[0]); CHKERRQ(ierr);
 
@@ -1173,20 +1582,18 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
     for (PetscInt isubcell=0; isubcell<num_subcells; isubcell++) {
 
       // set pointer to vertex and subcell
-      PetscInt cOffsetVertex = cells->vertex_offset[icell];
 
       PetscInt subcell_id = icell*num_subcells+isubcell;
       PetscInt sOffsetNuVectors = subcells->nu_vector_offset[subcell_id];
 
       // save coorindates of vertex that is part of the subcell
-      ierr = TDyVertex_GetCoordinate(vertices, cells->vertex_ids[cOffsetVertex+isubcell], dim, &v_c[0]); CHKERRQ(ierr);
+      ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[isubcell], dim, &v_c[0]); CHKERRQ(ierr);
 
       // determine ids of up & down edges
-      PetscInt cOffsetEdge = cells->edge_offset[icell];
-      e_idx_up = cells->edge_ids[cOffsetEdge + isubcell];
+      e_idx_up = edge_ids[isubcell];
 
-      if (isubcell == 0) e_idx_dn = cells->edge_ids[cOffsetEdge + num_subcells-1];
-      else               e_idx_dn = cells->edge_ids[cOffsetEdge + isubcell    -1];
+      if (isubcell == 0) e_idx_dn = edge_ids[num_subcells-1];
+      else               e_idx_dn = edge_ids[isubcell    -1];
 
       // save centroids of up/down edges
       ierr = TDyEdge_GetCentroid(edges, e_idx_up, dim, &e_cen_up[0]); CHKERRQ(ierr);
@@ -1382,27 +1789,31 @@ PetscErrorCode UpdateIthTraversalOrder(TDyVertex *vertices, PetscInt ivertex, TD
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode SetupUpwindFacesForSubcell(TDyVertex *vertices, PetscInt ivertex, TDyCell *cells, TDyFace *faces, TDySubcell *subcells, PetscInt **cell_up2dw, PetscInt nUp2Dw) {
+PetscErrorCode SetupUpwindFacesForSubcell(TDyMesh *mesh, TDyVertex *vertices, PetscInt ivertex, TDyCell *cells, TDyFace *faces, TDySubcell *subcells, PetscInt **cell_up2dw, PetscInt nUp2Dw) {
 
   PetscFunctionBegin;
 
   PetscInt ncells = vertices->num_internal_cells[ivertex];
   PetscInt nfaces_bnd= vertices->num_boundary_faces[ivertex];
   PetscInt vOffsetBoundaryFace = vertices->boundary_face_offset[ivertex];
-  PetscInt vOffsetFace = vertices->face_offset[ivertex];
+
+  PetscErrorCode ierr;
+  PetscInt *vertex_face_ids, vertex_num_faces;
+  PetscInt *subface_ids, num_subfaces;
+  ierr = TDyMeshGetVertexFaces(mesh, ivertex, &vertex_face_ids, &vertex_num_faces); CHKERRQ(ierr);
+  ierr = TDyMeshGetVertexSubfaces(mesh, ivertex, &subface_ids, &num_subfaces); CHKERRQ(ierr);
 
   PetscInt boundary_cell_count = 0;
 
   // Compute number of fluxes through internal faces
   PetscInt nflux_in = 0;
-  for (PetscInt iface=0; iface<vertices->num_faces[ivertex]; iface++) {
-    PetscInt faceID = vertices->face_ids[vOffsetFace+iface];
+  for (PetscInt iface=0; iface<vertex_num_faces; iface++) {
+    PetscInt faceID = vertex_face_ids[iface];
     if (faces->is_internal[faceID]) nflux_in++;
   }
 
   PetscInt vOffsetIntCell = vertices->internal_cell_offset[ivertex];
   PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
-  vOffsetFace = vertices->face_offset[ivertex];
 
   for (PetscInt icell=0; icell<ncells; icell++) {
 
@@ -1412,17 +1823,21 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyVertex *vertices, PetscInt ivertex,
 
     // Get access to the cell and subcell
     PetscInt subcell_id = cell_id*cells->num_subcells[cell_id]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+    PetscInt *subcell_face_ids, *subcell_is_face_up, *subcell_face_unknown_idx, subcell_num_faces;
+    ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellIsFaceUp(mesh, subcell_id, &subcell_is_face_up, &subcell_num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellFaceUnknownIdxs(mesh, subcell_id, &subcell_face_unknown_idx, &subcell_num_faces); CHKERRQ(ierr);
 
     // Loop over all faces of the subcell
-    for (PetscInt iface=0;iface<subcells->num_faces[subcell_id];iface++) {
+    for (PetscInt iface=0;iface<subcell_num_faces;iface++) {
 
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+      PetscInt face_id = subcell_face_ids[iface];
       PetscInt fOffsetCell = faces->cell_offset[face_id];
 
       // Boundary face
       if (faces->cell_ids[fOffsetCell + 0] < 0 || faces->cell_ids[fOffsetCell + 1] < 0) {
-        subcells->face_unknown_idx[sOffsetFace + iface] = boundary_cell_count+nflux_in;
+        subcell_face_unknown_idx[iface] = boundary_cell_count+nflux_in;
 
         PetscInt face_id_local;
         for (PetscInt ii=0; ii<nfaces_bnd; ii++) {
@@ -1433,8 +1848,8 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyVertex *vertices, PetscInt ivertex,
         }
 
         for (PetscInt ii=0; ii<nUp2Dw; ii++) {
-          if (cell_up2dw[ii][0] == face_id_local && cell_up2dw[ii][1] == icell){ subcells->is_face_up[sOffsetFace + iface] = PETSC_TRUE; break;}
-          if (cell_up2dw[ii][1] == face_id_local && cell_up2dw[ii][0] == icell){ subcells->is_face_up[sOffsetFace + iface] = PETSC_FALSE; break;}
+          if (cell_up2dw[ii][0] == face_id_local && cell_up2dw[ii][1] == icell){ subcell_is_face_up[iface] = PETSC_TRUE; break;}
+          if (cell_up2dw[ii][1] == face_id_local && cell_up2dw[ii][0] == icell){ subcell_is_face_up[iface] = PETSC_FALSE; break;}
         }
         boundary_cell_count++;
 
@@ -1448,15 +1863,15 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyVertex *vertices, PetscInt ivertex,
         for (PetscInt ii=0; ii<nUp2Dw; ii++) {
           if (cell_up2dw[ii][0] == cell_1 && cell_up2dw[ii][1] == cell_2) {
 
-            subcells->face_unknown_idx[sOffsetFace + iface] = ii;
-            if (cells->id[cell_id] == faces->cell_ids[fOffsetCell + 0])  subcells->is_face_up[sOffsetFace + iface] = PETSC_TRUE;
-            else                                                         subcells->is_face_up[sOffsetFace + iface] = PETSC_FALSE;
+            subcell_face_unknown_idx[iface] = ii;
+            if (cells->id[cell_id] == faces->cell_ids[fOffsetCell + 0])  subcell_is_face_up[iface] = PETSC_TRUE;
+            else                                                         subcell_is_face_up[iface] = PETSC_FALSE;
             break;
           } else if (cell_up2dw[ii][0] == cell_2 && cell_up2dw[ii][1] == cell_1) {
 
-            subcells->face_unknown_idx[sOffsetFace + iface] = ii;
-            if (cells->id[cell_id] == faces->cell_ids[fOffsetCell + 1]) subcells->is_face_up[sOffsetFace + iface] = PETSC_TRUE;
-            else                                                        subcells->is_face_up[sOffsetFace + iface] = PETSC_FALSE;
+            subcell_face_unknown_idx[iface] = ii;
+            if (cells->id[cell_id] == faces->cell_ids[fOffsetCell + 1]) subcell_is_face_up[iface] = PETSC_TRUE;
+            else                                                        subcell_is_face_up[iface] = PETSC_FALSE;
             break;
           }
         }
@@ -1474,15 +1889,18 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyVertex *vertices, PetscInt ivertex,
     PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
 
     PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
 
-    for (PetscInt iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
+    PetscInt *subcell_face_ids, *subcell_is_face_up, subcell_num_faces;
+    ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellIsFaceUp(mesh, subcell_id, &subcell_is_face_up, &subcell_num_faces); CHKERRQ(ierr);
 
-      PetscInt faceID = subcells->face_ids[sOffsetFace+iface];
+    for (PetscInt iface=0; iface<subcell_num_faces; iface++) {
+
+      PetscInt faceID = subcell_face_ids[iface];
       if (faces->is_internal[faceID]) continue;
 
       PetscBool upwind_entries;
-      upwind_entries = (subcells->is_face_up[sOffsetFace + iface]==1);
+      upwind_entries = (subcell_is_face_up[iface]==1);
 
       if (upwind_entries) nflux_bc_up++;
       else                nflux_bc_dn++;
@@ -1500,7 +1918,12 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyVertex *vertices, PetscInt ivertex,
 
     // Get access to the cell and subcell
     PetscInt subcell_id = cell_id*cells->num_subcells[cell_id]+isubcell;
-    PetscInt sOffsetFace = subcells->face_offset[subcell_id];
+
+    PetscInt *subcell_face_ids, *subcell_is_face_up, *subcell_face_unknown_idx, *subcell_face_flux_idx, subcell_num_faces;
+    ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellIsFaceUp(mesh, subcell_id, &subcell_is_face_up, &subcell_num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellFaceUnknownIdxs(mesh, subcell_id, &subcell_face_unknown_idx, &subcell_num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellFaceFluxIdxs(mesh, subcell_id, &subcell_face_flux_idx, &subcell_num_faces); CHKERRQ(ierr);
 
     // Loop over all faces of the subcell and
     // - Updates face_ids for a vertex such that first all
@@ -1509,21 +1932,21 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyVertex *vertices, PetscInt ivertex,
     // - Similary, the index of the flux through the faces of a
     //   subcell are identifed. The internal fluxes are first,
     //   followed by upwind boundary and downwind boundary faces.
-    for (PetscInt iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
-      PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+    for (PetscInt iface=0; iface<subcell_num_faces; iface++) {
+      PetscInt face_id = subcell_face_ids[iface];
 
-      PetscInt idx_flux = subcells->face_unknown_idx[sOffsetFace + iface];
+      PetscInt idx_flux = subcell_face_unknown_idx[iface];
       if (faces->is_internal[face_id]) {
-        vertices->face_ids[vOffsetFace + idx_flux] = face_id;
-        subcells->face_flux_idx[sOffsetFace + iface] = idx_flux;
+        vertex_face_ids[idx_flux] = face_id;
+        subcell_face_flux_idx[iface] = idx_flux;
       } else {
-        if (subcells->is_face_up[sOffsetFace + iface]) {
-          vertices->face_ids[vOffsetFace + nflux_in + nup_bnd_flux] = face_id;
-          subcells->face_flux_idx[sOffsetFace + iface] = nflux_in+nup_bnd_flux;
+        if (subcell_is_face_up[iface]) {
+          vertex_face_ids[nflux_in + nup_bnd_flux] = face_id;
+          subcell_face_flux_idx[iface] = nflux_in+nup_bnd_flux;
           nup_bnd_flux++;
         } else {
-          vertices->face_ids[vOffsetFace + nflux_in + nflux_bc_up + ndn_bnd_flux] = face_id;
-          subcells->face_flux_idx[sOffsetFace + iface] = nflux_in+ndn_bnd_flux;
+          vertex_face_ids[nflux_in + nflux_bc_up + ndn_bnd_flux] = face_id;
+          subcell_face_flux_idx[iface] = nflux_in+ndn_bnd_flux;
           ndn_bnd_flux++;
         }
       }
@@ -1534,12 +1957,12 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyVertex *vertices, PetscInt ivertex,
   // Since vertices->face_ids[] has been updated, now
   // update vertices->subface_ids[]
   for (PetscInt iface=0; iface<vertices->num_faces[ivertex]; iface++) {
-    PetscInt face_id = vertices->face_ids[vOffsetFace+iface];
+    PetscInt face_id = vertex_face_ids[iface];
     PetscInt fOffsetVertex = faces->vertex_offset[face_id];
     PetscBool found = PETSC_FALSE;
     for (PetscInt ii=0; ii<faces->num_vertices[face_id]; ii++) {
       if (faces->vertex_ids[fOffsetVertex + ii] == ivertex) {
-        vertices->subface_ids[vOffsetFace + iface] = ii;
+        subface_ids[iface] = ii;
         found = PETSC_TRUE;
         break;
       }
@@ -1579,11 +2002,14 @@ PetscInt VertexIdWithSameXYInACell(TDy tdy, PetscInt icell, PetscInt ivertex) {
   PetscInt result;
   PetscBool found = PETSC_FALSE;
 
-  PetscInt cOffsetVert = cells->vertex_offset[icell];
+  PetscErrorCode ierr;
 
-  for (PetscInt iv=0; iv<cells->num_vertices[icell]; iv++) {
+  PetscInt *vertex_ids, num_vertices;
+  ierr = TDyMeshGetCellVertices(mesh, icell, &vertex_ids, &num_vertices); CHKERRQ(ierr);
 
-    PetscInt ivertex_2 = cells->vertex_ids[cOffsetVert+iv];
+  for (PetscInt iv=0; iv<num_vertices; iv++) {
+
+    PetscInt ivertex_2 = vertex_ids[iv];
 
     if (ivertex != ivertex_2) {
 
@@ -1616,12 +2042,14 @@ PetscBool IsCellAboveTheVertex(TDy tdy, PetscInt icell, PetscInt ivertex) {
   TDyCell *cells = &mesh->cells;
   TDyVertex *vertices = &mesh->vertices;
   PetscBool found = PETSC_FALSE;
+  PetscErrorCode ierr;
 
-  PetscInt cOffsetVert = cells->vertex_offset[icell];
+  PetscInt *vertex_ids, num_vertices;
+  ierr = TDyMeshGetCellVertices(mesh, icell, &vertex_ids, &num_vertices); CHKERRQ(ierr);
 
-  for (PetscInt iv=0; iv<cells->num_vertices[icell]; iv++) {
+  for (PetscInt iv=0; iv<num_vertices; iv++) {
 
-    PetscInt ivertex_2 = cells->vertex_ids[cOffsetVert+iv];
+    PetscInt ivertex_2 = vertex_ids[iv];
 
     if (ivertex != ivertex_2) {
 
@@ -1652,6 +2080,7 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   TDyVertex *vertices = &mesh->vertices;
+  PetscErrorCode ierr;
 
   PetscInt ncells_int = vertices->num_internal_cells[ivertex];
 
@@ -1688,12 +2117,14 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
     PetscInt maxBndFaces = 0;
     for (PetscInt ii=0; ii<ncells_level; ii++) {
       PetscInt cellID = cellsAbvBlw[level][ii];
-      PetscInt cOffsetVert = cells->vertex_offset[cellID];
       PetscBool found = PETSC_FALSE;
 
+      PetscInt *vertex_ids, num_vertices;
+      ierr = TDyMeshGetCellVertices(mesh, cellID, &vertex_ids, &num_vertices); CHKERRQ(ierr);
+
       // Find the vertex that is above/below ivertex
-      for (PetscInt iv=0; iv<cells->num_vertices[cellID]; iv++) {
-        ivertexAbvBlw[level] = cells->vertex_ids[cOffsetVert+iv];
+      for (PetscInt iv=0; iv<num_vertices; iv++) {
+        ivertexAbvBlw[level] = vertex_ids[iv];
         if (ivertex != ivertexAbvBlw[level]) {
           if (VerticesHaveSameXYCoords(tdy, ivertex, ivertexAbvBlw[level])) {
             found = PETSC_TRUE;
@@ -1706,10 +2137,12 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
       }
 
       // Find faces that are shared by (ivertex, ivertexAbvBlw)
+      PetscInt *face_ids, num_faces;
+      ierr = TDyMeshGetCellFaces(mesh, cellID, &face_ids, &num_faces); CHKERRQ(ierr);
+
       PetscInt faceCount = 0;
-      for (PetscInt iface=0; iface<cells->num_faces[cellID]; iface++) {
-        PetscInt cOffsetFace = cells->face_offset[cellID];
-        PetscInt faceID = cells->face_ids[cOffsetFace+iface];
+      for (PetscInt iface=0; iface<num_faces; iface++) {
+        PetscInt faceID = face_ids[iface];
         PetscInt fOffsetVert = faces->vertex_offset[faceID];
 
         // Does the faceID-th face contains vertices corresponding to ivertex and ivertexAbvBlw?
@@ -1790,14 +2223,17 @@ PetscBool AreCellsNeighbors(TDy tdy, PetscInt cell_id_1, PetscInt cell_id_2) {
 
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
+  PetscErrorCode ierr;
 
-  PetscInt cOffsetFace1 = cells->face_offset[cell_id_1];
-  PetscInt cOffsetFace2 = cells->face_offset[cell_id_2];
+  PetscInt *face_ids_1, num_faces_1;
+  PetscInt *face_ids_2, num_faces_2;
+  ierr = TDyMeshGetCellFaces(mesh, cell_id_1, &face_ids_1, &num_faces_1); CHKERRQ(ierr);
+  ierr = TDyMeshGetCellFaces(mesh, cell_id_2, &face_ids_2, &num_faces_2); CHKERRQ(ierr);
 
   PetscBool are_neighbors = PETSC_FALSE;
-  for (PetscInt ii=0; ii<cells->num_faces[cell_id_1]; ii++) {
-    for (PetscInt jj=0; jj<cells->num_faces[cell_id_2]; jj++) {
-      if (cells->face_ids[cOffsetFace1+ii] == cells->face_ids[cOffsetFace2+jj] ) {
+  for (PetscInt ii=0; ii<num_faces_1; ii++) {
+    for (PetscInt jj=0; jj<num_faces_2; jj++) {
+      if (face_ids_1[ii] == face_ids_2[jj] ) {
         are_neighbors = PETSC_TRUE;
         break;
       }
@@ -1852,15 +2288,17 @@ PetscInt IDofFaceSharedByTwoCellsForACommonVertex(TDy tdy, PetscInt ivertex, Pet
   TDyMesh *mesh = tdy->mesh;
   TDyVertex *vertices = &mesh->vertices;
   TDyFace *faces = &mesh->faces;
+  PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
-  PetscInt vOffsetFace = vertices->face_offset[ivertex];
+  PetscInt *face_ids, num_faces;
+  ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
 
   PetscInt face_id;
   PetscBool found;
-  for (PetscInt iface=0; iface<vertices->num_faces[ivertex]; iface++) {
-    face_id = vertices->face_ids[vOffsetFace+iface];
+  for (PetscInt iface=0; iface<num_faces; iface++) {
+    face_id = face_ids[iface];
 
     found = PETSC_FALSE;
     PetscInt fOffsetCell = faces->cell_offset[face_id];
@@ -2442,7 +2880,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
 
   PetscInt nUp2Dw;
   ierr = SetUpToDownConnections(tdy,ivertex,cell_traversal,cell_up2dw,&nUp2Dw); CHKERRQ(ierr);
-  ierr = SetupUpwindFacesForSubcell(vertices,ivertex,cells,faces,subcells,cell_up2dw,nUp2Dw); CHKERRQ(ierr);
+  ierr = SetupUpwindFacesForSubcell(mesh,vertices,ivertex,cells,faces,subcells,cell_up2dw,nUp2Dw); CHKERRQ(ierr);
 
   ierr = TDyDeallocate_IntegerArray_2D(cell_traversal, 2); CHKERRQ(ierr);
   ierr = TDyDeallocate_IntegerArray_2D(cell_up2dw, tdy->nfv); CHKERRQ(ierr);
@@ -2627,14 +3065,20 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
     PetscInt num_subcells = cells->num_subcells[icell];
 
+    PetscInt *vertex_ids, num_vertices;
+    ierr = TDyMeshGetCellVertices(mesh, icell, &vertex_ids, &num_vertices); CHKERRQ(ierr);
+
     for (PetscInt isubcell=0; isubcell<num_subcells; isubcell++) {
 
       // set pointer to vertex and subcell
-      PetscInt cOffsetVertex = cells->vertex_offset[icell];
-      PetscInt ivertex = cells->vertex_ids[cOffsetVertex+isubcell];
+      PetscInt ivertex = vertex_ids[isubcell];
       PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-      PetscInt sOffsetFace = subcells->face_offset[subcell_id];
-      PetscInt sOffsetNuVec = subcells->nu_vector_offset[subcell_id];
+
+      PetscInt *subcell_face_ids, *subcell_vertex_ids, subcell_num_faces;
+      PetscReal *subcell_face_areas;
+      ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
+      ierr = TDyMeshGetSubcellVertices(mesh, subcell_id, &subcell_vertex_ids, &subcell_num_faces); CHKERRQ(ierr);
+      ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &subcell_face_areas, &subcell_num_faces); CHKERRQ(ierr);
 
       // save coordindates of vertex that is part of the subcell
       ierr = TDyVertex_GetCoordinate(vertices, ivertex, dim, &v_c[0]); CHKERRQ(ierr);
@@ -2649,15 +3093,15 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
       // form a plane such that normal to plane points toward the cell centroid
       ierr = UpdateFaceOrientationAroundAVertex(&cells->centroid[icell], faces, vertices, ivertex, dim, f_idx);
       for (PetscInt d=0;d<3;d++) {
-        subcells->face_ids[sOffsetFace + d] = f_idx[d];
-        subcells->vertex_ids[sOffsetFace + d] = ivertex;
+        subcell_face_ids[d] = f_idx[d];
+        subcell_vertex_ids[d] = ivertex;
       }
 
       PetscReal face_cen[3][3];
       PetscReal volume;
 
       for (PetscInt iface=0; iface<num_shared_faces; iface++) {
-        PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+        PetscInt face_id = subcell_face_ids[iface];
         ierr = TDyFace_GetCentroid(faces, face_id, dim, &face_cen[iface][0]); CHKERRQ(ierr);
       }
       ierr = TDyComputeVolumeOfTetrahedron(cell_cen, face_cen[0], face_cen[1], face_cen[2], &volume); CHKERRQ(ierr);
@@ -2677,7 +3121,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
 
         PetscReal f_normal[3];
 
-        PetscInt face_id = subcells->face_ids[sOffsetFace + iface];
+        PetscInt face_id = subcell_face_ids[iface];
 
         ierr = TDyFace_GetCentroid(faces, face_id, dim, &face_cen[iface][0]); CHKERRQ(ierr);
 
@@ -2687,15 +3131,17 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         ierr = FindNeighboringVerticesOfAFace(faces,face_id,ivertex,neighboring_vertex_ids);
 
         PetscReal edge0_cen[3], edge1_cen[3];
+        TDyCoordinate *subcell_face_centroids;
+        ierr = TDyMeshGetSubcellFaceCentroids(mesh, subcell_id, &subcell_face_centroids, &subcell_num_faces); CHKERRQ(ierr);
 
         for (PetscInt d=0; d<dim; d++) {
           edge0_cen[d] = (v_c[d] + vertices->coordinate[neighboring_vertex_ids[0]].X[d])/2.0;
           edge1_cen[d] = (v_c[d] + vertices->coordinate[neighboring_vertex_ids[1]].X[d])/2.0;
-          subcells->face_centroid[sOffsetFace + iface].X[d] = (v_c[d] + edge0_cen[d] + face_cen[iface][d] + edge1_cen[d])/4.0;
+          subcell_face_centroids[iface].X[d] = (v_c[d] + edge0_cen[d] + face_cen[iface][d] + edge1_cen[d])/4.0;
         }
 
         // area of face
-        ierr = TDyQuadrilateralArea(v_c, edge0_cen, face_cen[iface], edge1_cen, &subcells->face_area[sOffsetFace + iface]);
+        ierr = TDyQuadrilateralArea(v_c, edge0_cen, face_cen[iface], edge1_cen, &subcell_face_areas[iface]);
 
         // nu_vec on the "iface"-th is given as:
         //  = (x_{iface+1} - x_{cell_centroid}) x (x_{iface+2} - x_{cell_centroid})
@@ -2728,9 +3174,9 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         }
 
         // Save x_{f1_idx } and x_{f2_idx }
-        PetscInt face_id_1 = subcells->face_ids[sOffsetFace + f1_idx];
-        PetscInt face_id_2 = subcells->face_ids[sOffsetFace + f2_idx];
-        PetscInt face_id_3 = subcells->face_ids[sOffsetFace + f3_idx];
+        PetscInt face_id_1 = subcell_face_ids[f1_idx];
+        PetscInt face_id_2 = subcell_face_ids[f2_idx];
+        PetscInt face_id_3 = subcell_face_ids[f3_idx];
 
         ierr = TDyFace_GetCentroid(faces, face_id_1, dim, &f1[0]); CHKERRQ(ierr);
         ierr = TDyFace_GetCentroid(faces, face_id_2, dim, &f2[0]); CHKERRQ(ierr);
@@ -2740,8 +3186,12 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         ierr = TDyNormalToTriangle(cell_cen, f1, f2, f_normal);
 
         // Save the data
+        TDyVector *nu_vectors;
+        PetscInt num_nu_vectors;
+        ierr = TDyMeshGetSubcellNuVectors(mesh, subcell_id, &nu_vectors, &num_nu_vectors); CHKERRQ(ierr);
+
         for (PetscInt d=0; d<dim; d++) {
-          subcells->nu_vector[sOffsetNuVec + iface].V[d] = f_normal[d];
+          nu_vectors[iface].V[d] = f_normal[d];
         }
 
         // Compute nu_star vector for TPF
@@ -2779,8 +3229,12 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         ierr = TDyDotProduct(normal,f_normal,&dot_prod); CHKERRQ(ierr);
         value = dot_prod;
 
+        TDyVector *nu_star_vectors;
+        PetscInt num_nu_star_vectors;
+        ierr = TDyMeshGetSubcellNuStarVectors(mesh, subcell_id, &nu_star_vectors, &num_nu_star_vectors); CHKERRQ(ierr);
+
         for (PetscInt d=0; d<dim; d++) {
-          subcells->nu_star_vector[sOffsetNuVec + iface].V[d] = value*volume*6.0/dist;
+          nu_star_vectors[iface].V[d] = value*volume*6.0/dist;
         }
       }
 
@@ -2950,14 +3404,17 @@ PetscErrorCode OutputCells2DMesh(TDy tdy) {
     // save volume
     cell_vol_v[icell] = cells->volume[icell];
 
-    PetscInt cOffsetNeighbor = cells->neighbor_offset[icell];
-    PetscInt cOffsetVertex = cells->vertex_offset[icell];
-    PetscInt cOffsetEdge = cells->edge_offset[icell];
+    PetscInt *vertex_ids, num_vertices;
+    PetscInt *neighbor_ids, num_neighbors;
+    PetscInt *edge_ids, num_edges;
+    ierr = TDyMeshGetCellVertices(mesh, icell, &vertex_ids, &num_vertices); CHKERRQ(ierr);
+    ierr = TDyMeshGetCellNeighbors(mesh, icell, &neighbor_ids, &num_neighbors); CHKERRQ(ierr);
+    ierr = TDyMeshGetCellEdges(mesh, icell, &edge_ids, &num_edges); CHKERRQ(ierr);
 
     for (PetscInt k=0; k<4; k++) {
-      neigh_id_v [icell*4 + k] = cells->neighbor_ids[cOffsetNeighbor+k];
-      vertex_id_v[icell*4 + k] = cells->vertex_ids[cOffsetVertex+k];
-      edge_id_v  [icell*4 + k] = cells->edge_ids[cOffsetEdge+k];
+      neigh_id_v [icell*4 + k] = neighbor_ids[k];
+      vertex_id_v[icell*4 + k] = vertex_ids[k];
+      edge_id_v  [icell*4 + k] = edge_ids[k];
 
       PetscInt subcell_id = icell*cells->num_subcells[icell]+k;
 
@@ -3209,6 +3666,8 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
     break;
 
   case 3:
+    ierr = ConvertVerticesToCompressedFormat(tdy); CHKERRQ(ierr);
+    ierr = ConvertSubcellsToCompressedFormat(tdy); CHKERRQ(ierr);
     ierr = UpdateFaceOrderAroundAVertex3DMesh(tdy); CHKERRQ(ierr);
     ierr = UpdateCellOrientationAroundAFace3DMesh(  tdy); CHKERRQ(ierr);
     break;
