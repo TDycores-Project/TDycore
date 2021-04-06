@@ -807,8 +807,8 @@ PetscErrorCode ConvertMeshElementToCompressedFormatIntegerValues(TDy tdy, PetscI
   }
 
   if (update_offset) {
-    new_offset += (*subelement_num)[num_element];
-    (*subelement_offset)[num_element+1] = new_offset;
+    new_offset += (*subelement_num)[num_element-1];
+    (*subelement_offset)[num_element] = new_offset;
   }
 
   for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
@@ -861,8 +861,8 @@ PetscErrorCode ConvertMeshElementToCompressedFormatTDyVectorValues(TDy tdy, Pets
   }
 
   if (update_offset) {
-    new_offset += (*subelement_num)[num_element];
-    (*subelement_offset)[num_element+1] = new_offset;
+    new_offset += (*subelement_num)[num_element-1];
+    (*subelement_offset)[num_element] = new_offset;
   }
 
   for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
@@ -916,8 +916,8 @@ PetscErrorCode ConvertMeshElementToCompressedFormatTDyCoordinateValues(TDy tdy, 
   }
 
   if (update_offset) {
-    new_offset += (*subelement_num)[num_element];
-    (*subelement_offset)[num_element+1] = new_offset;
+    new_offset += (*subelement_num)[num_element-1];
+    (*subelement_offset)[num_element] = new_offset;
   }
 
   for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
@@ -965,8 +965,8 @@ PetscErrorCode ConvertMeshElementToCompressedFormatRealValues(TDy tdy, PetscInt 
   }
 
   if (update_offset) {
-    new_offset += (*subelement_num)[num_element];
-    (*subelement_offset)[num_element+1] = new_offset;
+    new_offset += (*subelement_num)[num_element-1];
+    (*subelement_offset)[num_element] = new_offset;
   }
 
   for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
