@@ -3,7 +3,7 @@
 
 #include <petsc.h>
 
-PETSC_INTERN PetscErrorCode TDyComputeGMatrixDefaultFor3DMesh(TDy);
+PETSC_INTERN PetscErrorCode TDyComputeGMatrixMPFAOFor3DMesh(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeGMatrixTPFFor3DMesh(TDy);
 PETSC_INTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy);

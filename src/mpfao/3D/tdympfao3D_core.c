@@ -38,7 +38,7 @@ PetscErrorCode TDyComputeEntryOfGMatrix3D(PetscReal area, PetscReal n[3],
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyComputeGMatrixDefaultFor3DMesh(TDy tdy) {
+PetscErrorCode TDyComputeGMatrixMPFAOFor3DMesh(TDy tdy) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()

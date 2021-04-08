@@ -157,7 +157,7 @@ PetscErrorCode ComputeGMatrix(TDy tdy) {
   case 3:
     switch (tdy->mpfao_gmatrix_method) {
       case MPFAO_GMATRIX_DEFAULT:
-        ierr = TDyComputeGMatrixDefaultFor3DMesh(tdy); CHKERRQ(ierr);
+        ierr = TDyComputeGMatrixMPFAOFor3DMesh(tdy); CHKERRQ(ierr);
         break;
 
       case MPFAO_GMATRIX_TPF:
