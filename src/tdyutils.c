@@ -592,7 +592,7 @@ PetscErrorCode ComputeInverseOf3by3Matrix(PetscReal a[9], PetscReal inv_a[9]) {
   inv_a[8] = +1.0/det_a*(a[0]*a[4]-a[3]*a[1]);
 
   for (PetscInt ii=0; ii<9; ii++) {
-    if (fabs(a[ii] < PETSC_MACHINE_EPSILON)) a[ii] = 0.0;
+    if (fabs(a[ii]) < PETSC_MACHINE_EPSILON) a[ii] = 0.0;
   }
 
   PetscFunctionReturn(0);
