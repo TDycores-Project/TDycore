@@ -807,8 +807,8 @@ PetscErrorCode ConvertMeshElementToCompressedFormatIntegerValues(TDy tdy, PetscI
   }
 
   if (update_offset) {
-    new_offset += (*subelement_num)[num_element];
-    (*subelement_offset)[num_element+1] = new_offset;
+    new_offset += (*subelement_num)[num_element-1];
+    (*subelement_offset)[num_element] = new_offset;
   }
 
   for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
@@ -861,8 +861,8 @@ PetscErrorCode ConvertMeshElementToCompressedFormatTDyVectorValues(TDy tdy, Pets
   }
 
   if (update_offset) {
-    new_offset += (*subelement_num)[num_element];
-    (*subelement_offset)[num_element+1] = new_offset;
+    new_offset += (*subelement_num)[num_element-1];
+    (*subelement_offset)[num_element] = new_offset;
   }
 
   for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
@@ -916,8 +916,8 @@ PetscErrorCode ConvertMeshElementToCompressedFormatTDyCoordinateValues(TDy tdy, 
   }
 
   if (update_offset) {
-    new_offset += (*subelement_num)[num_element];
-    (*subelement_offset)[num_element+1] = new_offset;
+    new_offset += (*subelement_num)[num_element-1];
+    (*subelement_offset)[num_element] = new_offset;
   }
 
   for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
@@ -965,8 +965,8 @@ PetscErrorCode ConvertMeshElementToCompressedFormatRealValues(TDy tdy, PetscInt 
   }
 
   if (update_offset) {
-    new_offset += (*subelement_num)[num_element];
-    (*subelement_offset)[num_element+1] = new_offset;
+    new_offset += (*subelement_num)[num_element-1];
+    (*subelement_offset)[num_element] = new_offset;
   }
 
   for (PetscInt ii = count; ii < default_offset_size*num_element; ii++) {
@@ -1379,7 +1379,6 @@ PetscErrorCode UpdateFaceOrderAroundAVertex3DMesh(TDy tdy) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
-  TDyVertex     *vertices = &mesh->vertices;
   TDyFace       *faces = &mesh->faces;
   PetscErrorCode ierr;
 
@@ -1998,7 +1997,6 @@ PetscInt VertexIdWithSameXYInACell(TDy tdy, PetscInt icell, PetscInt ivertex) {
   PetscFunctionBegin;
 
   TDyMesh *mesh = tdy->mesh;
-  TDyCell *cells = &mesh->cells;
   PetscInt result;
   PetscBool found = PETSC_FALSE;
 
@@ -2039,7 +2037,6 @@ PetscBool IsCellAboveTheVertex(TDy tdy, PetscInt icell, PetscInt ivertex) {
   PetscBool is_above;
 
   TDyMesh *mesh = tdy->mesh;
-  TDyCell *cells = &mesh->cells;
   TDyVertex *vertices = &mesh->vertices;
   PetscBool found = PETSC_FALSE;
   PetscErrorCode ierr;
@@ -2077,7 +2074,6 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
   PetscFunctionBegin;
 
   TDyMesh *mesh = tdy->mesh;
-  TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   TDyVertex *vertices = &mesh->vertices;
   PetscErrorCode ierr;
@@ -2222,7 +2218,6 @@ PetscBool AreCellsNeighbors(TDy tdy, PetscInt cell_id_1, PetscInt cell_id_2) {
   PetscFunctionBegin;
 
   TDyMesh *mesh = tdy->mesh;
-  TDyCell *cells = &mesh->cells;
   PetscErrorCode ierr;
 
   PetscInt *face_ids_1, num_faces_1;
@@ -2286,7 +2281,6 @@ PetscErrorCode ArrangeCellsInAnCircularOrder(TDy tdy, PetscInt *cellsAbvBlw, Pet
 PetscInt IDofFaceSharedByTwoCellsForACommonVertex(TDy tdy, PetscInt ivertex, PetscInt icell_1, PetscInt icell_2) {
 
   TDyMesh *mesh = tdy->mesh;
-  TDyVertex *vertices = &mesh->vertices;
   TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
 
@@ -3666,6 +3660,7 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
     break;
 
   case 3:
+    ierr = ConvertCellsToCompressedFormat(tdy); CHKERRQ(ierr);
     ierr = ConvertVerticesToCompressedFormat(tdy); CHKERRQ(ierr);
     ierr = ConvertSubcellsToCompressedFormat(tdy); CHKERRQ(ierr);
     ierr = UpdateFaceOrderAroundAVertex3DMesh(tdy); CHKERRQ(ierr);

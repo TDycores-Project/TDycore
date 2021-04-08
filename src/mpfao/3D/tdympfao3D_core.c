@@ -38,7 +38,88 @@ PetscErrorCode TDyComputeEntryOfGMatrix3D(PetscReal area, PetscReal n[3],
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
+PetscErrorCode TDyComputeGMatrixMPFAOFor3DMesh(TDy tdy) {
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  PetscInt dim,icell;
+  PetscErrorCode ierr;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
+  TDySubcell *subcells = &mesh->subcells;
+
+    MaterialProp *matprop = tdy->matprop;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  for (icell=0; icell<mesh->num_cells; icell++) {
+
+    // extract permeability tensor
+    PetscReal K[3][3];
+
+    for (PetscInt ii=0; ii<dim; ii++) {
+      for (PetscInt jj=0; jj<dim; jj++) {
+        K[ii][jj] = matprop->K0[icell*dim*dim + ii*dim + jj];
+      }
+    }
+
+    // extract thermal conductivity tensor
+    PetscReal Kappa[3][3];
+
+    if (tdy->mode == TH) {
+      for (PetscInt ii=0; ii<dim; ii++) {
+        for (PetscInt jj=0; jj<dim; jj++) {
+          Kappa[ii][jj] = matprop->Kappa0[icell*dim*dim + ii*dim + jj];
+        }
+      }
+    }
+
+    for (PetscInt isubcell=0; isubcell<cells->num_subcells[icell]; isubcell++) {
+
+      PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
+
+      PetscInt *subcell_face_ids, subcell_num_faces;
+      PetscReal *subcell_face_areas;
+      ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
+      ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &subcell_face_areas, &subcell_num_faces); CHKERRQ(ierr);
+
+      for (PetscInt ii=0;ii<subcell_num_faces;ii++) {
+
+        PetscInt face_id = subcell_face_ids[ii];
+        PetscReal area = subcell_face_areas[ii];
+
+        PetscReal normal[3];
+        ierr = TDyFace_GetNormal(faces, face_id, dim, &normal[0]); CHKERRQ(ierr);
+
+        for (PetscInt jj=0;jj<subcell_num_faces;jj++) {
+          PetscReal nu[dim];
+
+          ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+
+          ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
+                                          &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+
+          if (tdy->mode == TH) {
+               ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+
+              ierr = TDyComputeEntryOfGMatrix3D(area, normal, Kappa,
+                                  nu, subcells->T[subcell_id], dim,
+                                  &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+          } // TH
+        } // jj-subcell-faces
+      } // ii-isubcell faces
+    } // isubcell
+  } // icell
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyComputeGMatrixTPFFor3DMesh(TDy tdy) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
@@ -103,93 +184,76 @@ PetscErrorCode TDyComputeGMatrixFor3DMesh(TDy tdy) {
         for (PetscInt jj=0;jj<subcell_num_faces;jj++) {
           PetscReal nu[dim];
 
-          switch (tdy->mpfao_gmatrix_method){
-          case MPFAO_GMATRIX_DEFAULT:
-             ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+          if (ii != jj) {
 
-             ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
-                                            &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
-             break;
+            tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
 
-          case MPFAO_GMATRIX_TPF:
-            if (ii == jj) {
+          } else {
 
-              PetscInt neighbor_cell_id;
-              PetscReal neighbor_cell_cen[dim],cell_cen[dim], dist;
+            PetscInt neighbor_cell_id;
+            PetscReal neighbor_cell_cen[dim],cell_cen[dim], dist;
 
-              PetscInt faceCellOffset = faces->cell_offset[face_id];
+            PetscInt faceCellOffset = faces->cell_offset[face_id];
 
-              ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen[0]); CHKERRQ(ierr);
+            ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen[0]); CHKERRQ(ierr);
 
-              if ( (faces->cell_ids[faceCellOffset]==icell) ) {
-                neighbor_cell_id = faces->cell_ids[faceCellOffset+1];
-              } else {
-                neighbor_cell_id = faces->cell_ids[faceCellOffset];
-              }
-
-              PetscReal K_neighbor[3][3];
-              PetscInt kk,mm;
-
-              if (neighbor_cell_id >=0) {
-                ierr = TDyCell_GetCentroid2(cells, neighbor_cell_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
-                ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
-                dist *= 0.50;
-
-                for (kk=0; kk<dim; kk++) {
-                  for (mm=0; mm<dim; mm++) {
-                    K_neighbor[kk][mm] = matprop->K0[neighbor_cell_id*dim*dim + kk*dim + mm];
-                  }
-                }
-              } else {
-                ierr = TDyFace_GetCentroid(faces, face_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
-                ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
-                for (kk=0; kk<dim; kk++) {
-                  for (mm=0; mm<dim; mm++) {
-                    K_neighbor[kk][mm] = matprop->K0[icell*dim*dim + kk*dim + mm];
-                  }
-                }
-              }
-              PetscReal K_neighbor_value = 0.0, K_value = 0.0, K_aveg;
-
-              PetscReal dot_prod, normal_up2dn[dim];
-              ierr = TDyUnitNormalVectorJoiningTwoVertices(neighbor_cell_cen, cell_cen, normal_up2dn); CHKERRQ(ierr);
-              ierr = TDyDotProduct(normal,normal_up2dn,&dot_prod); CHKERRQ(ierr);
-
-              for (kk=0;kk<dim;kk++) K_neighbor_value += pow(normal_up2dn[kk],2.0)/K_neighbor[kk][kk];
-              for (kk=0;kk<dim;kk++) K_value          += pow(normal_up2dn[kk],2.0)/K[kk][kk];
-              K_neighbor_value = 1.0/K_neighbor_value;
-              K_value = 1.0/K_value;
-              K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
-
-              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist);
-
+            if ( (faces->cell_ids[faceCellOffset]==icell) ) {
+              neighbor_cell_id = faces->cell_ids[faceCellOffset+1];
             } else {
-              tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
+              neighbor_cell_id = faces->cell_ids[faceCellOffset];
             }
+
+            PetscReal K_neighbor[3][3];
+            PetscInt kk,mm;
+
+            if (neighbor_cell_id >=0) {
+              ierr = TDyCell_GetCentroid2(cells, neighbor_cell_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
+              ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
+              dist *= 0.50;
+
+              for (kk=0; kk<dim; kk++) {
+                for (mm=0; mm<dim; mm++) {
+                  K_neighbor[kk][mm] = matprop->K0[neighbor_cell_id*dim*dim + kk*dim + mm];
+                }
+              }
+            } else {
+              ierr = TDyFace_GetCentroid(faces, face_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
+              ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
+              for (kk=0; kk<dim; kk++) {
+                for (mm=0; mm<dim; mm++) {
+                  K_neighbor[kk][mm] = matprop->K0[icell*dim*dim + kk*dim + mm];
+                }
+              }
+            }
+            PetscReal K_neighbor_value = 0.0, K_value = 0.0, K_aveg;
+
+            PetscReal dot_prod, normal_up2dn[dim];
+            ierr = TDyUnitNormalVectorJoiningTwoVertices(neighbor_cell_cen, cell_cen, normal_up2dn); CHKERRQ(ierr);
+            ierr = TDyDotProduct(normal,normal_up2dn,&dot_prod); CHKERRQ(ierr);
+
+            for (kk=0;kk<dim;kk++) {
+              K_neighbor_value += pow(normal_up2dn[kk],2.0)/K_neighbor[kk][kk];
+              K_value          += pow(normal_up2dn[kk],2.0)/K[kk][kk];
+            }
+
+            K_neighbor_value = 1.0/K_neighbor_value;
+            K_value          = 1.0/K_value;
+            K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
+
+            tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist);
           }
 
           if (tdy->mode == TH) {
-            switch (tdy->mpfao_gmatrix_method){
-            case MPFAO_GMATRIX_DEFAULT:
-               ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+              if (ii == jj) {
+              ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
 
-              ierr = TDyComputeEntryOfGMatrix3D(area, normal, Kappa,
-                                  nu, subcells->T[subcell_id], dim,
-                                  &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
-               break;
+              ierr = TDyComputeEntryOfGMatrix3D(area, normal, Kappa, nu, subcells->T[subcell_id], dim,
+                                          &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+              } else {
+                tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
+              }
+          } // TH
 
-            case MPFAO_GMATRIX_TPF:
-               if (ii == jj) {
-                ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
-
-                ierr = TDyComputeEntryOfGMatrix3D(area, normal, Kappa, nu, subcells->T[subcell_id], dim,
-                                           &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
-                } else {
-                  tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
-                }
-                break;
-            }
-          }
         } // jj-subcell-faces
       } // ii-isubcell faces
     } // isubcell
@@ -260,7 +324,6 @@ PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
   TDyVertex *vertices = &mesh->vertices;
-  TDySubcell *subcells = &mesh->subcells;
 
   PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
   PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
@@ -336,7 +399,6 @@ PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
   TDyVertex *vertices = &mesh->vertices;
-  TDySubcell *subcells = &mesh->subcells;
   TDyFace *faces = &mesh->faces;
 
   PetscInt npcen = vertices->num_internal_cells[ivertex];
@@ -461,7 +523,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
   TDyMesh *mesh = tdy->mesh;
   TDyVertex *vertices = &mesh->vertices;
-  TDySubcell *subcells = &mesh->subcells;
   TDyFace *faces = &mesh->faces;
   PetscInt icell;
   PetscReal **Gmatrix;

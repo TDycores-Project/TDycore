@@ -155,7 +155,15 @@ PetscErrorCode ComputeGMatrix(TDy tdy) {
     ierr = TDyComputeGMatrixFor2DMesh(tdy); CHKERRQ(ierr);
     break;
   case 3:
-    ierr = TDyComputeGMatrixFor3DMesh(tdy); CHKERRQ(ierr);
+    switch (tdy->mpfao_gmatrix_method) {
+      case MPFAO_GMATRIX_DEFAULT:
+        ierr = TDyComputeGMatrixMPFAOFor3DMesh(tdy); CHKERRQ(ierr);
+        break;
+
+      case MPFAO_GMATRIX_TPF:
+        ierr = TDyComputeGMatrixTPFFor3DMesh(tdy); CHKERRQ(ierr);
+        break;
+    }
     break;
   default:
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in ComputeGMatrix");
