@@ -201,7 +201,7 @@ implicit none
   call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-tdy_mpfao_boundary_condition_type',bc_type_name,flg,ierr)
   CHKERRA(ierr)
   if (trim(bc_type_name) == 'MPFAO_DIRICHLET_BC') then
-    bc_type = MPFAO_NEUMANN_BC
+    bc_type = MPFAO_DIRICHLET_BC
   endif
 
   if (.not.mesh_file_flg) then
@@ -324,7 +324,7 @@ implicit none
 
   end if
 
-  if (bc_type == MPFAO_NEUMANN_BC ) then
+  if (bc_type == MPFAO_DIRICHLET_BC ) then
      call TDySetDirichletValueFunction(tdy,PressureFunction,0,ierr);
      CHKERRQ(ierr)
   endif
