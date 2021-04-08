@@ -97,6 +97,22 @@ contains
     resSat = 0.1d0
   end subroutine ResidualSat_PFLOTRAN
 
+  subroutine PressureFunction(tdy,x,pressure,dummy,ierr)
+    implicit none
+    TDy                    :: tdy
+    PetscReal, intent(in) :: x(3)
+    PetscReal, intent(out):: pressure
+    integer                :: dummy(*)
+    PetscErrorCode :: ierr
+
+    if (x(1) > 0.d0 .and. x(1) < 1.d0 .and. x(2) > 0.d0 .and. x(2) < 1.d0 .and. x(3) > 0.99d0) then
+      pressure = 110000.d0
+    else
+      pressure = 100000.d0
+    end if
+    ierr = 0
+  end subroutine PressureFunction
+
 end module snes_mpfaof90mod
 
 program main
@@ -124,7 +140,7 @@ implicit none
   PetscInt            :: dim, faces(3)
   PetscReal           :: lower(3), upper(3)
   PetscErrorCode      :: ierr
-  PetscInt            :: nx, ny, nz, ncell
+  PetscInt            :: nx, ny, nz, ncell, bc_type
   PetscInt  , pointer :: index(:)
   PetscReal , pointer :: residualSat(:), blockPerm(:), liquid_sat(:), liquid_mass(:)
   PetscReal , pointer :: alpha(:), m(:)
@@ -132,7 +148,7 @@ implicit none
   PetscInt            :: c, cStart, cEnd, j, nvalues,g, max_steps, step
   PetscReal           :: dtime, mass_pre, mass_post, ic_value
   character (len=256) :: mesh_filename, ic_filename
-  character(len=256)  :: string
+  character(len=256)  :: string, bc_type_name
   PetscBool           :: mesh_file_flg, ic_file_flg, pflotran_consistent
   PetscViewer         :: viewer
   PetscInt            :: step_mod
@@ -153,6 +169,7 @@ implicit none
   dtime = 1800.d0
   ic_value = 102325.d0
   pflotran_consistent = PETSC_FALSE
+  bc_type = MPFAO_NEUMANN_BC
 
   call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr);
   CHKERRA(ierr)
@@ -171,6 +188,21 @@ implicit none
   CHKERRA(ierr)
   call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ic_value',ic_value,flg,ierr)
   CHKERRA(ierr)
+
+  call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-nx',nx,flg,ierr)
+  CHKERRA(ierr)
+
+  call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ny',ny,flg,ierr)
+  CHKERRA(ierr)
+
+  call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-nz',nz,flg,ierr)
+  CHKERRA(ierr)
+
+  call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-tdy_mpfao_boundary_condition_type',bc_type_name,flg,ierr)
+  CHKERRA(ierr)
+  if (trim(bc_type_name) == 'MPFAO_DIRICHLET_BC') then
+    bc_type = MPFAO_DIRICHLET_BC
+  endif
 
   if (.not.mesh_file_flg) then
     faces(1) = nx; faces(2) = ny; faces(3) = nz;
@@ -291,6 +323,11 @@ implicit none
      CHKERRA(ierr);
 
   end if
+
+  if (bc_type == MPFAO_DIRICHLET_BC ) then
+     call TDySetDirichletValueFunction(tdy,PressureFunction,0,ierr);
+     CHKERRQ(ierr)
+  endif
 
   call TDySetupNumericalMethods(tdy,ierr);
   CHKERRA(ierr);

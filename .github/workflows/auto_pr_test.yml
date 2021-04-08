@@ -44,18 +44,30 @@ jobs:
         make V=1 codecov=1 transient transient_mpfao transient_th_mpfao
         make V=1 transient_mpfaof90 transient_snes_mpfaof90
         cd ../../regression_tests
+        num_failures=0
         make test-mpfao
+        num_failures=$(( $num_failures + $? ))
         make test-steady
+        num_failures=$(( $num_failures + $? ))
         make test-steadyf90
+        num_failures=$(( $num_failures + $? ))
         make test-transient
+        num_failures=$(( $num_failures + $? ))
         make test-transient-mpfao
+        num_failures=$(( $num_failures + $? ))
         make test-transient-mpfaof90
+        num_failures=$(( $num_failures + $? ))
         make test-transient-snes-mpfaof90
+        num_failures=$(( $num_failures + $? ))
         make test-transient-th-mpfao
+        num_failures=$(( $num_failures + $? ))
         make test-richards
+        num_failures=$(( $num_failures + $? ))
         make test-th
+        num_failures=$(( $num_failures + $? ))
         cd ..
         cat regression_tests/*testlog
+        test $num_failures -eq 0
 
     - name: Evaluating test coverage
       run: |

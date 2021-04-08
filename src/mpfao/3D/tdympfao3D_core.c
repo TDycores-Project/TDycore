@@ -197,7 +197,7 @@ PetscErrorCode TDyComputeGMatrixTPFFor3DMesh(TDy tdy) {
 
             ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen[0]); CHKERRQ(ierr);
 
-            if ( (faces->cell_ids[faceCellOffset]==icell) ) {
+            if (faces->cell_ids[faceCellOffset]==icell) {
               neighbor_cell_id = faces->cell_ids[faceCellOffset+1];
             } else {
               neighbor_cell_id = faces->cell_ids[faceCellOffset];
@@ -425,7 +425,7 @@ PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex
       PetscInt faceID = face_ids[iface];
       if (faces->is_internal[faceID]) continue;
 
-      if ((is_face_up[iface]==1)) {
+      if (is_face_up[iface]==1) {
         (*nflux_bc_up)++;
       } else {
         (*nflux_bc_dn)++;
@@ -1411,7 +1411,7 @@ PetscErrorCode ComputeFacePermeabilityTensor(TDy tdy, PetscInt face_id, PetscRea
   idx = 0;
   for (PetscInt kk = 0; kk < dim; kk++) {
     for (PetscInt mm = 0; mm < dim; mm++) {
-      if (Kface[idx] < 0.0 || fabs(Kface[idx] < PETSC_MACHINE_EPSILON) ) Kface[idx] = 0.0;
+      if (Kface[idx] < 0.0 || fabs(Kface[idx]) < PETSC_MACHINE_EPSILON) Kface[idx] = 0.0;
       idx++;
     }
   }
