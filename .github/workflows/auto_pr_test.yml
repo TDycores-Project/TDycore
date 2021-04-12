@@ -30,6 +30,7 @@ jobs:
 
     - name: Building TDycore (${{ matrix.build-type }})
       run: |
+        grep PETSC_VERSION_GIT $PETSC_DIR/include/petscconf.h | sed -e s/#define\ //g
         make -j codecov=1 V=1
 
     - name: Running tests (${{ matrix.build-type }})
