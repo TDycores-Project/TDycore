@@ -41,7 +41,7 @@ WORKDIR /build
 ARG PETSC_HASH=HEAD
 ENV PETSC_HASH=$PETSC_HASH
 ENV PETSC_DIR=/usr/local/petsc/mpich-int32-real-opt
-RUN git clone --depth=1 --branch=main https://gitlab.com/petsc/petsc && \
+RUN git clone --branch=main https://gitlab.com/petsc/petsc && \
   cd petsc && \
   git reset --hard $PETSC_HASH && \
   PETSC_INSTALL_PREFIX=$PETSC_DIR; unset PETSC_DIR; \
