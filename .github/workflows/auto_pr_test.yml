@@ -46,6 +46,8 @@ jobs:
         make V=1 transient_mpfaof90 transient_snes_mpfaof90
         cd ../../regression_tests
         num_failures=0
+        make unit-tests
+        num_failures=$(( $num_failures + $? ))
         make test-mpfao
         num_failures=$(( $num_failures + $? ))
         make test-steady
