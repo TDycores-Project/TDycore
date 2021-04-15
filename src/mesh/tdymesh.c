@@ -50,6 +50,19 @@ PetscErrorCode TDyMeshGetCellVertices(TDyMesh *mesh,
   return 0;
 }
 
+/// Given a mesh and a cell index, returns number of cell vertices
+/// their number.
+/// @param [in] mesh A mesh object
+/// @param [in] cell The index of a cell within the mesh
+/// @param [out] num_vertices Stores the number of vertices for the given cell
+PetscErrorCode TDyMeshGetCellNumVertices(TDyMesh *mesh,
+                                      PetscInt cell,
+                                      PetscInt *num_vertices) {
+  PetscInt offset = mesh->cells.vertex_offset[cell];
+  *num_vertices = mesh->cells.vertex_offset[cell+1] - offset;
+  return 0;
+}
+
 /// Given a mesh and a cell index, retrieve an array of indices of faces bounding the cell,
 /// and their number.
 /// @param [in] mesh A mesh object
