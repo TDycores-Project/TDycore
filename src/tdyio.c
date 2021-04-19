@@ -150,15 +150,18 @@ PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM 
   int CPU_word_size, IO_word_size;
   PetscErrorCode ierr;
   int exoid = -1;
+  PetscViewer       viewer;
   
   CPU_word_size = sizeof(PetscReal);
   IO_word_size  = sizeof(PetscReal);
 
-  exoid = ex_create(ofilename,EX_CLOBBER, &CPU_word_size, &IO_word_size);
-  if (exoid < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_FILE_UNEXPECTED, "Unable to open exodus file %\n", ofilename);
-
-  ierr = DMPlexView_ExodusII_Internal(dm,exoid,1);CHKERRQ(ierr);
-
+  ierr = PetscViewerExodusIIOpen(PETSC_COMM_WORLD,ofilename,FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
+  ierr = PetscViewerExodusIISetOrder(viewer,1);CHKERRQ(ierr);
+  ierr = PetscViewerView(viewer,PETSC_VIEWER_STDOUT_WORLD);
+  ierr = DMView(dm,viewer);CHKERRQ(ierr);
+  ierr = PetscViewerView(viewer,PETSC_VIEWER_STDOUT_WORLD);
+  
+  ierr = PetscViewerExodusIIGetId(viewer,&exoid);CHKERRQ(ierr);
   ierr = ex_put_variable_param(exoid, EX_ELEM_BLOCK, num_vars);CHKERRQ(ierr);
   ierr = ex_put_variable_names(exoid,EX_ELEM_BLOCK, num_vars, zonalVarNames);CHKERRQ(ierr);
   ierr = ex_close(exoid);CHKERRQ(ierr);
@@ -195,14 +198,16 @@ PetscErrorCode TdyIOWriteExodusVar(char *ofilename, Vec U, TDyIO io){
   PetscErrorCode ierr;
   float version;
   int exoid = -1;
+  int offsetZ = 0;
   
   CPU_word_size = sizeof(PetscReal);
   IO_word_size  = sizeof(PetscReal);
 
   exoid = ex_open(ofilename, EX_WRITE, &CPU_word_size, &IO_word_size, &version);
   if (exoid < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_FILE_UNEXPECTED, "Unable to open exodus file %\n", ofilename);
-  ierr = PetscObjectSetName((PetscObject) U,  "Soln");CHKERRQ(ierr); 
-  ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, io->num_times);CHKERRQ(ierr);       
+  ierr = PetscObjectSetName((PetscObject) U,  "Soln");CHKERRQ(ierr);
+  ierr = EXOGetVarIndex_Internal(exoid,EX_ELEM_BLOCK,"Soln",&offsetZ);CHKERRQ(ierr);
+  ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, io->num_times,offsetZ);CHKERRQ(ierr);       
   ierr = ex_close(exoid);CHKERRQ(ierr);
 #endif
 
