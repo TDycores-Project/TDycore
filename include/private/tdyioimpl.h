@@ -16,7 +16,7 @@ struct _p_TDyIO {
 PETSC_INTERN PetscErrorCode TDyIOCreate(TDyIO*);
 PETSC_INTERN PetscErrorCode TdyIOInitializeExodus(char*,char*[],DM ,int);
 PETSC_INTERN PetscErrorCode TdyIOAddExodusTime(char*,PetscReal,TDyIO);
-PETSC_INTERN PetscErrorCode TdyIOWriteExodusVar(char*,Vec,TDyIO);
+PETSC_INTERN PetscErrorCode TdyIOWriteExodusVar(char*,DM,Vec,TDyIO,PetscReal);
 PETSC_EXTERN PetscErrorCode TdyIOInitializeHDF5(char*,DM);
 PETSC_EXTERN PetscErrorCode TdyIOWriteHDF5Var(char*,Vec,PetscReal);
 PETSC_EXTERN PetscErrorCode TDyIOWriteAsciiViewer(Vec,PetscReal);
