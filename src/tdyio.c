@@ -85,7 +85,7 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     char *ofilename = tdy->io->filename;
 
     ierr = TdyIOAddExodusTime(ofilename,time,tdy->io);CHKERRQ(ierr);
-    ierr = TdyIOWriteExodusVar(ofilename,v,tdy->io);CHKERRQ(ierr);
+    ierr = TdyIOWriteExodusVar(ofilename,dm,v,tdy->io,time);CHKERRQ(ierr);
   }
   else if (tdy->io->format == HDF5Format) {
     char *ofilename = tdy->io->filename;
@@ -150,10 +150,7 @@ PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM 
   int CPU_word_size, IO_word_size;
   PetscErrorCode ierr;
   int exoid = -1;
-  PetscViewer       viewer;
-  
-  CPU_word_size = sizeof(PetscReal);
-  IO_word_size  = sizeof(PetscReal);
+  PetscViewer viewer;
 
   ierr = PetscViewerExodusIIOpen(PETSC_COMM_WORLD,ofilename,FILE_MODE_WRITE,&viewer);CHKERRQ(ierr);
   ierr = PetscViewerExodusIISetOrder(viewer,1);CHKERRQ(ierr);
@@ -164,7 +161,8 @@ PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM 
   ierr = PetscViewerExodusIIGetId(viewer,&exoid);CHKERRQ(ierr);
   ierr = ex_put_variable_param(exoid, EX_ELEM_BLOCK, num_vars);CHKERRQ(ierr);
   ierr = ex_put_variable_names(exoid,EX_ELEM_BLOCK, num_vars, zonalVarNames);CHKERRQ(ierr);
-  ierr = ex_close(exoid);CHKERRQ(ierr);
+  
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #else
   SETERRQ(PETSC_COMM_SELF,PETSC_ERR_SUP, "PETSc not compiled with Exodus II support.");
 #endif
@@ -192,23 +190,18 @@ PetscErrorCode TdyIOAddExodusTime(char *ofilename, PetscReal time, TDyIO io){
   PetscFunctionReturn(0);
 }
   
-PetscErrorCode TdyIOWriteExodusVar(char *ofilename, Vec U, TDyIO io){ 
+PetscErrorCode TdyIOWriteExodusVar(char *ofilename, DM dm, Vec U, TDyIO io, PetscReal time){ 
 #if defined(PETSC_HAVE_EXODUSII)
-  int CPU_word_size, IO_word_size;
   PetscErrorCode ierr;
-  float version;
-  int exoid = -1;
-  int offsetZ = 0;
-  
-  CPU_word_size = sizeof(PetscReal);
-  IO_word_size  = sizeof(PetscReal);
+  PetscViewer       viewer;
 
-  exoid = ex_open(ofilename, EX_WRITE, &CPU_word_size, &IO_word_size, &version);
-  if (exoid < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_FILE_UNEXPECTED, "Unable to open exodus file %\n", ofilename);
+  ierr = PetscViewerExodusIIOpen(PETSC_COMM_WORLD,ofilename,FILE_MODE_APPEND,&viewer);CHKERRQ(ierr);
+  
+  ierr = DMSetOutputSequenceNumber(dm,io->num_times-1,time);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject) U,  "Soln");CHKERRQ(ierr);
-  ierr = EXOGetVarIndex_Internal(exoid,EX_ELEM_BLOCK,"Soln",&offsetZ);CHKERRQ(ierr);
-  ierr = VecViewPlex_ExodusII_Zonal_Internal(U, exoid, io->num_times,offsetZ);CHKERRQ(ierr);       
-  ierr = ex_close(exoid);CHKERRQ(ierr);
+  ierr = VecView(U, viewer);CHKERRQ(ierr);
+
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
 
   PetscFunctionReturn(0);
