@@ -36,16 +36,27 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       break;
   }
 
-  ierr = TDySetPorosityFunction(tdy,TDyPorosityFunctionDefault,PETSC_NULL);
-         CHKERRQ(ierr);
-  ierr = TDySetPermeabilityFunction(tdy,TDyPermeabilityFunctionDefault,
-                                    PETSC_NULL); CHKERRQ(ierr);
+  if (!TDyIsPorositySet(tdy)) {
+    ierr = TDySetPorosityFunction(tdy,TDyPorosityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+  }
+
+  if (!TDyIsPermeabilitySet(tdy)){
+    ierr = TDySetPermeabilityFunction(tdy,TDyPermeabilityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+  }
+
   if (tdy->mode == TH) {
-    ierr = TDySetThermalConductivityFunction(tdy,
-                                         TDyThermalConductivityFunctionDefault,
-                                         PETSC_NULL); CHKERRQ(ierr);
-    ierr = TDySetSoilDensity(tdy,TDySoilDensityFunctionDefault); CHKERRQ(ierr);
-    ierr = TDySetSoilSpecificHeat(tdy,TDySpecificSoilHeatFunctionDefault); CHKERRQ(ierr);
+
+    if (!TDyIsThermalConductivytSet(tdy)) {
+      ierr = TDySetThermalConductivityFunction(tdy,TDyThermalConductivityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+    }
+
+    if (!TDyIsSoilDensitySet(tdy)) {
+      ierr = TDySetSoilDensity(tdy,TDySoilDensityFunctionDefault); CHKERRQ(ierr);
+    }
+
+    if (!TDyIsSoilSpecificHeatSet(tdy)) {
+      ierr = TDySetSoilSpecificHeat(tdy,TDySpecificSoilHeatFunctionDefault); CHKERRQ(ierr);
+    }
   }
 
   ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);

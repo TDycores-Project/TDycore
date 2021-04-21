@@ -18,6 +18,12 @@ PetscErrorCode MaterialPropertiesCreate(PetscInt ndim, PetscInt ncells, Material
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_matprop)->Cr      ); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_matprop)->rhosoil    ); CHKERRQ(ierr);
   
+  (*_matprop)-> permeability_is_set = 0;
+  (*_matprop)-> porosity_is_set = 0;
+  (*_matprop)-> thermal_conductivity_is_set = 0;
+  (*_matprop)-> soil_specific_heat_is_set = 0;
+  (*_matprop)-> soil_density_is_set = 0;
+
   PetscFunctionReturn(0);
 }
 
@@ -37,12 +43,62 @@ PetscErrorCode MaterialPropertiesDestroy(MaterialProp *matprop){
   PetscFunctionReturn(0);
 }
 
+//
+// Are material properties set
+//
+
+/* -------------------------------------------------------------------------- */
+/// Reports if permeability is set
+///
+/// @param [in] tdy    A TDy struct
+/// @returns boolean   1 if permeability is set otherwise 0
+PetscBool TDyIsPermeabilitySet(TDy tdy) {
+  PetscFunctionReturn(tdy->matprop->permeability_is_set);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Reports if porosity is set
+///
+/// @param [in] tdy    A TDy struct
+/// @returns boolean   1 if porosity is set otherwise 0
+PetscBool TDyIsPorositySet(TDy tdy) {
+  PetscFunctionReturn(tdy->matprop->porosity_is_set);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Reports if thermal conductivity is set
+///
+/// @param [in] tdy    A TDy struct
+/// @returns boolean   1 if thermal conductivity is set otherwise 0
+PetscBool TDyIsThermalConductivytSet(TDy tdy) {
+  PetscFunctionReturn(tdy->matprop->thermal_conductivity_is_set);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Reports if soil specific heat is set
+///
+/// @param [in] tdy    A TDy struct
+/// @returns boolean   1 if soil specific heat is set otherwise 0
+PetscBool TDyIsSoilSpecificHeatSet(TDy tdy) {
+  PetscFunctionReturn(tdy->matprop->soil_specific_heat_is_set);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Reports if soil density is set
+///
+/// @param [in] tdy    A TDy struct
+/// @returns boolean   1 if soil density is set otherwise 0
+PetscBool TDyIsSoilDensitySet(TDy tdy) {
+  PetscFunctionReturn(tdy->matprop->soil_density_is_set);
+}
+
 /*
   Material properties set by PETSc operations
 */
 
 PetscErrorCode TDySetPermeabilityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
+  tdy->matprop->permeability_is_set = 1;
   if (f) tdy->ops->computepermeability = f;
   if (ctx) tdy->permeabilityctx = ctx;
   PetscFunctionReturn(0);
@@ -50,6 +106,7 @@ PetscErrorCode TDySetPermeabilityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscR
 
 PetscErrorCode TDySetPorosityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
+  tdy->matprop->porosity_is_set = 1;
   if (f) tdy->ops->computeporosity = f;
   if (ctx) tdy->porosityctx = ctx;
   PetscFunctionReturn(0);
@@ -57,6 +114,7 @@ PetscErrorCode TDySetPorosityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*
 
 PetscErrorCode TDySetThermalConductivityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
+  tdy->matprop->thermal_conductivity_is_set = 1;
   if (f) tdy->ops->computethermalconductivity = f;
   if (ctx) tdy->thermalconductivityctx = ctx;
   PetscFunctionReturn(0);
@@ -81,6 +139,8 @@ PetscErrorCode TDySetPermeabilityScalar(TDy tdy,SpatialFunction f) {
   PetscValidPointer(f,2);
   MaterialProp *matprop = tdy->matprop;
 
+  matprop->permeability_is_set = 1;
+
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   dim2 = dim*dim;
@@ -101,6 +161,9 @@ PetscErrorCode TDySetPermeabilityDiagonal(TDy tdy,SpatialFunction f) {
   MaterialProp *matprop = tdy->matprop;
   PetscErrorCode ierr;
   PetscFunctionBegin;
+
+  matprop->permeability_is_set = 1;
+
   PetscValidPointer(tdy,1);
   PetscValidPointer(f,2);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
@@ -125,6 +188,8 @@ PetscErrorCode TDySetPermeabilityTensor(TDy tdy,SpatialFunction f) {
   PetscValidPointer(f,2);
   MaterialProp *matprop = tdy->matprop;
 
+  matprop->permeability_is_set = 1;
+
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   dim2 = dim*dim;
@@ -145,6 +210,8 @@ PetscErrorCode TDySetPorosity(TDy tdy,SpatialFunction f) {
   PetscValidPointer(f,2);
   MaterialProp *matprop = tdy->matprop;
 
+  matprop->porosity_is_set = 1;
+
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMemzero(matprop->porosity,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
@@ -162,6 +229,7 @@ PetscErrorCode TDySetSoilSpecificHeat(TDy tdy,SpatialFunction f) {
   PetscValidPointer(f,2);
   MaterialProp *matprop = tdy->matprop;
 
+  matprop->soil_specific_heat_is_set = 1;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMemzero(matprop->Cr,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
@@ -179,6 +247,7 @@ PetscErrorCode TDySetSoilDensity(TDy tdy,SpatialFunction f) {
   PetscValidPointer(f,2);
   MaterialProp *matprop = tdy->matprop;
 
+  matprop->soil_density_is_set = 1;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMemzero(matprop->rhosoil,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
@@ -204,6 +273,8 @@ PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy tdy, PetscInt ni, const Pe
   dim2 = dim*dim;
   MaterialProp *matprop = tdy->matprop;
 
+  matprop->permeability_is_set = 1;
+
   for(i=0; i<ni; i++) {
     for(j=0; j<dim2; j++) matprop->K0[ix[i]*dim2 + j] = y[i*dim2+j];
   }
@@ -217,6 +288,8 @@ PetscErrorCode TDySetCellPermeability(TDy tdy,PetscInt c,PetscReal *K) {
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   MaterialProp *matprop = tdy->matprop;
+
+  matprop->permeability_is_set = 1;
 
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&i); CHKERRQ(ierr);
   ierr = DMGetDimension(tdy->dm,&dim2); CHKERRQ(ierr);
@@ -234,6 +307,8 @@ PetscErrorCode TDySetPorosityValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix
   if (!ni) PetscFunctionReturn(0);
 
   MaterialProp *matprop = tdy->matprop;
+
+  matprop->porosity_is_set = 1;
 
   for(i=0; i<ni; i++) {
     matprop->porosity[ix[i]] = y[i];

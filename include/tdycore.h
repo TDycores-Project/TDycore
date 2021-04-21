@@ -156,6 +156,7 @@ PETSC_EXTERN PetscErrorCode TDySetSNESJacobian(SNES,TDy);
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
 
 PETSC_EXTERN PetscErrorCode TDySetDtimeForSNESSolver(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDySetInitialCondition(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDySetPreviousSolutionForSNESSolver(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyPreSolveSNESSolver(TDy);
 PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
@@ -212,6 +213,8 @@ PETSC_EXTERN PetscErrorCode TDyCreateVectors(TDy);
 PETSC_EXTERN PetscErrorCode TDyCreateJacobian(TDy);
 
 PETSC_EXTERN PetscErrorCode TDyTimeIntegratorRunToTime(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDyTimeIntegratorSetTimeStep(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDyTimeIntegratorOutputRegression(TDy);
 
 PETSC_EXTERN PetscErrorCode TDyDriverInitializeTDy(TDy);
 

@@ -1293,6 +1293,21 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+/// Sets initial condition for the TDy solver
+///
+/// @param [inout] tdy A TDy struct
+/// @param [in] initial A PETSc vector that is copied as the intial condition
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
+
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = VecCopy(initial,tdy->solution); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetPreviousSolutionForSNESSolver(TDy tdy, Vec soln) {
 
   PetscErrorCode ierr;
