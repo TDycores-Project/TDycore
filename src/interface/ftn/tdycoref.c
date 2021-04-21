@@ -17,6 +17,7 @@
 #define tdydriverinitializettdy_                       TDYDRIVERINITIALIZETDY
 #define tdydtimeintegratorruntotime_                   TDYTIMEINTEGRATORRUNTOTIME
 #define tdydtimeintegratorsettimestep_                 TDYTIMEINTEGRATORSETTIMESTEP
+#define tdydtimeintegratoroutputregression_            TDYTIMEINTEGRATOROUTPUTREGRESSION
 #define tdysetupnumericalmethods_                      TDYSETUPNUMERICALMETHODS
 #define tdysetwaterdensitytype_                        TDYSETWATERDENSITYTYPE
 #define tdysetmpfaogmatrixmethod_                      TDYSETMPFAOGMATRIXMETHOD
@@ -78,6 +79,7 @@
 #define tdydriverinitializettdy_                       tdydriverinitializetdy
 #define tdydtimeintegratorruntotime_                   tdydtimeintegratorruntotime
 #define tdydtimeintegratorsettimestep_                 tdydtimeintegratorsettimestep
+#define tdydtimeintegratoroutputregression_            tdydtimeintegratoroutputregression
 #define tdysetupnumericalmethods_                      tdysetupnumericalmethods
 #define tdysetwaterdensitytype_                        tdysetwaterdensitytype
 #define tdysetmpfaogmatrixmethod_                      tdysetmpfaogmatrixmethod
@@ -235,6 +237,16 @@ extern "C" {
 #endif
 PETSC_EXTERN void  tdytimeintegratorsettimestep_(TDy tdy, PetscReal *dtime, int *__ierr){
 *__ierr = TDyTimeIntegratorSetTimeStep((TDy)PetscToPointer((tdy)), *dtime);
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdytimeintegratoroutputregression_(TDy tdy, int *__ierr){
+*__ierr = TDyTimeIntegratorOutputRegression((TDy)PetscToPointer((tdy)));
 }
 #if defined(__cplusplus)
 }

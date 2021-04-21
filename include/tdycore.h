@@ -214,6 +214,7 @@ PETSC_EXTERN PetscErrorCode TDyCreateJacobian(TDy);
 
 PETSC_EXTERN PetscErrorCode TDyTimeIntegratorRunToTime(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDyTimeIntegratorSetTimeStep(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDyTimeIntegratorOutputRegression(TDy);
 
 PETSC_EXTERN PetscErrorCode TDyDriverInitializeTDy(TDy);
 

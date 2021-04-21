@@ -78,6 +78,13 @@ module tdycore
      end subroutine TDyTimeIntegratorSetTimeStep
   end interface
   interface
+     subroutine TDyTimeIntegratorOutputRegression(a,z)
+       use tdycoredef
+       TDy a
+       integer z
+     end subroutine TDyTimeIntegratorOutputRegression
+  end interface
+  interface
      subroutine TDySetupNumericalMethods(a,z)
        use tdycoredef
        TDy a

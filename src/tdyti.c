@@ -145,6 +145,16 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyTimeIntegratorOutputRegression(TDy tdy) {
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+  ierr = TDyOutputRegression(tdy,tdy->solution); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+
 PetscErrorCode TDyTimeIntegratorDestroy(TDyTimeIntegrator *ti) {
   PetscFunctionBegin;
   free(*ti);
