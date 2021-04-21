@@ -235,11 +235,10 @@ PetscErrorCode TDyMalloc(TDy tdy) {
    CharacteristicCurve *cc = tdy->cc;
 
   for (c=0; c<nc; c++) {
-    cc->sr[c] = 0.15;
-    //ccurve->sr[c] = 0.15;
-    cc->n[c] = 0.5;
-    cc->m[c] = 0.8;
-    cc->alpha[c] = 1.e-4;
+    cc->sr[c] = DEFAULT_RESIDUAL_SATURATION;
+    cc->n[c] = DEFAULT_GARDNER_N;
+    cc->m[c] = DEFAULT_VANGENUCHTEN_M;
+    cc->alpha[c] = DEFAULT_VANGENUCHTEN_ALPHA;
     cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
     cc->Kr[c] = 0.0;
