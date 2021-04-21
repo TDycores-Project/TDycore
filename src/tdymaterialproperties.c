@@ -1,6 +1,7 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <tdytimers.h>
+#include <private/tdyconstants.h>
 
 PetscErrorCode MaterialPropertiesCreate(PetscInt ndim, PetscInt ncells, MaterialProp **_matprop){
 
@@ -381,11 +382,11 @@ PetscErrorCode TDyGetPorosityValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[])
 */
 
 void TDySoilDensityFunctionDefault(PetscReal *x, PetscReal *den) {
-  *den = 2650.;
+  *den = DEFAULT_SOIL_DENSITY;
 }
 
 void TDySpecificSoilHeatFunctionDefault(PetscReal *x, PetscReal *cr) {
-  *cr = 1000.;
+  *cr = DEFAULT_SPECIFIC_SOIL_HEAT;
 }
 
 PetscErrorCode TDyPermeabilityFunctionDefault(TDy tdy, PetscReal *x, PetscReal *K, void *ctx) {
@@ -399,7 +400,7 @@ PetscErrorCode TDyPermeabilityFunctionDefault(TDy tdy, PetscReal *x, PetscReal *
     }
   }
   for (int i=0; i<dim; i++)
-    K[i*dim+i] = 1.e-12;
+    K[i*dim+i] = DEFAULT_PERMEABILITY;
   return 0;
   PetscFunctionReturn(0);
 }
@@ -415,13 +416,13 @@ PetscErrorCode TDyThermalConductivityFunctionDefault(TDy tdy, double *x, double 
     }
   }
   for (int i=0; i<dim; i++)
-    K[i*dim+i] = 1.;
+    K[i*dim+i] = DEFAULT_THERMAL_CONDUCTIVITY;
   return 0;
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyPorosityFunctionDefault(TDy tdy, double *x, double *por, void *ctx) {
   PetscFunctionBegin;
-  *por = 0.25;
+  *por = DEFAULT_POROSITY;
   PetscFunctionReturn(0);
 }
