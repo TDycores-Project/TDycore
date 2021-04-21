@@ -904,9 +904,12 @@ PetscErrorCode TDyGetSubcellIDGivenCellIdVertexIdFaceId(TDy tdy, PetscInt cell_i
 
   TDyMesh *mesh = tdy->mesh;
   TDySubcell *subcells = &mesh->subcells;
+  PetscErrorCode ierr;
 
-  PetscInt num_subcells_per_cell = 8;
   PetscInt num_faces = 3;
+  PetscInt num_subcells_per_cell;
+  ierr = TDyMeshGetCellNumVertices(mesh, cell_id, &num_subcells_per_cell); CHKERRQ(ierr);
+
   PetscInt num = num_subcells_per_cell * num_faces;
 
   *subcell_id = -1;

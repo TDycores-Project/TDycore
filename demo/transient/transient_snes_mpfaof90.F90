@@ -119,11 +119,14 @@ program main
 
 #include <petsc/finclude/petscksp.h>
 #include <petsc/finclude/petscdm.h>
+#include <petsc/finclude/petscdmplex.h>
 #include <finclude/tdycore.h>
 
   use tdycore
   use petscvec
   use petscdm
+  use petscdmplex
+  use petscdmplexdef
   use petscksp
   use petscsnes
   use snes_mpfaof90mod
@@ -131,7 +134,7 @@ program main
 implicit none
 
   TDy                 :: tdy
-  DM                  :: dm, dmDist
+  DM                  :: dm, edm, dmDist
   Vec                 :: U
   !TS                 :: ts
   SNES                :: snes
@@ -140,7 +143,7 @@ implicit none
   PetscInt            :: dim, faces(3)
   PetscReal           :: lower(3), upper(3)
   PetscErrorCode      :: ierr
-  PetscInt            :: nx, ny, nz, ncell, bc_type
+  PetscInt            :: nx, ny, nz, ncell, bc_type, dm_plex_extrude_layers
   PetscInt  , pointer :: index(:)
   PetscReal , pointer :: residualSat(:), blockPerm(:), liquid_sat(:), liquid_mass(:)
   PetscReal , pointer :: alpha(:), m(:)
@@ -171,10 +174,13 @@ implicit none
   pflotran_consistent = PETSC_FALSE
   bc_type = MPFAO_NEUMANN_BC
   use_tdydriver = PETSC_FALSE
+  dm_plex_extrude_layers=0
 
   call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr);
   CHKERRA(ierr)
 
+  call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dm_plex_extrude_layers',dm_plex_extrude_layers,flg,ierr)
+  CHKERRA(ierr)
   call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-max_steps',max_steps,flg,ierr);
   CHKERRA(ierr)
   call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-successful_exit_code',successful_exit_code,flg,ierr);
@@ -222,10 +228,12 @@ implicit none
     CHKERRA(ierr);
     call DMGetDimension(dm, dim, ierr);
     CHKERRA(ierr);
-    if (dim /= 3) then
-      write(*,*)'Only 3D meshes are supported and the exodus file is not 3D'
-      call exit(0)
-    endif
+    if (dm_plex_extrude_layers > 0) then
+      call DMPlexExtrude(dm, PETSC_DETERMINE, -1.d0, PETSC_TRUE, PETSC_NULL_REAL, PETSC_TRUE, edm, ierr);
+      CHKERRQ(ierr);
+      call DMDestroy(dm ,ierr);
+      dm = edm
+    end if
   endif
 
   call DMGetDimension(dm, dim, ierr);
