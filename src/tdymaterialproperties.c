@@ -46,22 +46,48 @@ PetscErrorCode MaterialPropertiesDestroy(MaterialProp *matprop){
 //
 // Are material properties set
 //
+
+/* -------------------------------------------------------------------------- */
+/// Reports if permeability is set
+///
+/// @param [in] tdy    A TDy struct
+/// @returns boolean   1 if permeability is set otherwise 0
 PetscBool TDyIsPermeabilitySet(TDy tdy) {
   PetscFunctionReturn(tdy->matprop->permeability_is_set);
 }
 
+/* -------------------------------------------------------------------------- */
+/// Reports if porosity is set
+///
+/// @param [in] tdy    A TDy struct
+/// @returns boolean   1 if porosity is set otherwise 0
 PetscBool TDyIsPorositySet(TDy tdy) {
   PetscFunctionReturn(tdy->matprop->porosity_is_set);
 }
 
+/* -------------------------------------------------------------------------- */
+/// Reports if thermal conductivity is set
+///
+/// @param [in] tdy    A TDy struct
+/// @returns boolean   1 if thermal conductivity is set otherwise 0
 PetscBool TDyIsThermalConductivytSet(TDy tdy) {
   PetscFunctionReturn(tdy->matprop->thermal_conductivity_is_set);
 }
 
+/* -------------------------------------------------------------------------- */
+/// Reports if soil specific heat is set
+///
+/// @param [in] tdy    A TDy struct
+/// @returns boolean   1 if soil specific heat is set otherwise 0
 PetscBool TDyIsSoilSpecificHeatSet(TDy tdy) {
   PetscFunctionReturn(tdy->matprop->soil_specific_heat_is_set);
 }
 
+/* -------------------------------------------------------------------------- */
+/// Reports if soil density is set
+///
+/// @param [in] tdy    A TDy struct
+/// @returns boolean   1 if soil density is set otherwise 0
 PetscBool TDyIsSoilDensitySet(TDy tdy) {
   PetscFunctionReturn(tdy->matprop->soil_density_is_set);
 }
