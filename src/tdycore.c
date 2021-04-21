@@ -1297,7 +1297,11 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
 /// Sets initial condition for the TDy solver
 ///
 /// @param [inout] tdy A TDy struct
-/// @param [in] initial A PETSc vector that is copied as the intial condition
+/// @param [in] initial A PETSc vector that is copied as the intial condition.
+///                     For RICHARDS mode, the vector contains unknown
+///                     pressure values for each grid cell.
+///                     For TH mode, the vector contains unknown pressure
+///                     and temperature values for each grid cell.
 /// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
 
