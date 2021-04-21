@@ -55,6 +55,29 @@ module tdycore
      end subroutine TDySetFromOptions
   end interface
   interface
+     subroutine TDyDriverInitializeTDy(a,z)
+       use tdycoredef
+       TDy a
+       integer z
+     end subroutine TDyDriverInitializeTDy
+  end interface
+  interface
+     subroutine TDyTimeIntegratorRunToTime(a,b,z)
+       use tdycoredef
+       TDy a
+       PetscReal b
+       integer z
+     end subroutine TDyTimeIntegratorRunToTime
+  end interface
+  interface
+     subroutine TDyTimeIntegratorSetTimeStep(a,b,z)
+       use tdycoredef
+       TDy a
+       PetscReal b
+       integer z
+     end subroutine TDyTimeIntegratorSetTimeStep
+  end interface
+  interface
      subroutine TDySetupNumericalMethods(a,z)
        use tdycoredef
        TDy a
@@ -367,6 +390,16 @@ module tdycore
        PetscReal b
        integer z
      end subroutine TDySetDtimeForSNESSolver
+  end interface
+
+  interface
+     subroutine TDySetInitialCondition(a,b,z)
+       use tdycoredef
+       use petscvec
+       TDy a
+       Vec b
+       integer z
+     end subroutine TDySetInitialCondition
   end interface
 
   interface

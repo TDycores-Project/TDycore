@@ -1293,6 +1293,15 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
+
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = VecCopy(initial,tdy->solution); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetPreviousSolutionForSNESSolver(TDy tdy, Vec soln) {
 
   PetscErrorCode ierr;

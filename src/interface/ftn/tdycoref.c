@@ -14,6 +14,9 @@
 #define tdysetmode_                                    TDYSETMODE
 #define tdysetdiscretizationmethod_                    TDYSETDISCRETIZATIONMETHOD
 #define tdysetfromoptions_                             TDYSETFROMOPTIONS
+#define tdydriverinitializettdy_                       TDYDRIVERINITIALIZETDY
+#define tdydtimeintegratorruntotime_                   TDYTIMEINTEGRATORRUNTOTIME
+#define tdydtimeintegratorsettimestep_                 TDYTIMEINTEGRATORSETTIMESTEP
 #define tdysetupnumericalmethods_                      TDYSETUPNUMERICALMETHODS
 #define tdysetwaterdensitytype_                        TDYSETWATERDENSITYTYPE
 #define tdysetmpfaogmatrixmethod_                      TDYSETMPFAOGMATRIXMETHOD
@@ -25,6 +28,7 @@
 #define tdycreatevectors_                              TDYCREATEVECTORS
 #define tdycreatejacobian_                             TDYCREATEJACOBIAN
 #define tdysetdtimeforsnessolver_                      TDYSETDTIMEFORSNESSOLVER
+#define tdysetinitialcondition_                        TDYSETINITIALCONDITION
 #define tdysetprevioussolutionforsnessolver_           TDYSETPREVIOUSSOLUTIONFORSNESSOLVER
 #define tdypresolvesnessolver_                         TDYSETPRESOLVESNESSOLVER
 #define tdypostsolvesnessolver_                        TDYSETPOSTSOLVESNESSOLVER
@@ -71,6 +75,9 @@
 #define tdysetmode_                                    tdysetmode
 #define tdysetdiscretizationmethod_                    tdysetdiscretizationmethod
 #define tdysetfromoptions_                             tdysetfromoptions
+#define tdydriverinitializettdy_                       tdydriverinitializetdy
+#define tdydtimeintegratorruntotime_                   tdydtimeintegratorruntotime
+#define tdydtimeintegratorsettimestep_                 tdydtimeintegratorsettimestep
 #define tdysetupnumericalmethods_                      tdysetupnumericalmethods
 #define tdysetwaterdensitytype_                        tdysetwaterdensitytype
 #define tdysetmpfaogmatrixmethod_                      tdysetmpfaogmatrixmethod
@@ -82,6 +89,7 @@
 #define tdycreatevectors_                              tdycreatevectors
 #define tdycreatejacobian_                             tdycreatejacobian
 #define tdysetdtimeforsnessolver_                      tdysetdtimeforsnessolver
+#define tdysetinitialcondition_                        tdysetinitialcondition
 #define tdysetprevioussolutionforsnessolver_           tdysetprevioussolutionforsnessolver
 #define tdypresolvesnessolver_                         tdypresolvesnessolver
 #define tdypostsolvesnessolver_                        tdypostsolvesnessolver
@@ -205,6 +213,36 @@ PETSC_EXTERN void  tdysetfromoptions_(TDy tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
+PETSC_EXTERN void  tdydriverinitializetdy_(TDy tdy, int *__ierr){
+*__ierr = TDyDriverInitializeTDy((TDy)PetscToPointer((tdy)));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdytimeintegratorruntotime_(TDy tdy, PetscReal *time, int *__ierr){
+*__ierr = TDyTimeIntegratorRunToTime((TDy)PetscToPointer((tdy)), *time);
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdytimeintegratorsettimestep_(TDy tdy, PetscReal *dtime, int *__ierr){
+*__ierr = TDyTimeIntegratorSetTimeStep((TDy)PetscToPointer((tdy)), *dtime);
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 PETSC_EXTERN void  tdysetupnumericalmethods_(TDy _tdy, int *__ierr){
 *__ierr = TDySetupNumericalMethods((TDy)PetscToPointer((_tdy)));
 }
@@ -295,6 +333,18 @@ extern "C" {
 #endif
 PETSC_EXTERN void  tdysetdtimeforsnessolver_(TDy tdy, PetscReal *dtime, int *__ierr){
 *__ierr = TDySetDtimeForSNESSolver((TDy)PetscToPointer(tdy), *dtime);
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdysetinitialcondition_(TDy tdy, Vec solution, int *__ierr){
+*__ierr = TDySetInitialCondition(
+  (TDy)PetscToPointer(tdy),
+  (Vec)PetscToPointer(solution));
 }
 #if defined(__cplusplus)
 }

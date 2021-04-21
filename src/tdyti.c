@@ -90,6 +90,13 @@ PetscErrorCode TDyTimeIntegratorSetTargetTime(TDyTimeIntegrator ti, PetscReal sy
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyTimeIntegratorSetTimeStep(TDy tdy, PetscReal dt) {
+  PetscFunctionBegin;
+  tdy->ti->dt_init = dt;
+  tdy->ti->dt = dt;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
