@@ -149,7 +149,7 @@ implicit none
   PetscReal           :: dtime, mass_pre, mass_post, ic_value
   character (len=256) :: mesh_filename, ic_filename
   character(len=256)  :: string, bc_type_name
-  PetscBool           :: mesh_file_flg, ic_file_flg, pflotran_consistent
+  PetscBool           :: mesh_file_flg, ic_file_flg, pflotran_consistent, use_tdydriver
   PetscViewer         :: viewer
   PetscInt            :: step_mod
   PetscFE             :: fe
@@ -170,6 +170,7 @@ implicit none
   ic_value = 102325.d0
   pflotran_consistent = PETSC_FALSE
   bc_type = MPFAO_NEUMANN_BC
+  use_tdydriver = PETSC_FALSE
 
   call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr);
   CHKERRA(ierr)
@@ -184,6 +185,10 @@ implicit none
   CHKERRA(ierr);
   call PetscOptionsGetBool(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-pflotran_consistent",pflotran_consistent,flg,ierr);
   CHKERRA(ierr)
+
+  call PetscOptionsGetBool(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-use_tdydriver",use_tdydriver,flg,ierr);
+  CHKERRA(ierr)
+
   call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dtime',dtime,flg,ierr)
   CHKERRA(ierr)
   call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ic_value',ic_value,flg,ierr)
@@ -329,8 +334,12 @@ implicit none
      CHKERRQ(ierr)
   endif
 
-  call TDySetupNumericalMethods(tdy,ierr);
-  CHKERRA(ierr);
+  if (use_tdydriver) then
+     call TDyDriverInitializeTDy(tdy, ierr);
+  else
+     call TDySetupNumericalMethods(tdy,ierr);
+     CHKERRA(ierr);
+  end if
 
   call TDyCreateVectors(tdy,ierr); CHKERRA(ierr)
   call TDyCreateJacobian(tdy,ierr); CHKERRA(ierr)
@@ -351,6 +360,12 @@ implicit none
     CHKERRA(ierr);
   endif
 
+  call TDySetInitialCondition(tdy,U,ierr);
+  CHKERRA(ierr);
+
+  call TDySetPreviousSolutionForSNESSolver(tdy, U, ierr)
+  CHKERRA(ierr);
+
   call SNESCreate(PETSC_COMM_WORLD,snes,ierr);
   CHKERRA(ierr);
 
@@ -361,9 +376,6 @@ implicit none
   CHKERRA(ierr);
 
   call SNESSetFromOptions(snes,ierr);
-  CHKERRA(ierr);
-
-  call TDySetPreviousSolutionForSNESSolver(tdy,U,ierr);
   CHKERRA(ierr);
 
   dtime = 1800.d0
@@ -382,13 +394,22 @@ implicit none
     mass_pre = mass_pre + liquid_mass(g)
     enddo
 
-    call SNESSolve(snes,PETSC_NULL_VEC,U,ierr);
-    CHKERRA(ierr);
+    if (use_tdydriver) then
+       call TDyTimeIntegratorSetTimeStep(tdy,1800.d0, ierr);
+       CHKERRA(ierr);
 
-    call SNESGetConvergedReason(snes,reason,ierr)
-    CHKERRA(ierr)
-    if (reason<0) then
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SNES did not converge");
+       call TDyTimeIntegratorRunToTime(tdy,1800.d0 * step, ierr);
+       CHKERRA(ierr);
+
+    else
+       call SNESSolve(snes,PETSC_NULL_VEC,U,ierr);
+       CHKERRA(ierr);
+
+       call SNESGetConvergedReason(snes,reason,ierr)
+       CHKERRA(ierr)
+       if (reason<0) then
+          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SNES did not converge");
+       endif
     endif
 
     call TDyPostSolveSNESSolver(tdy,U,ierr);
