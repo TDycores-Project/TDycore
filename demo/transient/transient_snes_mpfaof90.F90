@@ -441,8 +441,13 @@ implicit none
   call TDyGetSaturationValuesLocal(tdy,nvalues,liquid_sat,ierr)
   CHKERRA(ierr);
 
-  call TDyOutputRegression(tdy,U,ierr);
-  CHKERRA(ierr);
+  if (use_tdydriver) then
+     call TDyTimeIntegratorOutputRegression(tdy,ierr);
+     CHKERRA(ierr);
+  else
+     call TDyOutputRegression(tdy,U,ierr);
+     CHKERRA(ierr);
+  end if
 
   call TDyDestroy(tdy,ierr);
   CHKERRA(ierr);
