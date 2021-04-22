@@ -159,7 +159,7 @@ PetscErrorCode TDyProcessOptions(TDyOptions *options){
   options->gravity_constant = 9.8068;
 
   options->default_porosity=0.25;
-  options->default_permeability=1.2-12;
+  options->default_permeability=1.e-12;
   options->default_soil_density=2650.;
   options->default_soil_specific_heat=1000.0;
   options->default_thermal_conductivity=1.0;

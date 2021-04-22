@@ -31,6 +31,8 @@ struct _TDyOps {
   PetscErrorCode (*computedirichletvalue)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computetemperaturedirichletvalue)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computedirichletflux)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computesoildensity)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computesoilspecificheat)(TDy,PetscReal*,PetscReal*,void*);
 };
 
 struct _p_TDy {
@@ -94,6 +96,8 @@ struct _p_TDy {
   void *dirichletvaluectx;
   void *temperaturedirichletvaluectx;
   void *dirichletfluxctx;
+  void *soildensityctx;
+  void *soilspecificheatctx;
 
   /* method-specific information*/
   TDyMethod method;

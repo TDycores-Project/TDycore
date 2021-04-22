@@ -48,11 +48,12 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     }
 
     if (!TDyIsSoilDensitySet(tdy)) {
-      ierr = TDySetSoilDensity(tdy,TDySoilDensityFunctionDefault); CHKERRQ(ierr);
+      //ierr = TDySetSoilDensity(tdy,TDySoilDensityFunctionDefault); CHKERRQ(ierr);
+      ierr = TDySetSoilDensityFunction(tdy,TDySoilDensityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
     }
 
     if (!TDyIsSoilSpecificHeatSet(tdy)) {
-      ierr = TDySetSoilSpecificHeat(tdy,TDySpecificSoilHeatFunctionDefault); CHKERRQ(ierr);
+      ierr = TDySetSoilSpecificHeatFunction(tdy,TDySoilSpecificHeatFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
     }
   }
 
