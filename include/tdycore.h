@@ -26,7 +26,8 @@ PETSC_EXTERN const char *const TDyMPFAOGmatrixMethods[];
 
 typedef enum {
   MPFAO_DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
-  MPFAO_NEUMANN_BC       /* Neumann zero-flux boundary condition */
+  MPFAO_NEUMANN_BC,       /* Neumann zero-flux boundary condition */
+  MPFAO_SEEPAGE_BC       /* Seepage boundary condition */
 } TDyMPFAOBoundaryConditionType;
 
 PETSC_EXTERN const char *const TDyMPFAOBoundaryConditionTypes[];
