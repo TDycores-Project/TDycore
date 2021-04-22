@@ -197,6 +197,18 @@ PetscErrorCode TDySetDM(TDy tdy, DM dm) {
   PetscFunctionReturn(0);
 }
 
+PetscReal TDyGetGravity() {
+  PetscErrorCode ierr;
+  PetscReal gravity = 9.8068;
+
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"General Options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_gravity", "Value of gravity", NULL, gravity, &gravity, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  PetscFunctionReturn(gravity);
+}
+
+
 PetscErrorCode TDyMalloc(TDy tdy) {
   PetscInt       dim,c,cStart,cEnd,nc;
   PetscErrorCode ierr;
@@ -234,6 +246,8 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   /* problem constants FIX: add mutators */
    CharacteristicCurve *cc = tdy->cc;
 
+   PetscReal gravity_constant = TDyGetGravity();
+
   for (c=0; c<nc; c++) {
     cc->sr[c] = DEFAULT_RESIDUAL_SATURATION;
     cc->n[c] = DEFAULT_GARDNER_N;
@@ -260,7 +274,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->du_dT[c] = 0.0;
     tdy->dvis_dT[c] = 0.0;
   }
-  tdy->gravity[dim-1] = GRAVITY_CONSTANT;
+  tdy->gravity[dim-1] = gravity_constant;
   PetscFunctionReturn(0);
 }
 

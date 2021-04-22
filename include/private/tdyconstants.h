@@ -1,8 +1,6 @@
 #if !defined(TDYCONSTANTS_H)
 #define TDYCONSTANTS_H        
 
-#define GRAVITY_CONSTANT              9.8068
-
 // Default values for material properties
 #define DEFAULT_POROSITY              0.25
 #define DEFAULT_SOIL_DENSITY          2650.0
