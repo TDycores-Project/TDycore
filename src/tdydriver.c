@@ -5,14 +5,12 @@
 #include <private/tdythimpl.h>
 #include <tdytimers.h>
 #include <private/tdycharacteristiccurvesimpl.h>
-#include <private/tdyconstants.h>
 
 PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
-  PetscReal gravity[3] = {0.,0.,0.};
   TS ts;
   SNES snes;
   SNESLineSearch linesearch;
@@ -22,8 +20,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   if (dim != 3) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver currently only supports 3D");
   }
-  gravity[dim-1] = TDyGetGravity();;
-  ierr = TDySetGravityVector(tdy,gravity);
 
   switch(tdy->method) {
     case TPF:
