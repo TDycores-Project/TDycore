@@ -35,6 +35,7 @@ jobs:
 
     - name: Running tests (${{ matrix.build-type }})
       run: |
+        pkg-config --libs cmocka
         set +e # disable "fast fail" (continue on test failures)
         cd demo/mpfao; make V=1 codecov=1
         cd ../richards; make V=1 codecov=1
