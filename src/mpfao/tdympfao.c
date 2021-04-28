@@ -519,7 +519,6 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   if (tdy->mode == TH){
     if (tdy->ops->computethermalconductivity) {ierr = SetThermalConductivityFromFunction(tdy); CHKERRQ(ierr);}
     if (tdy->ops->computesoildensity) {
-      printf("SetSoilDensityFromFunction\n");
       ierr = SetSoilDensityFromFunction(tdy); CHKERRQ(ierr);
       }
     if (tdy->ops->computesoilspecificheat) {
