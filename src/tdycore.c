@@ -152,6 +152,46 @@ PetscErrorCode TDyFinalize() {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyProcessOptions(TDyOptions *options){
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  options->gravity_constant = 9.8068;
+
+  options->default_porosity=0.25;
+  options->default_permeability=1.e-12;
+  options->default_soil_density=2650.;
+  options->default_soil_specific_heat=1000.0;
+  options->default_thermal_conductivity=1.0;
+
+  options->default_residual_saturation=0.15;
+  options->default_gardner_n=0.5;
+  options->default_vangenutchen_m=0.8;
+  options->default_vangenutchen_alpha=1.e-4;
+
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: General options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_gravity", "Value of gravity", NULL, options->gravity_constant, &options->gravity_constant, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Material propertiy options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_porosity", "Value of porosity", NULL, options->default_porosity, &options->default_porosity, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_permability", "Value of permeability", NULL, options->default_permeability, &options->default_permeability, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_soil_density", "Value of soil density", NULL, options->default_soil_density, &options->default_soil_density, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_soil_specific_heat", "Value of soil specific heat", NULL, options->default_soil_specific_heat, &options->default_soil_specific_heat, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_thermal_conductivity", "Value of thermal conductivity", NULL, options->default_porosity, &options->default_porosity, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Characteristic curve options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_residual_satuaration", "Value of residual saturation", NULL, options->default_residual_saturation, &options->default_residual_saturation, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_gardner_param_n", "Value of Gardner n parameter", NULL, options->default_gardner_n, &options->default_gardner_n, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_vangenuchten_param_m", "Value of VanGenuchten m parameter", NULL, options->default_vangenutchen_m, &options->default_vangenutchen_m, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_vangenuchten_param_alpha", "Value of VanGenuchten alpha parameter", NULL, options->default_vangenutchen_alpha, &options->default_vangenutchen_alpha, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+
 PetscErrorCode TDyCreate(TDy *_tdy) {
   TDy            tdy;
   PetscErrorCode ierr;
@@ -162,6 +202,8 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
                            TDyDestroy,TDyView); CHKERRQ(ierr);
   *_tdy = tdy;
   tdy->setupflags |= TDyCreated;
+
+  ierr = TDyProcessOptions(&tdy->options);
 
   ierr = TDyIOCreate(&tdy->io); CHKERRQ(ierr);
 
@@ -232,13 +274,13 @@ PetscErrorCode TDyMalloc(TDy tdy) {
 
   /* problem constants FIX: add mutators */
    CharacteristicCurve *cc = tdy->cc;
+   TDyOptions *options = &tdy->options;
 
   for (c=0; c<nc; c++) {
-    cc->sr[c] = 0.15;
-    //ccurve->sr[c] = 0.15;
-    cc->n[c] = 0.5;
-    cc->m[c] = 0.8;
-    cc->alpha[c] = 1.e-4;
+    cc->sr[c] = options->default_residual_saturation;
+    cc->n[c] = options->default_gardner_n;
+    cc->m[c] = options->default_vangenutchen_m;
+    cc->alpha[c] = options->default_vangenutchen_alpha;
     cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
     cc->Kr[c] = 0.0;
@@ -260,7 +302,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->du_dT[c] = 0.0;
     tdy->dvis_dT[c] = 0.0;
   }
-  tdy->gravity[dim-1] = -9.81;
+  tdy->gravity[dim-1] = options->gravity_constant;
   PetscFunctionReturn(0);
 }
 
@@ -1297,7 +1339,11 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
 /// Sets initial condition for the TDy solver
 ///
 /// @param [inout] tdy A TDy struct
-/// @param [in] initial A PETSc vector that is copied as the intial condition
+/// @param [in] initial A PETSc vector that is copied as the intial condition.
+///                     For RICHARDS mode, the vector contains unknown
+///                     pressure values for each grid cell.
+///                     For TH mode, the vector contains unknown pressure
+///                     and temperature values for each grid cell.
 /// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
 

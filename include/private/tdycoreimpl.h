@@ -10,6 +10,7 @@
 #include <private/tdytiimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
+#include <private/tdyoptions.h>
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
@@ -30,6 +31,8 @@ struct _TDyOps {
   PetscErrorCode (*computedirichletvalue)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computetemperaturedirichletvalue)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computedirichletflux)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computesoildensity)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computesoilspecificheat)(TDy,PetscReal*,PetscReal*,void*);
 };
 
 struct _p_TDy {
@@ -41,6 +44,8 @@ struct _p_TDy {
   TDySetupFlags setupflags;
   TDyIO io;
   PetscBool init_with_random_field;
+
+  TDyOptions options;
 
   /* arrays of the size of the Hasse diagram */
   PetscReal *V; /* volume of point (if applicable) */
@@ -91,6 +96,8 @@ struct _p_TDy {
   void *dirichletvaluectx;
   void *temperaturedirichletvaluectx;
   void *dirichletfluxctx;
+  void *soildensityctx;
+  void *soilspecificheatctx;
 
   /* method-specific information*/
   TDyMethod method;

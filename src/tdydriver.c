@@ -11,7 +11,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   PetscFunctionBegin;
   TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
-  PetscReal gravity[3] = {0.,0.,0.};
   TS ts;
   SNES snes;
   SNESLineSearch linesearch;
@@ -21,8 +20,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   if (dim != 3) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver currently only supports 3D");
   }
-  gravity[dim-1] = 9.8068;
-  ierr = TDySetGravityVector(tdy,gravity);
 
   switch(tdy->method) {
     case TPF:
@@ -51,11 +48,12 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     }
 
     if (!TDyIsSoilDensitySet(tdy)) {
-      ierr = TDySetSoilDensity(tdy,TDySoilDensityFunctionDefault); CHKERRQ(ierr);
+      //ierr = TDySetSoilDensity(tdy,TDySoilDensityFunctionDefault); CHKERRQ(ierr);
+      ierr = TDySetSoilDensityFunction(tdy,TDySoilDensityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
     }
 
     if (!TDyIsSoilSpecificHeatSet(tdy)) {
-      ierr = TDySetSoilSpecificHeat(tdy,TDySpecificSoilHeatFunctionDefault); CHKERRQ(ierr);
+      ierr = TDySetSoilSpecificHeatFunction(tdy,TDySoilSpecificHeatFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
     }
   }
 

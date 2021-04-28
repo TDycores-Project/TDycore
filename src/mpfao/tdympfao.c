@@ -141,6 +141,54 @@ PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode SetSoilDensityFromFunction(TDy tdy) {
+
+  PetscInt dim;
+  PetscInt c,cStart,cEnd;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  MaterialProp *matprop = tdy->matprop;
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscMemzero(matprop->rhosoil,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
+
+  for(c=cStart; c<cEnd; c++) {
+    ierr = (*tdy->ops->computesoildensity)(tdy, &(tdy->X[c*dim]), &(matprop->rhosoil[c]), tdy->soildensityctx);CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode SetSoilSpecificHeatFromFunction(TDy tdy) {
+
+  PetscInt dim;
+  PetscInt c,cStart,cEnd;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  MaterialProp *matprop = tdy->matprop;
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscMemzero(matprop->Cr,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
+
+  for(c=cStart; c<cEnd; c++) {
+    ierr = (*tdy->ops->computesoilspecificheat)(tdy, &(tdy->X[c*dim]), &(matprop->Cr[c]), tdy->soilspecificheatctx);CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeGMatrix(TDy tdy) {
 
   PetscFunctionBegin;
@@ -470,6 +518,13 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   if (tdy->ops->computepermeability) {ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
   if (tdy->mode == TH){
     if (tdy->ops->computethermalconductivity) {ierr = SetThermalConductivityFromFunction(tdy); CHKERRQ(ierr);}
+    if (tdy->ops->computesoildensity) {
+      ierr = SetSoilDensityFromFunction(tdy); CHKERRQ(ierr);
+      }
+    if (tdy->ops->computesoilspecificheat) {
+      printf("SetSoilSpecificHeatFromFunction\n");
+      ierr = SetSoilSpecificHeatFromFunction(tdy); CHKERRQ(ierr);
+      }
   }
 
   // why must these be placed after SetPermeabilityFromFunction()?
