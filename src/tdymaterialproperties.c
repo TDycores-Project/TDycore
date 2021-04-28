@@ -404,7 +404,7 @@ PetscErrorCode TDyPermeabilityFunctionDefault(TDy tdy, PetscReal *x, PetscReal *
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyThermalConductivityFunctionDefault(TDy tdy, double *x, double *K, void *ctx) {
+PetscErrorCode TDyThermalConductivityFunctionDefault(TDy tdy, PetscReal *x, PetscReal *K, void *ctx) {
   PetscErrorCode ierr;
   PetscInt dim;
   PetscFunctionBegin;
@@ -420,7 +420,7 @@ PetscErrorCode TDyThermalConductivityFunctionDefault(TDy tdy, double *x, double 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyPorosityFunctionDefault(TDy tdy, double *x, double *por, void *ctx) {
+PetscErrorCode TDyPorosityFunctionDefault(TDy tdy, PetscReal *x, PetscReal *por, void *ctx) {
   PetscFunctionBegin;
   *por = 0.25;
   PetscFunctionReturn(0);
