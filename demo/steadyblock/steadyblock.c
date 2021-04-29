@@ -52,7 +52,7 @@ void PermeabilityBlock3(PetscReal *x,PetscReal *K) {
 
 /*--- -dim {2} -problem 1 ---------------------------------------------------------------*/
 
-PetscErrorCode PressureConstant(TDy tdy,double *x,double *p,void *ctx) {
+PetscErrorCode PressureConstant(TDy tdy,PetscReal *x,PetscReal *p,void *ctx) {
   const PetscInt begin = 0.0;
   const PetscInt end = 1.;
   PetscReal xx=x[0], yy=x[1], zz=x[2];
@@ -81,8 +81,8 @@ PetscErrorCode PressureConstant(TDy tdy,double *x,double *p,void *ctx) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode VelocityConstant(TDy tdy,double *x,double *v,void *ctx) { v[0] = 0; v[1] = 0; v[2] = 0; PetscFunctionReturn(0);}
-PetscErrorCode ForcingConstant(TDy tdy,double *x,double *f,void *ctx) { (*f) = 0; PetscFunctionReturn(0);}
+PetscErrorCode VelocityConstant(TDy tdy,PetscReal *x,PetscReal *v,void *ctx) { v[0] = 0; v[1] = 0; v[2] = 0; PetscFunctionReturn(0);}
+PetscErrorCode ForcingConstant(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) { (*f) = 0; PetscFunctionReturn(0);}
 
 int main(int argc, char **argv) {
 

@@ -90,7 +90,7 @@ PetscErrorCode ReadSPE10Permeability(TDy tdy,PetscReal ang){
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode Pressure(TDy tdy,double *x,double *f,void *ctx){
+PetscErrorCode Pressure(TDy tdy,PetscReal *x,PetscReal *f,void *ctx){
   PetscReal xL = 1200, yL = 2200, zL = -170;
   (*f)  = (0.5*xL+x[0])/xL;
   (*f) += (0.5*yL+x[1])/yL;
