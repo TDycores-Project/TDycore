@@ -119,11 +119,14 @@ program main
 
 #include <petsc/finclude/petscksp.h>
 #include <petsc/finclude/petscdm.h>
+#include <petsc/finclude/petscdmplex.h>
 #include <finclude/tdycore.h>
 
   use tdycore
   use petscvec
   use petscdm
+  use petscdmplex
+  use petscdmplexdef
   use petscksp
   use petscsnes
   use snes_mpfaof90mod
@@ -131,7 +134,7 @@ program main
 implicit none
 
   TDy                 :: tdy
-  DM                  :: dm, dmDist
+  DM                  :: dm, edm, dmDist
   Vec                 :: U
   !TS                 :: ts
   SNES                :: snes
@@ -140,7 +143,7 @@ implicit none
   PetscInt            :: dim, faces(3)
   PetscReal           :: lower(3), upper(3)
   PetscErrorCode      :: ierr
-  PetscInt            :: nx, ny, nz, ncell, bc_type
+  PetscInt            :: nx, ny, nz, ncell, bc_type, dm_plex_extrude_layers
   PetscInt  , pointer :: index(:)
   PetscReal , pointer :: residualSat(:), blockPerm(:), liquid_sat(:), liquid_mass(:)
   PetscReal , pointer :: alpha(:), m(:)
@@ -149,7 +152,7 @@ implicit none
   PetscReal           :: dtime, mass_pre, mass_post, ic_value
   character (len=256) :: mesh_filename, ic_filename
   character(len=256)  :: string, bc_type_name
-  PetscBool           :: mesh_file_flg, ic_file_flg, pflotran_consistent
+  PetscBool           :: mesh_file_flg, ic_file_flg, pflotran_consistent, use_tdydriver
   PetscViewer         :: viewer
   PetscInt            :: step_mod
   PetscFE             :: fe
@@ -170,10 +173,14 @@ implicit none
   ic_value = 102325.d0
   pflotran_consistent = PETSC_FALSE
   bc_type = MPFAO_NEUMANN_BC
+  use_tdydriver = PETSC_FALSE
+  dm_plex_extrude_layers=0
 
   call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr);
   CHKERRA(ierr)
 
+  call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dm_plex_extrude_layers',dm_plex_extrude_layers,flg,ierr)
+  CHKERRA(ierr)
   call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-max_steps',max_steps,flg,ierr);
   CHKERRA(ierr)
   call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-successful_exit_code',successful_exit_code,flg,ierr);
@@ -184,6 +191,10 @@ implicit none
   CHKERRA(ierr);
   call PetscOptionsGetBool(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-pflotran_consistent",pflotran_consistent,flg,ierr);
   CHKERRA(ierr)
+
+  call PetscOptionsGetBool(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-use_tdydriver",use_tdydriver,flg,ierr);
+  CHKERRA(ierr)
+
   call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dtime',dtime,flg,ierr)
   CHKERRA(ierr)
   call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-ic_value',ic_value,flg,ierr)
@@ -217,10 +228,12 @@ implicit none
     CHKERRA(ierr);
     call DMGetDimension(dm, dim, ierr);
     CHKERRA(ierr);
-    if (dim /= 3) then
-      write(*,*)'Only 3D meshes are supported and the exodus file is not 3D'
-      call exit(0)
-    endif
+    if (dm_plex_extrude_layers > 0) then
+      call DMPlexExtrude(dm, PETSC_DETERMINE, -1.d0, PETSC_TRUE, PETSC_NULL_REAL, PETSC_TRUE, edm, ierr);
+      CHKERRQ(ierr);
+      call DMDestroy(dm ,ierr);
+      dm = edm
+    end if
   endif
 
   call DMGetDimension(dm, dim, ierr);
@@ -329,8 +342,12 @@ implicit none
      CHKERRQ(ierr)
   endif
 
-  call TDySetupNumericalMethods(tdy,ierr);
-  CHKERRA(ierr);
+  if (use_tdydriver) then
+     call TDyDriverInitializeTDy(tdy, ierr);
+  else
+     call TDySetupNumericalMethods(tdy,ierr);
+     CHKERRA(ierr);
+  end if
 
   call TDyCreateVectors(tdy,ierr); CHKERRA(ierr)
   call TDyCreateJacobian(tdy,ierr); CHKERRA(ierr)
@@ -351,6 +368,12 @@ implicit none
     CHKERRA(ierr);
   endif
 
+  call TDySetInitialCondition(tdy,U,ierr);
+  CHKERRA(ierr);
+
+  call TDySetPreviousSolutionForSNESSolver(tdy, U, ierr)
+  CHKERRA(ierr);
+
   call SNESCreate(PETSC_COMM_WORLD,snes,ierr);
   CHKERRA(ierr);
 
@@ -361,9 +384,6 @@ implicit none
   CHKERRA(ierr);
 
   call SNESSetFromOptions(snes,ierr);
-  CHKERRA(ierr);
-
-  call TDySetPreviousSolutionForSNESSolver(tdy,U,ierr);
   CHKERRA(ierr);
 
   dtime = 1800.d0
@@ -382,13 +402,22 @@ implicit none
     mass_pre = mass_pre + liquid_mass(g)
     enddo
 
-    call SNESSolve(snes,PETSC_NULL_VEC,U,ierr);
-    CHKERRA(ierr);
+    if (use_tdydriver) then
+       call TDyTimeIntegratorSetTimeStep(tdy,1800.d0, ierr);
+       CHKERRA(ierr);
 
-    call SNESGetConvergedReason(snes,reason,ierr)
-    CHKERRA(ierr)
-    if (reason<0) then
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SNES did not converge");
+       call TDyTimeIntegratorRunToTime(tdy,1800.d0 * step, ierr);
+       CHKERRA(ierr);
+
+    else
+       call SNESSolve(snes,PETSC_NULL_VEC,U,ierr);
+       CHKERRA(ierr);
+
+       call SNESGetConvergedReason(snes,reason,ierr)
+       CHKERRA(ierr)
+       if (reason<0) then
+          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SNES did not converge");
+       endif
     endif
 
     call TDyPostSolveSNESSolver(tdy,U,ierr);
@@ -420,8 +449,13 @@ implicit none
   call TDyGetSaturationValuesLocal(tdy,nvalues,liquid_sat,ierr)
   CHKERRA(ierr);
 
-  call TDyOutputRegression(tdy,U,ierr);
-  CHKERRA(ierr);
+  if (use_tdydriver) then
+     call TDyTimeIntegratorOutputRegression(tdy,ierr);
+     CHKERRA(ierr);
+  else
+     call TDyOutputRegression(tdy,U,ierr);
+     CHKERRA(ierr);
+  end if
 
   call TDyDestroy(tdy,ierr);
   CHKERRA(ierr);

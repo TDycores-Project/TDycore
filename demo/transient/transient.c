@@ -1,19 +1,19 @@
 #include "tdycore.h"
 
-void Porosity(double *x,double *theta) {
+void Porosity(PetscReal *x,PetscReal *theta) {
   (*theta) = 0.5;
 }
 
-void Permeability(double *x,double *K) {
+void Permeability(PetscReal *x,PetscReal *K) {
   (*K) = 1e-10;
 }
 
-PetscErrorCode Pressure(TDy tdy,double *x,double *p,void *ctx) {
+PetscErrorCode Pressure(TDy tdy,PetscReal *x,PetscReal *p,void *ctx) {
   (*p) = 91325;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode Forcing(TDy tdy,double *x,double *f,void *ctx) {
+PetscErrorCode Forcing(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) {
   (*f) = 0;
   PetscFunctionReturn(0);
 }

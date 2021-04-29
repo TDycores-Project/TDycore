@@ -1,26 +1,26 @@
 #include "tdycore.h"
 
-void Porosity(double *x,double *theta) {
+void Porosity(PetscReal *x,PetscReal *theta) {
   (*theta) = 0.115;
 }
 
-void Permeability3D(double *x,double *K) {
+void Permeability3D(PetscReal *x,PetscReal *K) {
   K[0] = 1.0e-10; K[1] = 0.0    ; K[2] = 0.0    ;
   K[3] = 0.0    ; K[4] = 1.0e-10; K[5] = 0.0    ;
   K[6] = 0.0    ; K[7] = 0.0    ; K[8] = 1.0e-10;
 }
 
-PetscErrorCode PermeabilityFunction3D(TDy tdy, double *x, double *K, void *ctx){
+PetscErrorCode PermeabilityFunction3D(TDy tdy, PetscReal *x, PetscReal *K, void *ctx){
   Permeability3D(x, K);
   return 0;
 }
 
-PetscErrorCode Pressure(TDy tdy,double *x,double *p,void *ctx) {
+PetscErrorCode Pressure(TDy tdy,PetscReal *x,PetscReal *p,void *ctx) {
   (*p) = 91325;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode Forcing(TDy tdy,double *x,double *f,void *ctx) {
+PetscErrorCode Forcing(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) {
   (*f) = 0;
   PetscFunctionReturn(0);
 }
