@@ -49,9 +49,9 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 
     // Compute = T*P
     PetscScalar TtimesP[nflux_in + npitf_bc];
-    set_flow_to_zero = 0;
+    
     for (PetscInt irow=0; irow<nflux_in + npitf_bc; irow++) {
-
+      set_flow_to_zero = 0;
       PetscInt face_id = face_ids[irow];
       PetscInt subface_id = subface_ids[irow];
       PetscInt num_subfaces = 4;
@@ -308,9 +308,9 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
     // d(fluxm_ij)/dP_k =
     //                     rho_ij       +   (kr/mu)_{ij,upwind}       * T_k
     //
-    set_jac_to_zero = 0;
+    
     for (PetscInt irow=0; irow<nflux_in + npitf_bc; irow++) {
-
+      set_jac_to_zero = 0;
       PetscInt face_id = face_ids[irow];
       PetscInt subface_id = subface_ids[irow];
       PetscInt *cell_ids, num_cells;
@@ -414,9 +414,10 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 
         PetscReal Jac;
 
-        if (set_jac_to_zero == 1) {
-          Jac = 0.0;
-	} else if (cell_id_up>-1 && cell_id == cell_id_up) {
+	if (set_jac_to_zero == 1){
+	  Jac = 0.0;
+	}
+	else if (cell_id_up>-1 && cell_id == cell_id_up) {
           Jac =
             dden_aveg_dPup * ukvr       * TtimesP[irow] +
             den_aveg       * dukvr_dPup * TtimesP[irow] +

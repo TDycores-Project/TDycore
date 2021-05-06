@@ -213,6 +213,8 @@ implicit none
   CHKERRA(ierr)
   if (trim(bc_type_name) == 'MPFAO_DIRICHLET_BC') then
     bc_type = MPFAO_DIRICHLET_BC
+  else if (trim(bc_type_name) == 'MPFAO_SEEPAGE_BC') then
+    bc_type = MPFAO_SEEPAGE_BC
   endif
 
   if (.not.mesh_file_flg) then
@@ -337,7 +339,7 @@ implicit none
 
   end if
 
-  if (bc_type == MPFAO_DIRICHLET_BC ) then
+  if (bc_type == MPFAO_DIRICHLET_BC .OR. bc_type == MPFAO_SEEPAGE_BC ) then
      call TDySetDirichletValueFunction(tdy,PressureFunction,0,ierr);
      CHKERRQ(ierr)
   endif
