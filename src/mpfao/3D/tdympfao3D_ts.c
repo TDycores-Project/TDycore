@@ -23,7 +23,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
   PetscScalar *GravDis_ptr;
   PetscErrorCode ierr;
 
-  PetscInt set_flow_to_zero;
+  PetscBool set_flow_to_zero = PETSC_FALSE;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
@@ -51,7 +51,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
     PetscScalar TtimesP[nflux_in + npitf_bc];
     
     for (PetscInt irow=0; irow<nflux_in + npitf_bc; irow++) {
-      set_flow_to_zero = 0;
+      set_flow_to_zero = PETSC_FALSE;
       PetscInt face_id = face_ids[irow];
       PetscInt subface_id = subface_ids[irow];
       PetscInt num_subfaces = 4;
@@ -105,7 +105,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 
           ukvr = Kr/vis;
 	  if (tdy->mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_up-1] <= tdy->Pref) {
-            set_flow_to_zero = 1;
+            set_flow_to_zero = PETSC_TRUE;
           }
         }
       } else {
@@ -121,13 +121,13 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 
           ukvr = Kr/vis;
 	  if (tdy->mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_dn-1] <= tdy->Pref) {
-            set_flow_to_zero = 1;
+            set_flow_to_zero = PETSC_TRUE;
 	  }
         }
       }
 
       PetscReal fluxm = 0.0;
-      if (!(set_flow_to_zero == 1)) {
+      if (set_flow_to_zero == PETSC_FALSE) {
         fluxm = den_aveg*ukvr*(-TtimesP[irow]);
         fluxm += - pow(den_aveg,2.0) * ukvr * G;
       }
@@ -260,7 +260,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 
   PetscErrorCode ierr;
 
-  PetscInt set_jac_to_zero = 0;
+  PetscBool set_jac_to_zero = PETSC_FALSE;
 
   PetscScalar *TtimesP_vec_ptr, *GravDis_ptr;
   ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
@@ -310,7 +310,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
     //
     
     for (PetscInt irow=0; irow<nflux_in + npitf_bc; irow++) {
-      set_jac_to_zero = 0;
+      set_jac_to_zero = PETSC_FALSE;
       PetscInt face_id = face_ids[irow];
       PetscInt subface_id = subface_ids[irow];
       PetscInt *cell_ids, num_cells;
@@ -371,7 +371,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
           dukvr_dPup = 0.0;
 	  
 	  if (tdy->mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_up-1] <= tdy->Pref) {
-	    set_jac_to_zero = 1;
+	    set_jac_to_zero = PETSC_TRUE;
 	  }
         }
 
@@ -397,7 +397,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
           dukvr_dPdn = 0.0;
 
 	  if (tdy->mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_dn-1] <= tdy->Pref) {
-	    set_jac_to_zero = 1;
+	    set_jac_to_zero = PETSC_TRUE;
 	  }
         }
       }
@@ -414,10 +414,9 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 
         PetscReal Jac;
 
-	if (set_jac_to_zero == 1){
+	if (set_jac_to_zero == PETSC_TRUE){
 	  Jac = 0.0;
-	}
-	else if (cell_id_up>-1 && cell_id == cell_id_up) {
+	} else if (cell_id_up>-1 && cell_id == cell_id_up) {
           Jac =
             dden_aveg_dPup * ukvr       * TtimesP[irow] +
             den_aveg       * dukvr_dPup * TtimesP[irow] +
