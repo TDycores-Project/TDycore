@@ -563,7 +563,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
   PetscInt npitf_dir_bc_all, npitf_neu_bc_all;
 
-  if (tdy->mpfao_bc_type == MPFAO_DIRICHLET_BC) {
+  if (tdy->mpfao_bc_type == MPFAO_DIRICHLET_BC || tdy->mpfao_bc_type == MPFAO_SEEPAGE_BC) {
     nflux_dir_bc_up = nflux_all_bc_up;
     nflux_dir_bc_dn = nflux_all_bc_dn;
     npitf_dir_bc_all= npitf_bc_all;
@@ -1193,7 +1193,7 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
     } else {
       // It is assumed that neumann boundary condition is a zero-flux boundary condition.
       // Thus, compute transmissiblity entries only for dirichlet boundary condition.
-      if (tdy->mpfao_bc_type == MPFAO_DIRICHLET_BC) {
+      if (tdy->mpfao_bc_type == MPFAO_DIRICHLET_BC || tdy->mpfao_bc_type == MPFAO_SEEPAGE_BC) {
         ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
         if (tdy->mode == TH) {
           ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 1); CHKERRQ(ierr);

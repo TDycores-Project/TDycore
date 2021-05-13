@@ -6,6 +6,7 @@
 
 #define MPFAO_DIRICHLET_BC 0
 #define MPFAO_NEUMANN_BC   1
+#define MPFAO_SEEPAGE_BC   2
 
 #endif
 

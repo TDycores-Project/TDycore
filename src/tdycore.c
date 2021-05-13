@@ -31,6 +31,7 @@ const char *const TDyMPFAOGmatrixMethods[] = {
 const char *const TDyMPFAOBoundaryConditionTypes[] = {
   "MPFAO_DIRICHLET_BC",
   "MPFAO_NEUMANN_BC",
+  "MPFAO_SEEPAGE_BC",
   /* */
   "TDyMPFAOBoundaryConditionType","TDY_MPFAO_BC_TYPE_",NULL
 };
