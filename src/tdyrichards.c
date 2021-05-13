@@ -1,5 +1,6 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdyrichardsimpl.h>
+#include <private/tdyutils.h>
 
 PetscErrorCode TDyRichardsInitialize(TDy tdy) {
   PetscErrorCode ierr;
@@ -13,8 +14,12 @@ PetscErrorCode TDyRichardsInitialize(TDy tdy) {
     ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
     ierr = VecSetRandom(tdy->solution,rand); CHKERRQ(ierr);
     ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
-  }
-  else {
+  }  else if (tdy->init_from_file) {
+    PetscViewer viewer;
+    ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,tdy->init_file,FILE_MODE_READ,&viewer); CHKERRQ(ierr);
+    ierr = VecLoad(tdy->solution,viewer); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  } else {
     ierr = VecSet(tdy->solution,101325.); CHKERRQ(ierr);
   }
 
