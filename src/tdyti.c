@@ -26,19 +26,19 @@ PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
   time_integration_method[0] = '\0';
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Time Integration Options","");
                            CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-final_time","Final Time","",ti->final_time,
+  ierr = PetscOptionsReal("-tdy_final_time","Final Time","",ti->final_time,
                           &ti->final_time,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-dt_max","Maximum Timestep Size","",ti->dt_max,
+  ierr = PetscOptionsReal("-tdy_dt_max","Maximum Timestep Size","",ti->dt_max,
                           &ti->dt_max,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-dt_init","Initial Timestep Size","",ti->dt_init,
+  ierr = PetscOptionsReal("-tdy_dt_init","Initial Timestep Size","",ti->dt_init,
                           &ti->dt_init,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-dt_growth_factor","Timestep Growth Factor",
+  ierr = PetscOptionsReal("-tdy_dt_growth_factor","Timestep Growth Factor",
                           "",ti->dt_growth_factor,
                           &ti->dt_growth_factor,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-dt_reduction_factor","Timestep Reduction Factor",
+  ierr = PetscOptionsReal("-tdy_dt_reduction_factor","Timestep Reduction Factor",
                           "",ti->dt_reduction_factor,
                           &ti->dt_reduction_factor,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsString("-time_integration_method",
+  ierr = PetscOptionsString("-tdy_time_integration_method",
                             "Time Integration Method","",
                             time_integration_method,time_integration_method,32,
                             NULL); CHKERRQ(ierr);
