@@ -147,7 +147,6 @@ PetscErrorCode TdyIOWriteHDF5Var(char *ofilename, Vec U,PetscReal time){
 
 PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM dm, int num_vars){
 #if defined(PETSC_HAVE_EXODUSII)
-  int CPU_word_size, IO_word_size;
   PetscErrorCode ierr;
   int exoid = -1;
   PetscViewer viewer;
