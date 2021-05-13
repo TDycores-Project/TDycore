@@ -103,12 +103,29 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
   TDY_START_FUNCTION_TIMER()
   TDyTimeIntegrator ti;
   SNESConvergedReason reason;
+
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
       ti = tdy->ti;
+
+      MPI_Comm comm;
+      PetscMPIInt rank;
+      ierr = PetscObjectGetComm((PetscObject)ti->snes, &comm); CHKERRQ(ierr);
+      ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
+
       while (ti->time < sync_time) {
         ierr = TDyTimeIntegratorSetTargetTime(ti,sync_time); CHKERRQ(ierr);
         ierr = TDySetDtimeForSNESSolver(tdy,ti->dt); CHKERRQ(ierr);
+        if (!rank){
+          switch (tdy->mode){
+            case RICHARDS:
+              printf("===== RICHARDS MODE ==============================\n");
+              break;
+            case TH:
+              printf("===== TH MODE ====================================\n");
+              break;
+          }
+        }
         ierr = TDyPreSolveSNESSolver(tdy); CHKERRQ(ierr);
         ierr = SNESSolve(ti->snes,PETSC_NULL,tdy->solution); 
                CHKERRQ(ierr);
@@ -121,7 +138,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
                CHKERRQ(ierr);
         ierr = SNESGetConvergedReason(ti->snes,&reason); CHKERRQ(ierr);
         if (tdy->io->io_process)
-          printf("Time step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n",
+          printf("\nTime step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n\n",
                  ti->istep,ti->time,ti->dt,nit,lit,
                  SNESConvergedReasons[reason]);
         if (tdy->io->print_intermediate) {

@@ -87,8 +87,9 @@ PetscErrorCode TDyRichardsConvergenceTest(SNES snes, PetscInt it,
   ierr = VecView(r,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
-  if (!rank) 
-    printf("%3d: %9.2e %9.2e %9.2e\n",it,fnorm,xnorm,unorm);
+  if (!rank) {
+    printf("%3d: 2r:%9.2e 2x:%9.2e 2u:%9.2e\n",it,fnorm,xnorm,unorm);
+  }
     
   PetscFunctionReturn(0);
 }
