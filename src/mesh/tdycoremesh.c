@@ -1171,6 +1171,35 @@ PetscErrorCode ConvertVerticesToCompressedFormat(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+/// Converts all member variables of a TDyFace struct in compressed format
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ConvertFacesToCompressedFormat(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  DM dm = tdy->dm;
+  TDyMesh *mesh = tdy->mesh;
+  TDyFace *faces = &mesh->faces;
+  PetscErrorCode ierr;
+
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
+  TDyCellType cell_type = GetCellType(dim, nverts_per_cell);
+  PetscInt num_vertices_per_face = GetNumOfVerticesFormingAFaceForCellType(cell_type);
+
+  /* Convert vertex_ids */
+  PetscInt num_faces = mesh->num_faces;
+  PetscInt update_offset = 1;
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(tdy, num_faces, num_vertices_per_face, update_offset,
+    &faces->num_vertices, &faces->vertex_offset, &faces->vertex_ids); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+/* -------------------------------------------------------------------------- */
 PetscErrorCode UpdateCellOrientationAroundAVertex(TDy tdy, PetscInt ivertex) {
 
   PetscFunctionBegin;
@@ -3134,8 +3163,13 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
           subcell_face_centroids[iface].X[d] = (v_c[d] + edge0_cen[d] + face_cen[iface][d] + edge1_cen[d])/4.0;
         }
 
-        // area of face
-        ierr = TDyQuadrilateralArea(v_c, edge0_cen, face_cen[iface], edge1_cen, &subcell_face_areas[iface]);
+        // The number of subfaces for each face is equal to number of vertices forming the face.
+        // Thus, compute area of subface by dividing the area of face by number of vertices.
+        PetscReal face_area;
+        PetscInt num_vertices;
+        ierr = TDyMeshGetFaceArea(mesh, face_id, &face_area); CHKERRQ(ierr);
+        ierr = TDyMeshGetFaceNumVertices(mesh, face_id, &num_vertices); CHKERRQ(ierr);
+        subcell_face_areas[iface] = face_area/num_vertices;
 
         // nu_vec on the "iface"-th is given as:
         //  = (x_{iface+1} - x_{cell_centroid}) x (x_{iface+2} - x_{cell_centroid})
@@ -3603,8 +3637,6 @@ PetscErrorCode OutputTransmissibilityMatrix2DMesh(TDy tdy) {
 
   ierr = VecRestoreArray(tmat, &tmat_v); CHKERRQ(ierr);
 
-  ierr = TDySavePetscVecAsBinary(tmat, "trans_matrix.bin"); CHKERRQ(ierr);
-
   ierr = VecDestroy(&tmat); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -3663,6 +3695,7 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
     ierr = ConvertCellsToCompressedFormat(tdy); CHKERRQ(ierr);
     ierr = ConvertVerticesToCompressedFormat(tdy); CHKERRQ(ierr);
     ierr = ConvertSubcellsToCompressedFormat(tdy); CHKERRQ(ierr);
+    ierr = ConvertFacesToCompressedFormat(tdy); CHKERRQ(ierr);
     ierr = UpdateFaceOrderAroundAVertex3DMesh(tdy); CHKERRQ(ierr);
     ierr = UpdateCellOrientationAroundAFace3DMesh(  tdy); CHKERRQ(ierr);
     break;

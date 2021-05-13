@@ -44,6 +44,8 @@ struct _p_TDy {
   TDySetupFlags setupflags;
   TDyIO io;
   PetscBool init_with_random_field;
+  PetscBool init_from_file;
+  char init_file[PETSC_MAX_PATH_LEN];
 
   TDyOptions options;
 

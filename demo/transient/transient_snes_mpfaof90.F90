@@ -388,7 +388,6 @@ implicit none
   call SNESSetFromOptions(snes,ierr);
   CHKERRA(ierr);
 
-  dtime = 1800.d0
   call TDySetDtimeForSNESSolver(tdy,dtime,ierr);
   CHKERRA(ierr);
 

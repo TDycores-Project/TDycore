@@ -219,6 +219,7 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   tdy->mpfao_bc_type = MPFAO_DIRICHLET_BC;
   tdy->allow_unsuitable_mesh = PETSC_FALSE;
   tdy->init_with_random_field = PETSC_FALSE;
+  tdy->init_from_file = PETSC_FALSE;
 
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
@@ -523,6 +524,9 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           "Initialize solution with a random field","",
                           tdy->init_with_random_field,
                           &(tdy->init_with_random_field),NULL); CHKERRQ(ierr);
+
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_init_file", tdy->init_file, sizeof(tdy->init_file), &tdy->init_from_file); CHKERRQ(ierr);
+
   ierr = PetscOptionsBool("-tdy_tpf_allow_unsuitable_mesh",
                           "Enable to allow non-orthgonal meshes in tpf","",tdy->allow_unsuitable_mesh,
                           &(tdy->allow_unsuitable_mesh),NULL); CHKERRQ(ierr);
@@ -558,6 +562,10 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   tdy->setupflags |= TDyOptionsSet;
+
+  if (tdy->init_from_file && tdy->init_with_random_field) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Both -tdy_init_from_file and -tdy_init_with_random_field cannot be specified");
+  }
 
   ierr = TDyCreateGrid(tdy); CHKERRQ(ierr);
 

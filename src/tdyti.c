@@ -26,19 +26,19 @@ PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
   time_integration_method[0] = '\0';
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Time Integration Options","");
                            CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-final_time","Final Time","",ti->final_time,
+  ierr = PetscOptionsReal("-tdy_final_time","Final Time","",ti->final_time,
                           &ti->final_time,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-dt_max","Maximum Timestep Size","",ti->dt_max,
+  ierr = PetscOptionsReal("-tdy_dt_max","Maximum Timestep Size","",ti->dt_max,
                           &ti->dt_max,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-dt_init","Initial Timestep Size","",ti->dt_init,
+  ierr = PetscOptionsReal("-tdy_dt_init","Initial Timestep Size","",ti->dt_init,
                           &ti->dt_init,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-dt_growth_factor","Timestep Growth Factor",
+  ierr = PetscOptionsReal("-tdy_dt_growth_factor","Timestep Growth Factor",
                           "",ti->dt_growth_factor,
                           &ti->dt_growth_factor,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-dt_reduction_factor","Timestep Reduction Factor",
+  ierr = PetscOptionsReal("-tdy_dt_reduction_factor","Timestep Reduction Factor",
                           "",ti->dt_reduction_factor,
                           &ti->dt_reduction_factor,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsString("-time_integration_method",
+  ierr = PetscOptionsString("-tdy_time_integration_method",
                             "Time Integration Method","",
                             time_integration_method,time_integration_method,32,
                             NULL); CHKERRQ(ierr);
@@ -103,12 +103,29 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
   TDY_START_FUNCTION_TIMER()
   TDyTimeIntegrator ti;
   SNESConvergedReason reason;
+
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
       ti = tdy->ti;
+
+      MPI_Comm comm;
+      PetscMPIInt rank;
+      ierr = PetscObjectGetComm((PetscObject)ti->snes, &comm); CHKERRQ(ierr);
+      ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
+
       while (ti->time < sync_time) {
         ierr = TDyTimeIntegratorSetTargetTime(ti,sync_time); CHKERRQ(ierr);
         ierr = TDySetDtimeForSNESSolver(tdy,ti->dt); CHKERRQ(ierr);
+        if (!rank){
+          switch (tdy->mode){
+            case RICHARDS:
+              printf("===== RICHARDS MODE ==============================\n");
+              break;
+            case TH:
+              printf("===== TH MODE ====================================\n");
+              break;
+          }
+        }
         ierr = TDyPreSolveSNESSolver(tdy); CHKERRQ(ierr);
         ierr = SNESSolve(ti->snes,PETSC_NULL,tdy->solution); 
                CHKERRQ(ierr);
@@ -121,7 +138,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
                CHKERRQ(ierr);
         ierr = SNESGetConvergedReason(ti->snes,&reason); CHKERRQ(ierr);
         if (tdy->io->io_process)
-          printf("Time step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n",
+          printf("\nTime step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n\n",
                  ti->istep,ti->time,ti->dt,nit,lit,
                  SNESConvergedReasons[reason]);
         if (tdy->io->print_intermediate) {
