@@ -9,8 +9,7 @@ static int argc_;
 static char **argv_;
 
 // Test whether TDyInit works and initializes MPI properly.
-static void TestTDyInit(void **state)
-{
+static void TestTDyInit(void **state) {
   int mpi_initialized;
   MPI_Initialized(&mpi_initialized);
   assert_false(mpi_initialized);
@@ -22,8 +21,7 @@ static void TestTDyInit(void **state)
 }
 
 // Test whether the PETSC_COMM_WORLD communicator behaves properly within cmocka.
-static void TestPetscCommWorld(void **state)
-{
+static void TestPetscCommWorld(void **state) {
   TDyInit(argc_, argv_);
 
   int num_procs;
@@ -39,8 +37,7 @@ static void TestPetscCommWorld(void **state)
 }
 
 // Test whether MPI performs as expected within CMocka's environment.
-static void TestMPIAllreduce(void **state)
-{
+static void TestMPIAllreduce(void **state) {
   TDyInit(argc_, argv_);
 
   // Let's see if we can properly sum over all ranks.
@@ -57,11 +54,14 @@ static void TestMPIAllreduce(void **state)
   TDyFinalize();
 }
 
-int main(int argc, char* argv[])
-{
-  // Stash command line arguments.
+// Here's an initialization function.
+void init_func(int argc, char **argv) {
+  // Stash command line arguments for usage in tests.
   argc_ = argc;
   argv_ = argv;
+}
+
+int main(int argc, char *argv[]) {
 
   // Define our set of unit tests.
   const struct CMUnitTest tests[] =
@@ -71,5 +71,5 @@ int main(int argc, char* argv[])
     cmocka_unit_test(TestMPIAllreduce),
   };
 
-  run_selected_tests(argc, argv, tests, 2);
+  run_selected_tests(argc, argv, init_func, tests, 2);
 }

@@ -129,7 +129,7 @@ static void TestMeshReadLabel(void **state)
     const PetscInt *faces, *new_faces;
     ierr = ISGetIndices(label_IS, &faces);
     assert_int_equal(0, ierr);
-    ierr = ISGetIndices(label_IS, &new_faces);
+    ierr = ISGetIndices(new_label_IS, &new_faces);
     assert_int_equal(0, ierr);
     for (PetscInt f = 0; f < num_faces; ++f) {
       assert_int_equal(faces[f], new_faces[f]);
@@ -157,6 +157,6 @@ int main(int argc, char* argv[])
     cmocka_unit_test(TestMeshReadLabel),
   };
 
-  run_selected_tests(argc, argv, tests, 1);
+  run_selected_tests(argc, argv, NULL, tests, 1);
   PetscFinalize();
 }

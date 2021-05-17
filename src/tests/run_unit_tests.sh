@@ -13,6 +13,8 @@ do
   if test $status -ne 0
   then
     echo "Unit test $1 FAILED with status $status."
+    echo "You can run this test with the following command:"
+    echo "mpiexec -np $nproc $1 $i"
     exit $status
   fi
   ((i++))
