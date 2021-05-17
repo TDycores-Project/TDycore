@@ -80,19 +80,16 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   Vec p = tdy->solution;
   DM dm = tdy->dm;
   PetscReal time = tdy->ti->time;
-    ierr = DMCreateGlobalVector(dm, &s);
+
+  ierr = DMCreateGlobalVector(dm, &s);
   ierr = VecGetArray(s,&s_vec_ptr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   for (c=cStart;c<cEnd;c++) {
     i = c-cStart;
-      s_vec_ptr[i] = tdy->cc->S[i];
+    s_vec_ptr[i] = tdy->cc->S[i];
   }
   ierr = VecRestoreArray(s,&s_vec_ptr);CHKERRQ(ierr);
-   PetscViewer viewer;
-   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Sat.vec",&viewer); CHKERRQ(ierr);
-  ierr = VecView(s,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  
+
   if (tdy->io->format == PetscViewerASCIIFormat) {
     ierr = TDyIOWriteAsciiViewer(p,s,time);CHKERRQ(ierr);
   }
