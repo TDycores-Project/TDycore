@@ -59,8 +59,8 @@
 #define tdysetsourcesinkvalueslocal11_                 TDYSETSOURCESINKVALUESLOCAL11
 #define tdygetsatruationvalueslocal_                   TDYGETSATURATIONVALUESLOCAL
 #define tdygetliquidmassvalueslocal_                   TDYGETLIQUIDMASSVALUESLOCAL
-#define tdygetcharacteristiccurvemvalueslocal_         TDYGETCHARACTERISTICCURVEMVALUELOCAL
-#define tdygetcharacteristiccurvephavalueslocal_       TDYGETCHARACTERISTICCURVEALPHAVALUESLOCAL
+#define tdygetcharacteristiccurvemvalueslocal_         TDYGETCHARACTERISTICCURVEMVALUESLOCAL
+#define tdygetcharacteristiccurvealphavalueslocal_     TDYGETCHARACTERISTICCURVEALPHAVALUESLOCAL
 #define tdygetporosityalueslocal_                      TDYGETPOROSITYVALUESLOCAL
 #define tdygetblockpermeabilityueslocal_               TDYGETBLOCKPERMEABILITYVALUESLOCAL
 #define tdygetnumcellslocal_                           TDYGETNUMCELLSLOCAL
@@ -119,8 +119,8 @@
 #define tdysetsourcesinkvalueslocal11_                 tdysetsourcesinkvalueslocal11
 #define tdygetsatruationvalueslocal_                   tdygetsaturationvalueslocal
 #define tdygetliquidmassvalueslocal_                   tdygetliquidmassvalueslocal
-#define tdygetcharacteristiccurvemvalueslocal_         tdygetcharacteristicvurvesmvalueslocal
-#define tdygetcharacteristiccurvealphavalueslocal_     tdygetcharacteristicvurvesalphavalueslocal
+#define tdygetcharacteristiccurvemvalueslocal_         tdygetcharacteristiccurvemvalueslocal
+#define tdygetcharacteristiccurvealphavalueslocal_     tdygetcharacteristiccurvealphavalueslocal
 #define tdygetporosityvalueslocal_                     tdygetporosityvalueslocal
 #define tdygetblockpermeabilityueslocal_               tdygetblockpermeabilityvalueslocal
 #define tdygetnumcellslocal_                           tdygetnumcellslocal
@@ -696,7 +696,7 @@ PETSC_EXTERN void tdygetliquidmassvalueslocal_(TDy *tdy,PetscInt *ni, PetscScala
   *ierr = TDyGetLiquidMassValuesLocal(*tdy,ni,y);
 }
 
-PETSC_EXTERN void TDyGetCharacteristicCurveMValuesLocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdygetcharacteristiccurvemvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
 {
   *ierr = TDyGetCharacteristicCurveMValuesLocal(*tdy,ni,y);
 }
