@@ -2268,14 +2268,94 @@ PetscBool AreCellsNeighbors(TDy tdy, PetscInt cell_id_1, PetscInt cell_id_2) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode ArrangeCellsInAnCircularOrder(TDy tdy, PetscInt *cellsAbvBlw, PetscInt ncells, PetscInt *cell_order) {
+PetscErrorCode ArrangeCellsInCircularOrder(TDy tdy, PetscInt *cellsAbvBlw, PetscInt ncells, PetscInt *cell_order) {
 
   PetscFunctionBegin;
+
+  // 1. If all cells in cellsAbvBlw do not have same number of neighbors, then
+  //    - Check to ensure only two cells have miniumum number of neighbors, and
+  //    - Arrange cellsAbvBlw such that cells with minimum number of neighbors are
+  //      at the start and end of the array.
+
+  PetscInt nNeighbors[ncells];
+  for (PetscInt ii = 0; ii < ncells; ii++) {
+    nNeighbors[ii] = 0;
+  }
+
+  // Determine the number of neigbhors
+  for (PetscInt ii = 0; ii < ncells; ii++){
+    for (PetscInt jj = ii+1; jj < ncells; jj++){
+      PetscInt result = AreCellsNeighbors(tdy, cellsAbvBlw[ii], cellsAbvBlw[jj]);
+
+      nNeighbors[ii] += result;
+      nNeighbors[jj] += result;
+    }
+  }
+
+  // Determine (1) min/max number of neighbors, and (2) index of cell
+  // with minimum number of cells
+  PetscInt minIdx = -1, minNeighbors = ncells, maxNeighbors = 0;
+  for (PetscInt ii = 0; ii < ncells; ii++) {
+    if (nNeighbors[ii] < minNeighbors) {
+      minNeighbors = nNeighbors[ii];
+      minIdx = ii;
+    }
+    if (nNeighbors[ii] > maxNeighbors) {
+      maxNeighbors = nNeighbors[ii];
+    }
+  }
+
+  if (minNeighbors != maxNeighbors) {
+
+    // Cells have different number of neighbors
+
+    // Check only two cells have min number of neighbors
+    PetscInt count;
+    count = 0;
+    for (PetscInt ii = 0; ii < ncells; ii++) {
+      if (nNeighbors[ii] == minNeighbors) {
+        count++;
+      }
+    }
+    if (count != 2) {
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Number of cells with minimum number of neighbors is not TWO");
+    }
+
+    // Put the cells with min number of neigbhors at the start and end of the array
+    PetscInt tmpOrder[ncells];
+    count = 0;
+    tmpOrder[0] = cellsAbvBlw[minIdx];
+    for (PetscInt ii = 0; ii < ncells; ii++){
+      if (ii != minIdx && nNeighbors[ii] > minNeighbors) {
+        count++;
+        tmpOrder[count] = cellsAbvBlw[ii];
+      }
+    }
+
+    for (PetscInt ii = 0; ii < ncells; ii++){
+      if (ii != minIdx && nNeighbors[ii] == minNeighbors) {
+        count++;
+        tmpOrder[count] = cellsAbvBlw[ii];
+      }
+    }
+
+    // Copy the new cells in new order 
+    for (PetscInt ii = 0; ii < ncells; ii++) {
+      cellsAbvBlw[ii] = tmpOrder[ii];
+    }
+
+  }
+
+  //
+  // 2. Now rearrange the cells such that cellsAbvBlw[i] is neighbor to
+  //    cellsAbvBlw[i+1].
+  //
+
+  // First put cells in an order that could be clockwise or anticlockwise
   PetscInt cell_used[ncells];
 
   for (PetscInt ii=0; ii<ncells; ii++) cell_used[ii] = 0;
 
-  // First put cells in an order that could be clockwise or anticlockwise
   cell_order[0] = cellsAbvBlw[0];
   cell_used[0] = 1;
 
@@ -2454,7 +2534,7 @@ PetscErrorCode RearrangeCellsInAntiClockwiseDir(TDy tdy, PetscInt ivertex, Petsc
   PetscInt cell_order[ncells];
   PetscErrorCode ierr;
 
-  ierr = ArrangeCellsInAnCircularOrder(tdy, cellsAbvBlw[level], ncells, &cell_order[0]); CHKERRQ(ierr);
+  ierr = ArrangeCellsInCircularOrder(tdy, cellsAbvBlw[level], ncells, &cell_order[0]); CHKERRQ(ierr);
 
   ierr = ArrangeCellsInAntiClockwiseDirection(tdy, ivertex, cell_order, ncells, cellsAbvBlw[level]); CHKERRQ(ierr);
 
