@@ -26,7 +26,9 @@ static int _run_selected_tests(int argc, char **argv,
                                const struct CMUnitTest tests[num_tests],
                                int nproc) {
   if (argc == 1) {
-    init_function(argc, argv);
+    if (init_function != NULL) {
+      init_function(argc, argv);
+    }
     return cmocka_run_group_tests(tests, NULL, NULL);
   } else {
     const char* command = (const char*)argv[1];
