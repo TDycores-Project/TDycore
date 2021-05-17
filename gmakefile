@@ -142,7 +142,31 @@ $(foreach demo_src,$(TEST.c) $(TEST.F90),$(eval $(call target_specific_var,$(dem
 $(ALLTESTS) : test-% : $$(DEMO_EXE)
 	+@$(MAKE) -C regression_tests $@
 
-test : $(ALLTESTS)
+# CMocka support for unit tests (via pkg-config).
+CMOCKA_CFLAGS := $(shell pkg-config cmocka --cflags --silence-errors)
+CMOCKA_LDFLAGS := $(shell pkg-config cmocka --libs --silence-errors)
+ifneq ($(CMOCKA_LDFLAGS),) # begin unit tests
+
+# Unit test source files
+UTEST.c = \
+	src/tests/test_tdyinit.c \
+
+# Compile the unit tests
+$(UTEST.c:%.c=%.o) : %.o : %.c src/tests/tdycore_tests.h
+	$(COMPILE.c) $(CMOCKA_CFLAGS) -Isrc/tests $(abspath $<) -o $@
+
+# Link the unit tests into executables
+$(UTEST.c:%.c=%) : % : %.o $$^ $(libtdycore)
+	$(call quiet,CLINKER) -o $@ $^ $(CMOCKA_LDFLAGS) $(TDYCORE_LIB) $(LIBS)
+
+unit-tests : % : $(UTEST.c:%.c=%)
+	+@find src -name "test_*" -executable -exec ./src/tests/run_unit_tests.sh {} \;
+
+UNITTESTS=unit-tests
+
+endif  # cmocka unit tests
+
+test : $(UNITTESTS) $(ALLTESTS)
 
 # make print VAR=the-variable
 print : ; @echo $($(VAR))

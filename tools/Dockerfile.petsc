@@ -3,10 +3,6 @@
 # and with the USER removed (since GitHub Actions only support Docker images
 # with a root user).
 
-# We use the latest Ubuntu, but we install GCC/GFortran 8 (and build MPICH
-# against it) because versions of GFortran between 8.4 and 10.2 exhibit an
-# internal compiler error when building some of our Fortran assets with code
-# coverage enabled. (See https://github.com/TDycores-Project/TDycore/pull/145)
 FROM ubuntu:20.10
 
 RUN echo Etc/UTC > /etc/timezone && ln -s /usr/share/zoneinfo/Etc/UTC /etc/localtime
@@ -22,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   gfortran \
   git \
   lcov \
+  libcmocka-dev \
   liblapack-dev \
   libtool \
   locales \

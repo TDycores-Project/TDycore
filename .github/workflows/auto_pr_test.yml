@@ -36,6 +36,9 @@ jobs:
     - name: Running tests (${{ matrix.build-type }})
       run: |
         set +e # disable "fast fail" (continue on test failures)
+        num_failures=0
+        make unit-tests
+        num_failures=$(( $num_failures + $? ))
         cd demo/mpfao; make V=1 codecov=1
         cd ../richards; make V=1 codecov=1
         cd ../steady; make V=1 codecov=1
@@ -45,7 +48,6 @@ jobs:
         make V=1 codecov=1 transient transient_mpfao transient_th_mpfao
         make V=1 transient_mpfaof90 transient_snes_mpfaof90
         cd ../../regression_tests
-        num_failures=0
         make test-mpfao
         num_failures=$(( $num_failures + $? ))
         make test-steady
