@@ -2285,8 +2285,10 @@ PetscErrorCode ArrangeCellsInCircularOrder(TDy tdy, PetscInt *cellsAbvBlw, Petsc
   // Determine the number of neigbhors
   for (PetscInt ii = 0; ii < ncells; ii++){
     for (PetscInt jj = ii+1; jj < ncells; jj++){
-      nNeighbors[ii] += AreCellsNeighbors(tdy, cellsAbvBlw[ii], cellsAbvBlw[jj]);
-      nNeighbors[jj] += AreCellsNeighbors(tdy, cellsAbvBlw[ii], cellsAbvBlw[jj]);
+      PetscInt result = AreCellsNeighbors(tdy, cellsAbvBlw[ii], cellsAbvBlw[jj]);
+
+      nNeighbors[ii] += result;
+      nNeighbors[jj] += result;
     }
   }
 
@@ -2325,14 +2327,14 @@ PetscErrorCode ArrangeCellsInCircularOrder(TDy tdy, PetscInt *cellsAbvBlw, Petsc
     tmpOrder[0] = cellsAbvBlw[minIdx];
     for (PetscInt ii = 0; ii < ncells; ii++){
       if (ii != minIdx && nNeighbors[ii] > minNeighbors) {
-        count = count + 1;
+        count++;
         tmpOrder[count] = cellsAbvBlw[ii];
       }
     }
 
     for (PetscInt ii = 0; ii < ncells; ii++){
       if (ii != minIdx && nNeighbors[ii] == minNeighbors) {
-        count = count + 1;
+        count++;
         tmpOrder[count] = cellsAbvBlw[ii];
       }
     }
