@@ -51,17 +51,25 @@ static int _run_selected_tests(int argc, char **argv,
           // We have a valid test index. If we have been given an initialization
           // function, construct our own argc and argv with the index argument
           // removed and call the initialization function with them.
+          int my_argc = -1;
+          char** my_argv = NULL;
           if (init_function != NULL) {
-            int my_argc = argc - 1;
-            char** my_argv = malloc(my_argc * sizeof(char*));
+            my_argc = argc - 1;
+            my_argv = malloc(my_argc * sizeof(char*));
             my_argv[0] = _strdup(argv[0]);
-            for (int i = 2; i < my_argc; ++i) {
-              my_argv[i] = _strdup(argv[i-1]);
+            for (int i = 1; i < my_argc; ++i) {
+              my_argv[i] = _strdup(argv[i+1]);
             }
             init_function(my_argc, my_argv);
           }
           const struct CMUnitTest selected_tests[] = { tests[index] };
           int result = cmocka_run_group_tests(selected_tests, NULL, NULL);
+          if (init_function != NULL) {
+            for (int i = 0; i < my_argc; ++i) {
+              free(my_argv[i]);
+            }
+            free(my_argv);
+          }
           return result;
         }
       } else {
