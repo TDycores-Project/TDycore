@@ -151,6 +151,7 @@ ifneq ($(CMOCKA_LDFLAGS),) # begin unit tests
 UTEST.c = \
 	src/tests/test_tdyinit.c \
 	src/tests/test_mesh_labels.c \
+	src/tests/test_parallel_node_subcells.c \
 
 # Compile the unit tests
 $(UTEST.c:%.c=%.o) : %.o : %.c src/tests/tdycore_tests.h
