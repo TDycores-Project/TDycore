@@ -157,6 +157,6 @@ int main(int argc, char* argv[])
     cmocka_unit_test(TestMeshReadLabel),
   };
 
-  run_selected_tests(argc, argv, NULL, tests, 1);
+  run_selected_tests(argc, argv, NULL, tests, NULL, 1);
   PetscFinalize();
 }

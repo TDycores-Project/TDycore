@@ -18,16 +18,23 @@ static char *_strdup(const char *s) {
 }
 
 // Runs tests with selected index (or reports the number of available tests).
-// If init_function is non-NULL, the function is called with argc and argv, with
-// any given test index argument removed.
+// If setup is non-NULL, the function is called with argc and argv, with
+// any given test index argument removed. If breakdown is non-NULL, it's
+// registered to be called on program exit.
 static int _run_selected_tests(int argc, char **argv,
-                               void (*init_function)(int argc, char **argv),
+                               void (*setup)(int argc, char **argv),
                                int num_tests,
                                const struct CMUnitTest tests[num_tests],
+                               void (*breakdown)(void),
                                int nproc) {
+  // Register any given breakdown function.
+  if (breakdown != NULL) {
+    atexit(breakdown);
+  }
+
   if (argc == 1) {
-    if (init_function != NULL) {
-      init_function(argc, argv);
+    if (setup != NULL) {
+      setup(argc, argv);
     }
     return cmocka_run_group_tests(tests, NULL, NULL);
   } else {
@@ -48,23 +55,27 @@ static int _run_selected_tests(int argc, char **argv,
               index, num_tests);
           return 1;
         } else {
-          // We have a valid test index. If we have been given an initialization
-          // function, construct our own argc and argv with the index argument
-          // removed and call the initialization function with them.
+          // We have a valid test index. If we have been given a setup function,
+          // construct our own argc and argv with the index argument removed and
+          // call the function with them.
           int my_argc = -1;
           char** my_argv = NULL;
-          if (init_function != NULL) {
+          if (setup != NULL) {
             my_argc = argc - 1;
             my_argv = malloc(my_argc * sizeof(char*));
             my_argv[0] = _strdup(argv[0]);
             for (int i = 1; i < my_argc; ++i) {
               my_argv[i] = _strdup(argv[i+1]);
             }
-            init_function(my_argc, my_argv);
+            setup(my_argc, my_argv);
           }
+
+          // Select and run the tests.
           const struct CMUnitTest selected_tests[] = { tests[index] };
           int result = cmocka_run_group_tests(selected_tests, NULL, NULL);
-          if (init_function != NULL) {
+
+          // Clean up our duplicated argument list if needed.
+          if (setup != NULL) {
             for (int i = 0; i < my_argc; ++i) {
               free(my_argv[i]);
             }
@@ -74,7 +85,7 @@ static int _run_selected_tests(int argc, char **argv,
         }
       } else {
         fprintf(stderr, "Invalid command: %s (must be 'nproc', 'count', or index)\n",
-            command);
+          command);
         return 1;
       }
     }
@@ -84,15 +95,17 @@ static int _run_selected_tests(int argc, char **argv,
 // Call this macro instead of cmocka_run_group_tests, with the following
 // arguments:
 // * argc and argv, as supplied to your main function
-// * init_function - a void function that takes argc and argv as arguments and
-//                   performs any required setup
+// * setup - a void function that takes argc and argv as arguments and
+//           performs any required setup
 // * tests - A list of CMUnitTest structs that make up the test suite for your
 //           unit test
+// * breakdown - a void function that performs any cleanup needed after the
+//               selected tests execute.
 // * nproc - The number of MPI processes required to execute this unit test
-#define run_selected_tests(argc, argv, init_function, tests, nproc) \
-  _run_selected_tests(argc, argv, init_function, \
+#define run_selected_tests(argc, argv, setup, tests, breakdown, nproc) \
+  _run_selected_tests(argc, argv, setup, \
                       sizeof(tests) / sizeof((tests)[0]), \
-                      tests, nproc)
+                      tests, breakdown, nproc)
 
 #endif
 

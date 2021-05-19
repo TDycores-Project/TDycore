@@ -54,8 +54,8 @@ static void TestMPIAllreduce(void **state) {
   TDyFinalize();
 }
 
-// Here's an initialization function.
-void init_func(int argc, char **argv) {
+// Here's a setup function (we don't use a breakdown function).
+void setup(int argc, char **argv) {
   // Stash command line arguments for usage in tests.
   argc_ = argc;
   argv_ = argv;
@@ -71,5 +71,5 @@ int main(int argc, char *argv[]) {
     cmocka_unit_test(TestMPIAllreduce),
   };
 
-  run_selected_tests(argc, argv, init_func, tests, 2);
+  run_selected_tests(argc, argv, setup, tests, NULL, 2);
 }
