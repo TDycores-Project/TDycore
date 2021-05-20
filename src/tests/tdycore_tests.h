@@ -27,16 +27,16 @@ static int _run_selected_tests(int argc, char **argv,
                                const struct CMUnitTest tests[num_tests],
                                void (*breakdown)(void),
                                int nproc) {
-  // Register any given breakdown function.
-  if (breakdown != NULL) {
-    atexit(breakdown);
-  }
 
   if (argc == 1) {
     if (setup != NULL) {
       setup(argc, argv);
     }
-    return cmocka_run_group_tests(tests, NULL, NULL);
+    fprintf(stdout, "Usage:\n");
+    fprintf(stdout, "%s count    reports the number of available unit tests\n", argv[0]);
+    fprintf(stdout, "%s nproc    reports the # of MPI procs supported\n", argv[0]);
+    fprintf(stdout, "%s <index>  runs the unit test with the (0-based) index\n", argv[0]);
+    return 1;
   } else {
     const char* command = (const char*)argv[1];
     if (strcasecmp(command, "count") == 0) { // asked for # of tests
@@ -51,8 +51,12 @@ static int _run_selected_tests(int argc, char **argv,
       long index = strtol(command, &endptr, 10);
       if (*endptr == '\0') { // got a valid index!
         if ((index < 0) || (index >= num_tests)) {
-          fprintf(stderr, "Invalid test index: %ld (must be in [0, %d])\n",
-              index, num_tests);
+          if (num_tests == 1) {
+            fprintf(stderr, "Invalid test index: %ld (must be 0)\n", index);
+          } else {
+            fprintf(stderr, "Invalid test index: %ld (must be between 0 and %d)\n",
+                    index, num_tests-1);
+          }
           return 1;
         } else {
           // We have a valid test index. If we have been given a setup function,
@@ -71,6 +75,7 @@ static int _run_selected_tests(int argc, char **argv,
           }
 
           // Select and run the tests.
+          if (breakdown != NULL) atexit(breakdown);
           const struct CMUnitTest selected_tests[] = { tests[index] };
           int result = cmocka_run_group_tests(selected_tests, NULL, NULL);
 
