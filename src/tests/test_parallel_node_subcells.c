@@ -51,7 +51,13 @@ static void TestPeriodicBoxMeshNodeSubcells(void **state)
   ierr = DMSetBasicAdjacency(mesh, PETSC_TRUE, PETSC_TRUE);
   assert_int_equal(0, ierr);
 
-  // Distribute the mesh amongst the processes.
+  // Mark all boundary faces with a "boundary" label.
+  DMCreateLabel(mesh, "boundary");
+  DMGetLabel(mesh, "boundary", &label);
+  DMPlexMarkBoundaryFaces(mesh, 1, label);
+  DMPlexLabelComplete(mesh, label);
+
+  // Distribute the mesh amongst the processes and construct ghost cells.
   {
     DM mesh_dist = NULL;
     ierr = DMPlexDistribute(mesh, 1, NULL, &mesh_dist);
@@ -59,6 +65,13 @@ static void TestPeriodicBoxMeshNodeSubcells(void **state)
     if (mesh_dist != NULL) {
       DMDestroy(&mesh);
       mesh = mesh_dist;
+      DM mesh_with_ghosts = NULL;
+      ierr = DMPlexConstructGhostCells(mesh, NULL, NULL, &mesh_with_ghosts);
+      assert_int_equal(0, ierr);
+      if (mesh_with_ghosts != NULL) {
+        DMDestroy(&mesh);
+        mesh = mesh_with_ghosts;
+      }
     }
   }
 
@@ -72,8 +85,7 @@ static void TestPeriodicBoxMeshNodeSubcells(void **state)
     // is populated here each point and its orientation, so points[2*p] gives
     // the index of the the pth point.
     PetscInt num_points, *points = NULL;
-    const PetscBool use_cone = PETSC_FALSE; // cells are "out-edges" of vertices
-    ierr = DMPlexGetTransitiveClosure(mesh, v, use_cone, &num_points, &points);
+    ierr = DMPlexGetTransitiveClosure(mesh, v, PETSC_FALSE, &num_points, &points);
     assert_int_equal(0, ierr);
 
     // Count up all the points that are cells (height == 0).
@@ -88,11 +100,11 @@ static void TestPeriodicBoxMeshNodeSubcells(void **state)
     }
 
     // Put our toys away.
-    ierr = DMPlexRestoreTransitiveClosure(mesh, v, use_cone, &num_points, &points);
+    ierr = DMPlexRestoreTransitiveClosure(mesh, v, PETSC_FALSE, &num_points, &points);
     assert_int_equal(0, ierr);
 
-    printf("vertex %d has %d subcells\n", v, num_cells);
-//    assert_int_equal(8, num_cells);
+//    printf("vertex %d has %d subcells\n", v, num_cells);
+    assert_int_equal(8, num_cells);
   }
 
   // Clean up.
