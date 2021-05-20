@@ -39,6 +39,7 @@ PetscErrorCode TDyIOSetPrintIntermediate(TDyIO io, PetscBool flag){
 PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
   PetscFunctionBegin;
   PetscErrorCode ierr;
+  int n;
   
   tdy->io->format = format;
   int num_vars = tdy->io->num_vars;
@@ -47,8 +48,9 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
 
   PetscInt dim,istart,iend,numCell,numVert,numCorner;
 
-  zonalVarNames[0] = tdy->io->zonalVarNames[0];
-  zonalVarNames[1] = tdy->io->zonalVarNames[1];
+  for (n=0;n<num_vars;++n){
+    zonalVarNames[n] =  tdy->io->zonalVarNames[n];
+  }
 
   if (tdy->io->format == ExodusFormat) {
     strcpy(tdy->io->filename, "out.exo");
@@ -76,15 +78,16 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscBool useNatural;
   Vec s;
   PetscReal *s_vec_ptr;
-  PetscInt cStart,cEnd,c,i;
+  PetscInt cStart,cEnd,c,i,n;
   Vec p = tdy->solution;
   DM dm = tdy->dm;
   PetscReal time = tdy->ti->time;
   int num_vars = tdy->io->num_vars;
   char *zonalVarNames[num_vars];
 
-  zonalVarNames[0] = tdy->io->zonalVarNames[0];
-  zonalVarNames[1] = tdy->io->zonalVarNames[1];
+  for (n=0;n<num_vars;++n){
+    zonalVarNames[n] =  tdy->io->zonalVarNames[n];
+  }
   
   ierr = DMCreateGlobalVector(dm, &s);
   ierr = VecGetArray(s,&s_vec_ptr);
