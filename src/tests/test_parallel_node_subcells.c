@@ -8,7 +8,7 @@ static MPI_Comm comm;
 
 // This function is called before the selected tests execute.
 static void setup(int argc, char** argv) {
-  PetscInitializeNoArguments();
+  PetscInitialize(&argc, &argv, NULL, NULL);
   comm = PETSC_COMM_WORLD;
 }
 
