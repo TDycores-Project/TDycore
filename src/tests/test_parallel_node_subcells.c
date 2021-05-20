@@ -22,9 +22,9 @@ static void breakdown() {
 // subcells on each subdomain.
 static void TestPeriodicBoxMeshNodeSubcells(void **state)
 {
-  // Create a 10x10x10 box mesh, periodic in all directions.
+  // Create a 10x10x10 box mesh, periodic in all directions ("3-torus").
   PetscInt N = 10, ierr;
-  DM dm;
+  DM mesh;
   PetscInt dim = 3;
   const PetscInt  faces[3] = {N,N,N};
   const PetscReal lower[3] = {0.0,0.0,0.0};
@@ -32,20 +32,71 @@ static void TestPeriodicBoxMeshNodeSubcells(void **state)
   const DMBoundaryType periodicity[3] = {DM_BOUNDARY_PERIODIC,
                                          DM_BOUNDARY_PERIODIC,
                                          DM_BOUNDARY_PERIODIC};
-  ierr = DMPlexCreateBoxMesh(comm,dim,PETSC_FALSE,faces,lower,upper,
-                             periodicity,PETSC_TRUE,&dm);
+
+  // We create an "interpolated" DMPlex, which includes edges and faces in
+  // addition to cells and vertices. These various mesh "points" are accessible
+  // via "strata" at specific "heights":
+  // Height | Type
+  // 0      | cell
+  // 1      | face
+  // 2      | edge
+  // 3      | vertex
+  const PetscBool interpolate = PETSC_TRUE;
+  ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, lower, upper,
+                             periodicity, interpolate, &mesh);
+  assert_int_equal(0, ierr);
+
+  // Here we set the adjacency relations for the mesh so that nodes can see
+  // their attached cells.
+  ierr = DMSetBasicAdjacency(mesh, PETSC_TRUE, PETSC_TRUE);
+  assert_int_equal(0, ierr);
+
+  // Distribute the mesh amongst the processes.
   {
-    DM dmDist = NULL;
-    ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
+    DM mesh_dist = NULL;
+    ierr = DMPlexDistribute(mesh, 1, NULL, &mesh_dist);
     assert_int_equal(0, ierr);
-    if (dmDist != NULL) {
-      DMDestroy(&dm);
-      dm = dmDist;
+    if (mesh_dist != NULL) {
+      DMDestroy(&mesh);
+      mesh = mesh_dist;
     }
   }
 
+  // Traverse the vertices of the mesh and check that they are connected to
+  // the appropriate cells.
+  PetscInt v_start, v_end;
+  ierr = DMPlexGetHeightStratum(mesh, 3, &v_start, &v_end);
+  assert_int_equal(0, ierr);
+  for (PetscInt v = v_start; v < v_end; ++v) {
+    // Get all points in the transitive closure for this vertex. The point array
+    // is populated here each point and its orientation, so points[2*p] gives
+    // the index of the the pth point.
+    PetscInt num_points, *points = NULL;
+    const PetscBool use_cone = PETSC_FALSE; // cells are "out-edges" of vertices
+    ierr = DMPlexGetTransitiveClosure(mesh, v, use_cone, &num_points, &points);
+    assert_int_equal(0, ierr);
+
+    // Count up all the points that are cells (height == 0).
+    PetscInt num_cells = 0;
+    for (PetscInt p = 0; p < num_points; ++p) {
+      PetscInt height;
+      ierr = DMPlexGetPointHeight(mesh, points[2*p], &height);
+      assert_int_equal(0, ierr);
+      if (height == 0) {
+        ++num_cells;
+      }
+    }
+
+    // Put our toys away.
+    ierr = DMPlexRestoreTransitiveClosure(mesh, v, use_cone, &num_points, &points);
+    assert_int_equal(0, ierr);
+
+    printf("vertex %d has %d subcells\n", v, num_cells);
+//    assert_int_equal(8, num_cells);
+  }
+
   // Clean up.
-  DMDestroy(&dm);
+  DMDestroy(&mesh);
 }
 
 int main(int argc, char* argv[])
@@ -57,5 +108,5 @@ int main(int argc, char* argv[])
   };
 
   // Run the selected tests on 3 processes.
-  run_selected_tests(argc, argv, setup, tests, breakdown, 3);
+  return run_selected_tests(argc, argv, setup, tests, breakdown, 3);
 }
