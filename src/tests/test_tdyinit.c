@@ -71,5 +71,5 @@ int main(int argc, char *argv[]) {
     cmocka_unit_test(TestMPIAllreduce),
   };
 
-  run_selected_tests(argc, argv, setup, tests, NULL, 2);
+  return run_selected_tests(argc, argv, setup, tests, NULL, 2);
 }
