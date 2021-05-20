@@ -33,9 +33,9 @@ static int _run_selected_tests(int argc, char **argv,
       setup(argc, argv);
     }
     fprintf(stdout, "Usage:\n");
-    fprintf(stdout, "%s count    reports the number of available unit tests\n", argv[0]);
-    fprintf(stdout, "%s nproc    reports the # of MPI procs supported\n", argv[0]);
-    fprintf(stdout, "%s <index>  runs the unit test with the (0-based) index\n", argv[0]);
+    fprintf(stdout, "%s count [arg1 [...]]  \treports the number of available unit tests\n", argv[0]);
+    fprintf(stdout, "%s nproc [arg1 [...]]  \treports the # of MPI procs supported\n", argv[0]);
+    fprintf(stdout, "%s <index> [arg1 [...]]\truns the unit test with the (0-based) index\n", argv[0]);
     return 1;
   } else {
     const char* command = (const char*)argv[1];
