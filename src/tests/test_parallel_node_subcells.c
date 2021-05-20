@@ -51,12 +51,6 @@ static void TestPeriodicBoxMeshNodeSubcells(void **state)
   ierr = DMSetBasicAdjacency(mesh, PETSC_TRUE, PETSC_TRUE);
   assert_int_equal(0, ierr);
 
-  // Mark all boundary faces with a "boundary" label.
-  DMCreateLabel(mesh, "boundary");
-  DMGetLabel(mesh, "boundary", &label);
-  DMPlexMarkBoundaryFaces(mesh, 1, label);
-  DMPlexLabelComplete(mesh, label);
-
   // Distribute the mesh amongst the processes and construct ghost cells.
   {
     DM mesh_dist = NULL;
