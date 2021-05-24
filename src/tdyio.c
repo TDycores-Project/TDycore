@@ -15,8 +15,9 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
 
   io->io_process = PETSC_FALSE;
   io->print_intermediate = PETSC_FALSE;  
-  io->num_vars = 1;
-  strcpy(io->zonalVarNames[0], "Soln");
+  io->num_vars = 2;
+  strcpy(io->zonalVarNames[0], "LiquidPressure");
+  strcpy(io->zonalVarNames[1], "Saturation");
   io->format = NullFormat;
   io->num_times = 0;
     
@@ -38,20 +39,23 @@ PetscErrorCode TDyIOSetPrintIntermediate(TDyIO io, PetscBool flag){
 PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
   PetscFunctionBegin;
   PetscErrorCode ierr;
+  int n;
   
   tdy->io->format = format;
   int num_vars = tdy->io->num_vars;
   DM dm = tdy->dm;
-  char *zonalVarNames[1];
+  char *zonalVarNames[num_vars];
 
   PetscInt dim,istart,iend,numCell,numVert,numCorner;
 
-  zonalVarNames[0] = tdy->io->zonalVarNames[0];
+  for (n=0;n<num_vars;++n){
+    zonalVarNames[n] =  tdy->io->zonalVarNames[n];
+  }
 
   if (tdy->io->format == ExodusFormat) {
     strcpy(tdy->io->filename, "out.exo");
     char *ofilename = tdy->io->filename;
-    ierr = TdyIOInitializeExodus(ofilename,zonalVarNames,dm,num_vars);CHKERRQ(ierr);
+    ierr = TDyIOInitializeExodus(ofilename,zonalVarNames,dm,num_vars);CHKERRQ(ierr);
   }
   else if (tdy->io->format == HDF5Format) {
     strcpy(tdy->io->filename, "out.h5");
@@ -61,9 +65,8 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
     ierr = DMPlexGetHeightStratum(dm,3,&istart,&iend);CHKERRQ(ierr); 
     numVert = iend-istart;
     ierr = VecGetSize(tdy->solution, &numCell);CHKERRQ(ierr);
-    
       
-    ierr = TdyIOInitializeHDF5(ofilename,dm);CHKERRQ(ierr);
+    ierr = TDyIOInitializeHDF5(ofilename,dm);CHKERRQ(ierr);
     ierr = TDyIOWriteXMFHeader(numCell,dim,numVert,numCorner);CHKERRQ(ierr);
   }
     
@@ -73,33 +76,58 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
 PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscErrorCode ierr;
   PetscBool useNatural;
-  
-  Vec v = tdy->solution;
+  Vec s;
+  PetscReal *s_vec_ptr;
+  PetscInt cStart,cEnd,c,i,n;
+  Vec p = tdy->solution;
   DM dm = tdy->dm;
   PetscReal time = tdy->ti->time;
- 
+  int num_vars = tdy->io->num_vars;
+  char *zonalVarNames[num_vars];
+
+  for (n=0;n<num_vars;++n){
+    zonalVarNames[n] =  tdy->io->zonalVarNames[n];
+  }
+  
+  ierr = DMCreateGlobalVector(dm, &s);
+  ierr = VecGetArray(s,&s_vec_ptr);
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  for (c=cStart;c<cEnd;c++) {
+    i = c-cStart;
+    s_vec_ptr[i] = tdy->cc->S[i];
+  }
+  ierr = VecRestoreArray(s,&s_vec_ptr);CHKERRQ(ierr);
+
   if (tdy->io->format == PetscViewerASCIIFormat) {
-    ierr = TDyIOWriteAsciiViewer(v, time);CHKERRQ(ierr);
+    ierr = TDyIOWriteAsciiViewer(p,time,zonalVarNames[0]);CHKERRQ(ierr);
+    ierr = TDyIOWriteAsciiViewer(s,time,zonalVarNames[1]);CHKERRQ(ierr);
   }
   else if (tdy->io->format == ExodusFormat) {
     char *ofilename = tdy->io->filename;
 
-    ierr = TdyIOAddExodusTime(ofilename,time,tdy->io);CHKERRQ(ierr);
-    ierr = TdyIOWriteExodusVar(ofilename,dm,v,tdy->io,time);CHKERRQ(ierr);
+    ierr = TDyIOAddExodusTime(ofilename,time,dm,tdy->io);CHKERRQ(ierr);
+    ierr = TDyIOWriteExodusVar(ofilename,p,zonalVarNames[0],tdy->io,time);CHKERRQ(ierr);
+    ierr = TDyIOWriteExodusVar(ofilename,s,zonalVarNames[1],tdy->io,time);CHKERRQ(ierr);
   }
   else if (tdy->io->format == HDF5Format) {
     char *ofilename = tdy->io->filename;
         
     ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);
     if (useNatural) {
-      Vec natural;
-      ierr = DMCreateGlobalVector(dm, &natural);
-      ierr = DMPlexGlobalToNaturalBegin(dm, v, natural);CHKERRQ(ierr);
-      ierr = DMPlexGlobalToNaturalEnd(dm, v, natural);CHKERRQ(ierr);
-      ierr = TdyIOWriteHDF5Var(ofilename,natural,time);CHKERRQ(ierr);
+      Vec p_natural;
+      Vec s_natural;
+      ierr = DMCreateGlobalVector(dm, &p_natural);
+      ierr = DMPlexGlobalToNaturalBegin(dm, p, p_natural);CHKERRQ(ierr);
+      ierr = DMPlexGlobalToNaturalEnd(dm, p, p_natural);CHKERRQ(ierr);
+      ierr = DMCreateGlobalVector(dm, &s_natural);
+      ierr = DMPlexGlobalToNaturalBegin(dm, s, s_natural);CHKERRQ(ierr);
+      ierr = DMPlexGlobalToNaturalEnd(dm, s, s_natural);CHKERRQ(ierr);
+      ierr = TDyIOWriteHDF5Var(ofilename,dm,p_natural,zonalVarNames[0],time);CHKERRQ(ierr);
+      ierr = TDyIOWriteHDF5Var(ofilename,dm,s_natural,zonalVarNames[1],time);CHKERRQ(ierr);
     }
     else {
-      ierr = TdyIOWriteHDF5Var(ofilename,v,time);CHKERRQ(ierr);
+      ierr = TDyIOWriteHDF5Var(ofilename,dm,p,zonalVarNames[0],time);CHKERRQ(ierr);
+      ierr = TDyIOWriteHDF5Var(ofilename,dm,s,zonalVarNames[1],time);CHKERRQ(ierr);
     }
   }
   else{
@@ -108,7 +136,7 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TdyIOInitializeHDF5(char *ofilename, DM dm){
+PetscErrorCode TDyIOInitializeHDF5(char *ofilename, DM dm){
   PetscViewer viewer; 
   PetscErrorCode ierr;
   PetscViewerFormat format;
@@ -122,30 +150,37 @@ PetscErrorCode TdyIOInitializeHDF5(char *ofilename, DM dm){
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TdyIOWriteHDF5Var(char *ofilename, Vec U,PetscReal time){   
+PetscErrorCode TDyIOWriteHDF5Var(char *ofilename,DM dm,Vec U,char *VariableName,PetscReal time){   
   PetscViewer viewer;
   PetscErrorCode ierr;
   PetscInt numCell;
   char word[32];
   PetscMPIInt rank;
+  PetscSection sec;
 
   ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank); CHKERRQ(ierr);
   
   sprintf(word,"%11.5e",time);
+  
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,ofilename,FILE_MODE_APPEND,&viewer);CHKERRQ(ierr);
+
   ierr = PetscObjectSetName((PetscObject) U,word);CHKERRQ(ierr);
-  ierr = VecView(U,viewer);CHKERRQ(ierr);  
+  ierr = DMGetSection(dm, &sec);
+  //Change to field name 
+  ierr = PetscSectionSetFieldName(sec, 0, VariableName); CHKERRQ(ierr);
+  ierr = VecView(U,viewer);CHKERRQ(ierr);
+
   ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
   
   if (rank == 0){
-  ierr = VecGetSize(U, &numCell);CHKERRQ(ierr);
-  ierr = TDyIOWriteXMFAttribute(word,numCell);CHKERRQ(ierr);
+    ierr = VecGetSize(U, &numCell);CHKERRQ(ierr);
+    ierr = TDyIOWriteXMFAttribute(VariableName,word,numCell);CHKERRQ(ierr);
   }
   
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM dm, int num_vars){
+PetscErrorCode TDyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM dm, int num_vars){
 #if defined(PETSC_HAVE_EXODUSII)
   PetscErrorCode ierr;
   int exoid = -1;
@@ -169,7 +204,7 @@ PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TdyIOAddExodusTime(char *ofilename, PetscReal time, TDyIO io){
+PetscErrorCode TDyIOAddExodusTime(char *ofilename, PetscReal time, DM dm, TDyIO io){
 #if defined(PETSC_HAVE_EXODUSII)
   int CPU_word_size, IO_word_size;
   float version;
@@ -183,21 +218,21 @@ PetscErrorCode TdyIOAddExodusTime(char *ofilename, PetscReal time, TDyIO io){
   exoid = ex_open(ofilename, EX_WRITE, &CPU_word_size, &IO_word_size, &version);
   if (exoid < 0) SETERRQ1(PETSC_COMM_SELF, PETSC_ERR_FILE_UNEXPECTED, "Unable to open exodus file %\n", ofilename);
   ierr = ex_put_time(exoid,io->num_times,&time);CHKERRQ(ierr);
+  ierr = DMSetOutputSequenceNumber(dm,io->num_times-1,time);CHKERRQ(ierr);
   ierr = ex_close(exoid);CHKERRQ(ierr);
 #endif
 
   PetscFunctionReturn(0);
 }
   
-PetscErrorCode TdyIOWriteExodusVar(char *ofilename, DM dm, Vec U, TDyIO io, PetscReal time){ 
+PetscErrorCode TDyIOWriteExodusVar(char *ofilename, Vec U, char *VariableName, TDyIO io, PetscReal time){ 
 #if defined(PETSC_HAVE_EXODUSII)
   PetscErrorCode ierr;
   PetscViewer       viewer;
 
   ierr = PetscViewerExodusIIOpen(PETSC_COMM_WORLD,ofilename,FILE_MODE_APPEND,&viewer);CHKERRQ(ierr);
-  
-  ierr = DMSetOutputSequenceNumber(dm,io->num_times-1,time);CHKERRQ(ierr);
-  ierr = PetscObjectSetName((PetscObject) U,  "Soln");CHKERRQ(ierr);
+    
+  ierr = PetscObjectSetName((PetscObject) U,  VariableName);CHKERRQ(ierr);
   ierr = VecView(U, viewer);CHKERRQ(ierr);
 
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -206,16 +241,16 @@ PetscErrorCode TdyIOWriteExodusVar(char *ofilename, DM dm, Vec U, TDyIO io, Pets
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyIOWriteAsciiViewer(Vec v,PetscReal time) {
+PetscErrorCode TDyIOWriteAsciiViewer(Vec U,PetscReal time,char *VariableName) {
   char word[32];
   PetscViewer viewer;
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  sprintf(word,"%11.5e.txt",time);
+  sprintf(word,"%11.5e_%s.txt",time,VariableName);
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer);
          CHKERRQ(ierr);
-  ierr = VecView(v,viewer); CHKERRQ(ierr);
+  ierr = VecView(U,viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -237,7 +272,7 @@ PetscErrorCode TDyIOWriteXMFHeader(PetscInt numCell,PetscInt dim,PetscInt numVer
   fid = fopen("out.xmf","w");
   fprintf(fid,"<?xml version=\"1.0\" ?>");
   fprintf(fid,"\n<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" [");
-  fprintf(fid,"\n<!ENTITY HeavyData \"out.h5\">"); //todo: replace out.h5 with tdyio-> filename
+  fprintf(fid,"\n<!ENTITY HeavyData \"out.h5\">"); 
   fprintf(fid,"\n]>");
   fprintf(fid, "\n\n<Xdmf>\n  <Domain Name=\"domain\">");
 
@@ -284,7 +319,7 @@ PetscErrorCode TDyIOWriteXMFHeader(PetscInt numCell,PetscInt dim,PetscInt numVer
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyIOWriteXMFAttribute(char* name,PetscInt numCell){
+PetscErrorCode TDyIOWriteXMFAttribute(char* name,char* time,PetscInt numCell){
  
   FILE *fid;
   
@@ -292,7 +327,7 @@ PetscErrorCode TDyIOWriteXMFAttribute(char* name,PetscInt numCell){
   fid = fopen("out.xmf","a"); 
   
   fprintf(fid,"\n        <Attribute");
-  fprintf(fid,"\n           Name=\"%s_LiquidPressure\"",name); 
+  fprintf(fid,"\n           Name=\"%s_%s\"",time,name); 
   fprintf(fid,"\n           Type=\"Scalar\"");
   fprintf(fid,"\n           Center=\"Cell\">");
   
@@ -311,7 +346,7 @@ PetscErrorCode TDyIOWriteXMFAttribute(char* name,PetscInt numCell){
   fprintf(fid,"\n               DataType=\"Float\" Precision=\"8\"");
   fprintf(fid,"\n               Dimensions=\"1 %i 1\"",numCell); 
   fprintf(fid,"\n               Format=\"HDF\">");
-  fprintf(fid,"\n              &HeavyData;:/cell_fields/%s_LiquidPressure",name);
+  fprintf(fid,"\n              &HeavyData;:/cell_fields/%s_%s",time,name);
   fprintf(fid,"\n            </DataItem>");
   fprintf(fid,"\n          </DataItem>");
   fprintf(fid,"\n        </Attribute>");
