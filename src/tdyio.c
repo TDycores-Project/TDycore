@@ -55,7 +55,7 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
   if (tdy->io->format == ExodusFormat) {
     strcpy(tdy->io->filename, "out.exo");
     char *ofilename = tdy->io->filename;
-    ierr = TdyIOInitializeExodus(ofilename,zonalVarNames,dm,num_vars);CHKERRQ(ierr);
+    ierr = TDyIOInitializeExodus(ofilename,zonalVarNames,dm,num_vars);CHKERRQ(ierr);
   }
   else if (tdy->io->format == HDF5Format) {
     strcpy(tdy->io->filename, "out.h5");
@@ -66,7 +66,7 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
     numVert = iend-istart;
     ierr = VecGetSize(tdy->solution, &numCell);CHKERRQ(ierr);
       
-    ierr = TdyIOInitializeHDF5(ofilename,dm);CHKERRQ(ierr);
+    ierr = TDyIOInitializeHDF5(ofilename,dm);CHKERRQ(ierr);
     ierr = TDyIOWriteXMFHeader(numCell,dim,numVert,numCorner);CHKERRQ(ierr);
   }
     
@@ -105,9 +105,9 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   else if (tdy->io->format == ExodusFormat) {
     char *ofilename = tdy->io->filename;
 
-    ierr = TdyIOAddExodusTime(ofilename,time,dm,tdy->io);CHKERRQ(ierr);
-    ierr = TdyIOWriteExodusVar(ofilename,p,zonalVarNames[0],tdy->io,time);CHKERRQ(ierr);
-    ierr = TdyIOWriteExodusVar(ofilename,s,zonalVarNames[1],tdy->io,time);CHKERRQ(ierr);
+    ierr = TDyIOAddExodusTime(ofilename,time,dm,tdy->io);CHKERRQ(ierr);
+    ierr = TDyIOWriteExodusVar(ofilename,p,zonalVarNames[0],tdy->io,time);CHKERRQ(ierr);
+    ierr = TDyIOWriteExodusVar(ofilename,s,zonalVarNames[1],tdy->io,time);CHKERRQ(ierr);
   }
   else if (tdy->io->format == HDF5Format) {
     char *ofilename = tdy->io->filename;
@@ -122,12 +122,12 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
       ierr = DMCreateGlobalVector(dm, &s_natural);
       ierr = DMPlexGlobalToNaturalBegin(dm, s, s_natural);CHKERRQ(ierr);
       ierr = DMPlexGlobalToNaturalEnd(dm, s, s_natural);CHKERRQ(ierr);
-      ierr = TdyIOWriteHDF5Var(ofilename,dm,p_natural,zonalVarNames[0],time);CHKERRQ(ierr);
-      ierr = TdyIOWriteHDF5Var(ofilename,dm,s_natural,zonalVarNames[1],time);CHKERRQ(ierr);
+      ierr = TDyIOWriteHDF5Var(ofilename,dm,p_natural,zonalVarNames[0],time);CHKERRQ(ierr);
+      ierr = TDyIOWriteHDF5Var(ofilename,dm,s_natural,zonalVarNames[1],time);CHKERRQ(ierr);
     }
     else {
-      ierr = TdyIOWriteHDF5Var(ofilename,dm,p,zonalVarNames[0],time);CHKERRQ(ierr);
-      ierr = TdyIOWriteHDF5Var(ofilename,dm,s,zonalVarNames[1],time);CHKERRQ(ierr);
+      ierr = TDyIOWriteHDF5Var(ofilename,dm,p,zonalVarNames[0],time);CHKERRQ(ierr);
+      ierr = TDyIOWriteHDF5Var(ofilename,dm,s,zonalVarNames[1],time);CHKERRQ(ierr);
     }
   }
   else{
@@ -136,7 +136,7 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TdyIOInitializeHDF5(char *ofilename, DM dm){
+PetscErrorCode TDyIOInitializeHDF5(char *ofilename, DM dm){
   PetscViewer viewer; 
   PetscErrorCode ierr;
   PetscViewerFormat format;
@@ -150,7 +150,7 @@ PetscErrorCode TdyIOInitializeHDF5(char *ofilename, DM dm){
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TdyIOWriteHDF5Var(char *ofilename,DM dm,Vec U,char *VariableName,PetscReal time){   
+PetscErrorCode TDyIOWriteHDF5Var(char *ofilename,DM dm,Vec U,char *VariableName,PetscReal time){   
   PetscViewer viewer;
   PetscErrorCode ierr;
   PetscInt numCell;
@@ -180,7 +180,7 @@ PetscErrorCode TdyIOWriteHDF5Var(char *ofilename,DM dm,Vec U,char *VariableName,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM dm, int num_vars){
+PetscErrorCode TDyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM dm, int num_vars){
 #if defined(PETSC_HAVE_EXODUSII)
   int CPU_word_size, IO_word_size;
   PetscErrorCode ierr;
@@ -205,7 +205,7 @@ PetscErrorCode TdyIOInitializeExodus(char *ofilename, char *zonalVarNames[], DM 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TdyIOAddExodusTime(char *ofilename, PetscReal time, DM dm, TDyIO io){
+PetscErrorCode TDyIOAddExodusTime(char *ofilename, PetscReal time, DM dm, TDyIO io){
 #if defined(PETSC_HAVE_EXODUSII)
   int CPU_word_size, IO_word_size;
   float version;
@@ -226,7 +226,7 @@ PetscErrorCode TdyIOAddExodusTime(char *ofilename, PetscReal time, DM dm, TDyIO 
   PetscFunctionReturn(0);
 }
   
-PetscErrorCode TdyIOWriteExodusVar(char *ofilename, Vec U, char *VariableName, TDyIO io, PetscReal time){ 
+PetscErrorCode TDyIOWriteExodusVar(char *ofilename, Vec U, char *VariableName, TDyIO io, PetscReal time){ 
 #if defined(PETSC_HAVE_EXODUSII)
   PetscErrorCode ierr;
   PetscViewer       viewer;
