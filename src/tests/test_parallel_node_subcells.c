@@ -41,7 +41,10 @@ static void TestPeriodicBoxMeshNodeSubcells(void **state)
   // 1      | face
   // 2      | edge
   // 3      | vertex
-  const PetscBool interpolate = PETSC_TRUE;
+  // Note: An "uninterpolated" mesh is just a cell-vertex mesh without edges and
+  // Note: faces.
+  const PetscBool interpolate = PETSC_FALSE;
+  PetscInt vertex_height = interpolate ? 3 : 1;
   ierr = DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, lower, upper,
                              periodicity, interpolate, &mesh);
   assert_int_equal(0, ierr);
@@ -51,28 +54,36 @@ static void TestPeriodicBoxMeshNodeSubcells(void **state)
   ierr = DMSetBasicAdjacency(mesh, PETSC_TRUE, PETSC_TRUE);
   assert_int_equal(0, ierr);
 
-  // Distribute the mesh amongst the processes and construct ghost cells.
+  // Distribute the mesh amongst the processes and construct ghost cells. Create
+  // a distributed star forest so that we can tell which vertices are owned by
+  // the local process ("roots").
+  PetscSF sf;
   {
     DM mesh_dist = NULL;
-    ierr = DMPlexDistribute(mesh, 1, NULL, &mesh_dist);
+    PetscSF sf_dist = NULL;
+    ierr = DMPlexDistribute(mesh, 1, &sf, &mesh_dist);
     assert_int_equal(0, ierr);
     if (mesh_dist != NULL) {
       DMDestroy(&mesh);
       mesh = mesh_dist;
-      DM mesh_with_ghosts = NULL;
-      ierr = DMPlexConstructGhostCells(mesh, NULL, NULL, &mesh_with_ghosts);
+
+      ierr = DMPlexCreatePointSF(mesh, sf, PETSC_TRUE, &sf_dist);
       assert_int_equal(0, ierr);
-      if (mesh_with_ghosts != NULL) {
-        DMDestroy(&mesh);
-        mesh = mesh_with_ghosts;
+      if (sf_dist != NULL) {
+        PetscSFDestroy(&sf);
+        sf = sf_dist;
       }
     }
   }
 
+  // Get the number of locally-owned points ("roots") on this process.
+  PetscInt num_local_points;
+  ierr = PetscSFGetGraph(sf, &num_local_points, NULL, NULL, NULL);
+
   // Traverse the vertices of the mesh and check that they are connected to
   // the appropriate cells.
   PetscInt v_start, v_end;
-  ierr = DMPlexGetHeightStratum(mesh, 3, &v_start, &v_end);
+  ierr = DMPlexGetHeightStratum(mesh, vertex_height, &v_start, &v_end);
   assert_int_equal(0, ierr);
   for (PetscInt v = v_start; v < v_end; ++v) {
     // Get all points in the transitive closure for this vertex. The point array
@@ -82,11 +93,13 @@ static void TestPeriodicBoxMeshNodeSubcells(void **state)
     ierr = DMPlexGetTransitiveClosure(mesh, v, PETSC_FALSE, &num_points, &points);
     assert_int_equal(0, ierr);
 
-    // Count up all the points that are cells (height == 0).
+    // Count all the points that are cells (height == 0).
     PetscInt num_cells = 0;
     for (PetscInt p = 0; p < num_points; ++p) {
       PetscInt height;
-      ierr = DMPlexGetPointHeight(mesh, points[2*p], &height);
+      PetscInt point = points[2*p];
+      assert_true(point < num_local_points);
+      ierr = DMPlexGetPointHeight(mesh, point, &height);
       assert_int_equal(0, ierr);
       if (height == 0) {
         ++num_cells;
@@ -102,6 +115,7 @@ static void TestPeriodicBoxMeshNodeSubcells(void **state)
   }
 
   // Clean up.
+  PetscSFDestroy(&sf);
   DMDestroy(&mesh);
 }
 
