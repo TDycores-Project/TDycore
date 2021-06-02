@@ -8,8 +8,11 @@
 #include <petscviewerhdf5.h>
 
 PetscErrorCode TDyIOCreate(TDyIO *_io) {
-  TDyIO io;
   PetscFunctionBegin;
+  TDyIO io;
+  PetscErrorCode ierr;
+  
+  
   io = (TDyIO)malloc(sizeof(struct _p_TDyIO));
   *_io = io;
 
@@ -20,7 +23,50 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   strcpy(io->zonalVarNames[1], "Saturation");
   io->format = NullFormat;
   io->num_times = 0;
-    
+
+  io->permeability_filename[0] = '\0';
+  io->porosity_filename[0] = '\0';
+  io->ic_filename[0] = '\0';
+
+  io->permeability_dataset[0] = '\0';
+  io->porosity_dataset[0] = '\0';
+  io->ic_dataset[0] = '\0';
+
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); 
+                           CHKERRQ(ierr);
+  ierr = PetscOptionsString("-init_permeability_file",
+                            "Input Permeability Filename","",
+			    io->permeability_filename,io->permeability_filename,
+			    PETSC_MAX_PATH_LEN,NULL);
+                            CHKERRQ(ierr);
+  ierr = PetscOptionsString("-permeability_dataset",
+                            "Input Permeability Dataset Name","",
+			    io->permeability_dataset,io->permeability_dataset,
+			    PETSC_MAX_PATH_LEN,NULL);
+                            CHKERRQ(ierr);
+  ierr = PetscOptionsString("-init_porosity_file",
+                            "Input Porosity Filename","",
+			    io->porosity_filename,io->porosity_filename,
+			    PETSC_MAX_PATH_LEN,NULL);
+                            CHKERRQ(ierr);
+  ierr = PetscOptionsString("-porosity_dataset",
+                            "Input Porosity Dataset Name","",
+			    io->porosity_dataset,io->porosity_dataset,
+			    PETSC_MAX_PATH_LEN,NULL);
+                            CHKERRQ(ierr);
+  ierr = PetscOptionsString("-ic_file",
+                            "Input IC Filename","",
+			    io->ic_filename,io->ic_filename,
+			    PETSC_MAX_PATH_LEN,NULL);
+                            CHKERRQ(ierr);
+  ierr = PetscOptionsString("-ic_dataset",
+                            "Input IC Dataset Name","",
+			    io->ic_dataset,io->ic_dataset,
+			    PETSC_MAX_PATH_LEN,NULL);
+                            CHKERRQ(ierr);
+
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  
   PetscFunctionReturn(0);
 }
 
@@ -34,6 +80,132 @@ PetscErrorCode TDyIOSetPrintIntermediate(TDyIO io, PetscBool flag){
   PetscFunctionBegin;
   io->print_intermediate=flag;
   PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyIOReadPermeability(TDy tdy){
+  PetscFunctionBegin;
+  PetscInt cStart,cEnd,ncell,c,size;
+  PetscErrorCode ierr;
+  PetscReal *K;
+  char VariableName[PETSC_MAX_PATH_LEN];
+  Vec U,index_vec;
+  PetscViewer viewer;
+  PetscInt dim;
+  PetscReal *index_ptr;
+
+  size_t len;
+  ierr = PetscStrlen(tdy->io->permeability_dataset, &len); CHKERRQ(ierr);
+  if (!len){
+    strcpy(VariableName, "Permeability");
+  } else {
+    strcpy(VariableName, tdy->io->permeability_dataset);
+  }
+
+  ierr = DMGetDimension(tdy->dm, &dim);
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ncell = (cEnd-cStart);
+  size = ncell * dim * dim;
+
+  PetscInt index[ncell];
+
+  ierr = VecCreate(PETSC_COMM_WORLD,&U);
+  ierr = VecSetSizes(U,ncell*dim*dim,PETSC_DECIDE);
+  ierr = VecCreate(PETSC_COMM_WORLD,&index_vec);
+  ierr = VecSetSizes(index_vec,ncell,PETSC_DECIDE);
+  ierr = PetscObjectSetName((PetscObject) U, VariableName);
+  ierr = PetscObjectSetName((PetscObject) index_vec, "Cell Ids");
+  
+  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,tdy->io->permeability_filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
+  ierr = VecLoad(U,viewer);
+  ierr = VecGetArray(U,&K);
+
+  ierr = VecLoad(index_vec,viewer);
+  ierr = VecGetArray(index_vec,&index_ptr);
+  
+  for (c = 0;c<=ncell;++c){
+     index[c] = index_ptr[c];
+  }
+  
+  ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,K);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyIOReadPorosity(TDy tdy){
+  PetscFunctionBegin;
+  PetscInt cStart,cEnd,ncell,c;
+  PetscErrorCode ierr;
+  PetscReal *Porosity;
+  char VariableName[PETSC_MAX_PATH_LEN];
+  Vec U, index_vec;
+  PetscViewer viewer;
+  PetscReal *index_ptr;
+
+  size_t len;
+  ierr = PetscStrlen(tdy->io->porosity_dataset, &len); CHKERRQ(ierr);
+  if (!len){
+    strcpy(VariableName, "Porosity");
+  } else {
+    strcpy(VariableName, tdy->io->porosity_dataset);
+  }
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ncell = (cEnd-cStart);
+
+  PetscInt index[ncell];
+
+  ierr = VecCreate(PETSC_COMM_WORLD,&U);
+  ierr = VecSetSizes(U,ncell,PETSC_DECIDE);
+  ierr = VecCreate(PETSC_COMM_WORLD,&index_vec);
+  ierr = VecSetSizes(index_vec,ncell,PETSC_DECIDE);
+  ierr = PetscObjectSetName((PetscObject) U, VariableName);
+  ierr = PetscObjectSetName((PetscObject) index_vec, "Cell Ids");
+  
+  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,tdy->io->porosity_filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
+  ierr = VecLoad(U,viewer);
+  ierr = VecLoad(index_vec,viewer);
+  
+  ierr = VecGetArray(U,&Porosity);
+  ierr = VecGetArray(index_vec,&index_ptr);
+  
+  for (c = 0;c<=ncell;++c){
+     index[c] = index_ptr[c];
+  }
+
+  ierr = TDySetPorosityValuesLocal(tdy,ncell,index,Porosity);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyIOReadIC(TDy tdy){
+  PetscFunctionBegin;
+  PetscInt cStart,cEnd,ncell,c;
+  PetscErrorCode ierr;
+  PetscReal *ic;
+  PetscViewer viewer;
+  Vec U;
+  char VariableName[PETSC_MAX_PATH_LEN];
+
+  size_t len;
+  ierr = PetscStrlen(tdy->io->ic_dataset, &len); CHKERRQ(ierr);
+  if (!len){
+    strcpy(VariableName, "IC");
+  } else {
+    strcpy(VariableName, tdy->io->ic_dataset);
+  }
+  
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ncell = (cEnd-cStart);
+  ierr = VecCreate(PETSC_COMM_WORLD,&U);
+  ierr = VecSetSizes(U,ncell,PETSC_DECIDE);
+  
+  ierr = PetscObjectSetName((PetscObject) U, VariableName);
+  
+  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,tdy->io->ic_filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
+  ierr = VecLoad(U,viewer);
+
+  ierr = TDySetInitialCondition(tdy,U);
+  
 }
 
 PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
