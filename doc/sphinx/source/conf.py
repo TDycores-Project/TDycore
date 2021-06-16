@@ -49,7 +49,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.githubpages',
     'sphinxcontrib.katex',
-    'sphinxcontrib.mermaid',  # still in beta; fails with latexpdf builder
+#    'sphinxcontrib.mermaid',  # still in beta; fails with latexpdf builder
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinxcontrib.bibtex',
