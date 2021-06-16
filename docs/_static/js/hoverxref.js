@@ -26,8 +26,13 @@ function reRenderTooltip (instance, helper) {
 
 
 function reLoadMathJax(elementId) {
-    console.debug('Triggering MathJax.Hub.Typeset()');
-    MathJax.Hub.Queue((["Typeset", MathJax.Hub, elementId]));
+    if (parseInt(MathJax.version[0]) >= 3) {
+        console.debug('Typesetting for Mathjax3');
+        MathJax.typeset();
+    } else {
+        console.debug('Typesetting for MathJax2');
+        MathJax.Hub.Queue((["Typeset", MathJax.Hub, elementId]));
+    }
 }
 
 
@@ -39,29 +44,54 @@ function reLoadSphinxTabs() {
             // HACK: please, improve this code to call the content of "tab.js" without creating a script element
 
             // Get the URL from the current generated page since it's not always the same
-            var src = $('script[src$="sphinx_tabs/tabs.js"]')[0].src;
+            var older_tabs_src = $('script[src$="sphinx_tabs/tabs.js"]');
+            if (older_tabs_src.length != 0) {
+                // sphinx-tabs < 2
+                older_tabs_src = older_tabs_src[0].older_tabs_src
+                script = d.createElement('script');
+                script.type = 'text/javascript';
+                script.onload = function(){
+                    // remote script has loaded
+                };
+                script.older_tabs_src = older_tabs_src;
+                d.getElementsByTagName('head')[0].appendChild(script);
 
-            script = d.createElement('script');
-            script.type = 'text/javascript';
-            script.onload = function(){
-                // remote script has loaded
-            };
-            script.src = src;
-            d.getElementsByTagName('head')[0].appendChild(script);
+                // Once the script has been executed, we remove it from the DOM
+                script.parentNode.removeChild(script);
+            }
+            var newer_tabs_src = $('script[src$="_static/tabs.js"]');
+            if (newer_tabs_src.length != 0) {
+                // sphinx-tabs > 2
+                // Borrowed from
+                // https://github.com/executablebooks/sphinx-tabs/blob/0f3cbbe/sphinx_tabs/static/tabs.js#L8-L17
+                var allTabs = document.querySelectorAll('.sphinx-tabs-tab');
+                var tabLists = document.querySelectorAll('[role="tablist"]');
+                allTabs.forEach(tab => {
+                    tab.addEventListener("click", changeTabs);
+                });
 
-            // Once the script has been executed, we remove it from the DOM
-            script.parentNode.removeChild(script);
+                tabLists.forEach(tabList => {
+                    tabList.addEventListener("keydown", keyTabs);
+                });
+            }
+
         }(document));
     };
 };
 
-function getEmbedURL(project, version, doc, docpath, section) {
-    var params = {
-        'project': project,
-        'version': version,
-        'doc': doc,
-        'path': docpath,
-        'section': section,
+function getEmbedURL(project, version, doc, docpath, section, url) {
+    if (url) {
+        var params = {
+            'url': url,
+        }
+    } else {
+        var params = {
+            'project': project,
+            'version': version,
+            'doc': doc,
+            'path': docpath,
+            'section': section,
+        }
     }
     console.debug('Data: ' + JSON.stringify(params));
     var url = 'https://readthedocs.org' + '/api/v2/embed/?' + $.param(params);
@@ -87,11 +117,12 @@ $(document).ready(function() {
             var doc = $origin.data('doc');
             var docpath = $origin.data('docpath');
             var section = $origin.data('section');
+            var url = $origin.data('url');
 
 
             // we set a variable so the data is only loaded once via Ajax, not every time the tooltip opens
             if ($origin.data('loaded') !== true) {
-                var url = getEmbedURL(project, version, doc, docpath, section);
+                var url = getEmbedURL(project, version, doc, docpath, section, url);
                 $.get(url, function(data) {
                     // call the 'content' method to update the content of our tooltip with the returned data.
                     // note: this content update will trigger an update animation (see the updateAnimation option)
@@ -160,8 +191,9 @@ $(document).ready(function() {
         var doc = element.data('doc');
         var docpath = element.data('docpath');
         var section = element.data('section');
+        var url = element.data('url');
 
-        var url = getEmbedURL(project, version, doc, docpath, section);
+        var url = getEmbedURL(project, version, doc, docpath, section, url);
         $.get(url, function(data) {
             var content = $('<div></div>');
             content.html(data['content'][0]);
