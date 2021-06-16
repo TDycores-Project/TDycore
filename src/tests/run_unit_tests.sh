@@ -8,7 +8,7 @@ i=0
 while [ $i -lt $count ]
 do
   # Run the test with the appropriate number of MPI processes.
-  $MPIEXEC -np $nproc -quiet $1 $i
+  $MPIEXEC -np $nproc $1 $i
   status=$?
   if test $status -ne 0
   then
