@@ -8,6 +8,15 @@
 
 static MPI_Comm comm;
 
+static void setup(int argc, char** argv) {
+  PetscInitializeNoArguments();
+  comm = PETSC_COMM_WORLD;
+}
+
+static void breakdown() {
+  PetscFinalize();
+}
+
 // Test whether we can write a box mesh to a mesh file.
 static void TestMeshWrite(void **state)
 {
@@ -129,7 +138,7 @@ static void TestMeshReadLabel(void **state)
     const PetscInt *faces, *new_faces;
     ierr = ISGetIndices(label_IS, &faces);
     assert_int_equal(0, ierr);
-    ierr = ISGetIndices(label_IS, &new_faces);
+    ierr = ISGetIndices(new_label_IS, &new_faces);
     assert_int_equal(0, ierr);
     for (PetscInt f = 0; f < num_faces; ++f) {
       assert_int_equal(faces[f], new_faces[f]);
@@ -145,9 +154,6 @@ static void TestMeshReadLabel(void **state)
 
 int main(int argc, char* argv[])
 {
-  PetscInitializeNoArguments();
-  comm = PETSC_COMM_WORLD;
-
   // Define our set of unit tests.
   const struct CMUnitTest tests[] =
   {
@@ -157,6 +163,5 @@ int main(int argc, char* argv[])
     cmocka_unit_test(TestMeshReadLabel),
   };
 
-  run_selected_tests(argc, argv, tests, 1);
-  PetscFinalize();
+  return run_selected_tests(argc, argv, setup, tests, breakdown, 1);
 }
