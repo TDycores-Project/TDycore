@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <cmocka.h>
 
+#include <petsc.h>
+
 // Here's a tiny implementation of the non-standard strdup function.
 static char *_strdup(const char *s) {
   size_t n = strlen(s);
@@ -78,6 +80,16 @@ static int _run_selected_tests(int argc, char **argv,
           if (breakdown != NULL) atexit(breakdown);
           const struct CMUnitTest selected_tests[] = { tests[index] };
           int result = cmocka_run_group_tests(selected_tests, NULL, NULL);
+
+          // In an MPI context, we take the max number of failed tests across
+          // processes.
+          int have_mpi;
+          MPI_Initialized(&have_mpi);
+          if (have_mpi) {
+            int max_result;
+            MPI_Allreduce(&result, &max_result, 1, MPI_INT, MPI_MAX, PETSC_COMM_WORLD);
+            result = max_result;
+          }
 
           // Clean up our duplicated argument list if needed.
           if (setup != NULL) {
