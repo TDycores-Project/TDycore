@@ -151,6 +151,7 @@ ifneq ($(CMOCKA_LDFLAGS),) # begin unit tests
 UTEST.c = \
 	src/tests/test_tdyinit.c \
 	src/tests/test_mesh_labels.c \
+	src/tests/test_parallel_node_subcells.c \
 
 # Compile the unit tests
 $(UTEST.c:%.c=%.o) : %.o : %.c src/tests/tdycore_tests.h
@@ -161,7 +162,7 @@ $(UTEST.c:%.c=%) : % : %.o $$^ $(libtdycore)
 	$(call quiet,CLINKER) -o $@ $^ $(CMOCKA_LDFLAGS) $(TDYCORE_LIB) $(LIBS)
 
 unit-tests : % : $(UTEST.c:%.c=%)
-	+@find src -name "test_*" -executable -exec env MPIEXEC="$(MPIEXEC)" ./src/tests/run_unit_tests.sh {} \;
+	+@find src -name "test_*" -executable -exec env MPIEXEC="$(MPIEXEC)" ./src/tests/run_unit_tests.sh {} \+
 
 UNITTESTS=unit-tests
 
