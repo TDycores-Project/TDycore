@@ -597,3 +597,49 @@ PetscErrorCode ComputeInverseOf3by3Matrix(PetscReal a[9], PetscReal inv_a[9]) {
 
   PetscFunctionReturn(0);
 }
+
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyNaturaltoLocal(DM dm,Vec natural, Vec *local) {
+
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+  Vec global;
+  
+  ierr = DMCreateGlobalVector(dm, &global);CHKERRQ(ierr);
+  ierr = DMPlexNaturalToGlobalBegin(dm, natural, global);CHKERRQ(ierr);
+  ierr = DMPlexNaturalToGlobalEnd(dm, natural, global);CHKERRQ(ierr);
+
+  ierr = DMCreateLocalVector(dm, local);CHKERRQ(ierr);
+  ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, *local); CHKERRQ(ierr);
+  ierr = DMGlobalToLocalEnd(dm, global, INSERT_VALUES, *local); CHKERRQ(ierr);
+
+  ierr = VecDestroy(&global); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+
+PetscErrorCode TDyGlobaltoNatural(DM dm,Vec global, Vec *natural) {
+
+  PetscFunctionBegin;
+
+  PetscBool useNatural;
+  PetscErrorCode ierr;
+  
+  ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);
+  if (useNatural) {
+    ierr = DMCreateGlobalVector(dm, natural);
+    ierr = DMPlexGlobalToNaturalBegin(dm, global, *natural);CHKERRQ(ierr);
+    ierr = DMPlexGlobalToNaturalEnd(dm, global, *natural);CHKERRQ(ierr);
+  
+  } else {
+    ierr = VecCopy(global,*natural);
+  }
+  PetscFunctionReturn(0);
+
+}

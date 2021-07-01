@@ -27,4 +27,6 @@ PETSC_INTERN PetscErrorCode ExtractSubVectors(Vec,PetscInt,Vec *);
 PETSC_INTERN PetscErrorCode ComputeTheta(PetscReal, PetscReal, PetscReal *);
 PETSC_INTERN PetscErrorCode ComputeDeterminantOf3by3Matrix(PetscReal [9], PetscReal *);
 PETSC_INTERN PetscErrorCode ComputeInverseOf3by3Matrix(PetscReal[9], PetscReal[9]);
+PETSC_INTERN PetscErrorCode TDyGlobaltoNatural(DM,Vec,Vec*);
+PETSC_INTERN PetscErrorCode TDyNaturaltoLocal(DM,Vec,Vec*);
 #endif

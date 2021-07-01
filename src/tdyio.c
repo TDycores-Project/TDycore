@@ -1,11 +1,13 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdyioimpl.h>
+#include <private/tdyutils.h>
 #include <tdyio.h>
 #if defined(PETSC_HAVE_EXODUSII)
 #include "exodusII.h"
 #endif
 #include <petsc/private/dmpleximpl.h>
 #include <petscviewerhdf5.h>
+#include <private/tdymemoryimpl.h>
 
 PetscErrorCode TDyIOCreate(TDyIO *_io) {
   PetscFunctionBegin;
@@ -91,9 +93,10 @@ PetscErrorCode TDyIOReadPermeability(TDy tdy){
   Vec U,index_vec;
   PetscViewer viewer;
   PetscInt dim;
-  PetscReal *index_ptr;
-
+  PetscReal *blockperm;
+  PetscReal *perm;
   size_t len;
+  
   ierr = PetscStrlen(tdy->io->permeability_dataset, &len); CHKERRQ(ierr);
   if (!len){
     strcpy(VariableName, "Permeability");
@@ -104,30 +107,42 @@ PetscErrorCode TDyIOReadPermeability(TDy tdy){
   ierr = DMGetDimension(tdy->dm, &dim);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ncell = (cEnd-cStart);
-  size = ncell * dim * dim;
+  //size = ncell * dim * dim;
+  ierr = TDyAllocate_RealArray_1D(&blockperm,size);CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&perm,9);CHKERRQ(ierr);
 
+  char *filename = tdy->io->permeability_filename;
+
+  ierr = TDyIOReadVariable(tdy,VariableName,filename,&K,&size);
   PetscInt index[ncell];
-
-  ierr = VecCreate(PETSC_COMM_WORLD,&U);
-  ierr = VecSetSizes(U,ncell*dim*dim,PETSC_DECIDE);
-  ierr = VecCreate(PETSC_COMM_WORLD,&index_vec);
-  ierr = VecSetSizes(index_vec,ncell,PETSC_DECIDE);
-  ierr = PetscObjectSetName((PetscObject) U, VariableName);
-  ierr = PetscObjectSetName((PetscObject) index_vec, "Cell Ids");
-  
-  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,tdy->io->permeability_filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
-  ierr = VecLoad(U,viewer);
-  ierr = VecGetArray(U,&K);
-
-  ierr = VecLoad(index_vec,viewer);
-  ierr = VecGetArray(index_vec,&index_ptr);
-  
   for (c = 0;c<=ncell;++c){
-     index[c] = index_ptr[c];
+     index[c] = c;
   }
   
-  ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,K);
-
+  if (size == 1) {
+     perm[0] = K[0];
+     perm[4] = K[0];
+     perm[8] = K[0];
+     for (int i = 0;i<ncell;++i){
+       for (int j=0;j<dim*dim;++j) {
+	 blockperm[i*dim*dim + j] = perm[j];
+       }
+     }
+     ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,blockperm);   
+  } else if (size == 3) {
+     perm[0] = K[0];
+     perm[4] = K[1];
+     perm[8] = K[2];
+     for (int i = 0;i<ncell;++i){
+       for (int j=0;j<dim*dim;++j) {
+	 blockperm[i*dim*dim + j] = perm[j];
+       }
+     }		      
+     ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,blockperm);
+  } else{
+    ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,K);
+  }
+  
   PetscFunctionReturn(0);
 }
 
@@ -137,9 +152,9 @@ PetscErrorCode TDyIOReadPorosity(TDy tdy){
   PetscErrorCode ierr;
   PetscReal *Porosity;
   char VariableName[PETSC_MAX_PATH_LEN];
-  Vec U, index_vec;
+  Vec U;
   PetscViewer viewer;
-  PetscReal *index_ptr;
+  PetscInt n;
 
   size_t len;
   ierr = PetscStrlen(tdy->io->porosity_dataset, &len); CHKERRQ(ierr);
@@ -151,29 +166,16 @@ PetscErrorCode TDyIOReadPorosity(TDy tdy){
 
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ncell = (cEnd-cStart);
+ 
+  char *filename = tdy->io->porosity_filename;
 
+  ierr = TDyIOReadVariable(tdy,VariableName,filename,&Porosity,&n);
   PetscInt index[ncell];
-
-  ierr = VecCreate(PETSC_COMM_WORLD,&U);
-  ierr = VecSetSizes(U,ncell,PETSC_DECIDE);
-  ierr = VecCreate(PETSC_COMM_WORLD,&index_vec);
-  ierr = VecSetSizes(index_vec,ncell,PETSC_DECIDE);
-  ierr = PetscObjectSetName((PetscObject) U, VariableName);
-  ierr = PetscObjectSetName((PetscObject) index_vec, "Cell Ids");
-  
-  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,tdy->io->porosity_filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
-  ierr = VecLoad(U,viewer);
-  ierr = VecLoad(index_vec,viewer);
-  
-  ierr = VecGetArray(U,&Porosity);
-  ierr = VecGetArray(index_vec,&index_ptr);
-  
   for (c = 0;c<=ncell;++c){
-     index[c] = index_ptr[c];
+     index[c] = c;
   }
 
   ierr = TDySetPorosityValuesLocal(tdy,ncell,index,Porosity);
-
   PetscFunctionReturn(0);
 }
 
@@ -206,6 +208,36 @@ PetscErrorCode TDyIOReadIC(TDy tdy){
 
   ierr = TDySetInitialCondition(tdy,U);
   
+}
+
+PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, PetscReal **variable, PetscInt *size){
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscViewer viewer;
+  Vec U;
+  PetscReal *ptr;
+  int i;
+  int n;
+  
+  ierr = VecCreate(PETSC_COMM_WORLD,&U);
+  ierr = PetscObjectSetName((PetscObject) U, VariableName);
+  
+  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
+  ierr = VecLoad(U,viewer);CHKERRQ(ierr);
+  
+  ierr = VecGetArray(U,&ptr);CHKERRQ(ierr);
+  ierr = VecGetSize(U,&n);CHKERRQ(ierr);
+
+  ierr = TDyAllocate_RealArray_1D(variable,n);CHKERRQ(ierr);
+  for (i = 0;i<n;++i){
+    (*variable)[i] = ptr[i];
+     }
+  
+  ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
+
+  ierr = VecRestoreArray(U,&ptr);CHKERRQ(ierr);
+  *size = n;
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
@@ -288,18 +320,10 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     if (useNatural) {
       Vec p_natural;
       Vec s_natural;
-      ierr = DMCreateGlobalVector(dm, &p_natural);
-      ierr = DMPlexGlobalToNaturalBegin(dm, p, p_natural);CHKERRQ(ierr);
-      ierr = DMPlexGlobalToNaturalEnd(dm, p, p_natural);CHKERRQ(ierr);
-      ierr = DMCreateGlobalVector(dm, &s_natural);
-      ierr = DMPlexGlobalToNaturalBegin(dm, s, s_natural);CHKERRQ(ierr);
-      ierr = DMPlexGlobalToNaturalEnd(dm, s, s_natural);CHKERRQ(ierr);
+      ierr = TDyGlobaltoNatural(dm,p,&p_natural);CHKERRQ(ierr);
+      ierr = TDyGlobaltoNatural(dm,s,&s_natural);CHKERRQ(ierr);
       ierr = TDyIOWriteHDF5Var(ofilename,dm,p_natural,zonalVarNames[0],time);CHKERRQ(ierr);
       ierr = TDyIOWriteHDF5Var(ofilename,dm,s_natural,zonalVarNames[1],time);CHKERRQ(ierr);
-    }
-    else {
-      ierr = TDyIOWriteHDF5Var(ofilename,dm,p,zonalVarNames[0],time);CHKERRQ(ierr);
-      ierr = TDyIOWriteHDF5Var(ofilename,dm,s,zonalVarNames[1],time);CHKERRQ(ierr);
     }
   }
   else{
