@@ -66,6 +66,8 @@ static PetscErrorCode TDyInitSubsystems() {
   char           logList[256];
   PetscBool      opt,pkg;
 
+  if (TDyPackageInitialized) PetscFunctionReturn(0);
+
   // Register a class ID for logging.
   PetscErrorCode ierr = PetscClassIdRegister("TDy",&TDY_CLASSID); CHKERRQ(ierr);
 
@@ -97,13 +99,14 @@ static PetscErrorCode TDyInitSubsystems() {
   if (timersEnabled)
     TDyEnableTimers();
 
+  TDyPackageInitialized = PETSC_TRUE;
+
   PetscFunctionReturn(0);
 }
 
 // This function initializes the TDycore library and its various subsystems.
 PetscErrorCode TDyInit(int argc, char* argv[]) {
   PetscFunctionBegin;
-  if (TDyPackageInitialized) PetscFunctionReturn(0);
 
   // Initialize PETSc if we haven't already.
   PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, NULL); CHKERRQ(ierr);
@@ -111,7 +114,6 @@ PetscErrorCode TDyInit(int argc, char* argv[]) {
   // Initialize TDycore-specific subsystems.
   ierr = TDyInitSubsystems(); CHKERRQ(ierr);
 
-  TDyPackageInitialized = PETSC_TRUE;
   PetscFunctionReturn(0);
 }
 
@@ -199,6 +201,10 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   PetscFunctionBegin;
   PetscValidPointer(_tdy,1);
   *_tdy = NULL;
+
+  // Initialize TDycore-specific subsystems.
+  ierr = TDyInitSubsystems(); CHKERRQ(ierr);
+
   ierr = PetscHeaderCreate(tdy,TDY_CLASSID,"TDy","TDy","TDy",PETSC_COMM_WORLD,
                            TDyDestroy,TDyView); CHKERRQ(ierr);
   *_tdy = tdy;
