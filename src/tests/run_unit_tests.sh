@@ -16,7 +16,7 @@ do
     then
       echo "Unit test $arg FAILED with status $status."
       echo "You can run this test with the following command:"
-      echo "$MPIEXEC -np $nproc $arg $i"
+      echo "$MPIEXEC -n $nproc $arg $i"
       ((num_failures++))
     fi
     ((i++))
