@@ -22,7 +22,7 @@ static void TestMeshWrite(void **state)
 {
   // Create a box mesh.
   PetscInt N = 10, ierr;
-  DM dm, dmDist = NULL;
+  DM dm;
   PetscInt dim = 3;
   const PetscInt  faces[3] = {N,N,N};
   const PetscReal lower[3] = {0.0,0.0,0.0};
@@ -34,7 +34,6 @@ static void TestMeshWrite(void **state)
   // Write it to a mesh file.
   PetscViewer v;
   ierr = PetscViewerHDF5Open(comm, "boxmesh.hdf5", FILE_MODE_WRITE, &v);
-//  ierr = PetscViewerExodusIIOpen(comm, "boxmesh.exo", FILE_MODE_WRITE, &v);
   assert_int_equal(0, ierr);
   ierr = DMView(dm, v);
   assert_int_equal(0, ierr);
