@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
   // Parse command line options.
   PetscInt dim = 2;
   PetscInt Nx = 4;
-  PetscInt faces[3] = {Nx, Nx, Nx};
+  PetscInt faces[3] = {Nx, Nx, 1};
   PetscReal lower[3] = {0.0,0.0,0.0};
   PetscReal Lx = 1.0;
   PetscReal upper[3] = {Lx, Lx, Lx};
@@ -74,9 +74,39 @@ int main(int argc, char **argv) {
     ierr = DMSetType(dm, DMPLEX); CHKERRQ(ierr);
     ierr = DMLoad(dm, v); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&v); CHKERRQ(ierr);
-  } else { // create a new box mesh with boundary faces tagged
+  } else { // create a new box mesh with boundary faces tagged.
+    // If we need more flexibility down the line, we can replace this with
+    // DMSetFromOptions.
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, faces,
              lower, upper, NULL, PETSC_TRUE, &dm); CHKERRQ(ierr);
+    PetscInt num_labels;
+    ierr = DMGetNumLabels(dm, &num_labels); CHKERRQ(ierr);
+    printf("\nFound %d labels:\n", num_labels);
+    for (PetscInt i = 0; i < num_labels; ++i) {
+      const char* label_name;
+      ierr = DMGetLabelName(dm, i, &label_name); CHKERRQ(ierr);
+      PetscInt label_size;
+      DMGetLabelSize(dm, label_name, &label_size); CHKERRQ(ierr);
+      printf(" Label %d: %s (%d)\n", i, label_name, label_size);
+    }
+
+    // Explore ready-made face sets.
+    IS label_ids, label_values;
+    ierr = DMGetLabelIdIS(dm, "Face Sets", &label_ids); CHKERRQ(ierr);
+    DMLabel face_sets;
+    ierr = DMGetLabel(dm, "Face Sets", &face_sets); CHKERRQ(ierr);
+    ierr = DMLabelGetValueIS(face_sets, &label_values); CHKERRQ(ierr);
+    PetscInt label_size;
+    ierr = ISGetSize(label_ids, &label_size); CHKERRQ(ierr);
+    const PetscInt *ids, *values;
+    ierr = ISGetIndices(label_ids, &ids); CHKERRQ(ierr);
+    ierr = ISGetIndices(label_values, &values); CHKERRQ(ierr);
+    printf("Face sets:\n");
+    for (int i = 0; i < label_size; ++i) {
+      printf("  %d: %d\n", ids[i], values[i]);
+    }
+    ierr = ISRestoreIndices(label_ids, &ids); CHKERRQ(ierr);
+    ierr = ISRestoreIndices(label_values, &values); CHKERRQ(ierr);
   }
 
   // Distribute the mesh, including 1 cell of overlap.
