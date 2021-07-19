@@ -398,9 +398,12 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
       for(d=0; d<dim; d++) tdy->X[p*dim+d] = coords[offset+d];
     } else {
       if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
+      PetscLogEvent t11 = TDyGetTimer("DMPlexComputeCellGeometryFVM");
+      TDyStartTimer(t11);
       ierr = DMPlexComputeCellGeometryFVM(tdy->dm,p,&(tdy->V[p]),
                                           &(tdy->X[p*dim]),
                                           &(tdy->N[p*dim])); CHKERRQ(ierr);
+      TDyStopTimer(t11);
     }
   }
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
