@@ -1,4 +1,5 @@
 #include <petsc.h>
+#include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
 #include <private/tdymemoryimpl.h>
@@ -625,6 +626,7 @@ PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDyFace *face
                                                  PetscInt *num_shared_faces) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscInt iface;
   //PetscInt cell_id = cell->id;
@@ -655,6 +657,7 @@ PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDyFace *face
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported vertex type for 3D mesh");
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 

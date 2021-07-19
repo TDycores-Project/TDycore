@@ -1575,6 +1575,7 @@ PetscErrorCode ComputeAreaOf2DTriangle(PetscReal v1[3], PetscReal v2[3],
 PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
@@ -1616,7 +1617,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
       PetscInt subcell_id = icell*num_subcells+isubcell;
       PetscInt sOffsetNuVectors = subcells->nu_vector_offset[subcell_id];
 
-      // save coorindates of vertex that is part of the subcell
+      // save coordinates of vertex that is part of the subcell
       ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[isubcell], dim, &v_c[0]); CHKERRQ(ierr);
 
       // determine ids of up & down edges
@@ -1666,6 +1667,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
                                         &normal[0]); CHKERRQ(ierr);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -2905,6 +2907,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   */
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
@@ -2990,6 +2993,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   ierr = TDyDeallocate_IntegerArray_2D(cell_traversal, 2); CHKERRQ(ierr);
   ierr = TDyDeallocate_IntegerArray_2D(cell_up2dw, tdy->nfv); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -3012,6 +3016,7 @@ PetscErrorCode SaveCellIdsAtOppositeLevel(TDy tdy, PetscInt ivertex, PetscInt *i
 PetscErrorCode FindCellsAboveAndBelowAVertex(TDy tdy, PetscInt ivertex, PetscInt **cellsAbove, PetscInt **cellsBelow) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   TDyMesh *mesh = tdy->mesh;
   TDyVertex *vertices = &mesh->vertices;
@@ -3053,6 +3058,7 @@ PetscErrorCode FindCellsAboveAndBelowAVertex(TDy tdy, PetscInt ivertex, PetscInt
 
   ierr = TDyDeallocate_IntegerArray_2D(cell_ids_abv_blw, 2); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -3147,6 +3153,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
   */
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   DM dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
@@ -3345,9 +3352,12 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
       }
 
     }
+    PetscLogEvent t1 = TDyGetTimer("DMPlexComputeCellGeometryFVM (SetupSubcellsFor3DMesh)");
+    TDyStartTimer(t1);
     PetscReal normal[3], centroid[3];
     ierr = DMPlexComputeCellGeometryFVM(dm, icell, &(cells->volume[icell]), &centroid[0],
                                         &normal[0]); CHKERRQ(ierr);
+    TDyStopTimer(t1);
   }
 
   // Determine cell IDs that are above and below all vertices
@@ -3365,6 +3375,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
     }
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -3754,6 +3765,7 @@ PetscErrorCode TDyOutputMesh(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyBuildMesh(TDy tdy) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
 
   PetscInt dim;
@@ -3792,5 +3804,6 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
     ierr = SetupSubcellsFor3DMesh(tdy); CHKERRQ(ierr);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
