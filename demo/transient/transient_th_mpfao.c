@@ -188,8 +188,8 @@ int main(int argc, char **argv) {
   ierr = TDySetResidualSaturationValuesLocal(tdy,cEnd-cStart,index,residualSat);
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
   ierr = TDySetEnergyForcingFunction(tdy,EnergyForcing,NULL); CHKERRQ(ierr);
-  //ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
-  //ierr = TDySetTemperatureDirichletValueFunction(tdy,Temperature,NULL); CHKERRQ(ierr);
+  //ierr = TDySetBoundaryPressureFn(tdy,Pressure,NULL); CHKERRQ(ierr);
+  //ierr = TDySetBoundaryTemperatureFn(tdy,Temperature,NULL); CHKERRQ(ierr);
 
   ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
 

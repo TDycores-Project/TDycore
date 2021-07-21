@@ -394,7 +394,7 @@ PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal
       HdivBasisHex(single_point,basis,DF,J[0]);
     }
     /* -<g,v.n>|_q */
-    ierr = (*tdy->ops->computedirichletvalue)(tdy,x,&g,NULL);CHKERRQ(ierr);
+    ierr = (*tdy->ops->compute_boundary_pressure)(tdy,x,&g,NULL);CHKERRQ(ierr);
     for(i=0; i<ncv*dim; i++) gvdotn[i] -= g*TDyADotB(&(basis[i*dim]),normal,dim)*fquad_w[q]*fJ[q];
   }
 
@@ -505,7 +505,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     ierr = DMPlexGetCone    (dm,c,&cone); CHKERRQ(ierr);
     for(f=0;f<coneSize;f++){
       ierr = DMGetLabelValue(dm,"marker",cone[f],&isbc); CHKERRQ(ierr);
-      if(isbc == 1 && tdy->ops->computedirichletvalue){
+      if(isbc == 1 && tdy->ops->compute_boundary_pressure){
 	ierr = IntegratePressureBoundary(tdy,cone[f],c,Flocal);
       }
     } /* end faces */
@@ -547,7 +547,7 @@ PetscReal TDyBDMPressureNorm(TDy tdy,Vec U) {
   PetscInt c,cStart,cEnd,offset,dim,gref,junk;
   PetscReal p,*u,norm,norm_sum;
   DM dm = tdy->dm;
-  if(!(tdy->ops->computedirichletvalue)) {
+  if(!(tdy->ops->compute_boundary_pressure)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
             "Must set the pressure function with TDySetDirichletValueFunction");
   }
@@ -560,7 +560,7 @@ PetscReal TDyBDMPressureNorm(TDy tdy,Vec U) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
     if(gref<0) continue;
     ierr = PetscSectionGetOffset(sec,c,&offset); CHKERRQ(ierr);
-    ierr = (*tdy->ops->computedirichletvalue)(tdy,&(tdy->X[c*dim]),&p,tdy->dirichletvaluectx);CHKERRQ(ierr);
+    ierr = (*tdy->ops->compute_boundary_pressure)(tdy,&(tdy->X[c*dim]),&p,tdy->boundary_pressure_ctx);CHKERRQ(ierr);
     norm += tdy->V[c]*PetscSqr(u[offset]-p);
   }
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
@@ -587,7 +587,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
   PetscErrorCode ierr;
   PetscInt c,cStart,cEnd,dim,gref,fStart,fEnd,junk,d,s,f;
   DM dm = tdy->dm;
-  if(!(tdy->ops->computedirichletflux)) {
+  if(!(tdy->ops->compute_boundary_velocity)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
             "Must set the velocity function with TDySetDirichletFluxFunction");
   }
@@ -669,7 +669,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
           va = TDyADotB(vel,&(tdy->N[dim*f]),dim);
 
           /* exact value normal to this point/face */
-          ierr = (*tdy->ops->computedirichletflux)(tdy,&(x[q*dim]),vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+          ierr = (*tdy->ops->compute_boundary_velocity)(tdy,&(x[q*dim]),vel,tdy->boundary_velocity_ctx);CHKERRQ(ierr);
           ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
 
           /* quadrature */

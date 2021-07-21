@@ -26,7 +26,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  
+
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -105,7 +105,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  
+
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum( dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -184,7 +184,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         if (faces->is_internal[face_id] == 0) {
           PetscInt f;
           f = faces->id[face_id] + fStart;
-          ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
+          ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->boundary_pressure_ctx);CHKERRQ(ierr);
           numBoundary++;
         }
       }
@@ -318,7 +318,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  
+
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -356,7 +356,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
       PetscInt f;
       f = faces->id[face_id] + fStart;
-       ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
+       ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->boundary_pressure_ctx);CHKERRQ(ierr);
        numBoundary++;
 
     }

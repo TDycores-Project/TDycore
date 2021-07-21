@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
   ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction3D,NULL); CHKERRQ(ierr);
   ierr = TDySetResidualSaturationValuesLocal(tdy,cEnd-cStart,index,residualSat);
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
-  //ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
+  //ierr = TDySetBoundaryPressureFn(tdy,Pressure,NULL); CHKERRQ(ierr);
 
   ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
 

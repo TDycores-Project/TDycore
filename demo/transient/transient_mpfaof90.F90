@@ -152,7 +152,7 @@ implicit none
   call TDySetPermeabilityFunction(tdy,PermeabilityFunction,0,ierr);
   CHKERRA(ierr);
 
-  call TDySetDirichletValueFunction(tdy,PressureFunction,0,ierr);
+  call TDySetBoundaryPressureFn(tdy,PressureFunction,0,ierr);
   CHKERRA(ierr);
 
   call TDySetBlockPermeabilityValuesLocal(tdy,cEnd-cStart,index,blockPerm,ierr);

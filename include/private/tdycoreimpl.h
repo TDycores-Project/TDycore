@@ -28,9 +28,9 @@ struct _TDyOps {
   PetscErrorCode (*computeresidualsaturation)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeforcing)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeenergyforcing)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*computedirichletvalue)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*computetemperaturedirichletvalue)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*computedirichletflux)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*compute_boundary_pressure)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*compute_boundary_temperature)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*compute_boundary_velocity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computesoildensity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computesoilspecificheat)(TDy,PetscReal*,PetscReal*,void*);
 };
@@ -95,9 +95,9 @@ struct _p_TDy {
   void *residualsaturationctx;
   void *forcingctx;
   void *energyforcingctx;
-  void *dirichletvaluectx;
-  void *temperaturedirichletvaluectx;
-  void *dirichletfluxctx;
+  void *boundary_pressure_ctx;
+  void *boundary_temperature_ctx;
+  void *boundary_velocity_ctx;
   void *soildensityctx;
   void *soilspecificheatctx;
 
