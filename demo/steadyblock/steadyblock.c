@@ -153,8 +153,8 @@ int main(int argc, char **argv) {
     switch(problem) {
     case 1:
 //      ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
-//      ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryPressureFn(tdy,PressureConstant,NULL); CHKERRQ(ierr);
+//      ierr = TDySetBoundaryVelocityFn(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
       break;
     }
   } else if (dim == 2) {
@@ -162,8 +162,8 @@ int main(int argc, char **argv) {
     switch(problem) {
     case 1:
 //      ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
-//      ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryPressureFn(tdy,PressureConstant,NULL); CHKERRQ(ierr);
+//      ierr = TDySetBoundaryVelocityFn(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
       break;
       break;
     }

@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
   ierr = TDySetPermeabilityScalar(tdy,Permeability); CHKERRQ(ierr);
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
-  ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
+  ierr = TDySetBoundaryPressureFn(tdy,Pressure,NULL); CHKERRQ(ierr);
 
   ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
 
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   Vec U;
   ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
   ierr = VecSet(U,91325); CHKERRQ(ierr);
-  
+
   /* Create time stepping and solve */
   TS  ts;
   ierr = TSCreate(PETSC_COMM_WORLD,&ts); CHKERRQ(ierr);

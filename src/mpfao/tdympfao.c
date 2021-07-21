@@ -737,9 +737,9 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 
   cells = &mesh->cells;
 
-  if (! tdy->ops->computedirichletvalue) {
+  if (! tdy->ops->compute_boundary_pressure) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the dirichlet function with TDySetDirichletValueFunction");
+            "Must set the boundary pressure function with TDySetBoundaryPressureFn");
   }
 
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
@@ -756,7 +756,7 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
 
     if (!cells->is_local[icell]) continue;
 
-    ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[icell*dim]), &pressure, tdy->dirichletvaluectx);CHKERRQ(ierr);
+    ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(tdy->X[icell*dim]), &pressure, tdy->boundary_pressure_ctx);CHKERRQ(ierr);
     norm += (PetscSqr(pressure - u[icell])) * cells->volume[icell];
   }
 
@@ -807,7 +807,7 @@ PetscReal TDyMPFAOVelocityNorm_3DMesh(TDy tdy) {
       face_id = cells->face_ids[faceStart + iface];
       //face    = &(faces[face_id]);
 
-      ierr = (*tdy->ops->computedirichletflux)(tdy, &(tdy->X[(face_id + fStart)*dim]), vel, tdy->dirichletfluxctx);CHKERRQ(ierr);
+      ierr = (*tdy->ops->compute_boundary_velocity)(tdy, &(tdy->X[(face_id + fStart)*dim]), vel, tdy->boundary_velocity_ctx);CHKERRQ(ierr);
       vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim);
       if (tdy->vel_count[face_id] != faces->num_vertices[face_id]) {
         SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->vel_count != faces->num_vertices[face_id]");

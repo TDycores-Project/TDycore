@@ -39,8 +39,8 @@
 #define tdysetpermeabilityfunction_                    TDYSETPERMEABILITYFUNCTION
 #define tdysetresidualsaturationfunction_              TDYSETRESIDUALSATURATIONFUNCTION
 #define tdysetforcingfunction_                         TDYSETFORCINGFUNCTION
-#define tdysetdirichletvaluefunction_                  TDYSETDIRICHLETVALUEFUNCTION
-#define tdysetdirichletfluxfunction_                   TDYSETDIRICHLETFLUXFUNCTION
+#define tdysetboundarypressurefn_                      TDYSETBOUNDARYPRESSUREFN
+#define tdysetboundaryvelocityfn_                      TDYSETBOUNDARYVELOCITYFN
 #define tdysetporosityvalueslocal0_                    TDYSETPOROSITYVALUESLOCAL0
 #define tdysetporosityvalueslocal11_                   TDYSETPOROSITYVALUESLOCAL11
 #define tdysetblockpermeabilityueslocal0_              TDYSETBLOCKPERMEABILITYVALUESLOCAL0
@@ -101,8 +101,8 @@
 #define tdysetpermeabilityfunction_                    tdysetpermeabilityfunction
 #define tdysetresidualsaturationfunction_              tdysetresidualsaturationfunction
 #define tdysetforcingfunction_                         tdysetforcingfunction
-#define tdysetdirichletvaluefunction_                  tdysetdirichletvaluefunction
-#define tdysetdirichletfluxfunction_                   tdysetdirichletfluxfunction
+#define tdysetboundarypressurefn_                      tdysetboundarypressurefn
+#define tdysetboundaryvelocityfn_                      tdysetboundaryvelocityfn
 #define tdysetporosityvalueslocal0_                    tdysetporosityvalueslocal0
 #define tdysetporosityvalueslocal11_                   tdysetporosityvalueslocal11
 #define tdysetblockpermeabilityueslocal0_              tdysetblockpermeabilityvalueslocal0
@@ -135,8 +135,8 @@ static struct {
   PetscFortranCallbackId permeability;
   PetscFortranCallbackId residualsaturation;
   PetscFortranCallbackId forcing;
-  PetscFortranCallbackId dirichletvalue;
-  PetscFortranCallbackId dirichletflux;
+  PetscFortranCallbackId boundary_pressure;
+  PetscFortranCallbackId boundary_velocity;
 #if defined(PETSC_HAVE_F90_2PTR_ARG)
   PetscFortranCallbackId function_pgiptr;
 #endif
@@ -543,42 +543,42 @@ PETSC_EXTERN void tdysetforcingfunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,P
   *ierr = TDySetForcingFunction(*tdy,ourtdyforcingfunction2,NULL);
 }
 
-static PetscErrorCode ourtdydirichletvaluefunction(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
+static PetscErrorCode ourtdyboundarypressurefn(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
 {
 #if defined(PETSC_HAVE_F90_2PTR_ARG)
   void* ptr;
   PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,_cb.function_pgiptr,NULL,&ptr);
 #endif
-  PetscObjectUseFortranCallback(tdy,_cb.dirichletvalue,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
+  PetscObjectUseFortranCallback(tdy,_cb.boundary_pressure,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
 }
 
-PETSC_EXTERN void tdysetdirichletvaluefunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+PETSC_EXTERN void tdysetboundarypressurefn_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
 {
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.dirichletvalue,(PetscVoidFunction)func,ctx);
+  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.boundary_pressure,(PetscVoidFunction)func,ctx);
   if (*ierr) return;
 #if defined(PETSC_HAVE_F90_2PTR_ARG)
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
 #endif
-  *ierr = TDySetDirichletValueFunction(*tdy,ourtdydirichletvaluefunction,NULL);
+  *ierr = TDySetBoundaryPressureFn(*tdy,ourtdyboundarypressurefn,NULL);
 }
 
-static PetscErrorCode ourtdydirichletfluxfunction(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
+static PetscErrorCode ourtdyboundaryvelocityfn(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
 {
 #if defined(PETSC_HAVE_F90_2PTR_ARG)
   void* ptr;
   PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,_cb.function_pgiptr,NULL,&ptr);
 #endif
-  PetscObjectUseFortranCallback(tdy,_cb.dirichletflux,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
+  PetscObjectUseFortranCallback(tdy,_cb.boundary_velocity,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
 }
 
-PETSC_EXTERN void tdysetdirichletfluxfunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+PETSC_EXTERN void tdysetboundaryvelocityfn_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
 {
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.dirichletflux,(PetscVoidFunction)func,ctx);
+  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.boundary_velocity,(PetscVoidFunction)func,ctx);
   if (*ierr) return;
 #if defined(PETSC_HAVE_F90_2PTR_ARG)
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
 #endif
-  *ierr = TDySetDirichletFluxFunction(*tdy,ourtdydirichletfluxfunction,NULL);
+  *ierr = TDySetBoundaryVelocityFn(*tdy,ourtdyboundaryvelocityfn,NULL);
 }
 
 PETSC_EXTERN void tdysetporosityvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )

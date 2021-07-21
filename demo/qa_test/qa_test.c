@@ -73,8 +73,8 @@ int main(int argc, char **argv) {
     case 1:
       ierr = TDySetPermeabilityTensor(tdy,Permeability); CHKERRQ(ierr);
       ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryPressureFn(tdy,PressureConstant,NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryVelocityFn(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
       break;
     }
   }
@@ -97,13 +97,13 @@ int main(int argc, char **argv) {
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
   ierr = KSPSolve(ksp,F,U); CHKERRQ(ierr);
-  
+
   /* Output solution */
   PetscViewer viewer;
   PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"sol.vtk",FILE_MODE_WRITE,&viewer);
   ierr = DMView(dm,viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer); CHKERRQ(ierr); // the approximate solution
-  ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F); 
+  ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->compute_boundary_pressure,F);
   ierr = VecView(F,viewer); CHKERRQ(ierr); // the residual K*Ue-F
   ierr = VecView(Ue,viewer); CHKERRQ(ierr);  // the exact solution
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);

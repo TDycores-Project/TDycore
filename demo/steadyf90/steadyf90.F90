@@ -20,9 +20,9 @@ contains
     K(3) = 1.d0; K(4) = 2.d0
 
     ierr = 0
-    
+
   end subroutine PermeabilityFunction
-  
+
   subroutine PressureFunction(tdy,x,f,dummy,ierr)
 
     implicit none
@@ -96,7 +96,7 @@ contains
     integer   :: dummy2(1)
 
     call PermeabilityFunction(tdy,x,K,dummy2,ierr)
-    
+
     !(*f)  = -K[0]*(12*PetscPowReal(1-x[0],2)+PetscSinReal(x[1]-1)*PetscCosReal(x[0]-1))
     !(*f) += -K[1]*( 3*PetscPowReal(1-x[1],2)+PetscSinReal(x[0]-1)*PetscCosReal(x[1]-1))
     !(*f) += -K[2]*( 3*PetscPowReal(1-x[1],2)+PetscSinReal(x[0]-1)*PetscCosReal(x[1]-1))
@@ -166,7 +166,7 @@ program main
   faces(:) = N
   lower(:) = 0.d0
   upper(:) = 1.d0
-  
+
   call DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, faces, &
                            lower, upper, PETSC_NULL_INTEGER, PETSC_TRUE, &
                            dm, ierr)
@@ -192,11 +192,11 @@ program main
 
   call TDySetPermeabilityFunction(tdy,PermeabilityFunction,0,ierr)
   CHKERRA(ierr)
-  call TDySetDirichletValueFunction(tdy,PressureFunction,0,ierr)
+  call TDySetBoundaryPressureFn(tdy,PressureFunction,0,ierr)
   CHKERRA(ierr)
   call TDySetForcingFunction(tdy,ForcingFunction,0,ierr)
   CHKERRA(ierr)
-  call TDySetDirichletFluxFunction(tdy,VelocityFunction,0,ierr)
+  call TDySetBoundaryVelocityFn(tdy,VelocityFunction,0,ierr)
   CHKERRA(ierr)
 
   call TDySetupNumericalMethods(tdy, ierr)
@@ -248,7 +248,7 @@ program main
   call TDyDestroy(tdy,ierr)
   CHKERRQ(ierr)
 
-  call TDyFinalize(ierr) 
+  call TDyFinalize(ierr)
   CHKERRA(ierr)
 
   call exit(successful_exit_code)

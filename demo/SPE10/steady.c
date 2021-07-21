@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   ierr = ReadSPE10Permeability(tdy,ang); CHKERRQ(ierr);
-  ierr = TDySetDirichletValueFunction(tdy,Pressure,NULL); CHKERRQ(ierr);
+  ierr = TDySetBoundaryPressureFn(tdy,Pressure,NULL); CHKERRQ(ierr);
 
   /* Setup problem parameters */
   ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);

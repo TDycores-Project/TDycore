@@ -453,7 +453,7 @@ PetscErrorCode SaveTrueSolution(TDy tdy, char filename[256]){
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexComputeCellGeometryFVM(dm, c, PETSC_NULL, &centroid[0],
                                         PETSC_NULL); CHKERRQ(ierr);
-    ierr = tdy->ops->computedirichletvalue(tdy,&centroid[0],&pres[c],NULL);
+    ierr = tdy->ops->compute_boundary_pressure(tdy,&centroid[0],&pres[c],NULL);
   }
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
   ierr = VecRestoreArray(pressure,&pres); CHKERRQ(ierr);
@@ -638,20 +638,20 @@ int main(int argc, char **argv) {
         case 0: // not a problem in the paper, but want to check constants on the geometry
         ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
         ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
+        ierr = TDySetBoundaryPressureFn(tdy,PressureConstant,NULL); CHKERRQ(ierr);
+        ierr = TDySetBoundaryVelocityFn(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
         break;
         case 1:
         ierr = TDySetPermeabilityTensor(tdy,PermWheeler2006_1); CHKERRQ(ierr);
         ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_1,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2006_1,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2006_1,NULL); CHKERRQ(ierr);
+        ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2006_1,NULL); CHKERRQ(ierr);
+        ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2006_1,NULL); CHKERRQ(ierr);
         break;
         case 2:
         ierr = TDySetPermeabilityTensor(tdy,PermWheeler2006_2); CHKERRQ(ierr);
         ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_2,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2006_2,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2006_2,NULL); CHKERRQ(ierr);
+        ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2006_2,NULL); CHKERRQ(ierr);
+        ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2006_2,NULL); CHKERRQ(ierr);
         break;
         default:
         SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2006 only valid for -problem {0,1,2}");
@@ -664,8 +664,8 @@ int main(int argc, char **argv) {
         }
         ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_1); CHKERRQ(ierr);
         ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_1,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2012_1,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_1,NULL); CHKERRQ(ierr);
+        ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2012_1,NULL); CHKERRQ(ierr);
+        ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2012_1,NULL); CHKERRQ(ierr);
         break;
         case 2:
         if(dim != 3){
@@ -673,8 +673,8 @@ int main(int argc, char **argv) {
         }
         ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
         ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_2,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2012_2,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_2,NULL); CHKERRQ(ierr);
+        ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2012_2,NULL); CHKERRQ(ierr);
+        ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2012_2,NULL); CHKERRQ(ierr);
         break;
         default:
         SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2012 only valid for -problem {1,2}");
@@ -688,8 +688,8 @@ int main(int argc, char **argv) {
           ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
         }
         ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletValueFunction(tdy,PressureConstant,NULL); CHKERRQ(ierr);
-        ierr = TDySetDirichletFluxFunction(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
+        ierr = TDySetBoundaryPressureFn(tdy,PressureConstant,NULL); CHKERRQ(ierr);
+        ierr = TDySetBoundaryVelocityFn(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
         break;
 
         case 2:
@@ -697,13 +697,13 @@ int main(int argc, char **argv) {
         if (dim == 2) {
           ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
           ierr = TDySetForcingFunction(tdy,ForcingQuadratic2D,NULL); CHKERRQ(ierr);
-          ierr = TDySetDirichletValueFunction(tdy,PressureQuadratic2D,NULL); CHKERRQ(ierr);
-          ierr = TDySetDirichletFluxFunction(tdy,VelocityQuadratic2D,NULL); CHKERRQ(ierr);
+          ierr = TDySetBoundaryPressureFn(tdy,PressureQuadratic2D,NULL); CHKERRQ(ierr);
+          ierr = TDySetBoundaryVelocityFn(tdy,VelocityQuadratic2D,NULL); CHKERRQ(ierr);
         } else {
           ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
           ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_2,NULL); CHKERRQ(ierr);
-          ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2012_2,NULL); CHKERRQ(ierr);
-          ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_2,NULL); CHKERRQ(ierr);
+          ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2012_2,NULL); CHKERRQ(ierr);
+          ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2012_2,NULL); CHKERRQ(ierr);
         }
         break;
 
@@ -711,13 +711,13 @@ int main(int argc, char **argv) {
         if (dim == 2) {
           ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
           ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_1,NULL); CHKERRQ(ierr);
-          ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2006_1,NULL); CHKERRQ(ierr);
-          ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2006_1,NULL); CHKERRQ(ierr);
+          ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2006_1,NULL); CHKERRQ(ierr);
+          ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2006_1,NULL); CHKERRQ(ierr);
         } else {
           ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
           ierr = TDySetForcingFunction(tdy,Forcing3,NULL); CHKERRQ(ierr);
-          ierr = TDySetDirichletValueFunction(tdy,Pressure3,NULL); CHKERRQ(ierr);
-          ierr = TDySetDirichletFluxFunction(tdy,Velocity3,NULL); CHKERRQ(ierr);
+          ierr = TDySetBoundaryPressureFn(tdy,Pressure3,NULL); CHKERRQ(ierr);
+          ierr = TDySetBoundaryVelocityFn(tdy,Velocity3,NULL); CHKERRQ(ierr);
         }
         break;
 
@@ -725,8 +725,8 @@ int main(int argc, char **argv) {
         if (dim == 2) {
           ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_1); CHKERRQ(ierr);
           ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_1,NULL); CHKERRQ(ierr);
-          ierr = TDySetDirichletValueFunction(tdy,PressureWheeler2012_1,NULL); CHKERRQ(ierr);
-          ierr = TDySetDirichletFluxFunction(tdy,VelocityWheeler2012_1,NULL); CHKERRQ(ierr);
+          ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2012_1,NULL); CHKERRQ(ierr);
+          ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2012_1,NULL); CHKERRQ(ierr);
         } else {
 
         }
@@ -758,7 +758,7 @@ int main(int argc, char **argv) {
   PetscViewerVTKOpen(PetscObjectComm((PetscObject)dm),"sol.vtk",FILE_MODE_WRITE,&viewer);
   ierr = DMView(dm,viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer); CHKERRQ(ierr); // the approximate solution
-  //ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->computedirichletvalue,F);
+  //ierr = OperatorApplicationResidual(tdy,Ue,K,tdy->ops->compute_boundary_pressure,F);
   ierr = VecView(F,viewer); CHKERRQ(ierr); // the residual K*Ue-F
   ierr = VecView(Ue,viewer); CHKERRQ(ierr);  // the exact solution
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);

@@ -18,24 +18,24 @@ PetscErrorCode TDySetEnergyForcingFunction(TDy tdy, PetscErrorCode(*f)(TDy,Petsc
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetTemperatureDirichletValueFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+PetscErrorCode TDySetBoundaryTemperatureFn(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
-  if (f) tdy->ops->computetemperaturedirichletvalue = f;
-  if (ctx) tdy->temperaturedirichletvaluectx = ctx;
+  if (f) tdy->ops->compute_boundary_temperature = f;
+  if (ctx) tdy->boundary_temperature_ctx = ctx;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetDirichletValueFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+PetscErrorCode TDySetBoundaryPressureFn(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
-  if (f) tdy->ops->computedirichletvalue = f;
-  if (ctx) tdy->dirichletvaluectx = ctx;
+  if (f) tdy->ops->compute_boundary_pressure = f;
+  if (ctx) tdy->boundary_pressure_ctx = ctx;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetDirichletFluxFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+PetscErrorCode TDySetBoundaryVelocityFn(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
-  if (f) tdy->ops->computedirichletflux = f;
-  if (ctx) tdy->dirichletfluxctx = ctx;
+  if (f) tdy->ops->compute_boundary_velocity = f;
+  if (ctx) tdy->boundary_velocity_ctx = ctx;
   PetscFunctionReturn(0);
 }
 

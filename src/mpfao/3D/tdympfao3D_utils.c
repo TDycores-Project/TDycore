@@ -13,7 +13,7 @@ PetscErrorCode ComputeGtimesZ(PetscReal *gravity, PetscReal *X, PetscInt dim, Pe
   PetscInt d;
 
   PetscFunctionBegin;
-  
+
   *gz = 0.0;
   if (dim == 3) {
     for (d=0;d<dim;d++) *gz += fabs(gravity[d])*X[d];
@@ -102,7 +102,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
     //for(j=0; j<dim2; j++) matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
   }
-  
+
   PetscFunctionReturn(0);
 }
 
@@ -131,7 +131,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 
   PetscFunctionBegin;
 
-  
+
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -196,14 +196,14 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
         for (icol=0; icol<vertices->num_internal_cells[ivertex]; icol++) {
 
           Vcomputed[irow] += -tdy->Trans[vertex_id][irow][icol]*Pcomputed[icol]/faces->area[face_id];
-          
+
         }
         tdy->vel[face_id] += Vcomputed[irow];
         tdy->vel_count[face_id]++;
 
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
-        if (tdy->ops->computedirichletflux) {
-          ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+        if (tdy->ops->compute_boundary_velocity) {
+          ierr = (*tdy->ops->compute_boundary_velocity)(tdy,X,vel,tdy->boundary_velocity_ctx);CHKERRQ(ierr);
           vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)* face_areas[iface];
 
           *vel_error += PetscPowReal( (Vcomputed[irow] - vel_normal), 2.0);
@@ -248,7 +248,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
   PetscFunctionBegin;
 
-  
+
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum( dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -302,10 +302,10 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
     nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
 
     // Vertex is on the boundary
-    
+
     PetscScalar pBoundary[tdy->nfv];
     PetscInt numBoundary;
-    
+
     // For boundary edges, save following information:
     //  - Dirichlet pressure value
     numBoundary = 0;
@@ -332,8 +332,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         if (faces->is_internal[face_id] == 0) {
           PetscInt f;
           f = faces->id[face_id] + fStart;
-          if (tdy->ops->computedirichletvalue) {
-            ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->dirichletvaluectx);CHKERRQ(ierr);
+          if (tdy->ops->compute_boundary_pressure) {
+            ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(tdy->X[f*dim]), &pBoundary[numBoundary], tdy->boundary_pressure_ctx);CHKERRQ(ierr);
           } else {
             ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[icell].X,dim,&gz); CHKERRQ(ierr);
             pBoundary[numBoundary] = u[icell] + tdy->rho[icell]*gz;
@@ -386,8 +386,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         tdy->vel_count[face_id]++;
 
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
-        if (tdy->ops->computedirichletflux) {
-          ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+        if (tdy->ops->compute_boundary_velocity) {
+          ierr = (*tdy->ops->compute_boundary_velocity)(tdy,X,vel,tdy->boundary_velocity_ctx);CHKERRQ(ierr);
           vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)* face_areas[iface];
 
           *vel_error += PetscPowReal( (value - vel_normal), 2.0);
@@ -395,7 +395,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         }
 
       } else {
-      
+
         PetscInt iface=-1;
         PetscInt subcell_id;
 
@@ -425,8 +425,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         tdy->vel_count[face_id]++;
 
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
-        if (tdy->ops->computedirichletflux) {
-          ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+        if (tdy->ops->compute_boundary_velocity) {
+          ierr = (*tdy->ops->compute_boundary_velocity)(tdy,X,vel,tdy->boundary_velocity_ctx);CHKERRQ(ierr);
           vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*face_areas[iface];
 
           *vel_error += PetscPowReal( (value - vel_normal), 2.0);
@@ -434,7 +434,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         }
       }
     }
-    
+
     // For fluxes through boundary edges, only add contribution to the vector
     for (irow=0; irow<npitf_bc; irow++) {
 
@@ -476,8 +476,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         tdy->vel[face_id] += value;
         tdy->vel_count[face_id]++;
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
-        if (tdy->ops->computedirichletflux) {
-          ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+        if (tdy->ops->compute_boundary_velocity) {
+          ierr = (*tdy->ops->compute_boundary_velocity)(tdy,X,vel,tdy->boundary_velocity_ctx);CHKERRQ(ierr);
           vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*face_areas[iface];
 
           *vel_error += PetscPowReal( (value - vel_normal), 2.0);
@@ -485,7 +485,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         }
 
       } else {
-      
+
         PetscInt iface=-1;
         PetscInt subcell_id;
 
@@ -513,8 +513,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         tdy->vel[face_id] += value;
         tdy->vel_count[face_id]++;
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
-        if (tdy->ops->computedirichletflux) {
-          ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+        if (tdy->ops->compute_boundary_velocity) {
+          ierr = (*tdy->ops->compute_boundary_velocity)(tdy,X,vel,tdy->boundary_velocity_ctx);CHKERRQ(ierr);
           vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*face_areas[ iface];
 
           *vel_error += PetscPowReal( (value - vel_normal), 2.0);
@@ -558,7 +558,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
 
   PetscFunctionBegin;
 
-  
+
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
 
@@ -573,19 +573,19 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
-    
+
     if (vertices->num_boundary_faces[ivertex] == 0) continue;
     if (vertices->num_internal_cells[ivertex] > 1)  continue;
-    
+
     PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
     PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
 
     // Vertex is on the boundary
-    
+
     // For boundary edges, save following information:
     //  - Dirichlet pressure value
     //  - Cell IDs connecting the boundary edge in the direction of unit normal
-    
+
     icell    = vertices->internal_cell_ids[vOffsetCell + 0];
     isubcell = vertices->subcell_ids[vOffsetSubcell + 0];
 
@@ -601,13 +601,13 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
     ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &face_areas, &num_faces); CHKERRQ(ierr);
 
     for (iface=0; iface<num_faces; iface++) {
-      
+
       PetscInt face_id = face_ids[iface];
 
       PetscInt f;
       f = face_id + fStart;
-      if (tdy->ops->computedirichletvalue) {
-        ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]), &pBoundary[iface], tdy->dirichletvaluectx);CHKERRQ(ierr);
+      if (tdy->ops->compute_boundary_pressure) {
+        ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(tdy->X[f*dim]), &pBoundary[iface], tdy->boundary_pressure_ctx);CHKERRQ(ierr);
       } else {
         pBoundary[iface] = u[icell];
       }
@@ -637,8 +637,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
       tdy->vel[face_id] += value;
       tdy->vel_count[face_id]++;
       ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
-      if (tdy->ops->computedirichletflux) {
-        ierr = (*tdy->ops->computedirichletflux)(tdy,X,vel,tdy->dirichletfluxctx);CHKERRQ(ierr);
+      if (tdy->ops->compute_boundary_velocity) {
+        ierr = (*tdy->ops->compute_boundary_velocity)(tdy,X,vel,tdy->boundary_velocity_ctx);CHKERRQ(ierr);
         vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim) * face_areas[iface];
 
         *vel_error += PetscPowReal( (value - vel_normal), 2.0);
@@ -733,8 +733,8 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
       p_bnd_idx = -cell_ids[0] - 1;
     }
 
-    if (tdy->ops->computedirichletvalue) {
-      ierr = (*tdy->ops->computedirichletvalue)(tdy, (faces->centroid[iface].X), &(tdy->P_BND[p_bnd_idx]), tdy->dirichletvaluectx);CHKERRQ(ierr);
+    if (tdy->ops->compute_boundary_pressure) {
+      ierr = (*tdy->ops->compute_boundary_pressure)(tdy, (faces->centroid[iface].X), &(tdy->P_BND[p_bnd_idx]), tdy->boundary_pressure_ctx);CHKERRQ(ierr);
     } else {
       tdy->P_BND[p_bnd_idx] = p[cell_id];
     }
@@ -790,8 +790,8 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
       t_bnd_idx = -cell_ids[0] - 1;
     }
 
-    if (tdy->ops->computetemperaturedirichletvalue) {
-      ierr = (*tdy->ops->computetemperaturedirichletvalue)(tdy, (faces->centroid[iface].X), &(tdy->T_BND[t_bnd_idx]), tdy->temperaturedirichletvaluectx);CHKERRQ(ierr);
+    if (tdy->ops->compute_boundary_temperature) {
+      ierr = (*tdy->ops->compute_boundary_temperature)(tdy, (faces->centroid[iface].X), &(tdy->T_BND[t_bnd_idx]), tdy->boundary_temperature_ctx);CHKERRQ(ierr);
     } else {
       tdy->T_BND[t_bnd_idx] = t[cell_id];
     }

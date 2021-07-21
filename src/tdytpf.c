@@ -71,8 +71,8 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
     // v = -Ki (pd-p0)/dist
     // 00 Ki/dist
     // 0 -Ki pd / dist
-    if(ss==1 && tdy->ops->computedirichletvalue) {
-      ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]),&p, tdy->dirichletvaluectx);CHKERRQ(ierr);
+    if(ss==1 && tdy->ops->compute_boundary_pressure) {
+      ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(tdy->X[f*dim]),&p, tdy->boundary_pressure_ctx);CHKERRQ(ierr);
       if (fabs(p+999.)<1.e-40) continue;
       ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk); CHKERRQ(ierr);
       Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[f*dim]),pnt2pnt);
@@ -145,7 +145,7 @@ PetscReal TDyTPFPressureNorm(TDy tdy,Vec U) {
   PetscInt c,cStart,cEnd,offset,dim,gref,junk;
   PetscReal p,*u,norm,norm_sum;
   DM dm = tdy->dm;
-  if(!(tdy->ops->computedirichletvalue)) {
+  if(!(tdy->ops->compute_boundary_pressure)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
             "Must set the pressure function with TDySetDirichletValueFunction");
   }
@@ -158,7 +158,7 @@ PetscReal TDyTPFPressureNorm(TDy tdy,Vec U) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
     if(gref<0) continue;
     ierr = PetscSectionGetOffset(sec,c,&offset); CHKERRQ(ierr);
-    ierr = (*tdy->ops->computedirichletvalue)(tdy,&(tdy->X[c*dim]),&p,tdy->dirichletvaluectx);CHKERRQ(ierr);
+    ierr = (*tdy->ops->compute_boundary_pressure)(tdy,&(tdy->X[c*dim]),&p,tdy->boundary_pressure_ctx);CHKERRQ(ierr);
     norm += tdy->V[c]*PetscSqr(u[offset]-p);
   }
   ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
@@ -199,16 +199,16 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
       ierr = DMPlexGetSupportSize(dm,f,&ss  ); CHKERRQ(ierr);
       ierr = DMPlexGetSupport    (dm,f,&supp); CHKERRQ(ierr);
 
-      if(ss==1 && tdy->ops->computedirichletvalue) {
+      if(ss==1 && tdy->ops->compute_boundary_pressure) {
         ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk); CHKERRQ(ierr);
         Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[f*dim]),pnt2pnt);
         dist = Norm(dim,pnt2pnt);
         Ki = matprop->K[(supp[0]-cStart)*dim2];
-        ierr = (*tdy->ops->computedirichletvalue)(tdy, &(tdy->X[f*dim]),&p, tdy->dirichletvaluectx);CHKERRQ(ierr);
+        ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(tdy->X[f*dim]),&p, tdy->boundary_pressure_ctx);CHKERRQ(ierr);
         sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),
                                         &(tdy->X[dim*supp[0]]),dim));
         va = sign* -Ki*(p-u[(supp[0]-cStart)])/dist;
-        ierr = (*tdy->ops->computedirichletflux)(tdy,&(tdy->X[f*dim]),&(vel[0]),tdy->dirichletfluxctx);CHKERRQ(ierr);
+        ierr = (*tdy->ops->compute_boundary_velocity)(tdy,&(tdy->X[f*dim]),&(vel[0]),tdy->boundary_velocity_ctx);CHKERRQ(ierr);
         ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
         face_error = PetscSqr((va-ve)/tdy->V[f]);
       } else {
@@ -219,7 +219,7 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
                                         &(tdy->X[dim*c]),dim));
         va = sign* -Ki*(u[(supp[1]-cStart)]-u[(supp[0]-cStart)])/dist *tdy->V[f];
         if(c==supp[1]) va *= -1;
-        ierr = (*tdy->ops->computedirichletflux)(tdy,&(tdy->X[f*dim]),&(vel[0]),tdy->dirichletfluxctx);CHKERRQ(ierr);
+        ierr = (*tdy->ops->compute_boundary_velocity)(tdy,&(tdy->X[f*dim]),&(vel[0]),tdy->boundary_velocity_ctx);CHKERRQ(ierr);
         ve = TDyADotB(vel,&(tdy->N[dim*f]),dim)*tdy->V[f];
         face_error = PetscSqr((va-ve)/tdy->V[f]);
       }

@@ -340,7 +340,7 @@ implicit none
   end if
 
   if (bc_type == MPFAO_DIRICHLET_BC .OR. bc_type == MPFAO_SEEPAGE_BC ) then
-     call TDySetDirichletValueFunction(tdy,PressureFunction,0,ierr);
+     call TDySetBoundaryPressureFn(tdy,PressureFunction,0,ierr);
      CHKERRQ(ierr)
   endif
 

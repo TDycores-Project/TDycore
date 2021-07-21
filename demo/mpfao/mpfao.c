@@ -246,32 +246,32 @@ int main(int argc, char **argv) {
     switch(problem) {
     case 1:
       ierr = TDySetForcingFunction(tdy,ForcingConstantFunction,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureConstantFunction,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletFluxFunction(tdy,VelocityConstantFunction,NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryPressureFn(tdy,PressureConstantFunction,NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryVelocityFn(tdy,VelocityConstantFunction,NULL); CHKERRQ(ierr);
       break;
     case 2:
       ierr = TDySetForcingFunction(tdy,ForcingQuadraticFunction,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureQuadraticFunction,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletFluxFunction(tdy,VelocityQuadraticFunction,NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryPressureFn(tdy,PressureQuadraticFunction,NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryVelocityFn(tdy,VelocityQuadraticFunction,NULL); CHKERRQ(ierr);
       break;
     case 3:
       ierr = TDySetForcingFunction(tdy,ForcingFunction,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureFunction,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletFluxFunction(tdy,VelocityFunction,NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryPressureFn(tdy,PressureFunction,NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryVelocityFn(tdy,VelocityFunction,NULL); CHKERRQ(ierr);
       break;
     case 4:
       ierr = TDySetPermeabilityFunction(tdy,PermeabilitySineFunction,NULL); CHKERRQ(ierr);
       ierr = TDySetForcingFunction(tdy,ForcingSineFunction,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletValueFunction(tdy,PressureSineFunction,NULL); CHKERRQ(ierr);
-      ierr = TDySetDirichletFluxFunction(tdy,VelocitySineFunction,NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryPressureFn(tdy,PressureSineFunction,NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryVelocityFn(tdy,VelocitySineFunction,NULL); CHKERRQ(ierr);
       break;
     }
   } else {
     ierr = TDySetPermeabilityFunction(tdy,PermeabilityFunction3D,NULL); CHKERRQ(ierr);
     ierr = TDySetPermeabilityTensor(tdy,Permeability3D); CHKERRQ(ierr);
     ierr = TDySetForcingFunction(tdy,Forcing3D,NULL); CHKERRQ(ierr);
-    ierr = TDySetDirichletValueFunction(tdy,Pressure3D,NULL); CHKERRQ(ierr);
-    ierr = TDySetDirichletFluxFunction(tdy,Velocity3D,NULL); CHKERRQ(ierr);
+    ierr = TDySetBoundaryPressureFn(tdy,Pressure3D,NULL); CHKERRQ(ierr);
+    ierr = TDySetBoundaryVelocityFn(tdy,Velocity3D,NULL); CHKERRQ(ierr);
   }
 
   ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
