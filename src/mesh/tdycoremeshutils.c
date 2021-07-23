@@ -460,7 +460,7 @@ PetscErrorCode TDySubCell_GetIthNuVector(TDySubcell *subcells, PetscInt isubcell
   if (i>=subcells->num_nu_vectors[isubcell]) {
     SETERRQ(PETSC_COMM_SELF,PETSC_ERR_USER,"Subcell: Requested i-th nu_vec exceeds max nu_vecs");
   }
-  
+
   for (d=0; d<dim; d++) nu_vec[d] = subcells->nu_vector[sOffsetNu + i].V[d];
   PetscFunctionReturn(0);
 }
@@ -474,7 +474,7 @@ PetscErrorCode TDySubCell_GetIthNuStarVector(TDySubcell *subcells, PetscInt isub
   if (i>=subcells->num_nu_vectors[isubcell]) {
     SETERRQ(PETSC_COMM_SELF,PETSC_ERR_USER,"Subcell: Requested i-th nu_vec exceeds max nu_vecs");
   }
-  
+
   for (d=0; d<dim; d++) nu_vec[d] = subcells->nu_star_vector[sOffsetNu + i].V[d];
   PetscFunctionReturn(0);
 }
@@ -622,23 +622,23 @@ PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDyFace *face
                                                  TDyVertex *vertices, PetscInt ivertex,
                                                  PetscInt f_idx[3],
                                                  PetscInt *num_shared_faces) {
-  
+
   PetscFunctionBegin;
-  
+
   PetscInt iface;
   //PetscInt cell_id = cell->id;
-  
+
   *num_shared_faces = 0;
-  
+
   // Find the faces of "cell_id" that are shared by the vertex
   for (iface=0; iface<vertices->num_faces[ivertex]; iface++){
-    
+
     PetscInt vOffsetFace = vertices->face_offset[ivertex];
     PetscInt face_id = vertices->face_ids[vOffsetFace + iface];
     PetscInt fOffsetCell = faces->cell_offset[face_id];
-    
+
     if (faces->cell_ids[fOffsetCell + 0] == cell_id || faces->cell_ids[fOffsetCell + 1] == cell_id){
-      
+
       // Check if the number of shared faces doesn't exceed max faces
       if ((*num_shared_faces) == 3) {
         (*num_shared_faces)++;
@@ -648,12 +648,12 @@ PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDyFace *face
       (*num_shared_faces)++;
     }
   }
-  
+
   if (*num_shared_faces != 3) {
     printf("Was expecting to find 3 faces of the cell to be shared by the vertex, but instead found %d common faces\n",*num_shared_faces);
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported vertex type for 3D mesh");
   }
-  
+
   PetscFunctionReturn(0);
 }
 
@@ -707,7 +707,7 @@ PetscErrorCode IdentifyLocalVertices(TDy tdy) {
 
   PetscFunctionBegin;
 
-    
+
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
@@ -852,9 +852,9 @@ PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDyCell *cells, PetscInt
   if (isubcell == -1) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Did not find a subcell of a given cell that includes the given vertex");
   }
-  
+
   *subcell_id = cells->id[cell_id]*cells->num_subcells[cell_id]+isubcell;
-  
+
   PetscFunctionReturn(0);
 }
 
@@ -891,7 +891,7 @@ PetscErrorCode TDyGetCellNaturalIDsLocal(TDy tdy, PetscInt *ni, PetscInt nat_ids
 /* -------------------------------------------------------------------------- */
 /// Finds the id of subcell in the mesh->subcells struct that corresponds to
 /// cell_id and vertex_id and face_id.
-/// 
+///
 /// @param [in] tdy A TDy struct
 /// @param [in] cell_id ID of cell
 /// @param [in] vertix_id ID of vertex
