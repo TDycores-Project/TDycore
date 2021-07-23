@@ -12,14 +12,14 @@
 PetscErrorCode TDyIOCreate(TDyIO *_io) {
   PetscFunctionBegin;
   TDyIO io;
-  PetscErrorCode ierr;
-  
+  PetscErrorCode ierr;  
   
   io = (TDyIO)malloc(sizeof(struct _p_TDyIO));
   *_io = io;
 
   io->io_process = PETSC_FALSE;
-  io->print_intermediate = PETSC_FALSE;  
+  io->print_intermediate = PETSC_FALSE;
+  io->anisotropic_permeability = PETSC_FALSE;
   io->num_vars = 2;
   strcpy(io->zonalVarNames[0], "LiquidPressure");
   strcpy(io->zonalVarNames[1], "Saturation");
@@ -66,7 +66,10 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
 			    io->ic_dataset,io->ic_dataset,
 			    PETSC_MAX_PATH_LEN,NULL);
                             CHKERRQ(ierr);
-
+  ierr = PetscOptionsBool("-anisotropic_perm",
+                          "Anisotropic Permeability","",
+                          io->anisotropic_permeability,&(io->anisotropic_permeability),NULL);
+                          CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   
   PetscFunctionReturn(0);
@@ -86,16 +89,21 @@ PetscErrorCode TDyIOSetPrintIntermediate(TDyIO io, PetscBool flag){
 
 PetscErrorCode TDyIOReadPermeability(TDy tdy){
   PetscFunctionBegin;
-  PetscInt cStart,cEnd,ncell,c,size;
+  PetscInt cStart,cEnd,ncell,c,n,BlockSize;
   PetscErrorCode ierr;
   PetscReal *K;
+  PetscReal *Kx;
+  PetscReal *Ky;
+  PetscReal *Kz;
   char VariableName[PETSC_MAX_PATH_LEN];
-  Vec U,index_vec;
-  PetscViewer viewer;
+  char VariableNameX[PETSC_MAX_PATH_LEN];
+  char VariableNameY[PETSC_MAX_PATH_LEN];
+  char VariableNameZ[PETSC_MAX_PATH_LEN];
   PetscInt dim;
-  PetscReal *blockperm;
+  PetscReal *BlockPerm;
   PetscReal *perm;
   size_t len;
+  char *filename = tdy->io->permeability_filename;
   
   ierr = PetscStrlen(tdy->io->permeability_dataset, &len); CHKERRQ(ierr);
   if (!len){
@@ -105,42 +113,50 @@ PetscErrorCode TDyIOReadPermeability(TDy tdy){
   }
 
   ierr = DMGetDimension(tdy->dm, &dim);
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ncell = (cEnd-cStart);
-  //size = ncell * dim * dim;
-  ierr = TDyAllocate_RealArray_1D(&blockperm,size);CHKERRQ(ierr);
+  BlockSize = ncell * dim * dim;
+  ierr = TDyAllocate_RealArray_1D(&BlockPerm,BlockSize);CHKERRQ(ierr);
   ierr = TDyAllocate_RealArray_1D(&perm,9);CHKERRQ(ierr);
 
-  char *filename = tdy->io->permeability_filename;
-
-  ierr = TDyIOReadVariable(tdy,VariableName,filename,&K,&size);
+  if (tdy->io->anisotropic_permeability) {
+    sprintf(VariableNameX,"%s%s",VariableName,"X");
+    sprintf(VariableNameY,"%s%s",VariableName,"Y");
+    sprintf(VariableNameZ,"%s%s",VariableName,"Z");
+    ierr = TDyIOReadVariable(tdy,VariableNameX,filename,&Kx);CHKERRQ(ierr);
+    ierr = TDyIOReadVariable(tdy,VariableNameY,filename,&Ky);CHKERRQ(ierr);
+    ierr = TDyIOReadVariable(tdy,VariableNameZ,filename,&Kz);CHKERRQ(ierr);
+    
+  }
+  else {
+    ierr = TDyIOReadVariable(tdy,VariableName,filename,&K);CHKERRQ(ierr);
+  }
+  
   PetscInt index[ncell];
   for (c = 0;c<=ncell;++c){
      index[c] = c;
   }
   
-  if (size == 1) {
-     perm[0] = K[0];
-     perm[4] = K[0];
-     perm[8] = K[0];
+  if (tdy->io->anisotropic_permeability) {
      for (int i = 0;i<ncell;++i){
+       perm[0] = Kx[i];
+       perm[4] = Ky[i];
+       perm[8] = Kz[i];
        for (int j=0;j<dim*dim;++j) {
-	 blockperm[i*dim*dim + j] = perm[j];
+	 BlockPerm[i*dim*dim + j] = perm[j];
        }
      }
-     ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,blockperm);   
-  } else if (size == 3) {
+     ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,BlockPerm);CHKERRQ(ierr);   
+  } else {
      perm[0] = K[0];
      perm[4] = K[1];
      perm[8] = K[2];
      for (int i = 0;i<ncell;++i){
        for (int j=0;j<dim*dim;++j) {
-	 blockperm[i*dim*dim + j] = perm[j];
+	 BlockPerm[i*dim*dim + j] = perm[j];
        }
      }		      
-     ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,blockperm);
-  } else{
-    ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,K);
+     ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,BlockPerm);CHKERRQ(ierr);
   }
   
   PetscFunctionReturn(0);
@@ -152,11 +168,9 @@ PetscErrorCode TDyIOReadPorosity(TDy tdy){
   PetscErrorCode ierr;
   PetscReal *Porosity;
   char VariableName[PETSC_MAX_PATH_LEN];
-  Vec U;
-  PetscViewer viewer;
-  PetscInt n;
-
   size_t len;
+  char *filename = tdy->io->porosity_filename;
+  
   ierr = PetscStrlen(tdy->io->porosity_dataset, &len); CHKERRQ(ierr);
   if (!len){
     strcpy(VariableName, "Porosity");
@@ -164,18 +178,17 @@ PetscErrorCode TDyIOReadPorosity(TDy tdy){
     strcpy(VariableName, tdy->io->porosity_dataset);
   }
 
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ncell = (cEnd-cStart);
- 
-  char *filename = tdy->io->porosity_filename;
 
-  ierr = TDyIOReadVariable(tdy,VariableName,filename,&Porosity,&n);
+  ierr = TDyIOReadVariable(tdy,VariableName,filename,&Porosity);
   PetscInt index[ncell];
   for (c = 0;c<=ncell;++c){
      index[c] = c;
   }
 
   ierr = TDySetPorosityValuesLocal(tdy,ncell,index,Porosity);
+  
   PetscFunctionReturn(0);
 }
 
@@ -183,12 +196,12 @@ PetscErrorCode TDyIOReadIC(TDy tdy){
   PetscFunctionBegin;
   PetscInt cStart,cEnd,ncell,c;
   PetscErrorCode ierr;
-  PetscReal *ic;
   PetscViewer viewer;
-  Vec U;
+  Vec u;
+  Vec u_local;
   char VariableName[PETSC_MAX_PATH_LEN];
-
   size_t len;
+  
   ierr = PetscStrlen(tdy->io->ic_dataset, &len); CHKERRQ(ierr);
   if (!len){
     strcpy(VariableName, "IC");
@@ -196,47 +209,48 @@ PetscErrorCode TDyIOReadIC(TDy tdy){
     strcpy(VariableName, tdy->io->ic_dataset);
   }
   
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ncell = (cEnd-cStart);
-  ierr = VecCreate(PETSC_COMM_WORLD,&U);
-  ierr = VecSetSizes(U,ncell,PETSC_DECIDE);
+  ierr = VecCreate(PETSC_COMM_WORLD,&u);
+  ierr = VecSetSizes(u,ncell,PETSC_DECIDE);
   
-  ierr = PetscObjectSetName((PetscObject) U, VariableName);
+  ierr = PetscObjectSetName((PetscObject) u, VariableName);
   
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,tdy->io->ic_filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
-  ierr = VecLoad(U,viewer);
-
-  ierr = TDySetInitialCondition(tdy,U);
-  
+  ierr = VecLoad(u,viewer);CHKERRQ(ierr);
+  ierr = TDyNaturaltoLocal(tdy->dm,u,&u_local);CHKERRQ(ierr);
+  ierr = TDySetInitialCondition(tdy,u_local);CHKERRQ(ierr);
+  PetscFunctionReturn(0); 
 }
 
-PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, PetscReal **variable, PetscInt *size){
+PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, PetscReal **variable){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscViewer viewer;
-  Vec U;
+  Vec u;
+  Vec u_local;
   PetscReal *ptr;
-  int i;
-  int n;
+  int i,n;
   
-  ierr = VecCreate(PETSC_COMM_WORLD,&U);
-  ierr = PetscObjectSetName((PetscObject) U, VariableName);
+  ierr = VecCreate(PETSC_COMM_WORLD,&u);
+  ierr = PetscObjectSetName((PetscObject) u, VariableName);
   
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
-  ierr = VecLoad(U,viewer);CHKERRQ(ierr);
-  
-  ierr = VecGetArray(U,&ptr);CHKERRQ(ierr);
-  ierr = VecGetSize(U,&n);CHKERRQ(ierr);
+  ierr = VecLoad(u,viewer);CHKERRQ(ierr);
+ 
+  ierr = TDyNaturaltoLocal(tdy->dm,u,&u_local);CHKERRQ(ierr);
+  ierr = VecGetArray(u_local,&ptr);CHKERRQ(ierr);
+  ierr = VecGetSize(u_local,&n);CHKERRQ(ierr);
 
   ierr = TDyAllocate_RealArray_1D(variable,n);CHKERRQ(ierr);
   for (i = 0;i<n;++i){
     (*variable)[i] = ptr[i];
-     }
+  }
   
   ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
 
-  ierr = VecRestoreArray(U,&ptr);CHKERRQ(ierr);
-  *size = n;
+  ierr = VecRestoreArray(u,&ptr);CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -317,14 +331,13 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     char *ofilename = tdy->io->filename;
         
     ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);
-    if (useNatural) {
-      Vec p_natural;
-      Vec s_natural;
-      ierr = TDyGlobaltoNatural(dm,p,&p_natural);CHKERRQ(ierr);
-      ierr = TDyGlobaltoNatural(dm,s,&s_natural);CHKERRQ(ierr);
-      ierr = TDyIOWriteHDF5Var(ofilename,dm,p_natural,zonalVarNames[0],time);CHKERRQ(ierr);
-      ierr = TDyIOWriteHDF5Var(ofilename,dm,s_natural,zonalVarNames[1],time);CHKERRQ(ierr);
-    }
+
+    Vec p_natural;
+    Vec s_natural;
+    ierr = TDyGlobaltoNatural(dm,p,&p_natural);CHKERRQ(ierr);
+    ierr = TDyGlobaltoNatural(dm,s,&s_natural);CHKERRQ(ierr);
+    ierr = TDyIOWriteHDF5Var(ofilename,dm,p_natural,zonalVarNames[0],time);CHKERRQ(ierr);
+    ierr = TDyIOWriteHDF5Var(ofilename,dm,s_natural,zonalVarNames[1],time);CHKERRQ(ierr);
   }
   else{
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unrecognized IO format, must call TDyIOSetMode");
@@ -455,7 +468,7 @@ PetscErrorCode TDyIOWriteXMFHeader(PetscInt numCell,PetscInt dim,PetscInt numVer
 
   FILE *fid;
 
-  const char *cellMap[24] = {"0"};
+  const char *cellMap[25] = {"0"};
   cellMap[1] = "Polyvertex";
   cellMap[2] = "Polyline";
   cellMap[6] = "Triangle";

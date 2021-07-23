@@ -6,6 +6,7 @@
 struct _p_TDyIO {
   PetscBool io_process;
   PetscBool print_intermediate;
+  PetscBool anisotropic_permeability;
   char filename[PETSC_MAX_PATH_LEN];
   char zonalVarNames[2][PETSC_MAX_PATH_LEN];
   int num_vars;
@@ -23,7 +24,7 @@ PETSC_INTERN PetscErrorCode TDyIOCreate(TDyIO*);
 PETSC_INTERN PetscErrorCode TDyIOReadPermeability(TDy);
 PETSC_INTERN PetscErrorCode TDyIOReadPorosity(TDy);
 PETSC_INTERN PetscErrorCode TDyIOReadIC(TDy);
-PETSC_INTERN PetscErrorCode TDyIOReadVariable(TDy,char*,char*,PetscReal**,PetscInt*);
+PETSC_INTERN PetscErrorCode TDyIOReadVariable(TDy,char*,char*,PetscReal**);
 PETSC_INTERN PetscErrorCode TDyIOInitializeExodus(char*,char*[],DM ,int);
 PETSC_INTERN PetscErrorCode TDyIOAddExodusTime(char*,PetscReal,DM,TDyIO);
 PETSC_INTERN PetscErrorCode TDyIOWriteExodusVar(char*,Vec,char*,TDyIO,PetscReal);
