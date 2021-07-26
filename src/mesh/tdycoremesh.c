@@ -3254,7 +3254,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
         // nu_vec on the "iface"-th is given as:
         //  = (x_{iface+1} - x_{cell_centroid}) x (x_{iface+2} - x_{cell_centroid})
         //  = (x_{f1_idx } - x_{cell_centroid}) x (x_{f2_idx } - x_{cell_centroid})
-        PetscInt f1_idx, f2_idx, f3_idx;
+        PetscInt f1_idx = -1, f2_idx = -1, f3_idx = -1;
 
         // determin the f1_idx and f2_idx
         PetscReal f1[3], f2[3], f3[3];
@@ -3275,10 +3275,6 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
           f1_idx = 0;
           f2_idx = 1;
           f3_idx = 2;
-          break;
-
-          default:
-          break;
         }
 
         // Save x_{f1_idx } and x_{f2_idx }
