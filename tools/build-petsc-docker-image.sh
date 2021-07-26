@@ -19,7 +19,7 @@ fi
 
 DOCKERHUB_USER=coherellc
 IMAGE_NAME=tdycore-petsc
-TAG=latest
+TAG=$PETSC_HASH
 
 # Build the image locally.
 mkdir -p docker-build

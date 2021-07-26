@@ -18,6 +18,14 @@ TDycores provides two dynamical cores:
 Both dycores can use meshes with hexahedral or triangular prismatic cells
 with planar faces. The prismatic cells are aligned logically along a z axis.
 
+## Dependencies
+
+`TDycore` uses [PETSc](https://petsc.org/release/), tracking the
+[main branch](https://gitlab.com/petsc/petsc) fairly closely. Currently,
+`TDycore` is tested against revision `c29323cac9f`.
+
+## More information
+
 Check out the [Wiki](https://github.com/TDycores-Project/TDycore/wiki) for
 documentation, including instructions for
 [building and installing TDycore](https://github.com/TDycores-Project/TDycore/wiki/Building-and-Installing-TDycore).
