@@ -19,7 +19,7 @@ PETSC_EXTERN PetscErrorCode TDyEnableTimers(void);
 
 // To accomplish this, we use a hash map with string keys and PetscLogEvent
 // values. PETSc ships with khash, so let's appropriate it.
-#include <petsc/private/kernels/khash.h>
+#include <petsc/private/khash/khash.h>
 KHASH_MAP_INIT_STR(TDY_TIMER_MAP, PetscLogEvent)
 PETSC_EXTERN khash_t(TDY_TIMER_MAP)* TDY_TIMERS;
 
