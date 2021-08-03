@@ -39,6 +39,12 @@
 #define tdysetpermeabilityfunction_                    TDYSETPERMEABILITYFUNCTION
 #define tdysetresidualsaturationfunction_              TDYSETRESIDUALSATURATIONFUNCTION
 #define tdysetforcingfunction_                         TDYSETFORCINGFUNCTION
+#define tdyregisterpressurefn_                         TDYREGISTERPRESSUREFN
+#define tdyregistertemperaturefn_                      TDYREGISTERTEMPERATUREFN
+#define tdyregistervelocityfn_                         TDYREGISTERVELOCITYFN
+#define tdyselectboundarypressurefn_                   TDYSELECTBOUNDARYPRESSUREFN
+#define tdyselectboundarytemperaturefn_                TDYSELECTBOUNDARYTEMPERATUREFN
+#define tdyselectboundaryvelocityfn_                   TDYSELECTBOUNDARYVELOCITYFN
 #define tdysetboundarypressurefn_                      TDYSETBOUNDARYPRESSUREFN
 #define tdysetboundaryvelocityfn_                      TDYSETBOUNDARYVELOCITYFN
 #define tdysetporosityvalueslocal0_                    TDYSETPOROSITYVALUESLOCAL0
@@ -101,6 +107,12 @@
 #define tdysetpermeabilityfunction_                    tdysetpermeabilityfunction
 #define tdysetresidualsaturationfunction_              tdysetresidualsaturationfunction
 #define tdysetforcingfunction_                         tdysetforcingfunction
+#define tdyregisterpressurefn_                         tdyregisterpressurefn
+#define tdyregistertemperaturefn_                      tdyregistertemperaturefn
+#define tdyregistervelocityfn_                         tdyregistervelocityfn
+#define tdyselectboundarypressurefn_                   tdyselectboundarypressurefn
+#define tdyselectboundarytemperaturefn_                tdyselectboundarytemperaturefn
+#define tdyselectboundaryvelocityfn_                   tdyselectboundaryvelocityfn
 #define tdysetboundarypressurefn_                      tdysetboundarypressurefn
 #define tdysetboundaryvelocityfn_                      tdysetboundaryvelocityfn
 #define tdysetporosityvalueslocal0_                    tdysetporosityvalueslocal0
