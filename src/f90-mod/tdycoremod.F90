@@ -475,7 +475,7 @@ module tdycore
     end interface
     integer, intent(out) :: ierr
 
-    ierr = RegisterPressureFn(f_to_c_string(func_name), c_funloc(func))
+    ierr = RegisterPressureFn(FtoCString(func_name), c_funloc(func))
   end subroutine
 
   subroutine TDyRegisterTemperatureFn(func_name, func, ierr)
@@ -503,7 +503,7 @@ module tdycore
     end interface
     integer, intent(out) :: ierr
 
-    ierr = RegisterTemperatureFn(f_to_c_string(func_name), c_funloc(func))
+    ierr = RegisterTemperatureFn(FtoCString(func_name), c_funloc(func))
   end subroutine
 
   subroutine TDyRegisterVelocityFn(func_name, func, ierr)
@@ -531,7 +531,7 @@ module tdycore
     end interface
     integer, intent(out) :: ierr
 
-    ierr = RegisterVelocityFn(f_to_c_string(func_name), c_funloc(func))
+    ierr = RegisterVelocityFn(FtoCString(func_name), c_funloc(func))
   end subroutine
 
   subroutine TDySelectBoundaryPressureFn(tdy, func_name, ierr)
@@ -552,10 +552,10 @@ module tdycore
       end function
     end interface
 
-    ierr = SelectBoundaryPressureFn(c_loc(tdy), f_to_c_string(func_name), c_null_ptr)
+    ierr = SelectBoundaryPressureFn(c_loc(tdy), FtoCString(func_name), c_null_ptr)
   end subroutine
 
-  function f_to_c_string(f_string) result(c_string)
+  function FtoCString(f_string) result(c_string)
     use, intrinsic :: iso_c_binding
     implicit none
     character(len=*), target :: f_string
@@ -563,16 +563,16 @@ module tdycore
     type(c_ptr) :: c_string
 
     interface
-      function new_c_string(f_str_ptr, f_str_len) bind (c) result(c_string)
+      function NewCString(f_str_ptr, f_str_len) bind (c, name="NewCString") result(c_string)
         use, intrinsic :: iso_c_binding
         type(c_ptr), value :: f_str_ptr
         integer(c_int), value :: f_str_len
         type(c_ptr) :: c_string
-      end function new_c_string
+      end function NewCString
     end interface
 
     f_ptr => f_string
-    c_string = new_c_string(c_loc(f_ptr), len(f_string))
-  end function f_to_c_string
+    c_string = NewCString(c_loc(f_ptr), len(f_string))
+  end function FtoCString
 
 end module tdycore

@@ -140,13 +140,38 @@ PetscBool TDyInitialized(void) {
   return TDyPackageInitialized;
 }
 
+// A registry of functions called at shutdown. This can be used by all
+// subsystems via TDyOnFinalize().
+typedef void (*ShutdownFunc)(void);
+static ShutdownFunc *shutdown_funcs_ = NULL;
+static int num_shutdown_funcs_ = 0;
+static int shutdown_funcs_cap_ = 0;
+
+/// Call this to register a shutdown function that is called during TDyFinalize.
+PetscErrorCode TDyOnFinalize(void (*shutdown_func)(void)) {
+  if (shutdown_funcs_ == NULL) {
+    shutdown_funcs_cap_ = 32;
+    shutdown_funcs_ = malloc(sizeof(ShutdownFunc) * shutdown_funcs_cap_);
+  } else if (num_shutdown_funcs_ == shutdown_funcs_cap_) { // need more space!
+    shutdown_funcs_cap_ *= 2;
+    shutdown_funcs_ = realloc(shutdown_funcs_, sizeof(ShutdownFunc) * shutdown_funcs_cap_);
+  }
+  shutdown_funcs_[num_shutdown_funcs_] = shutdown_func;
+  ++num_shutdown_funcs_;
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyFinalize() {
   PetscFunctionBegin;
 
-  // Dump timing information before we leave.
-  TDyWriteTimingProfile("tdycore_profile.csv");
-
-  TDyDestroyTimers();
+  // Call shutdown functions and destroy the list.
+  if (shutdown_funcs_ != NULL) {
+    for (int i = 0; i < num_shutdown_funcs_; ++i) {
+      shutdown_funcs_[i]();
+    }
+    free(shutdown_funcs_);
+  }
 
   // Finalize PETSc.
   PetscFinalize();
@@ -1461,18 +1486,38 @@ PetscErrorCode TDyCreateJacobian(TDy tdy) {
 }
 
 // Here's a registry of C-backed strings created from Fortran.
-// Currently we limit one to 1024 such strings.
-static char* fortran_strings_[1024];
-static int num_fortran_strings_ = 0;
+KHASH_SET_INIT_STR(TDY_STRING_SET)
+static khash_t(TDY_STRING_SET)* fortran_strings_ = NULL;
+
+// This function is called on finalization to destroy the Fortran ѕtring
+// registry.
+static void DestroyFortranStrings() {
+  kh_destroy(TDY_STRING_SET, fortran_strings_);
+}
 
 // Returns a newly-allocated C string for the given Fortran string pointer with
 // the given length. Resources for this string are managed by the running model.
-const char* new_c_string(char* f_str_ptr, int f_str_len) {
-  char* new_string = malloc(sizeof(char) * (f_str_len+1));
-  memcpy(new_string, f_str_ptr, sizeof(char) * f_str_len);
-  new_string[f_str_len] = '\0';
-  fortran_strings_[num_fortran_strings_] = new_string;
-  ++num_fortran_strings_;
-  return (const char*)new_string;
+const char* NewCString(char* f_str_ptr, int f_str_len) {
+  if (fortran_strings_ == NULL) {
+    fortran_strings_ = kh_init(TDY_STRING_SET);
+    TDyOnFinalize(DestroyFortranStrings);
+  }
+
+  // Copy the Fortran character array to a C string.
+  char c_str[f_str_len+1];
+  memcpy(c_str, f_str_ptr, sizeof(char) * f_str_len);
+  c_str[f_str_len] = '\0';
+
+  // Does this string already exist?
+  khiter_t iter = kh_get(TDY_STRING_SET, fortran_strings_, c_str);
+  if (iter != kh_end(fortran_strings_)) { // yep
+    return kh_key(fortran_strings_, iter);
+  } else { // nope
+    int retval;
+    const char* str = malloc(sizeof(char) * (f_str_len+1));
+    strcpy((char*)str, c_str);
+    iter = kh_put(TDY_STRING_SET, fortran_strings_, str, &retval);
+    return str;
+  }
 }
 
