@@ -1460,3 +1460,19 @@ PetscErrorCode TDyCreateJacobian(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
+// Here's a registry of C-backed strings created from Fortran.
+// Currently we limit one to 1024 such strings.
+static char* fortran_strings_[1024];
+static int num_fortran_strings_ = 0;
+
+// Returns a newly-allocated C string for the given Fortran string pointer with
+// the given length. Resources for this string are managed by the running model.
+const char* new_c_string(char* f_str_ptr, int f_str_len) {
+  char* new_string = malloc(sizeof(char) * (f_str_len+1));
+  memcpy(new_string, f_str_ptr, sizeof(char) * f_str_len);
+  new_string[f_str_len] = '\0';
+  fortran_strings_[num_fortran_strings_] = new_string;
+  ++num_fortran_strings_;
+  return (const char*)new_string;
+}
+

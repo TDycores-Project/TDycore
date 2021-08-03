@@ -84,13 +84,13 @@ contains
     PetscReal, intent(out) :: alpha
     alpha = 1.d-4
   end subroutine MaterialPropAlpha_PFLOTRAN
-    
+
   subroutine MaterialPropM_PFLOTRAN(m)
     implicit none
     PetscReal, intent(out) :: m
     m = 0.3d0
   end subroutine MaterialPropM_PFLOTRAN
-    
+
   subroutine ResidualSat_PFLOTRAN(resSat)
     implicit none
     PetscReal resSat
@@ -160,6 +160,11 @@ implicit none
 
   call TDyInit(ierr);
   CHKERRA(ierr);
+
+  ! Register some functions.
+  call TDyRegisterPressureFn("p0", PressureFunction, ierr)
+  CHKERRA(ierr);
+
   call TDyCreate(tdy, ierr);
   CHKERRA(ierr);
   call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
@@ -340,7 +345,8 @@ implicit none
   end if
 
   if (bc_type == MPFAO_DIRICHLET_BC .OR. bc_type == MPFAO_SEEPAGE_BC ) then
-     call TDySetBoundaryPressureFn(tdy,PressureFunction,0,ierr);
+!     call TDySetBoundaryPressureFn(tdy,PressureFunction,0,ierr);
+     call TDySelectBoundaryPressureFn(tdy,"p0",ierr);
      CHKERRQ(ierr)
   endif
 
