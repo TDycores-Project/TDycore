@@ -437,6 +437,28 @@ module tdycore
      end subroutine TDyPostSolveSNESSolver
   end interface
 
+  abstract interface
+    subroutine TDyFunction(tdy, x, f, dummy, ierr)
+      use tdycoredef
+      TDy :: tdy
+      PetscReal, intent(in)  :: x(3)
+      PetscReal, intent(out) :: f
+      integer                :: dummy(*)
+      PetscErrorCode         :: ierr
+    end subroutine
+  end interface
+
+  ! We use GetRegFn to retrieve function pointers from the C registry.
+  interface
+    function GetRegFn(name, c_func) bind (c, name="TDyGetFunction") result(ierr)
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), value :: name
+      type(c_funptr) :: c_func
+      integer(c_int) :: ierr
+    end function
+  end interface
+
   contains
 
   subroutine TDyInit(ierr)
@@ -449,5 +471,146 @@ module tdycore
      CHKERRQ(ierr)
      call TDyInitNoArguments(ierr)
   end subroutine TDyInit
+
+  subroutine TDyRegisterFunction(name, func, ierr)
+    use, intrinsic :: iso_c_binding
+    implicit none
+    character(len=*), intent(in)   :: name
+    procedure(TDyFunction)         :: func
+    PetscErrorCode                 :: ierr
+
+    interface
+      function RegisterFn(name, func) bind (c, name="TDyRegisterFunction") result(ierr)
+        use, intrinsic :: iso_c_binding
+        implicit none
+        type(c_ptr), value :: name
+        type(c_funptr), value :: func
+        integer(c_int) :: ierr
+      end function
+    end interface
+
+    ierr = RegisterFn(FtoCString(name), c_funloc(func))
+  end subroutine
+
+  subroutine TDySelectPorosityFunction(tdy, name, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy :: tdy
+    character(len=*), intent(in)   :: name
+    PetscErrorCode                 :: ierr
+
+    type(c_funptr)                  :: c_func
+    procedure(TDyFunction), pointer :: f_func
+
+    ierr = GetRegFn(FtoCString(name), c_func)
+    call c_f_procpointer(c_func, f_func)
+    call TDySetPorosityFunction(tdy, f_func, 0, ierr)
+  end subroutine
+
+  subroutine TDySelectForcingFunction(tdy, name, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy :: tdy
+    character(len=*), intent(in)   :: name
+    PetscErrorCode                 :: ierr
+
+    type(c_funptr)                  :: c_func
+    procedure(TDyFunction), pointer :: f_func
+
+    ierr = GetRegFn(FtoCString(name), c_func)
+    call c_f_procpointer(c_func, f_func)
+    call TDySetForcingFunction(tdy, f_func, 0, ierr)
+  end subroutine
+
+! Uncomment this when we are ready to set energy forcing fns in Fortran.
+!  subroutine TDySelectEnergyForcingFunction(tdy, name, ierr)
+!    use, intrinsic :: iso_c_binding
+!    use tdycoredef
+!    implicit none
+!    TDy :: tdy
+!    character(len=*), intent(in)   :: name
+!    PetscErrorCode                 :: ierr
+!
+!    type(c_funptr)                  :: c_func
+!    procedure(TDyFunction), pointer :: f_func
+!
+!    ierr = GetRegFn(FtoCString(name), c_func)
+!    call c_f_procpointer(c_func, f_func)
+!    call TDySetEnergyForcingFunction(tdy, f_func, 0, ierr)
+!  end subroutine
+
+! Uncomment this when we are ready to set permeability functions programmatically.
+!  subroutine TDySelectPermeabilityFunction(tdy, name, ierr)
+!    use, intrinsic :: iso_c_binding
+!    use tdycoredef
+!    implicit none
+!    TDy :: tdy
+!    character(len=*), intent(in)   :: name
+!    PetscErrorCode                 :: ierr
+!
+!    type(c_funptr)                  :: c_func
+!    procedure(TDyFunction), pointer :: f_func
+!
+!    ierr = GetRegFn(FtoCString(name), c_func)
+!    call c_f_procpointer(c_func, f_func)
+!    call TDySetPermeabilityFunction(tdy, f_func, 0, ierr)
+!  end subroutine
+
+  subroutine TDySelectBoundaryPressureFn(tdy, name, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy :: tdy
+    character(len=*), intent(in)   :: name
+    PetscErrorCode                 :: ierr
+
+    type(c_funptr)                  :: c_func
+    procedure(TDyFunction), pointer :: f_func
+
+    ierr = GetRegFn(FtoCString(name), c_func)
+    call c_f_procpointer(c_func, f_func)
+    call TDySetBoundaryPressureFn(tdy, f_func, 0, ierr)
+  end subroutine
+
+  subroutine TDySelectBoundaryVelocityFn(tdy, name, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy :: tdy
+    character(len=*), intent(in)   :: name
+    PetscErrorCode                 :: ierr
+
+    type(c_funptr)                  :: c_func
+    procedure(TDyFunction), pointer :: f_func
+
+    ierr = GetRegFn(FtoCString(name), c_func)
+    call c_f_procpointer(c_func, f_func)
+    call TDySetBoundaryVelocityFn(tdy, f_func, 0, ierr)
+  end subroutine
+
+  ! Here's a function that converts a Fortran string to a C string and
+  ! stashes it in TDycore's Fortran string registry. This allows us to
+  ! create more expressive (and standard) Fortran interfaces.
+  function FtoCString(f_string) result(c_string)
+     use, intrinsic :: iso_c_binding
+     implicit none
+     character(len=*), target :: f_string
+     character(len=:), pointer :: f_ptr
+     type(c_ptr) :: c_string
+
+     interface
+       function NewCString(f_str_ptr, f_str_len) bind (c, name="NewCString") result(c_string)
+         use, intrinsic :: iso_c_binding
+         type(c_ptr), value :: f_str_ptr
+         integer(c_int), value :: f_str_len
+         type(c_ptr) :: c_string
+       end function NewCString
+     end interface
+
+     f_ptr => f_string
+     c_string = NewCString(c_loc(f_ptr), len(f_string))
+   end function FtoCString
 
 end module tdycore

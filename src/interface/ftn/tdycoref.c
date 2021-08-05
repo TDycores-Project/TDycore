@@ -130,6 +130,7 @@
 #define tdydestroy_                                    tdydestroy
 #endif
 
+// Legacy Fortran function pointer registry
 static struct {
   PetscFortranCallbackId porosity;
   PetscFortranCallbackId permeability;
@@ -141,7 +142,6 @@ static struct {
   PetscFortranCallbackId function_pgiptr;
 #endif
 } _cb;
-
 
 #if defined(__cplusplus)
 extern "C" {

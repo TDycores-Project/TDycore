@@ -74,8 +74,9 @@ PETSC_EXTERN PetscClassId TDY_CLASSID;
 PETSC_EXTERN PetscLogEvent TDy_ComputeSystem;
 
 /* ---------------------------------------------------------------- */
-PETSC_EXTERN PetscErrorCode TDyInit(int argc, char* argv[]);
+PETSC_EXTERN PetscErrorCode TDyInit(int, char*[]);
 PETSC_EXTERN PetscErrorCode TDyInitNoArguments(void);
+PETSC_EXTERN PetscErrorCode TDyOnFinalize(void (*)(void));
 PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 
 PETSC_EXTERN PetscErrorCode TDyCreate(TDy*);
@@ -102,8 +103,12 @@ PETSC_EXTERN PetscErrorCode TDySetSoilDensityFunction(TDy,PetscErrorCode(*)(TDy,
 PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeatFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 
 // Set boundary and source-sink: via PETSc operations
+PetscErrorCode TDyRegisterFunction(const char*, PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*));
 PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetEnergyForcingFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
+PETSC_EXTERN PetscErrorCode TDySelectBoundaryPressureFn(TDy,const char*,void*);
+PETSC_EXTERN PetscErrorCode TDySelectBoundaryTemperatureFn(TDy,const char*,void*);
+PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFn(TDy,const char*,void*);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureFn(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryTemperatureFn(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryVelocityFn(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);

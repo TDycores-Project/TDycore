@@ -24,6 +24,14 @@ khash_t(TDY_PROFILING_MD_MAP)* TDY_PROFILING_METADATA = NULL;
 // Are timers enabled?
 static PetscBool timersEnabled_ = PETSC_FALSE;
 
+// This function is called at finalization time.
+static void ShutDownTimers() {
+  // Dump timing information before we leave.
+  TDyWriteTimingProfile("tdycore_profile.csv");
+
+  TDyDestroyTimers();
+}
+
 PetscErrorCode TDyInitTimers() {
   // Register timers table.
   if (TDY_TIMERS == NULL) {
@@ -45,6 +53,9 @@ PetscErrorCode TDyInitTimers() {
   ierr = TDyAddProfilingStage("TDycore Setup"); CHKERRQ(ierr);
   ierr = TDyAddProfilingStage("TDycore Stepping"); CHKERRQ(ierr);
   ierr = TDyAddProfilingStage("TDycore I/O"); CHKERRQ(ierr);
+
+  // Register our shutdown function.
+  TDyOnFinalize(ShutDownTimers);
 
   return ierr;
 }

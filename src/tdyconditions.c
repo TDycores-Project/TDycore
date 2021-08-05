@@ -1,8 +1,55 @@
 #include <private/tdycoreimpl.h>
+#include <petsc/private/khash/khash.h>
 
 /*
   Boundary and source-sink conditions are set by PETSc operations
 */
+
+// Here's a registry of functions that can be used for boundary conditions and
+// forcing terms.
+typedef PetscErrorCode(*Function)(TDy, PetscReal*, PetscReal*, void*);
+KHASH_MAP_INIT_STR(TDY_FUNC_MAP, Function)
+static khash_t(TDY_FUNC_MAP)* funcs_ = NULL;
+
+// This function is called on finalization to destroy the function registry.
+static void DestroyFunctionRegistry() {
+  kh_destroy(TDY_FUNC_MAP, funcs_);
+}
+
+PetscErrorCode TDyRegisterFunction(const char* name, Function f) {
+  PetscFunctionBegin;
+  if (funcs_ == NULL) {
+    funcs_ = kh_init(TDY_FUNC_MAP);
+    TDyOnFinalize(DestroyFunctionRegistry);
+  }
+
+  int retval;
+  khiter_t iter = kh_put(TDY_FUNC_MAP, funcs_, name, &retval);
+  kh_val(funcs_, iter) = f;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyGetFunction(const char* name, Function* f) {
+  PetscFunctionBegin;
+  int ierr;
+
+  if (funcs_ != NULL) {
+    khiter_t iter = kh_get(TDY_FUNC_MAP, funcs_, name);
+    if (iter != kh_end(funcs_)) { // found it!
+      *f = kh_val(funcs_, iter);
+    } else {
+      ierr = -1;
+      SETERRQ(MPI_COMM_WORLD, ierr, "Function not found!");
+      return ierr;
+    }
+  } else {
+    ierr = -1;
+    SETERRQ(MPI_COMM_WORLD, ierr, "No functions have been registered!");
+    return ierr;
+  }
+  PetscFunctionReturn(0);
+}
+
 
 PetscErrorCode TDySetForcingFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
@@ -15,6 +62,33 @@ PetscErrorCode TDySetEnergyForcingFunction(TDy tdy, PetscErrorCode(*f)(TDy,Petsc
   PetscFunctionBegin;
   if (f) tdy->ops->computeenergyforcing = f;
   if (ctx) tdy->energyforcingctx = ctx;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySelectBoundaryPressureFn(TDy tdy, const char* name, void* ctx) {
+  PetscFunctionBegin;
+  int ierr;
+  Function f;
+  ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
+  ierr = TDySetBoundaryPressureFn(tdy, f, ctx); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySelectBoundaryTemperatureFn(TDy tdy, const char* name, void* ctx) {
+  PetscFunctionBegin;
+  int ierr;
+  Function f;
+  ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
+  ierr = TDySetBoundaryTemperatureFn(tdy, f, ctx); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySelectBoundaryVelocityFn(TDy tdy, const char* name, void* ctx) {
+  PetscFunctionBegin;
+  int ierr;
+  Function f;
+  ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
+  ierr = TDySetBoundaryVelocityFn(tdy, f, ctx); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
