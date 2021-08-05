@@ -39,9 +39,6 @@
 #define tdysetpermeabilityfunction_                    TDYSETPERMEABILITYFUNCTION
 #define tdysetresidualsaturationfunction_              TDYSETRESIDUALSATURATIONFUNCTION
 #define tdysetforcingfunction_                         TDYSETFORCINGFUNCTION
-#define tdyregisterpressurefn_                         TDYREGISTERPRESSUREFN
-#define tdyregistertemperaturefn_                      TDYREGISTERTEMPERATUREFN
-#define tdyregistervelocityfn_                         TDYREGISTERVELOCITYFN
 #define tdyselectboundarypressurefn_                   TDYSELECTBOUNDARYPRESSUREFN
 #define tdyselectboundarytemperaturefn_                TDYSELECTBOUNDARYTEMPERATUREFN
 #define tdyselectboundaryvelocityfn_                   TDYSELECTBOUNDARYVELOCITYFN
@@ -107,9 +104,6 @@
 #define tdysetpermeabilityfunction_                    tdysetpermeabilityfunction
 #define tdysetresidualsaturationfunction_              tdysetresidualsaturationfunction
 #define tdysetforcingfunction_                         tdysetforcingfunction
-#define tdyregisterpressurefn_                         tdyregisterpressurefn
-#define tdyregistertemperaturefn_                      tdyregistertemperaturefn
-#define tdyregistervelocityfn_                         tdyregistervelocityfn
 #define tdyselectboundarypressurefn_                   tdyselectboundarypressurefn
 #define tdyselectboundarytemperaturefn_                tdyselectboundarytemperaturefn
 #define tdyselectboundaryvelocityfn_                   tdyselectboundaryvelocityfn
@@ -155,30 +149,6 @@ static struct {
 #endif
 } _cb;
 
-// This struct and wrapper allow us to call a Fortran function (with an
-// additional ierr argument) from C. This uses our dynamic C function registry
-// instead of _cb above.
-typedef struct {
-  // Fortran function pointer
-  PetscErrorCode (*fort_func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
-  // Fortran function context
-  void* fort_ctx;
-  // Double-pointer (PGI?) compiler hack
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  PetscFortranCallbackId fort_pgiptr;
-#endif
-} TDyFortFunc;
-static TDyFortFunc* createfortfunc(PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
-static PetscErrorCode tdyfunc_wrapper(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
-{
-  TDyFortFunc* ffunc = (TDyFortFunc*)ctx;
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  void* ptr;
-  PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,ffunc->fort_pgiptr,NULL,&ptr);
-#endif
-  PetscObjectUseFortranCallback(tdy,ffunc->fort_func,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,ffunc->fort_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
-}
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -194,16 +164,6 @@ extern "C" {
 #endif
 PETSC_EXTERN void  tdyfinalize_(int *__ierr){
 *__ierr = TDyFinalize();
-}
-#if defined(__cplusplus)
-}
-#endif
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-PETSC_EXTERN void  tdyregisterpressurefn(char* name, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
-*__ierr = TDyRegisterPressureFn((TDy)PetscToPointer((tdy)));
 }
 #if defined(__cplusplus)
 }

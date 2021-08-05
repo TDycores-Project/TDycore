@@ -5,46 +5,27 @@
   Boundary and source-sink conditions are set by PETSc operations
 */
 
-// Here's a registry of pressure, temperature, and velocity functions.
-typedef PetscErrorCode(*BCFunction)(TDy, PetscReal*, PetscReal*, void*);
-KHASH_MAP_INIT_STR(TDY_BCFUNC_MAP, BCFunction)
-static khash_t(TDY_BCFUNC_MAP)* pressure_funcs_ = NULL;
-static khash_t(TDY_BCFUNC_MAP)* temperature_funcs_ = NULL;
-static khash_t(TDY_BCFUNC_MAP)* velocity_funcs_ = NULL;
+// Here's a registry of functions that can be used for boundary conditions and
+// forcing terms.
+typedef PetscErrorCode(*Function)(TDy, PetscReal*, PetscReal*, void*);
+KHASH_MAP_INIT_STR(TDY_FUNC_MAP, Function)
+static khash_t(TDY_FUNC_MAP)* funcs_ = NULL;
 
-PetscErrorCode TDyRegisterPressureFn(const char* name, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*)) {
-  PetscFunctionBegin;
-  if (pressure_funcs_ == NULL) {
-    pressure_funcs_ = kh_init(TDY_BCFUNC_MAP);
-  }
-
-  int retval;
-  khiter_t iter = kh_put(TDY_BCFUNC_MAP, pressure_funcs_, name, &retval);
-  kh_val(pressure_funcs_, iter) = f;
-  PetscFunctionReturn(0);
+// This function is called on finalization to destroy the function registry.
+static void DestroyFunctionRegistry() {
+  kh_destroy(TDY_FUNC_MAP, funcs_);
 }
 
-PetscErrorCode TDyRegisterTemperatureFn(const char* name, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*)) {
+PetscErrorCode TDyRegisterFunction(const char* name, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*)) {
   PetscFunctionBegin;
-  if (temperature_funcs_ == NULL) {
-    temperature_funcs_ = kh_init(TDY_BCFUNC_MAP);
+  if (funcs_ == NULL) {
+    funcs_ = kh_init(TDY_FUNC_MAP);
+    TDyOnFinalize(DestroyFunctionRegistry);
   }
 
   int retval;
-  khiter_t iter = kh_put(TDY_BCFUNC_MAP, temperature_funcs_, name, &retval);
-  kh_val(temperature_funcs_, iter) = f;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyRegisterVelocityFn(const char* name, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*)) {
-  PetscFunctionBegin;
-  if (velocity_funcs_ == NULL) {
-    velocity_funcs_ = kh_init(TDY_BCFUNC_MAP);
-  }
-
-  int retval;
-  khiter_t iter = kh_put(TDY_BCFUNC_MAP, velocity_funcs_, name, &retval);
-  kh_val(velocity_funcs_, iter) = f;
+  khiter_t iter = kh_put(TDY_FUNC_MAP, funcs_, name, &retval);
+  kh_val(funcs_, iter) = f;
   PetscFunctionReturn(0);
 }
 
@@ -66,9 +47,9 @@ PetscErrorCode TDySelectBoundaryPressureFn(TDy tdy, const char* name, void* ctx)
   PetscFunctionBegin;
   int ierr;
 
-  khiter_t iter = kh_get(TDY_BCFUNC_MAP, pressure_funcs_, name);
-  if (iter != kh_end(pressure_funcs_)) { // found it!
-    BCFunction f = kh_val(pressure_funcs_, iter);
+  khiter_t iter = kh_get(TDY_FUNC_MAP, funcs_, name);
+  if (iter != kh_end(funcs_)) { // found it!
+    Function f = kh_val(funcs_, iter);
     ierr = TDySetBoundaryPressureFn(tdy, f, ctx); CHKERRQ(ierr);
   } else {
     printf("Uh oh!\n"); // TODO: handle error condition
@@ -80,9 +61,9 @@ PetscErrorCode TDySelectBoundaryTemperatureFn(TDy tdy, const char* name, void* c
   PetscFunctionBegin;
   int ierr;
 
-  khiter_t iter = kh_get(TDY_BCFUNC_MAP, temperature_funcs_, name);
-  if (iter != kh_end(temperature_funcs_)) { // found it!
-    BCFunction f = kh_val(temperature_funcs_, iter);
+  khiter_t iter = kh_get(TDY_FUNC_MAP, funcs_, name);
+  if (iter != kh_end(funcs_)) { // found it!
+    Function f = kh_val(funcs_, iter);
     ierr = TDySetBoundaryTemperatureFn(tdy, f, ctx); CHKERRQ(ierr);
   } else {
     printf("Uh oh!\n"); // TODO: handle error condition
@@ -94,9 +75,9 @@ PetscErrorCode TDySelectBoundaryVelocityFn(TDy tdy, const char* name, void* ctx)
   PetscFunctionBegin;
   int ierr;
 
-  khiter_t iter = kh_get(TDY_BCFUNC_MAP, velocity_funcs_, name);
-  if (iter != kh_end(velocity_funcs_)) { // found it!
-    BCFunction f = kh_val(velocity_funcs_, iter);
+  khiter_t iter = kh_get(TDY_FUNC_MAP, funcs_, name);
+  if (iter != kh_end(funcs_)) { // found it!
+    Function f = kh_val(funcs_, iter);
     ierr = TDySetBoundaryVelocityFn(tdy, f, ctx); CHKERRQ(ierr);
   } else {
     printf("Uh oh!\n"); // TODO: handle error condition

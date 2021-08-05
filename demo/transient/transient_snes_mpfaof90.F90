@@ -162,7 +162,7 @@ implicit none
   CHKERRA(ierr);
 
   ! Register some functions.
-  call TDyRegisterPressureFn("p0", PressureFunction, ierr)
+  call TDyRegisterFunction("p0", PressureFunction, ierr)
   CHKERRA(ierr);
 
   call TDyCreate(tdy, ierr);
