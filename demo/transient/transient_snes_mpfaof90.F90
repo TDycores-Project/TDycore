@@ -9,8 +9,8 @@ contains
    subroutine PorosityFunction(tdy,x,theta,dummy,ierr)
      implicit none
      TDy                    :: tdy
-     PetscReal, intent(in) :: x
-     PetscReal, intent(out):: theta
+     PetscReal, intent(in)  :: x(3)
+     PetscReal, intent(out) :: theta
      integer                :: dummy(*)
      PetscErrorCode :: ierr
 
@@ -49,8 +49,8 @@ contains
   subroutine PorosityFunctionPFLOTRAN(tdy,x,theta,dummy,ierr)
     implicit none
     TDy                    :: tdy
-    PetscReal, intent(in) :: x
-    PetscReal, intent(out):: theta
+    PetscReal, intent(in)  :: x(3)
+    PetscReal, intent(out) :: theta
     integer                :: dummy(*)
     PetscErrorCode :: ierr
 
@@ -100,8 +100,8 @@ contains
   subroutine PressureFunction(tdy,x,pressure,dummy,ierr)
     implicit none
     TDy                    :: tdy
-    PetscReal, intent(in) :: x(3)
-    PetscReal, intent(out):: pressure
+    PetscReal, intent(in)  :: x(3)
+    PetscReal, intent(out) :: pressure
     integer                :: dummy(*)
     PetscErrorCode :: ierr
 
@@ -163,6 +163,8 @@ implicit none
 
   ! Register some functions.
   call TDyRegisterFunction("p0", PressureFunction, ierr)
+  call TDyRegisterFunction("porosity", PorosityFunction, ierr)
+  call TDyRegisterFunction("porosity_pflotran", PorosityFunctionPFLOTRAN, ierr)
   CHKERRA(ierr);
 
   call TDyCreate(tdy, ierr);
@@ -310,7 +312,8 @@ implicit none
   CHKERRA(ierr);
 
   if (pflotran_consistent) then
-     call TDySetPorosityFunction(tdy,PorosityFunctionPFLOTRAN,0,ierr);
+!     call TDySetPorosityFunction(tdy,PorosityFunctionPFLOTRAN,0,ierr);
+     call TDySelectPorosityFunction(tdy,"porosity_pflotran",ierr);
      CHKERRA(ierr);
 
      do c = 1,ncell
@@ -333,7 +336,8 @@ implicit none
 
   else
 
-     call TDySetPorosityFunction(tdy,PorosityFunction,0,ierr);
+!     call TDySetPorosityFunction(tdy,PorosityFunction,0,ierr);
+     call TDySelectPorosityFunction(tdy,"porosity",ierr);
      CHKERRA(ierr);
 
      call TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,blockPerm,ierr);

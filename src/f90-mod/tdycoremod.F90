@@ -448,6 +448,17 @@ module tdycore
     end subroutine
   end interface
 
+  ! We use GetRegFn to retrieve function pointers from the C registry.
+  interface
+    function GetRegFn(name, c_func) bind (c, name="TDyGetFunction") result(ierr)
+      use, intrinsic :: iso_c_binding
+      implicit none
+      type(c_ptr), value :: name
+      type(c_funptr) :: c_func
+      integer(c_int) :: ierr
+    end function
+  end interface
+
   contains
 
   subroutine TDyInit(ierr)
@@ -481,6 +492,72 @@ module tdycore
     ierr = RegisterFn(FtoCString(name), c_funloc(func))
   end subroutine
 
+  subroutine TDySelectPorosityFunction(tdy, name, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy :: tdy
+    character(len=*), intent(in)   :: name
+    PetscErrorCode                 :: ierr
+
+    type(c_funptr)                  :: c_func
+    procedure(TDyFunction), pointer :: f_func
+
+    ierr = GetRegFn(FtoCString(name), c_func)
+    call c_f_procpointer(c_func, f_func)
+    call TDySetPorosityFunction(tdy, f_func, 0, ierr)
+  end subroutine
+
+  subroutine TDySelectForcingFunction(tdy, name, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy :: tdy
+    character(len=*), intent(in)   :: name
+    PetscErrorCode                 :: ierr
+
+    type(c_funptr)                  :: c_func
+    procedure(TDyFunction), pointer :: f_func
+
+    ierr = GetRegFn(FtoCString(name), c_func)
+    call c_f_procpointer(c_func, f_func)
+    call TDySetForcingFunction(tdy, f_func, 0, ierr)
+  end subroutine
+
+! Uncomment this when we are ready to set energy forcing fns in Fortran.
+!  subroutine TDySelectEnergyForcingFunction(tdy, name, ierr)
+!    use, intrinsic :: iso_c_binding
+!    use tdycoredef
+!    implicit none
+!    TDy :: tdy
+!    character(len=*), intent(in)   :: name
+!    PetscErrorCode                 :: ierr
+!
+!    type(c_funptr)                  :: c_func
+!    procedure(TDyFunction), pointer :: f_func
+!
+!    ierr = GetRegFn(FtoCString(name), c_func)
+!    call c_f_procpointer(c_func, f_func)
+!    call TDySetEnergyForcingFunction(tdy, f_func, 0, ierr)
+!  end subroutine
+
+! Uncomment this when we are ready to set permeability functions programmatically.
+!  subroutine TDySelectPermeabilityFunction(tdy, name, ierr)
+!    use, intrinsic :: iso_c_binding
+!    use tdycoredef
+!    implicit none
+!    TDy :: tdy
+!    character(len=*), intent(in)   :: name
+!    PetscErrorCode                 :: ierr
+!
+!    type(c_funptr)                  :: c_func
+!    procedure(TDyFunction), pointer :: f_func
+!
+!    ierr = GetRegFn(FtoCString(name), c_func)
+!    call c_f_procpointer(c_func, f_func)
+!    call TDySetPermeabilityFunction(tdy, f_func, 0, ierr)
+!  end subroutine
+
   subroutine TDySelectBoundaryPressureFn(tdy, name, ierr)
     use, intrinsic :: iso_c_binding
     use tdycoredef
@@ -492,17 +569,7 @@ module tdycore
     type(c_funptr)                  :: c_func
     procedure(TDyFunction), pointer :: f_func
 
-    interface
-      function GetFn(name, c_func) bind (c, name="TDyGetFunction") result(ierr)
-        use, intrinsic :: iso_c_binding
-        implicit none
-        type(c_ptr), value :: name
-        type(c_funptr) :: c_func
-        integer(c_int) :: ierr
-      end function
-    end interface
-
-    ierr = GetFn(FtoCString(name), c_func)
+    ierr = GetRegFn(FtoCString(name), c_func)
     call c_f_procpointer(c_func, f_func)
     call TDySetBoundaryPressureFn(tdy, f_func, 0, ierr)
   end subroutine
@@ -518,17 +585,7 @@ module tdycore
     type(c_funptr)                  :: c_func
     procedure(TDyFunction), pointer :: f_func
 
-    interface
-      function GetFn(name, c_func) bind (c, name="TDyGetFunction") result(ierr)
-        use, intrinsic :: iso_c_binding
-        implicit none
-        type(c_ptr), value :: name
-        type(c_funptr) :: c_func
-        integer(c_int) :: ierr
-      end function
-    end interface
-
-    ierr = GetFn(FtoCString(name), c_func)
+    ierr = GetRegFn(FtoCString(name), c_func)
     call c_f_procpointer(c_func, f_func)
     call TDySetBoundaryVelocityFn(tdy, f_func, 0, ierr)
   end subroutine
