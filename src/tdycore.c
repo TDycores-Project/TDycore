@@ -165,9 +165,9 @@ PetscErrorCode TDyOnFinalize(void (*shutdown_func)(void)) {
 PetscErrorCode TDyFinalize() {
   PetscFunctionBegin;
 
-  // Call shutdown functions and destroy the list.
+  // Call shutdown functions in reverse order, and destroy the list.
   if (shutdown_funcs_ != NULL) {
-    for (int i = 0; i < num_shutdown_funcs_; ++i) {
+    for (int i = num_shutdown_funcs_-1; i >= 0; --i) {
       shutdown_funcs_[i]();
     }
     free(shutdown_funcs_);
