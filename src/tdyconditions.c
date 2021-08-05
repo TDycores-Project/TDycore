@@ -16,7 +16,7 @@ static void DestroyFunctionRegistry() {
   kh_destroy(TDY_FUNC_MAP, funcs_);
 }
 
-PetscErrorCode TDyRegisterFunction(const char* name, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*)) {
+PetscErrorCode TDyRegisterFunction(const char* name, Function f) {
   PetscFunctionBegin;
   if (funcs_ == NULL) {
     funcs_ = kh_init(TDY_FUNC_MAP);
@@ -28,6 +28,28 @@ PetscErrorCode TDyRegisterFunction(const char* name, PetscErrorCode(*f)(TDy,Pets
   kh_val(funcs_, iter) = f;
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode TDyGetFunction(const char* name, Function* f) {
+  PetscFunctionBegin;
+  int ierr;
+
+  if (funcs_ != NULL) {
+    khiter_t iter = kh_get(TDY_FUNC_MAP, funcs_, name);
+    if (iter != kh_end(funcs_)) { // found it!
+      *f = kh_val(funcs_, iter);
+    } else {
+      ierr = -1;
+      SETERRQ(MPI_COMM_WORLD, ierr, "Function not found!");
+      return ierr;
+    }
+  } else {
+    ierr = -1;
+    SETERRQ(MPI_COMM_WORLD, ierr, "No functions have been registered!");
+    return ierr;
+  }
+  PetscFunctionReturn(0);
+}
+
 
 PetscErrorCode TDySetForcingFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
   PetscFunctionBegin;
@@ -46,42 +68,27 @@ PetscErrorCode TDySetEnergyForcingFunction(TDy tdy, PetscErrorCode(*f)(TDy,Petsc
 PetscErrorCode TDySelectBoundaryPressureFn(TDy tdy, const char* name, void* ctx) {
   PetscFunctionBegin;
   int ierr;
-
-  khiter_t iter = kh_get(TDY_FUNC_MAP, funcs_, name);
-  if (iter != kh_end(funcs_)) { // found it!
-    Function f = kh_val(funcs_, iter);
-    ierr = TDySetBoundaryPressureFn(tdy, f, ctx); CHKERRQ(ierr);
-  } else {
-    printf("Uh oh!\n"); // TODO: handle error condition
-  }
+  Function f;
+  ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
+  ierr = TDySetBoundaryPressureFn(tdy, f, ctx); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDySelectBoundaryTemperatureFn(TDy tdy, const char* name, void* ctx) {
   PetscFunctionBegin;
   int ierr;
-
-  khiter_t iter = kh_get(TDY_FUNC_MAP, funcs_, name);
-  if (iter != kh_end(funcs_)) { // found it!
-    Function f = kh_val(funcs_, iter);
-    ierr = TDySetBoundaryTemperatureFn(tdy, f, ctx); CHKERRQ(ierr);
-  } else {
-    printf("Uh oh!\n"); // TODO: handle error condition
-  }
+  Function f;
+  ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
+  ierr = TDySetBoundaryTemperatureFn(tdy, f, ctx); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDySelectBoundaryVelocityFn(TDy tdy, const char* name, void* ctx) {
   PetscFunctionBegin;
   int ierr;
-
-  khiter_t iter = kh_get(TDY_FUNC_MAP, funcs_, name);
-  if (iter != kh_end(funcs_)) { // found it!
-    Function f = kh_val(funcs_, iter);
-    ierr = TDySetBoundaryVelocityFn(tdy, f, ctx); CHKERRQ(ierr);
-  } else {
-    printf("Uh oh!\n"); // TODO: handle error condition
-  }
+  Function f;
+  ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
+  ierr = TDySetBoundaryVelocityFn(tdy, f, ctx); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

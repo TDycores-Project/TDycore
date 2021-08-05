@@ -504,7 +504,33 @@ module tdycore
 
     ierr = GetFn(FtoCString(name), c_func)
     call c_f_procpointer(c_func, f_func)
-    call TDySetBoundaryPressureFn(tdy, f_func, c_null_ptr)
+    call TDySetBoundaryPressureFn(tdy, f_func, 0, ierr)
+  end subroutine
+
+  subroutine TDySelectBoundaryVelocityFn(tdy, name, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy :: tdy
+    character(len=*), intent(in)   :: name
+    PetscErrorCode                 :: ierr
+
+    type(c_funptr)                  :: c_func
+    procedure(TDyFunction), pointer :: f_func
+
+    interface
+      function GetFn(name, c_func) bind (c, name="TDyGetFunction") result(ierr)
+        use, intrinsic :: iso_c_binding
+        implicit none
+        type(c_ptr), value :: name
+        type(c_funptr) :: c_func
+        integer(c_int) :: ierr
+      end function
+    end interface
+
+    ierr = GetFn(FtoCString(name), c_func)
+    call c_f_procpointer(c_func, f_func)
+    call TDySetBoundaryVelocityFn(tdy, f_func, 0, ierr)
   end subroutine
 
   ! Here's a function that converts a Fortran string to a C string and
