@@ -201,6 +201,20 @@ PetscErrorCode TDyGetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt *ni, 
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+/// Compute value and derivate of relative permeability using Irmay function
+///
+/// @param [in] m            parameter for Irmay function
+/// @param [in] Se           effective saturation
+/// @param [inout] *Kr       value of relative permeability
+/// @param [inout] *dKr_dSe  derivate of relative permeability w.r.t. Se
+///
+/// kr = Se^m  if Se < 1.0
+///    = 1     otherwise
+///
+/// dkr/dSe = m * Se^{m-1}  if Se < 1.0
+///         = 0             otherwise
+///
 void RelativePermeability_Irmay(PetscReal m,PetscReal Se,PetscReal *Kr,
                                 PetscReal *dKr_dSe) {
   *Kr = 1.0;
@@ -212,6 +226,21 @@ void RelativePermeability_Irmay(PetscReal m,PetscReal Se,PetscReal *Kr,
   if(dKr_dSe) *dKr_dSe = PetscPowReal(Se,m-1)*m;
 }
 
+/* -------------------------------------------------------------------------- */
+/// Compute value and derivate of relative permeability using Mualem function
+///
+/// @param [in] m            parameter for Mualem function
+/// @param [in] Se           effective saturation
+/// @param [inout] *Kr       value of relative permeability
+/// @param [inout] *dKr_dSe  derivate of relative permeability w.r.t. Se
+///
+/// kr = Se^{0.5} * [ 1 - (1 - Se^{1/m})^m ]^2     if P < P_ref or Se < 1.0
+///    = 1                                         otherwise
+///
+/// dkr/dSe = 0.5 Se^{-0.5} [ 1 - (1 - Se^{1/m})^m ] +
+///           Se^{0.5}      2 * Se^{1/m - 1/} * (1 - Se^{1/m})^{m - 1} * (1 - (1 - Se^{1/m})^m)  if Se < 1.0
+///         = 0                                                                                  otherwise
+///
 void RelativePermeability_Mualem(PetscReal m,PetscReal Se,PetscReal *Kr,
 				 PetscReal *dKr_dSe) {
   PetscReal Se_one_over_m,tmp;
@@ -231,6 +260,31 @@ void RelativePermeability_Mualem(PetscReal m,PetscReal Se,PetscReal *Kr,
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/// Compute value and derivates of saturation using Gardner function
+///
+/// @param [in] n            parameter for Gardner function
+/// @param [in] m            parameter for Gardner function
+/// @param [in] alpha        parameter for Gardner function
+/// @param [in] Sr           residual saturation
+/// @param [in] Pc           capillary pressure
+/// @param [inout] S         value of saturation
+/// @param [inout] *dS_dP    first derivate of saturation w.r.t. pressure
+/// @param [inout] *d2S_dP2  second derivate of saturation w.r.t. pressure
+///
+/// Se = exp(-alpha/m*Pc) if Pc < 0.0
+///    = 1                otherwise
+///
+/// S = (1 - Sr)*Se + Sr
+///
+/// dSe/dPc = -alpha/m*exp(-alpha/m*Pc-1) if Pc < 0.0
+///         = 0                            otherwise
+///
+/// dS/dP  = dS/dPc * dPc/dP
+///        = dSe/dPc * dS/dSe * dPc/dP
+///
+/// and dS/dSe = 1 - Sr; dPc/dP = -1
+///
 void PressureSaturation_Gardner(PetscReal n,PetscReal m,PetscReal alpha, PetscReal Sr,
                                 PetscReal Pc,PetscReal *S,PetscReal *dS_dP,PetscReal *d2S_dP2) {
   if(Pc < 0) { /* if Pc < 0 then P > Pref and Se = 1 */
@@ -253,6 +307,35 @@ void PressureSaturation_Gardner(PetscReal n,PetscReal m,PetscReal alpha, PetscRe
   }
 }
 
+/* -------------------------------------------------------------------------- */
+/// Compute value and derivates of saturation using Van Genuchten function
+///
+/// @param [in] m            parameter for van Genuchten function
+/// @param [in] alpha        parameter for van Genuchten function
+/// @param [in] Sr           residual saturation
+/// @param [in] Pc           capillary pressure
+/// @param [inout] S         value of saturation
+/// @param [inout] *dS_dP    first derivate of saturation w.r.t. pressure
+/// @param [inout] *d2S_dP2  second derivate of saturation w.r.t. pressure
+///
+///  Se = [1 + (a * Pc)^(1/(1-m))]^{-m}   if  Pc < 0
+///     = 1                               otherwise
+///
+///  Let n = 1/(1-m)
+///
+/// dSe/dPc = - [m * n * a * (a*Pc)^n] / denom
+/// denom   = (a*Pc) * [ (a*Pc)^n + 1]^{m+1}
+///
+/// S = (1 - Sr)*Se + Sr
+///
+/// dSe/dPc = -alpha/m*exp(-alpha/m*Pc-1) if Pc < 0.0
+///         = 0                            otherwise
+///
+/// dS/dP  = dS/dPc * dPc/dP
+///        = dSe/dPc * dS/dSe * dPc/dP
+///
+/// and dS/dSe = 1 - Sr; dPc/dP = -1
+///
 void PressureSaturation_VanGenuchten(PetscReal m,PetscReal alpha,  PetscReal Sr,
 				     PetscReal Pc,PetscReal *S,PetscReal *dS_dP,PetscReal *d2S_dP2) {
   PetscReal pc_alpha,pc_alpha_n,one_plus_pc_alpha_n,n;

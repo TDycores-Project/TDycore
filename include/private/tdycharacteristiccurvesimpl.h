@@ -18,7 +18,7 @@ typedef struct {
   PetscInt *SatFuncType;         /* type of saturation function */
   PetscInt *RelPermFuncType;     /* type of relative permeability */
   PetscReal *sr;                 /* residual saturation (min) [1] */
-  PetscReal *m;                  /* parameter used in saturation and relative permeability function [-]*/
+  PetscReal *m;                  /* parameter used in saturation (Gardner, VanGenuchten) and relative permeability (Irmay, Mualem) function [-] */
   PetscReal *n;                  /* parameter used in Gardner saturation function [-] */
   PetscReal *alpha;              /* parameter used in VanGenuchten saturation function [-] */
   PetscReal *S,                  /* saturation for each cell */
