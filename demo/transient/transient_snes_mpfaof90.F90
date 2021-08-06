@@ -322,10 +322,10 @@ implicit none
         call MaterialPropM_PFLOTRAN(m(c))
      enddo
 
-     call TDySetCharacteristicCurveAlphaValuesLocal(tdy,ncell,index,alpha,ierr)
+     call TDySetCharacteristicCurveVanGenuchtenValuesLocal(tdy,ncell,index,m,alpha,ierr)
      CHKERRA(ierr);
 
-     call TDySetCharacteristicCurveMValuesLocal(tdy,ncell,index,m,ierr)
+     call TDySetCharacteristicCurveMualemValuesLocal(tdy,ncell,index,m,ierr)
      CHKERRA(ierr);
 
      call TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,blockPerm,ierr);

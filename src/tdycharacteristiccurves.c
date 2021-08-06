@@ -69,7 +69,7 @@ PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const P
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetCharacteristicCurveMValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[ni], const PetscScalar y[ni]){
+PetscErrorCode TDySetCharacteristicCurveMualemValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[ni], const PetscScalar y[ni]){
 
   PetscInt i;
 
@@ -100,7 +100,7 @@ PetscErrorCode TDySetCharacteristicCurveNValuesLocal(TDy tdy, PetscInt ni, const
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[]){
+PetscErrorCode TDySetCharacteristicCurveVanGenuchtenValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[], const PetscScalar z[]){
 
   PetscInt i;
 
@@ -109,7 +109,8 @@ PetscErrorCode TDySetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt ni, c
 
   CharacteristicCurve *cc = tdy->cc;
   for(i=0; i<ni; i++) {
-    cc->vg_alpha[ix[i]] = y[i];
+    cc->vg_m[ix[i]] = y[i];
+    cc->vg_alpha[ix[i]] = z[i];
   }
 
   PetscFunctionReturn(0);

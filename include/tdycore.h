@@ -126,9 +126,9 @@ PETSC_EXTERN PetscErrorCode TDySetSoilDensity         (TDy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetPorosityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetResidualSaturationValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveMValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
+PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveMualemValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveNValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveAlphaValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
+PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveVanGenuchtenValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[],const PetscScalar[]);
 
 // Set condition: for each cell
 PETSC_EXTERN PetscErrorCode TDySetSourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);

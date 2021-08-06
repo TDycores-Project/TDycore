@@ -49,18 +49,18 @@
 #define tdysetresidualsaturationvalueslocal11_         TDYSETRESIDUALSATURATIONVALUESLOCAL11
 #define tdysetresidualsaturationvalueslocal0_          TDYSETRESIDUALSATURATIONVALUESLOCAL0
 #define tdysetresidualsaturationvalueslocal11_         TDYSETRESIDUALSATURATIONVALUESLOCAL11
-#define tdysetcharacteristiccurvemvalueslocal0_        TDYSETCHARACTERISTICCURVEMVALUESLOCAL0
-#define tdysetcharacteristiccurvemvalueslocal11_       TDYSETCHARACTERISTICCURVEMVALUESLOCAL11
+#define tdysetcharacteristiccurvemualemvaluesLocal0_        TDYSETCCHARACTERISTICCURVENMUALEMALUESLOCAL0
+#define tdysetcharacteristiccurvemualemvaluesLocal11_       TDYSETCCHARACTERISTICCURVENMUALEMALUESLOCAL11
 #define tdysetcharacteristiccurvenvalueslocal0_        TDYSETCHARACTERISTICCURVENVALUESLOCAL0
 #define tdysetcharacteristiccurvenvalueslocal11_       TDYSETCHARACTERISTICCURVENVALUESLOCAL11
-#define tdysetcharacteristiccurvealphavalueslocal0_    TDYSETCHARACTERISTICCURVEALPHAVALUESLOCAL0
-#define tdysetcharacteristiccurvealphavalueslocal11_   TDYSETCHARACTERISTICCURVEALPHAVALUESLOCAL11
+#define tdysetcharacteristiccurvevangenuchtenvalueslocal0_    TDYSETCHARACTERISTICCURVEVANGENUCHTENVALUESLOCAL0
+#define tdysetcharacteristiccurvevangenuchtenvalueslocal11_   TDYSETCHARACTERISTICCURVEVANGENUCHTENVALUESLOCAL11
 #define tdysetsourcesinkvalueslocal0_                  TDYSETSOURCESINKVALUESLOCAL0
 #define tdysetsourcesinkvalueslocal11_                 TDYSETSOURCESINKVALUESLOCAL11
 #define tdygetsatruationvalueslocal_                   TDYGETSATURATIONVALUESLOCAL
 #define tdygetliquidmassvalueslocal_                   TDYGETLIQUIDMASSVALUESLOCAL
 #define tdygetcharacteristiccurvemvalueslocal_         TDYGETCHARACTERISTICCURVEMVALUESLOCAL
-#define tdygetcharacteristiccurvealphavalueslocal_     TDYGETCHARACTERISTICCURVEALPHAVALUESLOCAL
+#define tdysetcharacteristiccurvevangenuchtenvalueslocal_     TDYGETCHARACTERISTICCURVEALPHAVALUESLOCAL
 #define tdygetporosityalueslocal_                      TDYGETPOROSITYVALUESLOCAL
 #define tdygetblockpermeabilityueslocal_               TDYGETBLOCKPERMEABILITYVALUESLOCAL
 #define tdygetnumcellslocal_                           TDYGETNUMCELLSLOCAL
@@ -109,18 +109,18 @@
 #define tdysetblockpermeabilityvalueslocal11_          tdysetblockpermeabilityvalueslocal11
 #define tdysetresidualsaturationvalueslocal0_          tdysetresidualsaturationvalueslocal0
 #define tdysetresidualsaturationvalueslocal11_         tdysetresidualsaturationvalueslocal11
-#define tdysetcharacteristiccurvemvalueslocal0_        tdysetcharacteristiccurvemvalueslocal0
-#define tdysetcharacteristiccurvemvalueslocal11_       tdysetcharacteristiccurvemvalueslocal11
+#define tdysetcharacteristiccurvemualemvalueslocal0_        tdysetcharacteristiccurvemualemvalueslocal0
+#define tdysetcharacteristiccurvemualemvalueslocal11_       tdysetcharacteristiccurvemualemvalueslocal11
 #define tdysetcharacteristiccurvenvalueslocal0_        tdysetcharacteristiccurvenvalueslocal0
 #define tdysetcharacteristiccurvenvalueslocal11_       tdysetcharacteristiccurvenvalueslocal11
-#define tdysetcharacteristiccurvealphavalueslocal0_    tdysetcharacteristiccurvealphavalueslocal0
-#define tdysetcharacteristiccurvealphavalueslocal11_   tdysetcharacteristiccurvealphavalueslocal11
+#define tdysetcharacteristiccurvevangenuchtenvalueslocal0_    tdysetcharacteristiccurvevangenuchtenvalueslocal0
+#define tdysetcharacteristiccurvevangenuchtenvalueslocal11_   tdysetcharacteristiccurvevangenuchtenvalueslocal11
 #define tdysetsourcesinkvalueslocal0_                  tdysetsourcesinkvalueslocal0
 #define tdysetsourcesinkvalueslocal11_                 tdysetsourcesinkvalueslocal11
 #define tdygetsatruationvalueslocal_                   tdygetsaturationvalueslocal
 #define tdygetliquidmassvalueslocal_                   tdygetliquidmassvalueslocal
 #define tdygetcharacteristiccurvemvalueslocal_         tdygetcharacteristiccurvemvalueslocal
-#define tdygetcharacteristiccurvealphavalueslocal_     tdygetcharacteristiccurvealphavalueslocal
+#define tdysetcharacteristiccurvevangenuchtenvalueslocal_     tdysetcharacteristiccurvevangenuchtenvalueslocal
 #define tdygetporosityvalueslocal_                     tdygetporosityvalueslocal
 #define tdygetblockpermeabilityueslocal_               tdygetblockpermeabilityvalueslocal
 #define tdygetnumcellslocal_                           tdygetnumcellslocal
@@ -626,19 +626,19 @@ PETSC_EXTERN void tdysetresidualsaturationvalueslocal11_(TDy *tdy,PetscInt *ni, 
   tdysetresidualsaturationvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void tdysetcharacteristiccurvemvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvemualemvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
-  *ierr = TDySetCharacteristicCurveMValuesLocal(*tdy,*ni,ix,y);
+  *ierr = TDySetCharacteristicCurveMualemValuesLocal(*tdy,*ni,ix,y);
 }
 
-PETSC_EXTERN void tdysetcharacteristiccurvemvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvemualemvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
-  tdysetcharacteristiccurvemvalueslocal_(tdy,ni,ix,y,ierr);
+  tdysetcharacteristiccurvemualemvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void tdysetcharacteristiccurvemvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvemualemvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
-  tdysetcharacteristiccurvemvalueslocal_(tdy,ni,ix,y,ierr);
+  tdysetcharacteristiccurvemualemvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
 PETSC_EXTERN void tdysetcharacteristiccurvenvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
@@ -656,19 +656,19 @@ PETSC_EXTERN void tdysetcharacteristiccurvenvalueslocal11_(TDy *tdy,PetscInt *ni
   tdysetcharacteristiccurvenvalueslocal_(tdy,ni,ix,y,ierr);
 }
 
-PETSC_EXTERN void tdysetcharacteristiccurvealphavalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvevangenuchtenvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], PetscScalar z[], int *ierr )
 {
-  *ierr = TDySetCharacteristicCurveAlphaValuesLocal(*tdy,*ni,ix,y);
+  *ierr = TDySetCharacteristicCurveVanGenuchtenValuesLocal(*tdy,*ni,ix,y,z);
 }
 
-PETSC_EXTERN void tdysetcharacteristiccurvealphavalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvevangenuchtenvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], PetscScalar z[], int *ierr )
 {
-  tdysetcharacteristiccurvealphavalueslocal_(tdy,ni,ix,y,ierr);
+  tdysetcharacteristiccurvevangenuchtenvalueslocal_(tdy,ni,ix,y,z,ierr);
 }
 
-PETSC_EXTERN void tdysetcharacteristiccurvealphavalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdysetcharacteristiccurvevangenuchtenvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], PetscScalar z[], int *ierr )
 {
-  tdysetcharacteristiccurvealphavalueslocal_(tdy,ni,ix,y,ierr);
+  tdysetcharacteristiccurvevangenuchtenvalueslocal_(tdy,ni,ix,y,z,ierr);
 }
 
 PETSC_EXTERN void tdysetsourcesinkvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
