@@ -112,7 +112,7 @@ module tdycore
        PetscScalar d (*) ! PetscScalar
        integer z
      end subroutine TDySetBlockPermeabilityValuesLocal0
-     subroutine TDySetBlockPermeabilityValuesLocal11(a,b,c,d,e,z)
+     subroutine TDySetBlockPermeabilityValuesLocal11(a,b,c,d,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
@@ -131,7 +131,7 @@ module tdycore
        PetscScalar d (*) ! PetscScalar
        integer z
      end subroutine TDySetPorosityValuesLocal0
-     subroutine TDySetPorosityValuesLocal11(a,b,c,d,e,z)
+     subroutine TDySetPorosityValuesLocal11(a,b,c,d,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
@@ -150,7 +150,7 @@ module tdycore
        PetscScalar d (*) ! PetscScalar
        integer z
      end subroutine TDySetResidualSaturationValuesLocal0
-     subroutine TDySetResidualSaturationValuesLocal11(a,b,c,d,e,z)
+     subroutine TDySetResidualSaturationValuesLocal11(a,b,c,d,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
@@ -169,7 +169,7 @@ module tdycore
        PetscScalar d (*) ! PetscScalar
        integer z
      end subroutine TDySetCharacteristicCurveMualemValuesLocal0
-     subroutine TDySetCharacteristicCurveMualemValuesLocal11(a,b,c,d,e,z)
+     subroutine TDySetCharacteristicCurveMualemValuesLocal11(a,b,c,d,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
@@ -188,7 +188,7 @@ module tdycore
        PetscScalar d (*) ! PetscScalar
        integer z
      end subroutine TDySetCharacteristicCurveNValuesLocal0
-     subroutine TDySetCharacteristicCurveNValuesLocal11(a,b,c,d,e,z)
+     subroutine TDySetCharacteristicCurveNValuesLocal11(a,b,c,d,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
@@ -228,7 +228,7 @@ module tdycore
        PetscScalar d (*) ! PetscScalar
        integer z
      end subroutine TDySetSourceSinkValuesLocal0
-     subroutine TDySetSourceSinkValuesLocal11(a,b,c,d,e,z)
+     subroutine TDySetSourceSinkValuesLocal11(a,b,c,d,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
