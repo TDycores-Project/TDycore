@@ -29,12 +29,18 @@ typedef struct {
             *d2S_dP2,            /* second derivative of saturation wrt pressure for each cell [Pa^-2] */
             *dS_dT;              /* derivate of saturation wrt to temperature for each cell [K^-1] */
   PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
+
+  PetscReal *mualem_poly_low;    /* value of effecitive saturation above which cubic interpolation is used */
+  PetscReal **mualem_poly_coeffs;/* coefficients for cubic polynomial */
+
 } CharacteristicCurve;
 
 PETSC_INTERN PetscErrorCode CharacteristicCurveCreate(PetscInt,CharacteristicCurve**);
 PETSC_INTERN PetscErrorCode CharacteristicCurveDestroy(CharacteristicCurve*);
+PETSC_INTERN PetscErrorCode RelativePermeability_Mualem_SetupSmooth(CharacteristicCurve*,PetscInt);
 
-PETSC_INTERN void RelativePermeability_Mualem(PetscReal,PetscReal,PetscReal*,PetscReal*);
+
+PETSC_INTERN void RelativePermeability_Mualem(PetscReal,PetscReal,PetscReal*,PetscReal,PetscReal*,PetscReal*);
 PETSC_INTERN void RelativePermeability_Irmay(PetscReal,PetscReal,PetscReal*,PetscReal*);
 
 PETSC_INTERN void PressureSaturation_VanGenuchten(PetscReal,PetscReal,PetscReal,PetscReal,PetscReal*,PetscReal*,PetscReal*);

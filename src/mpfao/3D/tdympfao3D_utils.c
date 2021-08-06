@@ -89,7 +89,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
       break;
     case REL_PERM_FUNC_MUALEM :
       m = cc->mualem_m[cell_id];
-      RelativePermeability_Mualem(m,Se,&Kr,&dKr_dSe);
+      RelativePermeability_Mualem(m,cc->mualem_poly_low[cell_id],cc->mualem_poly_coeffs[cell_id],Se,&Kr,&dKr_dSe);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown relative permeability function");

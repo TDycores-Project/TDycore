@@ -9,6 +9,7 @@
 #include <tdytimers.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdyioimpl.h>
+#include <petscblaslapack.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -309,11 +310,14 @@ PetscErrorCode TDyMalloc(TDy tdy) {
    CharacteristicCurve *cc = tdy->cc;
    TDyOptions *options = &tdy->options;
 
+   PetscReal mualem_poly_low = 0.99;
+
   for (c=0; c<nc; c++) {
     cc->sr[c] = options->default_residual_saturation;
     cc->gardner_n[c] = options->default_gardner_n;
     cc->gardner_m[c] = options->default_vangenutchen_m;
     cc->vg_m[c] = options->default_vangenutchen_m;
+    cc->mualem_poly_low[c] = mualem_poly_low;
     cc->mualem_m[c] = options->default_vangenutchen_m;
     cc->irmay_m[c] = options->default_vangenutchen_m;
     cc->vg_alpha[c] = options->default_vangenutchen_alpha;
@@ -338,6 +342,8 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->du_dT[c] = 0.0;
     tdy->dvis_dT[c] = 0.0;
   }
+  ierr = RelativePermeability_Mualem_SetupSmooth(tdy->cc, nc);
+
   tdy->gravity[dim-1] = options->gravity_constant;
   PetscFunctionReturn(0);
 }
@@ -1005,7 +1011,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
       RelativePermeability_Irmay(cc->irmay_m[c],Se,&Kr,NULL);
       break;
     case REL_PERM_FUNC_MUALEM :
-      RelativePermeability_Mualem(cc->mualem_m[c],Se,&Kr,&dKr_dSe);
+      RelativePermeability_Mualem(cc->mualem_m[c],cc->mualem_poly_low[c],cc->mualem_poly_coeffs[c],Se,&Kr,&dKr_dSe);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown relative permeability function");

@@ -1,6 +1,7 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdymemoryimpl.h>
+#include <petscblaslapack.h>
 
 PetscErrorCode CharacteristicCurveCreate(PetscInt ncells, CharacteristicCurve **_cc){
 
@@ -25,7 +26,9 @@ PetscErrorCode CharacteristicCurveCreate(PetscInt ncells, CharacteristicCurve **
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->irmay_m); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->gardner_n); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->vg_alpha); CHKERRQ(ierr);
-  
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->mualem_poly_low); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&(*_cc)->mualem_poly_coeffs,ncells,4); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -47,8 +50,9 @@ PetscErrorCode CharacteristicCurveDestroy(CharacteristicCurve *cc){
   if (cc->vg_m           ) { ierr = PetscFree(cc->vg_m           ); CHKERRQ(ierr); }
   if (cc->irmay_m        ) { ierr = PetscFree(cc->irmay_m        ); CHKERRQ(ierr); }
   if (cc->mualem_m       ) { ierr = PetscFree(cc->mualem_m       ); CHKERRQ(ierr); }
-  if (cc->gardner_n      ) { ierr = PetscFree(cc->gardner_n              ); CHKERRQ(ierr); }
-  if (cc->vg_alpha       ) { ierr = PetscFree(cc->vg_alpha          ); CHKERRQ(ierr); }
+  if (cc->gardner_n      ) { ierr = PetscFree(cc->gardner_n      ); CHKERRQ(ierr); }
+  if (cc->vg_alpha       ) { ierr = PetscFree(cc->vg_alpha       ); CHKERRQ(ierr); }
+  if (cc->mualem_poly_low    ) { ierr = PetscFree(cc->mualem_poly_low    ); CHKERRQ(ierr); }
   
   PetscFunctionReturn(0);
 }
@@ -72,6 +76,7 @@ PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const P
 PetscErrorCode TDySetCharacteristicCurveMualemValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[ni], const PetscScalar y[ni]){
 
   PetscInt i;
+  PetscErrorCode ierr;
 
   PetscFunctionBegin;
   if (!ni) PetscFunctionReturn(0);
@@ -79,8 +84,9 @@ PetscErrorCode TDySetCharacteristicCurveMualemValuesLocal(TDy tdy, PetscInt ni, 
   CharacteristicCurve *cc = tdy->cc;
   for(i=0; i<ni; i++) {
     cc->mualem_m[ix[i]] = y[i];
-    cc->vg_m[ix[i]] = y[i];
   }
+
+  ierr = RelativePermeability_Mualem_SetupSmooth(cc, ni); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -249,7 +255,7 @@ void RelativePermeability_Irmay(PetscReal m,PetscReal Se,PetscReal *Kr,
 ///           Se^{0.5}      2 * Se^{1/m - 1/} * (1 - Se^{1/m})^{m - 1} * (1 - (1 - Se^{1/m})^m)  if Se < 1.0
 ///         = 0                                                                                  otherwise
 ///
-void RelativePermeability_Mualem(PetscReal m,PetscReal Se,PetscReal *Kr,
+void RelativePermeability_Mualem_NonSmooth(PetscReal m,PetscReal Se,PetscReal *Kr,
 				 PetscReal *dKr_dSe) {
   PetscReal Se_one_over_m,tmp;
 
@@ -265,6 +271,124 @@ void RelativePermeability_Mualem(PetscReal m,PetscReal Se,PetscReal *Kr,
   if(dKr_dSe){
     (*dKr_dSe)  = 0.5*(*Kr)/Se;
     (*dKr_dSe) += 2*PetscPowReal(Se,1/m-0.5) * PetscPowReal(1-Se_one_over_m,m-1) * (1-PetscPowReal(1-Se_one_over_m,m));
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+///
+/// Sets up a cubic polynomial interpolation for relative permeability following
+/// PFLOTRAN's approach of smoothing relative permeability functions
+///
+/// @param [in] x1           low value of x
+/// @param [in] x2           high value of x
+/// @param [inout] *rhs      rhs vector (input) and coefficients (output)
+///
+///  f(x) = a0 + a1 * x + a2 * x^2 + a2 * x^3
+///  df_dx = a1 + 2 * a2 * x + 3 * a3 * x^2
+///
+/// Constraints:
+/// f(low)      = rel_perm_fn(x)      = f1
+/// f(high)     = 1.0                 = f2
+/// df_dx(low)  = drv_rel_perm_fn(x)  = df1_dx
+/// df_dy(high) = 0.0                 = df2_dx
+///
+/// Linear system:
+/// a0 + a1 * x1 + a2 * x1^2   + a2 * x1^3     = f1
+/// a0 + a1 * x2 + a2 * x1^2   + a2 * x2^3     = f2
+///      a1      + 2 * a2 * x1 + 3 * a3 * x1^2 = df1_dx
+///      a1      + 2 * a2 * x2 + 3 * a3 * x2^2 = df2_dx
+///
+PetscErrorCode CubicPolynomialSetup(PetscReal x1, PetscReal x2, PetscReal *rhs) {
+
+  PetscInt n = 4, nrhs = 1;
+
+  PetscReal A[16] = {
+     1.0,                  1.0,                  0.0,                      0.0,
+     x2,                   x1,                   1.0,                      1.0,
+     PetscPowReal(x2,2.0), PetscPowReal(x1,2.0), 2.0*x2,                   2.0*x1,
+     PetscPowReal(x2,3.0), PetscPowReal(x1,3.0), 3.0*PetscPowReal(x2,2.0), 3.0*PetscPowReal(x1,2.0)
+  };
+
+   PetscInt lda=4, ldb=4;
+   PetscInt info; // success/failure from LAPACK
+   PetscInt ipiv[n]; // pivot indices
+
+   dgesv_( &n, &nrhs, A, &lda, ipiv, rhs, &ldb, &info );
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+///
+/// Computes the value and derivative of the cubic polynomial
+///
+/// @param [in] *coeffs  coefficients of a cubic polynomals
+/// @param [in] x        value
+/// @param [out] *f      function evaluated at value
+/// @param [out] *df_dx  derivative of the function evaluated at value = x
+///
+///  f(x) = a0 + a1 * x + a2 * x^2 + a2 * x^3
+///  df_dx = a1 + 2 * a2 * x + 3 * a3 * x^2
+///
+PetscErrorCode CubicPolynomialEvaluate(PetscReal *coeffs, PetscReal x, PetscReal *f, PetscReal *df_dx) {
+
+  PetscFunctionBegin;
+
+  *f = coeffs[0] + coeffs[1]*x + coeffs[2]*PetscPowReal(x,2.0) + coeffs[3]*PetscPowReal(x,3.0);
+  *df_dx = coeffs[1] + 2.0*coeffs[2]*x + 3.0*coeffs[3]*PetscPowReal(x,2.0);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+///
+/// Sets up cubic polynomial smoothing for Mualem relative permeability function
+///
+/// @param [inout] *cc  Charcteristic curve
+/// @param [in] ncells  Number of cells
+///
+PetscErrorCode RelativePermeability_Mualem_SetupSmooth(CharacteristicCurve *cc, PetscInt ncells){
+
+  PetscFunctionBegin;
+
+  for (PetscInt c=0; c<ncells; c++){
+
+    PetscReal m = cc->vg_m[c];
+    PetscReal poly_low = cc->mualem_poly_low[c];
+    PetscReal poly_high = 1.0;
+
+    PetscReal Kr, dKr_dSe;
+    PetscErrorCode ierr;
+    RelativePermeability_Mualem_NonSmooth(m, poly_low, &Kr, &dKr_dSe);
+
+    cc->mualem_poly_coeffs[c][0] = 1.0;
+    cc->mualem_poly_coeffs[c][1] = Kr;
+    cc->mualem_poly_coeffs[c][2] = 0.0;
+    cc->mualem_poly_coeffs[c][3] = dKr_dSe;
+
+    ierr = CubicPolynomialSetup(poly_low, poly_high, cc->mualem_poly_coeffs[c]); CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+///
+/// Computes relative permeability using Mualem function
+///
+/// @param [in] m         Mualem parameter
+/// @param [in] poly_low  Value of Se above which polynomial smoothing should be done
+/// @param [in] *coeffs   Coefficents of cubic polynomial
+/// @param [in] Se        Effective saturation
+/// @param [out] *Kr      Relative permeability
+/// @param [out] *dKr_dSe Derivative of relative permeability
+///
+void RelativePermeability_Mualem(PetscReal m, PetscReal poly_low, PetscReal *coeffs, PetscReal Se,PetscReal *Kr,PetscReal *dKr_dSe) {
+
+  if (Se > poly_low) {
+    CubicPolynomialEvaluate(coeffs, Se, Kr, dKr_dSe);
+  } else {
+    RelativePermeability_Mualem_NonSmooth(m, Se, Kr, dKr_dSe);
   }
 }
 
@@ -370,5 +494,3 @@ void PressureSaturation_VanGenuchten(PetscReal m,PetscReal alpha,  PetscReal Sr,
     }
   }
 }
-
-
