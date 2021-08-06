@@ -19,9 +19,12 @@ PetscErrorCode CharacteristicCurveCreate(PetscInt ncells, CharacteristicCurve **
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->d2S_dP2); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->dS_dT); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->sr); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->m); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->n); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->alpha); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->gardner_m); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->vg_m); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->mualem_m); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->irmay_m); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->gardner_n); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->vg_alpha); CHKERRQ(ierr);
   
   PetscFunctionReturn(0);
 }
@@ -40,9 +43,12 @@ PetscErrorCode CharacteristicCurveDestroy(CharacteristicCurve *cc){
   if (cc->d2S_dP2        ) { ierr = PetscFree(cc->d2S_dP2        ); CHKERRQ(ierr); }
   if (cc->dS_dT          ) { ierr = PetscFree(cc->dS_dT          ); CHKERRQ(ierr); }
   if (cc->sr             ) { ierr = PetscFree(cc->sr             ); CHKERRQ(ierr); }
-  if (cc->m              ) { ierr = PetscFree(cc->m              ); CHKERRQ(ierr); }
-  if (cc->n              ) { ierr = PetscFree(cc->n              ); CHKERRQ(ierr); }
-  if (cc->alpha          ) { ierr = PetscFree(cc->alpha          ); CHKERRQ(ierr); }
+  if (cc->gardner_m      ) { ierr = PetscFree(cc->gardner_m      ); CHKERRQ(ierr); }
+  if (cc->vg_m           ) { ierr = PetscFree(cc->vg_m           ); CHKERRQ(ierr); }
+  if (cc->irmay_m        ) { ierr = PetscFree(cc->irmay_m        ); CHKERRQ(ierr); }
+  if (cc->mualem_m       ) { ierr = PetscFree(cc->mualem_m       ); CHKERRQ(ierr); }
+  if (cc->gardner_n      ) { ierr = PetscFree(cc->gardner_n              ); CHKERRQ(ierr); }
+  if (cc->vg_alpha       ) { ierr = PetscFree(cc->vg_alpha          ); CHKERRQ(ierr); }
   
   PetscFunctionReturn(0);
 }
@@ -72,7 +78,8 @@ PetscErrorCode TDySetCharacteristicCurveMValuesLocal(TDy tdy, PetscInt ni, const
 
   CharacteristicCurve *cc = tdy->cc;
   for(i=0; i<ni; i++) {
-    cc->m[ix[i]] = y[i];
+    cc->mualem_m[ix[i]] = y[i];
+    cc->vg_m[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
@@ -87,7 +94,7 @@ PetscErrorCode TDySetCharacteristicCurveNValuesLocal(TDy tdy, PetscInt ni, const
 
   CharacteristicCurve *cc = tdy->cc;
   for(i=0; i<ni; i++) {
-    cc->n[ix[i]] = y[i];
+    cc->gardner_n[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
@@ -102,7 +109,7 @@ PetscErrorCode TDySetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt ni, c
 
   CharacteristicCurve *cc = tdy->cc;
   for(i=0; i<ni; i++) {
-    cc->alpha[ix[i]] = y[i];
+    cc->vg_alpha[ix[i]] = y[i];
   }
 
   PetscFunctionReturn(0);
@@ -170,7 +177,7 @@ PetscErrorCode TDyGetCharacteristicCurveMValuesLocal(TDy tdy, PetscInt *ni, Pets
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      y[*ni] = cc->m[c-cStart];
+      y[*ni] = cc->mualem_m[c-cStart];
       *ni += 1;
     }
   }
@@ -193,7 +200,7 @@ PetscErrorCode TDyGetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt *ni, 
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
-      y[*ni] = cc->alpha[c-cStart];
+      y[*ni] = cc->vg_alpha[c-cStart];
       *ni += 1;
     }
   }

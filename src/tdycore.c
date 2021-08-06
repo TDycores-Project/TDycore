@@ -311,9 +311,12 @@ PetscErrorCode TDyMalloc(TDy tdy) {
 
   for (c=0; c<nc; c++) {
     cc->sr[c] = options->default_residual_saturation;
-    cc->n[c] = options->default_gardner_n;
-    cc->m[c] = options->default_vangenutchen_m;
-    cc->alpha[c] = options->default_vangenutchen_alpha;
+    cc->gardner_n[c] = options->default_gardner_n;
+    cc->gardner_m[c] = options->default_vangenutchen_m;
+    cc->vg_m[c] = options->default_vangenutchen_m;
+    cc->mualem_m[c] = options->default_vangenutchen_m;
+    cc->irmay_m[c] = options->default_vangenutchen_m;
+    cc->vg_alpha[c] = options->default_vangenutchen_alpha;
     cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
     cc->Kr[c] = 0.0;
@@ -955,7 +958,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
-  PetscReal Se,dSe_dS,dKr_dSe,n,m,alpha,Kr;
+  PetscReal Se,dSe_dS,dKr_dSe,Kr;
   PetscReal *P, *temp;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
@@ -979,16 +982,15 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
 
-    m = cc->m[c];
-    n = cc->n[c];
-    alpha = cc->alpha[c];
+    PetscReal n = cc->gardner_n[c];
+    PetscReal alpha = cc->vg_alpha[c];
 
     switch (cc->SatFuncType[i]) {
     case SAT_FUNC_GARDNER :
-      PressureSaturation_Gardner(n,m,alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&(cc->dS_dP[i]),&(cc->d2S_dP2[i]));
+      PressureSaturation_Gardner(n,cc->gardner_m[c],alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&(cc->dS_dP[i]),&(cc->d2S_dP2[i]));
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      PressureSaturation_VanGenuchten(m,alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&cc->dS_dP[i],&(cc->d2S_dP2[i]));
+      PressureSaturation_VanGenuchten(cc->vg_m[c],alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&cc->dS_dP[i],&(cc->d2S_dP2[i]));
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
@@ -1000,10 +1002,10 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
 
     switch (cc->RelPermFuncType[i]) {
     case REL_PERM_FUNC_IRMAY :
-      RelativePermeability_Irmay(m,Se,&Kr,NULL);
+      RelativePermeability_Irmay(cc->irmay_m[c],Se,&Kr,NULL);
       break;
     case REL_PERM_FUNC_MUALEM :
-      RelativePermeability_Mualem(m,Se,&Kr,&dKr_dSe);
+      RelativePermeability_Mualem(cc->mualem_m[c],Se,&Kr,&dKr_dSe);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown relative permeability function");

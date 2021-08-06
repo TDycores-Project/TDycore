@@ -57,18 +57,18 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
     switch (cc->SatFuncType[cell_id]) {
     case SAT_FUNC_GARDNER :
-      n = cc->n[cell_id];
-      m = cc->m[cell_id];
-      alpha = cc->alpha[cell_id];
+      n = cc->gardner_n[cell_id];
+      m = cc->gardner_m[cell_id];
+      alpha = cc->vg_alpha[cell_id];
       Sr = cc->sr[cell_id];
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
 
       PressureSaturation_Gardner(n,m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      n = cc->n[cell_id];
-      m = cc->m[cell_id];
-      alpha = cc->alpha[cell_id];
+      n = cc->gardner_n[cell_id];
+      m = cc->vg_m[cell_id];
+      alpha = cc->vg_alpha[cell_id];
       Sr = cc->sr[cell_id];
       P = tdy->Pref - tdy->P_BND[p_bnd_idx];
 
@@ -84,9 +84,11 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
     switch (cc->RelPermFuncType[cell_id]) {
     case REL_PERM_FUNC_IRMAY :
+      m = cc->irmay_m[cell_id];
       RelativePermeability_Irmay(m,Se,&Kr,NULL);
       break;
     case REL_PERM_FUNC_MUALEM :
+      m = cc->mualem_m[cell_id];
       RelativePermeability_Mualem(m,Se,&Kr,&dKr_dSe);
       break;
     default:
