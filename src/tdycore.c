@@ -195,7 +195,7 @@ PetscErrorCode TDyProcessOptions(TDyOptions *options){
 
   options->default_residual_saturation=0.15;
   options->default_gardner_n=0.5;
-  options->default_vangenutchen_m=0.8;
+  options->default_vangenuchten_m=0.8;
   options->default_vangenutchen_alpha=1.e-4;
 
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: General options",""); CHKERRQ(ierr);
@@ -213,7 +213,7 @@ PetscErrorCode TDyProcessOptions(TDyOptions *options){
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Characteristic curve options",""); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_residual_satuaration", "Value of residual saturation", NULL, options->default_residual_saturation, &options->default_residual_saturation, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_gardner_param_n", "Value of Gardner n parameter", NULL, options->default_gardner_n, &options->default_gardner_n, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_vangenuchten_param_m", "Value of VanGenuchten m parameter", NULL, options->default_vangenutchen_m, &options->default_vangenutchen_m, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_vangenuchten_param_m", "Value of VanGenuchten m parameter", NULL, options->default_vangenuchten_m, &options->default_vangenuchten_m, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_vangenuchten_param_alpha", "Value of VanGenuchten alpha parameter", NULL, options->default_vangenutchen_alpha, &options->default_vangenutchen_alpha, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
@@ -315,11 +315,11 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   for (c=0; c<nc; c++) {
     cc->sr[c] = options->default_residual_saturation;
     cc->gardner_n[c] = options->default_gardner_n;
-    cc->gardner_m[c] = options->default_vangenutchen_m;
-    cc->vg_m[c] = options->default_vangenutchen_m;
+    cc->gardner_m[c] = options->default_vangenuchten_m;
+    cc->vg_m[c] = options->default_vangenuchten_m;
     cc->mualem_poly_low[c] = mualem_poly_low;
-    cc->mualem_m[c] = options->default_vangenutchen_m;
-    cc->irmay_m[c] = options->default_vangenutchen_m;
+    cc->mualem_m[c] = options->default_vangenuchten_m;
+    cc->irmay_m[c] = options->default_vangenuchten_m;
     cc->vg_alpha[c] = options->default_vangenutchen_alpha;
     cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;

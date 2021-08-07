@@ -255,7 +255,7 @@ void RelativePermeability_Irmay(PetscReal m,PetscReal Se,PetscReal *Kr,
 ///           Se^{0.5}      2 * Se^{1/m - 1/} * (1 - Se^{1/m})^{m - 1} * (1 - (1 - Se^{1/m})^m)  if Se < 1.0
 ///         = 0                                                                                  otherwise
 ///
-void RelativePermeability_Mualem_Unsmooth(PetscReal m,PetscReal Se,PetscReal *Kr,
+void RelativePermeability_Mualem_Unsmoothed(PetscReal m,PetscReal Se,PetscReal *Kr,
 				 PetscReal *dKr_dSe) {
   PetscReal Se_one_over_m,tmp;
 
@@ -298,7 +298,7 @@ void RelativePermeability_Mualem_Unsmooth(PetscReal m,PetscReal Se,PetscReal *Kr
 ///      a1      + 2 * a2 * x1 + 3 * a3 * x1^2 = df1_dx
 ///      a1      + 2 * a2 * x2 + 3 * a3 * x2^2 = df2_dx
 ///
-PetscErrorCode CubicPolynomialSetup(PetscReal x1, PetscReal x2, PetscReal *rhs) {
+PetscErrorCode CubicPolynomialSetup(PetscReal x1, PetscReal x2, PetscReal rhs[4]) {
 
   PetscInt n = 4, nrhs = 1;
 
@@ -322,7 +322,7 @@ PetscErrorCode CubicPolynomialSetup(PetscReal x1, PetscReal x2, PetscReal *rhs) 
 ///
 /// Computes the value and derivative of the cubic polynomial
 ///
-/// @param [in] *coeffs  coefficients of a cubic polynomals
+/// @param [in] coeffs   coefficients of a cubic polynomals
 /// @param [in] x        value
 /// @param [out] *f      function evaluated at value
 /// @param [out] *df_dx  derivative of the function evaluated at value = x
@@ -359,7 +359,7 @@ PetscErrorCode RelativePermeability_Mualem_SetupSmooth(CharacteristicCurve *cc, 
 
     PetscReal Kr, dKr_dSe;
     PetscErrorCode ierr;
-    RelativePermeability_Mualem_Unsmooth(m, poly_low, &Kr, &dKr_dSe);
+    RelativePermeability_Mualem_Unsmoothed(m, poly_low, &Kr, &dKr_dSe);
 
     cc->mualem_poly_coeffs[c][0] = 1.0;
     cc->mualem_poly_coeffs[c][1] = Kr;
@@ -388,7 +388,7 @@ void RelativePermeability_Mualem(PetscReal m, PetscReal poly_low, PetscReal *coe
   if (Se > poly_low) {
     CubicPolynomialEvaluate(coeffs, Se, Kr, dKr_dSe);
   } else {
-    RelativePermeability_Mualem_Unsmooth(m, Se, Kr, dKr_dSe);
+    RelativePermeability_Mualem_Unsmoothed(m, Se, Kr, dKr_dSe);
   }
 }
 
