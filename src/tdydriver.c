@@ -34,26 +34,26 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   }
 
   if (!TDyIsPorositySet(tdy)) {
-    ierr = TDySetPorosityFunction(tdy,TDyPorosityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+    ierr = TDySetPorosityFunction(tdy,TDyConstantPorosityFunction,PETSC_NULL); CHKERRQ(ierr);
   }
 
   if (!TDyIsPermeabilitySet(tdy)){
-    ierr = TDySetPermeabilityFunction(tdy,TDyPermeabilityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+    ierr = TDySetPermeabilityFunction(tdy,TDyConstantPermeabilityFunction,PETSC_NULL); CHKERRQ(ierr);
   }
 
   if (tdy->mode == TH) {
 
     if (!TDyIsThermalConductivytSet(tdy)) {
-      ierr = TDySetThermalConductivityFunction(tdy,TDyThermalConductivityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+      ierr = TDySetThermalConductivityFunction(tdy,TDyConstantThermalConductivityFunction,PETSC_NULL); CHKERRQ(ierr);
     }
 
     if (!TDyIsSoilDensitySet(tdy)) {
-      //ierr = TDySetSoilDensity(tdy,TDySoilDensityFunctionDefault); CHKERRQ(ierr);
-      ierr = TDySetSoilDensityFunction(tdy,TDySoilDensityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+      //ierr = TDySetSoilDensity(tdy,TDyConstantSoilDensityFunction); CHKERRQ(ierr);
+      ierr = TDySetSoilDensityFunction(tdy,TDyConstantSoilDensityFunction,PETSC_NULL); CHKERRQ(ierr);
     }
 
     if (!TDyIsSoilSpecificHeatSet(tdy)) {
-      ierr = TDySetSoilSpecificHeatFunction(tdy,TDySoilSpecificHeatFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+      ierr = TDySetSoilSpecificHeatFunction(tdy,TDyConstantSoilSpecificHeatFunction,PETSC_NULL); CHKERRQ(ierr);
     }
   }
 
@@ -88,7 +88,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
         SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unrecognized time integration method.");
   }
 
-  // create time integrator 
+  // create time integrator
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
       ierr = SNESCreate(PETSC_COMM_WORLD,&snes);

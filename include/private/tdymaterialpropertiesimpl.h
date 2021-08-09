@@ -26,11 +26,11 @@ PETSC_INTERN PetscBool TDyIsThermalConductivytSet(TDy);
 PETSC_INTERN PetscBool TDyIsSoilSpecificHeatSet(TDy);
 PETSC_INTERN PetscBool TDyIsSoilDensitySet(TDy);
 
-PETSC_INTERN PetscErrorCode TDySoilDensityFunctionDefault(TDy,PetscReal*,PetscReal*,void*);
-PETSC_INTERN PetscErrorCode TDySoilSpecificHeatFunctionDefault(TDy,PetscReal*,PetscReal*,void*);
-PETSC_INTERN PetscErrorCode TDyPermeabilityFunctionDefault(TDy,PetscReal *,PetscReal *,void*);
-PETSC_INTERN PetscErrorCode TDyThermalConductivityFunctionDefault(TDy,PetscReal *,PetscReal *,void*);
-PETSC_INTERN PetscErrorCode TDyPorosityFunctionDefault(TDy,PetscReal *,PetscReal *,void*);
+PETSC_INTERN PetscErrorCode TDyConstantSoilDensityFunction(TDy,PetscReal*,PetscReal*,void*);
+PETSC_INTERN PetscErrorCode TDyConstantSoilSpecificHeatFunction(TDy,PetscReal*,PetscReal*,void*);
+PETSC_INTERN PetscErrorCode TDyConstantPermeabilityFunction(TDy,PetscReal *,PetscReal *,void*);
+PETSC_INTERN PetscErrorCode TDyConstantThermalConductivityFunction(TDy,PetscReal *,PetscReal *,void*);
+PETSC_INTERN PetscErrorCode TDyConstantPorosityFunction(TDy,PetscReal *,PetscReal *,void*);
 
 #endif
 

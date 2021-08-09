@@ -394,10 +394,10 @@ PetscErrorCode TDyGetPorosityValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[])
 }
 
 /*
-  Default function for material properties
+  Constant functions for material properties
 */
 
-PetscErrorCode TDySoilDensityFunctionDefault(TDy tdy, PetscReal *x, PetscReal *den, void *ctx) {
+PetscErrorCode TDyConstantSoilDensityFunction(TDy tdy, PetscReal *x, PetscReal *den, void *ctx) {
   PetscFunctionBegin;
   TDyOptions *options = &tdy->options;
 
@@ -406,7 +406,7 @@ PetscErrorCode TDySoilDensityFunctionDefault(TDy tdy, PetscReal *x, PetscReal *d
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySoilSpecificHeatFunctionDefault(TDy tdy, PetscReal *x, PetscReal *cr, void *ctx) {
+PetscErrorCode TDyConstantSoilSpecificHeatFunction(TDy tdy, PetscReal *x, PetscReal *cr, void *ctx) {
   PetscFunctionBegin;
   TDyOptions *options = &tdy->options;
 
@@ -414,7 +414,7 @@ PetscErrorCode TDySoilSpecificHeatFunctionDefault(TDy tdy, PetscReal *x, PetscRe
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyPermeabilityFunctionDefault(TDy tdy, PetscReal *x, PetscReal *K, void *ctx) {
+PetscErrorCode TDyConstantPermeabilityFunction(TDy tdy, PetscReal *x, PetscReal *K, void *ctx) {
   PetscFunctionBegin;
   TDyOptions *options = &tdy->options;
   PetscInt dim;
@@ -432,7 +432,7 @@ PetscErrorCode TDyPermeabilityFunctionDefault(TDy tdy, PetscReal *x, PetscReal *
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyThermalConductivityFunctionDefault(TDy tdy, PetscReal *x, PetscReal *K, void *ctx) {
+PetscErrorCode TDyConstantThermalConductivityFunction(TDy tdy, PetscReal *x, PetscReal *K, void *ctx) {
   PetscFunctionBegin;
   TDyOptions *options = &tdy->options;
   PetscErrorCode ierr;
@@ -450,7 +450,7 @@ PetscErrorCode TDyThermalConductivityFunctionDefault(TDy tdy, PetscReal *x, Pets
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyPorosityFunctionDefault(TDy tdy, PetscReal *x, PetscReal *por, void *ctx) {
+PetscErrorCode TDyConstantPorosityFunction(TDy tdy, PetscReal *x, PetscReal *por, void *ctx) {
   PetscFunctionBegin;
   TDyOptions *options = &tdy->options;
   *por = options->porosity;
