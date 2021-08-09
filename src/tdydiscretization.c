@@ -135,7 +135,7 @@ PetscErrorCode TDyGlobalToLocal(TDy tdy, Vec global, Vec local){
   }
 
   ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, local);CHKERRQ(ierr);
-  ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, local);CHKERRQ(ierr);
+  ierr = DMGlobalToLocalEnd(dm, global, INSERT_VALUES, local);CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -146,7 +146,7 @@ PetscErrorCode TDyGlobalToLocal(TDy tdy, Vec global, Vec local){
 /// @param [in] global A PETSc vector
 /// @param [out] local A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyNaturalToGlobal(TDy tdy, Vec *natural, Vec global){
+PetscErrorCode TDyNaturalToGlobal(TDy tdy, Vec natural, Vec global){
 
   PetscFunctionBegin;
   DM dm = tdy->dm;

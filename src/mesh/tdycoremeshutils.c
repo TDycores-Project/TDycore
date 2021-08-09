@@ -3,6 +3,7 @@
 #include <private/tdymeshimpl.h>
 #include <private/tdymemoryimpl.h>
 #include <private/tdyutils.h>
+#include <private/tdydiscretization.h>
 
 /* ---------------------------------------------------------------- */
 TDyCellType GetCellType(PetscInt dim, PetscInt nverts_per_cell) {

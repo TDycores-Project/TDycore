@@ -465,8 +465,7 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
     // Map natural IDs in local order
     Vec local;
     ierr = TDyCreateLocalVector(tdy, &local);CHKERRQ(ierr);
-    ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, local); CHKERRQ(ierr);
-    ierr = DMGlobalToLocalEnd(dm, global, INSERT_VALUES, local); CHKERRQ(ierr);
+    ierr = TDyGlobalToLocal(tdy,global,local); CHKERRQ(ierr);
 
     // Save natural IDs
     PetscInt local_size;
