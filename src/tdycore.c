@@ -187,16 +187,16 @@ PetscErrorCode TDySetOptionDefaults(TDyOptions *options){
 
   options->gravity_constant = 9.8068;
 
-  options->default_porosity=0.25;
-  options->default_permeability=1.e-12;
-  options->default_soil_density=2650.;
-  options->default_soil_specific_heat=1000.0;
-  options->default_thermal_conductivity=1.0;
+  options->porosity=0.25;
+  options->permeability=1.e-12;
+  options->soil_density=2650.;
+  options->soil_specific_heat=1000.0;
+  options->thermal_conductivity=1.0;
 
-  options->default_residual_saturation=0.15;
-  options->default_gardner_n=0.5;
-  options->default_vangenuchten_m=0.8;
-  options->default_vangenutchen_alpha=1.e-4;
+  options->residual_saturation=0.15;
+  options->gardner_n=0.5;
+  options->vangenuchten_m=0.8;
+  options->vangenuchten_alpha=1.e-4;
 
   PetscFunctionReturn(0);
 }
@@ -294,14 +294,14 @@ PetscErrorCode TDyMalloc(TDy tdy) {
    PetscReal mualem_poly_low = 0.99;
 
   for (c=0; c<nc; c++) {
-    cc->sr[c] = options->default_residual_saturation;
-    cc->gardner_n[c] = options->default_gardner_n;
-    cc->gardner_m[c] = options->default_vangenuchten_m;
-    cc->vg_m[c] = options->default_vangenuchten_m;
+    cc->sr[c] = options->residual_saturation;
+    cc->gardner_n[c] = options->gardner_n;
+    cc->gardner_m[c] = options->vangenuchten_m;
+    cc->vg_m[c] = options->vangenuchten_m;
     cc->mualem_poly_low[c] = mualem_poly_low;
-    cc->mualem_m[c] = options->default_vangenuchten_m;
-    cc->irmay_m[c] = options->default_vangenuchten_m;
-    cc->vg_alpha[c] = options->default_vangenutchen_alpha;
+    cc->mualem_m[c] = options->vangenuchten_m;
+    cc->irmay_m[c] = options->vangenuchten_m;
+    cc->vg_alpha[c] = options->vangenuchten_alpha;
     cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
     cc->Kr[c] = 0.0;
@@ -521,13 +521,6 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
 /// @param tdy The dycore instance
 PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscErrorCode ierr;
-  PetscBool flg;
-  TDyMethod method = WY;
-  TDyMode mode = RICHARDS;
-  TDyQuadratureType qtype = FULL;
-  TDyWaterDensityType densitytype = WATER_DENSITY_CONSTANT;
-  TDyMPFAOGmatrixMethod gmatrixmethod = MPFAO_GMATRIX_DEFAULT;
-  TDyMPFAOBoundaryConditionType bctype = MPFAO_DIRICHLET_BC;
   PetscFunctionBegin;
 
   if ((tdy->setupflags & TDySetupFinished) != 0) {
@@ -537,81 +530,96 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   TDyOptions *options = &tdy->options;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   ierr = PetscObjectOptionsBegin((PetscObject)tdy); CHKERRQ(ierr);
+  PetscBool flag;
 
   // Material property options
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Material property options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_porosity", "Value of porosity", NULL, options->default_porosity, &options->default_porosity, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_permability", "Value of permeability", NULL, options->default_permeability, &options->default_permeability, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_soil_density", "Value of soil density", NULL, options->default_soil_density, &options->default_soil_density, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_soil_specific_heat", "Value of soil specific heat", NULL, options->default_soil_specific_heat, &options->default_soil_specific_heat, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_thermal_conductivity", "Value of thermal conductivity", NULL, options->default_porosity, &options->default_porosity, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_porosity", "Value of porosity", NULL, options->porosity, &options->porosity, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_permability", "Value of permeability", NULL, options->permeability, &options->permeability, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_soil_density", "Value of soil density", NULL, options->soil_density, &options->soil_density, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_soil_specific_heat", "Value of soil specific heat", NULL, options->soil_specific_heat, &options->soil_specific_heat, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_thermal_conductivity", "Value of thermal conductivity", NULL, options->porosity, &options->porosity, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Characteristic curve options
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Characteristic curve options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_residual_satuaration", "Value of residual saturation", NULL, options->default_residual_saturation, &options->default_residual_saturation, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_gardner_param_n", "Value of Gardner n parameter", NULL, options->default_gardner_n, &options->default_gardner_n, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_vangenuchten_param_m", "Value of VanGenuchten m parameter", NULL, options->default_vangenuchten_m, &options->default_vangenuchten_m, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_vangenuchten_param_alpha", "Value of VanGenuchten alpha parameter", NULL, options->default_vangenutchen_alpha, &options->default_vangenutchen_alpha, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_residual_satuaration", "Value of residual saturation", NULL, options->residual_saturation, &options->residual_saturation, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_gardner_param_n", "Value of Gardner n parameter", NULL, options->gardner_n, &options->gardner_n, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_vangenuchten_param_m", "Value of VanGenuchten m parameter", NULL, options->vangenuchten_m, &options->vangenuchten_m, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_vangenuchten_param_alpha", "Value of VanGenuchten alpha parameter", NULL, options->vangenuchten_alpha, &options->vangenuchten_alpha, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Model options
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Model options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_gravity", "Magntitude of gravity vector", NULL,
+  ierr = PetscOptionsReal("-tdy_gravity", "Magnitude of gravity vector", NULL,
                           options->gravity_constant, &options->gravity_constant,
                           NULL); CHKERRQ(ierr);
+  TDyWaterDensityType densitytype = WATER_DENSITY_CONSTANT;
   ierr = PetscOptionsEnum("-tdy_water_density","Water density vertical profile",
-                          "TDySetWaterDensityType",TDyWaterDensityTypes,(PetscEnum)densitytype,(PetscEnum *)&densitytype,
-                          &flg); CHKERRQ(ierr);
-  if (flg) {
+                          "TDySetWaterDensityType",TDyWaterDensityTypes,
+                          (PetscEnum)densitytype,(PetscEnum *)&densitytype,
+                          &flag); CHKERRQ(ierr);
+  if (flag) {
     ierr = TDySetWaterDensityType(tdy,densitytype); CHKERRQ(ierr);
   }
-
+  TDyMode mode = RICHARDS;
   ierr = PetscOptionsEnum("-tdy_mode","Flow mode",
                           "TDySetMode",TDyModes,(PetscEnum)mode,(PetscEnum *)&mode,
-                          &flg); CHKERRQ(ierr);
+                          &flag); CHKERRQ(ierr);
 
-  if (flg && (mode != tdy->mode)) {
+  if (flag && (mode != tdy->mode)) {
     ierr = TDySetMode(tdy,mode); CHKERRQ(ierr);
   }
+  ierr = PetscOptionsReal("-tdy_pressure_bc",
+                          "Assigns a named pressure function to the domain boundary",
+                          NULL, options->gravity_constant, &options->gravity_constant,
+                          NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Numerics options
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Numerics options",""); CHKERRQ(ierr);
+  TDyMethod method = WY;
   ierr = PetscOptionsEnum("-tdy_method","Discretization method",
                           "TDySetDiscretizationMethod",TDyMethods,
-                          (PetscEnum)method,(PetscEnum *)&method, &flg); CHKERRQ(ierr);
-  if (flg && (method != tdy->method)) {
+                          (PetscEnum)method,(PetscEnum *)&method, &flag); CHKERRQ(ierr);
+  if (flag && (method != tdy->method)) {
     ierr = TDySetDiscretizationMethod(tdy,method); CHKERRQ(ierr);
   }
+  TDyQuadratureType qtype = FULL;
   ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type for finite element methods",
                           "TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&qtype,
-                          &flg); CHKERRQ(ierr);
+                          &flag); CHKERRQ(ierr);
+  if (flag && (qtype != tdy->qtype)) {
+    ierr = TDySetQuadratureType(tdy,qtype); CHKERRQ(ierr);
+  }
   ierr = PetscOptionsBool("-tdy_tpf_allow_all_meshes",
                           "Enable to allow non-orthgonal meshes in finite volume TPF method",
                           "",tdy->allow_unsuitable_mesh,
                           &(tdy->allow_unsuitable_mesh),NULL); CHKERRQ(ierr);
+  TDyMPFAOGmatrixMethod gmatrixmethod = MPFAO_GMATRIX_DEFAULT;
   ierr = PetscOptionsEnum("-tdy_mpfao_gmatrix_method","MPFA-O gmatrix method",
                           "TDySetMPFAOGmatrixMethod",TDyMPFAOGmatrixMethods,(PetscEnum)gmatrixmethod,(PetscEnum *)&gmatrixmethod,
-                          &flg); CHKERRQ(ierr);
-  if (flg && (gmatrixmethod != tdy->mpfao_gmatrix_method)) {
+                          &flag); CHKERRQ(ierr);
+  if (flag && (gmatrixmethod != tdy->mpfao_gmatrix_method)) {
     ierr = TDySetMPFAOGmatrixMethod(tdy,gmatrixmethod); CHKERRQ(ierr);
   }
+  TDyMPFAOBoundaryConditionType bctype = MPFAO_DIRICHLET_BC;
   ierr = PetscOptionsEnum("-tdy_mpfao_boundary_condition_type","MPFA-O boundary condition type",
                           "TDySetMPFAOBoundaryConditionType",TDyMPFAOBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype,
-                          &flg); CHKERRQ(ierr);
-  if (flg && (bctype != tdy->mpfao_bc_type)) {
+                          &flag); CHKERRQ(ierr);
+  if (flag && (bctype != tdy->mpfao_bc_type)) {
     ierr = TDySetMPFAOBoundaryConditionType(tdy,bctype); CHKERRQ(ierr);
   }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  if (flg && (qtype != tdy->qtype)) { ierr = TDySetQuadratureType(tdy,qtype); CHKERRQ(ierr); }
   ierr = PetscOptionsBool("-tdy_init_with_random_field",
                           "Initialize solution with a random field","",
                           tdy->init_with_random_field,
                           &(tdy->init_with_random_field),NULL); CHKERRQ(ierr);
 
-  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_init_file", tdy->init_file, sizeof(tdy->init_file), &tdy->init_from_file); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_init_file", tdy->init_file,
+                               sizeof(tdy->init_file),
+                               &tdy->init_from_file); CHKERRQ(ierr);
 
   ierr = PetscOptionsBool("-tdy_regression_test",
                           "Enable output of a regression file","",tdy->regression_testing,

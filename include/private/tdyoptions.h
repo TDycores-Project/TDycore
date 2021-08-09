@@ -6,18 +6,18 @@
 typedef struct{
     PetscReal gravity_constant;
 
-    // Default values for material properties
-    PetscReal default_porosity;
-    PetscReal default_permeability;
-    PetscReal default_soil_density;
-    PetscReal default_soil_specific_heat;
-    PetscReal default_thermal_conductivity;
+    // Material properties
+    PetscReal porosity;
+    PetscReal permeability;
+    PetscReal soil_density;
+    PetscReal soil_specific_heat;
+    PetscReal thermal_conductivity;
 
-    // Default values for characteristic curves
-    PetscReal default_residual_saturation;
-    PetscReal default_gardner_n;
-    PetscReal default_vangenuchten_m;
-    PetscReal default_vangenutchen_alpha;
+    // Characteristic curves
+    PetscReal residual_saturation;
+    PetscReal gardner_n;
+    PetscReal vangenuchten_m;
+    PetscReal vangenuchten_alpha;
 
 } TDyOptions;
 
