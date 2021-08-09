@@ -16,7 +16,7 @@ typedef struct{
     // Default values for characteristic curves
     PetscReal default_residual_saturation;
     PetscReal default_gardner_n;
-    PetscReal default_vangenutchen_m;
+    PetscReal default_vangenuchten_m;
     PetscReal default_vangenutchen_alpha;
 
 } TDyOptions;

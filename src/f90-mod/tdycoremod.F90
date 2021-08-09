@@ -112,7 +112,7 @@ module tdycore
        PetscScalar d (*) ! PetscScalar
        integer z
      end subroutine TDySetBlockPermeabilityValuesLocal0
-     subroutine TDySetBlockPermeabilityValuesLocal11(a,b,c,d,e,z)
+     subroutine TDySetBlockPermeabilityValuesLocal11(a,b,c,d,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
@@ -131,7 +131,7 @@ module tdycore
        PetscScalar d (*) ! PetscScalar
        integer z
      end subroutine TDySetPorosityValuesLocal0
-     subroutine TDySetPorosityValuesLocal11(a,b,c,d,e,z)
+     subroutine TDySetPorosityValuesLocal11(a,b,c,d,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
@@ -150,7 +150,7 @@ module tdycore
        PetscScalar d (*) ! PetscScalar
        integer z
      end subroutine TDySetResidualSaturationValuesLocal0
-     subroutine TDySetResidualSaturationValuesLocal11(a,b,c,d,e,z)
+     subroutine TDySetResidualSaturationValuesLocal11(a,b,c,d,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
@@ -160,24 +160,24 @@ module tdycore
      end subroutine TDySetResidualSaturationValuesLocal11
   end interface TDySetResidualSaturationValuesLocal
 
-  Interface TDySetCharacteristicCurveMValuesLocal
-     subroutine TDySetCharacteristicCurveMValuesLocal0(a,b,c,d,z)
+  Interface TDySetCharacteristicCurveMualemValuesLocal
+     subroutine TDySetCharacteristicCurveMualemValuesLocal0(a,b,c,d,z)
        use tdycoredef
        TDy a ! Vec
        PetscInt b ! PetscInt
        PetscInt c (*) ! PetscInt
        PetscScalar d (*) ! PetscScalar
        integer z
-     end subroutine TDySetCharacteristicCurveMValuesLocal0
-     subroutine TDySetCharacteristicCurveMValuesLocal11(a,b,c,d,e,z)
+     end subroutine TDySetCharacteristicCurveMualemValuesLocal0
+     subroutine TDySetCharacteristicCurveMualemValuesLocal11(a,b,c,d,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
        PetscInt c ! PetscInt
        PetscScalar d ! PetscScalar
        integer z
-     end subroutine TDySetCharacteristicCurveMValuesLocal11
-  end interface TDySetCharacteristicCurveMValuesLocal
+     end subroutine TDySetCharacteristicCurveMualemValuesLocal11
+  end interface TDySetCharacteristicCurveMualemValuesLocal
 
   Interface TDySetCharacteristicCurveNValuesLocal
      subroutine TDySetCharacteristicCurveNValuesLocal0(a,b,c,d,z)
@@ -188,7 +188,7 @@ module tdycore
        PetscScalar d (*) ! PetscScalar
        integer z
      end subroutine TDySetCharacteristicCurveNValuesLocal0
-     subroutine TDySetCharacteristicCurveNValuesLocal11(a,b,c,d,e,z)
+     subroutine TDySetCharacteristicCurveNValuesLocal11(a,b,c,d,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
@@ -198,24 +198,26 @@ module tdycore
      end subroutine TDySetCharacteristicCurveNValuesLocal11
   end interface TDySetCharacteristicCurveNValuesLocal
 
-  Interface TDySetCharacteristicCurveAlphaValuesLocal
-     subroutine TDySetCharacteristicCurveAlphaValuesLocal0(a,b,c,d,z)
+  Interface TDySetCharacteristicCurveVanGenuchtenValuesLocal
+     subroutine TDySetCharacteristicCurveVanGenuchtenValuesLocal0(a,b,c,d,e,z)
        use tdycoredef
        TDy a ! Vec
        PetscInt b ! PetscInt
        PetscInt c (*) ! PetscInt
        PetscScalar d (*) ! PetscScalar
+       PetscScalar e (*) ! PetscScalar
        integer z
-     end subroutine TDySetCharacteristicCurveAlphaValuesLocal0
-     subroutine TDySetCharacteristicCurveAlphaValuesLocal11(a,b,c,d,e,z)
+     end subroutine TDySetCharacteristicCurveVanGenuchtenValuesLocal0
+     subroutine TDySetCharacteristicCurveVanGenuchtenValuesLocal11(a,b,c,d,e,f,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt
        PetscInt c ! PetscInt
        PetscScalar d ! PetscScalar
+       PetscScalar e ! PetscScalar
        integer z
-     end subroutine TDySetCharacteristicCurveAlphaValuesLocal11
-  end interface TDySetCharacteristicCurveAlphaValuesLocal
+     end subroutine TDySetCharacteristicCurveVanGenuchtenValuesLocal11
+  end interface TDySetCharacteristicCurveVanGenuchtenValuesLocal
 
   Interface TDySetSourceSinkValuesLocal
      subroutine TDySetSourceSinkValuesLocal0(a,b,c,d,z)
@@ -226,7 +228,7 @@ module tdycore
        PetscScalar d (*) ! PetscScalar
        integer z
      end subroutine TDySetSourceSinkValuesLocal0
-     subroutine TDySetSourceSinkValuesLocal11(a,b,c,d,e,z)
+     subroutine TDySetSourceSinkValuesLocal11(a,b,c,d,z)
        use tdycoredef
        TDy a ! TDy
        PetscInt b ! PetscInt

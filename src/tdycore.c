@@ -9,6 +9,7 @@
 #include <tdytimers.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdyioimpl.h>
+#include <petscblaslapack.h>
 
 const char *const TDyMethods[] = {
   "TPF",
@@ -194,7 +195,7 @@ PetscErrorCode TDyProcessOptions(TDyOptions *options){
 
   options->default_residual_saturation=0.15;
   options->default_gardner_n=0.5;
-  options->default_vangenutchen_m=0.8;
+  options->default_vangenuchten_m=0.8;
   options->default_vangenutchen_alpha=1.e-4;
 
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: General options",""); CHKERRQ(ierr);
@@ -212,7 +213,7 @@ PetscErrorCode TDyProcessOptions(TDyOptions *options){
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Characteristic curve options",""); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_residual_satuaration", "Value of residual saturation", NULL, options->default_residual_saturation, &options->default_residual_saturation, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_gardner_param_n", "Value of Gardner n parameter", NULL, options->default_gardner_n, &options->default_gardner_n, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_vangenuchten_param_m", "Value of VanGenuchten m parameter", NULL, options->default_vangenutchen_m, &options->default_vangenutchen_m, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_vangenuchten_param_m", "Value of VanGenuchten m parameter", NULL, options->default_vangenuchten_m, &options->default_vangenuchten_m, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_vangenuchten_param_alpha", "Value of VanGenuchten alpha parameter", NULL, options->default_vangenutchen_alpha, &options->default_vangenutchen_alpha, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
@@ -309,11 +310,17 @@ PetscErrorCode TDyMalloc(TDy tdy) {
    CharacteristicCurve *cc = tdy->cc;
    TDyOptions *options = &tdy->options;
 
+   PetscReal mualem_poly_low = 0.99;
+
   for (c=0; c<nc; c++) {
     cc->sr[c] = options->default_residual_saturation;
-    cc->n[c] = options->default_gardner_n;
-    cc->m[c] = options->default_vangenutchen_m;
-    cc->alpha[c] = options->default_vangenutchen_alpha;
+    cc->gardner_n[c] = options->default_gardner_n;
+    cc->gardner_m[c] = options->default_vangenuchten_m;
+    cc->vg_m[c] = options->default_vangenuchten_m;
+    cc->mualem_poly_low[c] = mualem_poly_low;
+    cc->mualem_m[c] = options->default_vangenuchten_m;
+    cc->irmay_m[c] = options->default_vangenuchten_m;
+    cc->vg_alpha[c] = options->default_vangenutchen_alpha;
     cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
     cc->Kr[c] = 0.0;
@@ -335,6 +342,8 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->du_dT[c] = 0.0;
     tdy->dvis_dT[c] = 0.0;
   }
+  ierr = RelativePermeability_Mualem_SetupSmooth(tdy->cc, nc);
+
   tdy->gravity[dim-1] = options->gravity_constant;
   PetscFunctionReturn(0);
 }
@@ -955,7 +964,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
   PetscInt  dim,dim2,i,j,c,cStart,cEnd;
-  PetscReal Se,dSe_dS,dKr_dSe,n,m,alpha,Kr;
+  PetscReal Se,dSe_dS,dKr_dSe,Kr;
   PetscReal *P, *temp;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
@@ -979,16 +988,15 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   for(c=cStart; c<cEnd; c++) {
     i = c-cStart;
 
-    m = cc->m[c];
-    n = cc->n[c];
-    alpha = cc->alpha[c];
+    PetscReal n = cc->gardner_n[c];
+    PetscReal alpha = cc->vg_alpha[c];
 
     switch (cc->SatFuncType[i]) {
     case SAT_FUNC_GARDNER :
-      PressureSaturation_Gardner(n,m,alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&(cc->dS_dP[i]),&(cc->d2S_dP2[i]));
+      PressureSaturation_Gardner(n,cc->gardner_m[c],alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&(cc->dS_dP[i]),&(cc->d2S_dP2[i]));
       break;
     case SAT_FUNC_VAN_GENUCHTEN :
-      PressureSaturation_VanGenuchten(m,alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&cc->dS_dP[i],&(cc->d2S_dP2[i]));
+      PressureSaturation_VanGenuchten(cc->vg_m[c],alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&cc->dS_dP[i],&(cc->d2S_dP2[i]));
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
@@ -1000,10 +1008,10 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
 
     switch (cc->RelPermFuncType[i]) {
     case REL_PERM_FUNC_IRMAY :
-      RelativePermeability_Irmay(m,Se,&Kr,NULL);
+      RelativePermeability_Irmay(cc->irmay_m[c],Se,&Kr,NULL);
       break;
     case REL_PERM_FUNC_MUALEM :
-      RelativePermeability_Mualem(m,Se,&Kr,&dKr_dSe);
+      RelativePermeability_Mualem(cc->mualem_m[c],cc->mualem_poly_low[c],cc->mualem_poly_coeffs[c],Se,&Kr,&dKr_dSe);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown relative permeability function");
