@@ -675,7 +675,7 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
   ierr = MPI_Comm_rank(PetscObjectComm((PetscObject) dm), &rank);CHKERRQ(ierr);
 
   // Once needs to atleast haved called a DMCreateXYZ() before using DMPlexGetPointGlobal()
-  ierr = DMCreateGlobalVector(dm, &junkVec); CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(tdy, &junkVec); CHKERRQ(ierr);
   ierr = VecDestroy(&junkVec); CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
