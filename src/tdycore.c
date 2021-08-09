@@ -1399,7 +1399,7 @@ PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  ierr = VecCopy(initial,tdy->solution); CHKERRQ(ierr);
+  ierr = TDyNaturalToGlobal(tdy,initial,tdy->solution); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
