@@ -130,7 +130,7 @@ PetscErrorCode TDyGlobalToLocal(TDy tdy, Vec global, Vec local){
 
   ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);
   if (!useNatural) {
-    PetscPrintf(PETSC_COMM_WORLD,"TDyGlobalToNatural cannot be performed as DMGetUseNatural is false");
+    PetscPrintf(PETSC_COMM_WORLD,"TDyGlobalToLocal cannot be performed as DMGetUseNatural is false");
     exit(0);
   }
 
@@ -146,7 +146,7 @@ PetscErrorCode TDyGlobalToLocal(TDy tdy, Vec global, Vec local){
 /// @param [in] global A PETSc vector
 /// @param [out] local A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyNaturalToGlobal(TDy tdy, Vec natural, Vec global){
+PetscErrorCode TDyNaturalToGlobal(TDy tdy, Vec *natural, Vec global){
 
   PetscFunctionBegin;
   DM dm = tdy->dm;
@@ -159,8 +159,8 @@ PetscErrorCode TDyNaturalToGlobal(TDy tdy, Vec natural, Vec global){
     exit(0);
   }
 
-  ierr = DMPlexNaturalToGlobalBegin(dm, global, natural);CHKERRQ(ierr);
-  ierr = DMPlexNaturalToGlobalEnd(dm, global, natural);CHKERRQ(ierr);
+  ierr = DMPlexNaturalToGlobalBegin(dm, natural, global);CHKERRQ(ierr);
+  ierr = DMPlexNaturalToGlobalEnd(dm, natural, global);CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
