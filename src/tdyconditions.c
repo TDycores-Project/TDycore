@@ -145,3 +145,21 @@ PetscErrorCode TDySetEnergySourceSinkValuesLocal(TDy tdy, PetscInt ni, const Pet
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyConstantBoundaryPressureFn(TDy tdy, PetscReal *x, PetscReal *p, void *ctx) {
+  PetscFunctionBegin;
+  TDyOptions *options = &tdy->options;
+
+  *p = options->boundary_pressure;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyConstantBoundaryVelocityFn(TDy tdy, PetscReal *x, PetscReal *v, void *ctx) {
+  PetscFunctionBegin;
+  TDyOptions *options = &tdy->options;
+
+  *v = options->boundary_velocity;
+
+  PetscFunctionReturn(0);
+}
+

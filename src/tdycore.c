@@ -1,5 +1,6 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
+#include <private/tdyconditionsimpl.h>
 #include <private/tdympfao3Dcoreimpl.h>
 #include <private/tdympfaoimpl.h>
 #include <private/tdyeosimpl.h>
@@ -208,6 +209,10 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   options->gardner_n=0.5;
   options->vangenuchten_m=0.8;
   options->vangenuchten_alpha=1.e-4;
+
+  options->boundary_pressure = 0.0;
+  options->boundary_temperature = 273.0;
+  options->boundary_velocity = 0.0;
 
   options->init_with_random_field = PETSC_FALSE;
   options->init_from_file = PETSC_FALSE;
@@ -572,19 +577,33 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           (PetscEnum)options->rho_type,
                           (PetscEnum *)&options->rho_type, NULL); CHKERRQ(ierr);
 
-  // Named boundary condition functions
+  // Boundary conditions.
   char func_name[PETSC_MAX_PATH_LEN];
-  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_pressure_bc", func_name,
+  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_pressure_bc_func", func_name,
                                sizeof(func_name), &flag); CHKERRQ(ierr);
   if (flag) {
     // TODO: When/where are we supposed to get the context for this function?
     ierr = TDySelectBoundaryPressureFn(tdy, func_name, NULL);
+  } else {
+    ierr = PetscOptionsReal("-tdy_pressure_bc_value", "Constant boundary pressure", NULL,
+                            options->boundary_pressure, &options->boundary_pressure,
+                            NULL); CHKERRQ(ierr);
+    // Even if not given, we can set the boundary pressure to its default.
+    ierr = TDySetBoundaryPressureFn(tdy, TDyConstantBoundaryPressureFn,
+                                    PETSC_NULL); CHKERRQ(ierr);
   }
-  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_velocity_bc", func_name,
+  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_velocity_bc_func", func_name,
                                sizeof(func_name), &flag); CHKERRQ(ierr);
   if (flag) {
     // TODO: When/where are we supposed to get the context for this function?
     ierr = TDySelectBoundaryVelocityFn(tdy, func_name, NULL);
+  } else {
+    ierr = PetscOptionsReal("-tdy_velocity_bc_value", "Constant normal boundary velocity",
+                            NULL, options->boundary_pressure, &options->boundary_pressure,
+                            NULL); CHKERRQ(ierr);
+    // Even if not given, we can set the boundary velocity to its default.
+    ierr = TDySetBoundaryVelocityFn(tdy, TDyConstantBoundaryVelocityFn,
+                                    PETSC_NULL); CHKERRQ(ierr);
   }
 
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);

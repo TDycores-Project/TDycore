@@ -19,18 +19,23 @@ typedef struct {
   PetscInt mpfao_bc_type;
   PetscBool tpf_allow_all_meshes;
 
-  // Material properties
+  // Constant material properties
   PetscReal porosity;
   PetscReal permeability;
   PetscReal soil_density;
   PetscReal soil_specific_heat;
   PetscReal thermal_conductivity;
 
-  // Characteristic curves
+  // Characteristic curve parameters
   PetscReal residual_saturation;
   PetscReal gardner_n;
   PetscReal vangenuchten_m;
   PetscReal vangenuchten_alpha;
+
+  // Constant boundary values
+  PetscReal boundary_pressure;
+  PetscReal boundary_temperature;
+  PetscReal boundary_velocity; // (normal component)
 
   // I/O settings
   PetscBool init_with_random_field;
