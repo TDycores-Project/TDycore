@@ -125,14 +125,7 @@ PetscErrorCode TDyGlobalToLocal(TDy tdy, Vec global, Vec local){
 
   PetscFunctionBegin;
   DM dm = tdy->dm;
-  PetscBool useNatural;
   PetscErrorCode ierr;
-
-  ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);
-  if (!useNatural) {
-    PetscPrintf(PETSC_COMM_WORLD,"TDyGlobalToLocal cannot be performed as DMGetUseNatural is false");
-    exit(0);
-  }
 
   ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, local);CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd(dm, global, INSERT_VALUES, local);CHKERRQ(ierr);

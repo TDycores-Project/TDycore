@@ -985,8 +985,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_2DMesh(TDy tdy, Vec U) {
   ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
-  ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
-  ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,localU); CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
 
   PetscReal vel_error;
