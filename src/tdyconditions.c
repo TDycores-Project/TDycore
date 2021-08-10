@@ -39,12 +39,12 @@ PetscErrorCode TDyGetFunction(const char* name, Function* f) {
       *f = kh_val(funcs_, iter);
     } else {
       ierr = -1;
-      SETERRQ(MPI_COMM_WORLD, ierr, "Function not found!");
+      SETERRQ(PETSC_COMM_WORLD, ierr, "Function not found!");
       return ierr;
     }
   } else {
     ierr = -1;
-    SETERRQ(MPI_COMM_WORLD, ierr, "No functions have been registered!");
+    SETERRQ(PETSC_COMM_WORLD, ierr, "No functions have been registered!");
     return ierr;
   }
   PetscFunctionReturn(0);

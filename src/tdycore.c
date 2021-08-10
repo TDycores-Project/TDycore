@@ -355,18 +355,21 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
   PetscScalar   *coords;
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  MPI_Comm comm = PETSC_COMM_WORLD;
   if ((tdy->setupflags & TDyOptionsSet) == 0) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Options must be set prior to TDyCreateGrid()");
+    SETERRQ(comm,PETSC_ERR_USER,"Options must be set prior to TDyCreateGrid()");
   }
 
   if (!tdy->dm) {
     DM dm;
     if (tdy->options.generate_mesh) {
-      // TODO: Let's jettison our own options in favor of PETSc's DM options.
-      ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
+      // Here we lean on PETSc's DM* options.
+      ierr = DMCreate(comm, &dm); CHKERRQ(ierr);
+      ierr = DMSetType(dm, DMPLEX); CHKERRQ(ierr);
+      ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
       ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
     } else { // if (tdy->options.read_mesh)
-      ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, tdy->options.mesh_file,
+      ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
                                   PETSC_TRUE, &dm); CHKERRQ(ierr);
     }
     tdy->dm = dm;
