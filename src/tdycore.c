@@ -603,10 +603,12 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   } else {
     ierr = PetscOptionsReal("-tdy_pressure_bc_value", "Constant boundary pressure", NULL,
                             options->boundary_pressure, &options->boundary_pressure,
-                            NULL); CHKERRQ(ierr);
-    // Even if not given, we can set the boundary pressure to its default.
-    ierr = TDySetBoundaryPressureFn(tdy, TDyConstantBoundaryPressureFn,
-                                    PETSC_NULL); CHKERRQ(ierr);
+                            &flag); CHKERRQ(ierr);
+    if (flag) {
+      ierr = TDySetBoundaryPressureFn(tdy, TDyConstantBoundaryPressureFn,
+                                      PETSC_NULL); CHKERRQ(ierr);
+    } else { // TODO: what goes here??
+    }
   }
   ierr = PetscOptionsGetString(NULL, NULL, "-tdy_velocity_bc_func", func_name,
                                sizeof(func_name), &flag); CHKERRQ(ierr);
@@ -616,10 +618,12 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   } else {
     ierr = PetscOptionsReal("-tdy_velocity_bc_value", "Constant normal boundary velocity",
                             NULL, options->boundary_pressure, &options->boundary_pressure,
-                            NULL); CHKERRQ(ierr);
-    // Even if not given, we can set the boundary velocity to its default.
-    ierr = TDySetBoundaryVelocityFn(tdy, TDyConstantBoundaryVelocityFn,
-                                    PETSC_NULL); CHKERRQ(ierr);
+                            &flag); CHKERRQ(ierr);
+    if (flag) {
+      ierr = TDySetBoundaryVelocityFn(tdy, TDyConstantBoundaryVelocityFn,
+                                      PETSC_NULL); CHKERRQ(ierr);
+    } else { // TODO: what goes here??
+    }
   }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
