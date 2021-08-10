@@ -8,15 +8,15 @@ PetscErrorCode TDyRichardsInitialize(TDy tdy) {
 
   PetscPrintf(PETSC_COMM_WORLD,"Running Richards mode.\n");
 
-  if (tdy->init_with_random_field) {
+  if (tdy->options.init_with_random_field) {
     PetscRandom rand;
     ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
     ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
     ierr = VecSetRandom(tdy->solution,rand); CHKERRQ(ierr);
     ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
-  }  else if (tdy->init_from_file) {
+  }  else if (tdy->options.init_from_file) {
     PetscViewer viewer;
-    ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,tdy->init_file,FILE_MODE_READ,&viewer); CHKERRQ(ierr);
+    ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,tdy->options.init_file,FILE_MODE_READ,&viewer); CHKERRQ(ierr);
     ierr = VecLoad(tdy->solution,viewer); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   } else {

@@ -11,7 +11,7 @@ PetscErrorCode TDyTHInitialize(TDy tdy) {
 
   PetscPrintf(PETSC_COMM_WORLD,"Running TH mode.\n");
 
-  if (tdy->init_with_random_field) {
+  if (tdy->options.init_with_random_field) {
     PetscRandom rand;
     ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
     ierr = VecGetLocalSize(tdy->solution,&local_size); CHKERRQ(ierr);

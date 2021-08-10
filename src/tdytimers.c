@@ -91,8 +91,8 @@ PetscErrorCode TDySetTimingMetadata(TDy tdy) {
       iter = kh_put(TDY_PROFILING_MD_MAP, TDY_PROFILING_METADATA, tdy_addr, &retval);
       kh_val(TDY_PROFILING_METADATA, iter) = md;
     }
-    md->method = tdy->method;
-    md->mode = tdy->mode;
+    md->method = tdy->options.method;
+    md->mode = tdy->options.mode;
     if (tdy->mesh != NULL) {
       md->num_cells = TDyMeshGetNumberOfLocalCells(tdy->mesh);
     } else {

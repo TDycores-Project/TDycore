@@ -117,7 +117,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
         ierr = TDyTimeIntegratorSetTargetTime(ti,sync_time); CHKERRQ(ierr);
         ierr = TDySetDtimeForSNESSolver(tdy,ti->dt); CHKERRQ(ierr);
         if (!rank){
-          switch (tdy->mode){
+          switch (tdy->options.mode){
             case RICHARDS:
               printf("===== RICHARDS MODE ==============================\n");
               break;

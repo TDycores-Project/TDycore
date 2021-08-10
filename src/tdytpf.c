@@ -52,7 +52,7 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
   DM dm = tdy->dm;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-  if(!tdy->allow_unsuitable_mesh) {
+  if(!tdy->options.tpf_allow_all_meshes) {
     ierr = TDyTPFCheckMeshSuitability(tdy); CHKERRQ(ierr);
   }
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);

@@ -43,10 +43,8 @@ struct _p_TDy {
   TDyTimeIntegrator ti;
   TDySetupFlags setupflags;
   TDyIO io;
-  PetscBool init_with_random_field;
-  PetscBool init_from_file;
-  char init_file[PETSC_MAX_PATH_LEN];
 
+  // options that determine the behavior(s) of the dycore
   TDyOptions options;
 
   /* arrays of the size of the Hasse diagram */
@@ -56,9 +54,6 @@ struct _p_TDy {
   PetscInt ncv,nfv; /* number of {cell|face} vertices */
 
   /* non-linear function of liquid pressure */
-  PetscInt rho_type;
-  PetscInt mu_type;
-  PetscInt enthalpy_type;
   PetscReal  *rho, *drho_dP, *d2rho_dP2;       /* density of water [kg m-3]*/
   PetscReal  *vis, *dvis_dP, *d2vis_dP2;       /* viscosity of water [Pa s] */
   PetscReal  *h, *dh_dP, *dh_dT;               /* enthalpy of water */
@@ -101,12 +96,6 @@ struct _p_TDy {
   void *soildensityctx;
   void *soilspecificheatctx;
 
-  /* method-specific information*/
-  TDyMethod method;
-  TDyMode mode;
-  TDyQuadratureType qtype;
-  PetscBool allow_unsuitable_mesh;
-
   /* Wheeler-Yotov */
   PetscInt  *vmap;      /* [cell,local_vertex] --> global_vertex */
   PetscInt  *emap;      /* [cell,local_vertex,direction] --> global_face */
@@ -122,9 +111,6 @@ struct _p_TDy {
   PetscInt  *faces;
 
   /* MPFA-O */
-  PetscInt mpfao_gmatrix_method;
-  PetscInt mpfao_bc_type;
-
   TDyMesh *mesh;
   PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
   PetscReal ***Trans;
@@ -149,12 +135,7 @@ struct _p_TDy {
 
   PetscInt *closureSize, **closure, maxClosureSize;
 
-  PetscBool output_mesh;
-  PetscBool regression_testing;
   TDyRegression *regression;
-
-  /* Timers enabled? */
-  PetscBool enable_timers;
 };
 
 

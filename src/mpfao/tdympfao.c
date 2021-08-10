@@ -203,7 +203,7 @@ PetscErrorCode ComputeGMatrix(TDy tdy) {
     ierr = TDyComputeGMatrixFor2DMesh(tdy); CHKERRQ(ierr);
     break;
   case 3:
-    switch (tdy->mpfao_gmatrix_method) {
+    switch (tdy->options.mpfao_gmatrix_method) {
       case MPFAO_GMATRIX_DEFAULT:
         ierr = TDyComputeGMatrixMPFAOFor3DMesh(tdy); CHKERRQ(ierr);
         break;
@@ -295,8 +295,8 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
   PetscInt i;
   PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
   for (i=0;i<nbnd_faces;i++) {
-    ierr = ComputeWaterDensity(tdy->Pref, tdy->rho_type, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
-    ierr = ComputeWaterViscosity(tdy->Pref, tdy->mu_type, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
+    ierr = ComputeWaterDensity(tdy->Pref, tdy->options.rho_type, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
+    ierr = ComputeWaterViscosity(tdy->Pref, tdy->options.mu_type, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
   }
 
   TDY_STOP_FUNCTION_TIMER()
@@ -321,7 +321,8 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy) {
   PetscInt i;
   PetscReal dh_dP, dh_dT;
   for (i=0;i<nbnd_faces;i++) {
-    ierr = ComputeWaterEnthalpy(tdy->Tref, tdy->Pref,tdy->enthalpy_type, &(tdy->h_BND[i]), &dh_dP, &dh_dT); CHKERRQ(ierr);
+    ierr = ComputeWaterEnthalpy(tdy->Tref, tdy->Pref,tdy->options.enthalpy_type,
+                                &(tdy->h_BND[i]), &dh_dP, &dh_dT); CHKERRQ(ierr);
   }
 
   TDY_STOP_FUNCTION_TIMER()
@@ -410,8 +411,10 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     break;
   case 3:
     ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, tdy->nfv, tdy->nfv + tdy->ncv); CHKERRQ(ierr);
-    if (tdy->mode == TH){ierr = TDyAllocate_RealArray_3D(&tdy->Temp_Trans, 
-                         tdy->mesh->num_vertices, tdy->nfv, tdy->nfv); CHKERRQ(ierr);}
+    if (tdy->options.mode == TH) {
+      ierr = TDyAllocate_RealArray_3D(&tdy->Temp_Trans, tdy->mesh->num_vertices,
+                                      tdy->nfv, tdy->nfv); CHKERRQ(ierr);
+    }
     ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
                      &(tdy->vel )); CHKERRQ(ierr);
     ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
@@ -430,19 +433,21 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   }
 
   ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
-                               nsubcells, nrow, ncol); CHKERRQ(ierr);
-  if (tdy->mode == TH) {ierr = TDyAllocate_RealArray_4D(&tdy->Temp_subc_Gmatrix, tdy->mesh->num_cells,
-                               nsubcells, nrow, ncol); CHKERRQ(ierr);}
+                                  nsubcells, nrow, ncol); CHKERRQ(ierr);
+  if (tdy->options.mode == TH) {
+    ierr = TDyAllocate_RealArray_4D(&tdy->Temp_subc_Gmatrix, tdy->mesh->num_cells,
+                                    nsubcells, nrow, ncol); CHKERRQ(ierr);
+  }
 
-  /* Setup the section, 1 dof per cell */
+  /* Set up the section, 1 dof per cell */
   PetscSection sec;
   PetscInt p, pStart, pEnd;
   PetscBool use_dae;
 
-  use_dae = (tdy->method == MPFA_O_DAE);
+  use_dae = (tdy->options.method == MPFA_O_DAE);
   ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
   if (!use_dae) {
-    if (tdy->mode == TH){
+    if (tdy->options.mode == TH){
       ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
       ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
       ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
@@ -454,7 +459,9 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
       ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
     }
   } else {
-    if (tdy->mode == TH) {SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TH unsupported with MPFA_O_DAE");}
+    if (tdy->options.mode == TH) {
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TH unsupported with MPFA_O_DAE");
+    }
     ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
@@ -467,12 +474,14 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   for(p=pStart; p<pEnd; p++) {
     ierr = PetscSectionSetFieldDof(sec,p,0,1); CHKERRQ(ierr);
     ierr = PetscSectionSetDof(sec,p,1); CHKERRQ(ierr);
-    if (tdy->mode == TH){
+    if (tdy->options.mode == TH) {
       ierr = PetscSectionSetFieldDof(sec,p,1,1); CHKERRQ(ierr);
       ierr = PetscSectionSetDof(sec,p,2); CHKERRQ(ierr);
     }
     if (use_dae) {
-      if (tdy->mode == TH) {SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TH unsupported with MPFA_O_DAE");}
+      if (tdy->options.mode == TH) {
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TH unsupported with MPFA_O_DAE");
+      }
       ierr = PetscSectionSetFieldDof(sec,p,1,1); CHKERRQ(ierr);
       ierr = PetscSectionSetDof(sec,p,2); CHKERRQ(ierr);
     }
@@ -506,7 +515,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->GravDisVec);
     ierr = VecZeroEntries(tdy->GravDisVec);
 
-    if (tdy->mode == TH){
+    if (tdy->options.mode == TH) {
       ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&tdy->Temp_Trans_mat); CHKERRQ(ierr);
       ierr = MatSetOption(tdy->Temp_Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
       ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&tdy->Temp_P_vec);
@@ -516,7 +525,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   if (tdy->ops->computeporosity) { ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr); }
   if (tdy->ops->computepermeability) {ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
-  if (tdy->mode == TH){
+  if (tdy->options.mode == TH){
     if (tdy->ops->computethermalconductivity) {ierr = SetThermalConductivityFromFunction(tdy); CHKERRQ(ierr);}
     if (tdy->ops->computesoildensity) {
       ierr = SetSoilDensityFromFunction(tdy); CHKERRQ(ierr);
@@ -535,7 +544,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   if (dim == 3) {
     ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
     ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(tdy); CHKERRQ(ierr);
-    if (tdy->mode == TH) {
+    if (tdy->options.mode == TH) {
       ierr = TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(tdy); CHKERRQ(ierr);
       ierr = TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(tdy); CHKERRQ(ierr);
     }
@@ -657,7 +666,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  
+
   ierr = MatZeroEntries(K);
   ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);

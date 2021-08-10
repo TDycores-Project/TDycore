@@ -21,7 +21,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver currently only supports 3D");
   }
 
-  switch(tdy->method) {
+  switch(tdy->options.method) {
     case TPF:
     case MPFA_O:
       break;
@@ -41,7 +41,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     ierr = TDySetPermeabilityFunction(tdy,TDyConstantPermeabilityFunction,PETSC_NULL); CHKERRQ(ierr);
   }
 
-  if (tdy->mode == TH) {
+  if (tdy->options.mode == TH) {
 
     if (!TDyIsThermalConductivytSet(tdy)) {
       ierr = TDySetThermalConductivityFunction(tdy,TDyConstantThermalConductivityFunction,PETSC_NULL); CHKERRQ(ierr);
@@ -64,7 +64,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   ierr = TDyCreateJacobian(tdy); CHKERRQ(ierr);
 
   // check for unsupported modes
-  switch (tdy->mode) {
+  switch (tdy->options.mode) {
     case RICHARDS:
     case TH:
       break;
@@ -74,7 +74,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   // check for unsupported time integration methods
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
-      switch (tdy->mode) {
+      switch (tdy->options.mode) {
         case RICHARDS:
           break;
         case TH:
@@ -122,7 +122,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
 //  ierr = SNESLineSearchSetType(linesearch,SNESLINESEARCHBASIC);
 //         CHKERRQ(ierr);
   // mode specific time integrator settings
-  switch (tdy->mode) {
+  switch (tdy->options.mode) {
     case RICHARDS:
       ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,
                                         &tdy); CHKERRQ(ierr);

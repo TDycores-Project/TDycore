@@ -49,7 +49,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 
     // Compute = T*P
     PetscScalar TtimesP[nflux_in + npitf_bc];
-    
+
     for (PetscInt irow=0; irow<nflux_in + npitf_bc; irow++) {
       set_flow_to_zero = PETSC_FALSE;
       PetscInt face_id = face_ids[irow];
@@ -104,7 +104,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
           PetscReal vis = tdy->vis_BND[-cell_id_up-1];
 
           ukvr = Kr/vis;
-	  if (tdy->mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_up-1] <= tdy->Pref) {
+	  if (tdy->options.mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_up-1] <= tdy->Pref) {
             set_flow_to_zero = PETSC_TRUE;
           }
         }
@@ -120,7 +120,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
           PetscReal vis = tdy->vis_BND[-cell_id_dn-1];
 
           ukvr = Kr/vis;
-	  if (tdy->mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_dn-1] <= tdy->Pref) {
+	  if (tdy->options.mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_dn-1] <= tdy->Pref) {
             set_flow_to_zero = PETSC_TRUE;
 	  }
         }
@@ -211,7 +211,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
     PetscReal S = cc->S[icell];
     PetscReal dS_dP = cc->dS_dP[icell];
 
-    PetscReal dmass_dP = 
+    PetscReal dmass_dP =
                 rho     * dporosity_dP * S   +
                 drho_dP * porosity     * S   +
                 rho     * porosity     * dS_dP;
@@ -232,7 +232,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   ierr = VecView(R,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
-  
+
   TDY_STOP_FUNCTION_TIMER()
 
   PetscFunctionReturn(0);
@@ -281,7 +281,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
     PetscInt nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
 
     // Compute T*P
-    PetscScalar TtimesP[nflux_in + npitf_bc];    
+    PetscScalar TtimesP[nflux_in + npitf_bc];
     for (PetscInt irow=0; irow < nflux_in + npitf_bc; irow++) {
 
       PetscInt face_id = face_ids[irow];
@@ -308,7 +308,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
     // d(fluxm_ij)/dP_k =
     //                     rho_ij       +   (kr/mu)_{ij,upwind}       * T_k
     //
-    
+
     for (PetscInt irow=0; irow<nflux_in + npitf_bc; irow++) {
       set_jac_to_zero = PETSC_FALSE;
       PetscInt face_id = face_ids[irow];
@@ -320,7 +320,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
       PetscInt cell_id_dn = cell_ids[1];
 
       // If using neumann bc (which is currently no-flux), then skip the face
-      if ( tdy->mpfao_bc_type == MPFAO_NEUMANN_BC  && (cell_id_up<0 || cell_id_dn <0))  continue;
+      if ( tdy->options.mpfao_bc_type == MPFAO_NEUMANN_BC  && (cell_id_up<0 || cell_id_dn <0))  continue;
 
       PetscReal dukvr_dPup = 0.0;
       PetscReal dukvr_dPdn = 0.0;
@@ -369,8 +369,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 
           ukvr = Kr/vis;
           dukvr_dPup = 0.0;
-	  
-	  if (tdy->mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_up-1] <= tdy->Pref) {
+
+	  if (tdy->options.mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_up-1] <= tdy->Pref) {
 	    set_jac_to_zero = PETSC_TRUE;
 	  }
         }
@@ -396,9 +396,9 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
           ukvr       = Kr/vis;
           dukvr_dPdn = 0.0;
 
-	  if (tdy->mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_dn-1] <= tdy->Pref) {
-	    set_jac_to_zero = PETSC_TRUE;
-	  }
+          if (tdy->options.mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_dn-1] <= tdy->Pref) {
+            set_jac_to_zero = PETSC_TRUE;
+          }
         }
       }
 
@@ -571,7 +571,7 @@ PetscErrorCode TDyMPFAOIJacobian_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,PetscRea
   ierr = MatView(A,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
- 
+
   TDY_STOP_FUNCTION_TIMER()
 
   PetscFunctionReturn(0);
