@@ -1,7 +1,10 @@
 #include <private/tdycoreimpl.h>
 
 /* -------------------------------------------------------------------------- */
-/// Creates a PETSc global vector
+/// Creates a PETSc global vector. A  global vector is parallel, and lays out
+/// data according to the global section. This section assigns dofs to the
+/// points of the local Plex, but leaves out any point that is in the pointSF
+/// because this means it is not owned by the process.
 ///
 /// @param [in] tdy     A TDy struct
 /// @param [out] vector A PETSc vector
@@ -18,7 +21,9 @@ PetscErrorCode TDyCreateGlobalVector(TDy tdy, Vec *vector){
 }
 
 /* -------------------------------------------------------------------------- */
-/// Creates a PETSc local vector
+/// Creates a PETSc local vector. Local: A local vector is serial, and lays out
+/// data according to the local section. This section assigns dofs to the points
+/// of the local Plex.
 ///
 /// @param [in] tdy     A TDy struct
 /// @param [out] vector A PETSc vector
@@ -35,7 +40,8 @@ PetscErrorCode TDyCreateLocalVector(TDy tdy, Vec *vector){
 }
 
 /* -------------------------------------------------------------------------- */
-/// Creates a PETSc natural vector
+/// Creates a PETSc natural vector. A natural vector is a permutation of a
+/// global vector, usually to match the input ordering.
 ///
 /// @param [in] tdy     A TDy struct
 /// @param [out] vector A PETSc vector
