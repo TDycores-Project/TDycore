@@ -21,7 +21,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver currently only supports 3D");
   }
 
-  switch(tdy->method) {
+  switch(tdy->options.method) {
     case TPF:
     case MPFA_O:
       break;
@@ -34,26 +34,26 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   }
 
   if (!TDyIsPorositySet(tdy)) {
-    ierr = TDySetPorosityFunction(tdy,TDyPorosityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+    ierr = TDySetPorosityFunction(tdy,TDyConstantPorosityFunction,PETSC_NULL); CHKERRQ(ierr);
   }
 
   if (!TDyIsPermeabilitySet(tdy)){
-    ierr = TDySetPermeabilityFunction(tdy,TDyPermeabilityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+    ierr = TDySetPermeabilityFunction(tdy,TDyConstantPermeabilityFunction,PETSC_NULL); CHKERRQ(ierr);
   }
 
-  if (tdy->mode == TH) {
+  if (tdy->options.mode == TH) {
 
     if (!TDyIsThermalConductivytSet(tdy)) {
-      ierr = TDySetThermalConductivityFunction(tdy,TDyThermalConductivityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+      ierr = TDySetThermalConductivityFunction(tdy,TDyConstantThermalConductivityFunction,PETSC_NULL); CHKERRQ(ierr);
     }
 
     if (!TDyIsSoilDensitySet(tdy)) {
-      //ierr = TDySetSoilDensity(tdy,TDySoilDensityFunctionDefault); CHKERRQ(ierr);
-      ierr = TDySetSoilDensityFunction(tdy,TDySoilDensityFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+      //ierr = TDySetSoilDensity(tdy,TDyConstantSoilDensityFunction); CHKERRQ(ierr);
+      ierr = TDySetSoilDensityFunction(tdy,TDyConstantSoilDensityFunction,PETSC_NULL); CHKERRQ(ierr);
     }
 
     if (!TDyIsSoilSpecificHeatSet(tdy)) {
-      ierr = TDySetSoilSpecificHeatFunction(tdy,TDySoilSpecificHeatFunctionDefault,PETSC_NULL); CHKERRQ(ierr);
+      ierr = TDySetSoilSpecificHeatFunction(tdy,TDyConstantSoilSpecificHeatFunction,PETSC_NULL); CHKERRQ(ierr);
     }
   }
 
@@ -64,7 +64,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   ierr = TDyCreateJacobian(tdy); CHKERRQ(ierr);
 
   // check for unsupported modes
-  switch (tdy->mode) {
+  switch (tdy->options.mode) {
     case RICHARDS:
     case TH:
       break;
@@ -74,7 +74,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   // check for unsupported time integration methods
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
-      switch (tdy->mode) {
+      switch (tdy->options.mode) {
         case RICHARDS:
           break;
         case TH:
@@ -88,7 +88,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
         SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unrecognized time integration method.");
   }
 
-  // create time integrator 
+  // create time integrator
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
       ierr = SNESCreate(PETSC_COMM_WORLD,&snes);
@@ -122,7 +122,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
 //  ierr = SNESLineSearchSetType(linesearch,SNESLINESEARCHBASIC);
 //         CHKERRQ(ierr);
   // mode specific time integrator settings
-  switch (tdy->mode) {
+  switch (tdy->options.mode) {
     case RICHARDS:
       ierr = SNESLineSearchSetPostCheck(linesearch,TDyRichardsSNESPostCheck,
                                         &tdy); CHKERRQ(ierr);

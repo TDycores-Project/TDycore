@@ -1,5 +1,6 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
+#include <private/tdyconditionsimpl.h>
 #include <private/tdympfao3Dcoreimpl.h>
 #include <private/tdympfaoimpl.h>
 #include <private/tdyeosimpl.h>
@@ -181,45 +182,43 @@ PetscErrorCode TDyFinalize() {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyProcessOptions(TDyOptions *options){
+static PetscErrorCode SetDefaultOptions(TDy tdy) {
   PetscFunctionBegin;
-  PetscErrorCode ierr;
 
+  TDyOptions *options = &tdy->options;
+  options->mode = RICHARDS;
+  options->method = WY;
   options->gravity_constant = 9.8068;
+  options->rho_type = WATER_DENSITY_CONSTANT;
+  options->mu_type = WATER_VISCOSITY_CONSTANT;
+  options->enthalpy_type = WATER_ENTHALPY_CONSTANT;
 
-  options->default_porosity=0.25;
-  options->default_permeability=1.e-12;
-  options->default_soil_density=2650.;
-  options->default_soil_specific_heat=1000.0;
-  options->default_thermal_conductivity=1.0;
+  options->mpfao_gmatrix_method = MPFAO_GMATRIX_DEFAULT;
+  options->mpfao_bc_type = MPFAO_DIRICHLET_BC;
+  options->tpf_allow_all_meshes = PETSC_FALSE;
 
-  options->default_residual_saturation=0.15;
-  options->default_gardner_n=0.5;
-  options->default_vangenuchten_m=0.8;
-  options->default_vangenutchen_alpha=1.e-4;
+  options->qtype = FULL;
 
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: General options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_gravity", "Value of gravity", NULL, options->gravity_constant, &options->gravity_constant, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  options->porosity=0.25;
+  options->permeability=1.e-12;
+  options->soil_density=2650.;
+  options->soil_specific_heat=1000.0;
+  options->thermal_conductivity=1.0;
 
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Material propertiy options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_porosity", "Value of porosity", NULL, options->default_porosity, &options->default_porosity, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_permability", "Value of permeability", NULL, options->default_permeability, &options->default_permeability, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_soil_density", "Value of soil density", NULL, options->default_soil_density, &options->default_soil_density, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_soil_specific_heat", "Value of soil specific heat", NULL, options->default_soil_specific_heat, &options->default_soil_specific_heat, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_thermal_conductivity", "Value of thermal conductivity", NULL, options->default_porosity, &options->default_porosity, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  options->residual_saturation=0.15;
+  options->gardner_n=0.5;
+  options->vangenuchten_m=0.8;
+  options->vangenuchten_alpha=1.e-4;
 
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Characteristic curve options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_residual_satuaration", "Value of residual saturation", NULL, options->default_residual_saturation, &options->default_residual_saturation, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_gardner_param_n", "Value of Gardner n parameter", NULL, options->default_gardner_n, &options->default_gardner_n, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_vangenuchten_param_m", "Value of VanGenuchten m parameter", NULL, options->default_vangenuchten_m, &options->default_vangenuchten_m, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_vangenuchten_param_alpha", "Value of VanGenuchten alpha parameter", NULL, options->default_vangenutchen_alpha, &options->default_vangenutchen_alpha, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  options->boundary_pressure = 0.0;
+  options->boundary_temperature = 273.0;
+  options->boundary_velocity = 0.0;
+
+  options->init_with_random_field = PETSC_FALSE;
+  options->init_from_file = PETSC_FALSE;
 
   PetscFunctionReturn(0);
 }
-
 
 PetscErrorCode TDyCreate(TDy *_tdy) {
   TDy            tdy;
@@ -236,7 +235,7 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   *_tdy = tdy;
   tdy->setupflags |= TDyCreated;
 
-  ierr = TDyProcessOptions(&tdy->options);
+  SetDefaultOptions(tdy);
 
   ierr = TDyIOCreate(&tdy->io); CHKERRQ(ierr);
 
@@ -244,20 +243,12 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   tdy->Pref = 101325;
   tdy->Tref = 25;
   tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
-  tdy->rho_type = WATER_DENSITY_CONSTANT;
-  tdy->mu_type = WATER_VISCOSITY_CONSTANT;
-  tdy->enthalpy_type = WATER_ENTHALPY_CONSTANT;
-  tdy->mpfao_gmatrix_method = MPFAO_GMATRIX_DEFAULT;
-  tdy->mpfao_bc_type = MPFAO_DIRICHLET_BC;
-  tdy->allow_unsuitable_mesh = PETSC_FALSE;
-  tdy->init_with_random_field = PETSC_FALSE;
-  tdy->init_from_file = PETSC_FALSE;
+  tdy->dm = NULL;
 
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
   tdy->quad = NULL;
   tdy->faces = NULL; tdy->LtoG = NULL; tdy->orient = NULL;
-  tdy->qtype = FULL;
 
   tdy->setupflags |= TDyParametersInitialized;
   PetscFunctionReturn(0);
@@ -265,6 +256,15 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
 
 PetscErrorCode TDySetDM(TDy tdy, DM dm) {
   PetscFunctionBegin;
+  if (tdy->dm != NULL) {
+    if (tdy->options.generate_mesh) {
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+        "Can't call TDySetDM: A DM has already been generated from supplied options.");
+    } else { // we read a mesh from a file
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+        "Can't call TDySetDM: A DM has already been read from a given file.");
+    }
+  }
   if (!dm) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"A DM must be created prior to TDySetDM()");
   }
@@ -313,14 +313,14 @@ PetscErrorCode TDyMalloc(TDy tdy) {
    PetscReal mualem_poly_low = 0.99;
 
   for (c=0; c<nc; c++) {
-    cc->sr[c] = options->default_residual_saturation;
-    cc->gardner_n[c] = options->default_gardner_n;
-    cc->gardner_m[c] = options->default_vangenuchten_m;
-    cc->vg_m[c] = options->default_vangenuchten_m;
+    cc->sr[c] = options->residual_saturation;
+    cc->gardner_n[c] = options->gardner_n;
+    cc->gardner_m[c] = options->vangenuchten_m;
+    cc->vg_m[c] = options->vangenuchten_m;
     cc->mualem_poly_low[c] = mualem_poly_low;
-    cc->mualem_m[c] = options->default_vangenuchten_m;
-    cc->irmay_m[c] = options->default_vangenuchten_m;
-    cc->vg_alpha[c] = options->default_vangenutchen_alpha;
+    cc->mualem_m[c] = options->vangenuchten_m;
+    cc->irmay_m[c] = options->vangenuchten_m;
+    cc->vg_alpha[c] = options->vangenuchten_alpha;
     cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
     cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
     cc->Kr[c] = 0.0;
@@ -355,14 +355,23 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
   PetscScalar   *coords;
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  MPI_Comm comm = PETSC_COMM_WORLD;
   if ((tdy->setupflags & TDyOptionsSet) == 0) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Options must be set prior to TDyCreateGrid()");
+    SETERRQ(comm,PETSC_ERR_USER,"Options must be set prior to TDyCreateGrid()");
   }
 
   if (!tdy->dm) {
     DM dm;
-    ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
-    ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
+    if (tdy->options.generate_mesh) {
+      // Here we lean on PETSc's DM* options.
+      ierr = DMCreate(comm, &dm); CHKERRQ(ierr);
+      ierr = DMSetType(dm, DMPLEX); CHKERRQ(ierr);
+      ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+      ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
+    } else { // if (tdy->options.read_mesh)
+      ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
+                                  PETSC_TRUE, &dm); CHKERRQ(ierr);
+    }
     tdy->dm = dm;
   }
 
@@ -534,78 +543,170 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
   PetscFunctionReturn(0);
 }
 
+/// Sets options for the dycore based on command line arguments supplied by a
+/// user. TDySetFromOptions must be called before TDySetupNumericalMethods,
+/// since the latter uses options specified by the former.
+/// @param tdy The dycore instance
 PetscErrorCode TDySetFromOptions(TDy tdy) {
-  // must preceed TDySetupNumericalMethods() as it sets options used in TDySetupNumericalMethods()
   PetscErrorCode ierr;
-  PetscBool flg;
-  TDyMethod method = WY;
-  TDyMode mode = RICHARDS;
-  TDyQuadratureType qtype = FULL;
-  TDyWaterDensityType densitytype = WATER_DENSITY_CONSTANT;
-  TDyMPFAOGmatrixMethod gmatrixmethod = MPFAO_GMATRIX_DEFAULT;
-  TDyMPFAOBoundaryConditionType bctype = MPFAO_DIRICHLET_BC;
   PetscFunctionBegin;
+
   if ((tdy->setupflags & TDySetupFinished) != 0) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetupNumericalMethods()");
   }
+
+  // Collect options from command line arguments.
+  TDyOptions *options = &tdy->options;
+
+  //------------------------------------------
+  // Set options using command line parameters
+  //------------------------------------------
+
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   ierr = PetscObjectOptionsBegin((PetscObject)tdy); CHKERRQ(ierr);
-  ierr = PetscOptionsEnum("-tdy_method","Discretization method",
-                          "TDySetDiscretizationMethod",TDyMethods,(PetscEnum)method,(PetscEnum *)&method,
-                          &flg); CHKERRQ(ierr);
-  if (flg && (method != tdy->method)) {
-    ierr = TDySetDiscretizationMethod(tdy,method); CHKERRQ(ierr);
+  PetscBool flag;
+
+  // Material property options
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Material property options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_porosity", "Value of porosity", NULL, options->porosity, &options->porosity, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_permability", "Value of permeability", NULL, options->permeability, &options->permeability, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_soil_density", "Value of soil density", NULL, options->soil_density, &options->soil_density, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_soil_specific_heat", "Value of soil specific heat", NULL, options->soil_specific_heat, &options->soil_specific_heat, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_thermal_conductivity", "Value of thermal conductivity", NULL, options->porosity, &options->porosity, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // Characteristic curve options
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Characteristic curve options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_residual_satuaration", "Value of residual saturation", NULL, options->residual_saturation, &options->residual_saturation, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_gardner_param_n", "Value of Gardner n parameter", NULL, options->gardner_n, &options->gardner_n, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_vangenuchten_param_m", "Value of VanGenuchten m parameter", NULL, options->vangenuchten_m, &options->vangenuchten_m, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_vangenuchten_param_alpha", "Value of VanGenuchten alpha parameter", NULL, options->vangenuchten_alpha, &options->vangenuchten_alpha, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // Model options
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Model options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_mode","Flow mode",
+                          "TDySetMode",TDyModes,(PetscEnum)options->mode,
+                          (PetscEnum *)&options->mode, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_gravity", "Magnitude of gravity vector", NULL,
+                          options->gravity_constant, &options->gravity_constant,
+                          NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_water_density","Water density vertical profile",
+                          "TDySetWaterDensityType",TDyWaterDensityTypes,
+                          (PetscEnum)options->rho_type,
+                          (PetscEnum *)&options->rho_type, NULL); CHKERRQ(ierr);
+
+  // Boundary conditions.
+  char func_name[PETSC_MAX_PATH_LEN];
+  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_pressure_bc_func", func_name,
+                               sizeof(func_name), &flag); CHKERRQ(ierr);
+  if (flag) {
+    // TODO: When/where are we supposed to get the context for this function?
+    ierr = TDySelectBoundaryPressureFn(tdy, func_name, NULL);
+  } else {
+    ierr = PetscOptionsReal("-tdy_pressure_bc_value", "Constant boundary pressure", NULL,
+                            options->boundary_pressure, &options->boundary_pressure,
+                            &flag); CHKERRQ(ierr);
+    if (flag) {
+      ierr = TDySetBoundaryPressureFn(tdy, TDyConstantBoundaryPressureFn,
+                                      PETSC_NULL); CHKERRQ(ierr);
+    } else { // TODO: what goes here??
+    }
   }
-  ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type",
-                          "TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&qtype,
-                          &flg); CHKERRQ(ierr);
-  if (flg && (qtype != tdy->qtype)) { ierr = TDySetQuadratureType(tdy,qtype); CHKERRQ(ierr); }
+  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_velocity_bc_func", func_name,
+                               sizeof(func_name), &flag); CHKERRQ(ierr);
+  if (flag) {
+    // TODO: When/where are we supposed to get the context for this function?
+    ierr = TDySelectBoundaryVelocityFn(tdy, func_name, NULL);
+  } else {
+    ierr = PetscOptionsReal("-tdy_velocity_bc_value", "Constant normal boundary velocity",
+                            NULL, options->boundary_pressure, &options->boundary_pressure,
+                            &flag); CHKERRQ(ierr);
+    if (flag) {
+      ierr = TDySetBoundaryVelocityFn(tdy, TDyConstantBoundaryVelocityFn,
+                                      PETSC_NULL); CHKERRQ(ierr);
+    } else { // TODO: what goes here??
+    }
+  }
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // Numerics options
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Numerics options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_method","Discretization method",
+                          "TDySetDiscretizationMethod",TDyMethods,
+                          (PetscEnum)options->method,(PetscEnum *)&options->method,
+                          NULL); CHKERRQ(ierr);
+  TDyQuadratureType qtype = FULL;
+  ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type for finite element methods",
+                          "TDySetQuadratureType",TDyQuadratureTypes,
+                          (PetscEnum)qtype,(PetscEnum *)&options->qtype,
+                          NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-tdy_tpf_allow_all_meshes",
+                          "Enable to allow non-orthgonal meshes in finite volume TPF method",
+                          "",options->tpf_allow_all_meshes,
+                          &(options->tpf_allow_all_meshes),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_mpfao_gmatrix_method","MPFA-O gmatrix method",
+                          "TDySetMPFAOGmatrixMethod",TDyMPFAOGmatrixMethods,
+                          (PetscEnum)options->mpfao_gmatrix_method,
+                          (PetscEnum *)&options->mpfao_gmatrix_method,
+                          NULL); CHKERRQ(ierr);
+  TDyMPFAOBoundaryConditionType bctype = MPFAO_DIRICHLET_BC;
+  ierr = PetscOptionsEnum("-tdy_mpfao_boundary_condition_type","MPFA-O boundary condition type",
+                          "TDySetMPFAOBoundaryConditionType",TDyMPFAOBoundaryConditionTypes,(PetscEnum)bctype,
+                          (PetscEnum *)&bctype, &flag); CHKERRQ(ierr);
+  if (flag && (bctype != tdy->options.mpfao_bc_type)) {
+    ierr = TDySetMPFAOBoundaryConditionType(tdy,bctype); CHKERRQ(ierr);
+  }
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
   ierr = PetscOptionsBool("-tdy_init_with_random_field",
                           "Initialize solution with a random field","",
-                          tdy->init_with_random_field,
-                          &(tdy->init_with_random_field),NULL); CHKERRQ(ierr);
+                          options->init_with_random_field,
+                          &(options->init_with_random_field),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_init_file", options->init_file,
+                               sizeof(options->init_file),
+                               &options->init_from_file); CHKERRQ(ierr);
 
-  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_init_file", tdy->init_file, sizeof(tdy->init_file), &tdy->init_from_file); CHKERRQ(ierr);
+  if (options->init_from_file && options->init_with_random_field) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+            "Only one of -tdy_init_from_file and -tdy_init_with_random_field can be specified");
+  }
 
-  ierr = PetscOptionsBool("-tdy_tpf_allow_unsuitable_mesh",
-                          "Enable to allow non-orthgonal meshes in tpf","",tdy->allow_unsuitable_mesh,
-                          &(tdy->allow_unsuitable_mesh),NULL); CHKERRQ(ierr);
+  // Mesh-related options
+  ierr = PetscOptionsBool("-tdy_generate_mesh",
+                          "Generate a mesh using provided PETSc DM options","",
+                          options->generate_mesh,
+                          &(options->generate_mesh),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_mesh", options->mesh_file,
+                               sizeof(options->mesh_file),
+                               &options->read_mesh); CHKERRQ(ierr);
+  if (options->generate_mesh && options->read_mesh) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+            "Only one of -tdy_generate_mesh and -tdy_read_mesh can be specified");
+  }
+  if ((tdy->dm != NULL) && (options->generate_mesh || options->read_mesh)) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+            "TDySetDM was called before TDySetFromOptions: can't generate or "
+            "read a mesh");
+  }
+  if ((tdy->dm == NULL) && !(options->generate_mesh || options->read_mesh)) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+            "No mesh is available for TDycore: please use TDySetDM, "
+            "-tdy_generate_mesh, or -tdy_read_mesh to specify a mesh");
+  }
 
+  // Other options
   ierr = PetscOptionsBool("-tdy_regression_test",
-                          "Enable output of a regression file","",tdy->regression_testing,
-                          &(tdy->regression_testing),NULL); CHKERRQ(ierr);
+                          "Enable output of a regression file","",
+                          options->regression_testing,
+                          &(options->regression_testing),NULL); CHKERRQ(ierr);
 
   ierr = PetscOptionsBool("-tdy_output_mesh",
-                          "Enable output of mesh attributes","",tdy->output_mesh,
-                          &(tdy->output_mesh),NULL); CHKERRQ(ierr);
-
-  ierr = PetscOptionsEnum("-tdy_water_density","Water density type",
-                          "TDySetWaterDensityType",TDyWaterDensityTypes,(PetscEnum)densitytype,(PetscEnum *)&densitytype,
-                          &flg); CHKERRQ(ierr);
-  if (flg) {ierr = TDySetWaterDensityType(tdy,densitytype); CHKERRQ(ierr);}
-
-  ierr = PetscOptionsEnum("-tdy_mode","Flow mode",
-                          "TDySetMode",TDyModes,(PetscEnum)mode,(PetscEnum *)&mode,
-                          &flg); CHKERRQ(ierr);
-
-  if (flg && (mode != tdy->mode)) { ierr = TDySetMode(tdy,mode); CHKERRQ(ierr); }
-
-  ierr = PetscOptionsEnum("-tdy_mpfao_gmatrix_method","MPFA-O gmatrix method",
-                          "TDySetMPFAOGmatrixMethod",TDyMPFAOGmatrixMethods,(PetscEnum)gmatrixmethod,(PetscEnum *)&gmatrixmethod,
-                          &flg); CHKERRQ(ierr);
-  if (flg && (gmatrixmethod != tdy->mpfao_gmatrix_method)) { ierr = TDySetMPFAOGmatrixMethod(tdy,gmatrixmethod); CHKERRQ(ierr); }
-
-  ierr = PetscOptionsEnum("-tdy_mpfao_boundary_condition_type","MPFA-O boundary condition type",
-                          "TDySetMPFAOBoundaryConditionType",TDyMPFAOBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype,
-                          &flg); CHKERRQ(ierr);
-  if (flg && (bctype != tdy->mpfao_bc_type)) { ierr = TDySetMPFAOBoundaryConditionType(tdy,bctype); CHKERRQ(ierr); }
-
+                          "Enable output of mesh attributes","",options->output_mesh,
+                          &(options->output_mesh),NULL); CHKERRQ(ierr);
+  // Wrap up and indicate that options are set.
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   tdy->setupflags |= TDyOptionsSet;
-
-  if (tdy->init_from_file && tdy->init_with_random_field) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Both -tdy_init_from_file and -tdy_init_with_random_field cannot be specified");
-  }
 
   ierr = TDyCreateGrid(tdy); CHKERRQ(ierr);
 
@@ -618,7 +719,7 @@ PetscErrorCode TDySetupDiscretizationScheme(TDy tdy) {
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
-  switch (tdy->method) {
+  switch (tdy->options.method) {
   case TPF:
     ierr = TDyTPFInitialize(tdy); CHKERRQ(ierr);
     break;
@@ -646,7 +747,7 @@ PetscErrorCode TDySetupDiscretizationScheme(TDy tdy) {
 }
 
 PetscErrorCode TDySetupNumericalMethods(TDy tdy) {
-  /* must follow TDySetFromOptions() is it relies upon options set by 
+  /* must follow TDySetFromOptions() is it relies upon options set by
      TDySetFromOptions */
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -655,14 +756,14 @@ PetscErrorCode TDySetupNumericalMethods(TDy tdy) {
   }
   TDY_START_FUNCTION_TIMER()
   TDyEnterProfilingStage("TDycore Setup");
-  ierr = TDySetupDiscretizationScheme(tdy); CHKERRQ(ierr); 
-  if (tdy->regression_testing) {
-    /* must come after Sections are set up in 
+  ierr = TDySetupDiscretizationScheme(tdy); CHKERRQ(ierr);
+  if (tdy->options.regression_testing) {
+    /* must come after Sections are set up in
        TDySetupDiscretizationScheme->XXXInitialize */
     ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
   }
-  if (tdy->output_mesh) {
-    if (tdy->method != MPFA_O) {
+  if (tdy->options.output_mesh) {
+    if (tdy->options.method != MPFA_O) {
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
               "-tdy_output_mesh only supported for MPFA-O method");
     }
@@ -676,35 +777,28 @@ PetscErrorCode TDySetupNumericalMethods(TDy tdy) {
 
 PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
   PetscFunctionBegin;
-  tdy->method = method;
+  tdy->options.method = method;
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDySetMode(TDy tdy,TDyMode mode) {
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
-  tdy->mode = mode;
+  tdy->options.mode = mode;
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDySetQuadratureType(TDy tdy,TDyQuadratureType qtype) {
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
-  tdy->qtype = qtype;
+  tdy->options.qtype = qtype;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetWaterDensityType(TDy tdy,TDyWaterDensityType dentype) {
+PetscErrorCode TDySetWaterDensityType(TDy tdy, TDyWaterDensityType dentype) {
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
-  switch (dentype) {
-  case WATER_DENSITY_CONSTANT:
-    tdy->rho_type = WATER_DENSITY_CONSTANT;
-    break;
-  case WATER_DENSITY_EXPONENTIAL:
-    tdy->rho_type = WATER_DENSITY_EXPONENTIAL;
-    break;
-  }
+  tdy->options.rho_type = dentype;
   PetscFunctionReturn(0);
 }
 
@@ -712,7 +806,7 @@ PetscErrorCode TDySetMPFAOGmatrixMethod(TDy tdy,TDyMPFAOGmatrixMethod method) {
   PetscFunctionBegin;
 
   PetscValidPointer(tdy,1);
-  tdy->mpfao_gmatrix_method = method;
+  tdy->options.mpfao_gmatrix_method = method;
 
   PetscFunctionReturn(0);
 }
@@ -721,7 +815,7 @@ PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy tdy,TDyMPFAOBoundaryConditio
   PetscFunctionBegin;
 
   PetscValidPointer(tdy,1);
-  tdy->mpfao_bc_type = bctype;
+  tdy->options.mpfao_bc_type = bctype;
 
   PetscFunctionReturn(0);
 }
@@ -744,14 +838,14 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   ierr = PetscSectionGetNumFields(sec, &num_fields);
   ierr = TSGetDM(ts,&dm);CHKERRQ(ierr);
 
-  switch (tdy->method) {
+  switch (tdy->options.method) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TPF");
     break;
   case MPFA_O:
     switch (dim) {
     case 3:
-      switch (tdy->mode) {
+      switch (tdy->options.mode) {
       case RICHARDS:
         ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh,tdy); CHKERRQ(ierr);
         break;
@@ -805,13 +899,13 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
-  switch (tdy->method) {
+  switch (tdy->options.method) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for TPF");
     break;
   case MPFA_O:
     ierr = TDyCreateJacobian(tdy); CHKERRQ(ierr);
-    switch (tdy->mode) {
+    switch (tdy->options.mode) {
     case RICHARDS:
       ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_3DMesh,tdy); CHKERRQ(ierr);
       break;
@@ -853,7 +947,7 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
-  switch (tdy->method) {
+  switch (tdy->options.method) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for TPF");
     break;
@@ -897,7 +991,7 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
   ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
-  switch (tdy->method) {
+  switch (tdy->options.method) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for TPF");
     break;
@@ -934,7 +1028,7 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
-  switch (tdy->method) {
+  switch (tdy->options.method) {
   case TPF:
     ierr = TDyTPFComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
@@ -972,7 +1066,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&P);CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
 
-  if (tdy->mode == TH) {
+  if (tdy->options.mode == TH) {
     for (c=0;c<cEnd-cStart;c++) {
       P[c] = U[c*2];
       temp[c] = U[c*2+1];
@@ -1022,16 +1116,19 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
 
     for(j=0; j<dim2; j++) matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
 
-    ierr = ComputeWaterDensity(P[i], tdy->rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
-    ierr = ComputeWaterViscosity(P[i], tdy->mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
-    if (tdy->mode ==  TH) {
-      for(j=0; j<dim2; j++) matprop->Kappa[i*dim2+j] = matprop->Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
-      ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);
+    ierr = ComputeWaterDensity(P[i], tdy->options.rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
+    ierr = ComputeWaterViscosity(P[i], tdy->options.mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
+    if (tdy->options.mode ==  TH) {
+      for(j=0; j<dim2; j++)
+        matprop->Kappa[i*dim2+j] = matprop->Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
+      ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->options.enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);
       tdy->u[i] = tdy->h[i] - P[i]/tdy->rho[i];
     }
   }
 
-  if ( (tdy->method == MPFA_O || tdy->method == MPFA_O_DAE || tdy->method == MPFA_O_TRANSIENTVAR) && dim == 3) {
+  if ( (tdy->options.method == MPFA_O ||
+        tdy->options.method == MPFA_O_DAE ||
+        tdy->options.method == MPFA_O_TRANSIENTVAR) && dim == 3) {
     PetscReal *p_vec_ptr, gz;
     TDyMesh *mesh = tdy->mesh;
     TDyCell *cells = &mesh->cells;
@@ -1044,7 +1141,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     }
     ierr = VecRestoreArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
 
-    if (tdy->mode == TH) {
+    if (tdy->options.mode == TH) {
       PetscReal *t_vec_ptr;
       ierr = VecGetArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
       for (c=cStart; c<cEnd; c++) {
@@ -1331,7 +1428,7 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
-  switch (tdy->method) {
+  switch (tdy->options.method) {
   case TPF:
     if(normp != NULL) { *normp = TDyTPFPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyTPFVelocityNorm(tdy,U); }
@@ -1370,7 +1467,7 @@ PetscErrorCode TDyOutputRegression(TDy tdy, Vec U) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  if (tdy->regression_testing){
+  if (tdy->options.regression_testing){
     ierr = TDyRegressionOutput(tdy,U); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -1422,7 +1519,7 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
   ierr = PetscObjectGetComm((PetscObject)tdy->dm,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
-  switch (tdy->method) {
+  switch (tdy->options.method) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for TPF");
     break;
@@ -1528,4 +1625,3 @@ const char* NewCString(char* f_str_ptr, int f_str_len) {
     return str;
   }
 }
-

@@ -430,7 +430,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   nlocal = dim*nv + 1;
 
   /* Get quadrature */
-  switch(tdy->qtype) {
+  switch(tdy->options.qtype) {
   case FULL:
     ierr = PetscDTGaussTensorQuadrature(dim  ,1,nq1d,-1,+1,&     quadrature); CHKERRQ(ierr);
     ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&face_quadrature); CHKERRQ(ierr);

@@ -69,7 +69,7 @@ PetscErrorCode TDyComputeGMatrixMPFAOFor3DMesh(TDy tdy) {
     // extract thermal conductivity tensor
     PetscReal Kappa[3][3];
 
-    if (tdy->mode == TH) {
+    if (tdy->options.mode == TH) {
       for (PetscInt ii=0; ii<dim; ii++) {
         for (PetscInt jj=0; jj<dim; jj++) {
           Kappa[ii][jj] = matprop->Kappa0[icell*dim*dim + ii*dim + jj];
@@ -102,7 +102,7 @@ PetscErrorCode TDyComputeGMatrixMPFAOFor3DMesh(TDy tdy) {
           ierr = TDyComputeEntryOfGMatrix3D(area, normal, K, nu, subcells->T[subcell_id], dim,
                                           &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
 
-          if (tdy->mode == TH) {
+          if (tdy->options.mode == TH) {
                ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
 
               ierr = TDyComputeEntryOfGMatrix3D(area, normal, Kappa,
@@ -151,7 +151,7 @@ PetscErrorCode TDyComputeGMatrixTPFFor3DMesh(TDy tdy) {
     // extract thermal conductivity tensor
     PetscReal Kappa[3][3];
 
-    if (tdy->mode == TH) {
+    if (tdy->options.mode == TH) {
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
           Kappa[ii][jj] = matprop->Kappa0[icell*dim*dim + ii*dim + jj];
@@ -243,7 +243,7 @@ PetscErrorCode TDyComputeGMatrixTPFFor3DMesh(TDy tdy) {
             tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist);
           }
 
-          if (tdy->mode == TH) {
+          if (tdy->options.mode == TH) {
               if (ii == jj) {
               ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
 
@@ -563,7 +563,8 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
   PetscInt npitf_dir_bc_all, npitf_neu_bc_all;
 
-  if (tdy->mpfao_bc_type == MPFAO_DIRICHLET_BC || tdy->mpfao_bc_type == MPFAO_SEEPAGE_BC) {
+  if (tdy->options.mpfao_bc_type == MPFAO_DIRICHLET_BC ||
+      tdy->options.mpfao_bc_type == MPFAO_SEEPAGE_BC) {
     nflux_dir_bc_up = nflux_all_bc_up;
     nflux_dir_bc_dn = nflux_all_bc_dn;
     npitf_dir_bc_all= npitf_bc_all;
@@ -1020,7 +1021,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   // Need to swap entries in (*Trans)[vertices->id][:][:] such that
   // Step-1. Rows correspond to faces saved in the order of vertices->face_ids[:]
   // Step-2. Columns are such that boundary cells are followed by the internal cell.
-  //         The boundary cells are in the order of vertices->cell_ids[1:3] 
+  //         The boundary cells are in the order of vertices->cell_ids[1:3]
   //         Note: vertices->cell_ids[0] correspond to internal cell
   // Step-3. Finally move the last column as the first column. So, columns
   //         are in the order of vertices->cell_ids[0:3]
@@ -1137,7 +1138,7 @@ PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()  
+  TDY_START_FUNCTION_TIMER()
 
   // If a face is shared by two cells that belong to different
   // regions, zero the rows in the transmissiblity matrix
@@ -1155,7 +1156,7 @@ PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
           PetscInt row[1];
           row[0] = iface*num_subfaces + isubface;
           ierr = MatZeroRows(tdy->Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
-          if (tdy->mode == TH) {
+          if (tdy->options.mode == TH) {
             ierr = MatZeroRows(tdy->Temp_Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
           }
         }
@@ -1180,22 +1181,23 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  
+
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
     if (!vertices->is_local[ivertex]) continue;
 
     if (vertices->num_boundary_faces[ivertex] == 0 || vertices->num_internal_cells[ivertex] > 1) {
       ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(tdy, ivertex, cells, 0); CHKERRQ(ierr);
-      if (tdy->mode == TH) {
+      if (tdy->options.mode == TH) {
         ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(tdy, ivertex, cells, 1); CHKERRQ(ierr);
       }
     } else {
       // It is assumed that neumann boundary condition is a zero-flux boundary condition.
       // Thus, compute transmissiblity entries only for dirichlet boundary condition.
-      if (tdy->mpfao_bc_type == MPFAO_DIRICHLET_BC || tdy->mpfao_bc_type == MPFAO_SEEPAGE_BC) {
+      if (tdy->options.mpfao_bc_type == MPFAO_DIRICHLET_BC ||
+          tdy->options.mpfao_bc_type == MPFAO_SEEPAGE_BC) {
         ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
-        if (tdy->mode == TH) {
+        if (tdy->options.mode == TH) {
           ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 1); CHKERRQ(ierr);
         }
       }
@@ -1205,14 +1207,14 @@ PetscErrorCode TDyComputeTransmissibilityMatrix3DMesh(TDy tdy) {
   ierr = MatAssemblyBegin(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
-  if (tdy->mode == TH) {
+  if (tdy->options.mode == TH) {
     ierr = MatAssemblyBegin(tdy->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(tdy->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
 
   TDyRegion *region = &mesh->region_connected;
   if (region->num_cells > 0){
-    if (tdy->mpfao_gmatrix_method == MPFAO_GMATRIX_TPF ) {
+    if (tdy->options.mpfao_gmatrix_method == MPFAO_GMATRIX_TPF ) {
       ierr = TDyUpdateTransmissibilityMatrix(tdy); CHKERRQ(ierr);
     } else {
       PetscPrintf(PETSC_COMM_WORLD,"WARNING -- Connected region option is only supported with MPFA-O TPF\n");
@@ -1437,11 +1439,11 @@ PetscErrorCode ComputeFacePermeabilityTensor(TDy tdy, PetscInt face_id, PetscRea
 ///   g       = gravity vector
 ///   GravDis = gravity discretization term that is not dependent on the unknown variable(s)
 ///             such as pressure, temperautre. Thus, this term is precomputed.
-/// 
+///
 /// Starnoni, M., Berre, I., Keilegavlen, E., & Nordbotten, J. M. (2019).
 /// Consistent mpfa discretization for flow in the presence of gravity. Water
 /// Resources Research, 55, 10105– 10118. https://doi.org/10.1029/2019WR025384
-/// 
+///
 /// @param [in] tdy A TDy struct
 /// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
@@ -1492,7 +1494,7 @@ PetscErrorCode TDyComputeGravityDiscretizationFor3DMesh(TDy tdy) {
 
       // Currently, only zero-flux neumann boundary condition is implemented.
       // If the boundary condition is neumann, then gravity discretization term is zero
-      if (tdy->mpfao_bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
+      if (tdy->options.mpfao_bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
 
       PetscInt cell_id;
       if (cell_id_up < 0) {

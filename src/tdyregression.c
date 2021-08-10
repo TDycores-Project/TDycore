@@ -24,7 +24,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
 
 
   ndof_per_cell = 1;
-  if (tdy->mode == TH) ndof_per_cell = 2;
+  if (tdy->options.mode == TH) ndof_per_cell = 2;
 
   regression = (TDyRegression *) malloc(sizeof(TDyRegression));
 
@@ -61,7 +61,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
     ierr = PetscMalloc(ndof_per_cell*size*regression->num_cells_per_process*sizeof(PetscInt),&(regression->cells_per_process_natural_ids)); CHKERRQ(ierr);
   }
 
-  if (tdy->mode == TH) {
+  if (tdy->options.mode == TH) {
     increment = floor(vecsize_local/regression->num_cells_per_process/2);
   }
   else {
@@ -170,14 +170,14 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   PetscReal *temp_p, *pres_p, *u_p;
   ierr = VecGetLocalSize(U,&vec_local_size); CHKERRQ(ierr);
   ierr = VecCreate(PetscObjectComm((PetscObject)dm),&U_pres); CHKERRQ(ierr);
-  if (tdy->mode == TH) {
+  if (tdy->options.mode == TH) {
     vec_local_size = vec_local_size/2;
   }
   ierr = VecSetSizes(U_pres,vec_local_size,PETSC_DECIDE); CHKERRQ(ierr);
   ierr = VecSetFromOptions(U_pres); CHKERRQ(ierr);
   ierr = VecGetArray(U_pres,&pres_p); CHKERRQ(ierr);
 
-  if (tdy->mode == TH) {
+  if (tdy->options.mode == TH) {
     ierr = VecCreate(PetscObjectComm((PetscObject)dm),&U_temp); CHKERRQ(ierr);
     ierr = VecSetSizes(U_temp,vec_local_size,PETSC_DECIDE); CHKERRQ(ierr);
     ierr = VecSetFromOptions(U_temp); CHKERRQ(ierr);
@@ -187,7 +187,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
 
   ierr = VecGetArray(U,&u_p); CHKERRQ(ierr);
 
-  if (tdy->mode == TH && num_fields == 2) {
+  if (tdy->options.mode == TH && num_fields == 2) {
     for (c=0;c<vec_local_size;c++) {
       pres_p[c] = u_p[c*2];
       temp_p[c] = u_p[c*2+1];
@@ -201,7 +201,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   ierr = VecRestoreArray(U,&u_p); CHKERRQ(ierr);
   ierr = VecRestoreArray(U_pres,&pres_p); CHKERRQ(ierr);
 
-  if (tdy->mode == TH) {
+  if (tdy->options.mode == TH) {
     ierr = VecRestoreArray(U_temp,&temp_p); CHKERRQ(ierr);
   }
 
@@ -211,7 +211,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   ierr = VecGetSize(U_pres,&pres_vec_size); CHKERRQ(ierr);
   mean_pres_val = mean_pres_val/pres_vec_size;
 
-  if (tdy->mode == TH) {
+  if (tdy->options.mode == TH) {
     ierr = VecMax(U_temp,NULL,&max_temp_val); CHKERRQ(ierr);
     ierr = VecMin(U_temp,NULL,&min_temp_val); CHKERRQ(ierr);
     ierr = VecSum(U_temp,&mean_temp_val); CHKERRQ(ierr);
@@ -237,7 +237,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
     fprintf(fp,"      Min: %21.13e\n",min_pres_val);
     fprintf(fp,"     Mean: %21.13e\n",mean_pres_val);
 
-    if (tdy->mode == TH) {
+    if (tdy->options.mode == TH) {
       for (i=0; i<count/2; i++) {
         fprintf(fp,"%9d: %21.13e\n",reg->cells_per_process_natural_ids[2*i]/2,vec_ptr[2*i]);
       }
@@ -247,7 +247,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
       }
     }
 
-    if (tdy->mode == TH) {
+    if (tdy->options.mode == TH) {
       fprintf(fp,"-- GENERIC: Temperature --\n");
       fprintf(fp,"      Max: %21.13e\n",max_temp_val);
       fprintf(fp,"      Min: %21.13e\n",min_temp_val);
@@ -263,7 +263,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   }
 
   ierr = VecDestroy(&U_pres); CHKERRQ(ierr);
-  if (tdy->mode == TH) ierr = VecDestroy(&U_temp); CHKERRQ(ierr);
+  if (tdy->options.mode == TH) ierr = VecDestroy(&U_temp); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);

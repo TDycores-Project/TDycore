@@ -707,7 +707,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
 
-  if (tdy->mode == TH) {
+  if (tdy->options.mode == TH) {
     for (c=0;c<cEnd-cStart;c++) {
       p[c] = u_p[c*2];
     }

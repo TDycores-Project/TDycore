@@ -39,12 +39,12 @@ PetscErrorCode TDyGetFunction(const char* name, Function* f) {
       *f = kh_val(funcs_, iter);
     } else {
       ierr = -1;
-      SETERRQ(MPI_COMM_WORLD, ierr, "Function not found!");
+      SETERRQ(PETSC_COMM_WORLD, ierr, "Function not found!");
       return ierr;
     }
   } else {
     ierr = -1;
-    SETERRQ(MPI_COMM_WORLD, ierr, "No functions have been registered!");
+    SETERRQ(PETSC_COMM_WORLD, ierr, "No functions have been registered!");
     return ierr;
   }
   PetscFunctionReturn(0);
@@ -141,6 +141,24 @@ PetscErrorCode TDySetEnergySourceSinkValuesLocal(TDy tdy, PetscInt ni, const Pet
   for(i=0; i<ni; i++) {
     tdy->energy_source_sink[ix[i]] = y[i];
   }
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyConstantBoundaryPressureFn(TDy tdy, PetscReal *x, PetscReal *p, void *ctx) {
+  PetscFunctionBegin;
+  TDyOptions *options = &tdy->options;
+
+  *p = options->boundary_pressure;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyConstantBoundaryVelocityFn(TDy tdy, PetscReal *x, PetscReal *v, void *ctx) {
+  PetscFunctionBegin;
+  TDyOptions *options = &tdy->options;
+
+  *v = options->boundary_velocity;
 
   PetscFunctionReturn(0);
 }

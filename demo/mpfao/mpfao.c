@@ -208,15 +208,18 @@ int main(int argc, char **argv) {
   ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
 
   /* Create and distribute the mesh */
+  MPI_Comm comm = PETSC_COMM_WORLD;
   DM dm;
-  ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
+  ierr = DMCreate(comm, &dm); CHKERRQ(ierr);
+  ierr = DMSetType(dm, DMPLEX); CHKERRQ(ierr);
+  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
   if (perturb) {ierr = PerturbInteriorVertices(dm,perturbation); CHKERRQ(ierr);}
   ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
   ierr = TDySetDM(tdy,dm); CHKERRQ(ierr);
 
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
+  ierr = PetscOptionsBegin(comm,NULL,"Sample Options","");
   CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-problem","Problem number","",problem,&problem,NULL);
   CHKERRQ(ierr);
@@ -286,18 +289,18 @@ int main(int argc, char **argv) {
 
 #if defined(DEBUG)
   PetscViewer viewer;
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"K.mat",&viewer); CHKERRQ(ierr);
+  ierr = PetscViewerASCIIOpen(comm,"K.mat",&viewer); CHKERRQ(ierr);
   ierr = MatView(K,viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"trans.mat",&viewer); CHKERRQ(ierr);
+  ierr = PetscViewerASCIIOpen(comm,"trans.mat",&viewer); CHKERRQ(ierr);
   ierr = MatView(tdy->Trans_mat,viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
 
   // Solve system
   KSP ksp;
-  ierr = KSPCreate(PETSC_COMM_WORLD,&ksp); CHKERRQ(ierr);
+  ierr = KSPCreate(comm,&ksp); CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp,K,K); CHKERRQ(ierr);
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
@@ -305,7 +308,7 @@ int main(int argc, char **argv) {
 
   PetscReal normp, normv;
   ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e\n",normp,normv);CHKERRQ(ierr);
+  ierr = PetscPrintf(comm,"%e %e\n",normp,normv);CHKERRQ(ierr);
 
   ierr = TDyOutputRegression(tdy,U);
 
