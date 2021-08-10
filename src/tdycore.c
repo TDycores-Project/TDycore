@@ -243,6 +243,7 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   tdy->Pref = 101325;
   tdy->Tref = 25;
   tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
+  tdy->dm = NULL;
 
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
@@ -255,6 +256,15 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
 
 PetscErrorCode TDySetDM(TDy tdy, DM dm) {
   PetscFunctionBegin;
+  if (tdy->dm != NULL) {
+    if (tdy->options.generate_mesh) {
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+        "Can't call TDySetDM: A DM has already been generated from supplied options.");
+    } else { // we read a mesh from a file
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+        "Can't call TDySetDM: A DM has already been read from a given file.");
+    }
+  }
   if (!dm) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"A DM must be created prior to TDySetDM()");
   }
@@ -351,8 +361,14 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
 
   if (!tdy->dm) {
     DM dm;
-    ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
-    ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
+    if (tdy->options.generate_mesh) {
+      // TODO: Let's jettison our own options in favor of PETSc's DM options.
+      ierr = TDyCreateDM(&dm); CHKERRQ(ierr);
+      ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
+    } else { // if (tdy->options.read_mesh)
+      ierr = DMPlexCreateFromFile(PETSC_COMM_WORLD, tdy->options.mesh_file,
+                                  PETSC_TRUE, &dm); CHKERRQ(ierr);
+    }
     tdy->dm = dm;
   }
 
@@ -605,7 +621,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     ierr = TDySetBoundaryVelocityFn(tdy, TDyConstantBoundaryVelocityFn,
                                     PETSC_NULL); CHKERRQ(ierr);
   }
-
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Numerics options
@@ -650,6 +665,30 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
             "Only one of -tdy_init_from_file and -tdy_init_with_random_field can be specified");
   }
 
+  // Mesh-related options
+  ierr = PetscOptionsBool("-tdy_generate_mesh",
+                          "Generate a mesh using provided PETSc DM options","",
+                          options->generate_mesh,
+                          &(options->generate_mesh),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_mesh", options->mesh_file,
+                               sizeof(options->mesh_file),
+                               &options->read_mesh); CHKERRQ(ierr);
+  if (options->generate_mesh && options->read_mesh) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+            "Only one of -tdy_generate_mesh and -tdy_read_mesh can be specified");
+  }
+  if ((tdy->dm != NULL) && (options->generate_mesh || options->read_mesh)) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+            "TDySetDM was called before TDySetFromOptions: can't generate or "
+            "read a mesh");
+  }
+  if ((tdy->dm == NULL) && !(options->generate_mesh || options->read_mesh)) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+            "No mesh is available for TDycore: please use TDySetDM, "
+            "-tdy_generate_mesh, or -tdy_read_mesh to specify a mesh");
+  }
+
+  // Other options
   ierr = PetscOptionsBool("-tdy_regression_test",
                           "Enable output of a regression file","",
                           options->regression_testing,

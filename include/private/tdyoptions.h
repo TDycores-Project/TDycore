@@ -37,10 +37,17 @@ typedef struct {
   PetscReal boundary_temperature;
   PetscReal boundary_velocity; // (normal component)
 
-  // I/O settings
+  // Initial conditions
   PetscBool init_with_random_field;
   PetscBool init_from_file;
   char init_file[PETSC_MAX_PATH_LEN];
+
+  // Mesh-related options
+  PetscBool generate_mesh;
+  PetscBool read_mesh;
+  char mesh_file[PETSC_MAX_PATH_LEN];
+
+  // I/O settings
   PetscBool output_mesh;
   PetscBool regression_testing;
 
