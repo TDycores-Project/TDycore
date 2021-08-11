@@ -5,6 +5,7 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
+#include <private/tdydiscretization.h>
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode ComputeEntryOfGMatrix2D(PetscReal edge_len, PetscReal n[3],

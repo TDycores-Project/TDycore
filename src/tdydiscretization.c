@@ -57,23 +57,6 @@ PetscErrorCode TDyCreateNaturalVector(TDy tdy, Vec *vector){
 }
 
 /* -------------------------------------------------------------------------- */
-/// Duplicates a PETSc vector
-///
-/// @param [in] tdy      A TDy struct
-/// @param [in] vector1  A PETSc vector
-/// @param [out] vector2 A PETSc vector
-/// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyDuplicateVector(TDy tdy, Vec vector1, Vec *vector2){
-
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-
-  ierr = VecDuplicate(vector1, vector2); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
 /// Creates a Jacobian matrix
 ///
 /// @param [in] tdy     A TDy struct

@@ -1469,9 +1469,9 @@ PetscErrorCode TDyCreateVectors(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   ierr = TDyCreateGlobalVector(tdy,&tdy->solution); CHKERRQ(ierr);
-  ierr = TDyDuplicateVector(tdy,tdy->solution,&tdy->residual); CHKERRQ(ierr);
-  ierr = TDyDuplicateVector(tdy,tdy->solution,&tdy->accumulation_prev); CHKERRQ(ierr);
-  ierr = TDyDuplicateVector(tdy,tdy->solution,&tdy->soln_prev); CHKERRQ(ierr);
+  ierr = VecDuplicate(tdy->solution,&tdy->residual); CHKERRQ(ierr);
+  ierr = VecDuplicate(tdy->solution,&tdy->accumulation_prev); CHKERRQ(ierr);
+  ierr = VecDuplicate(tdy->solution,&tdy->soln_prev); CHKERRQ(ierr);
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }

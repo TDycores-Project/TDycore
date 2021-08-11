@@ -5,7 +5,7 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
-
+#include <private/tdydiscretization.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
 #include <private/tdympfao3Dtsimpl.h>

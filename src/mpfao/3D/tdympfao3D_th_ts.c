@@ -7,6 +7,7 @@
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfao3Dutilsimpl.h>
+#include <private/tdydiscretization.h>
 
 //#define DEBUG
 #if defined(DEBUG)
