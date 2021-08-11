@@ -1,6 +1,7 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdyioimpl.h>
 #include <tdyio.h>
+#include <private/tdydiscretization.h>
 #if defined(PETSC_HAVE_EXODUSII)
 #include "exodusII.h"
 #endif
@@ -89,7 +90,7 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     zonalVarNames[n] =  tdy->io->zonalVarNames[n];
   }
 
-  ierr = DMCreateGlobalVector(dm, &s);
+  ierr = TDyCreateGlobalVector(tdy, &s);
   ierr = VecGetArray(s,&s_vec_ptr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   for (c=cStart;c<cEnd;c++) {
@@ -116,12 +117,12 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     if (useNatural) {
       Vec p_natural;
       Vec s_natural;
-      ierr = DMCreateGlobalVector(dm, &p_natural);
-      ierr = DMPlexGlobalToNaturalBegin(dm, p, p_natural);CHKERRQ(ierr);
-      ierr = DMPlexGlobalToNaturalEnd(dm, p, p_natural);CHKERRQ(ierr);
-      ierr = DMCreateGlobalVector(dm, &s_natural);
-      ierr = DMPlexGlobalToNaturalBegin(dm, s, s_natural);CHKERRQ(ierr);
-      ierr = DMPlexGlobalToNaturalEnd(dm, s, s_natural);CHKERRQ(ierr);
+      ierr = TDyCreateGlobalVector(tdy,&p_natural);
+      ierr = TDyGlobalToNatural(tdy, p, p_natural);CHKERRQ(ierr);
+
+      ierr = TDyCreateGlobalVector(tdy, &s_natural);
+      ierr = TDyGlobalToNatural(tdy, s, s_natural);CHKERRQ(ierr);
+
       ierr = TDyIOWriteHDF5Var(ofilename,dm,p_natural,zonalVarNames[0],time);CHKERRQ(ierr);
       ierr = TDyIOWriteHDF5Var(ofilename,dm,s_natural,zonalVarNames[1],time);CHKERRQ(ierr);
     }

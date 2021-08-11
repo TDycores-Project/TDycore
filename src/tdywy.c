@@ -1,6 +1,7 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdyutils.h>
 #include <petscblaslapack.h>
+#include <private/tdydiscretization.h>
 #include <tdytimers.h>
 
 #define MAX_LOCAL_SIZE 144
@@ -650,8 +651,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   PetscScalar *u,pdirichlet,wgt;
   Vec localU;
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
-  ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
-  ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,localU); CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
   ierr = DMGetSection(dm, &section); CHKERRQ(ierr);
   nq   = tdy->ncv;
@@ -926,8 +926,7 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   nv   = tdy->nfv;
   wgt  = 1/((PetscReal)nv);
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
-  ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
-  ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);

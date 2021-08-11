@@ -8,6 +8,7 @@
 #include <private/tdympfao2Dimpl.h>
 #include <private/tdympfao3Dcoreimpl.h>
 #include <private/tdyeosimpl.h>
+#include <private/tdydiscretization.h>
 #include <petscblaslapack.h>
 
 
@@ -754,8 +755,7 @@ PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
-  ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
-  ierr = DMGlobalToLocalEnd  (dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,localU); CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
 
   norm_sum = 0.0;

@@ -3,6 +3,7 @@
 #include <private/tdymeshimpl.h>
 #include <private/tdymemoryimpl.h>
 #include <private/tdyutils.h>
+#include <private/tdydiscretization.h>
 
 /* ---------------------------------------------------------------- */
 TDyCellType GetCellType(PetscInt dim, PetscInt nverts_per_cell) {
@@ -675,7 +676,7 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
   ierr = MPI_Comm_rank(PetscObjectComm((PetscObject) dm), &rank);CHKERRQ(ierr);
 
   // Once needs to atleast haved called a DMCreateXYZ() before using DMPlexGetPointGlobal()
-  ierr = DMCreateGlobalVector(dm, &junkVec); CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(tdy, &junkVec); CHKERRQ(ierr);
   ierr = VecDestroy(&junkVec); CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);

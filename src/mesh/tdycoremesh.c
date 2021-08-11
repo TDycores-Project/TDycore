@@ -7,6 +7,7 @@
 #include <private/tdyutils.h>
 #include <private/tdymeshutilsimpl.h>
 #include <private/tdyregionimpl.h>
+#include <private/tdydiscretization.h>
 
 /* ---------------------------------------------------------------- */
 
@@ -438,7 +439,7 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
 
     // Create the natural vector
     Vec natural;
-    ierr = DMCreateGlobalVector(dm, &natural);
+    ierr = TDyCreateGlobalVector(tdy, &natural);
     PetscInt natural_size, cum_natural_size;
     ierr = VecGetLocalSize(natural, &natural_size);
     ierr = MPI_Scan(&natural_size, &cum_natural_size, 1, MPI_INT, MPI_SUM, PETSC_COMM_WORLD);CHKERRQ(ierr);
@@ -458,15 +459,13 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
 
     // Map natural IDs in global order
     Vec global;
-    ierr = DMCreateGlobalVector(dm, &global);CHKERRQ(ierr);
-    ierr = DMPlexNaturalToGlobalBegin(dm, natural, global);CHKERRQ(ierr);
-    ierr = DMPlexNaturalToGlobalEnd(dm, natural, global);CHKERRQ(ierr);
+    ierr = TDyCreateGlobalVector(tdy, &global);CHKERRQ(ierr);
+    ierr = TDyNaturalToGlobal(tdy, natural, global);CHKERRQ(ierr);
 
     // Map natural IDs in local order
     Vec local;
-    ierr = DMCreateLocalVector(dm, &local);CHKERRQ(ierr);
-    ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, local); CHKERRQ(ierr);
-    ierr = DMGlobalToLocalEnd(dm, global, INSERT_VALUES, local); CHKERRQ(ierr);
+    ierr = TDyCreateLocalVector(tdy, &local);CHKERRQ(ierr);
+    ierr = TDyGlobalToLocal(tdy,global,local); CHKERRQ(ierr);
 
     // Save natural IDs
     PetscInt local_size;
@@ -498,14 +497,12 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
       ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
       // Map natural IDs in global order
-      ierr = DMCreateGlobalVector(dm, &global);CHKERRQ(ierr);
-      ierr = DMPlexNaturalToGlobalBegin(dm, region_id_nat_idx, global);CHKERRQ(ierr);
-      ierr = DMPlexNaturalToGlobalEnd(dm, region_id_nat_idx, global);CHKERRQ(ierr);
+      ierr = TDyCreateGlobalVector(tdy, &global);CHKERRQ(ierr);
+      ierr = TDyNaturalToGlobal(tdy, region_id_nat_idx, global);CHKERRQ(ierr);
 
       // Map natural IDs in local order
-      ierr = DMCreateLocalVector(dm, &local);CHKERRQ(ierr);
-      ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, local); CHKERRQ(ierr);
-      ierr = DMGlobalToLocalEnd(dm, global, INSERT_VALUES, local); CHKERRQ(ierr);
+      ierr = TDyCreateLocalVector(tdy, &local);CHKERRQ(ierr);
+      ierr = TDyGlobalToLocal(tdy, global, local); CHKERRQ(ierr);
 
       // Save the region ids
       ierr = VecGetLocalSize(local, &local_size);
