@@ -213,18 +213,18 @@ program main
 
   !Solve system
   call KSPCreate(PETSC_COMM_WORLD,ksp,ierr)
-  CHKERRQ(ierr)
+  CHKERRA(ierr)
 
   call KSPSetOperators(ksp,K,K,ierr)
-  CHKERRQ(ierr)
+  CHKERRA(ierr)
   call KSPSetFromOptions(ksp,ierr)
-  CHKERRQ(ierr)
+  CHKERRA(ierr)
 
   call KSPSetUp(ksp,ierr)
-  CHKERRQ(ierr)
+  CHKERRA(ierr)
 
   call KSPSolve(ksp,F,U,ierr)
-  CHKERRQ(ierr)
+  CHKERRA(ierr)
 
   call TDyComputeErrorNorms(tdy,U,normp,normv,ierr)
   CHKERRA(ierr)
@@ -234,19 +234,19 @@ program main
   CHKERRA(ierr)
 
   call KSPDestroy(ksp,ierr)
-  CHKERRQ(ierr)
+  CHKERRA(ierr)
 
   call VecDestroy(U,ierr)
-  CHKERRQ(ierr)
+  CHKERRA(ierr)
 
   call VecDestroy(F,ierr)
-  CHKERRQ(ierr)
+  CHKERRA(ierr)
 
   call MatDestroy(K,ierr)
-  CHKERRQ(ierr)
+  CHKERRA(ierr)
 
   call TDyDestroy(tdy,ierr)
-  CHKERRQ(ierr)
+  CHKERRA(ierr)
 
   call TDyFinalize(ierr)
   CHKERRA(ierr)

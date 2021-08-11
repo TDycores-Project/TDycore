@@ -239,7 +239,7 @@ implicit none
     CHKERRA(ierr);
     if (dm_plex_extrude_layers > 0) then
       call DMPlexExtrude(dm, PETSC_DETERMINE, -1.d0, PETSC_TRUE, PETSC_NULL_REAL, PETSC_TRUE, edm, ierr);
-      CHKERRQ(ierr);
+      CHKERRA(ierr);
       call DMDestroy(dm ,ierr);
       dm = edm
     end if
@@ -351,7 +351,7 @@ implicit none
   if (bc_type == MPFAO_DIRICHLET_BC .OR. bc_type == MPFAO_SEEPAGE_BC ) then
 !     call TDySetBoundaryPressureFn(tdy,PressureFunction,0,ierr);
      call TDySelectBoundaryPressureFn(tdy,"p0",ierr);
-     CHKERRQ(ierr)
+     CHKERRA(ierr)
   endif
 
   if (use_tdydriver) then
@@ -427,7 +427,7 @@ implicit none
        call SNESGetConvergedReason(snes,reason,ierr)
        CHKERRA(ierr)
        if (reason<0) then
-          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SNES did not converge");
+          call PetscError(PETSC_COMM_WORLD, 0, PETSC_ERR_USER, "SNES did not converge");
        endif
     endif
 
