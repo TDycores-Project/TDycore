@@ -760,23 +760,14 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   // Create our mesh.
   ierr = TDyCreateGrid(tdy); CHKERRQ(ierr);
 
-  // If we have been instructed to initialize the solution from a random field
-  // or a file, do so.
-  if (options->init_with_random_field || options->init_from_file) {
+  // If we have been instructed to initialize the solution from a file, do so.
+  if (options->init_from_file) {
     ierr = TDyCreateVectors(tdy); CHKERRQ(ierr);
-    if (options->init_with_random_field) {
-      PetscRandom rand;
-      ierr = PetscRandomCreate(comm, &rand); CHKERRQ(ierr);
-      ierr = PetscRandomSetInterval(rand,1e4, 1e6); CHKERRQ(ierr);
-      ierr = VecSetRandom(tdy->solution, rand); CHKERRQ(ierr);
-      ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
-    } else {
-      PetscViewer viewer;
-      ierr = PetscViewerBinaryOpen(comm, options->init_file, FILE_MODE_READ,
-                                   &viewer); CHKERRQ(ierr);
-      ierr = VecLoad(tdy->solution, viewer); CHKERRQ(ierr);
-      ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-    }
+    PetscViewer viewer;
+    ierr = PetscViewerBinaryOpen(comm, options->init_file, FILE_MODE_READ,
+                                 &viewer); CHKERRQ(ierr);
+    ierr = VecLoad(tdy->solution, viewer); CHKERRQ(ierr);
+    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }

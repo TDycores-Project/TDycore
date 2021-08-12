@@ -54,9 +54,9 @@ PetscErrorCode TDyTHTSPostStep(TS ts) {
   PetscFunctionBegin;
   ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
   ierr = MPI_Comm_rank(comm,&rank); CHKERRQ(ierr);
-  ierr = TSGetTimeStep(ts,&dt); CHKERRQ(ierr); 
-  ierr = TSGetTime(ts,&time); CHKERRQ(ierr); 
-  ierr = TSGetStepNumber(ts,&istep); CHKERRQ(ierr); 
+  ierr = TSGetTimeStep(ts,&dt); CHKERRQ(ierr);
+  ierr = TSGetTime(ts,&time); CHKERRQ(ierr);
+  ierr = TSGetStepNumber(ts,&istep); CHKERRQ(ierr);
   ierr = TSGetSNES(ts,&snes); CHKERRQ(ierr);
   ierr = SNESGetIterationNumber(snes,&nit); CHKERRQ(ierr); ierr = SNESGetLinearSolveIterations(snes,&lit); CHKERRQ(ierr);
   ierr = SNESGetConvergedReason(snes,&reason); CHKERRQ(ierr);
@@ -108,8 +108,8 @@ PetscErrorCode TDyTHConvergenceTest(SNES snes, PetscInt it,
   ierr = VecView(r,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
-  if (!rank) 
+  if (!rank)
     printf("%3d: %9.2e %9.2e %9.2e\n",it,fnorm,xnorm,unorm);
-    
+
   PetscFunctionReturn(0);
 }
