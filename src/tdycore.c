@@ -245,6 +245,8 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   tdy->Tref = 25;
   tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
   tdy->dm = NULL;
+  tdy->solution = NULL;
+  tdy->J = NULL;
 
   /* initialize method information to null */
   tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
@@ -376,7 +378,14 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
     tdy->dm = dm;
   }
 
-  /* compute/store plex geometry */
+  // Mark the grid's boundary faces.
+  DMLabel boundary_label;
+  ierr = DMCreateLabel(tdy->dm, "boundary"); CHKERRQ(ierr);
+  ierr = DMGetLabel(tdy->dm, "boundary", &boundary_label); CHKERRQ(ierr);
+  ierr = DMPlexMarkBoundaryFaces(tdy->dm, 1, boundary_label); CHKERRQ(ierr);
+  ierr = DMPlexLabelComplete(tdy->dm, boundary_label); CHKERRQ(ierr);
+
+  // Compute/store plex geometry.
   PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
   TDyStartTimer(t1);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
@@ -552,8 +561,10 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
+  MPI_Comm comm = PETSC_COMM_WORLD;
+
   if ((tdy->setupflags & TDySetupFinished) != 0) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetupNumericalMethods()");
+    SETERRQ(comm,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetupNumericalMethods()");
   }
 
   // Collect options from command line arguments.
@@ -568,7 +579,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscBool flag;
 
   // Material property options
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Material property options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Material property options",""); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_porosity", "Value of porosity", NULL, options->porosity, &options->porosity, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_permability", "Value of permeability", NULL, options->permeability, &options->permeability, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_soil_density", "Value of soil density", NULL, options->soil_density, &options->soil_density, NULL); CHKERRQ(ierr);
@@ -577,7 +588,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Characteristic curve options
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Characteristic curve options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Characteristic curve options",""); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_residual_satuaration", "Value of residual saturation", NULL, options->residual_saturation, &options->residual_saturation, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_gardner_param_n", "Value of Gardner n parameter", NULL, options->gardner_n, &options->gardner_n, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_vangenuchten_param_m", "Value of VanGenuchten m parameter", NULL, options->vangenuchten_m, &options->vangenuchten_m, NULL); CHKERRQ(ierr);
@@ -585,7 +596,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Model options
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Model options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Model options",""); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_mode","Flow mode",
                           "TDySetMode",TDyModes,(PetscEnum)options->mode,
                           (PetscEnum *)&options->mode, NULL); CHKERRQ(ierr);
@@ -632,7 +643,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Numerics options
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Numerics options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Numerics options",""); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_method","Discretization method",
                           "TDySetDiscretizationMethod",TDyMethods,
                           (PetscEnum)options->method,(PetscEnum *)&options->method,
@@ -669,7 +680,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                                &options->init_from_file); CHKERRQ(ierr);
 
   if (options->init_from_file && options->init_with_random_field) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+    SETERRQ(comm,PETSC_ERR_USER,
             "Only one of -tdy_init_from_file and -tdy_init_with_random_field can be specified");
   }
 
@@ -682,16 +693,16 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                                sizeof(options->mesh_file),
                                &options->read_mesh); CHKERRQ(ierr);
   if (options->generate_mesh && options->read_mesh) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+    SETERRQ(comm,PETSC_ERR_USER,
             "Only one of -tdy_generate_mesh and -tdy_read_mesh can be specified");
   }
   if ((tdy->dm != NULL) && (options->generate_mesh || options->read_mesh)) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+    SETERRQ(comm,PETSC_ERR_USER,
             "TDySetDM was called before TDySetFromOptions: can't generate or "
             "read a mesh");
   }
   if ((tdy->dm == NULL) && !(options->generate_mesh || options->read_mesh)) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+    SETERRQ(comm,PETSC_ERR_USER,
             "No mesh is available for TDycore: please use TDySetDM, "
             "-tdy_generate_mesh, or -tdy_read_mesh to specify a mesh");
   }
@@ -709,8 +720,27 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   tdy->setupflags |= TDyOptionsSet;
 
+  // Create our mesh.
   ierr = TDyCreateGrid(tdy); CHKERRQ(ierr);
 
+  // If we have been instructed to initialize the solution from a random field
+  // or a file, do so.
+  if (options->init_with_random_field || options->init_from_file) {
+    ierr = TDyCreateVectors(tdy); CHKERRQ(ierr);
+    if (options->init_with_random_field) {
+      PetscRandom rand;
+      ierr = PetscRandomCreate(comm, &rand); CHKERRQ(ierr);
+      ierr = PetscRandomSetInterval(rand,1e4, 1e6); CHKERRQ(ierr);
+      ierr = VecSetRandom(tdy->solution, rand); CHKERRQ(ierr);
+      ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
+    } else {
+      PetscViewer viewer;
+      ierr = PetscViewerBinaryOpen(comm, options->init_file, FILE_MODE_READ,
+                                   &viewer); CHKERRQ(ierr);
+      ierr = VecLoad(tdy->solution, viewer); CHKERRQ(ierr);
+      ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+    }
+  }
   PetscFunctionReturn(0);
 }
 
@@ -1561,24 +1591,33 @@ PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
   PetscFunctionReturn(0);
 }
 
+/// Allocates storage for the vectors used by the dycore. Storage is allocated
+/// the first time the function is called. Subsequent calls have no effect.
 PetscErrorCode TDyCreateVectors(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-  ierr = TDyCreateGlobalVector(tdy,&tdy->solution); CHKERRQ(ierr);
-  ierr = VecDuplicate(tdy->solution,&tdy->residual); CHKERRQ(ierr);
-  ierr = VecDuplicate(tdy->solution,&tdy->accumulation_prev); CHKERRQ(ierr);
-  ierr = VecDuplicate(tdy->solution,&tdy->soln_prev); CHKERRQ(ierr);
+  if (tdy->solution == NULL) {
+    ierr = TDyCreateGlobalVector(tdy,&tdy->solution); CHKERRQ(ierr);
+    ierr = VecDuplicate(tdy->solution,&tdy->residual); CHKERRQ(ierr);
+    ierr = VecDuplicate(tdy->solution,&tdy->accumulation_prev); CHKERRQ(ierr);
+    ierr = VecDuplicate(tdy->solution,&tdy->soln_prev); CHKERRQ(ierr);
+  }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
+/// Allocates storage for the dycore's Jacobian and preconditioner matrices.
+/// Storage is allocated the first time the function is called. Subsequent calls
+/// have no effect.
 PetscErrorCode TDyCreateJacobian(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-  ierr = TDyCreateJacobianMatrix(tdy,&tdy->J); CHKERRQ(ierr);
-  ierr = TDyCreateJacobianMatrix(tdy,&tdy->Jpre); CHKERRQ(ierr);
+  if (tdy->J == NULL) {
+    ierr = TDyCreateJacobianMatrix(tdy,&tdy->J); CHKERRQ(ierr);
+    ierr = TDyCreateJacobianMatrix(tdy,&tdy->Jpre); CHKERRQ(ierr);
+  }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
