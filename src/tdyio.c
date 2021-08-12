@@ -87,6 +87,11 @@ PetscErrorCode TDyIOSetPrintIntermediate(TDyIO io, PetscBool flag){
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+/// Reads in and sets initial permeability for the TDy solver
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyIOReadPermeability(TDy tdy){
   PetscFunctionBegin;
   PetscInt cStart,cEnd,ncell,c,n,BlockSize;
@@ -162,6 +167,11 @@ PetscErrorCode TDyIOReadPermeability(TDy tdy){
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+/// Reads in and sets initial porosity for the TDy solver
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyIOReadPorosity(TDy tdy){
   PetscFunctionBegin;
   PetscInt cStart,cEnd,ncell,c;
@@ -192,6 +202,11 @@ PetscErrorCode TDyIOReadPorosity(TDy tdy){
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+/// Reads in and sets initial condition for the TDy solver
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyIOReadIC(TDy tdy){
   PetscFunctionBegin;
   PetscInt cStart,cEnd,ncell,c;
@@ -209,20 +224,28 @@ PetscErrorCode TDyIOReadIC(TDy tdy){
     strcpy(VariableName, tdy->io->ic_dataset);
   }
   
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
-  ncell = (cEnd-cStart);
   ierr = VecCreate(PETSC_COMM_WORLD,&u);
-  ierr = VecSetSizes(u,ncell,PETSC_DECIDE);
   
   ierr = PetscObjectSetName((PetscObject) u, VariableName);
   
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,tdy->io->ic_filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
   ierr = VecLoad(u,viewer);CHKERRQ(ierr);
+  
   ierr = TDyNaturaltoLocal(tdy->dm,u,&u_local);CHKERRQ(ierr);
+  
   ierr = TDySetInitialCondition(tdy,u_local);CHKERRQ(ierr);
   PetscFunctionReturn(0); 
 }
 
+/* -------------------------------------------------------------------------- */
+/// Reads in and sets initial permeability for the TDy solver
+///
+/// @param [inout] tdy A TDy struct
+/// @param [in] VariableName A char that is set as the variable name for the
+///                          PETSc vector read in from the HDF5 file
+/// @param [in] filename A char that is the filename of the HDF5 file
+/// @param [inout] variable A pointer to the values read in from HDF5 file 
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, PetscReal **variable){
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -237,8 +260,9 @@ PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, Pe
   
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
   ierr = VecLoad(u,viewer);CHKERRQ(ierr);
- 
+  
   ierr = TDyNaturaltoLocal(tdy->dm,u,&u_local);CHKERRQ(ierr);
+  
   ierr = VecGetArray(u_local,&ptr);CHKERRQ(ierr);
   ierr = VecGetSize(u_local,&n);CHKERRQ(ierr);
 
