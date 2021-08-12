@@ -479,10 +479,47 @@ PetscErrorCode TDyGetDimension(TDy tdy,PetscInt *dim) {
   PetscFunctionReturn(0);
 }
 
+/// Retrieves the DM used by the dycore. This must be called after
+/// TDySetDM or TDySetFromOptions.
+/// @param dm A pointer that stores the DM in use by the dycore
 PetscErrorCode TDyGetDM(TDy tdy,DM *dm) {
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   *dm = tdy->dm;
+  PetscFunctionReturn(0);
+}
+
+/// Retrieves the indices of the faces belonging to the domain boundary
+/// for the dycore. This must be called after TDySetFromOptions. Call
+/// TDyRestoreBoundaryFaces when you're finished manipulating boundary
+/// faces.
+/// @param num_faces A pointer that stores the number of boundary faces
+/// @param faces A pointer to an array that stores the indices of boundary faces
+PetscErrorCode TDyGetBoundaryFaces(TDy tdy, PetscInt *num_faces,
+                                   const PetscInt **faces) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  DMLabel label;
+  IS is;
+  ierr = DMGetLabel(tdy->dm, "boundary", &label); CHKERRQ(ierr);
+  ierr = DMLabelGetStratumSize(label, 1, num_faces); CHKERRQ(ierr);
+  ierr = DMLabelGetStratumIS(label, 1, &is); CHKERRQ(ierr);
+  ierr = ISGetIndices(is, faces); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Resets the pointers set by TDyGetBoundaryFaces.
+/// @param num_faces A pointer that stores the number of boundary faces
+/// @param faces A pointer to an array that stores the indices of boundary faces
+PetscErrorCode TDyRestoreBoundaryFaces(TDy tdy, PetscInt *num_faces,
+                                       const PetscInt** faces) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  DMLabel label;
+  IS is;
+  ierr = DMGetLabel(tdy->dm, "boundary", &label); CHKERRQ(ierr);
+  ierr = DMLabelGetStratumIS(label, 1, &is); CHKERRQ(ierr);
+  ierr = ISRestoreIndices(is, faces); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
