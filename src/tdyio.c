@@ -1,5 +1,6 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdyioimpl.h>
+#include <private/tdyutils.h>
 #include <tdyio.h>
 #include <private/tdydiscretization.h>
 #if defined(PETSC_HAVE_EXODUSII)
@@ -7,10 +8,13 @@
 #endif
 #include <petsc/private/dmpleximpl.h>
 #include <petscviewerhdf5.h>
+#include <private/tdymemoryimpl.h>
 
 PetscErrorCode TDyIOCreate(TDyIO *_io) {
-  TDyIO io;
   PetscFunctionBegin;
+  TDyIO io;
+  PetscErrorCode ierr;  
+  
   io = (TDyIO)malloc(sizeof(struct _p_TDyIO));
   *_io = io;
 
@@ -22,6 +26,52 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   io->format = NullFormat;
   io->num_times = 0;
 
+  io->permeability_filename[0] = '\0';
+  io->porosity_filename[0] = '\0';
+  io->ic_filename[0] = '\0';
+
+  io->permeability_dataset[0] = '\0';
+  io->porosity_dataset[0] = '\0';
+  io->ic_dataset[0] = '\0';
+
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); 
+                           CHKERRQ(ierr);
+  ierr = PetscOptionsString("-init_permeability_file",
+                            "Input Permeability Filename","",
+			    io->permeability_filename,io->permeability_filename,
+			    PETSC_MAX_PATH_LEN,NULL);
+                            CHKERRQ(ierr);
+  ierr = PetscOptionsString("-permeability_dataset",
+                            "Input Permeability Dataset Name","",
+			    io->permeability_dataset,io->permeability_dataset,
+			    PETSC_MAX_PATH_LEN,NULL);
+                            CHKERRQ(ierr);
+  ierr = PetscOptionsString("-init_porosity_file",
+                            "Input Porosity Filename","",
+			    io->porosity_filename,io->porosity_filename,
+			    PETSC_MAX_PATH_LEN,NULL);
+                            CHKERRQ(ierr);
+  ierr = PetscOptionsString("-porosity_dataset",
+                            "Input Porosity Dataset Name","",
+			    io->porosity_dataset,io->porosity_dataset,
+			    PETSC_MAX_PATH_LEN,NULL);
+                            CHKERRQ(ierr);
+  ierr = PetscOptionsString("-ic_file",
+                            "Input IC Filename","",
+			    io->ic_filename,io->ic_filename,
+			    PETSC_MAX_PATH_LEN,NULL);
+                            CHKERRQ(ierr);
+  ierr = PetscOptionsString("-ic_dataset",
+                            "Input IC Dataset Name","",
+			    io->ic_dataset,io->ic_dataset,
+			    PETSC_MAX_PATH_LEN,NULL);
+                            CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-anisotropic_perm",
+                          "Anisotropic Permeability","",
+                          io->anisotropic_permeability,&(io->anisotropic_permeability),NULL);
+                          CHKERRQ(ierr);
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  
   PetscFunctionReturn(0);
 }
 
@@ -34,6 +84,197 @@ PetscErrorCode TDyIOSetIOProcess(TDyIO io, PetscBool flag){
 PetscErrorCode TDyIOSetPrintIntermediate(TDyIO io, PetscBool flag){
   PetscFunctionBegin;
   io->print_intermediate=flag;
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Reads in and sets initial permeability for the TDy solver
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyIOReadPermeability(TDy tdy){
+  PetscFunctionBegin;
+  PetscInt cStart,cEnd,ncell,c,BlockSize;
+  PetscErrorCode ierr;
+  PetscReal *K;
+  PetscReal *Kx;
+  PetscReal *Ky;
+  PetscReal *Kz;
+  char VariableName[PETSC_MAX_PATH_LEN-1];
+  char VariableNameX[PETSC_MAX_PATH_LEN];
+  char VariableNameY[PETSC_MAX_PATH_LEN];
+  char VariableNameZ[PETSC_MAX_PATH_LEN];
+  PetscInt dim;
+  PetscReal *BlockPerm;
+  PetscReal *perm;
+  size_t len;
+  char *filename = tdy->io->permeability_filename;
+  
+  ierr = PetscStrlen(tdy->io->permeability_dataset, &len); CHKERRQ(ierr);
+  if (!len){
+    strcpy(VariableName, "Permeability");
+  } else {
+    strcpy(VariableName, tdy->io->permeability_dataset);
+  }
+
+  ierr = DMGetDimension(tdy->dm, &dim);
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ncell = (cEnd-cStart);
+  BlockSize = ncell * dim * dim;
+  ierr = TDyAllocate_RealArray_1D(&BlockPerm,BlockSize);CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&perm,9);CHKERRQ(ierr);
+
+  if (tdy->io->anisotropic_permeability) {
+    sprintf(VariableNameX,"%s%s",VariableName,"X");
+    sprintf(VariableNameY,"%s%s",VariableName,"Y");
+    sprintf(VariableNameZ,"%s%s",VariableName,"Z");
+    ierr = TDyIOReadVariable(tdy,VariableNameX,filename,&Kx);CHKERRQ(ierr);
+    ierr = TDyIOReadVariable(tdy,VariableNameY,filename,&Ky);CHKERRQ(ierr);
+    ierr = TDyIOReadVariable(tdy,VariableNameZ,filename,&Kz);CHKERRQ(ierr);
+    
+  }
+  else {
+    ierr = TDyIOReadVariable(tdy,VariableName,filename,&K);CHKERRQ(ierr);
+  }
+  
+  PetscInt index[ncell];
+  for (c = 0;c<=ncell;++c){
+     index[c] = c;
+  }
+  
+  if (tdy->io->anisotropic_permeability) {
+     for (int i = 0;i<ncell;++i){
+       perm[0] = Kx[i];
+       perm[4] = Ky[i];
+       perm[8] = Kz[i];
+       for (int j=0;j<dim*dim;++j) {
+	 BlockPerm[i*dim*dim + j] = perm[j];
+       }
+     }
+     ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,BlockPerm);CHKERRQ(ierr);   
+  } else {
+     perm[0] = K[0];
+     perm[4] = K[1];
+     perm[8] = K[2];
+     for (int i = 0;i<ncell;++i){
+       for (int j=0;j<dim*dim;++j) {
+	 BlockPerm[i*dim*dim + j] = perm[j];
+       }
+     }		      
+     ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,BlockPerm);CHKERRQ(ierr);
+  }
+  
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Reads in and sets initial porosity for the TDy solver
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyIOReadPorosity(TDy tdy){
+  PetscFunctionBegin;
+  PetscInt cStart,cEnd,ncell,c;
+  PetscErrorCode ierr;
+  PetscReal *Porosity;
+  char VariableName[PETSC_MAX_PATH_LEN];
+  size_t len;
+  char *filename = tdy->io->porosity_filename;
+  
+  ierr = PetscStrlen(tdy->io->porosity_dataset, &len); CHKERRQ(ierr);
+  if (!len){
+    strcpy(VariableName, "Porosity");
+  } else {
+    strcpy(VariableName, tdy->io->porosity_dataset);
+  }
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ncell = (cEnd-cStart);
+
+  ierr = TDyIOReadVariable(tdy,VariableName,filename,&Porosity);
+  PetscInt index[ncell];
+  for (c = 0;c<=ncell;++c){
+     index[c] = c;
+  }
+
+  ierr = TDySetPorosityValuesLocal(tdy,ncell,index,Porosity);
+  
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Reads in and sets initial condition for the TDy solver
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyIOReadIC(TDy tdy){
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscViewer viewer;
+  Vec u;
+  char VariableName[PETSC_MAX_PATH_LEN];
+  size_t len;
+  
+  ierr = PetscStrlen(tdy->io->ic_dataset, &len); CHKERRQ(ierr);
+  if (!len){
+    strcpy(VariableName, "IC");
+  } else {
+    strcpy(VariableName, tdy->io->ic_dataset);
+  }
+  
+  ierr = VecCreate(PETSC_COMM_WORLD,&u);
+  
+  ierr = PetscObjectSetName((PetscObject) u, VariableName);
+  
+  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,tdy->io->ic_filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
+  ierr = VecLoad(u,viewer);CHKERRQ(ierr);
+  
+  ierr = TDySetInitialCondition(tdy,u);CHKERRQ(ierr);
+
+  ierr = VecDestroy(&u);
+
+  PetscFunctionReturn(0); 
+}
+
+/* -------------------------------------------------------------------------- */
+/// Reads in and sets initial permeability for the TDy solver
+///
+/// @param [inout] tdy A TDy struct
+/// @param [in] VariableName A char that is set as the variable name for the
+///                          PETSc vector read in from the HDF5 file
+/// @param [in] filename A char that is the filename of the HDF5 file
+/// @param [inout] variable A pointer to the values read in from HDF5 file 
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, PetscReal **variable){
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscViewer viewer;
+  Vec u;
+  Vec u_local;
+  PetscReal *ptr;
+  int i,n;
+  
+  ierr = VecCreate(PETSC_COMM_WORLD,&u);
+  ierr = PetscObjectSetName((PetscObject) u, VariableName);
+  
+  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
+  ierr = VecLoad(u,viewer);CHKERRQ(ierr);
+  
+  ierr = TDyCreateLocalVector(tdy, &u_local);
+  ierr = TDyNaturaltoLocal(tdy,u,&u_local);CHKERRQ(ierr);
+  
+  ierr = VecGetArray(u_local,&ptr);CHKERRQ(ierr);
+  ierr = VecGetSize(u_local,&n);CHKERRQ(ierr);
+
+  ierr = TDyAllocate_RealArray_1D(variable,n);CHKERRQ(ierr);
+  for (i = 0;i<n;++i){
+    (*variable)[i] = ptr[i];
+  }
+  
+  ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
+
+  ierr = VecRestoreArray(u,&ptr);CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -260,7 +501,6 @@ PetscErrorCode TDyIOWriteXMFHeader(PetscInt numCell,PetscInt dim,PetscInt numVer
 
   FILE *fid;
 
-  // This array maps numbers of cells to strings describing topology types.
   const char *cellMap[25] = {"0"};
   cellMap[1] = "Polyvertex";
   cellMap[2] = "Polyline";

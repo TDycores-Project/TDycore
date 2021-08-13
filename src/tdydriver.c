@@ -3,6 +3,7 @@
 #include <private/tdyrichardsimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdythimpl.h>
+#include <private/tdyioimpl.h>
 #include <tdytimers.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 
@@ -34,11 +35,23 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   }
 
   if (!TDyIsPorositySet(tdy)) {
-    ierr = TDySetPorosityFunction(tdy,TDyConstantPorosityFunction,PETSC_NULL); CHKERRQ(ierr);
+    size_t len;
+    ierr = PetscStrlen(tdy->io->porosity_filename, &len); CHKERRQ(ierr);
+    if (!len){
+      ierr = TDySetPorosityFunction(tdy,TDyConstantPorosityFunction,PETSC_NULL);CHKERRQ(ierr);
+    } else {
+      ierr = TDyIOReadPorosity(tdy);CHKERRQ(ierr);
+    }
   }
 
   if (!TDyIsPermeabilitySet(tdy)){
-    ierr = TDySetPermeabilityFunction(tdy,TDyConstantPermeabilityFunction,PETSC_NULL); CHKERRQ(ierr);
+    size_t len;
+    ierr = PetscStrlen(tdy->io->permeability_filename, &len); CHKERRQ(ierr);
+    if (!len){
+      ierr = TDySetPermeabilityFunction(tdy,TDyConstantPermeabilityFunction,PETSC_NULL); CHKERRQ(ierr);     
+    } else {
+      ierr = TDyIOReadPermeability(tdy);CHKERRQ(ierr);
+    }
   }
 
   if (tdy->options.mode == TH) {
@@ -153,6 +166,11 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   }
   PetscPrintf(PETSC_COMM_WORLD,"tdy->ti->time_integration_method = %d\n",
               tdy->ti->time_integration_method);
+   size_t len;
+   ierr = PetscStrlen(tdy->io->ic_filename, &len); CHKERRQ(ierr);
+   if (len){
+     TDyIOReadIC(tdy); CHKERRQ(ierr);
+   }
   // finish set of time integrators
   switch(tdy->ti->time_integration_method) {
     case TDySNES:

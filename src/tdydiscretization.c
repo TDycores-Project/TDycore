@@ -146,3 +146,28 @@ PetscErrorCode TDyNaturalToGlobal(TDy tdy, Vec natural, Vec global){
 
   PetscFunctionReturn(0);
 }
+
+/* -------------------------------------------------------------------------- */
+/// Performs scatter of a natural vector to a local vector
+///
+/// @param [in] tdy     A TDy struct
+/// @param [in] natural A PETSc vector
+/// @param [out] local   A PETSc vector
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyNaturaltoLocal(TDy tdy,Vec natural, Vec *local) {
+
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+  Vec global;
+  
+  ierr = TDyCreateGlobalVector(tdy, &global);CHKERRQ(ierr);
+
+  ierr = TDyNaturalToGlobal(tdy, natural, global);CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy, global, *local); CHKERRQ(ierr);
+
+  ierr = VecDestroy(&global); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+
+}

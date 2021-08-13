@@ -10,6 +10,7 @@ PETSC_INTERN PetscErrorCode TDyCreateJacobianMatrix(TDy,Mat*);
 PETSC_INTERN PetscErrorCode TDyGlobalToNatural(TDy,Vec,Vec);
 PETSC_INTERN PetscErrorCode TDyGlobalToLocal(TDy,Vec,Vec);
 PETSC_INTERN PetscErrorCode TDyNaturalToGlobal(TDy,Vec,Vec);
+PETSC_INTERN PetscErrorCode TDyNaturaltoLocal(TDy,Vec,Vec*);
 
 #endif
 
