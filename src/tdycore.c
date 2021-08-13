@@ -378,7 +378,8 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
     tdy->dm = dm;
   }
 
-  // Mark the grid's boundary faces.
+  // Mark the grid's boundary faces and their transitive closure. All are
+  // stored at their appropriate strata within the label.
   DMLabel boundary_label;
   ierr = DMCreateLabel(tdy->dm, "boundary"); CHKERRQ(ierr);
   ierr = DMGetLabel(tdy->dm, "boundary", &boundary_label); CHKERRQ(ierr);
