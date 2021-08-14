@@ -729,6 +729,11 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
     ierr = DMPlexGetSupportSize(dm, f, &support_size); CHKERRQ(ierr);
     ierr = DMPlexGetSupport(dm, f, &support); CHKERRQ(ierr);
 
+    // TODO: This is where we decide whether a face belongs to the domain
+    // TODO: boundary. It's logically consistent with the way that DMPlex
+    // TODO: decides on the domain boundary, so we can leave it like this
+    // TODO: for now, but we should favor the use of the "boundary" DMLabel
+    // TODO: in future efforts.
     if (support_size == 2) {
       faces->is_internal[iface] = PETSC_TRUE;
     } else {
@@ -737,19 +742,19 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
 
     for (PetscInt s=0; s<support_size; s++) {
       PetscInt icell = support[s] - c_start;
-        PetscBool found = PETSC_FALSE;
-        PetscInt cOffsetFace = cells->face_offset[icell];
-        for (PetscInt ii=0; ii<cells->num_faces[icell]; ii++) {
-          if (cells->face_ids[cOffsetFace+ii] == f-f_start) {
-            found = PETSC_TRUE;
-            break;
-          }
-        }
-        if (!found) {
-          cells->face_ids[cOffsetFace + cells->num_faces[icell]] = f-f_start;
-          cells->num_faces[icell]++;
+      PetscBool found = PETSC_FALSE;
+      PetscInt cOffsetFace = cells->face_offset[icell];
+      for (PetscInt ii=0; ii<cells->num_faces[icell]; ii++) {
+        if (cells->face_ids[cOffsetFace+ii] == f-f_start) {
           found = PETSC_TRUE;
+          break;
         }
+      }
+      if (!found) {
+        cells->face_ids[cOffsetFace + cells->num_faces[icell]] = f-f_start;
+        cells->num_faces[icell]++;
+        found = PETSC_TRUE;
+      }
     }
 
     // If it is a boundary face, increment the number of boundary

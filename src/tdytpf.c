@@ -47,7 +47,7 @@ PetscErrorCode TDyTPFInitialize(TDy tdy) {
 
 PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscErrorCode ierr;
-  PetscInt dim,dim2,f,fStart,fEnd,c,cStart,cEnd,row,col,junk,ss;
+  PetscInt dim,dim2,fStart,fEnd,c,cStart,cEnd,row,col,junk;
   PetscReal pnt2pnt[3],dist,Ki,p,force;
   DM dm = tdy->dm;
   PetscFunctionBegin;
@@ -61,28 +61,40 @@ PetscErrorCode TDyTPFComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   MaterialProp *matprop = tdy->matprop;
 
-  for(f=fStart; f<fEnd; f++) {
+  // Here's our domain boundary label.
+  DMLabel bnd_label;
+  ierr = DMGetLabel(tdy->dm, "boundary", &bnd_label); CHKERRQ(ierr);
+
+  // Loop over all faces and compute fluxes.
+  for (PetscInt f = fStart; f < fEnd; ++f) {
 
     const PetscInt *supp;
-    ierr = DMPlexGetSupportSize(dm,f,&ss  ); CHKERRQ(ierr);
-    ierr = DMPlexGetSupport    (dm,f,&supp); CHKERRQ(ierr);
+    ierr = DMPlexGetSupport(dm,f,&supp); CHKERRQ(ierr);
 
     // wrt
     // v = -Ki (pd-p0)/dist
     // 00 Ki/dist
     // 0 -Ki pd / dist
-    if(ss==1 && tdy->ops->compute_boundary_pressure) {
-      ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(tdy->X[f*dim]),&p, tdy->boundary_pressure_ctx);CHKERRQ(ierr);
-      if (fabs(p+999.)<1.e-40) continue;
-      ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk); CHKERRQ(ierr);
-      Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[f*dim]),pnt2pnt);
-      dist = Norm(dim,pnt2pnt);
-      Ki = matprop->K[(supp[0]-cStart)*dim2];
-      ierr = MatSetValue(K,row,row,Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);
-      CHKERRQ(ierr);
-      ierr = VecSetValue(F,row,p*Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);
-      CHKERRQ(ierr);
-      continue;
+
+    if (tdy->ops->compute_boundary_pressure) {
+      // Enforce boundary pressures if needed. Boundary faces have a label
+      // value of 1.
+      PetscInt bnd_label_val;
+      ierr = DMLabelGetValue(bnd_label, f, &bnd_label_val);
+      if (bnd_label_val == 1) {
+
+        ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(tdy->X[f*dim]),&p, tdy->boundary_pressure_ctx);CHKERRQ(ierr);
+        if (fabs(p+999.)<1.e-40) continue;
+        ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk); CHKERRQ(ierr);
+        Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[f*dim]),pnt2pnt);
+        dist = Norm(dim,pnt2pnt);
+        Ki = matprop->K[(supp[0]-cStart)*dim2];
+        ierr = MatSetValue(K,row,row,Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);
+        CHKERRQ(ierr);
+        ierr = VecSetValue(F,row,p*Ki/dist*tdy->V[f]/tdy->V[supp[0]],ADD_VALUES);
+        CHKERRQ(ierr);
+        continue;
+      }
     }
 
     Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[supp[1]*dim]),pnt2pnt);
@@ -147,7 +159,7 @@ PetscReal TDyTPFPressureNorm(TDy tdy,Vec U) {
   DM dm = tdy->dm;
   if(!(tdy->ops->compute_boundary_pressure)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the pressure function with TDySetDirichletValueFunction");
+            "You must set the pressure function with TDySetBoundaryPressureFn");
   }
   norm = 0;
   ierr = VecGetArray(U,&u); CHKERRQ(ierr);
@@ -171,7 +183,7 @@ PetscReal TDyTPFPressureNorm(TDy tdy,Vec U) {
 
 PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
   PetscErrorCode ierr;
-  PetscInt dim,dim2,i,f,fStart,fEnd,c,cStart,cEnd,row,junk;
+  PetscInt dim,dim2,fStart,fEnd,cStart,cEnd,row,junk;
   PetscReal pnt2pnt[3],dist,Ki,p,vel[3],va,ve,*u,sign,face_error,norm,norm_sum;
   DM dm = tdy->dm;
   PetscFunctionBegin;
@@ -185,21 +197,28 @@ PetscReal TDyTPFVelocityNorm(TDy tdy,Vec U) {
   norm = 0;
   MaterialProp *matprop = tdy->matprop;
 
-  for(c=cStart; c<cEnd; c++) {
+  // Here's our domain boundary label.
+  DMLabel bnd_label;
+  ierr = DMGetLabel(tdy->dm, "boundary", &bnd_label); CHKERRQ(ierr);
+
+  for(PetscInt c=cStart; c<cEnd; c++) {
 
     PetscInt cs;
     const PetscInt *cone;
     ierr = DMPlexGetConeSize(dm,c,&cs  ); CHKERRQ(ierr);
     ierr = DMPlexGetCone    (dm,c,&cone); CHKERRQ(ierr);
-    for(i=0; i<cs; i++) {
-      f = cone[i];
+    for(PetscInt i=0; i<cs; i++) {
+      PetscInt f = cone[i];
 
-      PetscInt ss;
       const PetscInt *supp;
-      ierr = DMPlexGetSupportSize(dm,f,&ss  ); CHKERRQ(ierr);
-      ierr = DMPlexGetSupport    (dm,f,&supp); CHKERRQ(ierr);
+      ierr = DMPlexGetSupport(dm,f,&supp); CHKERRQ(ierr);
 
-      if(ss==1 && tdy->ops->compute_boundary_pressure) {
+      // Enforce boundary pressures if needed. Boundary faces have a label
+      // value of 1.
+      PetscInt bnd_label_val;
+      ierr = DMLabelGetValue(bnd_label, f, &bnd_label_val);
+
+      if((bnd_label_val == 1) && tdy->ops->compute_boundary_pressure) {
         ierr = DMPlexGetPointGlobal(dm,supp[0],&row,&junk); CHKERRQ(ierr);
         Waxpy(dim,-1,&(tdy->X[supp[0]*dim]),&(tdy->X[f*dim]),pnt2pnt);
         dist = Norm(dim,pnt2pnt);

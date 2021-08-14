@@ -90,6 +90,8 @@ PETSC_EXTERN PetscErrorCode TDyView(TDy,PetscViewer viewer);
 
 PETSC_EXTERN PetscErrorCode TDyGetDimension(TDy,PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyGetDM(TDy,DM*);
+PETSC_EXTERN PetscErrorCode TDyGetBoundaryFaces(TDy,PetscInt*, const PetscInt**);
+PETSC_EXTERN PetscErrorCode TDyRestoreBoundaryFaces(TDy,PetscInt*, const PetscInt**);
 PETSC_EXTERN PetscErrorCode TDyGetCentroidArray(TDy,PetscReal**);
 
 PETSC_EXTERN PetscErrorCode TDySetGravityVector(TDy,PetscReal*);
