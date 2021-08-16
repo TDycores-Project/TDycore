@@ -655,33 +655,25 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 
   // Boundary conditions.
   char func_name[PETSC_MAX_PATH_LEN];
-  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_pressure_bc_func", func_name,
-                               sizeof(func_name), &flag); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_pressure_bc_func", func_name,sizeof(func_name), &flag); CHKERRQ(ierr);
   if (flag) {
     // TODO: When/where are we supposed to get the context for this function?
     ierr = TDySelectBoundaryPressureFn(tdy, func_name, NULL);
   } else {
-    ierr = PetscOptionsReal("-tdy_pressure_bc_value", "Constant boundary pressure", NULL,
-                            options->boundary_pressure, &options->boundary_pressure,
-                            &flag); CHKERRQ(ierr);
+    ierr = PetscOptionsReal("-tdy_pressure_bc_value", "Constant boundary pressure", NULL,options->boundary_pressure, &options->boundary_pressure,&flag); CHKERRQ(ierr);
     if (flag) {
-      ierr = TDySetBoundaryPressureFn(tdy, TDyConstantBoundaryPressureFn,
-                                      PETSC_NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryPressureFn(tdy, TDyConstantBoundaryPressureFn,PETSC_NULL); CHKERRQ(ierr);
     } else { // TODO: what goes here??
     }
   }
-  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_velocity_bc_func", func_name,
-                               sizeof(func_name), &flag); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_velocity_bc_func", func_name,sizeof(func_name), &flag); CHKERRQ(ierr);
   if (flag) {
     // TODO: When/where are we supposed to get the context for this function?
     ierr = TDySelectBoundaryVelocityFn(tdy, func_name, NULL);
   } else {
-    ierr = PetscOptionsReal("-tdy_velocity_bc_value", "Constant normal boundary velocity",
-                            NULL, options->boundary_pressure, &options->boundary_pressure,
-                            &flag); CHKERRQ(ierr);
+    ierr = PetscOptionsReal("-tdy_velocity_bc_value", "Constant normal boundary velocity",NULL, options->boundary_pressure, &options->boundary_pressure,&flag); CHKERRQ(ierr);
     if (flag) {
-      ierr = TDySetBoundaryVelocityFn(tdy, TDyConstantBoundaryVelocityFn,
-                                      PETSC_NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryVelocityFn(tdy, TDyConstantBoundaryVelocityFn,PETSC_NULL); CHKERRQ(ierr);
     } else { // TODO: what goes here??
     }
   }
@@ -694,35 +686,18 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           (PetscEnum)options->method,(PetscEnum *)&options->method,
                           NULL); CHKERRQ(ierr);
   TDyQuadratureType qtype = FULL;
-  ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type for finite element methods",
-                          "TDySetQuadratureType",TDyQuadratureTypes,
-                          (PetscEnum)qtype,(PetscEnum *)&options->qtype,
-                          NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-tdy_tpf_allow_all_meshes",
-                          "Enable to allow non-orthgonal meshes in finite volume TPF method",
-                          "",options->tpf_allow_all_meshes,
-                          &(options->tpf_allow_all_meshes),NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnum("-tdy_mpfao_gmatrix_method","MPFA-O gmatrix method",
-                          "TDySetMPFAOGmatrixMethod",TDyMPFAOGmatrixMethods,
-                          (PetscEnum)options->mpfao_gmatrix_method,
-                          (PetscEnum *)&options->mpfao_gmatrix_method,
-                          NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type for finite element methods","TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&options->qtype,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-tdy_tpf_allow_all_meshes","Enable to allow non-orthgonal meshes in finite volume TPF method","",options->tpf_allow_all_meshes,&(options->tpf_allow_all_meshes),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_mpfao_gmatrix_method","MPFA-O gmatrix method","TDySetMPFAOGmatrixMethod",TDyMPFAOGmatrixMethods,(PetscEnum)options->mpfao_gmatrix_method,(PetscEnum *)&options->mpfao_gmatrix_method,NULL); CHKERRQ(ierr);
   TDyMPFAOBoundaryConditionType bctype = MPFAO_DIRICHLET_BC;
-  ierr = PetscOptionsEnum("-tdy_mpfao_boundary_condition_type","MPFA-O boundary condition type",
-                          "TDySetMPFAOBoundaryConditionType",TDyMPFAOBoundaryConditionTypes,(PetscEnum)bctype,
-                          (PetscEnum *)&bctype, &flag); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_mpfao_boundary_condition_type","MPFA-O boundary condition type","TDySetMPFAOBoundaryConditionType",TDyMPFAOBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype, &flag); CHKERRQ(ierr);
   if (flag && (bctype != tdy->options.mpfao_bc_type)) {
     ierr = TDySetMPFAOBoundaryConditionType(tdy,bctype); CHKERRQ(ierr);
   }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  ierr = PetscOptionsBool("-tdy_init_with_random_field",
-                          "Initialize solution with a random field","",
-                          options->init_with_random_field,
-                          &(options->init_with_random_field),NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_init_file", options->init_file,
-                               sizeof(options->init_file),
-                               &options->init_from_file); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-tdy_init_with_random_field","Initialize solution with a random field","",options->init_with_random_field,&(options->init_with_random_field),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_init_file", options->init_file,sizeof(options->init_file),&options->init_from_file); CHKERRQ(ierr);
 
   if (options->init_from_file && options->init_with_random_field) {
     SETERRQ(comm,PETSC_ERR_USER,
@@ -730,13 +705,8 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   }
 
   // Mesh-related options
-  ierr = PetscOptionsBool("-tdy_generate_mesh",
-                          "Generate a mesh using provided PETSc DM options","",
-                          options->generate_mesh,
-                          &(options->generate_mesh),NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_mesh", options->mesh_file,
-                               sizeof(options->mesh_file),
-                               &options->read_mesh); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-tdy_generate_mesh","Generate a mesh using provided PETSc DM options","",options->generate_mesh,&(options->generate_mesh),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_mesh", options->mesh_file,sizeof(options->mesh_file),&options->read_mesh); CHKERRQ(ierr);
   if (options->generate_mesh && options->read_mesh) {
     SETERRQ(comm,PETSC_ERR_USER,
             "Only one of -tdy_generate_mesh and -tdy_read_mesh can be specified");
@@ -753,14 +723,9 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   }
 
   // Other options
-  ierr = PetscOptionsBool("-tdy_regression_test",
-                          "Enable output of a regression file","",
-                          options->regression_testing,
-                          &(options->regression_testing),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-tdy_regression_test","Enable output of a regression file","",options->regression_testing,&(options->regression_testing),NULL); CHKERRQ(ierr);
 
-  ierr = PetscOptionsBool("-tdy_output_mesh",
-                          "Enable output of mesh attributes","",options->output_mesh,
-                          &(options->output_mesh),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-tdy_output_mesh","Enable output of mesh attributes","",options->output_mesh,&(options->output_mesh),NULL); CHKERRQ(ierr);
   // Wrap up and indicate that options are set.
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   tdy->setupflags |= TDyOptionsSet;
