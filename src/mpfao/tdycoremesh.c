@@ -3864,8 +3864,17 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
-  ierr = SaveMeshGeometricAttributes(tdy); CHKERRQ(ierr);
   ierr = SaveMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
+
+  ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
+  ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);
+  ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
+
+  if (dim == 3) {
+    ierr = IdentifyLocalFaces(tdy); CHKERRQ(ierr);
+  }
+
+  ierr = SaveMeshGeometricAttributes(tdy); CHKERRQ(ierr);
 
   switch (dim) {
   case 2:
@@ -3888,12 +3897,7 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
     break;
   }
 
-  ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
-  ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);
-  ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
-
   if (dim == 3) {
-    ierr = IdentifyLocalFaces(tdy); CHKERRQ(ierr);
     ierr = SetupSubcellsFor3DMesh(tdy); CHKERRQ(ierr);
   }
 
