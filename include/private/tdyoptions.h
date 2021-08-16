@@ -46,6 +46,12 @@ typedef struct {
   PetscBool generate_mesh;
   PetscBool read_mesh;
   char mesh_file[PETSC_MAX_PATH_LEN];
+  PetscBool output_cell_geom_attributes;
+  PetscBool read_cell_geom_attributes;
+  PetscBool output_face_geom_attributes;
+  PetscBool read_face_geom_attributes;
+  char cell_geom_file[PETSC_MAX_PATH_LEN];
+  char face_geom_file[PETSC_MAX_PATH_LEN];
 
   // I/O settings
   PetscBool output_mesh;

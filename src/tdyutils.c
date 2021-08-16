@@ -500,6 +500,26 @@ PetscErrorCode TDySavePetscVecAsBinary(Vec vec, const char filename[]) {
 }
 
 /* -------------------------------------------------------------------------- */
+/// Outputs a PETSc Vec as binary
+///
+/// @param [in] vec A PETSc Vec
+/// @param [in] filename Name of the file
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyReadBinaryPetscVec(Vec vec, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_READ, &viewer); CHKERRQ(ierr);
+  ierr = VecLoad(vec, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDySavePetscMatAsBinary(Mat M, const char filename[]) {
 
   PetscViewer viewer;

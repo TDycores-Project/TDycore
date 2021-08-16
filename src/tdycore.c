@@ -705,6 +705,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   }
 
   // Mesh-related options
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Mesh options",""); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-tdy_generate_mesh","Generate a mesh using provided PETSc DM options","",options->generate_mesh,&(options->generate_mesh),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_mesh", options->mesh_file,sizeof(options->mesh_file),&options->read_mesh); CHKERRQ(ierr);
   if (options->generate_mesh && options->read_mesh) {
@@ -721,11 +722,17 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
             "No mesh is available for TDycore: please use TDySetDM, "
             "-tdy_generate_mesh, or -tdy_read_mesh to specify a mesh");
   }
+  ierr = PetscOptionsBool("-tdy_output_mesh","Enable output of mesh attributes","",options->output_mesh,&(options->output_mesh),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_output_cell_geo_attributes", options->cell_geom_file,sizeof(options->cell_geom_file),&options->output_cell_geom_attributes); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_cell_geo_attributes", options->cell_geom_file,sizeof(options->cell_geom_file),&options->read_cell_geom_attributes); CHKERRQ(ierr);
+  if (options->output_cell_geom_attributes && options->read_cell_geom_attributes){
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Only one of -tdy_output_cell_geom_attributes and -tdy_read_cell_geom_attributes can be specified");
+  }
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Other options
   ierr = PetscOptionsBool("-tdy_regression_test","Enable output of a regression file","",options->regression_testing,&(options->regression_testing),NULL); CHKERRQ(ierr);
 
-  ierr = PetscOptionsBool("-tdy_output_mesh","Enable output of mesh attributes","",options->output_mesh,&(options->output_mesh),NULL); CHKERRQ(ierr);
   // Wrap up and indicate that options are set.
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   tdy->setupflags |= TDyOptionsSet;
