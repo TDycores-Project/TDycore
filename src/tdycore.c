@@ -282,7 +282,8 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->dm must be set prior to TDyMalloc()");
   }
 
-  PetscInt dim = 3;
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
   /* allocate space for a full tensor perm for each cell */
   PetscLogEvent t2 = TDyGetTimer("ComputePlexGeometry");
@@ -386,7 +387,8 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
   ierr = DMPlexLabelComplete(tdy->dm, boundary_label); CHKERRQ(ierr);
 
   // Compute/store plex geometry.
-  PetscInt dim = 3;
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
   TDyStartTimer(t1);
   PetscInt pStart, pEnd, vStart, vEnd, eStart, eEnd;
@@ -408,7 +410,7 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
       ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
       for(PetscInt d=0; d<dim; d++) tdy->X[p*dim+d] = coords[offset+d];
     } else {
-      if((p >= eStart) && (p < eEnd)) continue;
+      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
       ierr = DMPlexComputeCellGeometryFVM(tdy->dm,p,&(tdy->V[p]),
                                           &(tdy->X[p*dim]),
                                           &(tdy->N[p*dim])); CHKERRQ(ierr);
@@ -422,13 +424,13 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
 
 PetscErrorCode TDySetGravityVector(TDy tdy, PetscReal *gravity) {
 
-  PetscInt d, dim;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
+  PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
-  for (d=0;d<dim;d++) tdy->gravity[d] = gravity[d];
+  for (PetscInt d=0;d<dim;d++) tdy->gravity[d] = gravity[d];
 
   PetscFunctionReturn(0);
 
@@ -534,10 +536,11 @@ PetscErrorCode TDyGetCentroidArray(TDy tdy,PetscReal **X) {
 
 PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   PetscErrorCode ierr;
-  PetscInt       dim;
 
   PetscFunctionBegin;
   PetscValidPointer(tdy,1);
+
+  PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
   if (tdy->vmap  ) { ierr = PetscFree(tdy->vmap  ); CHKERRQ(ierr); }
@@ -882,7 +885,6 @@ PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy tdy,TDyMPFAOBoundaryConditio
 }
 
 PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
-  PetscInt       dim, num_fields;
   MPI_Comm       comm;
   DM             dm;
   PetscSection   sec;
@@ -893,9 +895,11 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
+  PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
   ierr = DMGetSection(tdy->dm, &sec);
+  PetscInt num_fields;
   ierr = PetscSectionGetNumFields(sec, &num_fields);
   ierr = TSGetDM(ts,&dm);CHKERRQ(ierr);
 
@@ -975,8 +979,6 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
 }
 
 PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
-  PetscInt       dim;
-  MPI_Comm       comm;
   PetscErrorCode ierr;
 
   PetscValidPointer(snes,1);
@@ -984,7 +986,9 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
+  MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
+  PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.method) {
@@ -1012,8 +1016,6 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
 }
 
 PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
-  PetscInt       dim;
-  MPI_Comm       comm;
   PetscErrorCode ierr;
 
   PetscValidPointer(snes,1);
@@ -1021,7 +1023,9 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
+  MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
+  PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.method) {
@@ -1083,30 +1087,31 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   PetscFunctionBegin;
   TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
-  PetscInt  dim,dim2,i,j,c,cStart,cEnd;
   PetscReal Se,dSe_dS,dKr_dSe,Kr;
   PetscReal *P, *temp;
+  PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
-  dim2 = dim*dim;
+  PetscInt dim2 = dim*dim;
+  PetscInt cStart, cEnd;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&P);CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
 
   if (tdy->options.mode == TH) {
-    for (c=0;c<cEnd-cStart;c++) {
+    for (PetscInt c=0;c<cEnd-cStart;c++) {
       P[c] = U[c*2];
       temp[c] = U[c*2+1];
     }
   }
   else {
-    for (c=0;c<cEnd-cStart;c++) P[c] = U[c];
+    for (PetscInt c=0;c<cEnd-cStart;c++) P[c] = U[c];
   }
 
   CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;
 
-  for(c=cStart; c<cEnd; c++) {
-    i = c-cStart;
+  for(PetscInt c=cStart; c<cEnd; c++) {
+    PetscInt i = c-cStart;
 
     PetscReal n = cc->gardner_n[c];
     PetscReal alpha = cc->vg_alpha[c];
@@ -1140,12 +1145,14 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     cc->Kr[i] = Kr;
     cc->dKr_dS[i] = dKr_dSe * dSe_dS;
 
-    for(j=0; j<dim2; j++) matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
+    for(PetscInt j=0; j<dim2; j++) {
+      matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
+    }
 
     ierr = ComputeWaterDensity(P[i], tdy->options.rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(P[i], tdy->options.mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
     if (tdy->options.mode ==  TH) {
-      for(j=0; j<dim2; j++)
+      for(PetscInt j=0; j<dim2; j++)
         matprop->Kappa[i*dim2+j] = matprop->Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
       ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->options.enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);
       tdy->u[i] = tdy->h[i] - P[i]/tdy->rho[i];
@@ -1160,8 +1167,8 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     TDyCell *cells = &mesh->cells;
 
     ierr = VecGetArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
-    for (c=cStart; c<cEnd; c++) {
-      i = c-cStart;
+    for (PetscInt c=cStart; c<cEnd; c++) {
+      PetscInt i = c-cStart;
       ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[i].X,dim,&gz);
       p_vec_ptr[i] = P[i];
     }
@@ -1170,14 +1177,12 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     if (tdy->options.mode == TH) {
       PetscReal *t_vec_ptr;
       ierr = VecGetArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
-      for (c=cStart; c<cEnd; c++) {
-        i = c-cStart;
+      for (PetscInt c=cStart; c<cEnd; c++) {
+        PetscInt i = c-cStart;
         t_vec_ptr[i] = temp[i];
       }
       ierr = VecRestoreArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
     }
-
-
   }
 
   TDY_STOP_FUNCTION_TIMER()
@@ -1221,18 +1226,19 @@ PetscErrorCode TDyQuadrature(PetscQuadrature q,PetscInt dim) {
 PetscInt TDyGetNumberOfCellVertices(DM dm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  MPI_Comm       comm;
-  PetscInt nq,c,q,i,cStart,cEnd,vStart,vEnd,closureSize,*closure;
+  MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
+  PetscInt vStart, vEnd, cStart, cEnd;
   ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  nq = -1;
-  for(c=cStart; c<cEnd; c++) {
-    closure = NULL;
+  PetscInt nq = -1;
+  for(PetscInt c=cStart; c<cEnd; c++) {
+    PetscInt *closure = NULL;
+    PetscInt closureSize;
     ierr = DMPlexGetTransitiveClosure(dm,c,PETSC_TRUE,&closureSize,&closure);
     CHKERRQ(ierr);
-    q = 0;
-    for (i=0; i<closureSize*2; i+=2) {
+    PetscInt q = 0;
+    for (PetscInt i=0; i<closureSize*2; i+=2) {
       if ((closure[i] >= vStart) && (closure[i] < vEnd)) q += 1;
     }
     if(nq == -1) nq = q;

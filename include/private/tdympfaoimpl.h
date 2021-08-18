@@ -1,5 +1,5 @@
-#if !defined(TDYMPFAOCOREIMPL_H)
-#define TDYMPFAOCOREIMPL_H
+#if !defined(TDYMPFAOIMPL_H)
+#define TDYMPFAOIMPL_H
 
 #include <petsc.h>
 
