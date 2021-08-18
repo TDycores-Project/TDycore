@@ -315,59 +315,37 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   PetscErrorCode ierr;
   MPI_Comm       comm;
   DM             dm = tdy->dm;
-  PetscInt       dim;
   PetscInt       nrow,ncol,nsubcells;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
+  PetscInt dim;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  if (dim == 2) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"MPFA-O method supports only 3D calculations.");
+  }
 
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
 
   tdy->mesh = (TDyMesh *) malloc(sizeof(TDyMesh));
 
   ierr = TDyAllocateMemoryForMesh(tdy); CHKERRQ(ierr);
-
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-
-  switch (dim) {
-  case 2:
-    ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, 5, 5);
-    CHKERRQ(ierr);
-    ierr = PetscMalloc(tdy->mesh->num_edges*sizeof(PetscReal),
-                     &(tdy->vel )); CHKERRQ(ierr);
-    ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_edges, 0.0); CHKERRQ(ierr);
-    ierr = PetscMalloc(tdy->mesh->num_edges*sizeof(PetscInt),
-                     &(tdy->vel_count)); CHKERRQ(ierr);
-    ierr = TDyInitialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_edges, 0); CHKERRQ(ierr);
-
-    nsubcells = 4;
-    nrow = 2;
-    ncol = 2;
-
-    break;
-  case 3:
-    ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, tdy->nfv, tdy->nfv + tdy->ncv); CHKERRQ(ierr);
-    if (tdy->options.mode == TH) {
-      ierr = TDyAllocate_RealArray_3D(&tdy->Temp_Trans, tdy->mesh->num_vertices,
-                                      tdy->nfv, tdy->nfv); CHKERRQ(ierr);
-    }
-    ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
-                     &(tdy->vel )); CHKERRQ(ierr);
-    ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
-    ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscInt),
-                     &(tdy->vel_count)); CHKERRQ(ierr);
-    ierr = TDyInitialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_faces, 0); CHKERRQ(ierr);
-
-    nsubcells = 8;
-    nrow = 3;
-    ncol = 3;
-
-    break;
-  default:
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in TDyMPFAOInitialize");
-    break;
+  ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, tdy->nfv, tdy->nfv + tdy->ncv); CHKERRQ(ierr);
+  if (tdy->options.mode == TH) {
+    ierr = TDyAllocate_RealArray_3D(&tdy->Temp_Trans, tdy->mesh->num_vertices,
+                                    tdy->nfv, tdy->nfv); CHKERRQ(ierr);
   }
+  ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
+                     &(tdy->vel )); CHKERRQ(ierr);
+  ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
+  ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscInt),
+                     &(tdy->vel_count)); CHKERRQ(ierr);
+  ierr = TDyInitialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_faces, 0); CHKERRQ(ierr);
+
+  nsubcells = 8;
+  nrow = 3;
+  ncol = 3;
 
   ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
                                   nsubcells, nrow, ncol); CHKERRQ(ierr);
