@@ -42,7 +42,6 @@ jobs:
         cd demo/mpfao; make V=1 codecov=1
         cd ../richards; make V=1 codecov=1
         cd ../steady; make V=1 codecov=1
-        cd ../steadyf90; make V=1
         cd ../th; make V=1 codecov=1
         cd ../transient;
         make V=1 codecov=1 transient transient_mpfao transient_th_mpfao
@@ -51,8 +50,6 @@ jobs:
         make test-mpfao
         num_failures=$(( $num_failures + $? ))
         make test-steady
-        num_failures=$(( $num_failures + $? ))
-        make test-steadyf90
         num_failures=$(( $num_failures + $? ))
         make test-transient
         num_failures=$(( $num_failures + $? ))

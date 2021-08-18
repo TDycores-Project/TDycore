@@ -96,7 +96,6 @@ TEST.c = \
 #	demo/transient/transient_th_mpfao.c \
 
 TEST.F90 = \
-	demo/steadyf90/steadyf90.F90 \
 	demo/transient/transient_mpfaof90.F90 \
 	demo/transient/transient_snes_mpfaof90.F90
 
