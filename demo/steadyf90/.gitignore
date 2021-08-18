@@ -1,9 +1,0 @@
-.DS_Store
-*dSYM
-mpfaof90
-*.mod
-*.bin*
-*.regression
-*.stdout*
-*.regression.old
-steadyf90

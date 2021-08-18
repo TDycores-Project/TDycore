@@ -1,4 +1,4 @@
-TARGETS = build-steady build-transient build-mpfao build-steadyf90 build-richards build-th
+TARGETS = build-steady build-transient build-mpfao build-richards build-th
 
 ifdef codecov
   MYFLAGS += -fprofile-arcs -ftest-coverage
@@ -38,5 +38,3 @@ build-transient:
 build-mpfao:
 	@cd mpfao; make
 
-build-steadyf90:
-	@cd steadyf90; make

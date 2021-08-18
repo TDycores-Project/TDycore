@@ -7,11 +7,10 @@
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdydiscretization.h>
 #include <private/tdycharacteristiccurvesimpl.h>
-#include <private/tdympfao3Dutilsimpl.h>
-#include <private/tdympfao3Dtsimpl.h>
+#include <private/tdympfaotsimpl.h>
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
+PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
   TDyMesh       *mesh = tdy->mesh;
@@ -51,7 +50,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec 
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
 
-  ierr = TDyMPFAOIFunction_Vertices_3DMesh(P,R_P,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_Vertices(P,R_P,ctx); CHKERRQ(ierr);
 
   ierr = VecGetArray(M,&m); CHKERRQ(ierr);
   ierr = VecGetArray(U_t,&u_t); CHKERRQ(ierr);

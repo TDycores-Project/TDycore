@@ -6,8 +6,7 @@
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
-#include <private/tdympfao3Dutilsimpl.h>
-#include <private/tdympfao3Dtsimpl.h>
+#include <private/tdympfaotsimpl.h>
 #include <private/tdydiscretization.h>
 
 //#define DEBUG
@@ -33,7 +32,7 @@ PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accu
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
+PetscErrorCode TDyMPFAOSNESPreSolve(TDy tdy) {
 
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
@@ -43,7 +42,7 @@ PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
 
   TDY_START_FUNCTION_TIMER()
 
-  
+
   // Update the auxillary variables
   ierr = VecGetArray(tdy->soln_prev,&p); CHKERRQ(ierr);
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
@@ -67,7 +66,7 @@ PetscErrorCode TDyMPFAOSNESPreSolve_3DMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
+PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
   TDyMesh       *mesh = tdy->mesh;
@@ -80,7 +79,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  
+
 #if defined(DEBUG)
   PetscViewer viewer;
   char word[32];
@@ -108,7 +107,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
 
   PetscReal *accum_prev;
 
-  ierr = TDyMPFAOIFunction_Vertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_Vertices(Ul,R,ctx); CHKERRQ(ierr);
 
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
@@ -148,7 +147,7 @@ PetscErrorCode TDyMPFAOSNESFunction_3DMesh(SNES snes,Vec U,Vec R,void *ctx) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
+PetscErrorCode TDyMPFAOSNESJacobian(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
   DM             dm = tdy->dm;
@@ -160,7 +159,7 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  
+
 
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 
@@ -169,7 +168,7 @@ PetscErrorCode TDyMPFAOSNESJacobian_3DMesh(SNES snes,Vec U,Mat A,Mat B,void *ctx
 
   ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
 
-  ierr = TDyMPFAOIJacobian_Vertices_3DMesh(Ul, B, ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIJacobian_Vertices(Ul, B, ctx); CHKERRQ(ierr);
 
   PetscReal dtInv = 1.0/tdy->dtime;
 
