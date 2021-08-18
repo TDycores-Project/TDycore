@@ -7,11 +7,10 @@
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdydiscretization.h>
 #include <private/tdycharacteristiccurvesimpl.h>
-#include <private/tdympfao3Dutilsimpl.h>
-#include <private/tdympfao3Dtsimpl.h>
+#include <private/tdympfaotsimpl.h>
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) {
+PetscErrorCode TDyMPFAOTransientVariable(TS ts, Vec U, Vec C, void *ctx) {
 
   TDy            tdy = (TDy)ctx;
   TDyMesh       *mesh = tdy->mesh;
@@ -57,7 +56,7 @@ PetscErrorCode TDyMPFAOTransientVariable_3DMesh(TS ts, Vec U, Vec C, void *ctx) 
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOIFunction_TransientVariable_3DMesh(TS ts,PetscReal t,Vec U,Vec M_t,Vec R,void *ctx) {
+PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS ts,PetscReal t,Vec U,Vec M_t,Vec R,void *ctx) {
 
   TDy            tdy = (TDy)ctx;
   TDyMesh        *mesh = tdy->mesh;
@@ -71,7 +70,7 @@ PetscErrorCode TDyMPFAOIFunction_TransientVariable_3DMesh(TS ts,PetscReal t,Vec 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  
+
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
@@ -88,7 +87,7 @@ PetscErrorCode TDyMPFAOIFunction_TransientVariable_3DMesh(TS ts,PetscReal t,Vec 
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
 
-  ierr = TDyMPFAOIFunction_Vertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_Vertices(Ul,R,ctx); CHKERRQ(ierr);
 
   ierr = VecGetArray(M_t,&dm_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);

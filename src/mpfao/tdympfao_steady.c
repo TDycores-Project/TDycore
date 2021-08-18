@@ -8,7 +8,7 @@
 #include <private/tdycharacteristiccurvesimpl.h>
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F) {
+PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy,Mat K,Vec F) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
@@ -83,7 +83,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices_3DMesh(TDy tdy,Mat K,Vec F
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices_3DMesh(TDy tdy,Mat K,Vec F) {
+PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices(TDy tdy,Mat K,Vec F) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
@@ -297,7 +297,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(TDy tdy,Mat K,Vec F) {
+PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices(TDy tdy,Mat K,Vec F) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;

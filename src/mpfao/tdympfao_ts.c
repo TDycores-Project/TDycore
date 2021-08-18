@@ -7,10 +7,9 @@
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdydiscretization.h>
 #include <private/tdycharacteristiccurvesimpl.h>
-#include <private/tdympfao3Dutilsimpl.h>
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
+PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
 
   TDy tdy = (TDy)ctx;
   TDyMesh *mesh = tdy->mesh;
@@ -153,7 +152,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_3DMesh(Vec Ul, Vec R, void *ctx) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
+PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
   TDyMesh       *mesh = tdy->mesh;
@@ -193,7 +192,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
 
-  ierr = TDyMPFAOIFunction_Vertices_3DMesh(Ul,R,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_Vertices(Ul,R,ctx); CHKERRQ(ierr);
 
   ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
@@ -243,7 +242,7 @@ PetscErrorCode TDyMPFAOIFunction_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,vo
 /// @param [in] Ul current value of the iterate
 /// @param [out] A matrix for the jacobian
 /// @param [in] ctx user-defined context
-PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
+PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
 
   TDy tdy = (TDy)ctx;
 
@@ -468,7 +467,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_3DMesh(Vec Ul, Mat A, void *ctx) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal shift,Mat A,void *ctx) {
+PetscErrorCode TDyMPFAOIJacobian_Accumulation(Vec Ul,Vec Udotl,PetscReal shift,Mat A,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
   TDyMesh       *mesh = tdy->mesh;
@@ -530,7 +529,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_3DMesh(Vec Ul,Vec Udotl,PetscReal 
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOIJacobian_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal shift,Mat A,Mat B,void *ctx) {
+PetscErrorCode TDyMPFAOIJacobian(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal shift,Mat A,Mat B,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
   DM             dm = tdy->dm;
@@ -549,10 +548,10 @@ PetscErrorCode TDyMPFAOIJacobian_3DMesh(TS ts,PetscReal t,Vec U,Vec U_t,PetscRea
   ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
   ierr = TDyGlobalToLocal(tdy,U_t,Udotl); CHKERRQ(ierr);
 
-  ierr = TDyMPFAOIJacobian_Vertices_3DMesh(Ul, B, ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIJacobian_Vertices(Ul, B, ctx); CHKERRQ(ierr);
 
-  //ierr = TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(Ul, A, ctx);
-  ierr = TDyMPFAOIJacobian_Accumulation_3DMesh(Ul, Udotl, shift, B, ctx);
+  //ierr = TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices(Ul, A, ctx);
+  ierr = TDyMPFAOIJacobian_Accumulation(Ul, Udotl, shift, B, ctx);
 
   if (A !=B ) {
     ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);

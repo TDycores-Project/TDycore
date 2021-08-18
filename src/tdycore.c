@@ -1,10 +1,9 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdyconditionsimpl.h>
-#include <private/tdympfao3Dcoreimpl.h>
 #include <private/tdympfaoimpl.h>
 #include <private/tdyeosimpl.h>
-#include <private/tdympfao3Dutilsimpl.h>
+#include <private/tdympfaoutilsimpl.h>
 #include <private/tdydmimpl.h>
 #include <private/tdytiimpl.h>
 #include <tdytimers.h>
@@ -276,7 +275,6 @@ PetscErrorCode TDySetDM(TDy tdy, DM dm) {
 }
 
 PetscErrorCode TDyMalloc(TDy tdy) {
-  PetscInt       dim,c,cStart,cEnd,nc;
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -284,12 +282,14 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->dm must be set prior to TDyMalloc()");
   }
 
+  PetscInt dim = 3;
+
   /* allocate space for a full tensor perm for each cell */
   PetscLogEvent t2 = TDyGetTimer("ComputePlexGeometry");
   TDyStartTimer(t2);
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  PetscInt cStart, cEnd;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  nc   = cEnd-cStart;
+  PetscInt nc = cEnd-cStart;
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rho)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2rho_dP2)); CHKERRQ(ierr);
@@ -315,7 +315,7 @@ PetscErrorCode TDyMalloc(TDy tdy) {
 
    PetscReal mualem_poly_low = 0.99;
 
-  for (c=0; c<nc; c++) {
+  for (PetscInt c=0; c<nc; c++) {
     cc->sr[c] = options->residual_saturation;
     cc->gardner_n[c] = options->gardner_n;
     cc->gardner_m[c] = options->vangenuchten_m;
@@ -352,7 +352,6 @@ PetscErrorCode TDyMalloc(TDy tdy) {
 }
 
 PetscErrorCode TDyCreateGrid(TDy tdy) {
-  PetscInt       d,dim,p,pStart,pEnd,vStart,vEnd,eStart,eEnd,offset;
   Vec            coordinates;
   PetscSection   coordSection;
   PetscScalar   *coords;
@@ -387,9 +386,10 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
   ierr = DMPlexLabelComplete(tdy->dm, boundary_label); CHKERRQ(ierr);
 
   // Compute/store plex geometry.
+  PetscInt dim = 3;
   PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
   TDyStartTimer(t1);
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  PetscInt pStart, pEnd, vStart, vEnd, eStart, eEnd;
   ierr = DMPlexGetChart(tdy->dm,&pStart,&pEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(tdy->dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(tdy->dm,1,&eStart,&eEnd); CHKERRQ(ierr);
@@ -402,12 +402,13 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
   ierr = DMGetCoordinateSection(tdy->dm, &coordSection); CHKERRQ(ierr);
   ierr = DMGetCoordinatesLocal (tdy->dm, &coordinates); CHKERRQ(ierr);
   ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
-  for(p=pStart; p<pEnd; p++) {
+  for(PetscInt p=pStart; p<pEnd; p++) {
     if((p >= vStart) && (p < vEnd)) {
+      PetscInt offset;
       ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
-      for(d=0; d<dim; d++) tdy->X[p*dim+d] = coords[offset+d];
+      for(PetscInt d=0; d<dim; d++) tdy->X[p*dim+d] = coords[offset+d];
     } else {
-      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
+      if((p >= eStart) && (p < eEnd)) continue;
       ierr = DMPlexComputeCellGeometryFVM(tdy->dm,p,&(tdy->V[p]),
                                           &(tdy->X[p*dim]),
                                           &(tdy->N[p*dim])); CHKERRQ(ierr);
@@ -903,42 +904,21 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TPF");
     break;
   case MPFA_O:
-    switch (dim) {
-    case 3:
-      switch (tdy->options.mode) {
-      case RICHARDS:
-        ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh,tdy); CHKERRQ(ierr);
-        break;
-      case TH:
-        ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_3DMesh_TH,tdy); CHKERRQ(ierr);
-        break;
-      }
-    break;
-    default :
-      SETERRQ(comm,PETSC_ERR_SUP,"IFunction only implemented for 3D problem MPFA-O");
+    switch (tdy->options.mode) {
+    case RICHARDS:
+      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction,tdy); CHKERRQ(ierr);
+      break;
+    case TH:
+      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_TH,tdy); CHKERRQ(ierr);
       break;
     }
     break;
   case MPFA_O_DAE:
-    switch (dim) {
-    case 3:
-      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_DAE_3DMesh,tdy); CHKERRQ(ierr);
-      break;
-    default :
-      SETERRQ(comm,PETSC_ERR_SUP,"IFunction only implemented for 3D problem MPFA-O");
-      break;
-    }
+    ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_DAE,tdy); CHKERRQ(ierr);
     break;
   case MPFA_O_TRANSIENTVAR:
-    switch (dim) {
-    case 3:
-      ierr = DMTSSetIFunction(dm,TDyMPFAOIFunction_TransientVariable_3DMesh,tdy); CHKERRQ(ierr);
-      ierr = DMTSSetTransientVariable(dm,TDyMPFAOTransientVariable_3DMesh,tdy); CHKERRQ(ierr);
-      break;
-    default :
-      SETERRQ(comm,PETSC_ERR_SUP,"IFunction only implemented for 3D problem MPFA-O");
-      break;
-    }
+    ierr = DMTSSetIFunction(dm,TDyMPFAOIFunction_TransientVariable,tdy); CHKERRQ(ierr);
+    ierr = DMTSSetTransientVariable(dm,TDyMPFAOTransientVariable,tdy); CHKERRQ(ierr);
     break;
   case BDM:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for BDM");
@@ -967,10 +947,10 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
     ierr = TDyCreateJacobian(tdy); CHKERRQ(ierr);
     switch (tdy->options.mode) {
     case RICHARDS:
-      ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_3DMesh,tdy); CHKERRQ(ierr);
+      ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian,tdy); CHKERRQ(ierr);
       break;
     case TH:
-      ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_3DMesh_TH,tdy); CHKERRQ(ierr);
+      ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian,tdy); CHKERRQ(ierr);
       break;
 
     }
@@ -1012,14 +992,7 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for TPF");
     break;
   case MPFA_O:
-    switch (dim) {
-    case 3:
-      ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction_3DMesh,tdy); CHKERRQ(ierr);
-      break;
-    default :
-      SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction only implemented for 3D problem MPFA-O");
-      break;
-    }
+    ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction,tdy); CHKERRQ(ierr);
     break;
   case MPFA_O_DAE:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for MPFA_O_DAE");
@@ -1056,14 +1029,7 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for TPF");
     break;
   case MPFA_O:
-    switch (dim) {
-    case 3:
-      ierr = SNESSetJacobian(snes,tdy->J,tdy->J,TDyMPFAOSNESJacobian_3DMesh,tdy); CHKERRQ(ierr);
-      break;
-    default :
-      SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian only implemented for 3D problem MPFA-O");
-      break;
-    }
+    ierr = SNESSetJacobian(snes,tdy->J,tdy->J,TDyMPFAOSNESJacobian,tdy); CHKERRQ(ierr);
     break;
   case MPFA_O_DAE:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for MPFA_O_DAE");
@@ -1584,14 +1550,7 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for TPF");
     break;
   case MPFA_O:
-    switch (dim) {
-    case 3:
-      ierr = TDyMPFAOSNESPreSolve_3DMesh(tdy); CHKERRQ(ierr);
-      break;
-    default :
-      SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver only implemented for 3D problem MPFA-O");
-      break;
-    }
+    ierr = TDyMPFAOSNESPreSolve(tdy); CHKERRQ(ierr);
     break;
   case MPFA_O_DAE:
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for MPFA_O_DAE");

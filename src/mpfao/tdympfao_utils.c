@@ -111,7 +111,7 @@ PetscErrorCode TDyUpdateBoundaryState(TDy tdy) {
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
+PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
@@ -224,7 +224,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices_3DMesh(TDy tdy, Vec U, P
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
+PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
@@ -534,7 +534,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
+PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
@@ -657,7 +657,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
 
 /* -------------------------------------------------------------------------- */
 
-PetscErrorCode TDyMPFAORecoverVelocity_3DMesh(TDy tdy, Vec U) {
+PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
 
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -666,9 +666,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_3DMesh(TDy tdy, Vec U) {
 
   for (iface=0;iface<tdy->mesh->num_faces;iface++) tdy->vel[iface] = 0.0;
 
-  ierr = TDyMPFAORecoverVelocity_InternalVertices_3DMesh(tdy, U, &vel_error, &count); CHKERRQ(ierr);
-  ierr = TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices_3DMesh(tdy, U, &vel_error, &count); CHKERRQ(ierr);
-  ierr = TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices_3DMesh(tdy, U, &vel_error, &count); CHKERRQ(ierr);
+  ierr = TDyMPFAORecoverVelocity_InternalVertices(tdy, U, &vel_error, &count); CHKERRQ(ierr);
+  ierr = TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices(tdy, U, &vel_error, &count); CHKERRQ(ierr);
+  ierr = TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices(tdy, U, &vel_error, &count); CHKERRQ(ierr);
 
   PetscReal vel_error_sum;
   PetscInt  count_sum;
