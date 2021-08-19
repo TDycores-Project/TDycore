@@ -38,7 +38,7 @@ endif
 # standard tests that are run to verify executable is built correctly
 #
 
-test : test-steady test-transient test-transient-mpfao test-transient-mpfaof90 test-transient-snes-mpfaof90 test-transient-th-mpfao test-richards test-th
+test : test-steady test-transient test-transient-mpfaof90 test-transient-snes-mpfaof90 test-richards test-th
 
 test-steady :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/steady/steady $(TEST_OPTIONS) \
@@ -52,12 +52,6 @@ test-transient :
 		--config-files ../demo/transient/transient.cfg \
 		--logfile_prefix transient
 
-test-transient-mpfao :
-	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/transient_mpfao $(TEST_OPTIONS) \
-		$(SUITES) \
-		--config-files ../demo/transient/transient_mpfao.cfg \
-		--logfile_prefix transient_mpfao
-
 test-transient-mpfaof90 :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/transient_mpfaof90 $(TEST_OPTIONS) \
 		$(SUITES) \
@@ -69,12 +63,6 @@ test-transient-snes-mpfaof90 :
                 $(SUITES) \
 		--config-files ../demo/transient/transient_snes_mpfaof90.cfg \
 		--logfile_prefix transient_snes_mpfaof90
-
-test-transient-th-mpfao :
-	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/transient_th_mpfao $(TEST_OPTIONS) \
-		$(SUITES) \
-		--config-files ../demo/transient/transient_th_mpfao.cfg \
-		--logfile_prefix transient_th_mpfao
 
 test-richards :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/richards/richards_driver $(TEST_OPTIONS) \
