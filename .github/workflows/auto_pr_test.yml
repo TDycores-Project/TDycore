@@ -51,15 +51,11 @@ jobs:
         num_failures=$(( $num_failures + $? ))
         make test-steady
         num_failures=$(( $num_failures + $? ))
-        make test-transient
-        num_failures=$(( $num_failures + $? ))
         make test-transient-mpfao
         num_failures=$(( $num_failures + $? ))
         make test-transient-mpfaof90
         num_failures=$(( $num_failures + $? ))
         make test-transient-snes-mpfaof90
-        num_failures=$(( $num_failures + $? ))
-        make test-transient-th-mpfao
         num_failures=$(( $num_failures + $? ))
         make test-richards
         num_failures=$(( $num_failures + $? ))
