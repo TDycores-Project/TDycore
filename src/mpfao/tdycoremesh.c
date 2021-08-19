@@ -363,71 +363,18 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
+/// Save natural IDs for each cell
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0  on success, or a non-zero error code on failure
+PetscErrorCode SaveNaturalIDs(TDy tdy){
 
   PetscFunctionBegin;
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  TDyVertex     *vertices = &mesh->vertices;
-  TDyEdge       *edges = &mesh->edges;
-  TDyFace       *faces = &mesh->faces;
   PetscErrorCode ierr;
-
-  // Determine the number of cells, edges, and vertices of the mesh
-  PetscInt c_start, c_end;
-  ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
-
-  PetscInt e_start, e_end;
-  ierr = DMPlexGetDepthStratum(dm, 1, &e_start, &e_end); CHKERRQ(ierr);
-
-  PetscInt v_start, v_end;
-  ierr = DMPlexGetDepthStratum(dm, 0, &v_start, &v_end); CHKERRQ(ierr);
-
-  PetscInt p_start, pEnd;
-  ierr = DMPlexGetChart(dm, &p_start, &pEnd); CHKERRQ(ierr);
-
-  // Face indexes -- only relevant for 3D calculations.
-  PetscInt dim;
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-
-  PetscInt f_start, f_end;
-  if (dim == 3) {
-    ierr = DMPlexGetDepthStratum( dm, 2, &f_start, &f_end); CHKERRQ(ierr);
-  } else {
-    f_start = 0; f_end = 0;
-  }
-
-  for (PetscInt ielement=p_start; ielement<pEnd; ielement++) {
-
-    if (IsClosureWithinBounds(ielement, v_start, v_end)) { // is the element a vertex?
-      PetscInt ivertex = ielement - v_start;
-      for (PetscInt d=0; d<dim; d++) {
-        vertices->coordinate[ivertex].X[d] = tdy->X[ielement*dim + d];
-      }
-    } else if (IsClosureWithinBounds(ielement, e_start,
-                                     e_end)) { // is the element an edge?
-      PetscInt iedge = ielement - e_start;
-      for (PetscInt d=0; d<dim; d++) {
-        edges->centroid[iedge].X[d] = tdy->X[ielement*dim + d];
-        edges->normal[iedge].V[d]   = tdy->N[ielement*dim + d];
-      }
-    } else if (IsClosureWithinBounds(ielement, c_start,
-                                     c_end)) { // is the element a cell?
-      PetscInt icell = ielement - c_start;
-      for (PetscInt d=0; d<dim; d++) {
-        cells->centroid[icell].X[d] = tdy->X[ielement*dim + d];
-      }
-    } else if (IsClosureWithinBounds(ielement, f_start,
-                                     f_end)) { // is the elment a face?
-      PetscInt iface = ielement - f_start;
-      for (PetscInt d=0; d<dim; d++) {
-        faces->centroid[iface].X[d] = tdy->X[ielement*dim + d];
-      }
-      faces->area[iface] = tdy->V[ielement];
-    }
-  }
 
   // If we're using natural ordering, generate natural indices for each cell.
   PetscBool useNatural;
@@ -523,6 +470,76 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
       ierr = VecDestroy(&region_id_nat_idx); CHKERRQ(ierr);
       ierr = VecDestroy(&global); CHKERRQ(ierr);
       ierr = VecDestroy(&local); CHKERRQ(ierr);
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  TDyVertex     *vertices = &mesh->vertices;
+  TDyEdge       *edges = &mesh->edges;
+  TDyFace       *faces = &mesh->faces;
+  PetscErrorCode ierr;
+
+  // Determine the number of cells, edges, and vertices of the mesh
+  PetscInt c_start, c_end;
+  ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
+
+  PetscInt e_start, e_end;
+  ierr = DMPlexGetDepthStratum(dm, 1, &e_start, &e_end); CHKERRQ(ierr);
+
+  PetscInt v_start, v_end;
+  ierr = DMPlexGetDepthStratum(dm, 0, &v_start, &v_end); CHKERRQ(ierr);
+
+  PetscInt p_start, pEnd;
+  ierr = DMPlexGetChart(dm, &p_start, &pEnd); CHKERRQ(ierr);
+
+  // Face indexes -- only relevant for 3D calculations.
+  PetscInt dim;
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+  PetscInt f_start, f_end;
+  if (dim == 3) {
+    ierr = DMPlexGetDepthStratum( dm, 2, &f_start, &f_end); CHKERRQ(ierr);
+  } else {
+    f_start = 0; f_end = 0;
+  }
+
+  for (PetscInt ielement=p_start; ielement<pEnd; ielement++) {
+
+    if (IsClosureWithinBounds(ielement, v_start, v_end)) { // is the element a vertex?
+      PetscInt ivertex = ielement - v_start;
+      for (PetscInt d=0; d<dim; d++) {
+        vertices->coordinate[ivertex].X[d] = tdy->X[ielement*dim + d];
+      }
+    } else if (IsClosureWithinBounds(ielement, e_start,
+                                     e_end)) { // is the element an edge?
+      PetscInt iedge = ielement - e_start;
+      for (PetscInt d=0; d<dim; d++) {
+        edges->centroid[iedge].X[d] = tdy->X[ielement*dim + d];
+        edges->normal[iedge].V[d]   = tdy->N[ielement*dim + d];
+      }
+    } else if (IsClosureWithinBounds(ielement, c_start,
+                                     c_end)) { // is the element a cell?
+      PetscInt icell = ielement - c_start;
+      for (PetscInt d=0; d<dim; d++) {
+        cells->centroid[icell].X[d] = tdy->X[ielement*dim + d];
+      }
+    } else if (IsClosureWithinBounds(ielement, f_start,
+                                     f_end)) { // is the elment a face?
+      PetscInt iface = ielement - f_start;
+      for (PetscInt d=0; d<dim; d++) {
+        faces->centroid[iface].X[d] = tdy->X[ielement*dim + d];
+      }
+      faces->area[iface] = tdy->V[ielement];
     }
   }
 
@@ -3874,6 +3891,7 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
     ierr = IdentifyLocalFaces(tdy); CHKERRQ(ierr);
   }
 
+  ierr = SaveNaturalIDs(tdy); CHKERRQ(ierr);
   ierr = SaveMeshGeometricAttributes(tdy); CHKERRQ(ierr);
 
   switch (dim) {
