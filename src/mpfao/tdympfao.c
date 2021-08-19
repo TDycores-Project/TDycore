@@ -486,7 +486,6 @@ PetscErrorCode TDyMPFAOSetFromOptions(TDy tdy) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 
-  DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
   PetscErrorCode ierr;

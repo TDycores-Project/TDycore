@@ -39,27 +39,21 @@ jobs:
         num_failures=0
         make unit-tests
         num_failures=$(( $num_failures + $? ))
-        cd demo/mpfao; make V=1 codecov=1
-        cd ../richards; make V=1 codecov=1
-        cd ../steady; make V=1 codecov=1
-        cd ../th; make V=1 codecov=1
-        cd ../transient;
-        make V=1 codecov=1 transient transient_mpfao transient_th_mpfao
+        cd demo/richards
+        make V=1 codecov=1
+        cd ../steady
+        make V=1 codecov=1
+        cd ../th
+        make V=1 codecov=1
+        cd ../transient
+        make V=1 codecov=1 transient
         make V=1 transient_mpfaof90 transient_snes_mpfaof90
         cd ../../regression_tests
-        make test-mpfao
-        num_failures=$(( $num_failures + $? ))
         make test-steady
-        num_failures=$(( $num_failures + $? ))
-        make test-transient
-        num_failures=$(( $num_failures + $? ))
-        make test-transient-mpfao
         num_failures=$(( $num_failures + $? ))
         make test-transient-mpfaof90
         num_failures=$(( $num_failures + $? ))
         make test-transient-snes-mpfaof90
-        num_failures=$(( $num_failures + $? ))
-        make test-transient-th-mpfao
         num_failures=$(( $num_failures + $? ))
         make test-richards
         num_failures=$(( $num_failures + $? ))

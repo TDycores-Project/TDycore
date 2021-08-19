@@ -90,10 +90,7 @@ $(OBJDIR)/%.o : %.F90 | $$(@D)/.DIR $(MODDIR)/.DIR
 
 TEST.c = \
 	demo/steady/steady.c \
-	demo/transient/transient.c \
-	demo/transient/transient_mpfao.c \
-	demo/mpfao/mpfao.c \
-#	demo/transient/transient_th_mpfao.c \
+	demo/transient/transient.c
 
 TEST.F90 = \
 	demo/transient/transient_mpfaof90.F90 \
