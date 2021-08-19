@@ -92,7 +92,6 @@ TEST.c = \
 	demo/steady/steady.c \
 	demo/transient/transient.c \
 	demo/transient/transient_mpfao.c \
-	demo/mpfao/mpfao.c \
 #	demo/transient/transient_th_mpfao.c \
 
 TEST.F90 = \

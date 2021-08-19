@@ -38,7 +38,7 @@ endif
 # standard tests that are run to verify executable is built correctly
 #
 
-test : test-mpfao test-steady test-transient test-transient-mpfao test-transient-mpfaof90 test-transient-snes-mpfaof90 test-transient-th-mpfao test-richards test-th
+test : test-steady test-transient test-transient-mpfao test-transient-mpfaof90 test-transient-snes-mpfaof90 test-transient-th-mpfao test-richards test-th
 
 test-steady :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/steady/steady $(TEST_OPTIONS) \
@@ -75,12 +75,6 @@ test-transient-th-mpfao :
 		$(SUITES) \
 		--config-files ../demo/transient/transient_th_mpfao.cfg \
 		--logfile_prefix transient_th_mpfao
-
-test-mpfao :
-	$(PYTHON) $(TEST_MANAGER) -e ../demo/mpfao/mpfao $(TEST_OPTIONS) \
-		$(SUITES) \
-		--config-files ../demo/mpfao/mpfao.cfg \
-		--logfile_prefix mpfao
 
 test-richards :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/richards/richards_driver $(TEST_OPTIONS) \
