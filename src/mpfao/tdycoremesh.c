@@ -3939,20 +3939,21 @@ PetscErrorCode ReadMeshGeometricAttributes(TDy tdy) {
         }
       }
 
-      if (!face_found && rank == 0) {
+      if (!face_found && cells->is_local[icell]) {
+        // Only stop if the cell is internal and a face is not found
         printf("Not found icell == %d; iface == %d; neighbor_id_in_data = %d; rank = %d\n",icell,iface,neighbor_id_in_data,rank);
-        exit(0);
         SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "ReadMeshGeometricAttributes: Face not found");
-      }
+      } else {
 
-      // col 7: Save face area
-      faces->area[face_id] = values[offset + col];
-      col++;
-
-      // col 8-10: Save face centroid
-      for (PetscInt d=0; d<3; d++) {
-        faces->centroid[face_id].X[d] = values[offset + col];
+        // col 7: Save face area
+        faces->area[face_id] = values[offset + col];
         col++;
+
+        // col 8-10: Save face centroid
+        for (PetscInt d=0; d<3; d++) {
+          faces->centroid[face_id].X[d] = values[offset + col];
+          col++;
+        }
       }
     }    
   }
