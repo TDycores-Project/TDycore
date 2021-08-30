@@ -3156,90 +3156,6 @@ PetscErrorCode FindCellsAboveAndBelowVertices(TDy tdy, PetscInt **cellsAbove, Pe
 
   PetscFunctionReturn(0);
 }
-/* -------------------------------------------------------------------------- */
-/// Reads a PETSc binary vector containing cell geometric attributes (i.e. cell
-/// volume)
-///
-/// @param [inout] tdy A TDy struct
-/// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode ReadCellGeometricAttributes(TDy tdy){
-
-  PetscFunctionBegin;
-
-  PetscLogEvent t1 = TDyGetTimer("Read cell geometric attributes instead of call to DMPlexComputeCellGeometryFVM");
-  TDyStartTimer(t1);
-
-  PetscErrorCode ierr;
-  Vec natural,global,local;
-  ierr = TDyCreateGlobalVector(tdy,&global);
-  ierr = TDyCreateGlobalVector(tdy,&natural);
-  ierr = TDyCreateLocalVector(tdy,&local);
-
-  ierr = TDyReadBinaryPetscVec(natural,tdy->options.cell_geom_file); CHKERRQ(ierr);
-
-  ierr = TDyNaturalToGlobal(tdy,natural,global); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,global,local); CHKERRQ(ierr);
-
-  DM dm = tdy->dm;
-  TDyMesh *mesh = tdy->mesh;
-  TDyCell *cells = &mesh->cells;
-  PetscInt c_start, c_end;
-  ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
-
-  PetscScalar *values;
-  ierr = VecGetArray(local,&values); CHKERRQ(ierr);
-  for (PetscInt icell=0; icell<c_end-c_start; icell++) {
-    cells->volume[icell] = values[icell];
-  }
-  ierr = VecRestoreArray(local,&values); CHKERRQ(ierr);
-
-  TDyStopTimer(t1);
-
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-/// Outputs a PETSc binary vector containing cell geometric attributes (i.e. cell
-/// volume)
-///
-/// @param [inout] tdy A TDy struct
-/// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode OutputCellGeometricAttributes(TDy tdy){
-
-  PetscFunctionBegin;
-
-  PetscLogEvent t1 = TDyGetTimer("Output cell geometric attributes");
-  TDyStartTimer(t1);
-
-  PetscErrorCode ierr;
-  Vec natural,global,local;
-  ierr = TDyCreateGlobalVector(tdy,&global);
-  ierr = TDyCreateGlobalVector(tdy,&natural);
-  ierr = TDyCreateLocalVector(tdy,&local);
-
-  DM dm = tdy->dm;
-  TDyMesh *mesh = tdy->mesh;
-  TDyCell *cells = &mesh->cells;
-  PetscInt c_start, c_end;
-  ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
-
-  PetscScalar *values;
-  PetscInt count=0;
-  ierr = VecGetArray(local,&values); CHKERRQ(ierr);
-  for (PetscInt icell=0; icell<c_end-c_start; icell++) {
-    if (cells->is_local) {
-    values[count++] = cells->volume[icell];
-    }
-  }
-  ierr = VecRestoreArray(local,&values); CHKERRQ(ierr);
-
-  ierr = TDyGlobalToNatural(tdy,global,natural); CHKERRQ(ierr);
-  ierr = TDySavePetscVecAsBinary(natural,tdy->options.cell_geom_file); CHKERRQ(ierr);
-
-  TDyStopTimer(t1);
-
-  PetscFunctionReturn(0);
-}
 
 /* -------------------------------------------------------------------------- */
 
@@ -3454,14 +3370,6 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
       }
 
     }
-  }
-
-  if (tdy->options.read_cell_geom_attributes) {
-    ierr = ReadCellGeometricAttributes(tdy); CHKERRQ(ierr);
-  }
-
-  if (tdy->options.output_cell_geom_attributes) {
-    ierr = OutputCellGeometricAttributes(tdy); CHKERRQ(ierr);
   }
 
   // Determine cell IDs that are above and below all vertices

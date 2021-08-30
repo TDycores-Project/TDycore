@@ -731,11 +731,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
             "-tdy_generate_mesh, or -tdy_read_mesh to specify a mesh");
   }
   ierr = PetscOptionsBool("-tdy_output_mesh","Enable output of mesh attributes","",options->output_mesh,&(options->output_mesh),NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_output_cell_geo_attributes", options->cell_geom_file,sizeof(options->cell_geom_file),&options->output_cell_geom_attributes); CHKERRQ(ierr);
-  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_cell_geo_attributes", options->cell_geom_file,sizeof(options->cell_geom_file),&options->read_cell_geom_attributes); CHKERRQ(ierr);
-  if (options->output_cell_geom_attributes && options->read_cell_geom_attributes){
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Only one of -tdy_output_cell_geom_attributes and -tdy_read_cell_geom_attributes can be specified");
-  }
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_output_geo_attributes", options->geom_attributes_file,sizeof(options->geom_attributes_file),&options->output_geom_attributes); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_geo_attributes", options->geom_attributes_file,sizeof(options->geom_attributes_file),&options->read_geom_attributes); CHKERRQ(ierr);
   if (options->output_geom_attributes && options->read_geom_attributes){
