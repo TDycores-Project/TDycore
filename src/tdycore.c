@@ -736,6 +736,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   if (options->output_cell_geom_attributes && options->read_cell_geom_attributes){
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Only one of -tdy_output_cell_geom_attributes and -tdy_read_cell_geom_attributes can be specified");
   }
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_output_geo_attributes", options->geom_attributes_file,sizeof(options->geom_attributes_file),&options->output_geom_attributes); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_geo_attributes", options->geom_attributes_file,sizeof(options->geom_attributes_file),&options->read_geom_attributes); CHKERRQ(ierr);
+  if (options->output_geom_attributes && options->read_geom_attributes){
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Only one of -tdy_output_geom_attributes and -tdy_read_geom_attributes can be specified");
+  }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Other options
