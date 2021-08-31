@@ -363,71 +363,18 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
+/// Save natural IDs for each cell
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0  on success, or a non-zero error code on failure
+PetscErrorCode SaveNaturalIDs(TDy tdy){
 
   PetscFunctionBegin;
 
   DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  TDyVertex     *vertices = &mesh->vertices;
-  TDyEdge       *edges = &mesh->edges;
-  TDyFace       *faces = &mesh->faces;
   PetscErrorCode ierr;
-
-  // Determine the number of cells, edges, and vertices of the mesh
-  PetscInt c_start, c_end;
-  ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
-
-  PetscInt e_start, e_end;
-  ierr = DMPlexGetDepthStratum(dm, 1, &e_start, &e_end); CHKERRQ(ierr);
-
-  PetscInt v_start, v_end;
-  ierr = DMPlexGetDepthStratum(dm, 0, &v_start, &v_end); CHKERRQ(ierr);
-
-  PetscInt p_start, pEnd;
-  ierr = DMPlexGetChart(dm, &p_start, &pEnd); CHKERRQ(ierr);
-
-  // Face indexes -- only relevant for 3D calculations.
-  PetscInt dim;
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-
-  PetscInt f_start, f_end;
-  if (dim == 3) {
-    ierr = DMPlexGetDepthStratum( dm, 2, &f_start, &f_end); CHKERRQ(ierr);
-  } else {
-    f_start = 0; f_end = 0;
-  }
-
-  for (PetscInt ielement=p_start; ielement<pEnd; ielement++) {
-
-    if (IsClosureWithinBounds(ielement, v_start, v_end)) { // is the element a vertex?
-      PetscInt ivertex = ielement - v_start;
-      for (PetscInt d=0; d<dim; d++) {
-        vertices->coordinate[ivertex].X[d] = tdy->X[ielement*dim + d];
-      }
-    } else if (IsClosureWithinBounds(ielement, e_start,
-                                     e_end)) { // is the element an edge?
-      PetscInt iedge = ielement - e_start;
-      for (PetscInt d=0; d<dim; d++) {
-        edges->centroid[iedge].X[d] = tdy->X[ielement*dim + d];
-        edges->normal[iedge].V[d]   = tdy->N[ielement*dim + d];
-      }
-    } else if (IsClosureWithinBounds(ielement, c_start,
-                                     c_end)) { // is the element a cell?
-      PetscInt icell = ielement - c_start;
-      for (PetscInt d=0; d<dim; d++) {
-        cells->centroid[icell].X[d] = tdy->X[ielement*dim + d];
-      }
-    } else if (IsClosureWithinBounds(ielement, f_start,
-                                     f_end)) { // is the elment a face?
-      PetscInt iface = ielement - f_start;
-      for (PetscInt d=0; d<dim; d++) {
-        faces->centroid[iface].X[d] = tdy->X[ielement*dim + d];
-      }
-      faces->area[iface] = tdy->V[ielement];
-    }
-  }
 
   // If we're using natural ordering, generate natural indices for each cell.
   PetscBool useNatural;
@@ -523,6 +470,77 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
       ierr = VecDestroy(&region_id_nat_idx); CHKERRQ(ierr);
       ierr = VecDestroy(&global); CHKERRQ(ierr);
       ierr = VecDestroy(&local); CHKERRQ(ierr);
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  DM             dm = tdy->dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  TDyVertex     *vertices = &mesh->vertices;
+  TDyEdge       *edges = &mesh->edges;
+  TDyFace       *faces = &mesh->faces;
+  PetscErrorCode ierr;
+
+  // Determine the number of cells, edges, and vertices of the mesh
+  PetscInt c_start, c_end;
+  ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
+
+  PetscInt e_start, e_end;
+  ierr = DMPlexGetDepthStratum(dm, 1, &e_start, &e_end); CHKERRQ(ierr);
+
+  PetscInt v_start, v_end;
+  ierr = DMPlexGetDepthStratum(dm, 0, &v_start, &v_end); CHKERRQ(ierr);
+
+  PetscInt p_start, pEnd;
+  ierr = DMPlexGetChart(dm, &p_start, &pEnd); CHKERRQ(ierr);
+
+  // Face indexes -- only relevant for 3D calculations.
+  PetscInt dim;
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+  PetscInt f_start, f_end;
+  if (dim == 3) {
+    ierr = DMPlexGetDepthStratum( dm, 2, &f_start, &f_end); CHKERRQ(ierr);
+  } else {
+    f_start = 0; f_end = 0;
+  }
+
+  for (PetscInt ielement=p_start; ielement<pEnd; ielement++) {
+
+    if (IsClosureWithinBounds(ielement, v_start, v_end)) { // is the element a vertex?
+      PetscInt ivertex = ielement - v_start;
+      for (PetscInt d=0; d<dim; d++) {
+        vertices->coordinate[ivertex].X[d] = tdy->X[ielement*dim + d];
+      }
+    } else if (IsClosureWithinBounds(ielement, e_start,
+                                     e_end)) { // is the element an edge?
+      PetscInt iedge = ielement - e_start;
+      for (PetscInt d=0; d<dim; d++) {
+        edges->centroid[iedge].X[d] = tdy->X[ielement*dim + d];
+        edges->normal[iedge].V[d]   = tdy->N[ielement*dim + d];
+      }
+    } else if (IsClosureWithinBounds(ielement, c_start,
+                                     c_end)) { // is the element a cell?
+      PetscInt icell = ielement - c_start;
+      cells->volume[icell] = tdy->V[ielement];
+      for (PetscInt d=0; d<dim; d++) {
+        cells->centroid[icell].X[d] = tdy->X[ielement*dim + d];
+      }
+    } else if (IsClosureWithinBounds(ielement, f_start,
+                                     f_end)) { // is the elment a face?
+      PetscInt iface = ielement - f_start;
+      for (PetscInt d=0; d<dim; d++) {
+        faces->centroid[iface].X[d] = tdy->X[ielement*dim + d];
+      }
+      faces->area[iface] = tdy->V[ielement];
     }
   }
 
@@ -1575,6 +1593,7 @@ PetscErrorCode ComputeAreaOf2DTriangle(PetscReal v1[3], PetscReal v2[3],
 PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
@@ -1616,7 +1635,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
       PetscInt subcell_id = icell*num_subcells+isubcell;
       PetscInt sOffsetNuVectors = subcells->nu_vector_offset[subcell_id];
 
-      // save coorindates of vertex that is part of the subcell
+      // save coordinates of vertex that is part of the subcell
       ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[isubcell], dim, &v_c[0]); CHKERRQ(ierr);
 
       // determine ids of up & down edges
@@ -1666,6 +1685,7 @@ PetscErrorCode SetupSubcellsFor2DMesh(DM dm, TDy tdy) {
                                         &normal[0]); CHKERRQ(ierr);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
@@ -2905,6 +2925,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   */
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
@@ -2990,6 +3011,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDy tdy, Petsc
   ierr = TDyDeallocate_IntegerArray_2D(cell_traversal, 2); CHKERRQ(ierr);
   ierr = TDyDeallocate_IntegerArray_2D(cell_up2dw, tdy->nfv); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -3012,6 +3034,7 @@ PetscErrorCode SaveCellIdsAtOppositeLevel(TDy tdy, PetscInt ivertex, PetscInt *i
 PetscErrorCode FindCellsAboveAndBelowAVertex(TDy tdy, PetscInt ivertex, PetscInt **cellsAbove, PetscInt **cellsBelow) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   TDyMesh *mesh = tdy->mesh;
   TDyVertex *vertices = &mesh->vertices;
@@ -3053,6 +3076,7 @@ PetscErrorCode FindCellsAboveAndBelowAVertex(TDy tdy, PetscInt ivertex, PetscInt
 
   ierr = TDyDeallocate_IntegerArray_2D(cell_ids_abv_blw, 2); CHKERRQ(ierr);
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -3147,6 +3171,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
   */
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   DM dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
@@ -3345,9 +3370,6 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
       }
 
     }
-    PetscReal normal[3], centroid[3];
-    ierr = DMPlexComputeCellGeometryFVM(dm, icell, &(cells->volume[icell]), &centroid[0],
-                                        &normal[0]); CHKERRQ(ierr);
   }
 
   // Determine cell IDs that are above and below all vertices
@@ -3365,6 +3387,7 @@ PetscErrorCode SetupSubcellsFor3DMesh(TDy tdy) {
     }
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -3752,15 +3775,367 @@ PetscErrorCode TDyOutputMesh(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+/// Reads a geometric attribue file. Currently only PETSc binary file format
+/// is supported
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0  on success or a non-zero error code on failure
+PetscErrorCode ReadMeshGeometricAttributes(TDy tdy) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
+
+  PetscInt rank;
+  MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
+
+  // 1. Read the binary geometric attribute file
+  //
+  // The i-th entry of the output strided Vec is
+  //
+  // volume_i, centroid_<x|y|z>_i, numNeighbor, nat_id_ij, face_area_of_ij, face_centroid_<x|y|z>_ij
+  //
+  
+  PetscInt numLocalCells = TDyMeshGetNumberOfLocalCells(mesh);
+  PetscInt numNeighbor = cells->num_neighbors[0]; // It is assumed that all cells have same number of neighbors
+  PetscInt numCellAttr = 5; // volume_i, centroid_<x|y|z>_i, numNeighbor
+  PetscInt numNeigbhorAttr = 5; // nat_id_ij, face_centroid_<x|y|z>_ij face_area_of_ij
+  PetscInt stride = numCellAttr + numNeighbor * numNeigbhorAttr;
+
+  Vec natural_vec;
+  ierr = VecCreate(PETSC_COMM_WORLD,&natural_vec); CHKERRQ(ierr);
+  ierr = VecSetSizes(natural_vec,numLocalCells*stride,PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(natural_vec,stride); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(natural_vec); CHKERRQ(ierr);
+
+  Vec local_vec;
+  ierr = VecCreate(PETSC_COMM_WORLD,&local_vec); CHKERRQ(ierr);
+  ierr = VecSetSizes(local_vec,mesh->num_cells*stride,PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(local_vec,stride); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(local_vec); CHKERRQ(ierr);
+
+  // Read the data
+  ierr = TDyReadBinaryPetscVec(natural_vec,tdy->options.geom_attributes_file); CHKERRQ(ierr);
+
+  //
+  // 2. Perform natural-to-local scatter of the geometric attributes
+  //
+
+  // Create index for natural vector
+  PetscInt local_offset = 0;
+  ierr = MPI_Exscan(&mesh->num_cells,&local_offset,1,MPI_INTEGER,MPI_SUM,PETSC_COMM_WORLD);
+
+  PetscInt int_array_from[mesh->num_cells];
+  PetscInt int_array_to[mesh->num_cells];
+  for (PetscInt i=0; i<mesh->num_cells; i++){
+    int_array_to[i] = i + local_offset;
+    int_array_from[i] = cells->natural_id[i];
+  }
+
+  IS is_from;
+  ierr = ISCreateBlock(PETSC_COMM_WORLD,stride,mesh->num_cells,int_array_from,PETSC_COPY_VALUES,&is_from); CHKERRQ(ierr);
+
+  // Create index for local vector
+  IS is_to;
+  ierr = ISCreateBlock(PETSC_COMM_WORLD,stride,mesh->num_cells,int_array_to,PETSC_COPY_VALUES,&is_to); CHKERRQ(ierr);
+
+  // Create natural-to-local scatter
+  VecScatter n2l_scatter;
+  VecScatterCreate(natural_vec,is_from,local_vec,is_to,&n2l_scatter); CHKERRQ(ierr);
+
+  ierr = VecScatterBegin(n2l_scatter,natural_vec,local_vec,INSERT_VALUES,SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterEnd(n2l_scatter,natural_vec,local_vec,INSERT_VALUES,SCATTER_FORWARD); CHKERRQ(ierr);
+  TDySavePetscVecAsBinary(local_vec,"cells_local.bin");
+
+  //
+  // 3. Save geometric attributes locally
+  //
+  PetscScalar *values;
+  ierr = VecGetArray(local_vec,&values); CHKERRQ(ierr);
+
+  for (PetscInt icell=0; icell<mesh->num_cells; icell++){
+
+    // The i-th entry of the output strided Vec is
+    //
+    //  col 1        col 2-4            col-5       col 6         col 7            col 8-10
+    // volume_i, centroid_<x|y|z>_i, numNeighbor, nat_id_ij, face_area_of_ij, face_centroid_<x|y|z>_ij, ...
+
+    PetscInt col = 0;
+    PetscInt offset = icell*stride;
+
+    // col 1: cell volume
+    cells->volume[icell] = values[ offset + col];      
+    col++;
+
+    // col 2-4: cell centroid
+    for (PetscInt d=0; d<3; d++) {
+      cells->centroid[icell].X[d] = values[offset + col];
+      col++;
+    }
+
+    PetscInt *face_ids, num_faces;
+    TDyMeshGetCellFaces(mesh, icell, &face_ids, &num_faces);
+
+    // col 5: number of neighbors
+    if ( num_faces != values[offset + col]) {
+      printf("ReadMeshGeometricAttributes: Number of faces do not match = num_faces%d values[%d] = %f; rank = %d\n",num_faces, offset + col, values[offset + col],rank);
+      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "ReadMeshGeometricAttributes: Number of faces do not match");
+    }
+    col++;
+
+    // Initialize if information about face/neigbhor is set
+    PetscInt bnd_face_set[num_faces];
+    for (PetscInt iface=0; iface<num_faces; iface++) {
+      bnd_face_set[iface] = 0;
+    }
+
+    // col 6-10; 11-15; ...
+    for (PetscInt iface=0; iface<num_faces; iface++) {
+
+      PetscBool face_found = PETSC_FALSE;
+      PetscInt face_id;
+
+      // col 6
+      PetscInt neighbor_id_in_data = values[offset + col];
+      col++;
+
+      if (neighbor_id_in_data < 0) {
+
+        // This face/neighbor is on boundary.
+        // Find the first boundary face for which geometric attributes
+        // hasn't already been set
+
+        for (PetscInt i=0; i<num_faces; i++) {
+          face_id = face_ids[i];
+
+          PetscInt *cell_ids, tmp;
+          ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &tmp); CHKERRQ(ierr);
+          if (bnd_face_set[i] == 0 && (cell_ids[0]<0 || cell_ids[1]<0)) {
+            bnd_face_set[i] = 1;
+            face_found = PETSC_TRUE;
+            break;
+          }
+        }
+      } else {
+
+        // This face/neigbhor is internal. 
+        // Loop over all the faces of the cell to find the face index of
+        // the current cell whose neighbor's natural id is neighbor_id_in_data
+
+        for (PetscInt i=0; i<num_faces; i++) {
+          face_id = face_ids[i];
+          PetscInt *cell_ids, tmp;
+          ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &tmp); CHKERRQ(ierr);
+
+          PetscInt nat_id_up = cells->natural_id[cell_ids[0]];
+          PetscInt nat_id_dn = cells->natural_id[cell_ids[1]];
+
+          if ( nat_id_up == neighbor_id_in_data || nat_id_dn == neighbor_id_in_data){
+            face_found = PETSC_TRUE;
+            break;
+          }
+        }
+      }
+
+      if (!face_found && cells->is_local[icell]) {
+        // Only stop if the cell is internal and a face is not found
+        printf("Not found icell == %d; iface == %d; neighbor_id_in_data = %d; rank = %d\n",icell,iface,neighbor_id_in_data,rank);
+        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "ReadMeshGeometricAttributes: Face not found");
+      } else {
+
+        // col 7: Save face area
+        faces->area[face_id] = values[offset + col];
+        col++;
+
+        // col 8-10: Save face centroid
+        for (PetscInt d=0; d<3; d++) {
+          faces->centroid[face_id].X[d] = values[offset + col];
+          col++;
+        }
+      }
+    }    
+  }
+  ierr = VecRestoreArray(local_vec,&values); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Outputs geometric attribues of mesh to a file. Currently only PETSc binary
+/// file format is supported.
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0  on success or a non-zero error code on failure
+PetscErrorCode OutputMeshGeometricAttributes(TDy tdy) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
+
+  // The i-th entry of the output strided Vec is
+  //
+    //  col 1        col 2-4            col-5       col 6         col 7            col 8-10
+  // volume_i, centroid_<x|y|z>_i, numNeighbor, nat_id_ij, face_area_of_ij, face_centroid_<x|y|z>_ij
+  //
+
+  PetscInt numLocalCells = TDyMeshGetNumberOfLocalCells(mesh);
+
+  PetscInt numNeighbor = cells->num_neighbors[0]; // It is assumed that all cells have same number of neighbors
+  PetscInt numCellAttr = 5; // volume_i, centroid_<x|y|z>_i, numNeighbor
+  PetscInt numNeigbhorAttr = 5; // nat_id_ij, face_centroid_<x|y|z>_ij face_area_of_ij
+  PetscInt stride = numCellAttr + numNeighbor * numNeigbhorAttr;
+
+  // Creates vectors for storing geometric attributes in global and natural
+  // index
+  Vec global_vec, natural_vec;
+  ierr = VecCreate(PETSC_COMM_WORLD,&global_vec); CHKERRQ(ierr);
+  ierr = VecSetSizes(global_vec,numLocalCells*stride,PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(global_vec,stride); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(global_vec); CHKERRQ(ierr);
+
+  ierr = VecDuplicate(global_vec, &natural_vec); CHKERRQ(ierr);
+
+  PetscScalar *values;
+  ierr = VecGetArray(global_vec,&values); CHKERRQ(ierr);
+
+  // Fill in the geometric attributes for only local cells
+  PetscInt count=0;
+  for (PetscInt icell=0; icell<mesh->num_cells; icell++){
+    if (mesh->cells.is_local[icell]) {
+      PetscInt offset = 0;
+
+      // cell volume
+      values[count*stride + offset] = cells->volume[icell];      
+      offset++;
+
+      // cell centroid
+      for (PetscInt d=0; d<3; d++) {
+        values[count*stride + offset] = cells->centroid[icell].X[d];
+        offset++;
+      }
+
+      PetscInt *face_ids, num_faces;
+      TDyMeshGetCellFaces(mesh, icell, &face_ids, &num_faces);
+
+      // number of neighbors
+      values[count*stride + offset] = num_faces;
+      offset++;
+
+      for (PetscInt n=0; n<num_faces; n++){
+        PetscInt face_id = face_ids[n];
+
+        PetscInt *face_cell_ids, tmp;
+        ierr = TDyMeshGetFaceCells(mesh, face_id, &face_cell_ids, &tmp); CHKERRQ(ierr);
+
+        PetscInt neighbor_id;
+        if (face_cell_ids[0] == icell) {
+          neighbor_id = face_cell_ids[1];
+        } else {
+          neighbor_id = face_cell_ids[0];
+        }
+
+        PetscInt neighbor_nat_id = neighbor_id;
+        
+        if (neighbor_id >= 0) {
+          neighbor_nat_id = cells->natural_id[neighbor_id];
+        }
+
+        // natural ID of neigbhor
+        values[count*stride + offset] = neighbor_nat_id;
+        offset++;
+
+        // face area
+        values[count*stride + offset] = faces->area[face_id];
+        offset++;
+
+        // face centroid
+        for (PetscInt d=0; d<3; d++) {
+          values[count*stride + offset] = faces->centroid[face_id].X[d];
+          offset++;
+        }
+
+      } // loop over neighbors
+
+    count++;
+    } // loop over local cells
+  }
+  ierr = VecRestoreArray(global_vec,&values); CHKERRQ(ierr);
+
+  // Create (from/to) Index Sets for vector scatter
+  PetscInt global_offset = 0;
+  ierr = MPI_Exscan(&numLocalCells,&global_offset,1,MPI_INTEGER,MPI_SUM,PETSC_COMM_WORLD);
+
+  PetscInt int_array[numLocalCells];
+  for (PetscInt i=0; i<numLocalCells; i++){
+    int_array[i] = i + global_offset;
+  }
+
+  IS is_from;
+  ierr = ISCreateBlock(PETSC_COMM_WORLD,stride,numLocalCells,int_array,PETSC_COPY_VALUES,&is_from); CHKERRQ(ierr);
+
+  IS is_to;
+  count = 0;
+  for (PetscInt icell=0; icell<mesh->num_cells; icell++){
+    if (mesh->cells.is_local[icell]) {
+      int_array[count++] = cells->natural_id[icell];
+    }
+  }
+  ierr = ISCreateBlock(PETSC_COMM_WORLD,stride,numLocalCells,int_array,PETSC_COPY_VALUES,&is_to); CHKERRQ(ierr);
+
+  // Create vector scatter
+  VecScatter g2n_scatter;
+  VecScatterCreate(global_vec,is_from,natural_vec,is_to,&g2n_scatter); CHKERRQ(ierr);
+
+  // Scatter data
+  ierr = VecScatterBegin(g2n_scatter,global_vec,natural_vec,INSERT_VALUES,SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterEnd(g2n_scatter,global_vec,natural_vec,INSERT_VALUES,SCATTER_FORWARD); CHKERRQ(ierr);
+
+  // Output data
+  ierr = TDySavePetscVecAsBinary(natural_vec,tdy->options.geom_attributes_file); CHKERRQ(ierr);
+
+  // Cleanup
+  ierr = ISDestroy(&is_from); CHKERRQ(ierr);
+  ierr = ISDestroy(&is_to); CHKERRQ(ierr);
+  ierr = VecScatterDestroy(&g2n_scatter); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyBuildMesh(TDy tdy) {
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
 
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
-  ierr = SaveMeshGeometricAttributes(tdy); CHKERRQ(ierr);
   ierr = SaveMeshConnectivityInfo(   tdy); CHKERRQ(ierr);
+
+  ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
+  ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);
+  ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
+
+  if (dim == 3) {
+    ierr = IdentifyLocalFaces(tdy); CHKERRQ(ierr);
+  }
+
+  ierr = SaveNaturalIDs(tdy); CHKERRQ(ierr);
+  if (tdy->options.read_geom_attributes) {
+    ierr = ReadMeshGeometricAttributes(tdy); CHKERRQ(ierr);
+  } {
+    ierr = SaveMeshGeometricAttributes(tdy); CHKERRQ(ierr);
+  }
+  tdy->options.read_geom_attributes = 0;
+
+  if (tdy->options.output_geom_attributes) {
+    ierr = OutputMeshGeometricAttributes(tdy); CHKERRQ(ierr);
+  }
+  tdy->options.output_geom_attributes = 0;
 
   switch (dim) {
   case 2:
@@ -3783,14 +4158,10 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
     break;
   }
 
-  ierr = IdentifyLocalCells(tdy); CHKERRQ(ierr);
-  ierr = IdentifyLocalVertices(tdy); CHKERRQ(ierr);
-  ierr = IdentifyLocalEdges(tdy); CHKERRQ(ierr);
-
   if (dim == 3) {
-    ierr = IdentifyLocalFaces(tdy); CHKERRQ(ierr);
     ierr = SetupSubcellsFor3DMesh(tdy); CHKERRQ(ierr);
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }

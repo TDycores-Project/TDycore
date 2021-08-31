@@ -1,4 +1,5 @@
 #include <petsc.h>
+#include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
 #include <private/tdymemoryimpl.h>
@@ -618,6 +619,42 @@ PetscErrorCode FindNeighboringVerticesOfAFace(TDyFace *faces, PetscInt iface, Pe
 }
 
 /* -------------------------------------------------------------------------- */
+/// Finds face id that is shared between two cells
+///
+/// @param [in] mesh     A TDyMesh struct
+/// @param [in] cell_id1 ID of cell-1
+/// @param [in] cell_id2 ID of cell-2
+/// @param [out] face_id Face ID of the common face
+/// @return 0 on sucess or a non-zero error code on failure
+PetscErrorCode TDyMeshFindFaceIDShareByTwoCells(TDyMesh *mesh, PetscInt cell_id1, PetscInt cell_id2, PetscInt *face_id) {
+  PetscFunctionBegin;
+
+  PetscInt *face_ids1, *face_ids2;
+  PetscInt num_faces1, num_faces2;
+  PetscErrorCode ierr;
+
+  ierr = TDyMeshGetCellFaces(mesh, cell_id1, &face_ids1, &num_faces1); CHKERRQ(ierr);
+  ierr = TDyMeshGetCellFaces(mesh, cell_id2, &face_ids2, &num_faces2); CHKERRQ(ierr);
+
+  PetscBool found = PETSC_FALSE;
+  for (PetscInt i=0; i<num_faces1; i++) {
+    for (PetscInt j=0; j<num_faces2; j++) {
+      if (face_ids1[i] == face_ids2[j]) {
+        *face_id = face_ids1[i];
+        found = PETSC_TRUE;
+        break;
+      }
+    }
+  }
+  if (!found) {
+    printf("Did not find a common face between cells = %d and %d\n",cell_id1, cell_id2);
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Stopping in TDyMeshFindFaceIDShareByTwoCells");
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 
 PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDyFace *faces,
                                                  TDyVertex *vertices, PetscInt ivertex,
@@ -625,6 +662,7 @@ PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDyFace *face
                                                  PetscInt *num_shared_faces) {
 
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   PetscInt iface;
   //PetscInt cell_id = cell->id;
@@ -655,6 +693,7 @@ PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt cell_id, TDyFace *face
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported vertex type for 3D mesh");
   }
 
+  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 

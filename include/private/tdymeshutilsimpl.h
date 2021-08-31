@@ -22,6 +22,7 @@ PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalCells(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalFacess(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfNonLocalFacess(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfNonInternalFacess(TDyMesh*);
+PETSC_INTERN PetscErrorCode TDyMeshFindFaceIDShareByTwoCells(TDyMesh*,PetscInt,PetscInt,PetscInt*);
 PETSC_INTERN PetscErrorCode AreFacesNeighbors(TDyFace*, PetscInt, PetscInt);
 PETSC_INTERN PetscErrorCode TDySubCell_GetIthNuVector(TDySubcell*, PetscInt, PetscInt, PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDySubCell_GetIthFaceCentroid(TDySubcell*, PetscInt, PetscInt, PetscInt, PetscReal*);
