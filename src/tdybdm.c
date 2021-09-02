@@ -227,12 +227,14 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
     ierr = PetscSectionSetDof     (sec,c,1); CHKERRQ(ierr);
   }
 
-  /* Setup dofs_per_face considering quads and hexes only */
-  for(d=0; d<(dim-1); d++) dofs_per_face *= 2;
+  /* Setup dofs_per_face */
+
   for(f=fStart; f<fEnd; f++) {
+    ierr = DMPlexGetConeSize(dm,f,&dofs_per_face); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldDof(sec,f,1,dofs_per_face); CHKERRQ(ierr);
     ierr = PetscSectionSetDof     (sec,f,  dofs_per_face); CHKERRQ(ierr);
   }
+
   ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
   ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
@@ -392,6 +394,7 @@ PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   /* relative to this cell, where is this face on the reference element? */
+  //TODO prism
   if(dim==2) {
     lside[0] = 0; lside[1] = 0;
     lside[2] = 1; lside[3] = 0;
@@ -447,6 +450,7 @@ PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal
     }
 
     /* get volumetric mapping information and the basis */
+    //TODO prism
     ierr = PetscQuadratureSetData(quadrature,dim,1,1,single_point,single_weight); CHKERRQ(ierr);
     ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,x,DF,DFinv,J); CHKERRQ(ierr);
     if(dim==2){
@@ -525,6 +529,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     for(q=0; q<nq; q++) {
 
       /* Evaluate the H-div basis */
+      //TOD Prism
       if(dim==2) {
         HdivBasisQuad(&(quad_x[dim*q]),basis_hdiv,&DF[dim2*q],J[q]);
       } else {
@@ -710,6 +715,7 @@ PetscReal TDyBDMVelocityNorm(TDy tdy,Vec U) {
           }
 
           /* interpolate normal component at this point/face */
+          // TODO Prism
           if(dim==2) {
 	    points[0] = xq[0]; points[1] = xq[1];
 	    ierr = PetscQuadratureSetData(cquad,dim,1,1,points,weights); CHKERRQ(ierr);
