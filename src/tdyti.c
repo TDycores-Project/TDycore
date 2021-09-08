@@ -103,7 +103,8 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
   TDY_START_FUNCTION_TIMER()
   TDyTimeIntegrator ti;
   SNESConvergedReason reason;
-
+  PetscBool checkpoint = PETSC_FALSE;
+    
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
       ti = tdy->ti;
@@ -145,7 +146,22 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
           ierr = TDyIOWriteVec(tdy); 
           CHKERRQ(ierr);
         }
+	if (tdy->io->output_timestep_interval > 0) {
+	  if ((tdy->ti->istep)%(tdy->io->output_timestep_interval) == 0) {
+	    ierr = TDyIOWriteVec(tdy);
+	  }
+	}
+	if (tdy->io->enable_checkpoint) {
+	  checkpoint = PETSC_TRUE;
+	  if ((tdy->ti->istep)%(tdy->io->checkpoint_timestep_interval) == 0 ){
+	    ierr = TDyIOOutputCheckpoint(tdy);CHKERRQ(ierr);
+	    checkpoint = PETSC_FALSE;
+	  }
+	}
         ierr = TDyTimeIntegratorUpdateDT(ti,sync_time); CHKERRQ(ierr);
+      }
+      if (tdy->io->enable_checkpoint && checkpoint) {
+        ierr = TDyIOOutputCheckpoint(tdy);CHKERRQ(ierr);
       }
       break;
     case TDyTS:

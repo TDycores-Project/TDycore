@@ -20,12 +20,15 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
 
   io->io_process = PETSC_FALSE;
   io->print_intermediate = PETSC_FALSE;
+  io->enable_checkpoint = PETSC_FALSE;
   io->num_vars = 2;
   strcpy(io->zonalVarNames[0], "LiquidPressure");
   strcpy(io->zonalVarNames[1], "Saturation");
   io->format = NullFormat;
   io->num_times = 0;
-
+  io->checkpoint_timestep_interval = 1;
+  io->output_timestep_interval = 0;
+  
   io->permeability_filename[0] = '\0';
   io->porosity_filename[0] = '\0';
   io->ic_filename[0] = '\0';
@@ -69,6 +72,20 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   ierr = PetscOptionsBool("-anisotropic_perm",
                           "Anisotropic Permeability","",
                           io->anisotropic_permeability,&(io->anisotropic_permeability),NULL);
+                          CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-enable_checkpoint",
+                          "Enable checkpoint output","",
+                          io->enable_checkpoint,&(io->enable_checkpoint),NULL);
+                          CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-checkpoint_timestep_interval",
+			  "Value of timestep interval for checkpoint output", NULL,
+			  io->checkpoint_timestep_interval,
+			  &io->checkpoint_timestep_interval, NULL);
+                          CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-output_timestep_interval",
+			  "Value of timestep interval for output", NULL,
+			  io->output_timestep_interval,
+			  &io->output_timestep_interval, NULL);
                           CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   
@@ -275,6 +292,33 @@ PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, Pe
 
   ierr = VecRestoreArray(u,&ptr);CHKERRQ(ierr);
 
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Outputs a checkpoint file with initial conditions
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyIOOutputCheckpoint(TDy tdy){
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  PetscViewer viewer;
+  PetscSection sec;
+  Vec p = tdy->solution;
+  Vec p_natural;
+  PetscReal time = tdy->ti->time;
+  char filename[PETSC_MAX_PATH_LEN];
+  
+  sprintf(filename,"%11.5e_%s.h5",time,"chk");
+  ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,filename,FILE_MODE_APPEND,&viewer);CHKERRQ(ierr);
+
+  ierr = TDyGlobalToNatural(tdy,p,p_natural);CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject) p_natural,"IC");CHKERRQ(ierr);
+  ierr = VecView(p_natural,viewer);CHKERRQ(ierr);
+  ierr = PetscViewerHDF5WriteAttribute(viewer,NULL,"time step", PETSC_INT, (void *) &tdy->ti->istep);CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
+  
   PetscFunctionReturn(0);
 }
 
