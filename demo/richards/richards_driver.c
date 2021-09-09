@@ -6,7 +6,6 @@ int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
   PetscInt successful_exit_code = 0;
-  PetscBool print_intermediate = PETSC_FALSE;
   PetscMPIInt rank, size;
   TDy tdy = PETSC_NULL;
   TDyIOFormat format = HDF5Format;
@@ -25,10 +24,6 @@ int main(int argc, char **argv) {
                          "Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
                          CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-print_intermediate_solutions",
-                          "Print intermediate solutions","",
-                          print_intermediate,&print_intermediate,NULL);
-                          CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // default mode and method must be set prior to TDySetFromOptions()
@@ -38,7 +33,6 @@ int main(int argc, char **argv) {
   if (!rank) {
     ierr = TDyIOSetIOProcess(tdy->io, PETSC_TRUE); CHKERRQ(ierr);
   }
-  ierr = TDyIOSetPrintIntermediate(tdy->io, print_intermediate); CHKERRQ(ierr);
   PetscPrintf(PETSC_COMM_WORLD,"--\n");
   if (size == 1) {
     ierr = TDyIOSetMode(tdy,format);CHKERRQ(ierr);

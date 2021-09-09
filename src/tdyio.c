@@ -19,7 +19,6 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   *_io = io;
 
   io->io_process = PETSC_FALSE;
-  io->print_intermediate = PETSC_FALSE;
   io->enable_checkpoint = PETSC_FALSE;
   io->num_vars = 2;
   strcpy(io->zonalVarNames[0], "LiquidPressure");
@@ -95,12 +94,6 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
 PetscErrorCode TDyIOSetIOProcess(TDyIO io, PetscBool flag){
   PetscFunctionBegin;
   io->io_process=flag;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyIOSetPrintIntermediate(TDyIO io, PetscBool flag){
-  PetscFunctionBegin;
-  io->print_intermediate=flag;
   PetscFunctionReturn(0);
 }
 

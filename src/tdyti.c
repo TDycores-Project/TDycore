@@ -142,10 +142,6 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
           printf("\nTime step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n\n",
                  ti->istep,ti->time,ti->dt,nit,lit,
                  SNESConvergedReasons[reason]);
-        if (tdy->io->print_intermediate) {
-          ierr = TDyIOWriteVec(tdy); 
-          CHKERRQ(ierr);
-        }
 	if (tdy->io->output_timestep_interval > 0) {
 	  if ((tdy->ti->istep)%(tdy->io->output_timestep_interval) == 0) {
 	    ierr = TDyIOWriteVec(tdy);

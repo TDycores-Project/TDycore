@@ -5,7 +5,6 @@
 
 struct _p_TDyIO {
   PetscBool io_process;
-  PetscBool print_intermediate;
   PetscBool anisotropic_permeability;
   PetscBool enable_checkpoint;
   PetscInt checkpoint_timestep_interval;
