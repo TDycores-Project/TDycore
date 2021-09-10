@@ -36,9 +36,8 @@
 #define tdycreatejacobian_                             TDYCREATEJACOBIAN
 #define tdysetdtimeforsnessolver_                      TDYSETDTIMEFORSNESSOLVER
 #define tdysetinitialcondition_                        TDYSETINITIALCONDITION
-#define tdysetprevioussolutionforsnessolver_           TDYSETPREVIOUSSOLUTIONFORSNESSOLVER
 #define tdypresolvesnessolver_                         TDYSETPRESOLVESNESSOLVER
-#define tdypostsolvesnessolver_                        TDYSETPOSTSOLVESNESSOLVER
+#define tdypostsolve_                                  TDYSETPOSTSOLVE
 #define tdycomputeerrornorms_                          TDYCOMPUTEERRORNORMS
 #define tdyupdatestate_                                TDYUPDATESTATE
 #define tdyoutputregression_                           TDYOUTPUTREGRESSION
@@ -71,9 +70,8 @@
 #define tdycreatejacobian_                             tdycreatejacobian
 #define tdysetdtimeforsnessolver_                      tdysetdtimeforsnessolver
 #define tdysetinitialcondition_                        tdysetinitialcondition
-#define tdysetprevioussolutionforsnessolver_           tdysetprevioussolutionforsnessolver
 #define tdypresolvesnessolver_                         tdypresolvesnessolver
-#define tdypostsolvesnessolver_                        tdypostsolvesnessolver
+#define tdypostsolve_                                  tdypostsolve
 #define tdycomputeerrornorms_                          tdycomputeerrornorms
 #define tdyupdatestate_                                tdyupdatestate
 #define tdyoutputregression_                           tdyoutputregression
@@ -190,18 +188,12 @@ PETSC_EXTERN void  tdysetinitialcondition_(TDy tdy, Vec solution, int *__ierr){
   (Vec)PetscToPointer(solution));
 }
 
-PETSC_EXTERN void  tdysetprevioussolutionforsnessolver_(TDy tdy, Vec solution, int *__ierr){
-*__ierr = TDySetPreviousSolutionForSNESSolver(
-  (TDy)PetscToPointer(tdy),
-  (Vec)PetscToPointer(solution));
-}
-
 PETSC_EXTERN void  tdypresolvesnessolver_(TDy tdy, int *__ierr){
 *__ierr = TDyPreSolveSNESSolver((TDy)PetscToPointer(tdy));
 }
 
-PETSC_EXTERN void  tdypostsolvesnessolver_(TDy tdy, Vec solution, int *__ierr){
-*__ierr = TDyPostSolveSNESSolver(
+PETSC_EXTERN void  tdypostsolve_(TDy tdy, Vec solution, int *__ierr){
+*__ierr = TDyPostSolve(
   (TDy)PetscToPointer(tdy),
   (Vec)PetscToPointer(solution));
 }
@@ -233,9 +225,9 @@ PETSC_EXTERN void  tdydestroy_(TDy *_tdy, int *__ierr){
 *__ierr = TDyDestroy(_tdy);
 }
 
-PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int ncells, int *ierr )
 {
-  *ierr = TDyUpdateState(*tdy,y);
+  *ierr = TDyUpdateState(*tdy,y,ncells);
 }
 
 //------------------------------------------------------------------------

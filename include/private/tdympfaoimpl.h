@@ -13,7 +13,13 @@ typedef struct TDyMPFAO {
   // Options
   PetscInt gmatrix_method;
   PetscInt bc_type;
-  PetscReal vangenuchten_m, vangenuchten_alpha, mualem_poly_low;
+  PetscReal vangenuchten_m, vangenuchten_alpha;
+
+  PetscReal mualem_poly_x0;
+  PetscReal mualem_poly_x1;
+  PetscReal mualem_poly_x2;
+  PetscReal mualem_poly_dx;
+
   // TODO: Remove these when we're ready.
   // PetscBool output_geom_attributes;
   // PetscBool read_geom_attributes;
@@ -92,8 +98,8 @@ PETSC_INTERN PetscErrorCode TDySetDMFields_TH_MPFAO(void*, DM);
 PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
 PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
 PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
-PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscReal*);
-PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscReal*);
+PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscInt, PetscReal*);
+PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_MPFAO(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode TDyUpdateDiagnostics_MPFAO(void*,DM,Vec);
 

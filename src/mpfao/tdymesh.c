@@ -618,21 +618,6 @@ PetscInt GetNumFacesForSubcellType(TDySubcellType subcell_type) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscInt TDyMeshGetNumberOfLocalCells(TDyMesh *mesh) {
-
-  PetscInt nLocalCells = 0;
-  PetscInt icell;
-
-  PetscFunctionBegin;
-
-  for (icell = 0; icell<mesh->num_cells; icell++) {
-    if (mesh->cells.is_local[icell]) nLocalCells++;
-  }
-
-  PetscFunctionReturn(nLocalCells);
-}
-
-/* -------------------------------------------------------------------------- */
 PetscInt TDyMeshGetNumberOfLocalFaces(TDyMesh *mesh) {
 
   PetscInt nLocalFaces = 0;
@@ -963,16 +948,20 @@ static PetscErrorCode IdentifyLocalCells(DM dm, TDyMesh *mesh) {
   ierr = VecDestroy(&junkVec); CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+
+  PetscInt num_cells_local = 0;
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
       cells->is_local[c] = PETSC_TRUE;
       cells->global_id[c] = gref;
+      num_cells_local++;
     } else {
       cells->is_local[c] = PETSC_FALSE;
       cells->global_id[c] = -gref-1;
     }
   }
+  mesh->num_cells_local = num_cells_local;
 
   PetscFunctionReturn(0);
 
@@ -1136,7 +1125,7 @@ PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDyCell *cells,
 
 PetscErrorCode TDyMeshGetNumLocalCells(TDyMesh *mesh, PetscInt *num_cells) {
   PetscFunctionBegin;
-  *num_cells = mesh->num_cells;
+  *num_cells = mesh->num_cells_local;
   PetscFunctionReturn(0);
 }
 
@@ -4817,7 +4806,7 @@ PetscErrorCode TDyMeshReadGeometry(TDyMesh *mesh, const char* filename) {
   // volume_i, centroid_<x|y|z>_i, numNeighbor, nat_id_ij, face_area_of_ij, face_centroid_<x|y|z>_ij
   //
 
-  PetscInt numLocalCells = TDyMeshGetNumberOfLocalCells(mesh);
+  PetscInt numLocalCells = mesh->num_cells_local;
   PetscInt numNeighbor = cells->num_neighbors[0]; // It is assumed that all cells have same number of neighbors
   PetscInt numCellAttr = 5; // volume_i, centroid_<x|y|z>_i, numNeighbor
   PetscInt numNeigbhorAttr = 5; // nat_id_ij, face_centroid_<x|y|z>_ij face_area_of_ij
@@ -4999,7 +4988,7 @@ PetscErrorCode TDyMeshWriteGeometry(TDyMesh *mesh, const char* filename) {
   // volume_i, centroid_<x|y|z>_i, numNeighbor, nat_id_ij, face_area_of_ij, face_centroid_<x|y|z>_ij
   //
 
-  PetscInt numLocalCells = TDyMeshGetNumberOfLocalCells(mesh);
+  PetscInt numLocalCells = mesh->num_cells_local;
 
   PetscInt numNeighbor = cells->num_neighbors[0]; // It is assumed that all cells have same number of neighbors
   PetscInt numCellAttr = 5; // volume_i, centroid_<x|y|z>_i, numNeighbor

@@ -164,7 +164,7 @@ PETSC_EXTERN PetscErrorCode TDySelectBoundaryPressureFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFunction(TDy,const char*);
 
-PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*,PetscInt);
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
 
 // Access to diagnostic variables
@@ -183,8 +183,7 @@ PETSC_EXTERN PetscErrorCode TDySetSNESJacobian(SNES,TDy);
 PETSC_EXTERN PetscErrorCode TDySetDtimeForSNESSolver(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetInitialCondition(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDySetPreviousSolutionForSNESSolver(TDy,Vec);
-PETSC_EXTERN PetscErrorCode TDyPreSolveSNESSolver(TDy);
-PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
+PETSC_INTERN PetscErrorCode TDyPreSolveSNESSolver(TDy);
 
 PETSC_EXTERN PetscErrorCode TDyOutputRegression(TDy,Vec);
 
@@ -199,7 +198,7 @@ PETSC_EXTERN PetscReal TDyADotB(PetscReal*,PetscReal*,PetscInt);
 PETSC_EXTERN void PrintMatrix(PetscReal*,PetscInt,PetscInt,PetscBool);
 PETSC_EXTERN PetscErrorCode CheckSymmetric(PetscReal*,PetscInt);
 
-PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
+PETSC_EXTERN PetscErrorCode TDyPostSolve(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyCreateVectors(TDy);
 PETSC_EXTERN PetscErrorCode TDyCreateJacobian(TDy);
 

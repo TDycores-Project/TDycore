@@ -29,7 +29,10 @@ typedef struct {
   PetscReal gardner_n;
   PetscReal vangenuchten_m;
   PetscReal vangenuchten_alpha;
-  PetscReal mualem_poly_low;
+  PetscReal mualem_poly_x0;
+  PetscReal mualem_poly_x1;
+  PetscReal mualem_poly_x2;
+  PetscReal mualem_poly_dx;
 
   // Constant boundary values
   PetscReal boundary_pressure;

@@ -176,6 +176,7 @@ typedef struct {
 typedef struct TDyMesh {
 
   PetscInt   num_cells;
+  PetscInt   num_cells_local;
   PetscInt   num_faces;
   PetscInt   num_edges;
   PetscInt   num_vertices;
@@ -266,7 +267,6 @@ PETSC_INTERN PetscInt GetNumSubcellsForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt GetNumOfNuVectorsForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt GetNumVerticesForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt GetNumFacesForSubcellType(TDySubcellType);
-PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalCells(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalFaces(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfNonLocalFaces(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfNonInternalFaces(TDyMesh*);

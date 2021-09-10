@@ -288,7 +288,10 @@ PetscErrorCode TDySetFromOptions_WY(void *context, TDyOptions *options) {
   // Set characteristic curve data.
   wy->vangenuchten_m = options->vangenuchten_m;
   wy->vangenuchten_alpha = options->vangenuchten_alpha;
-  wy->mualem_poly_low = options->mualem_poly_low;
+  wy->mualem_poly_x0 = options->mualem_poly_x0;
+  wy->mualem_poly_x1 = options->mualem_poly_x1;
+  wy->mualem_poly_x2 = options->mualem_poly_x2;
+  wy->mualem_poly_dx = options->mualem_poly_dx;
 
   PetscFunctionReturn(0);
 }
@@ -465,20 +468,30 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
 
   // By default, we use the the Mualem relative permeability model.
   {
-    PetscReal parameters[6*nc];
+    PetscInt num_params = 9;
+    PetscReal parameters[num_params*nc];
     for (PetscInt c = 0; c < nc; ++c) {
-      PetscReal m = wy->vangenuchten_m,
-                poly_low = wy->mualem_poly_low;
-      parameters[6*c]   = m;
-      parameters[6*c+1] = poly_low;
+      PetscReal m = wy->vangenuchten_m;
+      PetscReal poly_x0 = wy->mualem_poly_x0;
+      PetscReal poly_x1 = wy->mualem_poly_x1;
+      PetscReal poly_x2 = wy->mualem_poly_x2;
+      PetscReal poly_dx = wy->mualem_poly_dx;
+
+      PetscInt offset = num_params*c;
+      parameters[offset    ]   = m;
+      parameters[offset + 1] = poly_x0;
+      parameters[offset + 2] = poly_x1;
+      parameters[offset + 3] = poly_x2;
+      parameters[offset + 4] = poly_dx;
 
       // Set up cubic polynomial coefficients for the cell.
       PetscReal coeffs[4];
-      RelativePermeability_Mualem_GetSmoothingCoeffs(m, poly_low, coeffs);
-      parameters[6*c+2] = coeffs[0];
-      parameters[6*c+3] = coeffs[1];
-      parameters[6*c+4] = coeffs[2];
-      parameters[6*c+5] = coeffs[3];
+      ierr = RelativePermeability_Mualem_GetSmoothingCoeffs(m, poly_x0, poly_x1, poly_x2, poly_dx, coeffs);
+      CHKERRQ(ierr);
+      parameters[offset + 5] = coeffs[0];
+      parameters[offset + 6] = coeffs[1];
+      parameters[offset + 7] = coeffs[2];
+      parameters[offset + 8] = coeffs[3];
     }
     ierr = RelativePermeabilitySetType(cc->rel_perm, REL_PERM_FUNC_MUALEM, nc,
                                        points, parameters); CHKERRQ(ierr);
@@ -1072,13 +1085,13 @@ PetscErrorCode TDyComputeErrorNorms_WY(void *context, DM dm, Conditions *conditi
 
 PetscErrorCode TDyUpdateState_WY(void *context, DM dm,
                                  EOS *eos, MaterialProp *matprop,
-                                 CharacteristicCurves *cc, PetscReal *U) {
+                                 CharacteristicCurves *cc,
+                                 PetscInt num_cells, PetscReal *U) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyWY *wy = context;
 
-  PetscInt cStart, cEnd;
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  PetscInt cStart = 0, cEnd = num_cells;
   PetscInt nc = cEnd - cStart;
 
   // Compute the capillary pressure on all cells.
@@ -1127,6 +1140,8 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   TDyWY *wy = tdy->context;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   nv   = wy->nfv;
   wgt  = 1/((PetscReal)nv);
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
@@ -1134,12 +1149,10 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy,p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy,p,cEnd-cStart); CHKERRQ(ierr);
   ierr = TDyWYLocalElementCompute(tdy); CHKERRQ(ierr);
   ierr = TDyWYRecoverVelocity(tdy,Ul); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd); CHKERRQ(ierr);
