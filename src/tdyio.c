@@ -306,6 +306,7 @@ PetscErrorCode TDyIOOutputCheckpoint(TDy tdy){
   sprintf(filename,"%11.5e_%s.h5",time,"chk");
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,filename,FILE_MODE_APPEND,&viewer);CHKERRQ(ierr);
 
+  ierr = TDyCreateGlobalVector(tdy,&p_natural);
   ierr = TDyGlobalToNatural(tdy,p,p_natural);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject) p_natural,"IC");CHKERRQ(ierr);
   ierr = VecView(p_natural,viewer);CHKERRQ(ierr);
