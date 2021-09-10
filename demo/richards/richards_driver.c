@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
   ierr = TDyTimeIntegratorRunToTime(tdy,tdy->ti->final_time);
          CHKERRQ(ierr);
   if (size == 1) {ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);}
-  ierr = TDyOutputRegression(tdy,tdy->solution); CHKERRQ(ierr);
+  ierr = TDyOutputRegression(tdy,tdy->soln_prev); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
 
   PetscPrintf(comm,"--\n");

@@ -377,10 +377,6 @@ implicit none
   call TDySetInitialCondition(tdy,U,ierr)
   CHKERRA(ierr)
 
-  ! Set up the SNES solver.
-  call TDySetPreviousSolutionForSNESSolver(tdy, U, ierr)
-  CHKERRA(ierr)
-
   call SNESCreate(PETSC_COMM_WORLD,snes,ierr)
   CHKERRA(ierr)
 
@@ -432,10 +428,10 @@ implicit none
        if (reason<0) then
           call PetscError(PETSC_COMM_WORLD, 0, PETSC_ERR_USER, "SNES did not converge")
        endif
-    endif
 
-    call TDyPostSolveSNESSolver(tdy,U,ierr)
-    CHKERRA(ierr)
+       call TDyPostSolve(tdy,U,ierr);
+       CHKERRA(ierr);
+    endif
 
     ! Check the total liquid mass after the step. Because the liquid mass is
     ! nonnegative, the sum over all cells is the same as the 1-norm.

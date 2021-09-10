@@ -154,10 +154,11 @@ module tdycore
 !  end interface TDyGetCellIsLocal
 
   Interface TDyUpdateState
-     subroutine TDyUpdateState(a,b,z)
+     subroutine TDyUpdateState(a,b,c,z)
        use tdycoredef
        TDy a ! tdy
        PetscScalar b (*) ! PetscScalar
+       PetscInt c
        integer z
      end subroutine TDyUpdateState
   end interface TDyUpdateState
@@ -238,16 +239,6 @@ module tdycore
   end interface
 
   interface
-     subroutine TDySetPreviousSolutionForSNESSolver(a,b,z)
-       use tdycoredef
-       use petscvec
-       TDy a
-       Vec b
-       integer z
-     end subroutine TDySetPreviousSolutionForSNESSolver
-  end interface
-
-  interface
      subroutine TDyPreSolveSNESSolver(a,z)
        use tdycoredef
        TDy a
@@ -256,13 +247,13 @@ module tdycore
   end interface
 
   interface
-     subroutine TDyPostSolveSNESSolver(a,b,z)
+     subroutine TDyPostSolve(a,b,z)
        use tdycoredef
        use petscvec
        TDy a
        Vec b
        integer z
-     end subroutine TDyPostSolveSNESSolver
+     end subroutine TDyPostSolve
   end interface
 
   abstract interface

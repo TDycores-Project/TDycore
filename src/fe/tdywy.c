@@ -1072,13 +1072,13 @@ PetscErrorCode TDyComputeErrorNorms_WY(void *context, DM dm, Conditions *conditi
 
 PetscErrorCode TDyUpdateState_WY(void *context, DM dm,
                                  EOS *eos, MaterialProp *matprop,
-                                 CharacteristicCurves *cc, PetscReal *U) {
+                                 CharacteristicCurves *cc,
+                                 PetscInt num_cells, PetscReal *U) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyWY *wy = context;
 
-  PetscInt cStart, cEnd;
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  PetscInt cStart = 0, cEnd = num_cells;
   PetscInt nc = cEnd - cStart;
 
   // Compute the capillary pressure on all cells.
@@ -1127,6 +1127,8 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   TDyWY *wy = tdy->context;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   nv   = wy->nfv;
   wgt  = 1/((PetscReal)nv);
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
@@ -1134,12 +1136,10 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy,p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy,p,cEnd-cStart); CHKERRQ(ierr);
   ierr = TDyWYLocalElementCompute(tdy); CHKERRQ(ierr);
   ierr = TDyWYRecoverVelocity(tdy,Ul); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd); CHKERRQ(ierr);

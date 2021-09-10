@@ -1950,6 +1950,96 @@ static PetscErrorCode ComputeFacePermeabilityTensor(TDyMPFAO *mpfao,
  PetscFunctionReturn(0);
 }
 
+/// For the TPF approach, compute the value of permeability at face center that
+/// is used in computing the discretization of gravity term.
+///
+/// - First, compute permeability scalar values from the up and down cell permeability
+///   tensor using PFLOTRAN's approach
+/// - Second, compute distance-weighted harmonic-average of scalar permeabilities
+///
+/// @param [in] tdy A TDy struct
+/// @param [in] dim dimension of the problem
+/// @param [in] face_id ID of the face
+/// @param [out] *Kface_value Permeability value at the face
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ComputeFacePeremabilityValueTPF(TDyMPFAO *mpfao, MaterialProp *matprop, PetscInt dim, PetscInt face_id, PetscReal *Kface_value) {
+
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+
+  PetscReal u_up2dn[dim];
+  ierr = ComputeUpDownUnitVector(mpfao, face_id, u_up2dn); CHKERRQ(ierr);
+
+  PetscReal Kup[dim*dim], Kdn[dim*dim];
+  ierr = ExtractUpAndDownPermeabilityTensors(mpfao, matprop, face_id, dim, Kup, Kdn); CHKERRQ(ierr);
+
+  PetscReal Kup_value = 0.0, Kdn_value = 0.0;
+  for (PetscInt kk=0; kk<dim; kk++) {
+    Kup_value += pow(u_up2dn[kk],2.0)/Kup[kk*dim + kk];
+    Kdn_value += pow(u_up2dn[kk],2.0)/Kdn[kk*dim + kk];
+  }
+
+  Kup_value = 1.0/Kup_value;
+  Kdn_value = 1.0/Kdn_value;
+
+  PetscReal dist_up, dist_dn;
+  ierr = ComputeUpAndDownDist(mpfao, face_id, &dist_up, &dist_dn); CHKERRQ(ierr);
+
+  PetscReal wt_up = dist_up / (dist_up + dist_dn);
+
+  *Kface_value = (Kup_value*Kdn_value)/(wt_up*Kdn_value + (1.0-wt_up)*Kup_value);
+
+  PetscFunctionReturn(0);
+}
+
+/// For the MPFAO approach, compute the value of permeability at face center that
+/// is used in computing the discretization of gravity term.
+///
+/// - First, permeability tensor at the face is computed by harmonically averaging
+///    permeability tensors of cells share the face
+/// - Second, the face permeability tensor is projected along the unit normal
+///   along the line joining up and down cells
+/// - Third, dot producot of the projected face permeability vector and unit
+///   normal to the face is computed
+///
+/// @param [in] tdy A TDy struct
+/// @param [in] dim dimension of the problem
+/// @param [in] face_id ID of the face
+/// @param [out] *k_face_value Permeability value at the face
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ComputeFacePeremabilityValueMPFAO(TDyMPFAO *mpfao, MaterialProp *matprop, PetscInt dim, PetscInt face_id, PetscReal *Kface_value) {
+
+  PetscFunctionBegin;
+
+  TDyMesh *mesh = mpfao->mesh;
+  TDyFace *faces = &mesh->faces;
+  PetscErrorCode ierr;
+
+  PetscReal u_up2dn[dim];
+  ierr = ComputeUpDownUnitVector(mpfao, face_id, u_up2dn); CHKERRQ(ierr);
+
+  PetscReal Kface[dim*dim];
+  ierr = ComputeFacePermeabilityTensor(mpfao, matprop, face_id, Kface);
+
+  // Ku = Kface x u_up2dn
+  PetscReal Ku[dim];
+  for (PetscInt ii = 0; ii < dim; ii++ ){
+    Ku[ii] = 0.0;
+    for (PetscInt jj = 0; jj < dim; jj++ ){
+      Ku[ii] += Kface[ii*dim + jj] * u_up2dn[jj];
+    }
+  }
+
+  PetscReal n_face[dim];
+  ierr = TDyFace_GetNormal(faces, face_id, dim, &n_face[0]); CHKERRQ(ierr);
+
+  // dot (n_face, K_face x u_up2dn)
+  ierr = TDyDotProduct(n_face, Ku, Kface_value); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 /// Computes the two-point flux discretization of the gravity term in Richards equation
 ///
 /// Flux associated with the gravity term is given as
@@ -2041,31 +2131,31 @@ static PetscErrorCode ComputeGravityDiscretization(TDyMPFAO *mpfao, DM dm,
       PetscReal u_up2dn[dim];
       ierr = ComputeUpDownUnitVector(mpfao, face_id, u_up2dn); CHKERRQ(ierr);
 
-      PetscReal K_face[dim*dim];
-      ierr = ComputeFacePermeabilityTensor(mpfao, matprop, face_id, K_face);
+      PetscReal k_face_value;
+      switch (mpfao->gmatrix_method) {
+        case MPFAO_GMATRIX_DEFAULT:
+          ierr = ComputeFacePeremabilityValueMPFAO(mpfao, matprop, dim, face_id, &k_face_value);
+          break;
 
-      // Ku = K_face x u_up2dn
-      PetscReal Ku[dim];
-      for (PetscInt ii = 0; ii < dim; ii++ ){
-        Ku[ii] = 0.0;
-        for (PetscInt jj = 0; jj < dim; jj++ ){
-          Ku[ii] += K_face[ii*dim + jj] * u_up2dn[jj];
-        }
+      case MPFAO_GMATRIX_TPF:
+        ierr = ComputeFacePeremabilityValueTPF(mpfao, matprop, dim, face_id, &k_face_value); CHKERRQ(ierr);
+
+        PetscReal n_face[dim], dot_prod;
+        ierr = TDyFace_GetNormal(faces, face_id, dim, &n_face[0]); CHKERRQ(ierr);
+
+        // dot product between face normal and unit vector along up-down cell
+        ierr = TDyDotProduct(n_face, u_up2dn, &dot_prod); CHKERRQ(ierr);
+
+        area *= dot_prod;
+        break;
       }
-
-      PetscReal n_face[dim];
-      ierr = TDyFace_GetNormal(faces, face_id, dim, &n_face[0]); CHKERRQ(ierr);
-
-      // dot (n_face, K_face x u_up2dn)
-      PetscReal dot_prod_1;
-      ierr = TDyDotProduct(n_face, Ku, &dot_prod_1); CHKERRQ(ierr);
 
       // dot(g, u_up2dn)
       PetscReal dot_prod_2;
       ierr = ComputeGtimesZ(mpfao->gravity,u_up2dn, dim, &dot_prod_2); CHKERRQ(ierr);
 
       // GravDis = A_face * dot (n_face, K_face x u_up2dn) * dot(g, u_up2dn)
-      PetscReal GravDis = area * dot_prod_1 * dot_prod_2;
+      PetscReal GravDis = area * k_face_value * dot_prod_2;
 
       PetscInt isubcell = subface_ids[iface];
       PetscInt num_subcells = 4;
@@ -2101,7 +2191,7 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
     PetscInt nrow, ncol, nz;
 
     nFaces = mpfao->mesh->num_faces;
-    nLocalCells = TDyMeshGetNumberOfLocalCells(mpfao->mesh);
+    nLocalCells = mpfao->mesh->num_cells_local;
     nNonLocalFaces = TDyMeshGetNumberOfNonLocalFaces(mpfao->mesh);
     nNonInternalFaces = TDyMeshGetNumberOfNonInternalFaces(mpfao->mesh);
 
@@ -2153,7 +2243,7 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
     PetscInt nrow, ncol, nz;
 
     nFaces = mpfao->mesh->num_faces;
-    nLocalCells = TDyMeshGetNumberOfLocalCells(mpfao->mesh);
+    nLocalCells = mpfao->mesh->num_cells_local;
     nNonLocalFaces = TDyMeshGetNumberOfNonLocalFaces(mpfao->mesh);
     nNonInternalFaces = TDyMeshGetNumberOfNonInternalFaces(mpfao->mesh);
 
@@ -2202,7 +2292,7 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
     PetscInt nrow, ncol, nz;
 
     nFaces = mpfao->mesh->num_faces;
-    nLocalCells = TDyMeshGetNumberOfLocalCells(mpfao->mesh);
+    nLocalCells = mpfao->mesh->num_cells_local;
     nNonLocalFaces = TDyMeshGetNumberOfNonLocalFaces(mpfao->mesh);
     nNonInternalFaces = TDyMeshGetNumberOfNonInternalFaces(mpfao->mesh);
 
@@ -2253,6 +2343,7 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
                                              EOS *eos,
                                              MaterialProp *matprop,
                                              CharacteristicCurves *cc,
+                                             PetscInt num_cells,
                                              PetscReal *U) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -2260,8 +2351,7 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
 
   PetscInt dim = 3;
   PetscInt dim2 = dim*dim;
-  PetscInt cStart, cEnd;
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  PetscInt cStart = 0, cEnd = num_cells;
   PetscInt nc = cEnd - cStart;
 
   // Compute the capillary pressure on all cells.
@@ -2318,7 +2408,8 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
 
 PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
                                        EOS *eos, MaterialProp *matprop,
-                                       CharacteristicCurves *cc, PetscReal *U) {
+                                       CharacteristicCurves *cc,
+                                       PetscInt num_cells, PetscReal *U) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -2326,8 +2417,7 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
 
   PetscInt dim = 3;
   PetscInt dim2 = dim*dim;
-  PetscInt cStart, cEnd;
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  PetscInt cStart = 0, cEnd = num_cells;
   PetscInt nc = cEnd - cStart;
 
   // Obtain the capillary pressure and the temperature on all cells.

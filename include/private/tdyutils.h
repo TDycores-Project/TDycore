@@ -22,10 +22,13 @@ PETSC_INTERN PetscErrorCode TDyComputeVolumeOfTetrahedron(PetscReal node_1[3], P
 PETSC_INTERN PetscErrorCode TDyCreateVecJoiningTwoVertices(PetscReal vtx_from[3],PetscReal vtx_to[3], PetscReal vec[3]);
 PETSC_INTERN PetscInt TDyReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value);
 PETSC_INTERN PetscInt TDySavePetscVecAsBinary(Vec vec, const char filename[]);
+PETSC_INTERN PetscInt TDySavePetscVecSeqAsBinary(Vec vec, const char filename[]);
 PETSC_INTERN PetscInt TDyReadBinaryPetscVec(Vec vec, const char filename[]);
 PETSC_INTERN PetscInt TDySavePetscMatAsBinary(Mat, const char []);
 PETSC_INTERN PetscErrorCode ExtractSubVectors(Vec,PetscInt,Vec *);
 PETSC_INTERN PetscErrorCode ComputeTheta(PetscReal, PetscReal, PetscReal *);
 PETSC_INTERN PetscErrorCode ComputeDeterminantOf3by3Matrix(PetscReal [9], PetscReal *);
 PETSC_INTERN PetscErrorCode ComputeInverseOf3by3Matrix(PetscReal[9], PetscReal[9]);
+PETSC_INTERN PetscErrorCode ludcmp(PetscReal**,PetscInt,PetscInt*,PetscInt*);
+PETSC_INTERN PetscErrorCode ludksb(PetscReal**,PetscInt,PetscInt*,PetscReal*);
 #endif

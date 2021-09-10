@@ -17,7 +17,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void 
   TDyMesh *mesh = mpfao->mesh;
   TDyCell *cells = &mesh->cells;
   DM       dm;
-  Vec      Ul,P,M,R_P,R_M;
+  Vec      P,M,R_P,R_M;
   PetscReal *p,*u_t,*r,*r_p,*m;
   PetscInt m_idx, p_idx;
   PetscInt icell;
@@ -28,20 +28,19 @@ PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void 
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
-  ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Get sub-vectors
-  ierr = ExtractSubVectors(Ul,0,&P);
-  ierr = ExtractSubVectors(Ul,1,&M);
+  ierr = ExtractSubVectors(tdy->soln_loc,0,&P);
+  ierr = ExtractSubVectors(tdy->soln_loc,1,&M);
   ierr = ExtractSubVectors(R,0,&R_P);
   ierr = ExtractSubVectors(R,1,&R_M);
 
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(P,&p); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
+ierr = TDyUpdateState(tdy, p, mesh->num_cells); CHKERRQ(ierr);
   ierr = VecRestoreArray(P,&p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,P); CHKERRQ(ierr);
@@ -75,10 +74,8 @@ PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void 
 
   /* Cleanup */
   ierr = VecRestoreArray(M,&m); CHKERRQ(ierr);
-  ierr = VecRestoreArray(U_t,&u_t); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
   ierr = VecRestoreArray(R_P,&r_p); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
