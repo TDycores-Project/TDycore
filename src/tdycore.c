@@ -736,6 +736,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   if (options->output_geom_attributes && options->read_geom_attributes){
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Only one of -tdy_output_geom_attributes and -tdy_read_geom_attributes can be specified");
   }
+  ierr = PetscOptionsBool("-tdy_output_mesh_partition_info","Output mesh partition information","",options->output_mesh_partition_info,&(options->output_mesh_partition_info),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Other options

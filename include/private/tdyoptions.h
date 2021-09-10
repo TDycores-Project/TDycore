@@ -51,6 +51,8 @@ typedef struct {
   PetscBool read_geom_attributes;
   char geom_attributes_file[PETSC_MAX_PATH_LEN];
 
+  PetscBool output_mesh_partition_info;
+
   // I/O settings
   PetscBool output_mesh;
   PetscBool regression_testing;

@@ -3578,6 +3578,50 @@ PetscErrorCode OutputMeshGeometricAttributes(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+/// Outputs the following mesh partition information in binary format from each rank:
+/// - Natural cell id
+/// - Local or ghost cell
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0  on success or a non-zero error code on failure
+PetscErrorCode OutputMeshPartitionInfo(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  PetscErrorCode ierr;
+
+  Vec vec;
+  PetscInt stride=2; // (1) nautral id and (2) is the cell a local cell(=1) or a ghost cell(=0)
+  ierr = VecCreateSeq(PETSC_COMM_SELF,mesh->num_cells*stride,&vec); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(vec,stride); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(vec); CHKERRQ(ierr);
+
+  PetscScalar *vec_ptr;
+  ierr = VecGetArray(vec,&vec_ptr); CHKERRQ(ierr);
+
+  for (PetscInt icell=0; icell<mesh->num_cells; icell++) {
+    vec_ptr[icell*stride] = cells->natural_id[icell];
+    vec_ptr[icell*stride + 1] = cells->is_local[icell];
+  }
+  ierr = VecRestoreArray(vec,&vec_ptr); CHKERRQ(ierr);
+
+  PetscInt iam;
+  MPI_Comm_rank(PETSC_COMM_WORLD,&iam);
+  char filename[50];
+  sprintf(filename,"mesh_partition_info_%04d.bin",iam);
+
+  ierr = TDySavePetscVecSeqAsBinary(vec, filename); CHKERRQ(ierr);
+
+  ierr = VecDestroy(&vec); CHKERRQ(ierr);
+
+  ierr = MPI_Barrier(PETSC_COMM_WORLD);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyBuildMesh(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
@@ -3609,6 +3653,10 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
     ierr = OutputMeshGeometricAttributes(tdy); CHKERRQ(ierr);
   }
   tdy->options.output_geom_attributes = 0;
+
+  if (tdy->options.output_mesh_partition_info) {
+    ierr = OutputMeshPartitionInfo(tdy); CHKERRQ(ierr);
+  }
 
   ierr = ConvertCellsToCompressedFormat(tdy); CHKERRQ(ierr);
   ierr = ConvertVerticesToCompressedFormat(tdy); CHKERRQ(ierr);
