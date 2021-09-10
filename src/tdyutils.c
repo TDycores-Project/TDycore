@@ -482,6 +482,31 @@ PetscInt TDyReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value) {
 }
 
 /* -------------------------------------------------------------------------- */
+/// Outputs a sequential PETSc Vec as binary
+///
+/// @param [in] vec A sequential PETSc Vec
+/// @param [in] filename Name of the file
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDySavePetscVecSeqAsBinary(Vec vec, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  ierr = PetscViewerBinaryOpen(PETSC_COMM_SELF, filename, FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
+  ierr = VecView(vec, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Outputs a PETSc Vec as binary
+///
+/// @param [in] vec A PETSc Vec
+/// @param [in] filename Name of the file
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDySavePetscVecAsBinary(Vec vec, const char filename[]) {
 
   PetscViewer viewer;
@@ -498,7 +523,7 @@ PetscErrorCode TDySavePetscVecAsBinary(Vec vec, const char filename[]) {
 }
 
 /* -------------------------------------------------------------------------- */
-/// Outputs a PETSc Vec as binary
+/// Reads a PETSc Vec as binary
 ///
 /// @param [in] vec A PETSc Vec
 /// @param [in] filename Name of the file
