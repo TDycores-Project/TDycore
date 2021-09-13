@@ -3581,19 +3581,28 @@ PetscErrorCode OutputMeshGeometricAttributes(TDy tdy) {
 /// Outputs the following mesh partition information in binary format from each rank:
 /// - Natural cell id
 /// - Local or ghost cell
+/// - Number of vertices that are part of the cell
+/// - Local vertex ids that are part of the cell
 ///
 /// @param [inout] tdy A TDy struct
 /// @returns 0  on success or a non-zero error code on failure
-PetscErrorCode OutputMeshPartitionInfo(TDy tdy) {
+PetscErrorCode OutputMeshPartitionInfo_Cell(TDy tdy) {
 
   PetscFunctionBegin;
 
+  DM dm = tdy->dm;
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
   PetscErrorCode ierr;
 
+  PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
+
   Vec vec;
-  PetscInt stride=2; // (1) nautral id and (2) is the cell a local cell(=1) or a ghost cell(=0)
+
+  // (1) nautral id and (2) is the cell a local cell(=1) or a ghost cell(=0)
+  // (3) number of vertices
+  // (4:end) local vertex id
+  PetscInt stride = 2 + 1 + nverts_per_cell;
   ierr = VecCreateSeq(PETSC_COMM_SELF,mesh->num_cells*stride,&vec); CHKERRQ(ierr);
   ierr = VecSetBlockSize(vec,stride); CHKERRQ(ierr);
   ierr = VecSetFromOptions(vec); CHKERRQ(ierr);
@@ -3602,15 +3611,89 @@ PetscErrorCode OutputMeshPartitionInfo(TDy tdy) {
   ierr = VecGetArray(vec,&vec_ptr); CHKERRQ(ierr);
 
   for (PetscInt icell=0; icell<mesh->num_cells; icell++) {
+    PetscInt *vertex_ids, num_vertices;
+    TDyMeshGetCellVertices(mesh, icell, &vertex_ids, &num_vertices);
+
     vec_ptr[icell*stride] = cells->natural_id[icell];
     vec_ptr[icell*stride + 1] = cells->is_local[icell];
+    vec_ptr[icell*stride + 2] = num_vertices;
+    for (PetscInt ivertex=0; ivertex<num_vertices; ivertex++){
+      vec_ptr[icell*stride + 3 + ivertex] = vertex_ids[ivertex];
+    }
+    for (PetscInt ivertex=num_vertices; ivertex<nverts_per_cell; ivertex++){
+      vec_ptr[icell*stride + 3 + ivertex] = -1;
+    }
   }
   ierr = VecRestoreArray(vec,&vec_ptr); CHKERRQ(ierr);
 
   PetscInt iam;
   MPI_Comm_rank(PETSC_COMM_WORLD,&iam);
   char filename[50];
-  sprintf(filename,"mesh_partition_info_%04d.bin",iam);
+  sprintf(filename,"mesh_cell_partition_info_%04d.bin",iam);
+
+  ierr = TDySavePetscVecSeqAsBinary(vec, filename); CHKERRQ(ierr);
+
+  ierr = VecDestroy(&vec); CHKERRQ(ierr);
+
+  ierr = MPI_Barrier(PETSC_COMM_WORLD);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Outputs the following mesh partition information in binary format from each rank:
+/// - coordinates (x,y,z) of the vertex
+/// - Local or ghost vertex
+/// - Number of cells that share the vertex
+/// - Local cell IDs that share the vertex
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0  on success or a non-zero error code on failure
+PetscErrorCode OutputMeshPartitionInfo_Vertex(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  DM dm = tdy->dm;
+  TDyMesh *mesh = tdy->mesh;
+  TDyVertex *vertices = &mesh->vertices;
+  PetscErrorCode ierr;
+
+  PetscInt ncells_per_vertex = TDyMaxNumberOfCellsSharingAVertex(dm, tdy->closureSize, tdy->closure);
+
+  Vec vec;
+
+  // (1) coord_x, (2) coord_y, (3) coord_z (4) is the vertex is local vertex(=1) or a ghost vertex(=0)
+  PetscInt stride = 4 + 1 + ncells_per_vertex;
+  
+  ierr = VecCreateSeq(PETSC_COMM_SELF,mesh->num_vertices*stride,&vec); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(vec,stride); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(vec); CHKERRQ(ierr);
+
+  PetscScalar *vec_ptr;
+  ierr = VecGetArray(vec,&vec_ptr); CHKERRQ(ierr);
+
+  for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
+    vec_ptr[ivertex*stride] = vertices->coordinate[ivertex].X[0];
+    vec_ptr[ivertex*stride + 1] = vertices->coordinate[ivertex].X[1];
+    vec_ptr[ivertex*stride + 2] = vertices->coordinate[ivertex].X[2];
+    vec_ptr[ivertex*stride + 3] = vertices->is_local[ivertex];
+    vec_ptr[ivertex*stride + 4] = vertices->num_internal_cells[ivertex];
+
+    PetscInt *cell_ids, num_cells;
+    TDyMeshGetVertexInternalCells(mesh, ivertex, &cell_ids, &num_cells);
+    for (PetscInt icell=0; icell<num_cells; icell++) {
+      vec_ptr[ivertex*stride + 5 + icell] = cell_ids[icell];
+    }
+    for (PetscInt icell=vertices->num_internal_cells[ivertex]; icell<ncells_per_vertex; icell++) {
+      vec_ptr[ivertex*stride + 5 + icell] = -1;
+    }
+  }
+  ierr = VecRestoreArray(vec,&vec_ptr); CHKERRQ(ierr);
+
+  PetscInt iam;
+  MPI_Comm_rank(PETSC_COMM_WORLD,&iam);
+  char filename[50];
+  sprintf(filename,"mesh_vertex_partition_info_%04d.bin",iam);
 
   ierr = TDySavePetscVecSeqAsBinary(vec, filename); CHKERRQ(ierr);
 
@@ -3655,7 +3738,8 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
   tdy->options.output_geom_attributes = 0;
 
   if (tdy->options.output_mesh_partition_info) {
-    ierr = OutputMeshPartitionInfo(tdy); CHKERRQ(ierr);
+    ierr = OutputMeshPartitionInfo_Cell(tdy); CHKERRQ(ierr);
+    ierr = OutputMeshPartitionInfo_Vertex(tdy); CHKERRQ(ierr);
   }
 
   ierr = ConvertCellsToCompressedFormat(tdy); CHKERRQ(ierr);
