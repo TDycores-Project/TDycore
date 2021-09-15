@@ -3631,7 +3631,7 @@ PetscErrorCode OutputMeshPartitionInfo_Cell(TDy tdy) {
   char filename[50];
   sprintf(filename,"mesh_cell_partition_info_%04d.bin",iam);
 
-  ierr = TDySavePetscVecSeqAsBinary(vec, filename); CHKERRQ(ierr);
+  ierr = TDySavePetscVecAsBinary(vec, filename); CHKERRQ(ierr);
 
   ierr = VecDestroy(&vec); CHKERRQ(ierr);
 
@@ -3695,7 +3695,7 @@ PetscErrorCode OutputMeshPartitionInfo_Vertex(TDy tdy) {
   char filename[50];
   sprintf(filename,"mesh_vertex_partition_info_%04d.bin",iam);
 
-  ierr = TDySavePetscVecSeqAsBinary(vec, filename); CHKERRQ(ierr);
+  ierr = TDySavePetscVecAsBinary(vec, filename); CHKERRQ(ierr);
 
   ierr = VecDestroy(&vec); CHKERRQ(ierr);
 
