@@ -737,6 +737,8 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Only one of -tdy_output_geom_attributes and -tdy_read_geom_attributes can be specified");
   }
   ierr = PetscOptionsBool("-tdy_output_mesh_partition_info","Output mesh partition information","",options->output_mesh_partition_info,&(options->output_mesh_partition_info),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-tdy_output_residual","Output residual","",options->output_residual,&(options->output_residual),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsBool("-tdy_output_jacobian","Output jacobian","",options->output_jacobian,&(options->output_jacobian),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Other options

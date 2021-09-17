@@ -133,6 +133,9 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
 
+  if (tdy->options.output_residual) {
+    ierr = TDySavePetscVecAsBinary(R,"residual.bin");
+  }
 #if defined(DEBUG)
   sprintf(word,"Function%d.vec",icount_f);
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
@@ -204,6 +207,10 @@ PetscErrorCode TDyMPFAOSNESJacobian(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
 
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Udotl); CHKERRQ(ierr);
+
+  if (tdy->options.output_jacobian) {
+    ierr = TDySavePetscMatAsBinary(A,"jacobian.bin");
+  }
 
 #if defined(DEBUG)
   PetscViewer viewer;

@@ -53,6 +53,9 @@ typedef struct {
 
   PetscBool output_mesh_partition_info;
 
+  PetscBool output_residual;
+  PetscBool output_jacobian;
+
   // I/O settings
   PetscBool output_mesh;
   PetscBool regression_testing;
