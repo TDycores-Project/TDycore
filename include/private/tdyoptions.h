@@ -52,6 +52,8 @@ typedef struct {
   char geom_attributes_file[PETSC_MAX_PATH_LEN];
 
   PetscBool output_mesh_partition_info;
+  PetscBool output_transmissibility_matrix;
+  PetscBool output_gravity_discretization;
 
   PetscBool output_residual;
   PetscBool output_jacobian;

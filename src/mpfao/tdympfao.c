@@ -1840,6 +1840,18 @@ PetscErrorCode TDyComputeTransmissibilityMatrix(TDy tdy) {
     }
   }
 
+  if (tdy->options.output_transmissibility_matrix) {
+    PetscInt iam;
+    MPI_Comm_rank(PETSC_COMM_WORLD,&iam);
+    char filename[50];
+    sprintf(filename,"richards_trans_matrix_%04d.bin",iam);
+    ierr = TDySavePetscMatAsBinary(tdy->Trans_mat,filename);
+    if (tdy->options.mode == TH){
+      sprintf(filename,"th_trans_matrix_%04d.bin",iam);
+      ierr = TDySavePetscMatAsBinary(tdy->Temp_Trans_mat,filename);
+    }
+  }
+
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
@@ -2166,6 +2178,14 @@ PetscErrorCode TDyComputeGravityDiscretization(TDy tdy) {
   }
 
   ierr = VecRestoreArray(tdy->GravDisVec, &gradDisPtr); CHKERRQ(ierr);
+
+  if (tdy->options.output_gravity_discretization) {
+    PetscInt iam;
+    MPI_Comm_rank(PETSC_COMM_WORLD,&iam);
+    char filename[50];
+    sprintf(filename,"gravity_discretization_%04d.bin",iam);
+    ierr = TDySavePetscVecAsBinary(tdy->GravDisVec,filename);
+  }
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
