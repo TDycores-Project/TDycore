@@ -3728,6 +3728,66 @@ PetscErrorCode OutputMeshPartitionInfo_Vertex(TDy tdy) {
 }
 
 /* -------------------------------------------------------------------------- */
+/// Outputs the following mesh partition information in binary format from each rank:
+/// - IDs of cells sharing the face in local numbering
+/// - IDs of cells sharing the face in natural numbering
+///
+/// @param [inout] tdy A TDy struct
+/// @returns 0  on success or a non-zero error code on failure
+PetscErrorCode OutputMeshPartitionInfo_Face(TDy tdy) {
+
+  PetscFunctionBegin;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  PetscErrorCode ierr;
+
+  Vec vec;
+  PetscInt stride = 4;
+
+  ierr = VecCreateSeq(PETSC_COMM_SELF,mesh->num_faces*stride,&vec); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(vec,stride); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(vec); CHKERRQ(ierr);
+
+  PetscScalar *vec_ptr;
+  ierr = VecGetArray(vec,&vec_ptr); CHKERRQ(ierr);
+
+  PetscInt *cell_ids, num_cells;
+
+  for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
+
+    ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
+
+    vec_ptr[iface*stride    ] = cell_ids[0];
+    vec_ptr[iface*stride + 1] = cell_ids[1];
+
+    if (cell_ids[0] >= 0) {
+      vec_ptr[iface*stride + 2] = cells->natural_id[cell_ids[0]];
+    } else {
+      vec_ptr[iface*stride + 2] = cell_ids[0];
+    }
+    if (cell_ids[1] >= 0) {
+      vec_ptr[iface*stride + 3] = cells->natural_id[cell_ids[1]];
+    } else {
+      vec_ptr[iface*stride + 3] = cell_ids[1];
+    }
+  }
+  ierr = VecRestoreArray(vec,&vec_ptr); CHKERRQ(ierr);
+
+  PetscInt iam;
+  MPI_Comm_rank(PETSC_COMM_WORLD,&iam);
+  char filename[50];
+  sprintf(filename,"mesh_face_partition_info_%04d.bin",iam);
+
+  ierr = TDySavePetscVecAsBinary(vec, filename); CHKERRQ(ierr);
+
+  ierr = VecDestroy(&vec); CHKERRQ(ierr);
+
+  ierr = MPI_Barrier(PETSC_COMM_WORLD);
+
+  PetscFunctionReturn(0);
+}
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyBuildMesh(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
@@ -3753,16 +3813,15 @@ PetscErrorCode TDyBuildMesh(TDy tdy) {
   } {
     ierr = SaveMeshGeometricAttributes(tdy); CHKERRQ(ierr);
   }
-  tdy->options.read_geom_attributes = 0;
 
   if (tdy->options.output_geom_attributes) {
     ierr = OutputMeshGeometricAttributes(tdy); CHKERRQ(ierr);
   }
-  tdy->options.output_geom_attributes = 0;
 
   if (tdy->options.output_mesh_partition_info) {
     ierr = OutputMeshPartitionInfo_Cell(tdy); CHKERRQ(ierr);
     ierr = OutputMeshPartitionInfo_Vertex(tdy); CHKERRQ(ierr);
+    ierr = OutputMeshPartitionInfo_Face(tdy); CHKERRQ(ierr);
   }
 
   ierr = ConvertCellsToCompressedFormat(tdy); CHKERRQ(ierr);
