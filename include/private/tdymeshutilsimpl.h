@@ -1,7 +1,7 @@
 #if !defined(TDYMESHUTILSIMPL_H)
 #define TDYMESHUTILSIMPL_H
 
-PETSC_INTERN TDyCellType GetCellType(PetscInt, PetscInt);
+PETSC_INTERN TDyCellType GetCellType(PetscInt);
 PETSC_INTERN PetscInt GetNumVerticesForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumOfCellsSharingAVertexForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumCellsPerEdgeForCellType(TDyCellType);

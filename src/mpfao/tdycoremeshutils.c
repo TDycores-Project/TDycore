@@ -7,40 +7,21 @@
 #include <private/tdydiscretization.h>
 
 /* ---------------------------------------------------------------- */
-TDyCellType GetCellType(PetscInt dim, PetscInt nverts_per_cell) {
+TDyCellType GetCellType(PetscInt nverts_per_cell) {
 
   TDyCellType cell_type;
 
   PetscFunctionBegin;
 
-  switch (dim) {
-    case 2:
-      switch (nverts_per_cell) {
-        case 4:
-          cell_type = CELL_QUAD_TYPE;
-          break;
-        default:
-          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported nverts_per_cell for 2D mesh");
-          break;
-      }
+  switch (nverts_per_cell) {
+    case 6:
+      cell_type = CELL_WEDGE_TYPE;
       break;
-
-    case 3:
-      switch (nverts_per_cell) {
-        case 6:
-          cell_type = CELL_WEDGE_TYPE;
-          break;
-        case 8:
-          cell_type = CELL_HEX_TYPE;
-          break;
-        default:
-          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported nverts_per_cell for 3D mesh");
-          break;
-      }
+    case 8:
+      cell_type = CELL_HEX_TYPE;
       break;
-
     default:
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim");
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported nverts_per_cell for 3D mesh");
       break;
   }
 

@@ -338,7 +338,7 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
 
   // compute number of vertices per grid cell
   PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
-  TDyCellType cell_type = GetCellType(dim, nverts_per_cell);
+  TDyCellType cell_type = GetCellType(nverts_per_cell);
 
   ierr = AllocateMemoryForCells(num_cells, cell_type, &mesh->cells); CHKERRQ(ierr);
   ierr = AllocateMemoryForEdges(num_edges, cell_type, &mesh->edges); CHKERRQ(ierr);
@@ -1019,7 +1019,7 @@ PetscErrorCode ConvertCellsToCompressedFormat(TDy tdy) {
 
   // compute number of vertices per grid cell
   PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
-  TDyCellType cell_type = GetCellType(dim, nverts_per_cell);
+  TDyCellType cell_type = GetCellType(nverts_per_cell);
 
   PetscInt num_vertices  = GetNumVerticesForCellType(cell_type);
   PetscInt num_edges     = GetNumEdgesForCellType(cell_type);
@@ -1065,7 +1065,7 @@ PetscErrorCode ConvertSubcellsToCompressedFormat(TDy tdy) {
   PetscInt num_cells = c_end - c_start;
 
   PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
-  TDyCellType cell_type = GetCellType(dim, nverts_per_cell);
+  TDyCellType cell_type = GetCellType(nverts_per_cell);
   TDySubcellType subcell_type = GetSubcellTypeForCellType(cell_type);
 
   PetscInt num_subcells   = GetNumSubcellsForSubcellType(subcell_type);
@@ -1208,7 +1208,7 @@ PetscErrorCode ConvertFacesToCompressedFormat(TDy tdy) {
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
   PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, tdy->closureSize, tdy->closure);
-  TDyCellType cell_type = GetCellType(dim, nverts_per_cell);
+  TDyCellType cell_type = GetCellType(nverts_per_cell);
   PetscInt num_vertices_per_face = GetNumOfVerticesFormingAFaceForCellType(cell_type);
 
   /* Convert vertex_ids */
