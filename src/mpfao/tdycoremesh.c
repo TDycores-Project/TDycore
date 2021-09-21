@@ -1787,10 +1787,13 @@ PetscErrorCode SetupUpwindFacesForSubcell(TDyMesh *mesh, TDyVertex *vertices, Pe
   // update vertices->subface_ids[]
   for (PetscInt iface=0; iface<vertices->num_faces[ivertex]; iface++) {
     PetscInt face_id = vertex_face_ids[iface];
-    PetscInt fOffsetVertex = faces->vertex_offset[face_id];
+
+    PetscInt *vertex_ids, num_vertices;
+    ierr = TDyMeshGetFaceVertices(mesh, face_id, &vertex_ids, &num_vertices); CHKERRQ(ierr);
+
     PetscBool found = PETSC_FALSE;
     for (PetscInt ii=0; ii<faces->num_vertices[face_id]; ii++) {
-      if (faces->vertex_ids[fOffsetVertex + ii] == ivertex) {
+      if (vertex_ids[ii] == ivertex) {
         subface_ids[iface] = ii;
         found = PETSC_TRUE;
         break;
@@ -1969,13 +1972,15 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDy tdy, PetscInt ivertex, PetscInt *
       PetscInt faceCount = 0;
       for (PetscInt iface=0; iface<num_faces; iface++) {
         PetscInt faceID = face_ids[iface];
-        PetscInt fOffsetVert = faces->vertex_offset[faceID];
+
+        PetscInt *vertex_ids, num_vertices;
+        ierr = TDyMeshGetFaceVertices(mesh, faceID, &vertex_ids, &num_vertices); CHKERRQ(ierr);
 
         // Does the faceID-th face contains vertices corresponding to ivertex and ivertexAbvBlw?
         PetscInt count=0;
         for (PetscInt iv=0; iv<faces->num_vertices[faceID]; iv++) {
-          if (faces->vertex_ids[fOffsetVert+iv] == ivertex) count++;
-          if (faces->vertex_ids[fOffsetVert+iv] == ivertexAbvBlw[level]) count++;
+          if (vertex_ids[iv] == ivertex) count++;
+          if (vertex_ids[iv] == ivertexAbvBlw[level]) count++;
         }
 
         if (count == 2) {
@@ -2401,13 +2406,14 @@ PetscErrorCode AddTwoBndFacesOfTwoCellsInTraversalDirection(TDy tdy, PetscInt iv
       if ((cellsAbvBlw[mm] == cell_ids[0]  )||
           (cellsAbvBlw[mm] == cell_ids[1])) {
 
-        PetscInt fOffsetVertex = faces->vertex_offset[face_id];
+        PetscInt *vertex_ids, num_vertices;
+        ierr = TDyMeshGetFaceVertices(mesh, face_id, &vertex_ids, &num_vertices); CHKERRQ(ierr);
 
         // If the face has a vertex that is exactly above or below the
         // ivertex, add it to the traversal direction
         for (PetscInt jj=0; jj<faces->num_vertices[face_id]; jj++) {
-          if ( (ivertex != faces->vertex_ids[fOffsetVertex + jj])
-              && VerticesHaveSameXYCoords(tdy, ivertex, faces->vertex_ids[fOffsetVertex + jj])) {
+          if ( (ivertex != vertex_ids[jj])
+              && VerticesHaveSameXYCoords(tdy, ivertex, vertex_ids[jj])) {
             found = PETSC_TRUE;
             bnd_faces_found[ii] = 1;
             cell_traversal[ncells_level+kk] = ncells + ii;
@@ -3206,16 +3212,17 @@ PetscErrorCode UpdateCellOrientationAroundAFace(TDy tdy) {
     PetscReal v1[3], v2[3], v3[3], v4[3], normal[3];
     PetscReal f_cen[3], c_cen[3], f2c[3], dot_prod;
 
-    PetscInt fOffsetVertex = faces->vertex_offset[iface];
+    PetscInt *vertex_ids, num_vertices;
+    ierr = TDyMeshGetFaceVertices(mesh, iface, &vertex_ids, &num_vertices); CHKERRQ(ierr);
     PetscInt *cell_ids, num_cells;
     ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
 
-    ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 0], dim, &v1[0]); CHKERRQ(ierr);
-    ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 1], dim, &v2[0]); CHKERRQ(ierr);
-    ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 2], dim, &v3[0]); CHKERRQ(ierr);
+    ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[0], dim, &v1[0]); CHKERRQ(ierr);
+    ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[1], dim, &v2[0]); CHKERRQ(ierr);
+    ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[2], dim, &v3[0]); CHKERRQ(ierr);
 
     if (faces->num_vertices[iface] == 4) {
-      ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 3], dim, &v4[0]); CHKERRQ(ierr);
+      ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[3], dim, &v4[0]); CHKERRQ(ierr);
 
       // Check if v1-v2-v3-v4 are in the correct order such that
       // normal to (v1,v2,v3) and normal (v2,v3,v4) are in pointing
@@ -3228,13 +3235,13 @@ PetscErrorCode UpdateCellOrientationAroundAFace(TDy tdy) {
 
       if (dot_prod < 0.0) {
         // Swap the order of vertices
-        PetscInt tmp = faces->vertex_ids[fOffsetVertex + 2];
-        faces->vertex_ids[fOffsetVertex + 2] = faces->vertex_ids[fOffsetVertex + 3];
-        faces->vertex_ids[fOffsetVertex + 3] = tmp;
+        PetscInt tmp = vertex_ids[2];
+        vertex_ids[2] = vertex_ids[3];
+        vertex_ids[3] = tmp;
       }
 
-      ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 2], dim, &v3[0]); CHKERRQ(ierr);
-      ierr = TDyVertex_GetCoordinate(vertices, faces->vertex_ids[fOffsetVertex + 3], dim, &v4[0]); CHKERRQ(ierr);
+      ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[2], dim, &v3[0]); CHKERRQ(ierr);
+      ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[3], dim, &v4[0]); CHKERRQ(ierr);
 
     }
 
