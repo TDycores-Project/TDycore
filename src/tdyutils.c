@@ -131,9 +131,7 @@ PetscErrorCode TDySaveClosures(DM dm, PetscInt *closureSize, PetscInt **closure,
   ierr = TDySaveClosures_Cells(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
   ierr = TDySaveClosures_Vertices(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-  if (dim == 3) {
-    ierr = TDySaveClosures_Faces(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
-  }
+  ierr = TDySaveClosures_Faces(dm, closureSize, closure, maxClosureSize); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);

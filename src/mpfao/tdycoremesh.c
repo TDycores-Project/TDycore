@@ -297,13 +297,6 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
   TDyMesh *mesh = tdy->mesh;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-
-  if (dim!= 2 && dim!=3 ) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Only 2D and 3D grids are supported");
-  }
-
   // Determine the number of cells, edges, and vertices of the mesh
   PetscInt c_start, c_end;
   ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
@@ -318,13 +311,9 @@ PetscErrorCode TDyAllocateMemoryForMesh(TDy tdy) {
   PetscInt num_vertices = v_end - v_start;
 
   PetscInt num_faces;
-  if (dim == 3) {
-    PetscInt f_start, f_end;
-    ierr = DMPlexGetDepthStratum( dm, 2, &f_start, &f_end); CHKERRQ(ierr);
-    num_faces = f_end - f_start;
-  } else {
-    num_faces = 0;
-  }
+  PetscInt f_start, f_end;
+  ierr = DMPlexGetDepthStratum( dm, 2, &f_start, &f_end); CHKERRQ(ierr);
+  num_faces = f_end - f_start;
 
   mesh->num_cells    = num_cells;
   mesh->num_faces    = num_faces;
@@ -507,11 +496,7 @@ PetscErrorCode SaveMeshGeometricAttributes(TDy tdy) {
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   PetscInt f_start, f_end;
-  if (dim == 3) {
-    ierr = DMPlexGetDepthStratum( dm, 2, &f_start, &f_end); CHKERRQ(ierr);
-  } else {
-    f_start = 0; f_end = 0;
-  }
+  ierr = DMPlexGetDepthStratum( dm, 2, &f_start, &f_end); CHKERRQ(ierr);
 
   for (PetscInt ielement=p_start; ielement<pEnd; ielement++) {
 
@@ -579,11 +564,7 @@ PetscErrorCode SaveMeshConnectivityInfo(TDy tdy) {
   // Faces -- only relevant in 3D calculations.
   PetscInt dim, f_start, f_end;
   ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-  if (dim == 3) {
-    ierr = DMPlexGetDepthStratum( dm, 2, &f_start, &f_end); CHKERRQ(ierr);
-  } else {
-    f_start = 0; f_end = 0;
-  }
+  ierr = DMPlexGetDepthStratum( dm, 2, &f_start, &f_end); CHKERRQ(ierr);
 
   // cell--to--vertex
   // edge--to--cell

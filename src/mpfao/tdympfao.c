@@ -411,7 +411,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
 
   ierr = TDyBuildMesh(tdy); CHKERRQ(ierr);
 
-  if (dim == 3) {
+  {
     PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
     PetscInt nrow, ncol, nz;
 

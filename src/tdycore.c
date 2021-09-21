@@ -1143,7 +1143,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
 
   if ( (tdy->options.method == MPFA_O ||
         tdy->options.method == MPFA_O_DAE ||
-        tdy->options.method == MPFA_O_TRANSIENTVAR) && dim == 3) {
+        tdy->options.method == MPFA_O_TRANSIENTVAR)) {
     PetscReal *p_vec_ptr, gz;
     TDyMesh *mesh = tdy->mesh;
     TDyCell *cells = &mesh->cells;

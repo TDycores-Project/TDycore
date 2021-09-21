@@ -16,9 +16,7 @@ PetscErrorCode ComputeGtimesZ(PetscReal *gravity, PetscReal *X, PetscInt dim, Pe
   PetscFunctionBegin;
 
   *gz = 0.0;
-  if (dim == 3) {
-    for (d=0;d<dim;d++) *gz += fabs(gravity[d])*X[d];
-  }
+  for (d=0;d<dim;d++) *gz += fabs(gravity[d])*X[d];
 
   PetscFunctionReturn(0);
 }
