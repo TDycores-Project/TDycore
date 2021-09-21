@@ -814,7 +814,6 @@ PetscErrorCode TDySetupNumericalMethods(TDy tdy) {
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
               "-tdy_output_mesh only supported for MPFA-O method");
     }
-    ierr = TDyOutputMesh(tdy); CHKERRQ(ierr);
   }
   TDyExitProfilingStage("TDycore Setup");
   tdy->setupflags |= TDySetupFinished;
