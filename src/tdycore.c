@@ -814,7 +814,6 @@ PetscErrorCode TDySetupNumericalMethods(TDy tdy) {
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
               "-tdy_output_mesh only supported for MPFA-O method");
     }
-    ierr = TDyOutputMesh(tdy); CHKERRQ(ierr);
   }
   TDyExitProfilingStage("TDycore Setup");
   tdy->setupflags |= TDySetupFinished;
@@ -1144,7 +1143,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
 
   if ( (tdy->options.method == MPFA_O ||
         tdy->options.method == MPFA_O_DAE ||
-        tdy->options.method == MPFA_O_TRANSIENTVAR) && dim == 3) {
+        tdy->options.method == MPFA_O_TRANSIENTVAR)) {
     PetscReal *p_vec_ptr, gz;
     TDyMesh *mesh = tdy->mesh;
     TDyCell *cells = &mesh->cells;

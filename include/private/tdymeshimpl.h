@@ -182,7 +182,6 @@ typedef struct TDyMesh {
   TDyRegion region_connected;
 } TDyMesh;
 
-PETSC_INTERN PetscErrorCode TDyOutputMesh(TDy);
 PETSC_INTERN PetscErrorCode TDyBuildMesh(TDy);
 PETSC_INTERN PetscErrorCode TDyAllocateMemoryForMesh(TDy);
 #endif
