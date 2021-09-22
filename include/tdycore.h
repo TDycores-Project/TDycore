@@ -155,11 +155,17 @@ PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
 PETSC_EXTERN PetscErrorCode TDySetMPFAOGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
 PETSC_EXTERN PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
 
+// Setup functions for PETSc solvers (implementation-specific)
+PETSC_EXTERN PetscErrorCode TDySetSNES(TDy,SNES);
+PETSC_EXTERN PetscErrorCode TDySetTS(TDy,TS);
+
+// The following functions will probably be replaced by the TDySet* functions
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy,Mat,Vec);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS,TDy);
 PETSC_EXTERN PetscErrorCode TDySetIJacobian(TS,TDy);
 PETSC_EXTERN PetscErrorCode TDySetSNESFunction(SNES,TDy);
 PETSC_EXTERN PetscErrorCode TDySetSNESJacobian(SNES,TDy);
+
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
 
 PETSC_EXTERN PetscErrorCode TDySetDtimeForSNESSolver(TDy,PetscReal);

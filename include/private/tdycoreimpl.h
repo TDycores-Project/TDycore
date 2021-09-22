@@ -17,11 +17,36 @@
 
 typedef struct _TDyOps *TDyOps;
 struct _TDyOps {
+  // Called by TDyCreate to allocate implementation-specific resources. Returns
+  // a pointer to a context.
   PetscErrorCode (*create)(TDy);
-  PetscErrorCode (*destroy)(TDy);
-  PetscErrorCode (*view)(TDy);
-  PetscErrorCode (*setup)(TDy);
-  PetscErrorCode (*setfromoptions)(TDy);
+
+  // Called by TDyDestroy to free implementation-specific resources.
+  PetscErrorCode (*destroy)(void*);
+
+  // Implements the view operation for the TDy implementation with the given
+  // viewer.
+  PetscErrorCode (*view)(void*, PetscViewer);
+
+  //PetscErrorCode (*setup)(TDy);
+
+  // Called by TDySetFromOptions -- sets implementation-specific options
+  // from command-line arguments.
+  PetscErrorCode (*set_from_options)(void*);
+
+  // Called by TDySetSNES -- sets up an SNES nonlinear solver for use with the
+  // given TDycore context.
+  PetscErrorCode (*set_snes)(void*, DM, SNES);
+
+  // Called by TDySetTS -- sets up a PETSc TS ODE solver for use with the
+  // given TDycore context.
+  PetscErrorCode (*set_ts)(void*, DM, TS);
+
+  // Called by TDyComputeErrorNorms -- computes error norms given a solution
+  // vector.
+  PetscErrorCode (*compute_error_norms)(void*,Vec,PetscReal*,PetscReal*);
+
+  // Material and boundary condition functions--we'll sort these out later.
   PetscErrorCode (*computeporosity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computepermeability)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computethermalconductivity)(TDy,PetscReal*,PetscReal*,void*);
@@ -37,7 +62,13 @@ struct _TDyOps {
 
 struct _p_TDy {
   PETSCHEADER(struct _TDyOps);
+
+  // Implementation-specific context pointer.
+  void *context;
+
   PetscBool setup;
+
+  // Grid.
   DM dm;
 
   TDyTimeIntegrator ti;

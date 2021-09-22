@@ -866,6 +866,44 @@ PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy tdy,TDyMPFAOBoundaryConditio
   PetscFunctionReturn(0);
 }
 
+/// Sets up an SNES nonlinear solver to solve a relevant system for the given
+/// dycore.
+/// @param tdy [in] A dycore object
+/// @param snes [inout] A PETSc SNES nonlinear solver object
+PetscErrorCode TDySetSNES(TDy tdy, SNES snes) {
+  int ierr;
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+  if (tdy->ops->set_snes) {
+    ierr = tdy->ops->set_snes(tdy->context, tdy->dm, snes); CHKERRQ(ierr);
+  } else {
+    MPI_Comm comm;
+    ierr = PetscObjectGetComm((PetscObject)tdy,&comm); CHKERRQ(ierr);
+    SETERRQ(comm,PETSC_ERR_SUP,"TDySetSNES not implemented for dycore");
+  }
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(ierr);
+}
+
+/// Sets up a TS ODE solver to solve a relevant system for the given
+/// dycore.
+/// @param tdy [in] A dycore object
+/// @param ts [inout] A PETSc TS ODE solver object
+PetscErrorCode TDySetTS(TDy tdy, TS ts) {
+  int ierr;
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+  if (tdy->ops->set_ts) {
+    ierr = tdy->ops->set_ts(tdy->context, tdy->dm, ts); CHKERRQ(ierr);
+  } else {
+    MPI_Comm comm;
+    ierr = PetscObjectGetComm((PetscObject)tdy,&comm); CHKERRQ(ierr);
+    SETERRQ(comm,PETSC_ERR_SUP,"TDySetTS not implemented for dycore");
+  }
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(ierr);
+}
+
 PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   MPI_Comm       comm;
   DM             dm;
