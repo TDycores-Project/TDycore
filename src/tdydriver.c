@@ -70,7 +70,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     }
   }
 
-  ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
+  ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   ierr = TDyTimeIntegratorCreate(&tdy->ti); CHKERRQ(ierr);
   ierr = TDyCreateVectors(tdy); CHKERRQ(ierr);

@@ -85,11 +85,11 @@ module tdycore
      end subroutine TDyTimeIntegratorOutputRegression
   end interface
   interface
-     subroutine TDySetupNumericalMethods(a,z)
+     subroutine TDySetup(a,z)
        use tdycoredef
        TDy a
        integer z
-     end subroutine TDySetupNumericalMethods
+     end subroutine TDySetup
   end interface
   interface
      subroutine TDyComputeSystem(a,b,c,z)

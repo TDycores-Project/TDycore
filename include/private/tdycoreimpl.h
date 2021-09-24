@@ -34,13 +34,8 @@ struct _TDyOps {
   // from command-line arguments.
   PetscErrorCode (*set_from_options)(void*);
 
-  // Called by TDySetSNES -- sets up an SNES nonlinear solver for use with the
-  // given TDycore context.
-  PetscErrorCode (*set_snes)(void*, DM, SNES);
-
-  // Called by TDySetTS -- sets up a PETSc TS ODE solver for use with the
-  // given TDycore context.
-  PetscErrorCode (*set_ts)(void*, DM, TS);
+  // Called by TDySetup -- configures the DM for the dycore.
+  PetscErrorCode (*config_dm)(void*, DM);
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.
@@ -63,16 +58,20 @@ struct _TDyOps {
 struct _p_TDy {
   PETSCHEADER(struct _TDyOps);
 
-  // Implementation-specific context pointer.
+  // Implementation-specific context pointer
   void *context;
 
-  PetscBool setup;
+  // Flags that indicate where the dycore is in the setup process
+  TDySetupFlags setup_flags;
 
-  // Grid.
+  // Grid and data management -- handed to a solver when the dycore is fully
+  // configured
   DM dm;
 
+  // We'll likely get rid of this.
   TDyTimeIntegrator ti;
-  TDySetupFlags setupflags;
+
+  // I/O subsystem
   TDyIO io;
 
   // options that determine the behavior(s) of the dycore

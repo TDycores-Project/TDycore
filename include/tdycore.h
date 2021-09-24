@@ -82,9 +82,8 @@ PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 PETSC_EXTERN PetscErrorCode TDyCreate(TDy*);
 PETSC_EXTERN PetscErrorCode TDySetMode(TDy,TDyMode);
 PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy,TDyMethod);
-PETSC_EXTERN PetscErrorCode TDySetDM(TDy,DM);
 PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy);
-PETSC_EXTERN PetscErrorCode TDySetupNumericalMethods(TDy);
+PETSC_EXTERN PetscErrorCode TDySetup(TDy);
 PETSC_EXTERN PetscErrorCode TDyDestroy(TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyView(TDy,PetscViewer viewer);
 
@@ -155,11 +154,8 @@ PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
 PETSC_EXTERN PetscErrorCode TDySetMPFAOGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
 PETSC_EXTERN PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
 
-// Setup functions for PETSc solvers (implementation-specific)
-PETSC_EXTERN PetscErrorCode TDySetSNES(TDy,SNES);
-PETSC_EXTERN PetscErrorCode TDySetTS(TDy,TS);
-
-// The following functions will probably be replaced by the TDySet* functions
+// We will probably remove the following functions.
+PETSC_EXTERN PetscErrorCode TDySetDM(TDy,DM);
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy,Mat,Vec);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS,TDy);
 PETSC_EXTERN PetscErrorCode TDySetIJacobian(TS,TDy);
