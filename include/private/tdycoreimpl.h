@@ -17,11 +17,31 @@
 
 typedef struct _TDyOps *TDyOps;
 struct _TDyOps {
+  // Called by TDyCreate to allocate implementation-specific resources. Returns
+  // a pointer to a context.
   PetscErrorCode (*create)(TDy);
-  PetscErrorCode (*destroy)(TDy);
-  PetscErrorCode (*view)(TDy);
-  PetscErrorCode (*setup)(TDy);
-  PetscErrorCode (*setfromoptions)(TDy);
+
+  // Called by TDyDestroy to free implementation-specific resources.
+  PetscErrorCode (*destroy)(void*);
+
+  // Implements the view operation for the TDy implementation with the given
+  // viewer.
+  PetscErrorCode (*view)(void*, PetscViewer);
+
+  //PetscErrorCode (*setup)(TDy);
+
+  // Called by TDySetFromOptions -- sets implementation-specific options
+  // from command-line arguments.
+  PetscErrorCode (*set_from_options)(void*);
+
+  // Called by TDySetup -- configures the DM for the dycore.
+  PetscErrorCode (*config_dm)(void*, DM);
+
+  // Called by TDyComputeErrorNorms -- computes error norms given a solution
+  // vector.
+  PetscErrorCode (*compute_error_norms)(void*,Vec,PetscReal*,PetscReal*);
+
+  // Material and boundary condition functions--we'll sort these out later.
   PetscErrorCode (*computeporosity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computepermeability)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computethermalconductivity)(TDy,PetscReal*,PetscReal*,void*);
@@ -37,11 +57,21 @@ struct _TDyOps {
 
 struct _p_TDy {
   PETSCHEADER(struct _TDyOps);
-  PetscBool setup;
+
+  // Implementation-specific context pointer
+  void *context;
+
+  // Flags that indicate where the dycore is in the setup process
+  TDySetupFlags setup_flags;
+
+  // Grid and data management -- handed to a solver when the dycore is fully
+  // configured
   DM dm;
 
+  // We'll likely get rid of this.
   TDyTimeIntegrator ti;
-  TDySetupFlags setupflags;
+
+  // I/O subsystem
   TDyIO io;
 
   // options that determine the behavior(s) of the dycore

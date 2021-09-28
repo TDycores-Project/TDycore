@@ -241,7 +241,7 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   ierr = PetscHeaderCreate(tdy,TDY_CLASSID,"TDy","TDy","TDy",PETSC_COMM_WORLD,
                            TDyDestroy,TDyView); CHKERRQ(ierr);
   *_tdy = tdy;
-  tdy->setupflags |= TDyCreated;
+  tdy->setup_flags |= TDyCreated;
 
   SetDefaultOptions(tdy);
 
@@ -260,7 +260,7 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   tdy->quad = NULL;
   tdy->faces = NULL; tdy->LtoG = NULL; tdy->orient = NULL;
 
-  tdy->setupflags |= TDyParametersInitialized;
+  tdy->setup_flags |= TDyParametersInitialized;
   PetscFunctionReturn(0);
 }
 
@@ -367,7 +367,7 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   MPI_Comm comm = PETSC_COMM_WORLD;
-  if ((tdy->setupflags & TDyOptionsSet) == 0) {
+  if ((tdy->setup_flags & TDyOptionsSet) == 0) {
     SETERRQ(comm,PETSC_ERR_USER,"Options must be set prior to TDyCreateGrid()");
   }
 
@@ -607,7 +607,7 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
 }
 
 /// Sets options for the dycore based on command line arguments supplied by a
-/// user. TDySetFromOptions must be called before TDySetupNumericalMethods,
+/// user. TDySetFromOptions must be called before TDySetup,
 /// since the latter uses options specified by the former.
 /// @param tdy The dycore instance
 PetscErrorCode TDySetFromOptions(TDy tdy) {
@@ -616,8 +616,8 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 
   MPI_Comm comm = PETSC_COMM_WORLD;
 
-  if ((tdy->setupflags & TDySetupFinished) != 0) {
-    SETERRQ(comm,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetupNumericalMethods()");
+  if ((tdy->setup_flags & TDySetupFinished) != 0) {
+    SETERRQ(comm,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetup()");
   }
 
   // Collect options from command line arguments.
@@ -743,7 +743,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 
   // Wrap up and indicate that options are set.
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
-  tdy->setupflags |= TDyOptionsSet;
+  tdy->setup_flags |= TDyOptionsSet;
 
   // Create our mesh.
   ierr = TDyCreateGrid(tdy); CHKERRQ(ierr);
@@ -793,16 +793,18 @@ PetscErrorCode TDySetupDiscretizationScheme(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetupNumericalMethods(TDy tdy) {
+PetscErrorCode TDySetup(TDy tdy) {
   /* must follow TDySetFromOptions() is it relies upon options set by
      TDySetFromOptions */
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  if ((tdy->setupflags & TDyOptionsSet) == 0) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetupNumericalMethods()");
+  if ((tdy->setup_flags & TDyOptionsSet) == 0) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetup()");
   }
   TDY_START_FUNCTION_TIMER()
   TDyEnterProfilingStage("TDycore Setup");
+  // TODO: Stick a call to tdy->ops->config_dm here to configure the DM for our
+  // TODO: specific dycore setup.
   ierr = TDySetupDiscretizationScheme(tdy); CHKERRQ(ierr);
   if (tdy->options.regression_testing) {
     /* must come after Sections are set up in
@@ -816,7 +818,7 @@ PetscErrorCode TDySetupNumericalMethods(TDy tdy) {
     }
   }
   TDyExitProfilingStage("TDycore Setup");
-  tdy->setupflags |= TDySetupFinished;
+  tdy->setup_flags |= TDySetupFinished;
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }

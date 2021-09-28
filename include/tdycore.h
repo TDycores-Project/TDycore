@@ -82,9 +82,8 @@ PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 PETSC_EXTERN PetscErrorCode TDyCreate(TDy*);
 PETSC_EXTERN PetscErrorCode TDySetMode(TDy,TDyMode);
 PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy,TDyMethod);
-PETSC_EXTERN PetscErrorCode TDySetDM(TDy,DM);
 PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy);
-PETSC_EXTERN PetscErrorCode TDySetupNumericalMethods(TDy);
+PETSC_EXTERN PetscErrorCode TDySetup(TDy);
 PETSC_EXTERN PetscErrorCode TDyDestroy(TDy *tdy);
 PETSC_EXTERN PetscErrorCode TDyView(TDy,PetscViewer viewer);
 
@@ -155,11 +154,14 @@ PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
 PETSC_EXTERN PetscErrorCode TDySetMPFAOGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
 PETSC_EXTERN PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
 
+// We will probably remove the following functions.
+PETSC_EXTERN PetscErrorCode TDySetDM(TDy,DM);
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy,Mat,Vec);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS,TDy);
 PETSC_EXTERN PetscErrorCode TDySetIJacobian(TS,TDy);
 PETSC_EXTERN PetscErrorCode TDySetSNESFunction(SNES,TDy);
 PETSC_EXTERN PetscErrorCode TDySetSNESJacobian(SNES,TDy);
+
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
 
 PETSC_EXTERN PetscErrorCode TDySetDtimeForSNESSolver(TDy,PetscReal);

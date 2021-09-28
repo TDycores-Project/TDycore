@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
   ierr = TDySetBoundaryPressureFn(tdy,Pressure,NULL); CHKERRQ(ierr);
 
   /* Setup problem parameters */
-  ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
+  ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   /* Compute system */
   Mat K;

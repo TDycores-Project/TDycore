@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
   ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
   ierr = TDySetBoundaryPressureFn(tdy,Pressure,NULL); CHKERRQ(ierr);
 
-  ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
+  ierr = TDySetup(tdy); CHKERRQ(ierr);
 
   /* Setup initial condition */
   Vec U;

@@ -18,7 +18,7 @@
 #define tdydtimeintegratorruntotime_                   TDYTIMEINTEGRATORRUNTOTIME
 #define tdydtimeintegratorsettimestep_                 TDYTIMEINTEGRATORSETTIMESTEP
 #define tdydtimeintegratoroutputregression_            TDYTIMEINTEGRATOROUTPUTREGRESSION
-#define tdysetupnumericalmethods_                      TDYSETUPNUMERICALMETHODS
+#define tdysetup_                                      TDYSETUP
 #define tdysetwaterdensitytype_                        TDYSETWATERDENSITYTYPE
 #define tdysetmpfaogmatrixmethod_                      TDYSETMPFAOGMATRIXMETHOD
 #define tdysetmpfaoboundaryconditiontype_              TDYSETMPFAOGBOUNDARYCONDITIONTYPE
@@ -80,7 +80,7 @@
 #define tdydtimeintegratorruntotime_                   tdydtimeintegratorruntotime
 #define tdydtimeintegratorsettimestep_                 tdydtimeintegratorsettimestep
 #define tdydtimeintegratoroutputregression_            tdydtimeintegratoroutputregression
-#define tdysetupnumericalmethods_                      tdysetupnumericalmethods
+#define tdysetup_                                      tdysetup
 #define tdysetwaterdensitytype_                        tdysetwaterdensitytype
 #define tdysetmpfaogmatrixmethod_                      tdysetmpfaogmatrixmethod
 #define tdysetmpfaoboundaryconditiontype_              tdysetmpfaoboundaryconditiontype
@@ -255,8 +255,8 @@ PETSC_EXTERN void  tdytimeintegratoroutputregression_(TDy tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdysetupnumericalmethods_(TDy _tdy, int *__ierr){
-*__ierr = TDySetupNumericalMethods((TDy)PetscToPointer((_tdy)));
+PETSC_EXTERN void  tdysetup_(TDy _tdy, int *__ierr){
+*__ierr = TDySetup((TDy)PetscToPointer((_tdy)));
 }
 #if defined(__cplusplus)
 }

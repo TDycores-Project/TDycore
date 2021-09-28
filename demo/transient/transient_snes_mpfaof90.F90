@@ -357,7 +357,7 @@ implicit none
   if (use_tdydriver) then
      call TDyDriverInitializeTDy(tdy, ierr);
   else
-     call TDySetupNumericalMethods(tdy,ierr);
+     call TDySetup(tdy,ierr);
      CHKERRA(ierr);
   end if
 

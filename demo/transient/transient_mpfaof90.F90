@@ -161,7 +161,7 @@ implicit none
   call TDySetResidualSaturationValuesLocal(tdy,cEnd-cStart,index,residualSat,ierr);
   CHKERRA(ierr);
 
-  call TDySetupNumericalMethods(tdy,ierr);
+  call TDySetup(tdy,ierr);
   CHKERRA(ierr);
 
   ! Set initial condition
