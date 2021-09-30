@@ -43,7 +43,6 @@ typedef struct {
   char init_file[PETSC_MAX_PATH_LEN];
 
   // Mesh-related options
-  PetscBool generate_mesh;
   PetscBool read_mesh;
   char mesh_file[PETSC_MAX_PATH_LEN];
 

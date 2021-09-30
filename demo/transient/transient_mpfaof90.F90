@@ -71,7 +71,7 @@ program main
 implicit none
 
   TDy            :: tdy
-  DM             :: dm, dmDist
+  DM             :: dm
   Vec            :: U
   TS             :: ts
   PetscInt       :: rank, successful_exit_code
@@ -109,15 +109,11 @@ implicit none
   call DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, faces, lower, upper, &
        PETSC_NULL_INTEGER, PETSC_TRUE, dm, ierr);
   CHKERRA(ierr);
-  call DMPlexDistribute(dm, 1, PETSC_NULL_SF, dmDist, ierr);
+  call TDySetDM(tdy, dm, ierr);
   CHKERRA(ierr);
-  if (dmDist /= PETSC_NULL_DM) then
-     call DMDestroy(dm, ierr);
-     CHKERRA(ierr);
-     dm = dmDist;
-  end if
-  call DMSetUp(dm,ierr);
-  CHKERRA(ierr)
+
+  call TDySetFromOptions(tdy,ierr);
+  CHKERRA(ierr);
 
   call DMPlexGetHeightStratum(dm,0,cStart,cEnd,ierr);
   CHKERRA(ierr);
@@ -137,14 +133,6 @@ implicit none
       blockPerm((c-1)*dim*dim+j) = perm(j)
     enddo
   enddo
-
-  call DMSetFromOptions(dm, ierr);
-  CHKERRA(ierr);
-
-  call TDySetDM(tdy, dm, ierr);
-  CHKERRA(ierr);
-  call TDySetFromOptions(tdy,ierr);
-  CHKERRA(ierr);
 
   call TDySetPorosityFunction(tdy,PorosityFunction,0,ierr);
   CHKERRA(ierr);

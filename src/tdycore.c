@@ -264,19 +264,27 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   PetscFunctionReturn(0);
 }
 
+/// Sets the DM to be used by the dycore. Useful for generating a specific
+/// geometry to be used by a driver or demo. This function can only be called
+/// after TDyCreate and before TDySetFromOptions.
+/// @param [in] dm a DM object for the dycore to use.
 PetscErrorCode TDySetDM(TDy tdy, DM dm) {
   PetscFunctionBegin;
+  if (!(tdy->setup_flags | TDyParametersInitialized)) {
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+      "Can't call TDySetDM before TDyCreate!");
+  }
   if (tdy->dm != NULL) {
-    if (tdy->options.generate_mesh) {
+    if (tdy->options.read_mesh) {
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
-        "Can't call TDySetDM: A DM has already been generated from supplied options.");
-    } else { // we read a mesh from a file
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
-        "Can't call TDySetDM: A DM has already been read from a given file.");
+        "Can't call TDySetDM: -tdy_read_mesh was specified!");
+    } else {
+      // throw out the existing DM.
+      DMDestroy(&tdy->dm);
     }
   }
   if (!dm) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"A DM must be created prior to TDySetDM()");
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Cannot pass an empty DM to TDySetDM()");
   }
   tdy->dm = dm;
   PetscFunctionReturn(0);
@@ -373,16 +381,17 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
 
   if (!tdy->dm) {
     DM dm;
-    if (tdy->options.generate_mesh) {
+    if (tdy->options.read_mesh) {
+      ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
+                                  PETSC_TRUE, &dm); CHKERRQ(ierr);
+    } else {
       // Here we lean on PETSc's DM* options.
       ierr = DMCreate(comm, &dm); CHKERRQ(ierr);
       ierr = DMSetType(dm, DMPLEX); CHKERRQ(ierr);
       ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-      ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
-    } else { // if (tdy->options.read_mesh)
-      ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
-                                  PETSC_TRUE, &dm); CHKERRQ(ierr);
     }
+    // Distribute the mesh, however we got it.
+    ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
     tdy->dm = dm;
   }
 
@@ -714,21 +723,10 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 
   // Mesh-related options
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Mesh options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-tdy_generate_mesh","Generate a mesh using provided PETSc DM options","",options->generate_mesh,&(options->generate_mesh),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_mesh", options->mesh_file,sizeof(options->mesh_file),&options->read_mesh); CHKERRQ(ierr);
-  if (options->generate_mesh && options->read_mesh) {
+  if ((tdy->dm != NULL) && options->read_mesh) {
     SETERRQ(comm,PETSC_ERR_USER,
-            "Only one of -tdy_generate_mesh and -tdy_read_mesh can be specified");
-  }
-  if ((tdy->dm != NULL) && (options->generate_mesh || options->read_mesh)) {
-    SETERRQ(comm,PETSC_ERR_USER,
-            "TDySetDM was called before TDySetFromOptions: can't generate or "
-            "read a mesh");
-  }
-  if ((tdy->dm == NULL) && !(options->generate_mesh || options->read_mesh)) {
-    SETERRQ(comm,PETSC_ERR_USER,
-            "No mesh is available for TDycore: please use TDySetDM, "
-            "-tdy_generate_mesh, or -tdy_read_mesh to specify a mesh");
+            "TDySetDM was called before TDySetFromOptions: can't read a mesh");
   }
   ierr = PetscOptionsBool("-tdy_output_mesh","Enable output of mesh attributes","",options->output_mesh,&(options->output_mesh),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_output_geo_attributes", options->geom_attributes_file,sizeof(options->geom_attributes_file),&options->output_geom_attributes); CHKERRQ(ierr);
