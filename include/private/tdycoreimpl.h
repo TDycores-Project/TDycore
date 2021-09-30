@@ -59,6 +59,7 @@ struct _p_TDy {
   PetscReal  *h, *dh_dP, *dh_dT;               /* enthalpy of water */
   PetscReal  *u, *du_dP, *du_dT;               /* internal energy of water */
   PetscReal  *drho_dT, *dvis_dT;
+   PetscReal  *drho_dPsi, *dvis_dPsi;
 
   /* problem constants */
   PetscReal  gravity[3]; /* vector of gravity [m s-2] */
@@ -74,6 +75,7 @@ struct _p_TDy {
   /* boundary pressure and auxillary variables that depend on boundary pressure */
   PetscReal *P_BND;
   PetscReal *T_BND;               /* boundary temperature */
+  PetscReal *Psi_BND;             /* boundary concentration */
   PetscReal  *rho_BND;            /* density of water [kg m-3]*/
   PetscReal  *vis_BND;            /* viscosity of water [Pa s] */
   PetscReal  *h_BND;              /* enthalpy of water */
@@ -123,6 +125,11 @@ struct _p_TDy {
   PetscReal ***Temp_Trans;
   Mat Temp_Trans_mat;
   Vec Temp_P_vec, Temp_TtimesP_vec;
+
+  /* For salinity */
+  PetscReal ****Psi_subc_Gmatrix; /* Gmatrix for subcells */
+  Mat Psi_Trans_mat;
+  Vec Psi_vec, TtimesPsi_vec;
 
   Mat J, Jpre;
 

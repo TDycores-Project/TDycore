@@ -49,6 +49,7 @@ const char *const TDyMPFAOBoundaryConditionTypes[] = {
 const char *const TDyModes[] = {
   "RICHARDS",
   "TH",
+  "SALINITY",
   /* */
   "TDyMode","TDY_MODE_",NULL
 };
@@ -590,6 +591,7 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   if (tdy->Temp_Trans_mat   ) { ierr = MatDestroy(&tdy->Temp_Trans_mat  ); CHKERRQ(ierr); }
   if (tdy->Temp_P_vec       ) { ierr = VecDestroy(&tdy->Temp_P_vec      ); CHKERRQ(ierr); }
   if (tdy->Temp_TtimesP_vec ) { ierr = VecDestroy(&tdy->Temp_TtimesP_vec); CHKERRQ(ierr); }
+  if (tdy->TtimesPsi_vec ) { ierr = VecDestroy(&tdy->TtimesPsi_vec); CHKERRQ(ierr); }
   if (tdy->J           ) { ierr = MatDestroy(&tdy->J   ); CHKERRQ(ierr); }
   if (tdy->Jpre        ) { ierr = MatDestroy(&tdy->Jpre); CHKERRQ(ierr); }
 
@@ -897,6 +899,9 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
     case TH:
       ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_TH,tdy); CHKERRQ(ierr);
       break;
+    case SALINITY:
+      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_Salinity,tdy); CHKERRQ(ierr);
+      break;
     }
     break;
   case MPFA_O_DAE:
@@ -938,7 +943,9 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
     case TH:
       ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_TH,tdy); CHKERRQ(ierr);
       break;
-
+    case SALINITY:
+      ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian,tdy); CHKERRQ(ierr);
+      break;
     }
     break;
   case MPFA_O_DAE:
@@ -1070,7 +1077,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
   PetscReal Se,dSe_dS,dKr_dSe,Kr;
-  PetscReal *P, *temp;
+  PetscReal *P, *temp, *Psi;
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   PetscInt dim2 = dim*dim;
@@ -1078,16 +1085,25 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&P);CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
-
-  if (tdy->options.mode == TH) {
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&Psi);CHKERRQ(ierr);
+  
+  switch (tdy->options.mode) {
+  case RICHARDS:
+    for (PetscInt c=0;c<cEnd-cStart;c++) P[c] = U[c];
+    break;
+  case TH:
     for (PetscInt c=0;c<cEnd-cStart;c++) {
       P[c] = U[c*2];
       temp[c] = U[c*2+1];
     }
+    break;
+  case SALINITY:
+    for (PetscInt c=0;c<cEnd-cStart;c++) {
+      P[c] = U[c*2];
+      Psi[c] = U[c*2+1];
+    }
   }
-  else {
-    for (PetscInt c=0;c<cEnd-cStart;c++) P[c] = U[c];
-  }
+
 
   CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;
@@ -1156,7 +1172,8 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     }
     ierr = VecRestoreArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
 
-    if (tdy->options.mode == TH) {
+    switch (tdy->options.mode) {
+    case TH:
       PetscReal *t_vec_ptr;
       ierr = VecGetArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
       for (PetscInt c=cStart; c<cEnd; c++) {
@@ -1164,6 +1181,14 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
         t_vec_ptr[i] = temp[i];
       }
       ierr = VecRestoreArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
+    case SALINITY:
+      PetscReal *psi_vec_ptr;
+      ierr = VecGetArray(tdy->Psi_vec, &psi_vec_ptr); CHKERRQ(ierr);
+      for (PetscInt c=cStart; c<cEnd; c++) {
+        PetscInt i = c-cStart;
+        psi_vec_ptr[i] = Psi[i];
+      }
+      ierr = VecRestoreArray(tdy->Psi_vec, &psi_vec_ptr); CHKERRQ(ierr);
     }
   }
 
@@ -1503,6 +1528,8 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
 ///                     pressure values for each grid cell.
 ///                     For TH mode, the vector contains unknown pressure
 ///                     and temperature values for each grid cell.
+///                     For SALINITY mode, the vector contains unknown pressure
+///                     and concentration values for each grid cell.
 /// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
 

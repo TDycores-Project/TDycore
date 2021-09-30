@@ -336,6 +336,10 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     ierr = TDyAllocate_RealArray_3D(&tdy->Temp_Trans, tdy->mesh->num_vertices,
                                     tdy->nfv, tdy->nfv); CHKERRQ(ierr);
   }
+  if (tdy->options.mode == SALINITY) {
+    ierr = TDyAllocate_RealArray_3D(&tdy->Psi_Trans, tdy->mesh->num_vertices,
+                                    tdy->nfv, tdy->nfv); CHKERRQ(ierr);
+  }
   ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
                      &(tdy->vel )); CHKERRQ(ierr);
   ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
@@ -353,6 +357,10 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     ierr = TDyAllocate_RealArray_4D(&tdy->Temp_subc_Gmatrix, tdy->mesh->num_cells,
                                     nsubcells, nrow, ncol); CHKERRQ(ierr);
   }
+  if (tdy->options.mode == SALINITY) {
+    ierr = TDyAllocate_RealArray_4D(&tdy->Psi_subc_Gmatrix, tdy->mesh->num_cells,
+                                    nsubcells, nrow, ncol); CHKERRQ(ierr);
+  }
 
   /* Set up the section, 1 dof per cell */
   PetscSection sec;
@@ -362,21 +370,31 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   use_dae = (tdy->options.method == MPFA_O_DAE);
   ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
   if (!use_dae) {
-    if (tdy->options.mode == TH){
+    switch (tdy->options.mode) {
+    case TH:
       ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
       ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
       ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
       ierr = PetscSectionSetFieldName(sec, 1, "LiquidTemperature"); CHKERRQ(ierr);
       ierr = PetscSectionSetFieldComponents(sec, 1, 1); CHKERRQ(ierr);
-    } else {
+    case RICHARDS:
       ierr = PetscSectionSetNumFields(sec, 1); CHKERRQ(ierr);
       ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
       ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
-    }
+    case SALINITY:
+      ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldName(sec, 1, "Concentration"); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldComponents(sec, 1, 1); CHKERRQ(ierr);
+    
   } else {
-    if (tdy->options.mode == TH) {
+    switch (tdy->options.mode) {
+    case TH:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TH unsupported with MPFA_O_DAE");
-    }
+    case SALINITY:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Salinity unsupported with MPFA_O_DAE");
+    case RICHARDS:
     ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
     ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
@@ -436,6 +454,12 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
       ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&tdy->Temp_P_vec);
       ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->Temp_TtimesP_vec);
     }
+    if (tdy->options.mode == SALINITY) {
+      ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&tdy->Psi_Trans_mat); CHKERRQ(ierr);
+      ierr = MatSetOption(tdy->Psi_Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+      ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&tdy->Psi_vec);
+      ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->TtimesPsi_vec);
+    }
   }
 
   if (tdy->ops->computeporosity) { ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr); }
@@ -450,6 +474,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
       ierr = SetSoilSpecificHeatFromFunction(tdy); CHKERRQ(ierr);
       }
   }
+  //TODO: update here
 
   // why must these be placed after SetPermeabilityFromFunction()?
   ierr = TDyComputeGMatrix(tdy); CHKERRQ(ierr);
@@ -1778,6 +1803,9 @@ PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
           if (tdy->options.mode == TH) {
             ierr = MatZeroRows(tdy->Temp_Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
           }
+	  else if (tdy->options.mode == SALINITY) {
+	    ierr = MatZeroRows(tdy->Psi_Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
+	  }
         }
       }
     }
@@ -1829,6 +1857,10 @@ PetscErrorCode TDyComputeTransmissibilityMatrix(TDy tdy) {
   if (tdy->options.mode == TH) {
     ierr = MatAssemblyBegin(tdy->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(tdy->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  }
+  else if (tdy->options.mode == SALINITY) {
+    ierr = MatAssemblyBegin(tdy->Psi_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(tdy->Psi_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
 
   TDyRegion *region = &mesh->region_connected;

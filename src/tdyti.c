@@ -125,6 +125,9 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
             case TH:
               printf("===== TH MODE ====================================\n");
               break;
+	    case SALINITY:
+              printf("===== SALINITY MODE ==============================\n");
+              break;
           }
         }
         ierr = TDyPreSolveSNESSolver(tdy); CHKERRQ(ierr);

@@ -41,7 +41,8 @@ PETSC_EXTERN const char *const TDyQuadratureTypes[];
 
 typedef enum {
   RICHARDS=0,
-  TH
+  TH,
+  SALINITY
 } TDyMode;
 
 typedef enum {
@@ -64,7 +65,8 @@ typedef struct _p_TDy *TDy;
 
 typedef enum {
   WATER_DENSITY_CONSTANT=0,
-  WATER_DENSITY_EXPONENTIAL=1
+  WATER_DENSITY_EXPONENTIAL=1,
+  WATER_DENSITY_BATZLEWANG=2
 } TDyWaterDensityType;
 
 PETSC_EXTERN const char *const TDyWaterDensityTypes[];

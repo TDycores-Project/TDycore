@@ -153,8 +153,10 @@ PetscErrorCode TDyWriteTimingProfile(const char* filename) {
       const char* mode_name;
       if (md->mode == RICHARDS) {
         mode_name = "RICHARDS";
-      } else { // (md->mode == TH)
+      } else if (md->mode == TH) {
         mode_name = "TH";
+      } else {
+	mode_name = "SALINITY";
       }
       FILE* f = fopen("tdycore_profile.csv", "a");
       fprintf(f, "METADATA\n");

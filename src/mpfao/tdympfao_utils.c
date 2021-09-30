@@ -803,3 +803,59 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAO_SetBoundaryConcentration(TDy tdy, Vec Ul) {
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyFace *faces = &mesh->faces;
+  PetscErrorCode ierr;
+  PetscInt dim, ncells;
+  PetscInt psi_bnd_idx, cell_id, iface;
+  PetscReal *psi, *psi_vec_ptr, *u_p;
+  PetscInt c, cStart, cEnd;
+
+  PetscFunctionBegin;
+
+  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&psi);CHKERRQ(ierr);
+
+  ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->Psi_vec,&psi_vec_ptr); CHKERRQ(ierr);
+
+  for (c=0;c<cEnd-cStart;c++) {
+    psi[c] = u_p[c*2+1];
+  }
+
+  ncells = mesh->num_cells;
+
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+
+  for (iface=0; iface<mesh->num_faces; iface++) {
+
+    if (faces->is_internal[iface]) continue;
+
+    PetscInt *cell_ids, num_cells;
+    ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
+
+    if (cell_ids[0] >= 0) {
+      cell_id = cell_ids[0];
+      psi_bnd_idx = -cell_ids[1] - 1;
+    } else {
+      cell_id = cell_ids[1];
+      psi_bnd_idx = -cell_ids[0] - 1;
+    }
+
+    //   if (tdy->ops->compute_boundary_temperature) {
+    //   ierr = (*tdy->ops->compute_boundary_temperature)(tdy, (faces->centroid[iface].X), &(tdy->T_BND[t_bnd_idx]), tdy->boundary_temperature_ctx);CHKERRQ(ierr);
+    //   } else {
+      tdy->Psi_BND[t_bnd_idx] = psi[cell_id];
+      // }
+
+    psi_vec_ptr[t_bnd_idx + ncells] = tdy->Psi_BND[t_bnd_idx];
+  }
+
+  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->Psi_vec,&psi_vec_ptr); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
