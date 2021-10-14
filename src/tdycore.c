@@ -709,7 +709,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   // Numerics options
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Numerics options",""); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_method","Discretization method",
-                          "TDySetDiscretizationMethod",TDyMethods,
+                          "TDySetDiscretization",TDyMethods,
                           (PetscEnum)options->method,(PetscEnum *)&options->method,
                           NULL); CHKERRQ(ierr);
   TDyQuadratureType qtype = FULL;
@@ -837,7 +837,7 @@ PetscErrorCode TDySetup(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetDiscretizationMethod(TDy tdy,TDyMethod method) {
+PetscErrorCode TDySetDiscretization(TDy tdy,TDyMethod method) {
   PetscFunctionBegin;
   tdy->options.method = method;
   PetscFunctionReturn(0);

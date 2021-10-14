@@ -555,7 +555,7 @@ PetscErrorCode GeometryColumn(DM dm){
   PetscFunctionReturn(0);
 }
 
-// This set of globals are used by CreateDM below to create a DM for this demo.
+// This set of globals is used by CreateDM below to create a DM for this demo.
 typedef struct DMOptions {
   PetscInt dim;      // Dimension of DM (2 or 3)
   PetscInt N;        // Number of cells on a side
@@ -611,7 +611,7 @@ int main(int argc, char **argv) {
   MPI_Comm comm = PETSC_COMM_WORLD;
   TDy tdy;
   ierr = TDyCreate(comm, &tdy); CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+  ierr = TDySetDiscretization(tdy,MPFA_O); CHKERRQ(ierr);
 
   ierr = PetscOptionsBegin(comm,NULL,"Sample Options",""); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL); CHKERRQ(ierr);
@@ -638,11 +638,13 @@ int main(int argc, char **argv) {
   dm_options_.exo = exo;
   if (exo) strcpy(dm_options_.exofile, exofile);
 
-  // Set up a default DM for this demo.
+  // Specify a special DM to be constructed for this demo.
   ierr = TDySetDMConstructor(tdy, CreateDM); CHKERRQ(ierr);
+
+  // Apply overrides.
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
-  /* Setup problem parameters */
+  // Setup problem parameters
   if(wheeler2006){
     if(dim != 2){
       SETERRQ(comm,PETSC_ERR_USER,"-paper wheeler2006 is only for -dim 2 problems");
