@@ -28,14 +28,15 @@ struct _TDyOps {
   // viewer.
   PetscErrorCode (*view)(void*, PetscViewer);
 
-  //PetscErrorCode (*setup)(TDy);
+  // Configures a default DM in the absence of grid information.
+  PetscErrorCode (*config_default_dm)(void*, DM);
+
+  // Called by TDySetup -- configures the DM for the dycore.
+  PetscErrorCode (*setup)(TDy, DM);
 
   // Called by TDySetFromOptions -- sets implementation-specific options
   // from command-line arguments.
   PetscErrorCode (*set_from_options)(void*);
-
-  // Called by TDySetup -- configures the DM for the dycore.
-  PetscErrorCode (*config_dm)(void*, DM);
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.

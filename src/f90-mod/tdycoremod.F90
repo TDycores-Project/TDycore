@@ -461,6 +461,25 @@ module tdycore
     end function
   end interface
 
+  abstract interface
+    subroutine TDyDefaultDMFunction(tdy, dm, ierr)
+      use tdycoredef
+      TDy :: tdy
+      DM :: dm
+      PetscErrorCode         :: ierr
+    end subroutine
+  end interface
+
+  interface
+    function DefineDefaultDM(name, c_func) bind (c, name="TDyDefineDefaultDM") result(ierr)
+      use, intrinsic :: iso_c_binding
+      implicit none
+      TDy :: tdy
+      type(c_funptr) :: c_func
+      integer(c_int) :: ierr
+    end function
+  end interface
+
   contains
 
   subroutine TDyInit(ierr)

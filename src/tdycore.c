@@ -264,29 +264,11 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   PetscFunctionReturn(0);
 }
 
-/// Sets the DM to be used by the dycore. Useful for generating a specific
-/// geometry to be used by a driver or demo. This function can only be called
-/// after TDyCreate and before TDySetFromOptions.
-/// @param [in] dm a DM object for the dycore to use.
-PetscErrorCode TDySetDM(TDy tdy, DM dm) {
-  PetscFunctionBegin;
-  if (!(tdy->setup_flags | TDyParametersInitialized)) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
-      "Can't call TDySetDM before TDyCreate!");
-  }
-  if (tdy->dm != NULL) {
-    if (tdy->options.read_mesh) {
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
-        "Can't call TDySetDM: -tdy_read_mesh was specified!");
-    } else {
-      // throw out the existing DM.
-      DMDestroy(&tdy->dm);
-    }
-  }
-  if (!dm) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Cannot pass an empty DM to TDySetDM()");
-  }
-  tdy->dm = dm;
+/// Provides a function to be used to create a default DM in the case that no
+/// grid-related command line arguments are provided to the dycore.
+/// @param [in] dm_func A function that creates a DM and returns an error code
+PetscErrorCode TDyDefineDefaultDM(TDy tdy, PetscErrorCode (*dm_func)(TDy, DM)) {
+  tdy->ops->config_default_dm = dm_func;
   PetscFunctionReturn(0);
 }
 
@@ -385,9 +367,12 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
       ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
                                   PETSC_TRUE, &dm); CHKERRQ(ierr);
     } else {
+      ierr = DMPlexCreate(comm, &dm); CHKERRQ(ierr);
+      if (tdy->ops->config_default_dm) {
+        // We've been instructed to configure a default DM.
+        ierr = tdy->ops->config_default_dm(tdy->context, dm);
+      }
       // Here we lean on PETSc's DM* options.
-      ierr = DMCreate(comm, &dm); CHKERRQ(ierr);
-      ierr = DMSetType(dm, DMPLEX); CHKERRQ(ierr);
       ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
     }
     // Distribute the mesh, however we got it.
@@ -801,6 +786,10 @@ PetscErrorCode TDySetup(TDy tdy) {
   }
   TDY_START_FUNCTION_TIMER()
   TDyEnterProfilingStage("TDycore Setup");
+
+  // Perform implementation-specific setup.
+  ierr = tdy->ops->setup(tdy->context, tdy->dm); CHKERRQ(ierr);
+
   // TODO: Stick a call to tdy->ops->config_dm here to configure the DM for our
   // TODO: specific dycore setup.
   ierr = TDySetupDiscretizationScheme(tdy); CHKERRQ(ierr);

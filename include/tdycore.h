@@ -155,7 +155,7 @@ PETSC_EXTERN PetscErrorCode TDySetMPFAOGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
 PETSC_EXTERN PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
 
 // We will probably remove the following functions.
-PETSC_EXTERN PetscErrorCode TDySetDM(TDy,DM);
+PETSC_EXTERN PetscErrorCode TDyDefineDefaultDM(TDy,PetscErrorCode(*)(TDy, DM));
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy,Mat,Vec);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS,TDy);
 PETSC_EXTERN PetscErrorCode TDySetIJacobian(TS,TDy);
