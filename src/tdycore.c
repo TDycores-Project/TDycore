@@ -228,7 +228,7 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyCreate(TDy *_tdy) {
+PetscErrorCode TDyCreate(MPI_Comm comm, TDy *_tdy) {
   TDy            tdy;
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -238,7 +238,7 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   // Initialize TDycore-specific subsystems.
   ierr = TDyInitSubsystems(); CHKERRQ(ierr);
 
-  ierr = PetscHeaderCreate(tdy,TDY_CLASSID,"TDy","TDy","TDy",PETSC_COMM_WORLD,
+  ierr = PetscHeaderCreate(tdy,TDY_CLASSID,"TDy","TDy","TDy",comm,
                            TDyDestroy,TDyView); CHKERRQ(ierr);
   *_tdy = tdy;
   tdy->setup_flags |= TDyCreated;
@@ -264,11 +264,25 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   PetscFunctionReturn(0);
 }
 
-/// Provides a function to be used to create a default DM in the case that no
-/// grid-related command line arguments are provided to the dycore.
-/// @param [in] dm_func A function that creates a DM and returns an error code
-PetscErrorCode TDyDefineDefaultDM(TDy tdy, PetscErrorCode (*dm_func)(TDy, DM)) {
-  tdy->ops->config_default_dm = dm_func;
+/// Provides a function to be used to create a DM in special cases where a
+/// specific geometry is needed. After the function is executed on the DM,
+/// DMSetFromOptions is called to apply overrides, and then the DM is
+/// distributed appropriately. This function must be called before
+/// TDySetFromOptions.
+/// @param [in] dm_func A function that creates a given DM and returns an error
+PetscErrorCode TDySetDMConstructor(TDy tdy, PetscErrorCode (*dm_func)(void*, MPI_Comm, DM*)) {
+  PetscFunctionBegin;
+  MPI_Comm comm;
+  int ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+  if (!tdy->context) {
+    SETERRQ(comm,PETSC_ERR_USER,
+      "You must call TDySetMode and TDySetDiscretization before TDySetDMConstructor()");
+  }
+  if (tdy->setup_flags & TDyOptionsSet) {
+    SETERRQ(comm,PETSC_ERR_USER,
+      "You must call TDyDefineDM before TDySetFromOptions()");
+  }
+  tdy->ops->create_dm = dm_func;
   PetscFunctionReturn(0);
 }
 
@@ -276,8 +290,11 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
   if (!tdy->dm) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->dm must be set prior to TDyMalloc()");
+    SETERRQ(comm,PETSC_ERR_USER,"tdy->dm must be set prior to TDyMalloc()");
   }
 
   PetscInt dim;
@@ -356,7 +373,10 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
   PetscScalar   *coords;
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  MPI_Comm comm = PETSC_COMM_WORLD;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
   if ((tdy->setup_flags & TDyOptionsSet) == 0) {
     SETERRQ(comm,PETSC_ERR_USER,"Options must be set prior to TDyCreateGrid()");
   }
@@ -367,12 +387,13 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
       ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
                                   PETSC_TRUE, &dm); CHKERRQ(ierr);
     } else {
-      ierr = DMPlexCreate(comm, &dm); CHKERRQ(ierr);
-      if (tdy->ops->config_default_dm) {
-        // We've been instructed to configure a default DM.
-        ierr = tdy->ops->config_default_dm(tdy->context, dm);
+      if (tdy->ops->create_dm) {
+        // We've been instructed to create a DM ourselves.
+        ierr = tdy->ops->create_dm(tdy->context, comm, &dm);
+      } else {
+        ierr = DMPlexCreate(comm, &dm); CHKERRQ(ierr);
       }
-      // Here we lean on PETSc's DM* options.
+      // Here we lean on PETSc's DM* options for overrides.
       ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
     }
     // Distribute the mesh, however we got it.
@@ -545,6 +566,9 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   PetscFunctionBegin;
   PetscValidPointer(tdy,1);
 
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
@@ -566,7 +590,7 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   case 3:
     break;
   default:
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported dim in TDyResetDiscretizationMethod");
+    SETERRQ(comm,PETSC_ERR_USER,"Unsupported dim in TDyResetDiscretizationMethod");
     break;
   }
   // if (tdy->subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
@@ -608,7 +632,8 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  MPI_Comm comm = PETSC_COMM_WORLD;
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
 
   if ((tdy->setup_flags & TDySetupFinished) != 0) {
     SETERRQ(comm,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetup()");
@@ -707,7 +732,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   }
 
   // Mesh-related options
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: Mesh options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Mesh options",""); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_mesh", options->mesh_file,sizeof(options->mesh_file),&options->read_mesh); CHKERRQ(ierr);
   if ((tdy->dm != NULL) && options->read_mesh) {
     SETERRQ(comm,PETSC_ERR_USER,
@@ -717,7 +742,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_output_geo_attributes", options->geom_attributes_file,sizeof(options->geom_attributes_file),&options->output_geom_attributes); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_geo_attributes", options->geom_attributes_file,sizeof(options->geom_attributes_file),&options->read_geom_attributes); CHKERRQ(ierr);
   if (options->output_geom_attributes && options->read_geom_attributes){
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Only one of -tdy_output_geom_attributes and -tdy_read_geom_attributes can be specified");
+    SETERRQ(comm,PETSC_ERR_USER,"Only one of -tdy_output_geom_attributes and -tdy_read_geom_attributes can be specified");
   }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
@@ -777,12 +802,16 @@ PetscErrorCode TDySetupDiscretizationScheme(TDy tdy) {
 }
 
 PetscErrorCode TDySetup(TDy tdy) {
-  /* must follow TDySetFromOptions() is it relies upon options set by
-     TDySetFromOptions */
   PetscErrorCode ierr;
   PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  /* must follow TDySetFromOptions() is it relies upon options set by
+     TDySetFromOptions */
   if ((tdy->setup_flags & TDyOptionsSet) == 0) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetup()");
+    SETERRQ(comm,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetup()");
   }
   TDY_START_FUNCTION_TIMER()
   TDyEnterProfilingStage("TDycore Setup");
@@ -790,8 +819,6 @@ PetscErrorCode TDySetup(TDy tdy) {
   // Perform implementation-specific setup.
   ierr = tdy->ops->setup(tdy->context, tdy->dm); CHKERRQ(ierr);
 
-  // TODO: Stick a call to tdy->ops->config_dm here to configure the DM for our
-  // TODO: specific dycore setup.
   ierr = TDySetupDiscretizationScheme(tdy); CHKERRQ(ierr);
   if (tdy->options.regression_testing) {
     /* must come after Sections are set up in
@@ -800,7 +827,7 @@ PetscErrorCode TDySetup(TDy tdy) {
   }
   if (tdy->options.output_mesh) {
     if (tdy->options.method != MPFA_O) {
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+      SETERRQ(comm,PETSC_ERR_USER,
               "-tdy_output_mesh only supported for MPFA-O method");
     }
   }
@@ -1068,6 +1095,9 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&P);CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
 
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
   if (tdy->options.mode == TH) {
     for (PetscInt c=0;c<cEnd-cStart;c++) {
       P[c] = U[c*2];
@@ -1095,7 +1125,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
       PressureSaturation_VanGenuchten(cc->vg_m[c],alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&cc->dS_dP[i],&(cc->d2S_dP2[i]));
       break;
     default:
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
+      SETERRQ(comm,PETSC_ERR_SUP,"Unknown saturation function");
       break;
     }
 
@@ -1110,7 +1140,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
       RelativePermeability_Mualem(cc->mualem_m[c],cc->mualem_poly_low[c],cc->mualem_poly_coeffs[c],Se,&Kr,&dKr_dSe);
       break;
     default:
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown relative permeability function");
+      SETERRQ(comm,PETSC_ERR_SUP,"Unknown relative permeability function");
       break;
     }
     cc->Kr[i] = Kr;

@@ -165,7 +165,7 @@ PETSC_EXTERN void  tdyfinalize_(int *__ierr){
 extern "C" {
 #endif
 PETSC_EXTERN void  tdycreate_(TDy *_tdy, int *__ierr){
-*__ierr = TDyCreate(_tdy);
+*__ierr = TDyCreate(PETSC_COMM_WORLD,_tdy);
 }
 #if defined(__cplusplus)
 }
