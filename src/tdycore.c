@@ -471,7 +471,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
 
   if (!tdy) PetscFunctionReturn(0);
 
-  ierr = TDyResetDiscretizationMethod(tdy); CHKERRQ(ierr);
+  ierr = TDyResetDiscretization(tdy); CHKERRQ(ierr);
   ierr = PetscFree(tdy->V); CHKERRQ(ierr);
   ierr = PetscFree(tdy->X); CHKERRQ(ierr);
   ierr = PetscFree(tdy->N); CHKERRQ(ierr);
@@ -560,7 +560,7 @@ PetscErrorCode TDyGetCentroidArray(TDy tdy,PetscReal **X) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
+PetscErrorCode TDyResetDiscretization(TDy tdy) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -590,7 +590,7 @@ PetscErrorCode TDyResetDiscretizationMethod(TDy tdy) {
   case 3:
     break;
   default:
-    SETERRQ(comm,PETSC_ERR_USER,"Unsupported dim in TDyResetDiscretizationMethod");
+    SETERRQ(comm,PETSC_ERR_USER,"Unsupported dim in TDyResetDiscretization");
     break;
   }
   // if (tdy->subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,

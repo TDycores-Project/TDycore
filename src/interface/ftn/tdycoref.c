@@ -11,7 +11,7 @@
 #define tdyfinalize_                                   TDYFINALIZE
 #define tdycreate_                                     TDYCREATE
 #define tdysetmode_                                    TDYSETMODE
-#define tdysetdiscretizationmethod_                    TDYSETDISCRETIZATIONMETHOD
+#define tdysetdiscretization_                          TDYSETDISCRETIZATION
 #define tdysetfromoptions_                             TDYSETFROMOPTIONS
 #define tdydriverinitializettdy_                       TDYDRIVERINITIALIZETDY
 #define tdydtimeintegratorruntotime_                   TDYTIMEINTEGRATORRUNTOTIME
@@ -72,7 +72,7 @@
 #define tdyfinalize_                                   tdyfinalize
 #define tdycreate_                                     tdycreate
 #define tdysetmode_                                    tdysetmode
-#define tdysetdiscretizationmethod_                    tdysetdiscretizationmethod
+#define tdysetdiscretization_                          tdysetdiscretization
 #define tdysetfromoptions_                             tdysetfromoptions
 #define tdydriverinitializettdy_                       tdydriverinitializetdy
 #define tdydtimeintegratorruntotime_                   tdydtimeintegratorruntotime
@@ -183,8 +183,8 @@ PETSC_EXTERN void  tdysetmode_(TDy _tdy, PetscInt *mode, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdysetdiscretizationmethod_(TDy _tdy, PetscInt *method, int *__ierr){
-*__ierr = TDySetDiscretizationMethod((TDy)PetscToPointer((_tdy)), *method);
+PETSC_EXTERN void  tdysetdiscretization_(TDy _tdy, PetscInt *method, int *__ierr){
+*__ierr = TDySetDiscretization((TDy)PetscToPointer((_tdy)), *method);
 }
 #if defined(__cplusplus)
 }

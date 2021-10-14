@@ -81,7 +81,7 @@ PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 
 PETSC_EXTERN PetscErrorCode TDyCreate(MPI_Comm, TDy*);
 PETSC_EXTERN PetscErrorCode TDySetMode(TDy,TDyMode);
-PETSC_EXTERN PetscErrorCode TDySetDiscretizationMethod(TDy,TDyMethod);
+PETSC_EXTERN PetscErrorCode TDySetDiscretization(TDy,TDyMethod);
 PETSC_EXTERN PetscErrorCode TDySetDMConstructor(TDy,PetscErrorCode(*)(void*, MPI_Comm, DM*));
 PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy);
 PETSC_EXTERN PetscErrorCode TDySetup(TDy);
@@ -147,8 +147,7 @@ PETSC_EXTERN PetscErrorCode TDyGetNumCellsLocal(TDy,PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyGetCellNaturalIDsLocal(TDy,PetscInt*,PetscInt[]);
 PETSC_EXTERN PetscErrorCode TDyGetCellIsLocal(TDy,PetscInt*,PetscInt[]);
 
-
-PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy);
+PETSC_EXTERN PetscErrorCode TDyResetDiscretization(TDy);
 
 PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy,TDyQuadratureType);
 PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
