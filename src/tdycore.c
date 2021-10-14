@@ -27,6 +27,7 @@ const char *const TDyMethods[] = {
   "MPFA_O_TRANSIENTVAR",
   "BDM",
   "WY",
+  "UNSPECIFIED_METHOD",
   /* */
   "TDyMethod","TDY_METHOD_",NULL
 };
@@ -49,6 +50,7 @@ const char *const TDyMPFAOBoundaryConditionTypes[] = {
 const char *const TDyModes[] = {
   "RICHARDS",
   "TH",
+  "UNSPECIFIED_MODE",
   /* */
   "TDyMode","TDY_MODE_",NULL
 };
@@ -194,8 +196,8 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   PetscFunctionBegin;
 
   TDyOptions *options = &tdy->options;
-  options->mode = RICHARDS;
-  options->method = WY;
+  options->mode = UNSPECIFIED_MODE;
+  options->method = UNSPECIFIED_METHOD;
   options->gravity_constant = 9.8068;
   options->rho_type = WATER_DENSITY_CONSTANT;
   options->mu_type = WATER_VISCOSITY_CONSTANT;
@@ -274,7 +276,8 @@ PetscErrorCode TDySetDMConstructor(TDy tdy, PetscErrorCode (*dm_func)(void*, MPI
   PetscFunctionBegin;
   MPI_Comm comm;
   int ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
-  if (!tdy->context) {
+  if ((tdy->options.mode == UNSPECIFIED_MODE) ||
+      (tdy->options.method == UNSPECIFIED_METHOD)) {
     SETERRQ(comm,PETSC_ERR_USER,
       "You must call TDySetMode and TDySetDiscretization before TDySetDMConstructor()");
   }
@@ -636,7 +639,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
 
   if ((tdy->setup_flags & TDySetupFinished) != 0) {
-    SETERRQ(comm,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetup()");
+    SETERRQ(comm,PETSC_ERR_USER,"You must call TDySetFromOptions before TDySetup()");
   }
 
   // Collect options from command line arguments.
@@ -768,39 +771,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetupDiscretizationScheme(TDy tdy) {
-  MPI_Comm       comm;
-  PetscErrorCode ierr;
-  PetscValidPointer(tdy,1);
-  PetscFunctionBegin;
-  ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
-  switch (tdy->options.method) {
-  case TPF:
-    ierr = TDyTPFInitialize(tdy); CHKERRQ(ierr);
-    break;
-  case MPFA_O:
-    ierr = TDyMPFAOInitialize(tdy); CHKERRQ(ierr);
-    break;
-  case MPFA_O_DAE:
-    ierr = TDyMPFAOInitialize(tdy); CHKERRQ(ierr);
-    break;
-  case MPFA_O_TRANSIENTVAR:
-    ierr = TDyMPFAOInitialize(tdy); CHKERRQ(ierr);
-    break;
-  case BDM:
-    ierr = TDyBDMInitialize(tdy); CHKERRQ(ierr);
-    break;
-  case WY:
-    ierr = TDyWYInitialize(tdy); CHKERRQ(ierr);
-    break;
-  }
-
-  // Record metadata for scaling studies.
-  TDySetTimingMetadata(tdy);
-
-  PetscFunctionReturn(0);
-}
-
 PetscErrorCode TDySetup(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -808,10 +778,14 @@ PetscErrorCode TDySetup(TDy tdy) {
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
 
-  /* must follow TDySetFromOptions() is it relies upon options set by
-     TDySetFromOptions */
+  if ((tdy->options.mode == UNSPECIFIED_MODE) ||
+      (tdy->options.method == UNSPECIFIED_METHOD)) {
+    SETERRQ(comm,PETSC_ERR_USER,
+      "You must call TDySetMode and TDySetDiscretization before TDySetup()");
+  }
+
   if ((tdy->setup_flags & TDyOptionsSet) == 0) {
-    SETERRQ(comm,PETSC_ERR_USER,"TDySetFromOptions must be called prior to TDySetup()");
+    SETERRQ(comm,PETSC_ERR_USER,"You must call TDySetFromOptions before TDySetup()");
   }
   TDY_START_FUNCTION_TIMER()
   TDyEnterProfilingStage("TDycore Setup");
@@ -819,10 +793,12 @@ PetscErrorCode TDySetup(TDy tdy) {
   // Perform implementation-specific setup.
   ierr = tdy->ops->setup(tdy->context, tdy->dm); CHKERRQ(ierr);
 
-  ierr = TDySetupDiscretizationScheme(tdy); CHKERRQ(ierr);
+  // Record metadata for scaling studies.
+  TDySetTimingMetadata(tdy);
+
   if (tdy->options.regression_testing) {
     /* must come after Sections are set up in
-       TDySetupDiscretizationScheme->XXXInitialize */
+       TDySetupDiscretization->XXXInitialize */
     ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
   }
   if (tdy->options.output_mesh) {
@@ -839,6 +815,36 @@ PetscErrorCode TDySetup(TDy tdy) {
 
 PetscErrorCode TDySetDiscretization(TDy tdy,TDyMethod method) {
   PetscFunctionBegin;
+
+  MPI_Comm comm;
+  PetscErrorCode ierr;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  if (tdy->options.mode == UNSPECIFIED_MODE) {
+    SETERRQ(comm,PETSC_ERR_USER,
+      "You must call TDySetMode before TDySetDiscretization");
+  }
+
+  // FIXME: All of these functions are current called TDy*Initialize, and
+  // FIXME: should be renamed and altered to accept a context pointer and a DM
+  // FIXME: as arguments.
+  if (tdy->options.mode == RICHARDS) {
+    if (method == TPF) {
+      tdy->ops->setup = TDyTPFRichardsSetup;
+    } else if (method == MPFA_O) {
+      tdy->ops->setup = TDyMPFAORichardsSetup;
+    } else if (method == MPFA_O_DAE) {
+      tdy->ops->setup = TDyMPFAORichardsSetup;
+    } else if (method == MPFA_O_TRANSIENTVAR) {
+      tdy->ops->setup = TDyMPFAORichardsSetup;
+    } else if (method == BDM) {
+      tdy->ops->setup = TDyBDMRichardsSetup;
+    } else if (method == WY) {
+      tdy->ops->setup = TDyWYRichardsSetup;
+    }
+  } else if (tdy->options.mode == TH) {
+    // How many methods do we support for TH?
+  }
   tdy->options.method = method;
   PetscFunctionReturn(0);
 }

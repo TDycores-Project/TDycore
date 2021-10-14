@@ -12,7 +12,8 @@ typedef enum {
   MPFA_O_DAE,           /* multipoint flux approximation - O method using DAE                                  */
   MPFA_O_TRANSIENTVAR,  /* multipoint flux approximation - O method using TS transient (conservative) approach */
   BDM,                  /* P0,BDM1 spaces, standard approach                                                   */
-  WY                    /* P0,BDM1 spaces, vertex quadrature, statically condensed                             */
+  WY,                   /* P0,BDM1 spaces, vertex quadrature, statically condensed                             */
+  UNSPECIFIED_METHOD
 } TDyMethod;
 
 PETSC_EXTERN const char *const TDyMethods[];
@@ -41,7 +42,8 @@ PETSC_EXTERN const char *const TDyQuadratureTypes[];
 
 typedef enum {
   RICHARDS=0,
-  TH
+  TH,
+  UNSPECIFIED_MODE
 } TDyMode;
 
 typedef enum {
