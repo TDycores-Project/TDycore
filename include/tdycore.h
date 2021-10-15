@@ -97,7 +97,7 @@ PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 PETSC_EXTERN PetscErrorCode TDyCreate(MPI_Comm, TDy*);
 PETSC_EXTERN PetscErrorCode TDySetMode(TDy,TDyMode);
 PETSC_EXTERN PetscErrorCode TDySetDiscretization(TDy,TDyDiscretization);
-PETSC_EXTERN PetscErrorCode TDySetDMConstructor(TDy,PetscErrorCode(*)(void*, MPI_Comm, DM*));
+PETSC_EXTERN PetscErrorCode TDySetDMConstructor(TDy,PetscErrorCode(*)(MPI_Comm, DM*));
 PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy);
 PETSC_EXTERN PetscErrorCode TDySetup(TDy);
 PETSC_EXTERN PetscErrorCode TDyDestroy(TDy*);
@@ -186,16 +186,13 @@ PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
 
 PETSC_EXTERN PetscErrorCode TDyOutputRegression(TDy,Vec);
 
-PETSC_EXTERN PetscErrorCode TDyTPFInitialize(TDy);
 PETSC_EXTERN PetscErrorCode TDyTPFComputeSystem(TDy,Mat,Vec);
 PETSC_EXTERN PetscReal TDyTPFPressureNorm(TDy,Vec);
 PETSC_EXTERN PetscReal TDyTPFVelocityNorm(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyTPFCheckMeshSuitability(TDy);
 
-PETSC_EXTERN PetscErrorCode TDyWYInitialize(TDy);
 PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy,Mat,Vec);
 
-PETSC_EXTERN PetscErrorCode TDyBDMInitialize(TDy);
 PETSC_EXTERN PetscErrorCode TDyBDMComputeSystem(TDy,Mat,Vec);
 PETSC_EXTERN PetscReal TDyBDMPressureNorm(TDy,Vec);
 PETSC_EXTERN PetscReal TDyBDMVelocityNorm(TDy,Vec);

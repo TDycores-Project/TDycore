@@ -22,7 +22,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver currently only supports 3D");
   }
 
-  switch(tdy->options.method) {
+  switch(tdy->options.discretization) {
     case TPF:
     case MPFA_O:
       break;
@@ -30,7 +30,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     case MPFA_O_TRANSIENTVAR:
     case BDM:
     case WY:
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver not supported for specified method.");
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver not supported for specified discretization.");
       break;
   }
 
@@ -161,7 +161,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
         case TDyTS:
           ierr = TSSetPostStep(ts,TDyTHTSPostStep); CHKERRQ(ierr);
       }
-      ierr = TDyTHInitialize(tdy); CHKERRQ(ierr);
+      ierr = TDySetup(tdy); CHKERRQ(ierr);
       break;
   }
   PetscPrintf(PETSC_COMM_WORLD,"tdy->ti->time_integration_method = %d\n",

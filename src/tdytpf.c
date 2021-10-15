@@ -7,12 +7,11 @@ PETSC_STATIC_INLINE PetscScalar Dot(PetscInt dim, const PetscScalar *x,
                                     const PetscScalar *y) {PetscScalar sum = 0.0; PetscInt d; for (d = 0; d < dim; ++d) sum += x[d]*y[d]; return sum;}
 PETSC_STATIC_INLINE PetscReal Norm(PetscInt dim, const PetscScalar *x) {return PetscSqrtReal(PetscAbsScalar(Dot(dim,x,x)));}
 
-PetscErrorCode TDyTPFInitialize(TDy tdy) {
+PetscErrorCode TDyTPF_Setup(TDy tdy, DM dm) {
   PetscErrorCode ierr;
   MPI_Comm comm;
   PetscInt dim,c,cStart,cEnd,pStart,pEnd;
   PetscSection sec;
-  DM dm = tdy->dm;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 

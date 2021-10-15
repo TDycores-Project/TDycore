@@ -24,18 +24,24 @@ struct _TDyOps {
   // Called by TDyDestroy to free implementation-specific resources.
   PetscErrorCode (*destroy)(void*);
 
+  // Creates a DM for a particular simulation (optional).
+  // We pass the dycore as the first argument here because we don't expect
+  // the caller to know implementation details.
+  PetscErrorCode (*create_dm)(MPI_Comm, DM*);
+
   // Implements the view operation for the TDy implementation with the given
   // viewer.
   PetscErrorCode (*view)(void*, PetscViewer);
 
-  // Creates a DM for a particular simulation (optional)
-  PetscErrorCode (*create_dm)(void*, MPI_Comm, DM*);
-
   // Called by TDySetFromOptions -- sets implementation-specific options
   // from command-line arguments.
-  PetscErrorCode (*set_from_options)(void*);
+  // FIXME: convert the first arg here to void* when we've moved specific data
+  // FIXME: out of TDy.
+  PetscErrorCode (*set_from_options)(TDy);
 
   // Called by TDySetup -- configures the DM for solvers.
+  // FIXME: we should convert the first argument here to void* when we've moved
+  // FIXME: all discretization-specific data out of TDy itself.
   PetscErrorCode (*setup)(TDy, DM);
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution

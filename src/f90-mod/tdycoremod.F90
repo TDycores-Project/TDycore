@@ -453,10 +453,9 @@ module tdycore
   end interface
 
   abstract interface
-    subroutine TDyDMConstructor(tdy, comm, dm, ierr)
+    subroutine TDyDMConstructor(comm, dm, ierr)
       use tdycoredef
       use petscdm
-      TDy      :: tdy
       MPI_Comm :: comm
       DM       :: dm
       PetscErrorCode :: ierr

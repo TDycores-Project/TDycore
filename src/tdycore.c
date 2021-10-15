@@ -9,7 +9,11 @@ static char help[] = "TDycore \n\
 #include <private/tdycoreimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdyconditionsimpl.h>
+#include <private/tdytpfimpl.h>
 #include <private/tdympfaoimpl.h>
+#include <private/tdythimpl.h>
+#include <private/tdybdmimpl.h>
+#include <private/tdywyimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdydmimpl.h>
@@ -269,7 +273,7 @@ PetscErrorCode TDyCreate(MPI_Comm comm, TDy *_tdy) {
 /// distributed appropriately. This function must be called before
 /// TDySetFromOptions.
 /// @param [in] dm_func A function that creates a given DM and returns an error
-PetscErrorCode TDySetDMConstructor(TDy tdy, PetscErrorCode (*dm_func)(void*, MPI_Comm, DM*)) {
+PetscErrorCode TDySetDMConstructor(TDy tdy, PetscErrorCode (*dm_func)(MPI_Comm, DM*)) {
   PetscFunctionBegin;
   MPI_Comm comm;
   int ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
@@ -388,7 +392,7 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
     } else {
       if (tdy->ops->create_dm) {
         // We've been instructed to create a DM ourselves.
-        ierr = tdy->ops->create_dm(tdy->context, comm, &dm);
+        ierr = tdy->ops->create_dm(comm, &dm);
       } else {
         ierr = DMPlexCreate(comm, &dm); CHKERRQ(ierr);
       }
@@ -748,6 +752,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   // Other options
   ierr = PetscOptionsBool("-tdy_regression_test","Enable output of a regression file","",options->regression_testing,&(options->regression_testing),NULL); CHKERRQ(ierr);
 
+  // Mode/discretization-specific options.
+  if (tdy->ops->set_from_options) {
+    tdy->ops->set_from_options(tdy);
+  }
+
   // Wrap up and indicate that options are set.
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   tdy->setup_flags |= TDyOptionsSet;
@@ -775,6 +784,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 PetscErrorCode TDySetup(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
 
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
@@ -787,11 +797,11 @@ PetscErrorCode TDySetup(TDy tdy) {
   if ((tdy->setup_flags & TDyOptionsSet) == 0) {
     SETERRQ(comm,PETSC_ERR_USER,"You must call TDySetFromOptions before TDySetup()");
   }
-  TDY_START_FUNCTION_TIMER()
   TDyEnterProfilingStage("TDycore Setup");
 
   // Perform implementation-specific setup.
-  ierr = tdy->ops->setup(tdy->context, tdy->dm); CHKERRQ(ierr);
+  // FIXME: Pass tdy->context as first argument when we break data out of TDy.
+  ierr = tdy->ops->setup(tdy, tdy->dm); CHKERRQ(ierr);
 
   // Record metadata for scaling studies.
   TDySetTimingMetadata(tdy);
@@ -840,25 +850,34 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       "You must call TDySetMode before TDySetDiscretization");
   }
 
-  // FIXME: All of these functions are current called TDy*Initialize, and
-  // FIXME: should be renamed and altered to accept a context pointer and a DM
-  // FIXME: as arguments.
+  // Set function pointers for operations.
   if (tdy->options.mode == RICHARDS) {
     if (discretization == TPF) {
-      tdy->ops->setup = TDyTPFRichardsSetup;
+      tdy->ops->set_from_options = NULL; // FIXME: define this and move things here!
+      tdy->ops->setup = TDyTPF_Setup;
     } else if (discretization == MPFA_O) {
-      tdy->ops->setup = TDyMPFAORichardsSetup;
+      tdy->ops->set_from_options = TDyMPFAO_SetFromOptions;
+      tdy->ops->setup = TDyRichards_MPFA_O_Setup;
     } else if (discretization == MPFA_O_DAE) {
-      tdy->ops->setup = TDyMPFAORichardsSetup;
+      tdy->ops->set_from_options = TDyMPFAO_SetFromOptions;
+      tdy->ops->setup = TDyRichards_MPFA_O_DAE_Setup;
     } else if (discretization == MPFA_O_TRANSIENTVAR) {
-      tdy->ops->setup = TDyMPFAORichardsSetup;
+      tdy->ops->set_from_options = TDyMPFAO_SetFromOptions;
+      tdy->ops->setup = TDyRichards_MPFA_O_TRANSIENTVAR_Setup;
     } else if (discretization == BDM) {
-      tdy->ops->setup = TDyBDMRichardsSetup;
+      tdy->ops->set_from_options = NULL;
+      tdy->ops->setup = TDyBDM_Setup;
     } else if (discretization == WY) {
-      tdy->ops->setup = TDyWYRichardsSetup;
+      tdy->ops->set_from_options = NULL;
+      tdy->ops->setup = TDyWY_Setup;
     }
   } else if (tdy->options.mode == TH) {
-    // How many discretizations do we support for TH?
+    if (discretization == MPFA_O) {
+      tdy->ops->setup = TDyTH_MPFA_O_Setup;
+    } else {
+      SETERRQ(comm,PETSC_ERR_USER,
+        "The TH mode does not support the selected discretization!");
+    }
   }
   tdy->options.discretization = discretization;
   tdy->setup_flags |= TDyDiscretizationSet;

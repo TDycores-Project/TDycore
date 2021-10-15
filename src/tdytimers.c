@@ -11,8 +11,8 @@ khash_t(TDY_PROFILING_STAGE_MAP)* TDY_PROFILING_STAGES = NULL;
 
 // Timing metadata used by tdyperfplot and other tools.
 typedef struct {
-  TDyMethod method;
   TDyMode mode;
+  TDyDiscretization discretization;
   int num_cells;
   int num_proc;
 } TimingMetadata;
@@ -91,8 +91,8 @@ PetscErrorCode TDySetTimingMetadata(TDy tdy) {
       iter = kh_put(TDY_PROFILING_MD_MAP, TDY_PROFILING_METADATA, tdy_addr, &retval);
       kh_val(TDY_PROFILING_METADATA, iter) = md;
     }
-    md->method = tdy->options.method;
     md->mode = tdy->options.mode;
+    md->discretization = tdy->options.discretization;
     if (tdy->mesh != NULL) {
       md->num_cells = TDyMeshGetNumberOfLocalCells(tdy->mesh);
     } else {
@@ -136,31 +136,12 @@ PetscErrorCode TDyWriteTimingProfile(const char* filename) {
       int num_cells;
       MPI_Reduce(&(md->num_cells), &num_cells, 1, MPI_INT, MPI_SUM,
                  0, PETSC_COMM_WORLD);
-      const char* method_name;
-      if (md->method == TPF) {
-        method_name = "TPF";
-      } else if (md->method == MPFA_O) {
-        method_name = "MPFA_O";
-      } else if (md->method == MPFA_O_DAE) {
-        method_name = "MPFA_O_DAE";
-      } else if (md->method == MPFA_O_TRANSIENTVAR) {
-        method_name = "MPFA_O_TRANSIENTVAR";
-      } else if (md->method == BDM) {
-        method_name = "BDM";
-      } else { // (md->method == BDM)
-        method_name = "WY";
-      }
-      const char* mode_name;
-      if (md->mode == RICHARDS) {
-        mode_name = "RICHARDS";
-      } else { // (md->mode == TH)
-        mode_name = "TH";
-      }
+      const char* mode_name = TDyModes[md->mode];
+      const char* disc_name = TDyDiscretizations[md->discretization];
       FILE* f = fopen("tdycore_profile.csv", "a");
       fprintf(f, "METADATA\n");
-      fprintf(f, "Method,Mode,NumProc,NumCells\n");
-      fprintf(f, "%s,%s,%d,%d", method_name, mode_name,
-              md->num_proc, num_cells);
+      fprintf(f, "Mode,Discretiztion,NumProc,NumCells\n");
+      fprintf(f, "%s,%s,%d,%d", mode_name, disc_name, md->num_proc, num_cells);
       fclose(f);
     } else { // rank > 0
       MPI_Reduce(&md->num_cells, NULL, 1, MPI_INT, MPI_SUM,
