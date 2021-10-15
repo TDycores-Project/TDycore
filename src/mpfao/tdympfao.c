@@ -359,7 +359,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   PetscInt p, pStart, pEnd;
   PetscBool use_dae;
 
-  use_dae = (tdy->options.method == MPFA_O_DAE);
+  use_dae = (tdy->options.discretization == MPFA_O_DAE);
   ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
   if (!use_dae) {
     if (tdy->options.mode == TH){

@@ -13,7 +13,7 @@ typedef struct {
   PetscInt enthalpy_type;
 
   // Numerics settings
-  TDyMethod method;
+  TDyDiscretization discretization;
   TDyQuadratureType qtype;
   PetscInt mpfao_gmatrix_method;
   PetscInt mpfao_bc_type;

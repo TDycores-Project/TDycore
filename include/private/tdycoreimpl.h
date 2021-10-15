@@ -42,6 +42,8 @@ struct _TDyOps {
   // vector.
   PetscErrorCode (*compute_error_norms)(void*,Vec,PetscReal*,PetscReal*);
 
+  // Functions used to define solver behavior.
+
   // Material and boundary condition functions--we'll sort these out later.
   PetscErrorCode (*computeporosity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computepermeability)(TDy,PetscReal*,PetscReal*,void*);

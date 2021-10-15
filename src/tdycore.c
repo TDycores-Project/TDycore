@@ -20,16 +20,15 @@ static char help[] = "TDycore \n\
 #include <private/tdydiscretization.h>
 #include <petscblaslapack.h>
 
-const char *const TDyMethods[] = {
+const char *const TDyDiscretizations[] = {
   "TPF",
   "MPFA_O",
   "MPFA_O_DAE",
   "MPFA_O_TRANSIENTVAR",
   "BDM",
   "WY",
-  "UNSPECIFIED_METHOD",
   /* */
-  "TDyMethod","TDY_METHOD_",NULL
+  "TDyDiscretization","TDY_DISCRETIZATION_",NULL
 };
 
 const char *const TDyMPFAOGmatrixMethods[] = {
@@ -196,8 +195,6 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   PetscFunctionBegin;
 
   TDyOptions *options = &tdy->options;
-  options->mode = UNSPECIFIED_MODE;
-  options->method = UNSPECIFIED_METHOD;
   options->gravity_constant = 9.8068;
   options->rho_type = WATER_DENSITY_CONSTANT;
   options->mu_type = WATER_VISCOSITY_CONSTANT;
@@ -276,10 +273,9 @@ PetscErrorCode TDySetDMConstructor(TDy tdy, PetscErrorCode (*dm_func)(void*, MPI
   PetscFunctionBegin;
   MPI_Comm comm;
   int ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
-  if ((tdy->options.mode == UNSPECIFIED_MODE) ||
-      (tdy->options.method == UNSPECIFIED_METHOD)) {
+  if ((tdy->setup_flags & TDyDiscretizationSet) == 0) {
     SETERRQ(comm,PETSC_ERR_USER,
-      "You must call TDySetMode and TDySetDiscretization before TDySetDMConstructor()");
+      "You must call TDySetDiscretization before TDySetDMConstructor()");
   }
   if (tdy->setup_flags & TDyOptionsSet) {
     SETERRQ(comm,PETSC_ERR_USER,
@@ -630,7 +626,7 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
 /// Sets options for the dycore based on command line arguments supplied by a
 /// user. TDySetFromOptions must be called before TDySetup,
 /// since the latter uses options specified by the former.
-/// @param tdy The dycore instance
+/// @param [inout] tdy The dycore instance
 PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -712,8 +708,8 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   // Numerics options
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Numerics options",""); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_method","Discretization method",
-                          "TDySetDiscretization",TDyMethods,
-                          (PetscEnum)options->method,(PetscEnum *)&options->method,
+                          "TDySetDiscretization",TDyDiscretizations,
+                          (PetscEnum)options->discretization,(PetscEnum *)&options->discretization,
                           NULL); CHKERRQ(ierr);
   TDyQuadratureType qtype = FULL;
   ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type for finite element methods","TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&options->qtype,NULL); CHKERRQ(ierr);
@@ -771,6 +767,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
+/// Performs setup, including allocation and configuration of any bookkeeping
+/// data structures and the configuration of the dycore's DM object, which can
+/// subsequently be passed to a solver (e.g. SNES or TS). This function must be
+/// called after TDySetOptions.
+/// @param [inout] tdy the dycore instance
 PetscErrorCode TDySetup(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -778,10 +779,9 @@ PetscErrorCode TDySetup(TDy tdy) {
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
 
-  if ((tdy->options.mode == UNSPECIFIED_MODE) ||
-      (tdy->options.method == UNSPECIFIED_METHOD)) {
+  if ((tdy->setup_flags & TDyDiscretizationSet) == 0) {
     SETERRQ(comm,PETSC_ERR_USER,
-      "You must call TDySetMode and TDySetDiscretization before TDySetup()");
+      "You must call TDySetDiscretization before TDySetup()");
   }
 
   if ((tdy->setup_flags & TDyOptionsSet) == 0) {
@@ -802,9 +802,9 @@ PetscErrorCode TDySetup(TDy tdy) {
     ierr = TDyRegressionInitialize(tdy); CHKERRQ(ierr);
   }
   if (tdy->options.output_mesh) {
-    if (tdy->options.method != MPFA_O) {
+    if (tdy->options.discretization != MPFA_O) {
       SETERRQ(comm,PETSC_ERR_USER,
-              "-tdy_output_mesh only supported for MPFA-O method");
+              "-tdy_output_mesh only supported for MPFA-O discretization");
     }
   }
   TDyExitProfilingStage("TDycore Setup");
@@ -813,14 +813,29 @@ PetscErrorCode TDySetup(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetDiscretization(TDy tdy,TDyMethod method) {
+/// Sets the dycore's "mode", specifying the governing equations it solves.
+/// @param [inout] tdy the dycore
+/// @param [in] mode the selected mode
+PetscErrorCode TDySetMode(TDy tdy, TDyMode mode) {
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  tdy->options.mode = mode;
+  tdy->setup_flags |= TDyModeSet;
+  PetscFunctionReturn(0);
+}
+
+/// Sets the discretization used by the dycore. This must be called after
+/// TDySetMode.
+/// @param [inout] tdy the dycore
+/// @param [in] discretization the selected discretization
+PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
   PetscFunctionBegin;
 
   MPI_Comm comm;
   PetscErrorCode ierr;
   ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
 
-  if (tdy->options.mode == UNSPECIFIED_MODE) {
+  if ((tdy->setup_flags & TDyModeSet) == 0) {
     SETERRQ(comm,PETSC_ERR_USER,
       "You must call TDySetMode before TDySetDiscretization");
   }
@@ -829,30 +844,24 @@ PetscErrorCode TDySetDiscretization(TDy tdy,TDyMethod method) {
   // FIXME: should be renamed and altered to accept a context pointer and a DM
   // FIXME: as arguments.
   if (tdy->options.mode == RICHARDS) {
-    if (method == TPF) {
+    if (discretization == TPF) {
       tdy->ops->setup = TDyTPFRichardsSetup;
-    } else if (method == MPFA_O) {
+    } else if (discretization == MPFA_O) {
       tdy->ops->setup = TDyMPFAORichardsSetup;
-    } else if (method == MPFA_O_DAE) {
+    } else if (discretization == MPFA_O_DAE) {
       tdy->ops->setup = TDyMPFAORichardsSetup;
-    } else if (method == MPFA_O_TRANSIENTVAR) {
+    } else if (discretization == MPFA_O_TRANSIENTVAR) {
       tdy->ops->setup = TDyMPFAORichardsSetup;
-    } else if (method == BDM) {
+    } else if (discretization == BDM) {
       tdy->ops->setup = TDyBDMRichardsSetup;
-    } else if (method == WY) {
+    } else if (discretization == WY) {
       tdy->ops->setup = TDyWYRichardsSetup;
     }
   } else if (tdy->options.mode == TH) {
-    // How many methods do we support for TH?
+    // How many discretizations do we support for TH?
   }
-  tdy->options.method = method;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetMode(TDy tdy,TDyMode mode) {
-  PetscValidPointer(tdy,1);
-  PetscFunctionBegin;
-  tdy->options.mode = mode;
+  tdy->options.discretization = discretization;
+  tdy->setup_flags |= TDyDiscretizationSet;
   PetscFunctionReturn(0);
 }
 
@@ -907,7 +916,7 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   ierr = PetscSectionGetNumFields(sec, &num_fields);
   ierr = TSGetDM(ts,&dm);CHKERRQ(ierr);
 
-  switch (tdy->options.method) {
+  switch (tdy->options.discretization) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TPF");
     break;
@@ -947,7 +956,7 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
-  switch (tdy->options.method) {
+  switch (tdy->options.discretization) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for TPF");
     break;
@@ -995,7 +1004,7 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
-  switch (tdy->options.method) {
+  switch (tdy->options.discretization) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for TPF");
     break;
@@ -1032,7 +1041,7 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
-  switch (tdy->options.method) {
+  switch (tdy->options.discretization) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for TPF");
     break;
@@ -1062,7 +1071,7 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
-  switch (tdy->options.method) {
+  switch (tdy->options.discretization) {
   case TPF:
     ierr = TDyTPFComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
@@ -1166,9 +1175,9 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     }
   }
 
-  if ( (tdy->options.method == MPFA_O ||
-        tdy->options.method == MPFA_O_DAE ||
-        tdy->options.method == MPFA_O_TRANSIENTVAR)) {
+  if ( (tdy->options.discretization == MPFA_O ||
+        tdy->options.discretization == MPFA_O_DAE ||
+        tdy->options.discretization == MPFA_O_TRANSIENTVAR)) {
     PetscReal *p_vec_ptr, gz;
     TDyMesh *mesh = tdy->mesh;
     TDyCell *cells = &mesh->cells;
@@ -1467,7 +1476,7 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
-  switch (tdy->options.method) {
+  switch (tdy->options.discretization) {
   case TPF:
     if(normp != NULL) { *normp = TDyTPFPressureNorm(tdy,U); }
     if(normv != NULL) { *normv = TDyTPFVelocityNorm(tdy,U); }
@@ -1558,7 +1567,7 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
   ierr = PetscObjectGetComm((PetscObject)tdy->dm,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
-  switch (tdy->options.method) {
+  switch (tdy->options.discretization) {
   case TPF:
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for TPF");
     break;

@@ -6,17 +6,36 @@
 
 /* ---------------------------------------------------------------- */
 
+/// This type lists modes that identify the set of governing equations solved
+/// by the dycore.
 typedef enum {
-  TPF=0,                /* two point flux, classic finite volumes                                              */
-  MPFA_O,               /* multipoint flux approximation - O method                                            */
-  MPFA_O_DAE,           /* multipoint flux approximation - O method using DAE                                  */
-  MPFA_O_TRANSIENTVAR,  /* multipoint flux approximation - O method using TS transient (conservative) approach */
-  BDM,                  /* P0,BDM1 spaces, standard approach                                                   */
-  WY,                   /* P0,BDM1 spaces, vertex quadrature, statically condensed                             */
-  UNSPECIFIED_METHOD
-} TDyMethod;
+  /// Richards equation
+  RICHARDS=0,
+  /// Non-isothermal flows
+  TH
+} TDyMode;
 
-PETSC_EXTERN const char *const TDyMethods[];
+PETSC_EXTERN const char *const TDyModes[];
+
+/// This type enumerates discretizations supported by the dycore.
+typedef enum {
+  /// two-point flux, classic finite volumes
+  TPF=0,
+  /// multi-point flux approximation - O method
+  MPFA_O,
+  /// multi-point flux approximation - O method using DAE
+  MPFA_O_DAE,
+  /// multipoint flux approximation - O method using TS transient (conservative)
+  /// approach
+  MPFA_O_TRANSIENTVAR,
+  /// finite element using P0, BDM1 spaces, standard approach
+  BDM,
+  /// finite element using P0,BDM1 spaces, vertex quadrature, statically
+  /// condensed
+  WY
+} TDyDiscretization;
+
+PETSC_EXTERN const char *const TDyDiscretizations[];
 
 typedef enum {
   MPFAO_GMATRIX_DEFAULT=0, /* default method to compute gmatrix for MPFA-O method        */
@@ -41,12 +60,6 @@ typedef enum {
 PETSC_EXTERN const char *const TDyQuadratureTypes[];
 
 typedef enum {
-  RICHARDS=0,
-  TH,
-  UNSPECIFIED_MODE
-} TDyMode;
-
-typedef enum {
   TDySNES=0,
   TDyTS
 } TDyTimeIntegrationMethod;
@@ -54,11 +67,11 @@ typedef enum {
 typedef enum {
   TDyCreated=0x0,
   TDyParametersInitialized=0x1,
-  TDyOptionsSet=0x2,
-  TDySetupFinished=0x4,
+  TDyModeSet=0x1<<1,
+  TDyDiscretizationSet=0x1<<2,
+  TDyOptionsSet=0x1<<3,
+  TDySetupFinished=0x1<<4,
 } TDySetupFlags;
-
-PETSC_EXTERN const char *const TDyModes[];
 
 typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */
 
@@ -83,7 +96,7 @@ PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 
 PETSC_EXTERN PetscErrorCode TDyCreate(MPI_Comm, TDy*);
 PETSC_EXTERN PetscErrorCode TDySetMode(TDy,TDyMode);
-PETSC_EXTERN PetscErrorCode TDySetDiscretization(TDy,TDyMethod);
+PETSC_EXTERN PetscErrorCode TDySetDiscretization(TDy,TDyDiscretization);
 PETSC_EXTERN PetscErrorCode TDySetDMConstructor(TDy,PetscErrorCode(*)(void*, MPI_Comm, DM*));
 PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy);
 PETSC_EXTERN PetscErrorCode TDySetup(TDy);
