@@ -4,6 +4,13 @@ module snes_mpfaof90mod
 #include <petsc/finclude/petsc.h>
 #include <finclude/tdycore.h>
 
+  ! DM-related variables for CreateDM.
+  character (len=256) :: mesh_filename
+  PetscBool           :: mesh_file_flg
+  PetscInt            :: nx, ny, nz
+  PetscInt            :: dim
+  PetscInt            :: dm_plex_extrude_layers
+
 contains
 
    subroutine PorosityFunction(tdy,x,theta,dummy,ierr)
@@ -113,6 +120,40 @@ contains
     ierr = 0
   end subroutine PressureFunction
 
+  subroutine CreateDM(comm, dm, ierr)
+    use petscdm
+    implicit none
+
+    MPI_Comm :: comm
+    DM :: dm, edm
+    PetscErrorCode :: ierr
+
+    PetscInt  :: faces(3)
+    PetscReal :: lower(3), upper(3)
+
+    if (.not.mesh_file_flg) then
+      faces(1) = nx; faces(2) = ny; faces(3) = nz;
+      lower(:) = 0.d0;
+      upper(:) = 1.d0;
+
+      call DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, faces, lower, upper, &
+           PETSC_NULL_INTEGER, PETSC_TRUE, dm, ierr);
+      CHKERRA(ierr);
+    else
+      call DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE, dm, ierr);
+      CHKERRA(ierr);
+      call DMGetDimension(dm, dim, ierr);
+      CHKERRA(ierr);
+      if (dm_plex_extrude_layers > 0) then
+        call DMPlexExtrude(dm, PETSC_DETERMINE, -1.d0, PETSC_TRUE, PETSC_NULL_REAL, PETSC_TRUE, edm, ierr);
+        CHKERRA(ierr);
+        call DMDestroy(dm ,ierr);
+        dm = edm
+      end if
+  endif
+
+  end subroutine
+
 end module snes_mpfaof90mod
 
 program main
@@ -134,29 +175,30 @@ program main
 implicit none
 
   TDy                 :: tdy
-  DM                  :: dm, edm, dmDist
+  DM                  :: dm
   Vec                 :: U
   !TS                 :: ts
   SNES                :: snes
   PetscInt            :: rank, successful_exit_code
   PetscBool           :: flg
-  PetscInt            :: dim, faces(3)
-  PetscReal           :: lower(3), upper(3)
   PetscErrorCode      :: ierr
-  PetscInt            :: nx, ny, nz, ncell, bc_type, dm_plex_extrude_layers
+  PetscInt            :: ncell, bc_type
   PetscInt  , pointer :: index(:)
   PetscReal , pointer :: residualSat(:), blockPerm(:), liquid_sat(:), liquid_mass(:)
   PetscReal , pointer :: alpha(:), m(:)
   PetscReal           :: perm(9), resSat
   PetscInt            :: c, cStart, cEnd, j, nvalues,g, max_steps, step
   PetscReal           :: dtime, mass_pre, mass_post, ic_value
-  character (len=256) :: mesh_filename, ic_filename
+  character (len=256) :: ic_filename
   character(len=256)  :: string, bc_type_name
-  PetscBool           :: mesh_file_flg, ic_file_flg, pflotran_consistent, use_tdydriver
+  PetscBool           :: ic_file_flg, pflotran_consistent, use_tdydriver
   PetscViewer         :: viewer
   PetscInt            :: step_mod
   PetscFE             :: fe
   SNESConvergedReason :: reason
+
+  dim = 3
+  nx = 1; ny = 1; nz = 15;
 
   call TDyInit(ierr);
   CHKERRA(ierr);
@@ -169,11 +211,11 @@ implicit none
 
   call TDyCreate(tdy, ierr);
   CHKERRA(ierr);
-  call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
+  call TDySetMode(tdy,RICHARDS,ierr);
+  CHKERRA(ierr);
+  call TDySetDiscretization(tdy,MPFA_O,ierr);
   CHKERRA(ierr);
 
-  nx = 1; ny = 1; nz = 15;
-  dim = 3
   successful_exit_code= 0
   max_steps = 2
   dtime = 1800.d0
@@ -224,27 +266,17 @@ implicit none
     bc_type = MPFAO_SEEPAGE_BC
   endif
 
-  if (.not.mesh_file_flg) then
-    faces(1) = nx; faces(2) = ny; faces(3) = nz;
-    lower(:) = 0.d0;
-    upper(:) = 1.d0;
+  ! Set a constructor for a DM.
+  call TDySetDMConstructor(tdy, CreateDM,ierr);
+  CHKERRA(ierr);
 
-    call DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, faces, lower, upper, &
-         PETSC_NULL_INTEGER, PETSC_TRUE, dm, ierr);
-    CHKERRA(ierr);
-  else
-    call DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE, dm, ierr);
-    CHKERRA(ierr);
-    call DMGetDimension(dm, dim, ierr);
-    CHKERRA(ierr);
-    if (dm_plex_extrude_layers > 0) then
-      call DMPlexExtrude(dm, PETSC_DETERMINE, -1.d0, PETSC_TRUE, PETSC_NULL_REAL, PETSC_TRUE, edm, ierr);
-      CHKERRA(ierr);
-      call DMDestroy(dm ,ierr);
-      dm = edm
-    end if
-  endif
+  ! Apply overrides.
+  call TDySetFromOptions(tdy,ierr);
+  CHKERRA(ierr);
 
+  ! Set up the discretization.
+  call TDyGetDM(tdy, dm, ierr);
+  CHKERRA(ierr);
   call DMGetDimension(dm, dim, ierr);
   CHKERRA(ierr)
   call PetscFECreateDefault(PETSC_COMM_SELF, dim, 1, PETSC_FALSE, "p_", -1, fe, ierr);
@@ -259,25 +291,6 @@ implicit none
   CHKERRA(ierr)
   call DMSetUseNatural(dm, PETSC_TRUE, ierr);
   CHKERRA(ierr)
-
-  call DMPlexDistribute(dm, 1, PETSC_NULL_SF, dmDist, ierr);
-  CHKERRA(ierr);
-  if (dmDist /= PETSC_NULL_DM) then
-     call DMDestroy(dm, ierr);
-     CHKERRA(ierr);
-     dm = dmDist;
-  end if
-  call DMSetUp(dm,ierr);
-  CHKERRA(ierr)
-
-
-  call DMSetFromOptions(dm, ierr);
-  CHKERRA(ierr);
-
-
-  call TDySetWaterDensityType(tdy,WATER_DENSITY_EXPONENTIAL,ierr);
-  CHKERRA(ierr)
-
   call DMPlexGetHeightStratum(dm,0,cStart,cEnd,ierr);
   CHKERRA(ierr);
 
@@ -306,10 +319,8 @@ implicit none
     enddo
   enddo
 
-  call TDySetDM(tdy, dm, ierr);
-  CHKERRA(ierr);
-  call TDySetFromOptions(tdy,ierr);
-  CHKERRA(ierr);
+  call TDySetWaterDensityType(tdy,WATER_DENSITY_EXPONENTIAL,ierr);
+  CHKERRA(ierr)
 
   if (pflotran_consistent) then
 !     call TDySetPorosityFunction(tdy,PorosityFunctionPFLOTRAN,0,ierr);

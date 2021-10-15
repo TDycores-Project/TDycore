@@ -57,7 +57,6 @@ contains
     end subroutine PressureFunction
 
   subroutine CreateDM(comm, dm, ierr)
-    use iso_c_binding
     use petscdm
     implicit none
 
