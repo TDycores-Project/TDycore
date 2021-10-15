@@ -23,7 +23,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   }
 
   switch(tdy->options.discretization) {
-    case TPF:
     case MPFA_O:
       break;
     case MPFA_O_DAE:

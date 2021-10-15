@@ -19,8 +19,6 @@ PETSC_EXTERN const char *const TDyModes[];
 
 /// This type enumerates discretizations supported by the dycore.
 typedef enum {
-  /// two-point flux, classic finite volumes
-  TPF=0,
   /// multi-point flux approximation - O method
   MPFA_O,
   /// multi-point flux approximation - O method using DAE
@@ -185,11 +183,6 @@ PETSC_EXTERN PetscErrorCode TDyPreSolveSNESSolver(TDy);
 PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
 
 PETSC_EXTERN PetscErrorCode TDyOutputRegression(TDy,Vec);
-
-PETSC_EXTERN PetscErrorCode TDyTPFComputeSystem(TDy,Mat,Vec);
-PETSC_EXTERN PetscReal TDyTPFPressureNorm(TDy,Vec);
-PETSC_EXTERN PetscReal TDyTPFVelocityNorm(TDy,Vec);
-PETSC_EXTERN PetscErrorCode TDyTPFCheckMeshSuitability(TDy);
 
 PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy,Mat,Vec);
 

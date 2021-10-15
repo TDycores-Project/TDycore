@@ -9,7 +9,6 @@ static char help[] = "TDycore \n\
 #include <private/tdycoreimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdyconditionsimpl.h>
-#include <private/tdytpfimpl.h>
 #include <private/tdympfaoimpl.h>
 #include <private/tdythimpl.h>
 #include <private/tdybdmimpl.h>
@@ -25,7 +24,6 @@ static char help[] = "TDycore \n\
 #include <petscblaslapack.h>
 
 const char *const TDyDiscretizations[] = {
-  "TPF",
   "MPFA_O",
   "MPFA_O_DAE",
   "MPFA_O_TRANSIENTVAR",
@@ -892,10 +890,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
 
   // Set function pointers for operations.
   if (tdy->options.mode == RICHARDS) {
-    if (discretization == TPF) {
-      tdy->ops->set_from_options = NULL; // FIXME: define this and move things here!
-      tdy->ops->setup = TDyTPF_Setup;
-    } else if (discretization == MPFA_O) {
+    if (discretization == MPFA_O) {
       tdy->ops->set_from_options = TDyMPFAO_SetFromOptions;
       tdy->ops->setup = TDyRichards_MPFA_O_Setup;
     } else if (discretization == MPFA_O_DAE) {
@@ -910,6 +905,8 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
     } else if (discretization == WY) {
       tdy->ops->set_from_options = NULL;
       tdy->ops->setup = TDyWY_Setup;
+    } else {
+      SETERRQ(comm,PETSC_ERR_USER, "Invalid discretization given!");
     }
   } else if (tdy->options.mode == TH) {
     if (discretization == MPFA_O) {
@@ -976,9 +973,6 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   ierr = TSGetDM(ts,&dm);CHKERRQ(ierr);
 
   switch (tdy->options.discretization) {
-  case TPF:
-    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for TPF");
-    break;
   case MPFA_O:
     switch (tdy->options.mode) {
     case RICHARDS:
@@ -1016,9 +1010,6 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
   TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
   switch (tdy->options.discretization) {
-  case TPF:
-    SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for TPF");
-    break;
   case MPFA_O:
     ierr = TDyCreateJacobian(tdy); CHKERRQ(ierr);
     switch (tdy->options.mode) {
@@ -1064,9 +1055,6 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.discretization) {
-  case TPF:
-    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for TPF");
-    break;
   case MPFA_O:
     ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction,tdy); CHKERRQ(ierr);
     break;
@@ -1101,9 +1089,6 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.discretization) {
-  case TPF:
-    SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for TPF");
-    break;
   case MPFA_O:
     ierr = SNESSetJacobian(snes,tdy->J,tdy->J,TDyMPFAOSNESJacobian,tdy); CHKERRQ(ierr);
     break;
@@ -1131,9 +1116,6 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
   TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
   switch (tdy->options.discretization) {
-  case TPF:
-    ierr = TDyTPFComputeSystem(tdy,K,F); CHKERRQ(ierr);
-    break;
   case MPFA_O:
     ierr = TDyMPFAOComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
@@ -1536,10 +1518,6 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
   TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
   switch (tdy->options.discretization) {
-  case TPF:
-    if(normp != NULL) { *normp = TDyTPFPressureNorm(tdy,U); }
-    if(normv != NULL) { *normv = TDyTPFVelocityNorm(tdy,U); }
-    break;
   case MPFA_O:
     if(normv) {
       ierr = TDyMPFAORecoverVelocity(tdy,U); CHKERRQ(ierr);
@@ -1627,9 +1605,6 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.discretization) {
-  case TPF:
-    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for TPF");
-    break;
   case MPFA_O:
     ierr = TDyMPFAOSNESPreSolve(tdy); CHKERRQ(ierr);
     break;
