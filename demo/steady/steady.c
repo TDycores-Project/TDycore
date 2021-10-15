@@ -558,7 +558,6 @@ PetscErrorCode GeometryColumn(DM dm){
 typedef struct DMOptions {
   PetscInt dim;        // Dimension of DM (2 or 3)
   PetscInt N;          // Number of cells on a side
-  PetscBool perturb;   // whether to perturb randomly (as opposed to smoothly)
   PetscBool exo;       // whether to load a named exodus file
   PetscBool column;    // column mesh?
   const char* exofile; // name of the exodus file to load
@@ -584,9 +583,10 @@ PetscErrorCode CreateDM(MPI_Comm comm, void* context, DM* dm) {
     const PetscInt  faces[3] = {Nx ,Ny ,Nz };
     const PetscReal lower[3] = {0.0,0.0,0.0};
     const PetscReal upper[3] = {Lx ,Ly ,Lz };
-    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,options->dim,PETSC_FALSE,
-             faces,lower,upper,NULL,PETSC_TRUE,dm); CHKERRQ(ierr);
+    ierr = DMPlexCreateBoxMesh(comm, options->dim, PETSC_FALSE,
+      faces,lower,upper,NULL,PETSC_TRUE,dm); CHKERRQ(ierr);
   }
+  PetscFunctionReturn(0);
 }
 
 int main(int argc, char **argv) {
@@ -632,8 +632,7 @@ int main(int argc, char **argv) {
 
   // Specify a special DM to be constructed for this demo, and pass it the
   // relevant options.
-  DMOptions dm_options = {.N = N, .dim = dim, .perturb = perturb,
-                          .exo = exo, .exofile = exofile};
+  DMOptions dm_options = {.N = N, .dim = dim, .exo = exo, .exofile = exofile};
   ierr = TDySetDMConstructor(tdy, &dm_options, CreateDM); CHKERRQ(ierr);
 
   // Apply overrides.

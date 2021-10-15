@@ -199,6 +199,8 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   PetscFunctionBegin;
 
   TDyOptions *options = &tdy->options;
+  options->mode = RICHARDS;
+  options->discretization = MPFA_O;
   options->gravity_constant = 9.8068;
   options->rho_type = WATER_DENSITY_CONSTANT;
   options->mu_type = WATER_VISCOSITY_CONSTANT;
@@ -678,7 +680,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Model options
-  TDyMode mode;
+  TDyMode mode = options->mode;
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Model options",""); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_mode","Flow mode",
                           "TDySetMode",TDyModes,(PetscEnum)options->mode,
@@ -718,7 +720,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Numerics options
-  TDyDiscretization discretization;
+  TDyDiscretization discretization = options->discretization;
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Numerics options",""); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_discretization","Discretization",
                           "TDySetDiscretization",TDyDiscretizations,
@@ -848,6 +850,13 @@ PetscErrorCode TDySetMode(TDy tdy, TDyMode mode) {
   PetscFunctionBegin;
   tdy->options.mode = mode;
   tdy->setup_flags |= TDyModeSet;
+
+  // If we are resetting the mode and have already set the discretization,
+  // we call TDySetDiscretization again.
+  if (tdy->setup_flags & TDyDiscretizationSet) {
+    PetscInt ierr = TDySetDiscretization(tdy, tdy->options.discretization); CHKERRQ(ierr);
+  }
+
   PetscFunctionReturn(0);
 }
 
