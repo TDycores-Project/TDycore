@@ -557,36 +557,35 @@ PetscErrorCode GeometryColumn(DM dm){
 
 // This set of globals is used by CreateDM below to create a DM for this demo.
 typedef struct DMOptions {
-  PetscInt dim;      // Dimension of DM (2 or 3)
-  PetscInt N;        // Number of cells on a side
-  PetscBool perturb; // whether to perturb randomly (as opposed to smoothly)
-  PetscBool exo;     // whether to load a named exodus file
-  PetscBool column;  // column mesh?
-  char exofile[256]; // name of the exodus file to load
+  PetscInt dim;        // Dimension of DM (2 or 3)
+  PetscInt N;          // Number of cells on a side
+  PetscBool perturb;   // whether to perturb randomly (as opposed to smoothly)
+  PetscBool exo;       // whether to load a named exodus file
+  PetscBool column;    // column mesh?
+  const char* exofile; // name of the exodus file to load
 } DMOptions;
-
-static DMOptions dm_options_;
 
 // This function creates a DM specifically for this demo. Overrides are applied
 // to the resulting DM with TDySetFromOptions.
-PetscErrorCode CreateDM(void* context, MPI_Comm comm, DM* dm) {
+PetscErrorCode CreateDM(MPI_Comm comm, void* context, DM* dm) {
   int ierr;
+  DMOptions* options = context;
 
-  PetscInt N = dm_options_.N;
-  if(dm_options_.exo) {
-    ierr = DMPlexCreateExodusFromFile(PETSC_COMM_WORLD, dm_options_.exofile,
+  PetscInt N = options->N;
+  if(options->exo) {
+    ierr = DMPlexCreateExodusFromFile(PETSC_COMM_WORLD, options->exofile,
       PETSC_TRUE,dm); CHKERRQ(ierr);
   } else {
     PetscInt Nx=N,Ny=N,Nz=N;
     PetscReal Lx=1,Ly=1,Lz=1;
-    if(dm_options_.column){
+    if(options->column){
       Nx = 1; Ny = 1; Nz = N;
       Lx = 10; Ly = 10; Lz = 1;
     }
     const PetscInt  faces[3] = {Nx ,Ny ,Nz };
     const PetscReal lower[3] = {0.0,0.0,0.0};
     const PetscReal upper[3] = {Lx ,Ly ,Lz };
-    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dm_options_.dim,PETSC_FALSE,
+    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,options->dim,PETSC_FALSE,
              faces,lower,upper,NULL,PETSC_TRUE,dm); CHKERRQ(ierr);
   }
 }
@@ -611,10 +610,12 @@ int main(int argc, char **argv) {
   MPI_Comm comm = PETSC_COMM_WORLD;
   TDy tdy;
   ierr = TDyCreate(comm, &tdy); CHKERRQ(ierr);
+  ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
   ierr = TDySetDiscretization(tdy,MPFA_O); CHKERRQ(ierr);
 
   ierr = PetscOptionsBegin(comm,NULL,"Sample Options",""); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-problem","Problem number","",problem,&problem,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-alpha","Permeability scaling","",alpha,&alpha,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",successful_exit_code,&successful_exit_code,NULL);
@@ -630,16 +631,11 @@ int main(int argc, char **argv) {
   ierr = PetscStrcasecmp(paper,"wheeler2012",&wheeler2012); CHKERRQ(ierr);
   ierr = PetscStrcasecmp(paper,"column",&column); CHKERRQ(ierr);
 
-  // Copy DM-related globals into place for use with CreateDM.
-  dm_options_.N = N;
-  dm_options_.dim = dim;
-  dm_options_.perturb = perturb;
-  dm_options_.column = column;
-  dm_options_.exo = exo;
-  if (exo) strcpy(dm_options_.exofile, exofile);
-
-  // Specify a special DM to be constructed for this demo.
-  ierr = TDySetDMConstructor(tdy, CreateDM); CHKERRQ(ierr);
+  // Specify a special DM to be constructed for this demo, and pass it the
+  // relevant options.
+  DMOptions dm_options = {.N = N, .dim = dim, .perturb = perturb,
+                          .exo = exo, .exofile = exofile};
+  ierr = TDySetDMConstructor(tdy, &dm_options, CreateDM); CHKERRQ(ierr);
 
   // Apply overrides.
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);

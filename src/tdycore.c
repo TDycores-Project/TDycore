@@ -272,8 +272,14 @@ PetscErrorCode TDyCreate(MPI_Comm comm, TDy *_tdy) {
 /// DMSetFromOptions is called to apply overrides, and then the DM is
 /// distributed appropriately. This function must be called before
 /// TDySetFromOptions.
-/// @param [in] dm_func A function that creates a given DM and returns an error
-PetscErrorCode TDySetDMConstructor(TDy tdy, PetscErrorCode (*dm_func)(MPI_Comm, DM*)) {
+/// @param [inout] tdy the dycore
+/// @param [in] context a pointer to contextual information that can be used by
+///                       dm_func to create a DM. This pointer is not managed
+///                       by the dycore.
+/// @param [in] dm_func A function that, given an MPI communicator and a context
+///                     pointer, creates a given DM and returns an error
+PetscErrorCode TDySetDMConstructor(TDy tdy, void* context,
+                                   PetscErrorCode (*dm_func)(MPI_Comm, void*, DM*)) {
   PetscFunctionBegin;
   MPI_Comm comm;
   int ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
@@ -285,6 +291,7 @@ PetscErrorCode TDySetDMConstructor(TDy tdy, PetscErrorCode (*dm_func)(MPI_Comm, 
     SETERRQ(comm,PETSC_ERR_USER,
       "You must call TDyDefineDM before TDySetFromOptions()");
   }
+  tdy->create_dm_context = context;
   tdy->ops->create_dm = dm_func;
   PetscFunctionReturn(0);
 }
@@ -392,7 +399,7 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
     } else {
       if (tdy->ops->create_dm) {
         // We've been instructed to create a DM ourselves.
-        ierr = tdy->ops->create_dm(comm, &dm);
+        ierr = tdy->ops->create_dm(comm, tdy->create_dm_context, &dm);
       } else {
         ierr = DMPlexCreate(comm, &dm); CHKERRQ(ierr);
       }
@@ -671,10 +678,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Model options
+  TDyMode mode;
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Model options",""); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_mode","Flow mode",
                           "TDySetMode",TDyModes,(PetscEnum)options->mode,
-                          (PetscEnum *)&options->mode, NULL); CHKERRQ(ierr);
+                          (PetscEnum *)&mode, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_gravity", "Magnitude of gravity vector", NULL,
                           options->gravity_constant, &options->gravity_constant,
                           NULL); CHKERRQ(ierr);
@@ -710,10 +718,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Numerics options
+  TDyDiscretization discretization;
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Numerics options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsEnum("-tdy_method","Discretization method",
+  ierr = PetscOptionsEnum("-tdy_disc","Discretization",
                           "TDySetDiscretization",TDyDiscretizations,
-                          (PetscEnum)options->discretization,(PetscEnum *)&options->discretization,
+                          (PetscEnum)options->discretization,(PetscEnum *)&discretization,
                           NULL); CHKERRQ(ierr);
   TDyQuadratureType qtype = FULL;
   ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type for finite element methods","TDySetQuadratureType",TDyQuadratureTypes,(PetscEnum)qtype,(PetscEnum *)&options->qtype,NULL); CHKERRQ(ierr);
@@ -751,6 +760,14 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 
   // Other options
   ierr = PetscOptionsBool("-tdy_regression_test","Enable output of a regression file","",options->regression_testing,&(options->regression_testing),NULL); CHKERRQ(ierr);
+
+  // Override the mode and/or discretization if needed.
+  if (options->mode != mode) {
+    TDySetMode(tdy, mode);
+  }
+  if (options->discretization != discretization) {
+    TDySetDiscretization(tdy, discretization);
+  }
 
   // Mode/discretization-specific options.
   if (tdy->ops->set_from_options) {

@@ -97,7 +97,7 @@ PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 PETSC_EXTERN PetscErrorCode TDyCreate(MPI_Comm, TDy*);
 PETSC_EXTERN PetscErrorCode TDySetMode(TDy,TDyMode);
 PETSC_EXTERN PetscErrorCode TDySetDiscretization(TDy,TDyDiscretization);
-PETSC_EXTERN PetscErrorCode TDySetDMConstructor(TDy,PetscErrorCode(*)(MPI_Comm, DM*));
+PETSC_EXTERN PetscErrorCode TDySetDMConstructor(TDy,void*,PetscErrorCode(*)(MPI_Comm, void*, DM*));
 PETSC_EXTERN PetscErrorCode TDySetFromOptions(TDy);
 PETSC_EXTERN PetscErrorCode TDySetup(TDy);
 PETSC_EXTERN PetscErrorCode TDyDestroy(TDy*);

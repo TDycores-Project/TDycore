@@ -27,7 +27,7 @@ struct _TDyOps {
   // Creates a DM for a particular simulation (optional).
   // We pass the dycore as the first argument here because we don't expect
   // the caller to know implementation details.
-  PetscErrorCode (*create_dm)(MPI_Comm, DM*);
+  PetscErrorCode (*create_dm)(MPI_Comm, void*, DM*);
 
   // Implements the view operation for the TDy implementation with the given
   // viewer.
@@ -76,6 +76,9 @@ struct _p_TDy {
   // Grid and data management -- handed to a solver when the dycore is fully
   // configured
   DM dm;
+
+  // Contextual information passed to create_dm (if given).
+  void* create_dm_context;
 
   // We'll likely get rid of this.
   TDyTimeIntegrator ti;
