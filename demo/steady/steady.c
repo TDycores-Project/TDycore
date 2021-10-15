@@ -273,7 +273,6 @@ PetscErrorCode PerturbVerticesRandom(DM dm,PetscReal h) {
   PetscScalar *coords;
   PetscInt     v,vStart,vEnd,offset,value,dim;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  /* this is the 'marker' label which marks boundary entities */
   ierr = DMGetLabel(dm, "boundary", &label); CHKERRQ(ierr);
   ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
   ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
@@ -291,7 +290,7 @@ PetscErrorCode PerturbVerticesRandom(DM dm,PetscReal h) {
         coords[offset+1] += r*PetscSinReal(t);
       }
     } else {
-      /* This is because 'marker' is broken in 3D */
+      /* This is because 'boundary' is broken in 3D */
       if(coords[offset] > 0 && coords[offset] < 1 &&
           coords[offset+1] > 0 && coords[offset+1] < 1 &&
           coords[offset+2] > 0 && coords[offset+2] < 1) {
@@ -555,7 +554,7 @@ PetscErrorCode GeometryColumn(DM dm){
   PetscFunctionReturn(0);
 }
 
-// This set of globals is used by CreateDM below to create a DM for this demo.
+// This data is used by CreateDM below to create a DM for this demo.
 typedef struct DMOptions {
   PetscInt dim;        // Dimension of DM (2 or 3)
   PetscInt N;          // Number of cells on a side
