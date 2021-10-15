@@ -18,6 +18,7 @@
 #define tdydtimeintegratorsettimestep_                 TDYTIMEINTEGRATORSETTIMESTEP
 #define tdydtimeintegratoroutputregression_            TDYTIMEINTEGRATOROUTPUTREGRESSION
 #define tdysetup_                                      TDYSETUP
+#define tdygetdm_                                      TDYGETDM
 #define tdysetwaterdensitytype_                        TDYSETWATERDENSITYTYPE
 #define tdysetmpfaogmatrixmethod_                      TDYSETMPFAOGMATRIXMETHOD
 #define tdysetmpfaoboundaryconditiontype_              TDYSETMPFAOGBOUNDARYCONDITIONTYPE
@@ -79,6 +80,7 @@
 #define tdydtimeintegratorsettimestep_                 tdydtimeintegratorsettimestep
 #define tdydtimeintegratoroutputregression_            tdydtimeintegratoroutputregression
 #define tdysetup_                                      tdysetup
+#define tdygetdm_                                      tdygetdm
 #define tdysetwaterdensitytype_                        tdysetwaterdensitytype
 #define tdysetmpfaogmatrixmethod_                      tdysetmpfaogmatrixmethod
 #define tdysetmpfaoboundaryconditiontype_              tdysetmpfaoboundaryconditiontype
@@ -245,6 +247,16 @@ extern "C" {
 #endif
 PETSC_EXTERN void  tdysetup_(TDy _tdy, int *__ierr){
 *__ierr = TDySetup((TDy)PetscToPointer((_tdy)));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdygetdm_(TDy _tdy, DM *dm, int *__ierr){
+*__ierr = TDyGetDM((TDy)PetscToPointer((_tdy)), dm);
 }
 #if defined(__cplusplus)
 }

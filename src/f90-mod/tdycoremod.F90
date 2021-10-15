@@ -453,12 +453,11 @@ module tdycore
   end interface
 
   abstract interface
-    subroutine TDyDMConstructor(comm, context, dm, ierr)
+    subroutine TDyDMConstructor(comm, dm, ierr)
       use, intrinsic :: iso_c_binding
       use tdycoredef
       use petscdm
       MPI_Comm           :: comm
-      type(c_ptr), value :: context
       DM                 :: dm
       PetscErrorCode     :: ierr
     end subroutine
@@ -501,22 +500,21 @@ module tdycore
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
-    TDy, target :: tdy
+    TDy, target                 :: tdy
     procedure(TDyDMConstructor) :: dm_ctor
     PetscErrorCode              :: ierr
 
     interface
-      function SetDMConstructor(tdy, context, dm_ctor) bind (c, name="TDySetDMConstructor") result(ierr)
+      function SetDMConstructor(tdy, dm_ctor) bind (c, name="TDySetDMConstructorF90") result(ierr)
         use, intrinsic :: iso_c_binding
         implicit none
-        type(c_ptr)    :: tdy
-        type(c_ptr)    :: context
-        type(c_funptr) :: dm_ctor
-        integer(c_int) :: ierr
+        type(c_ptr), value    :: tdy
+        type(c_funptr), value :: dm_ctor
+        integer(c_int)        :: ierr
       end function
     end interface
 
-    ierr = SetDMConstructor(c_loc(tdy), c_null_ptr, c_funloc(dm_ctor))
+    ierr = SetDMConstructor(c_loc(tdy), c_funloc(dm_ctor))
   end subroutine
 
   subroutine TDySelectPorosityFunction(tdy, name, ierr)

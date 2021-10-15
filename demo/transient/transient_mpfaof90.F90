@@ -4,6 +4,9 @@ module mpfaof90mod
 #include <petsc/finclude/petsc.h>
 #include <finclude/tdycore.h>
 
+  ! Module variables
+  PetscInt :: dim = 3
+
 contains
 
    subroutine PorosityFunction(tdy,x,theta,dummy,ierr)
@@ -53,6 +56,27 @@ contains
       ierr = 0
     end subroutine PressureFunction
 
+  subroutine CreateDM(comm, dm, ierr)
+    use iso_c_binding
+    use petscdm
+    implicit none
+
+    MPI_Comm :: comm
+    DM :: dm
+    PetscErrorCode :: ierr
+
+    PetscInt  :: faces(3), nx, ny, nz
+    PetscReal :: lower(3), upper(3)
+
+    nx = 3; ny = 3; nz = 3;
+    faces(1) = nx; faces(2) = ny; faces(3) = nz;
+    lower(:) = 0.d0;
+    upper(:) = 1.d0;
+
+    call DMPlexCreateBoxMesh(comm, dim, PETSC_FALSE, faces, lower, upper, &
+       PETSC_NULL_INTEGER, PETSC_TRUE, dm, ierr);
+    CHKERRA(ierr)
+  end subroutine CreateDM
 end module mpfaof90mod
 
 program main
@@ -76,10 +100,7 @@ implicit none
   TS             :: ts
   PetscInt       :: rank, successful_exit_code
   PetscBool      :: flg
-  PetscInt       :: dim, faces(3)
-  PetscReal      :: lower(3), upper(3)
   PetscErrorCode :: ierr
-  PetscInt       :: nx, ny, nz
   PetscInt, pointer :: index(:)
   PetscReal, pointer :: residualSat(:), blockPerm(:), liquid_sat(:), liquid_mass(:)
   PetscReal, pointer :: p_loc(:)
@@ -90,11 +111,11 @@ implicit none
   CHKERRA(ierr);
   call TDyCreate(tdy, ierr);
   CHKERRA(ierr);
-  call TDySetDiscretizationMethod(tdy,MPFA_O,ierr);
+  call TDySetMode(tdy,RICHARDS,ierr);
+  CHKERRA(ierr);
+  call TDySetDiscretization(tdy,MPFA_O,ierr);
   CHKERRA(ierr);
 
-  nx = 3; ny = 3; nz = 3;
-  dim = 3
   successful_exit_code= 0
 
   call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-successful_exit_code',successful_exit_code,flg,ierr);
@@ -102,19 +123,14 @@ implicit none
   call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr);
   CHKERRA(ierr)
 
-  faces(1) = nx; faces(2) = ny; faces(3) = nz;
-  lower(:) = 0.d0;
-  upper(:) = 1.d0;
-
-  call DMPlexCreateBoxMesh(PETSC_COMM_WORLD, dim, PETSC_FALSE, faces, lower, upper, &
-       PETSC_NULL_INTEGER, PETSC_TRUE, dm, ierr);
-  CHKERRA(ierr);
-  call TDySetDM(tdy, dm, ierr);
+  ! Set a constructor for a DM.
+  call TDySetDMConstructor(tdy, CreateDM,ierr);
   CHKERRA(ierr);
 
   call TDySetFromOptions(tdy,ierr);
   CHKERRA(ierr);
 
+  call TDyGetDM(tdy, dm, ierr);
   call DMPlexGetHeightStratum(dm,0,cStart,cEnd,ierr);
   CHKERRA(ierr);
 

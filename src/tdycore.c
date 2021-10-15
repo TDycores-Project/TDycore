@@ -291,10 +291,20 @@ PetscErrorCode TDySetDMConstructor(TDy tdy, void* context,
   }
   if (tdy->setup_flags & TDyOptionsSet) {
     SETERRQ(comm,PETSC_ERR_USER,
-      "You must call TDyDefineDM before TDySetFromOptions()");
+      "You must call TDySetDMConstructor before TDySetFromOptions()");
   }
   tdy->create_dm_context = context;
   tdy->ops->create_dm = dm_func;
+  PetscFunctionReturn(0);
+}
+
+// This function is a wrapper used to eliminate the context pointer argument
+// from TDySetDMConstructor so the function can be called from Fortran.
+static void (*create_dm_f90_)(MPI_Fint*, DM*, PetscErrorCode*) = NULL;
+PetscErrorCode TDySetDMConstructorF90(TDy tdy,
+                                      void (*dm_func)(MPI_Fint*, DM*, PetscErrorCode*)) {
+  PetscFunctionBegin;
+  create_dm_f90_ = dm_func;
   PetscFunctionReturn(0);
 }
 
@@ -402,6 +412,10 @@ PetscErrorCode TDyCreateGrid(TDy tdy) {
       if (tdy->ops->create_dm) {
         // We've been instructed to create a DM ourselves.
         ierr = tdy->ops->create_dm(comm, tdy->create_dm_context, &dm);
+      } else if (create_dm_f90_) {
+        // Create a DM all-Fortran-like.
+        MPI_Fint comm_f = MPI_Comm_c2f(comm);
+        create_dm_f90_(&comm_f, &dm, &ierr);
       } else {
         ierr = DMPlexCreate(comm, &dm); CHKERRQ(ierr);
       }
