@@ -720,7 +720,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   // Numerics options
   TDyDiscretization discretization;
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Numerics options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsEnum("-tdy_disc","Discretization",
+  ierr = PetscOptionsEnum("-tdy_discretization","Discretization",
                           "TDySetDiscretization",TDyDiscretizations,
                           (PetscEnum)options->discretization,(PetscEnum *)&discretization,
                           NULL); CHKERRQ(ierr);
