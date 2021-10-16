@@ -31,12 +31,12 @@ module tdycore
      end subroutine TDySetMode
   end interface
   interface
-     subroutine TDySetDiscretizationMethod(a,b,z)
+     subroutine TDySetDiscretization(a,b,z)
        use tdycoredef
        TDy a
        PetscInt b
        integer z
-     end subroutine TDySetDiscretizationMethod
+     end subroutine TDySetDiscretization
   end interface
   interface
      subroutine TDySetFromOptions(a,z)

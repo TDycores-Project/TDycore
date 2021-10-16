@@ -317,17 +317,6 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(TDy tdy) {
 // repeated stuff when we move the data out of the TDy struct and into
 // discretization-specific types.
 
-// Setup function for Richards + TPF
-PetscErrorCode TDyRichards_TPF_Setup(TDy tdy, DM dm) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
 // Setup function for Richards + MPFA_O
 PetscErrorCode TDyRichards_MPFA_O_Setup(TDy tdy, DM dm) {
   PetscErrorCode ierr;

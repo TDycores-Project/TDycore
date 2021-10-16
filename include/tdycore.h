@@ -20,7 +20,7 @@ PETSC_EXTERN const char *const TDyModes[];
 /// This type enumerates discretizations supported by the dycore.
 typedef enum {
   /// multi-point flux approximation - O method
-  MPFA_O,
+  MPFA_O=0,
   /// multi-point flux approximation - O method using DAE
   MPFA_O_DAE,
   /// multipoint flux approximation - O method using TS transient (conservative)

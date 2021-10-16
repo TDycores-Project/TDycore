@@ -51,7 +51,6 @@ const char *const TDyMPFAOBoundaryConditionTypes[] = {
 const char *const TDyModes[] = {
   "RICHARDS",
   "TH",
-  "UNSPECIFIED_MODE",
   /* */
   "TDyMode","TDY_MODE_",NULL
 };
@@ -534,7 +533,7 @@ PetscErrorCode TDyGetDimension(TDy tdy,PetscInt *dim) {
 }
 
 /// Retrieves the DM used by the dycore. This must be called after
-/// TDySetDM or TDySetFromOptions.
+/// TDySetFromOptions.
 /// @param dm A pointer that stores the DM in use by the dycore
 PetscErrorCode TDyGetDM(TDy tdy,DM *dm) {
   PetscFunctionBegin;
@@ -760,10 +759,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   // Mesh-related options
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Mesh options",""); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_mesh", options->mesh_file,sizeof(options->mesh_file),&options->read_mesh); CHKERRQ(ierr);
-  if ((tdy->dm != NULL) && options->read_mesh) {
-    SETERRQ(comm,PETSC_ERR_USER,
-            "TDySetDM was called before TDySetFromOptions: can't read a mesh");
-  }
   ierr = PetscOptionsBool("-tdy_output_mesh","Enable output of mesh attributes","",options->output_mesh,&(options->output_mesh),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_output_geo_attributes", options->geom_attributes_file,sizeof(options->geom_attributes_file),&options->output_geom_attributes); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_geo_attributes", options->geom_attributes_file,sizeof(options->geom_attributes_file),&options->read_geom_attributes); CHKERRQ(ierr);
