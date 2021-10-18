@@ -7,11 +7,11 @@ int main(int argc, char **argv) {
   PetscErrorCode ierr;
   PetscInt successful_exit_code;
   PetscMPIInt rank, size;
-  MPI_Comm comm = PETSC_COMM_WORLD;
   TDy tdy = PETSC_NULL;
   TDyIOFormat format = PetscViewerASCIIFormat;
 
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
+  MPI_Comm comm = PETSC_COMM_WORLD;
   ierr = TDyCreate(comm, &tdy); CHKERRQ(ierr);
   ierr = TDySetMode(tdy,TH); CHKERRQ(ierr);
   ierr = TDySetDiscretization(tdy,MPFA_O); CHKERRQ(ierr);
