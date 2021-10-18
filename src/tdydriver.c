@@ -154,6 +154,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
           ierr = TSSetPostStep(ts,TDyRichardsTSPostStep); CHKERRQ(ierr);
           break;
       }
+      // FIXME: This is a different path from the one used by TDycore proper.
       ierr = TDyRichardsInitialize(tdy); CHKERRQ(ierr);
       break;
     case TH:
@@ -167,7 +168,8 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
         case TDyTS:
           ierr = TSSetPostStep(ts,TDyTHTSPostStep); CHKERRQ(ierr);
       }
-      ierr = TDySetup(tdy); CHKERRQ(ierr);
+      // FIXME: This is a different path from the one used by TDycore proper.
+      ierr = TDyTHInitialize(tdy); CHKERRQ(ierr);
       break;
   }
   PetscPrintf(comm,"tdy->ti->time_integration_method = %d\n",

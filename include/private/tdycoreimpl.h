@@ -25,6 +25,11 @@ struct _TDyOps {
   PetscErrorCode (*destroy)(void*);
 
   // Creates a DM for a particular simulation (optional).
+  // Arguments:
+  //   1. A valid MPI communicator
+  //   2. A context pointer storing data specifically for the constructor
+  //      function
+  //   3. A location for the newly created DM.
   // We pass the dycore as the first argument here because we don't expect
   // the caller to know implementation details.
   PetscErrorCode (*create_dm)(MPI_Comm, void*, DM*);
@@ -35,7 +40,7 @@ struct _TDyOps {
 
   // Called by TDySetFromOptions -- sets implementation-specific options
   // from command-line arguments.
-  // FIXME: convert the first arg here to void* when we've moved specific data
+  // FIXME: convert the arg here to void* when we've moved specific data
   // FIXME: out of TDy.
   PetscErrorCode (*set_from_options)(TDy);
 
