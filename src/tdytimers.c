@@ -140,7 +140,7 @@ PetscErrorCode TDyWriteTimingProfile(const char* filename) {
       const char* disc_name = TDyDiscretizations[md->discretization];
       FILE* f = fopen("tdycore_profile.csv", "a");
       fprintf(f, "METADATA\n");
-      fprintf(f, "Mode,Discretiztion,NumProc,NumCells\n");
+      fprintf(f, "Mode,Discretization,NumProc,NumCells\n");
       fprintf(f, "%s,%s,%d,%d", mode_name, disc_name, md->num_proc, num_cells);
       fclose(f);
     } else { // rank > 0
