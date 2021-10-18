@@ -10,7 +10,6 @@
 !
 !  Types of TDy methods
 !
-      PetscEnum TPF
       PetscEnum MPFA_O
       PetscEnum MPFA_O_DAE
       PetscEnum MPFA_O_TRANSIENT_VAR
@@ -19,8 +18,8 @@
 
       ! The parameters values need to match those defined in
       ! the C code (i.e. include/tdycore.h)
-      parameter (TPF=0,MPFA_O=1,MPFA_O_DAE=2,MPFA_O_TRANSIENT_VAR=3)
-      parameter (BDM=4,WY=5)
+      parameter (MPFA_O=0,MPFA_O_DAE=1,MPFA_O_TRANSIENT_VAR=2)
+      parameter (BDM=3,WY=4)
 
 !
 !  Types of TDy modes

@@ -185,8 +185,8 @@ PETSC_EXTERN void  tdysetmode_(TDy _tdy, PetscInt *mode, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdysetdiscretization_(TDy _tdy, PetscInt *method, int *__ierr){
-*__ierr = TDySetDiscretization((TDy)PetscToPointer((_tdy)), *method);
+PETSC_EXTERN void  tdysetdiscretization_(TDy _tdy, PetscInt *discretization, int *__ierr){
+*__ierr = TDySetDiscretization((TDy)PetscToPointer((_tdy)), *discretization);
 }
 #if defined(__cplusplus)
 }
