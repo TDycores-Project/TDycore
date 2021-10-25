@@ -36,7 +36,7 @@ typedef struct TDyWY {
 PETSC_INTERN PetscErrorCode TDyCreate_WY(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_WY(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_WY(void*);
-PETSC_INTERN PetscErrorCode TDySetup_WY(void*, DM);
+PETSC_INTERN PetscErrorCode TDySetup_WY(void*, DM, MaterialProp*);
 PETSC_INTERN PetscErrorCode TDyWYComputeSystem(TDy,Mat,Vec);
 PETSC_INTERN PetscErrorCode TDyWYRecoverVelocity(TDy,Vec);
 PETSC_INTERN PetscReal TDyWYPressureNorm(TDy,Vec);

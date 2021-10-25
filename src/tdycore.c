@@ -961,7 +961,7 @@ PetscErrorCode TDySetup(TDy tdy) {
   }
 
   // Perform implementation-specific setup.
-  ierr = tdy->ops->setup(tdy->context, tdy->dm); CHKERRQ(ierr);
+  ierr = tdy->ops->setup(tdy->context, tdy->dm, tdy->matprop); CHKERRQ(ierr);
 
   // Record metadata for scaling studies.
   TDySetTimingMetadata(tdy);

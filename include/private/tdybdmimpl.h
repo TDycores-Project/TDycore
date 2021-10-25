@@ -36,7 +36,7 @@ typedef struct TDyBDM {
 PETSC_INTERN PetscErrorCode TDyCreate_BDM(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_BDM(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_BDM(void*);
-PETSC_INTERN PetscErrorCode TDySetup_BDM(void*, DM);
+PETSC_INTERN PetscErrorCode TDySetup_BDM(void*, DM, MaterialProp*);
 PETSC_INTERN PetscErrorCode TDyBDMComputeSystem(TDy,Mat,Vec);
 PETSC_INTERN PetscReal TDyBDMPressureNorm(TDy,Vec);
 PETSC_INTERN PetscReal TDyBDMVelocityNorm(TDy,Vec);

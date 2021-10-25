@@ -12,20 +12,239 @@
 #include <private/tdydiscretization.h>
 #include <petscblaslapack.h>
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyComputeGMatrix(TDy tdy) {
+static PetscErrorCode ComputeGMatrix_MPFAO(TDyMPFAO* mpfao, DM dm,
+                                           MaterialProp* matprop) {
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  PetscInt dim,icell;
+  PetscErrorCode ierr;
+
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
+  TDySubcell *subcells = &mesh->subcells;
+
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+  for (icell=0; icell<mesh->num_cells; icell++) {
+
+    // extract permeability tensor
+    PetscReal K[3][3];
+
+    for (PetscInt ii=0; ii<dim; ii++) {
+      for (PetscInt jj=0; jj<dim; jj++) {
+        K[ii][jj] = matprop->K0[icell*dim*dim + ii*dim + jj];
+      }
+    }
+
+    // extract thermal conductivity tensor
+    PetscReal Kappa[3][3];
+    if (mpfao->Temp_subc_Gmatrix) { // TH
+      for (PetscInt ii=0; ii<dim; ii++) {
+        for (PetscInt jj=0; jj<dim; jj++) {
+          Kappa[ii][jj] = matprop->Kappa0[icell*dim*dim + ii*dim + jj];
+        }
+      }
+    } // TH
+
+    for (PetscInt isubcell=0; isubcell<cells->num_subcells[icell]; isubcell++) {
+
+      PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
+
+      PetscInt *subcell_face_ids, subcell_num_faces;
+      PetscReal *subcell_face_areas;
+      ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
+      ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &subcell_face_areas, &subcell_num_faces); CHKERRQ(ierr);
+
+      for (PetscInt ii=0;ii<subcell_num_faces;ii++) {
+
+        PetscInt face_id = subcell_face_ids[ii];
+        PetscReal area = subcell_face_areas[ii];
+
+        PetscReal normal[3];
+        ierr = TDyFace_GetNormal(faces, face_id, dim, &normal[0]); CHKERRQ(ierr);
+
+        for (PetscInt jj=0;jj<subcell_num_faces;jj++) {
+          PetscReal nu[dim];
+
+          ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+
+          ierr = TDyComputeEntryOfGMatrix(area, normal, K, nu, subcells->T[subcell_id], dim,
+                                          &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+
+          if (mpfao->Temp_subc_Gmatrix) { // TH
+            ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+
+            ierr = TDyComputeEntryOfGMatrix(area, normal, Kappa,
+              nu, subcells->T[subcell_id], dim,
+              &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+          } // TH
+        } // jj-subcell-faces
+      } // ii-isubcell faces
+    } // isubcell
+  } // icell
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode ComputeGMatrix_TPF(TDyMPFAO *mpfao, DM dm,
+                                  MaterialProp *matprop) {
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  PetscInt dim,icell;
+  PetscErrorCode ierr;
+
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
+  TDySubcell *subcells = &mesh->subcells;
+
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+
+  for (icell=0; icell<mesh->num_cells; icell++) {
+
+    // extract permeability tensor
+    PetscInt ii,jj;
+    PetscReal K[3][3];
+
+    for (ii=0; ii<dim; ii++) {
+      for (jj=0; jj<dim; jj++) {
+        K[ii][jj] = matprop->K0[icell*dim*dim + ii*dim + jj];
+      }
+    }
+
+    // extract thermal conductivity tensor
+    PetscReal Kappa[3][3];
+    if (mpfao->Temp_subc_Gmatrix) { // TH
+      for (ii=0; ii<dim; ii++) {
+        for (jj=0; jj<dim; jj++) {
+          Kappa[ii][jj] = matprop->Kappa0[icell*dim*dim + ii*dim + jj];
+        }
+      }
+    } // TH
+
+    PetscInt isubcell;
+
+    for (isubcell=0; isubcell<cells->num_subcells[icell]; isubcell++) {
+
+      PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
+
+      PetscInt *subcell_face_ids, subcell_num_faces;
+      PetscReal *subcell_face_areas;
+      ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
+      ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &subcell_face_areas, &subcell_num_faces); CHKERRQ(ierr);
+
+      for (PetscInt ii=0;ii<subcell_num_faces;ii++) {
+
+        PetscReal area;
+        PetscReal normal[3];
+
+        PetscInt face_id = subcell_face_ids[ii];
+
+        area = subcell_face_areas[ii];
+
+        ierr = TDyFace_GetNormal(faces, face_id, dim, &normal[0]); CHKERRQ(ierr);
+
+        for (PetscInt jj=0;jj<subcell_num_faces;jj++) {
+          PetscReal nu[dim];
+
+          if (ii != jj) {
+
+            tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
+
+          } else {
+
+            PetscInt neighbor_cell_id;
+            PetscReal neighbor_cell_cen[dim],cell_cen[dim], dist;
+
+            PetscInt faceCellOffset = faces->cell_offset[face_id];
+
+            ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen[0]); CHKERRQ(ierr);
+
+            if (faces->cell_ids[faceCellOffset]==icell) {
+              neighbor_cell_id = faces->cell_ids[faceCellOffset+1];
+            } else {
+              neighbor_cell_id = faces->cell_ids[faceCellOffset];
+            }
+
+            PetscReal K_neighbor[3][3];
+            PetscInt kk,mm;
+
+            if (neighbor_cell_id >=0) {
+              ierr = TDyCell_GetCentroid2(cells, neighbor_cell_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
+              ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
+              dist *= 0.50;
+
+              for (kk=0; kk<dim; kk++) {
+                for (mm=0; mm<dim; mm++) {
+                  K_neighbor[kk][mm] = matprop->K0[neighbor_cell_id*dim*dim + kk*dim + mm];
+                }
+              }
+            } else {
+              ierr = TDyFace_GetCentroid(faces, face_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
+              ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
+              for (kk=0; kk<dim; kk++) {
+                for (mm=0; mm<dim; mm++) {
+                  K_neighbor[kk][mm] = matprop->K0[icell*dim*dim + kk*dim + mm];
+                }
+              }
+            }
+            PetscReal K_neighbor_value = 0.0, K_value = 0.0, K_aveg;
+
+            PetscReal dot_prod, normal_up2dn[dim];
+            ierr = TDyUnitNormalVectorJoiningTwoVertices(neighbor_cell_cen, cell_cen, normal_up2dn); CHKERRQ(ierr);
+            ierr = TDyDotProduct(normal,normal_up2dn,&dot_prod); CHKERRQ(ierr);
+
+            for (kk=0;kk<dim;kk++) {
+              K_neighbor_value += pow(normal_up2dn[kk],2.0)/K_neighbor[kk][kk];
+              K_value          += pow(normal_up2dn[kk],2.0)/K[kk][kk];
+            }
+
+            K_neighbor_value = 1.0/K_neighbor_value;
+            K_value          = 1.0/K_value;
+            K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
+
+            tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist);
+          }
+
+          if (mpfao->Temp_subc_Gmatrix) { // TH
+            if (ii == jj) {
+              ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+
+              ierr = TDyComputeEntryOfGMatrix(area, normal, Kappa, nu, subcells->T[subcell_id], dim,
+                                              &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+            } else {
+              tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
+            }
+          } // TH
+
+        } // jj-subcell-faces
+      } // ii-isubcell faces
+    } // isubcell
+  } // icell
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode ComputeGMatrix(TDyMPFAO* mpfao) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
 
-  switch (tdy->options.mpfao_gmatrix_method) {
+  switch (tdy->options.gmatrix_method) {
     case MPFAO_GMATRIX_DEFAULT:
-      ierr = TDyComputeGMatrixMPFAO(tdy); CHKERRQ(ierr);
+      ierr = ComputeGMatrix_MPFAO(tdy); CHKERRQ(ierr);
       break;
 
     case MPFAO_GMATRIX_TPF:
-      ierr = TDyComputeGMatrixTPF(tdy); CHKERRQ(ierr);
+      ierr = ComputeGMatrix_TPF(tdy); CHKERRQ(ierr);
       break;
   }
 
@@ -204,7 +423,9 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context) {
 // discretization-specific types.
 
 // Setup function for Richards + MPFA_O
-PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm) {
+PetscErrorCode TDySetup_Richards_MPFAO(void *context,
+                                       DM dm,
+                                       MaterialProp *matprop) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -289,7 +510,8 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm) {
 }
 
 // Setup function for Richards + MPFA_O_DAE
-PetscErrorCode TDy_Setup_Richards_MPFAO_DAE(void *context, DM dm) {
+PetscErrorCode TDy_Setup_Richards_MPFAO_DAE(void *context, DM dm,
+                                            MaterialProp *matprop) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscFunctionReturn(0);
@@ -377,7 +599,8 @@ PetscErrorCode TDy_Setup_Richards_MPFAO_DAE(void *context, DM dm) {
 }
 
 // Setup function for Richards + MPFA_O_TRANSIENTVAR
-PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void *context, DM dm) {
+PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void *context, DM dm,
+                                                    MaterialProp *matprop) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -387,7 +610,8 @@ PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void *context, DM dm) {
 }
 
 // Setup function for TH + MPFA-O
-PetscErrorCode TDySetup_TH_MPFAO(void* context, DM dm) {
+PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm,
+                                 MaterialProp *matprop) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -663,232 +887,6 @@ PetscErrorCode TDyComputeEntryOfGMatrix(PetscReal area, PetscReal n[3],
   }
   (*g) *= 1.0/(T)*area;
 
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyComputeGMatrixMPFAO(TDy tdy) {
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  PetscInt dim,icell;
-  PetscErrorCode ierr;
-
-  TDyMesh *mesh = tdy->mesh;
-  TDyCell *cells = &mesh->cells;
-  TDyFace *faces = &mesh->faces;
-  TDySubcell *subcells = &mesh->subcells;
-
-    MaterialProp *matprop = tdy->matprop;
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-
-  for (icell=0; icell<mesh->num_cells; icell++) {
-
-    // extract permeability tensor
-    PetscReal K[3][3];
-
-    for (PetscInt ii=0; ii<dim; ii++) {
-      for (PetscInt jj=0; jj<dim; jj++) {
-        K[ii][jj] = matprop->K0[icell*dim*dim + ii*dim + jj];
-      }
-    }
-
-    // extract thermal conductivity tensor
-    PetscReal Kappa[3][3];
-
-    if (tdy->options.mode == TH) {
-      for (PetscInt ii=0; ii<dim; ii++) {
-        for (PetscInt jj=0; jj<dim; jj++) {
-          Kappa[ii][jj] = matprop->Kappa0[icell*dim*dim + ii*dim + jj];
-        }
-      }
-    }
-
-    for (PetscInt isubcell=0; isubcell<cells->num_subcells[icell]; isubcell++) {
-
-      PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-
-      PetscInt *subcell_face_ids, subcell_num_faces;
-      PetscReal *subcell_face_areas;
-      ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
-      ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &subcell_face_areas, &subcell_num_faces); CHKERRQ(ierr);
-
-      for (PetscInt ii=0;ii<subcell_num_faces;ii++) {
-
-        PetscInt face_id = subcell_face_ids[ii];
-        PetscReal area = subcell_face_areas[ii];
-
-        PetscReal normal[3];
-        ierr = TDyFace_GetNormal(faces, face_id, dim, &normal[0]); CHKERRQ(ierr);
-
-        for (PetscInt jj=0;jj<subcell_num_faces;jj++) {
-          PetscReal nu[dim];
-
-          ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
-
-          ierr = TDyComputeEntryOfGMatrix(area, normal, K, nu, subcells->T[subcell_id], dim,
-                                          &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
-
-          if (tdy->options.mode == TH) {
-               ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
-
-              ierr = TDyComputeEntryOfGMatrix(area, normal, Kappa,
-                                  nu, subcells->T[subcell_id], dim,
-                                  &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
-          } // TH
-        } // jj-subcell-faces
-      } // ii-isubcell faces
-    } // isubcell
-  } // icell
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyComputeGMatrixTPF(TDy tdy) {
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  PetscInt dim,icell;
-  PetscErrorCode ierr;
-
-  TDyMesh *mesh = tdy->mesh;
-  TDyCell *cells = &mesh->cells;
-  TDyFace *faces = &mesh->faces;
-  TDySubcell *subcells = &mesh->subcells;
-
-    MaterialProp *matprop = tdy->matprop;
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-
-  for (icell=0; icell<mesh->num_cells; icell++) {
-
-    // extract permeability tensor
-    PetscInt ii,jj;
-    PetscReal K[3][3];
-
-    for (ii=0; ii<dim; ii++) {
-      for (jj=0; jj<dim; jj++) {
-        K[ii][jj] = matprop->K0[icell*dim*dim + ii*dim + jj];
-      }
-    }
-
-    // extract thermal conductivity tensor
-    PetscReal Kappa[3][3];
-
-    if (tdy->options.mode == TH) {
-      for (ii=0; ii<dim; ii++) {
-        for (jj=0; jj<dim; jj++) {
-          Kappa[ii][jj] = matprop->Kappa0[icell*dim*dim + ii*dim + jj];
-        }
-      }
-    }
-
-    PetscInt isubcell;
-
-    for (isubcell=0; isubcell<cells->num_subcells[icell]; isubcell++) {
-
-      PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-
-      PetscInt *subcell_face_ids, subcell_num_faces;
-      PetscReal *subcell_face_areas;
-      ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &subcell_face_ids, &subcell_num_faces); CHKERRQ(ierr);
-      ierr = TDyMeshGetSubcellFaceAreas(mesh, subcell_id, &subcell_face_areas, &subcell_num_faces); CHKERRQ(ierr);
-
-      for (PetscInt ii=0;ii<subcell_num_faces;ii++) {
-
-        PetscReal area;
-        PetscReal normal[3];
-
-        PetscInt face_id = subcell_face_ids[ii];
-
-        area = subcell_face_areas[ii];
-
-        ierr = TDyFace_GetNormal(faces, face_id, dim, &normal[0]); CHKERRQ(ierr);
-
-        for (PetscInt jj=0;jj<subcell_num_faces;jj++) {
-          PetscReal nu[dim];
-
-          if (ii != jj) {
-
-            tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
-
-          } else {
-
-            PetscInt neighbor_cell_id;
-            PetscReal neighbor_cell_cen[dim],cell_cen[dim], dist;
-
-            PetscInt faceCellOffset = faces->cell_offset[face_id];
-
-            ierr = TDyCell_GetCentroid2(cells, icell, dim, &cell_cen[0]); CHKERRQ(ierr);
-
-            if (faces->cell_ids[faceCellOffset]==icell) {
-              neighbor_cell_id = faces->cell_ids[faceCellOffset+1];
-            } else {
-              neighbor_cell_id = faces->cell_ids[faceCellOffset];
-            }
-
-            PetscReal K_neighbor[3][3];
-            PetscInt kk,mm;
-
-            if (neighbor_cell_id >=0) {
-              ierr = TDyCell_GetCentroid2(cells, neighbor_cell_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
-              ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
-              dist *= 0.50;
-
-              for (kk=0; kk<dim; kk++) {
-                for (mm=0; mm<dim; mm++) {
-                  K_neighbor[kk][mm] = matprop->K0[neighbor_cell_id*dim*dim + kk*dim + mm];
-                }
-              }
-            } else {
-              ierr = TDyFace_GetCentroid(faces, face_id, dim, &neighbor_cell_cen[0]); CHKERRQ(ierr);
-              ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
-              for (kk=0; kk<dim; kk++) {
-                for (mm=0; mm<dim; mm++) {
-                  K_neighbor[kk][mm] = matprop->K0[icell*dim*dim + kk*dim + mm];
-                }
-              }
-            }
-            PetscReal K_neighbor_value = 0.0, K_value = 0.0, K_aveg;
-
-            PetscReal dot_prod, normal_up2dn[dim];
-            ierr = TDyUnitNormalVectorJoiningTwoVertices(neighbor_cell_cen, cell_cen, normal_up2dn); CHKERRQ(ierr);
-            ierr = TDyDotProduct(normal,normal_up2dn,&dot_prod); CHKERRQ(ierr);
-
-            for (kk=0;kk<dim;kk++) {
-              K_neighbor_value += pow(normal_up2dn[kk],2.0)/K_neighbor[kk][kk];
-              K_value          += pow(normal_up2dn[kk],2.0)/K[kk][kk];
-            }
-
-            K_neighbor_value = 1.0/K_neighbor_value;
-            K_value          = 1.0/K_value;
-            K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
-
-            tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist);
-          }
-
-          if (tdy->options.mode == TH) {
-              if (ii == jj) {
-              ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
-
-              ierr = TDyComputeEntryOfGMatrix(area, normal, Kappa, nu, subcells->T[subcell_id], dim,
-                                              &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
-              } else {
-                tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
-              }
-          } // TH
-
-        } // jj-subcell-faces
-      } // ii-isubcell faces
-    } // isubcell
-  } // icell
-
-  TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
@@ -1843,7 +1841,7 @@ PetscErrorCode TDyComputeTransmissibilityMatrix(TDy tdy) {
 
   TDyRegion *region = &mesh->region_connected;
   if (region->num_cells > 0){
-    if (tdy->options.mpfao_gmatrix_method == MPFAO_GMATRIX_TPF ) {
+    if (mpfao->gmatrix_method == MPFAO_GMATRIX_TPF ) {
       ierr = TDyUpdateTransmissibilityMatrix(tdy); CHKERRQ(ierr);
     } else {
       PetscPrintf(PETSC_COMM_WORLD,"WARNING -- Connected region option is only supported with MPFA-O TPF\n");

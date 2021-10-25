@@ -42,9 +42,8 @@ struct _TDyOps {
   // command-line arguments.
   PetscErrorCode (*set_from_options)(void*);
 
-  // Called by TDySetup -- configures the DM for solvers, creating and
-  // initializing a context pointer.
-  PetscErrorCode (*setup)(void*, DM);
+  // Called by TDySetup -- configures the DM for solvers.
+  PetscErrorCode (*setup)(void*, DM, MaterialProp*);
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.

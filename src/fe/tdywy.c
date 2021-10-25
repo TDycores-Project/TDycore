@@ -268,7 +268,7 @@ PetscErrorCode TDySetFromOptions_WY(DM dm, void *context) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetup_WY(void* context, DM dm) {
+PetscErrorCode TDySetup_WY(void *context, DM dm, MaterialProp *matprop) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
