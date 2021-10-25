@@ -38,16 +38,13 @@ struct _TDyOps {
   // viewer.
   PetscErrorCode (*view)(void*, PetscViewer);
 
-  // Called by TDySetFromOptions -- sets implementation-specific options
-  // from command-line arguments.
-  // FIXME: convert the arg here to void* when we've moved specific data
-  // FIXME: out of TDy.
-  PetscErrorCode (*set_from_options)(TDy);
+  // Called by TDySetFromOptions -- sets implementation-specific options from
+  // command-line arguments.
+  PetscErrorCode (*set_from_options)(void*);
 
-  // Called by TDySetup -- configures the DM for solvers.
-  // FIXME: we should convert the first argument here to void* when we've moved
-  // FIXME: all discretization-specific data out of TDy itself.
-  PetscErrorCode (*setup)(TDy, DM);
+  // Called by TDySetup -- configures the DM for solvers, creating and
+  // initializing a context pointer.
+  PetscErrorCode (*setup)(void*, DM);
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.
@@ -94,11 +91,11 @@ struct _p_TDy {
   // options that determine the behavior(s) of the dycore
   TDyOptions options;
 
-  /* arrays of the size of the Hasse diagram */
-  PetscReal *V; /* volume of point (if applicable) */
-  PetscReal *X; /* centroid of point */
-  PetscReal *N; /* normal of point (if applicable) */
-  PetscInt ncv,nfv; /* number of {cell|face} vertices */
+  TDyRegression *regression;
+
+  //---------------------------------------------------
+  // Material models (probably should be factored out)
+  //---------------------------------------------------
 
   /* non-linear function of liquid pressure */
   PetscReal  *rho, *drho_dP, *d2rho_dP2;       /* density of water [kg m-3]*/
@@ -120,10 +117,10 @@ struct _p_TDy {
 
   /* boundary pressure and auxillary variables that depend on boundary pressure */
   PetscReal *P_BND;
-  PetscReal *T_BND;               /* boundary temperature */
-  PetscReal  *rho_BND;            /* density of water [kg m-3]*/
-  PetscReal  *vis_BND;            /* viscosity of water [Pa s] */
-  PetscReal  *h_BND;              /* enthalpy of water */
+  PetscReal *T_BND;              /* boundary temperature */
+  PetscReal *rho_BND;            /* density of water [kg m-3]*/
+  PetscReal *vis_BND;            /* viscosity of water [Pa s] */
+  PetscReal *h_BND;              /* enthalpy of water */
 
   CharacteristicCurve *cc_bnd;
   PetscReal *Kr_BND; /* relative permeability for each cell [1] */
@@ -143,34 +140,9 @@ struct _p_TDy {
   void *soildensityctx;
   void *soilspecificheatctx;
 
-  /* Wheeler-Yotov */
-  PetscInt  *vmap;      /* [cell,local_vertex] --> global_vertex */
-  PetscInt  *emap;      /* [cell,local_vertex,direction] --> global_face */
-  PetscInt  *fmap;      /* [face,local_vertex] --> global_vertex */
-  PetscReal *Alocal;    /* local element matrices (Ku,v) */
-  PetscReal *Flocal;    /* local element vectors (f,w) */
-  PetscQuadrature quad; /* vertex-based quadrature rule */
-  PetscReal *vel;       /* [face,local_vertex] --> velocity normal to face at vertex */
-  PetscInt *vel_count;  /* For MPFAO, the number of subfaces that are used to determine velocity at the face. For 3D+hex, vel_count = 4 */
-
-  PetscInt  *LtoG;
-  PetscInt  *orient;
-  PetscInt  *faces;
-
-  /* MPFA-O */
-  TDyMesh *mesh;
-  PetscReal ****subc_Gmatrix; /* Gmatrix for subcells */
-  PetscReal ***Trans;
-  Mat Trans_mat;
-  Vec P_vec, TtimesP_vec;
-  Vec GravDisVec;
-
-  /* For temperature */
-  PetscReal ****Temp_subc_Gmatrix; /* Gmatrix for subcells */
-  PetscReal ***Temp_Trans;
-  Mat Temp_Trans_mat;
-  Vec Temp_P_vec, Temp_TtimesP_vec;
-
+  //------------------------------------------------------
+  // Solver-specific information (should be factored out)
+  //------------------------------------------------------
   Mat J, Jpre;
 
   /* For SNES based timestepping */
@@ -180,9 +152,6 @@ struct _p_TDy {
   Vec accumulation_prev;
   Vec residual;
 
-  PetscInt *closureSize, **closure, maxClosureSize;
-
-  TDyRegression *regression;
 };
 
 

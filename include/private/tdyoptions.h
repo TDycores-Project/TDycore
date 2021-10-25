@@ -14,10 +14,6 @@ typedef struct {
 
   // Numerics settings
   TDyDiscretization discretization;
-  TDyQuadratureType qtype;
-  PetscInt mpfao_gmatrix_method;
-  PetscInt mpfao_bc_type;
-  PetscBool tpf_allow_all_meshes;
 
   // Constant material properties
   PetscReal porosity;

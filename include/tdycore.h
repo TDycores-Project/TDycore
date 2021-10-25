@@ -51,13 +51,6 @@ typedef enum {
 PETSC_EXTERN const char *const TDyMPFAOBoundaryConditionTypes[];
 
 typedef enum {
-  LUMPED=0,
-  FULL
-} TDyQuadratureType;
-
-PETSC_EXTERN const char *const TDyQuadratureTypes[];
-
-typedef enum {
   TDySNES=0,
   TDyTS
 } TDyTimeIntegrationMethod;
@@ -160,14 +153,10 @@ PETSC_EXTERN PetscErrorCode TDyGetNumCellsLocal(TDy,PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyGetCellNaturalIDsLocal(TDy,PetscInt*,PetscInt[]);
 PETSC_EXTERN PetscErrorCode TDyGetCellIsLocal(TDy,PetscInt*,PetscInt[]);
 
-PETSC_EXTERN PetscErrorCode TDyResetDiscretization(TDy);
-
-PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy,TDyQuadratureType);
 PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
-PETSC_EXTERN PetscErrorCode TDySetMPFAOGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
-PETSC_EXTERN PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
 
-// We will probably remove the following functions.
+// We will remove the following functions in favor of setting function pointers
+// that a given solver uses to extract info from a DM.
 PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy,Mat,Vec);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS,TDy);
 PETSC_EXTERN PetscErrorCode TDySetIJacobian(TS,TDy);
@@ -184,32 +173,13 @@ PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
 
 PETSC_EXTERN PetscErrorCode TDyOutputRegression(TDy,Vec);
 
-PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy,Mat,Vec);
-
-PETSC_EXTERN PetscErrorCode TDyBDMComputeSystem(TDy,Mat,Vec);
-PETSC_EXTERN PetscReal TDyBDMPressureNorm(TDy,Vec);
-PETSC_EXTERN PetscReal TDyBDMVelocityNorm(TDy,Vec);
-
-PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(TDy,Vec);
-PETSC_EXTERN PetscReal TDyWYPressureNorm(TDy,Vec);
-PETSC_EXTERN PetscReal TDyWYVelocityNorm(TDy);
-PETSC_EXTERN PetscErrorCode TDyWYResidual(TS,PetscReal,Vec,Vec,Vec,void *ctx);
-
 PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*);
 
-PETSC_EXTERN PetscErrorCode Pullback(PetscScalar*,PetscScalar*,PetscScalar*,PetscScalar,PetscInt);
 PETSC_EXTERN PetscInt TDyGetNumberOfCellVertices(DM);
 PETSC_EXTERN PetscInt TDyGetNumberOfFaceVertices(DM);
 PETSC_EXTERN PetscReal TDyL1norm(PetscReal*,PetscReal*,PetscInt);
 PETSC_EXTERN PetscReal TDyADotBMinusC(PetscReal*,PetscReal*,PetscReal*,PetscInt);
 PETSC_EXTERN PetscReal TDyADotB(PetscReal*,PetscReal*,PetscInt);
-PETSC_EXTERN PetscErrorCode TDyCreateCellVertexMap(TDy,PetscInt**);
-PETSC_EXTERN PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy,PetscInt**);
-PETSC_EXTERN PetscErrorCode TDyQuadrature(PetscQuadrature,PetscInt);
-
-PETSC_EXTERN void HdivBasisQuad(const PetscReal*,PetscReal*,PetscReal*,PetscReal);
-PETSC_EXTERN void HdivBasisHex(const PetscReal*,PetscReal*,PetscReal*,PetscReal);
-PETSC_EXTERN PetscErrorCode IntegrateOnFace(TDy,PetscInt,PetscInt,PetscReal*);
 
 PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
 PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy,Vec);
@@ -287,5 +257,23 @@ PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVariableContinutiyCoordinates(TDyMe
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceCentroids(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNumFaces(TDyMesh*, PetscInt, PetscInt*);
+
+//-------------------------------------------------
+// Multi-point Flux Approximation (MPFA-O) methods
+//-------------------------------------------------
+
+//------------------------
+// Finite element methods
+//------------------------
+
+typedef enum {
+  LUMPED=0,
+  FULL
+} TDyQuadratureType;
+
+PETSC_EXTERN const char *const TDyQuadratureTypes[];
+
+PETSC_EXTERN PetscErrorCode TDyWYSetQuadrature(TDy, TDyQuadratureType);
+PETSC_EXTERN PetscErrorCode TDyBDMSetQuadrature(TDy, TDyQuadratureType);
 
 #endif

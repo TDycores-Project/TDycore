@@ -3,11 +3,48 @@
 
 #include <petsc.h>
 
-PETSC_INTERN PetscErrorCode TDyRichards_MPFA_O_Setup(TDy, DM);
-PETSC_INTERN PetscErrorCode TDyRichards_MPFA_O_DAE_Setup(TDy, DM);
-PETSC_INTERN PetscErrorCode TDyRichards_MPFA_O_TRANSIENTVAR_Setup(TDy, DM);
-PETSC_INTERN PetscErrorCode TDyComputeGMatrixMPFAO(TDy);
-PETSC_INTERN PetscErrorCode TDyComputeGMatrixTPF(TDy);
+// This struct stores MPFA-O specific data for the dycore.
+typedef struct TDyMPFA_O {
+  // Options
+  PetscInt gmatrix_method;
+  PetscInt bc_type;
+
+  // Mesh information
+  TDyMesh *mesh;
+  PetscReal *V; // cell volumes
+  PetscReal *X; // point centroids
+  PetscReal *N; // face normals
+  PetscInt ncv, nfv; // number of {cell|face} vertices
+
+  PetscReal ****subc_Gmatrix; // Gmatrix for subcells
+  PetscReal ***Trans;
+  Mat Trans_mat;
+  Vec P_vec, TtimesP_vec;
+  Vec GravDisVec;
+
+  // [face,local_vertex] --> velocity normal to face at vertex
+  PetscReal *vel;
+  // For MPFAO, the number of subfaces that are used to determine velocity at
+  // the face. For 3D+hex, vel_count = 4
+  PetscInt *vel_count;
+
+  // For temperature -- here for now, may factor this out further.
+  PetscReal ****Temp_subc_Gmatrix; // Gmatrix for subcells
+  PetscReal ***Temp_Trans;
+  Mat Temp_Trans_mat;
+  Vec Temp_P_vec, Temp_TtimesP_vec;
+
+} TDyMPFAO;
+
+// Functions specific to MPFA-O implementations.
+PETSC_INTERN PetscErrorCode TDyCreate_MPFAO(void**);
+PETSC_INTERN PetscErrorCode TDyDestroy_MPFAO(void*);
+PETSC_INTERN PetscErrorCode TDySetFromOptions_MPFAO(void*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, DM);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, DM);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void*, DM);
+PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM);
+PETSC_INTERN PetscErrorCode TDyComputeGMatrix_MPFAO(TDy);
 PETSC_INTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeGravityDiscretization(TDy);
@@ -23,7 +60,8 @@ PETSC_INTERN PetscErrorCode TDyMPFAOTransientVariable(TS,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESFunction(SNES,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESJacobian(SNES,Vec,Mat,Mat,void*);
-PETSC_INTERN PetscErrorCode TDyMPFAO_SetFromOptions(TDy);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESPreSolve(TDy);
+PETSC_INTERN PetscErrorCode TDySetMPFAOGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
+PETSC_INTERN PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
 
 #endif

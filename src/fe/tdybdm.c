@@ -23,124 +23,67 @@ void TDyPiola(PetscReal *u,PetscReal *DF,PetscReal J,PetscInt dim){
   TDY_STOP_FUNCTION_TIMER()
 }
 
-/*
-  BDM1 basis functions on [-1,1] with degrees of freedom chosen to
-  match Wheeler2009. Indices map <-- local_vertex*dim + dir.
-
-  2---3
-  |   |
-  0---1
-
- */
-void HdivBasisQuad(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J) {
-  TDY_START_FUNCTION_TIMER()
-  PetscInt i;
-  B[ 0] = (-x[0]*x[1] + x[0] + x[1] - 1)*0.25;
-  B[ 1] = (x[1]*x[1] - 1)*0.125;
-  B[ 2] = (x[0]*x[0] - 1)*0.125;
-  B[ 3] = (-x[0]*x[1] + x[0] + x[1] - 1)*0.25;
-  B[ 4] = (-x[0]*x[1] + x[0] - x[1] + 1)*0.25;
-  B[ 5] = (x[1]*x[1] - 1)*0.125;
-  B[ 6] = (-x[0]*x[0] + 1)*0.125;
-  B[ 7] = (x[0]*x[1] - x[0] + x[1] - 1)*0.25;
-  B[ 8] = (x[0]*x[1] + x[0] - x[1] - 1)*0.25;
-  B[ 9] = (-x[1]*x[1] + 1)*0.125;
-  B[10] = (x[0]*x[0] - 1)*0.125;
-  B[11] = (-x[0]*x[1] - x[0] + x[1] + 1)*0.25;
-  B[12] = (x[0]*x[1] + x[0] + x[1] + 1)*0.25;
-  B[13] = (-x[1]*x[1] + 1)*0.125;
-  B[14] = (-x[0]*x[0] + 1)*0.125;
-  B[15] = (x[0]*x[1] + x[0] + x[1] + 1)*0.25;
-  for(i=0;i<8;i++) TDyPiola(&(B[2*i]),DF,J,2);
-  TDY_STOP_FUNCTION_TIMER()
+PetscErrorCode TDyWYSetQuadrature(TDy tdy, TDyQuadratureType qtype) {
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  TDyBDM* bdm = tdy->context;
+  bdm->qtype = qtype;
+  PetscFunctionReturn(0);
 }
 
-void HdivBasisHex(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J) {
-  TDY_START_FUNCTION_TIMER()
-  PetscInt i;
-  B[ 0] = (x[0]*x[1]*x[2] - x[0]*x[1] - x[0]*x[2] + x[0] - x[1]*x[2] + x[1] + x[2] - 1)*0.125;
-  B[ 1] = (x[1]*x[1] - 1)*0.0625;
-  B[ 2] = (-x[1]*x[2]*x[2] + x[1] + x[2]*x[2] - 1)*0.0625;
-  B[ 3] = (-x[0]*x[0]*x[2] + x[0]*x[0] + x[2] - 1)*0.0625;
-  B[ 4] = (x[0]*x[1]*x[2] - x[0]*x[1] - x[0]*x[2] + x[0] - x[1]*x[2] + x[1] + x[2] - 1)*0.125;
-  B[ 5] = (x[2]*x[2] - 1)*0.0625;
-  B[ 6] = (x[0]*x[0] - 1)*0.0625;
-  B[ 7] = (-x[0]*x[1]*x[1] + x[0] + x[1]*x[1] - 1)*0.0625;
-  B[ 8] = (x[0]*x[1]*x[2] - x[0]*x[1] - x[0]*x[2] + x[0] - x[1]*x[2] + x[1] + x[2] - 1)*0.125;
-  B[ 9] = (x[0]*x[1]*x[2] - x[0]*x[1] - x[0]*x[2] + x[0] + x[1]*x[2] - x[1] - x[2] + 1)*0.125;
-  B[10] = (x[1]*x[1] - 1)*0.0625;
-  B[11] = (-x[1]*x[2]*x[2] + x[1] + x[2]*x[2] - 1)*0.0625;
-  B[12] = (x[0]*x[0]*x[2] - x[0]*x[0] - x[2] + 1)*0.0625;
-  B[13] = (-x[0]*x[1]*x[2] + x[0]*x[1] + x[0]*x[2] - x[0] - x[1]*x[2] + x[1] + x[2] - 1)*0.125;
-  B[14] = (x[2]*x[2] - 1)*0.0625;
-  B[15] = (-x[0]*x[0] + 1)*0.0625;
-  B[16] = (x[0]*x[1]*x[1] - x[0] + x[1]*x[1] - 1)*0.0625;
-  B[17] = (-x[0]*x[1]*x[2] + x[0]*x[1] + x[0]*x[2] - x[0] - x[1]*x[2] + x[1] + x[2] - 1)*0.125;
-  B[18] = (-x[0]*x[1]*x[2] + x[0]*x[1] - x[0]*x[2] + x[0] + x[1]*x[2] - x[1] + x[2] - 1)*0.125;
-  B[19] = (-x[1]*x[1] + 1)*0.0625;
-  B[20] = (x[1]*x[2]*x[2] - x[1] + x[2]*x[2] - 1)*0.0625;
-  B[21] = (-x[0]*x[0]*x[2] + x[0]*x[0] + x[2] - 1)*0.0625;
-  B[22] = (x[0]*x[1]*x[2] - x[0]*x[1] + x[0]*x[2] - x[0] - x[1]*x[2] + x[1] - x[2] + 1)*0.125;
-  B[23] = (x[2]*x[2] - 1)*0.0625;
-  B[24] = (x[0]*x[0] - 1)*0.0625;
-  B[25] = (x[0]*x[1]*x[1] - x[0] - x[1]*x[1] + 1)*0.0625;
-  B[26] = (-x[0]*x[1]*x[2] + x[0]*x[1] - x[0]*x[2] + x[0] + x[1]*x[2] - x[1] + x[2] - 1)*0.125;
-  B[27] = (-x[0]*x[1]*x[2] + x[0]*x[1] - x[0]*x[2] + x[0] - x[1]*x[2] + x[1] - x[2] + 1)*0.125;
-  B[28] = (-x[1]*x[1] + 1)*0.0625;
-  B[29] = (x[1]*x[2]*x[2] - x[1] + x[2]*x[2] - 1)*0.0625;
-  B[30] = (x[0]*x[0]*x[2] - x[0]*x[0] - x[2] + 1)*0.0625;
-  B[31] = (-x[0]*x[1]*x[2] + x[0]*x[1] - x[0]*x[2] + x[0] - x[1]*x[2] + x[1] - x[2] + 1)*0.125;
-  B[32] = (x[2]*x[2] - 1)*0.0625;
-  B[33] = (-x[0]*x[0] + 1)*0.0625;
-  B[34] = (-x[0]*x[1]*x[1] + x[0] - x[1]*x[1] + 1)*0.0625;
-  B[35] = (x[0]*x[1]*x[2] - x[0]*x[1] + x[0]*x[2] - x[0] + x[1]*x[2] - x[1] + x[2] - 1)*0.125;
-  B[36] = (-x[0]*x[1]*x[2] - x[0]*x[1] + x[0]*x[2] + x[0] + x[1]*x[2] + x[1] - x[2] - 1)*0.125;
-  B[37] = (x[1]*x[1] - 1)*0.0625;
-  B[38] = (x[1]*x[2]*x[2] - x[1] - x[2]*x[2] + 1)*0.0625;
-  B[39] = (x[0]*x[0]*x[2] + x[0]*x[0] - x[2] - 1)*0.0625;
-  B[40] = (-x[0]*x[1]*x[2] - x[0]*x[1] + x[0]*x[2] + x[0] + x[1]*x[2] + x[1] - x[2] - 1)*0.125;
-  B[41] = (-x[2]*x[2] + 1)*0.0625;
-  B[42] = (x[0]*x[0] - 1)*0.0625;
-  B[43] = (-x[0]*x[1]*x[1] + x[0] + x[1]*x[1] - 1)*0.0625;
-  B[44] = (x[0]*x[1]*x[2] + x[0]*x[1] - x[0]*x[2] - x[0] - x[1]*x[2] - x[1] + x[2] + 1)*0.125;
-  B[45] = (-x[0]*x[1]*x[2] - x[0]*x[1] + x[0]*x[2] + x[0] - x[1]*x[2] - x[1] + x[2] + 1)*0.125;
-  B[46] = (x[1]*x[1] - 1)*0.0625;
-  B[47] = (x[1]*x[2]*x[2] - x[1] - x[2]*x[2] + 1)*0.0625;
-  B[48] = (-x[0]*x[0]*x[2] - x[0]*x[0] + x[2] + 1)*0.0625;
-  B[49] = (x[0]*x[1]*x[2] + x[0]*x[1] - x[0]*x[2] - x[0] + x[1]*x[2] + x[1] - x[2] - 1)*0.125;
-  B[50] = (-x[2]*x[2] + 1)*0.0625;
-  B[51] = (-x[0]*x[0] + 1)*0.0625;
-  B[52] = (x[0]*x[1]*x[1] - x[0] + x[1]*x[1] - 1)*0.0625;
-  B[53] = (-x[0]*x[1]*x[2] - x[0]*x[1] + x[0]*x[2] + x[0] - x[1]*x[2] - x[1] + x[2] + 1)*0.125;
-  B[54] = (x[0]*x[1]*x[2] + x[0]*x[1] + x[0]*x[2] + x[0] - x[1]*x[2] - x[1] - x[2] - 1)*0.125;
-  B[55] = (-x[1]*x[1] + 1)*0.0625;
-  B[56] = (-x[1]*x[2]*x[2] + x[1] - x[2]*x[2] + 1)*0.0625;
-  B[57] = (x[0]*x[0]*x[2] + x[0]*x[0] - x[2] - 1)*0.0625;
-  B[58] = (-x[0]*x[1]*x[2] - x[0]*x[1] - x[0]*x[2] - x[0] + x[1]*x[2] + x[1] + x[2] + 1)*0.125;
-  B[59] = (-x[2]*x[2] + 1)*0.0625;
-  B[60] = (x[0]*x[0] - 1)*0.0625;
-  B[61] = (x[0]*x[1]*x[1] - x[0] - x[1]*x[1] + 1)*0.0625;
-  B[62] = (-x[0]*x[1]*x[2] - x[0]*x[1] - x[0]*x[2] - x[0] + x[1]*x[2] + x[1] + x[2] + 1)*0.125;
-  B[63] = (x[0]*x[1]*x[2] + x[0]*x[1] + x[0]*x[2] + x[0] + x[1]*x[2] + x[1] + x[2] + 1)*0.125;
-  B[64] = (-x[1]*x[1] + 1)*0.0625;
-  B[65] = (-x[1]*x[2]*x[2] + x[1] - x[2]*x[2] + 1)*0.0625;
-  B[66] = (-x[0]*x[0]*x[2] - x[0]*x[0] + x[2] + 1)*0.0625;
-  B[67] = (x[0]*x[1]*x[2] + x[0]*x[1] + x[0]*x[2] + x[0] + x[1]*x[2] + x[1] + x[2] + 1)*0.125;
-  B[68] = (-x[2]*x[2] + 1)*0.0625;
-  B[69] = (-x[0]*x[0] + 1)*0.0625;
-  B[70] = (-x[0]*x[1]*x[1] + x[0] - x[1]*x[1] + 1)*0.0625;
-  B[71] = (x[0]*x[1]*x[2] + x[0]*x[1] + x[0]*x[2] + x[0] + x[1]*x[2] + x[1] + x[2] + 1)*0.125;
-  for(i=0;i<24;i++) TDyPiola(&(B[3*i]),DF,J,3);
-  TDY_STOP_FUNCTION_TIMER()
+PetscErrorCode TDyCreate_BDM(void **context) {
+  // Allocate a new context for the WY method.
+  TDyBDM* bdm;
+  ierr = PetscMalloc(sizeof(TDyBDM), &bdm);
+  *context = bdm;
 }
 
-PetscErrorCode TDyBDM_Setup(TDy tdy, DM dm) {
+PetscErrorCode TDyDestroy_BDM(void *context) {
+  PetscFunctionBegin;
+  TDyBDM* bdm = context;
+
+  if (bdm->vmap  ) { ierr = PetscFree(bdm->vmap  ); CHKERRQ(ierr); }
+  if (bdm->emap  ) { ierr = PetscFree(bdm->emap  ); CHKERRQ(ierr); }
+  if (bdm->Alocal) { ierr = PetscFree(bdm->Alocal); CHKERRQ(ierr); }
+  if (bdm->Flocal) { ierr = PetscFree(bdm->Flocal); CHKERRQ(ierr); }
+  if (bdm->vel   ) { ierr = PetscFree(bdm->vel   ); CHKERRQ(ierr); }
+  if (bdm->fmap  ) { ierr = PetscFree(bdm->fmap  ); CHKERRQ(ierr); }
+  if (bdm->faces ) { ierr = PetscFree(bdm->faces ); CHKERRQ(ierr); }
+  if (bdm->LtoG  ) { ierr = PetscFree(bdm->LtoG  ); CHKERRQ(ierr); }
+  if (bdm->orient) { ierr = PetscFree(bdm->orient); CHKERRQ(ierr); }
+  if (bdm->quad  ) { ierr = PetscQuadratureDestroy(&(bdm->quad)); CHKERRQ(ierr); }
+
+  ierr = PetscFree(bdm->V); CHKERRQ(ierr);
+  ierr = PetscFree(bdm->X); CHKERRQ(ierr);
+  ierr = PetscFree(bdm->N); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetFromOptions_BDM(DM dm, void *context) {
+  PetscFunctionBegin;
+
+  TDyBDM* wy = context;
+
+  // Set options.
+  TDyQuadratureType qtype = FULL;
+  ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type for finite element methods",
+    "TDyWYSetQuadrature",TDyQuadratureTypes,(PetscEnum)qtype,
+    (PetscEnum *)&bdm->qtype,NULL); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetup_BDM(void* context, DM dm) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscInt pStart,pEnd,c,cStart,cEnd,f,f_abs,fStart,fEnd,nfv,ncv,v,vStart,vEnd,
            mStart,mEnd,i,nlocal,closureSize,*closure;
-  PetscSection sec;
+
+  // Allocate a new context for the WY method.
+  TDyBDM* bdm = context;
+
   PetscInt d,dim,dofs_per_face = 1;
   PetscBool found;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -152,6 +95,7 @@ PetscErrorCode TDyBDM_Setup(TDy tdy, DM dm) {
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
   /* Create H-div section */
+  PetscSection sec;
   ierr = PetscSectionCreate(PETSC_COMM_WORLD,&sec); CHKERRQ(ierr);
   ierr = PetscSectionSetNumFields(sec,2); CHKERRQ(ierr);
   ierr = PetscSectionSetFieldName(sec,0,"Pressure"); CHKERRQ(ierr);

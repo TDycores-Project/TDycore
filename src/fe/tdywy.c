@@ -217,15 +217,66 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyWY_Setup(TDy tdy, DM dm) {
+PetscErrorCode TDyWYSetQuadrature(TDy tdy, TDyQuadratureType qtype) {
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  TDyWY* wy = tdy->context;
+  wy->qtype = qtype;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyCreate_WY(void **context) {
+  // Allocate a new context for the WY method.
+  TDyWY* wy;
+  ierr = PetscMalloc(sizeof(TDyWY), &wy);
+  *context = wy;
+}
+
+PetscErrorCode TDyDestroy_WY(void *context) {
+  PetscFunctionBegin;
+  TDyWY* wy = context;
+
+  if (wy->vmap  ) { ierr = PetscFree(wy->vmap  ); CHKERRQ(ierr); }
+  if (wy->emap  ) { ierr = PetscFree(wy->emap  ); CHKERRQ(ierr); }
+  if (wy->Alocal) { ierr = PetscFree(wy->Alocal); CHKERRQ(ierr); }
+  if (wy->Flocal) { ierr = PetscFree(wy->Flocal); CHKERRQ(ierr); }
+  if (wy->vel   ) { ierr = PetscFree(wy->vel   ); CHKERRQ(ierr); }
+  if (wy->fmap  ) { ierr = PetscFree(wy->fmap  ); CHKERRQ(ierr); }
+  if (wy->faces ) { ierr = PetscFree(wy->faces ); CHKERRQ(ierr); }
+  if (wy->LtoG  ) { ierr = PetscFree(wy->LtoG  ); CHKERRQ(ierr); }
+  if (wy->orient) { ierr = PetscFree(wy->orient); CHKERRQ(ierr); }
+  if (wy->quad  ) { ierr = PetscQuadratureDestroy(&(wy->quad)); CHKERRQ(ierr); }
+
+  ierr = PetscFree(wy->V); CHKERRQ(ierr);
+  ierr = PetscFree(wy->X); CHKERRQ(ierr);
+  ierr = PetscFree(wy->N); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetFromOptions_WY(DM dm, void *context) {
+  PetscFunctionBegin;
+
+  TDyWY* wy = context;
+
+  // Set options.
+  TDyQuadratureType qtype = FULL;
+  ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type for finite element methods",
+    "TDyWYSetQuadrature",TDyQuadratureTypes,(PetscEnum)qtype,
+    (PetscEnum *)&wy->qtype,NULL); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetup_WY(void* context, DM dm) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   MPI_Comm       comm;
   PetscInt i,dim,ncv,nfv,c,cStart,cEnd,f,fStart,fEnd,vStart,vEnd,p,pStart,pEnd;
   PetscInt  closureSize,  *closure;
-  PetscSection sec;
-  MaterialProp *matprop = tdy->matprop;
+
+  TDyWY* wy = context;
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -233,35 +284,15 @@ PetscErrorCode TDyWY_Setup(TDy tdy, DM dm) {
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
-  if (tdy->ops->computepermeability) {
-    // If peremeability function is set, use it instead.
-    // Will need to consolidate this code with code in tdypermeability.c
-    PetscReal *localK;
-    PetscInt icell,ii,jj;
-    ierr = PetscMalloc(9*sizeof(PetscReal),&localK); CHKERRQ(ierr);
-    for (icell=0; icell<cEnd-cStart; icell++) {
-      ierr = (*tdy->ops->computepermeability)(tdy, &(tdy->X[icell*dim]), localK, tdy->permeabilityctx);CHKERRQ(ierr);
-
-      PetscInt count = 0;
-      for (ii=0; ii<dim; ii++) {
-        for (jj=0; jj<dim; jj++) {
-          matprop->K[icell*dim*dim + ii*dim + jj] = localK[count];
-          count++;
-        }
-      }
-    }
-    ierr = PetscFree(localK); CHKERRQ(ierr);
-  }
-
   /* Check that the number of vertices per cell are constant. Soft
      limitation, method is flexible but my data structures are not. */
-  tdy->ncv = TDyGetNumberOfCellVertices(dm);
+  wy->ncv = TDyGetNumberOfCellVertices(dm);
   ncv = tdy->ncv;
 
   /* Create a PETSc quadrature, we don't really use this, it is just
      to evaluate the Jacobian via the PETSc interface. */
-  ierr = PetscQuadratureCreate(comm,&(tdy->quad)); CHKERRQ(ierr);
-  ierr = TDyQuadrature(tdy->quad,dim); CHKERRQ(ierr);
+  ierr = PetscQuadratureCreate(comm,&(wy->quad)); CHKERRQ(ierr);
+  ierr = TDyQuadrature(wy->quad,dim); CHKERRQ(ierr);
 
   /* Build vmap and emap */
   ierr = TDyCreateCellVertexMap(tdy,&(tdy->vmap)); CHKERRQ(ierr);
@@ -327,6 +358,7 @@ PetscErrorCode TDyWY_Setup(TDy tdy, DM dm) {
   #endif
 
   /* Setup the section, 1 dof per cell */
+  PetscSection sec;
   ierr = PetscSectionCreate(comm,&sec); CHKERRQ(ierr);
   ierr = PetscSectionSetNumFields(sec,1); CHKERRQ(ierr);
   ierr = PetscSectionSetFieldName(sec,0,"Pressure"); CHKERRQ(ierr);
