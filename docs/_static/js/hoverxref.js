@@ -79,28 +79,25 @@ function reLoadSphinxTabs() {
     };
 };
 
-function getEmbedURL(project, version, doc, docpath, section, url) {
-    if (url) {
-        var params = {
-            'url': url,
-        }
-    } else {
-        var params = {
-            'project': project,
-            'version': version,
-            'doc': doc,
-            'path': docpath,
-            'section': section,
-        }
+function getEmbedURL(url) {
+    var params = {
+        'doctool': 'sphinx',
+        'doctoolversion': '4.2.0',
+        'url': url,
     }
     console.debug('Data: ' + JSON.stringify(params));
-    var url = 'https://readthedocs.org' + '/api/v2/embed/?' + $.param(params);
+    var url = 'https://readthedocs.org' + '/api/v3/embed/?' + $.param(params);
     console.debug('URL: ' + url);
     return url
 }
 
 
 $(document).ready(function() {
+    // Remove ``title=`` attribute for intersphinx nodes that have hoverxref enabled.
+    // It doesn't make sense the browser shows the default tooltip (browser's built-in)
+    // and immediately after that our tooltip was shown.
+    $('.hoverxref.external').each(function () { $(this).removeAttr('title') });
+
     $('.hoverxref.tooltip').tooltipster({
         theme: ['tooltipster-shadow', 'tooltipster-shadow-custom'],
         interactive: true,
@@ -109,20 +106,15 @@ $(document).ready(function() {
         animationDuration: 0,
         side: 'right',
         content: 'Loading...',
+        contentAsHTML: true,
 
         functionBefore: function(instance, helper) {
             var $origin = $(helper.origin);
-            var project = $origin.data('project');
-            var version = $origin.data('version');
-            var doc = $origin.data('doc');
-            var docpath = $origin.data('docpath');
-            var section = $origin.data('section');
-            var url = $origin.data('url');
-
+            var href = $origin.prop('href');
 
             // we set a variable so the data is only loaded once via Ajax, not every time the tooltip opens
             if ($origin.data('loaded') !== true) {
-                var url = getEmbedURL(project, version, doc, docpath, section, url);
+                var url = getEmbedURL(href);
                 $.get(url, function(data) {
                     // call the 'content' method to update the content of our tooltip with the returned data.
                     // note: this content update will trigger an update animation (see the updateAnimation option)
@@ -186,23 +178,21 @@ $(document).ready(function() {
     
 
     function showModal(element) {
-        var project = element.data('project');
-        var version = element.data('version');
-        var doc = element.data('doc');
-        var docpath = element.data('docpath');
-        var section = element.data('section');
-        var url = element.data('url');
-
-        var url = getEmbedURL(project, version, doc, docpath, section, url);
+        var href = element.prop('href');
+        var url = getEmbedURL(href);
         $.get(url, function(data) {
             var content = $('<div></div>');
-            content.html(data['content'][0]);
+            content.html(data['content']);
 
             var h1 = $('h1:first', content);
             var title = h1.text()
             if (title) {
                 var link = $('a', h1).attr('href') || '#';
-                var a = $('<a></a>').attr('href', link).text('📝 ' + title.replace('¶', ''));
+
+                // Remove permalink icon from the title
+                var title = title.replace('¶', '').replace('', '');
+
+                var a = $('<a></a>').attr('href', link).text('📝 ' + title);
             }
             else {
                 var a = '📝 Note';
