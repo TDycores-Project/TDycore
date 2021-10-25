@@ -3731,6 +3731,9 @@ PetscErrorCode OutputMeshPartitionInfo_Vertex(TDy tdy) {
 /// Outputs the following mesh partition information in binary format from each rank:
 /// - IDs of cells sharing the face in local numbering
 /// - IDs of cells sharing the face in natural numbering
+/// - Normal to the face
+/// - Area of the face
+///
 ///
 /// @param [inout] tdy A TDy struct
 /// @returns 0  on success or a non-zero error code on failure
@@ -3740,14 +3743,18 @@ PetscErrorCode OutputMeshPartitionInfo_Face(TDy tdy) {
 
   TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
 
   Vec vec;
-  PetscInt stride = 4;
+  PetscInt stride = 4 + 3 + 1;
 
   ierr = VecCreateSeq(PETSC_COMM_SELF,mesh->num_faces*stride,&vec); CHKERRQ(ierr);
   ierr = VecSetBlockSize(vec,stride); CHKERRQ(ierr);
   ierr = VecSetFromOptions(vec); CHKERRQ(ierr);
+
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
   PetscScalar *vec_ptr;
   ierr = VecGetArray(vec,&vec_ptr); CHKERRQ(ierr);
@@ -3771,7 +3778,17 @@ PetscErrorCode OutputMeshPartitionInfo_Face(TDy tdy) {
     } else {
       vec_ptr[iface*stride + 3] = cell_ids[1];
     }
+
+    PetscReal normal[3];
+    ierr = TDyFace_GetNormal(faces, iface, dim, &normal[0]); CHKERRQ(ierr);
+    vec_ptr[iface*stride + 4] = normal[0];
+    vec_ptr[iface*stride + 5] = normal[1];
+    vec_ptr[iface*stride + 6] = normal[2];
+
+    vec_ptr[iface*stride + 7] = faces->area[iface];
+
   }
+
   ierr = VecRestoreArray(vec,&vec_ptr); CHKERRQ(ierr);
 
   PetscInt iam;
