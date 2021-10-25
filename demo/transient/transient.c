@@ -58,6 +58,34 @@ PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
   PetscFunctionReturn(0);
 }
 
+// This data is used by CreateDM below to create a DM for this demo.
+typedef struct DMOptions {
+  PetscInt dim;        // Dimension of DM (2 or 3)
+  PetscInt N;          // Number of cells on a side
+  PetscBool exo;       // whether to load a named exodus file
+  const char* exofile; // name of the exodus file to load
+} DMOptions;
+
+// This function creates a DM specifically for this demo. Overrides are applied
+// to the resulting DM with TDySetFromOptions.
+PetscErrorCode CreateDM(MPI_Comm comm, void* context, DM* dm) {
+  int ierr;
+  DMOptions* options = context;
+
+  PetscInt N = options->N;
+  if(options->exo){
+    ierr = DMPlexCreateExodusFromFile(PETSC_COMM_WORLD,options->exofile,
+      PETSC_TRUE,dm); CHKERRQ(ierr);
+  } else {
+    const PetscInt  faces[3] = {N,N,N  };
+    const PetscReal lower[3] = {-0.5,-0.5,-0.5};
+    const PetscReal upper[3] = {+0.5,+0.5,+0.5};
+    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,options->dim,PETSC_FALSE,
+      faces,lower,upper,NULL,PETSC_TRUE,dm); CHKERRQ(ierr);
+    ierr = PerturbInteriorVertices(*dm,1./N); CHKERRQ(ierr);
+  }
+}
+
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
@@ -67,9 +95,11 @@ int main(int argc, char **argv) {
   PetscBool exo = PETSC_FALSE;
 
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
+  MPI_Comm comm = PETSC_COMM_WORLD;
   TDy  tdy;
-  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
+  ierr = TDyCreate(comm, &tdy); CHKERRQ(ierr);
+  ierr = TDySetMode(tdy, RICHARDS); CHKERRQ(ierr);
+  ierr = TDySetDiscretization(tdy,WY); CHKERRQ(ierr);
 
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,
 			   "Transient Options",""); CHKERRQ(ierr);
@@ -81,32 +111,18 @@ int main(int argc, char **argv) {
 			    exofile,exofile,256,&exo); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  /* Create and distribute the mesh */
-  DM dm, dmDist = NULL;
-  DMLabel marker;
-  if(exo){
-    ierr = DMPlexCreateExodusFromFile(PETSC_COMM_WORLD,exofile,
-				      PETSC_TRUE,&dm); CHKERRQ(ierr);
-    //ierr = DMPlexOrient(dm); CHKERRQ(ierr);
-    ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-    ierr = DMCreateLabel(dm,"marker"); CHKERRQ(ierr);
-    ierr = DMGetLabel(dm,"marker",&marker); CHKERRQ(ierr);
-    ierr = DMPlexMarkBoundaryFaces(dm,1,marker); CHKERRQ(ierr);
-  }else{
-    const PetscInt  faces[3] = {N,N,N  };
-    const PetscReal lower[3] = {-0.5,-0.5,-0.5};
-    const PetscReal upper[3] = {+0.5,+0.5,+0.5};
-    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
-			       NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
-    ierr = PerturbInteriorVertices(dm,1./N); CHKERRQ(ierr);
-  }
-  ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
-  if (dmDist) {DMDestroy(&dm); dm = dmDist;}
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
+  // Specify a special DM to be constructed for this demo, and pass it the
+  // relevant options.
+  DMOptions dm_options = {.N = N, .dim = dim, .exo = exo, .exofile = exofile};
+  ierr = TDySetDMConstructor(tdy, &dm_options, CreateDM); CHKERRQ(ierr);
 
-  ierr = TDySetDM(tdy,dm); CHKERRQ(ierr);
+  // Apply overrides.
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
+
+  // View the configured DM.
+  DM dm;
+  TDyGetDM(tdy, &dm);
+  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
   /* Setup problem parameters */
   ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);

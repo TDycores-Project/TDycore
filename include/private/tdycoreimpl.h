@@ -24,22 +24,36 @@ struct _TDyOps {
   // Called by TDyDestroy to free implementation-specific resources.
   PetscErrorCode (*destroy)(void*);
 
+  // Creates a DM for a particular simulation (optional).
+  // Arguments:
+  //   1. A valid MPI communicator
+  //   2. A context pointer storing data specifically for the constructor
+  //      function
+  //   3. A location for the newly created DM.
+  // We pass the dycore as the first argument here because we don't expect
+  // the caller to know implementation details.
+  PetscErrorCode (*create_dm)(MPI_Comm, void*, DM*);
+
   // Implements the view operation for the TDy implementation with the given
   // viewer.
   PetscErrorCode (*view)(void*, PetscViewer);
 
-  //PetscErrorCode (*setup)(TDy);
-
   // Called by TDySetFromOptions -- sets implementation-specific options
   // from command-line arguments.
-  PetscErrorCode (*set_from_options)(void*);
+  // FIXME: convert the arg here to void* when we've moved specific data
+  // FIXME: out of TDy.
+  PetscErrorCode (*set_from_options)(TDy);
 
-  // Called by TDySetup -- configures the DM for the dycore.
-  PetscErrorCode (*config_dm)(void*, DM);
+  // Called by TDySetup -- configures the DM for solvers.
+  // FIXME: we should convert the first argument here to void* when we've moved
+  // FIXME: all discretization-specific data out of TDy itself.
+  PetscErrorCode (*setup)(TDy, DM);
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.
   PetscErrorCode (*compute_error_norms)(void*,Vec,PetscReal*,PetscReal*);
+
+  // Functions used to define solver behavior.
 
   // Material and boundary condition functions--we'll sort these out later.
   PetscErrorCode (*computeporosity)(TDy,PetscReal*,PetscReal*,void*);
@@ -67,6 +81,9 @@ struct _p_TDy {
   // Grid and data management -- handed to a solver when the dycore is fully
   // configured
   DM dm;
+
+  // Contextual information passed to create_dm (if given).
+  void* create_dm_context;
 
   // We'll likely get rid of this.
   TDyTimeIntegrator ti;

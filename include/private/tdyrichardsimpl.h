@@ -4,7 +4,7 @@
 #include <petsc.h>
 #include <tdycore.h>
 
-PETSC_INTERN PetscErrorCode TDyRichardsInitialize(TDy);
+PETSC_INTERN PetscErrorCode TDyRichardsInitialize(TDy); // TDyDriver setup fn
 PETSC_INTERN PetscErrorCode TDyRichardsTSPostStep(TS);
 PETSC_INTERN PetscErrorCode TDyRichardsSNESPostCheck(SNESLineSearch,Vec,Vec,Vec,
                                                      PetscBool*,PetscBool*,

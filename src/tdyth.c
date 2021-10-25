@@ -9,11 +9,14 @@ PetscErrorCode TDyTHInitialize(TDy tdy) {
   PetscInt local_size;
   PetscFunctionBegin;
 
-  PetscPrintf(PETSC_COMM_WORLD,"Running TH mode.\n");
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  PetscPrintf(comm,"Running TH mode.\n");
 
   if (tdy->options.init_with_random_field) {
     PetscRandom rand;
-    ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
+    ierr = PetscRandomCreate(comm,&rand); CHKERRQ(ierr);
     ierr = VecGetLocalSize(tdy->solution,&local_size); CHKERRQ(ierr);
     ierr = DMCreateGlobalVector(tdy->dm,&temp_vec); CHKERRQ(ierr);
     // pressure

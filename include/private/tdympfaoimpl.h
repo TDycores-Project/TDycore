@@ -3,7 +3,9 @@
 
 #include <petsc.h>
 
-PETSC_INTERN PetscErrorCode TDyMPFAOInitialize(TDy);
+PETSC_INTERN PetscErrorCode TDyRichards_MPFA_O_Setup(TDy, DM);
+PETSC_INTERN PetscErrorCode TDyRichards_MPFA_O_DAE_Setup(TDy, DM);
+PETSC_INTERN PetscErrorCode TDyRichards_MPFA_O_TRANSIENTVAR_Setup(TDy, DM);
 PETSC_INTERN PetscErrorCode TDyComputeGMatrixMPFAO(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeGMatrixTPF(TDy);
 PETSC_INTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
@@ -21,7 +23,7 @@ PETSC_INTERN PetscErrorCode TDyMPFAOTransientVariable(TS,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESFunction(SNES,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESJacobian(SNES,Vec,Mat,Mat,void*);
-PETSC_INTERN PetscErrorCode TDyMPFAOSetFromOptions(TDy);
+PETSC_INTERN PetscErrorCode TDyMPFAO_SetFromOptions(TDy);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESPreSolve(TDy);
 
 #endif

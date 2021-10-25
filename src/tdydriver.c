@@ -16,21 +16,27 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   SNES snes;
   SNESLineSearch linesearch;
 
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  DM dm;
+  ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
+
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+
   if (dim != 3) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver currently only supports 3D");
+    SETERRQ(comm,PETSC_ERR_USER,"Driver currently only supports 3D");
   }
 
-  switch(tdy->options.method) {
-    case TPF:
+  switch(tdy->options.discretization) {
     case MPFA_O:
       break;
     case MPFA_O_DAE:
     case MPFA_O_TRANSIENTVAR:
     case BDM:
     case WY:
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Driver not supported for specified method.");
+      SETERRQ(comm,PETSC_ERR_USER,"Driver not supported for specified discretization.");
       break;
   }
 
@@ -82,7 +88,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     case TH:
       break;
     default:
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unrecognized flow mode.");
+      SETERRQ(comm,PETSC_ERR_USER,"Unrecognized flow mode.");
   }
   // check for unsupported time integration methods
   switch(tdy->ti->time_integration_method) {
@@ -91,20 +97,20 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
         case RICHARDS:
           break;
         case TH:
-          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SNES not supported for TH mode.");
+          SETERRQ(comm,PETSC_ERR_USER,"SNES not supported for TH mode.");
           break;
       }
       break;
     case TDyTS:
       break;
     default:
-        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unrecognized time integration method.");
+        SETERRQ(comm,PETSC_ERR_USER,"Unrecognized time integration method.");
   }
 
   // create time integrator
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
-      ierr = SNESCreate(PETSC_COMM_WORLD,&snes);
+      ierr = SNESCreate(comm,&snes);
              CHKERRQ(ierr);
       ierr = TDySetSNESFunction(snes,tdy); CHKERRQ(ierr);
       ierr = TDySetSNESJacobian(snes,tdy); CHKERRQ(ierr);
@@ -113,7 +119,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       tdy->ti->snes = snes;
       break;
     case TDyTS:
-      ierr = TSCreate(PETSC_COMM_WORLD,&ts); CHKERRQ(ierr);
+      ierr = TSCreate(comm,&ts); CHKERRQ(ierr);
 //      ierr = TSSetType(ts,TSBEULER); CHKERRQ(ierr);
 //      ierr = TSSetType(ts,TSPSEUDO); CHKERRQ(ierr);
 //      ierr = TSPseudoSetTimeStep(ts,TSPseudoTimeStepDefault,NULL); CHKERRQ(ierr);
@@ -148,6 +154,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
           ierr = TSSetPostStep(ts,TDyRichardsTSPostStep); CHKERRQ(ierr);
           break;
       }
+      // FIXME: This is a different path from the one used by TDycore proper.
       ierr = TDyRichardsInitialize(tdy); CHKERRQ(ierr);
       break;
     case TH:
@@ -161,10 +168,11 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
         case TDyTS:
           ierr = TSSetPostStep(ts,TDyTHTSPostStep); CHKERRQ(ierr);
       }
+      // FIXME: This is a different path from the one used by TDycore proper.
       ierr = TDyTHInitialize(tdy); CHKERRQ(ierr);
       break;
   }
-  PetscPrintf(PETSC_COMM_WORLD,"tdy->ti->time_integration_method = %d\n",
+  PetscPrintf(comm,"tdy->ti->time_integration_method = %d\n",
               tdy->ti->time_integration_method);
    size_t len;
    ierr = PetscStrlen(tdy->io->ic_filename, &len); CHKERRQ(ierr);

@@ -31,21 +31,12 @@ module tdycore
      end subroutine TDySetMode
   end interface
   interface
-     subroutine TDySetDiscretizationMethod(a,b,z)
+     subroutine TDySetDiscretization(a,b,z)
        use tdycoredef
        TDy a
        PetscInt b
        integer z
-     end subroutine TDySetDiscretizationMethod
-  end interface
-  interface
-     subroutine TDySetDM(a,b,z)
-       use petscdm
-       use tdycoredef
-       TDy a
-       DM b
-       integer z
-     end subroutine TDySetDM
+     end subroutine TDySetDiscretization
   end interface
   interface
      subroutine TDySetFromOptions(a,z)
@@ -461,6 +452,17 @@ module tdycore
     end function
   end interface
 
+  abstract interface
+    subroutine TDyDMConstructor(comm, dm, ierr)
+      use, intrinsic :: iso_c_binding
+      use tdycoredef
+      use petscdm
+      MPI_Comm           :: comm
+      DM                 :: dm
+      PetscErrorCode     :: ierr
+    end subroutine
+  end interface
+
   contains
 
   subroutine TDyInit(ierr)
@@ -492,6 +494,27 @@ module tdycore
     end interface
 
     ierr = RegisterFn(FtoCString(name), c_funloc(func))
+  end subroutine
+
+  subroutine TDySetDMConstructor(tdy, dm_ctor, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy, target                 :: tdy
+    procedure(TDyDMConstructor) :: dm_ctor
+    PetscErrorCode              :: ierr
+
+    interface
+      function SetDMConstructor(tdy, dm_ctor) bind (c, name="TDySetDMConstructorF90") result(ierr)
+        use, intrinsic :: iso_c_binding
+        implicit none
+        type(c_ptr), value    :: tdy
+        type(c_funptr), value :: dm_ctor
+        integer(c_int)        :: ierr
+      end function
+    end interface
+
+    ierr = SetDMConstructor(c_loc(tdy), c_funloc(dm_ctor))
   end subroutine
 
   subroutine TDySelectPorosityFunction(tdy, name, ierr)

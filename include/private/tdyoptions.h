@@ -13,7 +13,7 @@ typedef struct {
   PetscInt enthalpy_type;
 
   // Numerics settings
-  TDyMethod method;
+  TDyDiscretization discretization;
   TDyQuadratureType qtype;
   PetscInt mpfao_gmatrix_method;
   PetscInt mpfao_bc_type;
@@ -43,7 +43,6 @@ typedef struct {
   char init_file[PETSC_MAX_PATH_LEN];
 
   // Mesh-related options
-  PetscBool generate_mesh;
   PetscBool read_mesh;
   char mesh_file[PETSC_MAX_PATH_LEN];
 

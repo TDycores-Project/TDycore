@@ -8,17 +8,18 @@ int main(int argc, char **argv) {
   PetscInt successful_exit_code;
   PetscMPIInt rank, size;
   TDy tdy = PETSC_NULL;
-  TDyIOFormat format = PetscViewerASCIIFormat; 
+  TDyIOFormat format = PetscViewerASCIIFormat;
 
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
-  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
+  MPI_Comm comm = PETSC_COMM_WORLD;
+  ierr = TDyCreate(comm, &tdy); CHKERRQ(ierr);
   ierr = TDySetMode(tdy,TH); CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+  ierr = TDySetDiscretization(tdy,MPFA_O); CHKERRQ(ierr);
 
-  ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank); CHKERRQ(ierr);
-  ierr = MPI_Comm_size(PETSC_COMM_WORLD,&size); CHKERRQ(ierr);
-  PetscPrintf(PETSC_COMM_WORLD,"Beginning TH Driver simulation.\n");
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); 
+  ierr = MPI_Comm_rank(comm,&rank); CHKERRQ(ierr);
+  ierr = MPI_Comm_size(comm,&size); CHKERRQ(ierr);
+  PetscPrintf(comm,"Beginning TH Driver simulation.\n");
+  ierr = PetscOptionsBegin(comm,NULL,"Sample Options","");
                            CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code",
                          "Code passed on successful completion","",
@@ -33,19 +34,19 @@ int main(int argc, char **argv) {
   if (!rank) {
     ierr = TDyIOSetIOProcess(tdy->io, PETSC_TRUE); CHKERRQ(ierr);
   }
-  PetscPrintf(PETSC_COMM_WORLD,"--\n");
+  PetscPrintf(comm,"--\n");
   if (size == 1) {
     ierr = TDyIOSetMode(tdy,format);CHKERRQ(ierr);
     ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);
   }
-  ierr = TDyTimeIntegratorRunToTime(tdy,tdy->ti->final_time); 
+  ierr = TDyTimeIntegratorRunToTime(tdy,tdy->ti->final_time);
          CHKERRQ(ierr);
   if (size == 1) {ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);}
   ierr = TDyOutputRegression(tdy,tdy->solution); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
 
-  PetscPrintf(PETSC_COMM_WORLD,"--\n");
-  PetscPrintf(PETSC_COMM_WORLD,"Simulation complete.\n");
+  PetscPrintf(comm,"--\n");
+  PetscPrintf(comm,"Simulation complete.\n");
   ierr = TDyFinalize(); CHKERRQ(ierr);
   return(successful_exit_code);
 }

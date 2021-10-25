@@ -1,4 +1,5 @@
 #include <private/tdycoreimpl.h>
+#include <private/tdybdmimpl.h>
 #include <petscblaslapack.h>
 #include <tdytimers.h>
 
@@ -133,7 +134,7 @@ void HdivBasisHex(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J) {
   TDY_STOP_FUNCTION_TIMER()
 }
 
-PetscErrorCode TDyBDMInitialize(TDy tdy) {
+PetscErrorCode TDyBDM_Setup(TDy tdy, DM dm) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
@@ -142,7 +143,6 @@ PetscErrorCode TDyBDMInitialize(TDy tdy) {
   PetscSection sec;
   PetscInt d,dim,dofs_per_face = 1;
   PetscBool found;
-  DM dm = tdy->dm;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   /* Get plex limits */

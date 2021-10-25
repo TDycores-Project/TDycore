@@ -217,7 +217,7 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyWYInitialize(TDy tdy) {
+PetscErrorCode TDyWY_Setup(TDy tdy, DM dm) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
@@ -225,7 +225,6 @@ PetscErrorCode TDyWYInitialize(TDy tdy) {
   PetscInt i,dim,ncv,nfv,c,cStart,cEnd,f,fStart,fEnd,vStart,vEnd,p,pStart,pEnd;
   PetscInt  closureSize,  *closure;
   PetscSection sec;
-  DM dm = tdy->dm;
   MaterialProp *matprop = tdy->matprop;
 
   ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);

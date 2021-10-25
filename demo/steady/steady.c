@@ -264,7 +264,6 @@ PetscErrorCode Forcing3(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) {
   PetscFunctionReturn(0);
 }
 
-
 PetscErrorCode PerturbVerticesRandom(DM dm,PetscReal h) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -274,8 +273,7 @@ PetscErrorCode PerturbVerticesRandom(DM dm,PetscReal h) {
   PetscScalar *coords;
   PetscInt     v,vStart,vEnd,offset,value,dim;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  /* this is the 'marker' label which marks boundary entities */
-  ierr = DMGetLabelByNum(dm,2,&label); CHKERRQ(ierr);
+  ierr = DMGetLabel(dm, "boundary", &label); CHKERRQ(ierr);
   ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
   ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
@@ -292,7 +290,7 @@ PetscErrorCode PerturbVerticesRandom(DM dm,PetscReal h) {
         coords[offset+1] += r*PetscSinReal(t);
       }
     } else {
-      /* This is because 'marker' is broken in 3D */
+      /* This is because 'boundary' is broken in 3D */
       if(coords[offset] > 0 && coords[offset] < 1 &&
           coords[offset+1] > 0 && coords[offset+1] < 1 &&
           coords[offset+2] > 0 && coords[offset+2] < 1) {
@@ -303,6 +301,7 @@ PetscErrorCode PerturbVerticesRandom(DM dm,PetscReal h) {
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
+
 PetscErrorCode PerturbVerticesSmooth(DM dm) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -393,7 +392,9 @@ PetscErrorCode SaveVertices(DM dm, char filename[256]){
   Vec coordinates;
   PetscViewer viewer;
 
-  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+  ierr = PetscViewerBinaryOpen(comm,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
   ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
   ierr = VecView(coordinates,viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -414,7 +415,9 @@ PetscErrorCode SaveCentroids(DM dm, char filename[256]){
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
 
-  ierr = VecCreateMPI(PETSC_COMM_WORLD,(cEnd-cStart)*dim,PETSC_DETERMINE,&centroids); CHKERRQ(ierr);
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+  ierr = VecCreateMPI(comm,(cEnd-cStart)*dim,PETSC_DETERMINE,&centroids); CHKERRQ(ierr);
 
   ierr = VecGetArray(centroids,&centroids_p); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
@@ -424,7 +427,7 @@ PetscErrorCode SaveCentroids(DM dm, char filename[256]){
   }
   ierr = VecRestoreArray(centroids,&centroids_p); CHKERRQ(ierr);
 
-  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+  ierr = PetscViewerBinaryOpen(comm,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
   ierr = VecView(centroids,viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
@@ -442,7 +445,9 @@ PetscErrorCode SaveTrueSolution(TDy tdy, char filename[256]){
 
   PetscFunctionBegin;
 
-  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+  ierr = PetscViewerBinaryOpen(comm,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
 
   ierr = DMCreateGlobalVector(dm,&pressure); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
@@ -475,7 +480,9 @@ PetscErrorCode SaveForcing(TDy tdy, char filename[256]){
 
   PetscFunctionBegin;
 
-  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+  ierr = PetscViewerBinaryOpen(comm,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
 
   ierr = DMCreateGlobalVector(dm,&forcing); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
@@ -533,7 +540,7 @@ PetscErrorCode GeometryColumn(DM dm){
   PetscInt     v,vStart,vEnd,offset,dim;
   PetscReal    x,y;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = DMGetLabelByNum(dm,2,&label); CHKERRQ(ierr);
+  ierr = DMGetLabel(dm,"boundary",&label); CHKERRQ(ierr);
   ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
   ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
@@ -547,29 +554,68 @@ PetscErrorCode GeometryColumn(DM dm){
   PetscFunctionReturn(0);
 }
 
+// This data is used by CreateDM below to create a DM for this demo.
+typedef struct DMOptions {
+  PetscInt dim;        // Dimension of DM (2 or 3)
+  PetscInt N;          // Number of cells on a side
+  PetscBool exo;       // whether to load a named exodus file
+  PetscBool column;    // column mesh?
+  const char* exofile; // name of the exodus file to load
+} DMOptions;
+
+// This function creates a DM specifically for this demo. Overrides are applied
+// to the resulting DM with TDySetFromOptions.
+PetscErrorCode CreateDM(MPI_Comm comm, void* context, DM* dm) {
+  int ierr;
+  DMOptions* options = context;
+
+  PetscInt N = options->N;
+  if(options->exo) {
+    ierr = DMPlexCreateExodusFromFile(PETSC_COMM_WORLD, options->exofile,
+      PETSC_TRUE,dm); CHKERRQ(ierr);
+  } else {
+    PetscInt Nx=N,Ny=N,Nz=N;
+    PetscReal Lx=1,Ly=1,Lz=1;
+    if(options->column){
+      Nx = 1; Ny = 1; Nz = N;
+      Lx = 10; Ly = 10; Lz = 1;
+    }
+    const PetscInt  faces[3] = {Nx ,Ny ,Nz };
+    const PetscReal lower[3] = {0.0,0.0,0.0};
+    const PetscReal upper[3] = {Lx ,Ly ,Lz };
+    ierr = DMPlexCreateBoxMesh(comm, options->dim, PETSC_FALSE,
+      faces,lower,upper,NULL,PETSC_TRUE,dm); CHKERRQ(ierr);
+  }
+  PetscFunctionReturn(0);
+}
+
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt N = 4, dim = 2, problem = 2;
   PetscInt successful_exit_code=0;
-  PetscBool perturb = PETSC_FALSE;
-  char exofile[256],paper[256]="none";
   char vertices_filename[256]="none";
   char centroids_filename[256]="none";
   char true_pres_filename[256]="none";
   char forcing_filename[256]="none";
-  PetscBool exo = PETSC_FALSE;
+  char paper[256];
+  PetscBool wheeler2006, wheeler2012;
+
+  // DM-related options.
+  PetscInt N = 4, dim = 2, problem = 2;
+  PetscBool perturb = PETSC_FALSE, exo = PETSC_FALSE, column;
+  char exofile[256];
 
   ierr = TDyInit(argc, argv); CHKERRQ(ierr);
-  TDy  tdy;
-  ierr = TDyCreate(&tdy); CHKERRQ(ierr);
-  ierr = TDySetDiscretizationMethod(tdy,MPFA_O); CHKERRQ(ierr);
+  MPI_Comm comm = PETSC_COMM_WORLD;
+  TDy tdy;
+  ierr = TDyCreate(comm, &tdy); CHKERRQ(ierr);
+  ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
+  ierr = TDySetDiscretization(tdy,MPFA_O); CHKERRQ(ierr);
 
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsBegin(comm,NULL,"Sample Options",""); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-problem","Problem number","",problem,&problem,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsBool("-perturb","Perturb interior vertices","",perturb,&perturb,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-alpha","Permeability scaling","",alpha,&alpha,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",successful_exit_code,&successful_exit_code,NULL);
   ierr = PetscOptionsString("-exo","Mesh file in exodus format","",exofile,exofile,256,&exo); CHKERRQ(ierr);
@@ -580,59 +626,22 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-view_forcing","Filename to save forcing","",forcing_filename,forcing_filename,256,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  PetscBool wheeler2006,wheeler2012,column;
   ierr = PetscStrcasecmp(paper,"wheeler2006",&wheeler2006); CHKERRQ(ierr);
   ierr = PetscStrcasecmp(paper,"wheeler2012",&wheeler2012); CHKERRQ(ierr);
   ierr = PetscStrcasecmp(paper,"column",&column); CHKERRQ(ierr);
 
-  /* Create and distribute the mesh */
-  DM dm, dmDist = NULL;
-  DMLabel marker;
-  if(exo){
-    ierr = DMPlexCreateExodusFromFile(PETSC_COMM_WORLD,exofile,
-				      PETSC_TRUE,&dm); CHKERRQ(ierr);
-    ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-    ierr = DMCreateLabel(dm,"marker"); CHKERRQ(ierr);
-    ierr = DMGetLabel(dm,"marker",&marker); CHKERRQ(ierr);
-    ierr = DMPlexMarkBoundaryFaces(dm,1,marker); CHKERRQ(ierr);
-  }else{
-    PetscInt Nx=N,Ny=N,Nz=N;
-    PetscReal Lx=1,Ly=1,Lz=1;
-    if(column){
-      Nx = 1; Ny = 1; Nz = N;
-      Lx = 10; Ly = 10; Lz = 1;
-    }
-    const PetscInt  faces[3] = {Nx ,Ny ,Nz };
-    const PetscReal lower[3] = {0.0,0.0,0.0};
-    const PetscReal upper[3] = {Lx ,Ly ,Lz };
-    ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,dim,PETSC_FALSE,faces,lower,upper,
-			       NULL,PETSC_TRUE,&dm); CHKERRQ(ierr);
-    if(wheeler2006 && (problem==2 || problem==0)){
-      ierr = GeometryWheeler2006_2(dm,N); CHKERRQ(ierr);
-    }
-    if(column) {
-      ierr = GeometryColumn(dm); CHKERRQ(ierr);
-    }
-    if(perturb) {
-      ierr = PerturbVerticesRandom(dm,1./N); CHKERRQ(ierr);
-    }else{
-      if(wheeler2012) {
-        ierr = PerturbVerticesSmooth(dm); CHKERRQ(ierr);
-      }
-    }
-  }
-  ierr = DMPlexDistribute(dm, 1, NULL, &dmDist);
-  if (dmDist) {DMDestroy(&dm); dm = dmDist;}
-  ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
+  // Specify a special DM to be constructed for this demo, and pass it the
+  // relevant options.
+  DMOptions dm_options = {.N = N, .dim = dim, .exo = exo, .exofile = exofile};
+  ierr = TDySetDMConstructor(tdy, &dm_options, CreateDM); CHKERRQ(ierr);
 
-  ierr = TDySetDM(tdy,dm); CHKERRQ(ierr);
+  // Apply overrides.
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
-  /* Setup problem parameters */
+  // Setup problem parameters
   if(wheeler2006){
     if(dim != 2){
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2006 is only for -dim 2 problems");
+      SETERRQ(comm,PETSC_ERR_USER,"-paper wheeler2006 is only for -dim 2 problems");
     }
     switch(problem) {
         case 0: // not a problem in the paper, but want to check constants on the geometry
@@ -654,13 +663,13 @@ int main(int argc, char **argv) {
         ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2006_2,NULL); CHKERRQ(ierr);
         break;
         default:
-        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2006 only valid for -problem {0,1,2}");
+        SETERRQ(comm,PETSC_ERR_USER,"-paper wheeler2006 only valid for -problem {0,1,2}");
     }
   }else if(wheeler2012){
     switch(problem) {
         case 1:
         if(dim != 2){
-          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2012 -problem 1 is only for -dim 2");
+          SETERRQ(comm,PETSC_ERR_USER,"-paper wheeler2012 -problem 1 is only for -dim 2");
         }
         ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_1); CHKERRQ(ierr);
         ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_1,NULL); CHKERRQ(ierr);
@@ -669,7 +678,7 @@ int main(int argc, char **argv) {
         break;
         case 2:
         if(dim != 3){
-          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2012 -problem 2 is only for -dim 3");
+          SETERRQ(comm,PETSC_ERR_USER,"-paper wheeler2012 -problem 2 is only for -dim 3");
         }
         ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
         ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_2,NULL); CHKERRQ(ierr);
@@ -677,7 +686,7 @@ int main(int argc, char **argv) {
         ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2012_2,NULL); CHKERRQ(ierr);
         break;
         default:
-        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"-paper wheeler2012 only valid for -problem {1,2}");
+        SETERRQ(comm,PETSC_ERR_USER,"-paper wheeler2012 only valid for -problem {1,2}");
     }
   }else{
     switch(problem) {
@@ -736,6 +745,26 @@ int main(int argc, char **argv) {
 
   ierr = TDySetup(tdy); CHKERRQ(ierr);
 
+  // Make adjustments to our DM based on the problem.
+  DM dm;
+  TDyGetDM(tdy, &dm);
+  if(wheeler2006 && (problem==2 || problem==0)){
+    ierr = GeometryWheeler2006_2(dm,N); CHKERRQ(ierr);
+  }
+  if(column) {
+    ierr = GeometryColumn(dm); CHKERRQ(ierr);
+  }
+  if(perturb) {
+    ierr = PerturbVerticesRandom(dm,1./N); CHKERRQ(ierr);
+  }else{
+    if(wheeler2012) {
+      ierr = PerturbVerticesSmooth(dm); CHKERRQ(ierr);
+    }
+  }
+
+  // View the configured DM.
+  ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
+
   /* Compute system */
   Mat K;
   Vec U,Ue,F;
@@ -747,7 +776,7 @@ int main(int argc, char **argv) {
 
   /* Solve system */
   KSP ksp;
-  ierr = KSPCreate(PETSC_COMM_WORLD,&ksp); CHKERRQ(ierr);
+  ierr = KSPCreate(comm,&ksp); CHKERRQ(ierr);
   ierr = KSPSetOperators(ksp,K,K); CHKERRQ(ierr);
   ierr = KSPSetFromOptions(ksp); CHKERRQ(ierr);
   ierr = KSPSetUp(ksp); CHKERRQ(ierr);
@@ -766,7 +795,7 @@ int main(int argc, char **argv) {
   /* Evaluate error norms */
   PetscReal normp,normv;
   ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e\n",normp,normv); CHKERRQ(ierr);
+  ierr = PetscPrintf(comm,"%e %e\n",normp,normv); CHKERRQ(ierr);
 
   /* Save vertex coordinates */
   PetscBool file_not_specified;

@@ -10,15 +10,15 @@
 #define tdyinitnoarguments_                            TDYINITNOARGUMENTS
 #define tdyfinalize_                                   TDYFINALIZE
 #define tdycreate_                                     TDYCREATE
-#define tdycreatesetdm_                                TDYSETDM
 #define tdysetmode_                                    TDYSETMODE
-#define tdysetdiscretizationmethod_                    TDYSETDISCRETIZATIONMETHOD
+#define tdysetdiscretization_                          TDYSETDISCRETIZATION
 #define tdysetfromoptions_                             TDYSETFROMOPTIONS
 #define tdydriverinitializettdy_                       TDYDRIVERINITIALIZETDY
 #define tdydtimeintegratorruntotime_                   TDYTIMEINTEGRATORRUNTOTIME
 #define tdydtimeintegratorsettimestep_                 TDYTIMEINTEGRATORSETTIMESTEP
 #define tdydtimeintegratoroutputregression_            TDYTIMEINTEGRATOROUTPUTREGRESSION
 #define tdysetup_                                      TDYSETUP
+#define tdygetdm_                                      TDYGETDM
 #define tdysetwaterdensitytype_                        TDYSETWATERDENSITYTYPE
 #define tdysetmpfaogmatrixmethod_                      TDYSETMPFAOGMATRIXMETHOD
 #define tdysetmpfaoboundaryconditiontype_              TDYSETMPFAOGBOUNDARYCONDITIONTYPE
@@ -72,15 +72,15 @@
 #define tdyinitnoarguments_                            tdyinitnoarguments
 #define tdyfinalize_                                   tdyfinalize
 #define tdycreate_                                     tdycreate
-#define tdysetdm_                                      tdysetdm
 #define tdysetmode_                                    tdysetmode
-#define tdysetdiscretizationmethod_                    tdysetdiscretizationmethod
+#define tdysetdiscretization_                          tdysetdiscretization
 #define tdysetfromoptions_                             tdysetfromoptions
 #define tdydriverinitializettdy_                       tdydriverinitializetdy
 #define tdydtimeintegratorruntotime_                   tdydtimeintegratorruntotime
 #define tdydtimeintegratorsettimestep_                 tdydtimeintegratorsettimestep
 #define tdydtimeintegratoroutputregression_            tdydtimeintegratoroutputregression
 #define tdysetup_                                      tdysetup
+#define tdygetdm_                                      tdygetdm
 #define tdysetwaterdensitytype_                        tdysetwaterdensitytype
 #define tdysetmpfaogmatrixmethod_                      tdysetmpfaogmatrixmethod
 #define tdysetmpfaoboundaryconditiontype_              tdysetmpfaoboundaryconditiontype
@@ -167,7 +167,7 @@ PETSC_EXTERN void  tdyfinalize_(int *__ierr){
 extern "C" {
 #endif
 PETSC_EXTERN void  tdycreate_(TDy *_tdy, int *__ierr){
-*__ierr = TDyCreate(_tdy);
+*__ierr = TDyCreate(PETSC_COMM_WORLD,_tdy);
 }
 #if defined(__cplusplus)
 }
@@ -185,18 +185,8 @@ PETSC_EXTERN void  tdysetmode_(TDy _tdy, PetscInt *mode, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdysetdiscretizationmethod_(TDy _tdy, PetscInt *method, int *__ierr){
-*__ierr = TDySetDiscretizationMethod((TDy)PetscToPointer((_tdy)), *method);
-}
-#if defined(__cplusplus)
-}
-#endif
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-PETSC_EXTERN void  tdysetdm_(TDy _tdy, DM dm, int *__ierr){
-*__ierr = TDySetDM((TDy)PetscToPointer((_tdy)), (DM)PetscToPointer((dm)));
+PETSC_EXTERN void  tdysetdiscretization_(TDy _tdy, PetscInt *discretization, int *__ierr){
+*__ierr = TDySetDiscretization((TDy)PetscToPointer((_tdy)), *discretization);
 }
 #if defined(__cplusplus)
 }
@@ -257,6 +247,16 @@ extern "C" {
 #endif
 PETSC_EXTERN void  tdysetup_(TDy _tdy, int *__ierr){
 *__ierr = TDySetup((TDy)PetscToPointer((_tdy)));
+}
+#if defined(__cplusplus)
+}
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+PETSC_EXTERN void  tdygetdm_(TDy _tdy, DM *dm, int *__ierr){
+*__ierr = TDyGetDM((TDy)PetscToPointer((_tdy)), dm);
 }
 #if defined(__cplusplus)
 }
