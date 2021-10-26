@@ -34,16 +34,29 @@ typedef struct TDyMPFA_O {
   Mat Temp_Trans_mat;
   Vec Temp_P_vec, Temp_TtimesP_vec;
 
+  /* boundary pressure and auxillary variables that depend on boundary pressure */
+  PetscReal *P_BND;
+  PetscReal *T_BND;              /* boundary temperature */
+  PetscReal *rho_BND;            /* density of water [kg m-3]*/
+  PetscReal *vis_BND;            /* viscosity of water [Pa s] */
+  PetscReal *h_BND;              /* enthalpy of water */
+
+  CharacteristicCurve *cc_bnd;
+  PetscReal *Kr_BND; /* relative permeability for each cell [1] */
+  PetscReal *S_BND;  /* saturation, first derivative wrt boundary pressure, and */
+  PetscReal *source_sink;         /* flow equation source sink */
+  PetscReal *energy_source_sink;  /* energy equation source sink */
+
 } TDyMPFAO;
 
 // Functions specific to MPFA-O implementations.
 PETSC_INTERN PetscErrorCode TDyCreate_MPFAO(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_MPFAO(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_MPFAO(void*);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, DM, MaterialProp*);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, DM, MaterialProp*);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void*, DM, MaterialProp*);
-PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM, MaterialProp*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, DM, MaterialProp*, TDyConditions*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, DM, MaterialProp*, TDyConditions*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void*, DM, MaterialProp*, TDyConditions*);
+PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM, MaterialProp*, TDyConditions*);
 PETSC_INTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeGravityDiscretization(TDy);

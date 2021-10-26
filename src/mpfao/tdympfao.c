@@ -425,7 +425,8 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context) {
 // Setup function for Richards + MPFA_O
 PetscErrorCode TDySetup_Richards_MPFAO(void *context,
                                        DM dm,
-                                       MaterialProp *matprop) {
+                                       MaterialProp *matprop,
+                                       TDyConditions* conditions) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -511,7 +512,8 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context,
 
 // Setup function for Richards + MPFA_O_DAE
 PetscErrorCode TDy_Setup_Richards_MPFAO_DAE(void *context, DM dm,
-                                            MaterialProp *matprop) {
+                                            MaterialProp *matprop,
+                                            TDyConditions* conditions) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscFunctionReturn(0);
@@ -600,7 +602,8 @@ PetscErrorCode TDy_Setup_Richards_MPFAO_DAE(void *context, DM dm,
 
 // Setup function for Richards + MPFA_O_TRANSIENTVAR
 PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void *context, DM dm,
-                                                    MaterialProp *matprop) {
+                                                    MaterialProp *matprop,
+                                                    TDyConditions* conditions) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -611,7 +614,8 @@ PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void *context, DM dm,
 
 // Setup function for TH + MPFA-O
 PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm,
-                                 MaterialProp *matprop) {
+                                 MaterialProp *matprop,
+                                 TDyConditions* conditions) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;

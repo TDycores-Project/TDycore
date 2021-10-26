@@ -1,9 +1,24 @@
 #include <private/tdycoreimpl.h>
 #include <petsc/private/khash/khash.h>
 
-/*
-  Boundary and source-sink conditions are set by PETSc operations
-*/
+/// Initializes a new TDyConditions object.
+/// @param [out] conditions a pointer to the conditions object initialized by
+///                         this function.
+PetscErrorCode TDyConditionsCreate(TDyConditions** conditions) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  ierr = PetscMalloc(sizeof(TDyConditions), conditions); CHKERRQ(ierr);
+  conditions->context = context;
+  conditions->compute_boundary_pressure = TDyConstantBoundaryPressure;
+  conditions->compute_boundary_temperature = TDyConstantBoundaryTemperature;
+  conditions->compute_boundary_velocity = TDyConstantBoundaryVelocityFn;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyConditionsDestroy(TDyConditions*) {
+  PetscFunctionBegin;
+  PetscFunctionReturn(0);
+}
 
 // Here's a registry of functions that can be used for boundary conditions and
 // forcing terms.
@@ -150,6 +165,15 @@ PetscErrorCode TDyConstantBoundaryPressureFn(TDy tdy, PetscReal *x, PetscReal *p
   TDyOptions *options = &tdy->options;
 
   *p = options->boundary_pressure;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyConstantBoundaryTemperatureFn(TDy tdy, PetscReal *x, PetscReal *T, void *ctx) {
+  PetscFunctionBegin;
+  TDyOptions *options = &tdy->options;
+
+  *T = options->boundary_temperature;
 
   PetscFunctionReturn(0);
 }

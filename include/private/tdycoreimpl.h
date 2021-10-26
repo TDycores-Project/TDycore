@@ -9,12 +9,15 @@
 #include <tdyio.h>
 #include <private/tdytiimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
+#include <private/tdyconditionsimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdyoptions.h>
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
 
+// This type serves as a "virtual table" containing function pointers that
+// define the behavior of the dycore.
 typedef struct _TDyOps *TDyOps;
 struct _TDyOps {
   // Called by TDyCreate to allocate implementation-specific resources. Returns
@@ -43,7 +46,7 @@ struct _TDyOps {
   PetscErrorCode (*set_from_options)(void*);
 
   // Called by TDySetup -- configures the DM for solvers.
-  PetscErrorCode (*setup)(void*, DM, MaterialProp*);
+  PetscErrorCode (*setup)(void*, DM, MaterialProp*, TDyConditions*);
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.
@@ -56,15 +59,11 @@ struct _TDyOps {
   PetscErrorCode (*computepermeability)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computethermalconductivity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeresidualsaturation)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*computeforcing)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*computeenergyforcing)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*compute_boundary_pressure)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*compute_boundary_temperature)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*compute_boundary_velocity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computesoildensity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computesoilspecificheat)(TDy,PetscReal*,PetscReal*,void*);
 };
 
+// This type represents the dycore and all of its settings.
 struct _p_TDy {
   PETSCHEADER(struct _TDyOps);
 
@@ -81,15 +80,16 @@ struct _p_TDy {
   // Contextual information passed to create_dm (if given).
   void* create_dm_context;
 
-  // We'll likely get rid of this.
-  TDyTimeIntegrator ti;
-
   // I/O subsystem
   TDyIO io;
 
   // options that determine the behavior(s) of the dycore
   TDyOptions options;
 
+  // boundary conditions and sources/sinks
+  TDyConditions conditions;
+
+  // regression testing data
   TDyRegression *regression;
 
   //---------------------------------------------------
@@ -114,35 +114,12 @@ struct _p_TDy {
   /* characteristic curve parameters */
   CharacteristicCurve *cc;
 
-  /* boundary pressure and auxillary variables that depend on boundary pressure */
-  PetscReal *P_BND;
-  PetscReal *T_BND;              /* boundary temperature */
-  PetscReal *rho_BND;            /* density of water [kg m-3]*/
-  PetscReal *vis_BND;            /* viscosity of water [Pa s] */
-  PetscReal *h_BND;              /* enthalpy of water */
-
-  CharacteristicCurve *cc_bnd;
-  PetscReal *Kr_BND; /* relative permeability for each cell [1] */
-  PetscReal *S_BND;  /* saturation, first derivative wrt boundary pressure, and */
-  PetscReal *source_sink;         /* flow equation source sink */
-  PetscReal *energy_source_sink;  /* energy equation source sink */
-
-  void *porosityctx;
-  void *permeabilityctx;
-  void *thermalconductivityctx;
-  void *residualsaturationctx;
-  void *forcingctx;
-  void *energyforcingctx;
-  void *boundary_pressure_ctx;
-  void *boundary_temperature_ctx;
-  void *boundary_velocity_ctx;
-  void *soildensityctx;
-  void *soilspecificheatctx;
-
   //------------------------------------------------------
   // Solver-specific information (should be factored out)
   //------------------------------------------------------
   Mat J, Jpre;
+
+  TDyTimeIntegrator ti;
 
   /* For SNES based timestepping */
   PetscReal dtime;
