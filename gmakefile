@@ -12,7 +12,7 @@ libtdycore_static := $(LIBDIR)/libtdycore.$(AR_LIB_SUFFIX)
 libtdycore := $(if $(filter-out no,$(BUILDSHAREDLIB)),$(libtdycore_shared),$(libtdycore_static))
 
 pkgs := tdycore
-srcs-tdycore.c   := $(wildcard src/mpfao/*.c src/*.c src/interface/ftn/*.c)
+srcs-tdycore.c   := $(wildcard src/mpfao/*.c src/fe/*.c src/*.c src/interface/ftn/*.c)
 srcs-tdycore.cxx := $(wildcard src/*.cxx)
 srcs-tdycore.F90 := $(wildcard src/f90-mod/*.F90)
 
@@ -57,9 +57,9 @@ concatlangs = $(foreach lang, $(langs), $(srcs-$(1).$(lang):%.$(lang)=$(OBJDIR)/
 srcs.o := $(foreach pkg, $(pkgs), $(call concatlangs,$(pkg)))
 .SECONDARY: $(srcs.o)
 
-$(libtdycore_shared) : objs := $(srcs.o)
+$(libtdycore_shared) : objs := $(sort $(srcs.o))
 $(libtdycore_shared) : libs := $(PETSC_LIB)
-$(libtdycore_static) : objs := $(srcs.o)
+$(libtdycore_static) : objs := $(sort $(srcs.o))
 
 %.$(SL_LINKER_SUFFIX) : $$(objs) | $$(@D)/.DIR
 	$(call quiet,CLINKER) -shared -o $@ $^ $(libs)
