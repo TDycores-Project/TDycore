@@ -1,10 +1,14 @@
 #if !defined(TDYMPFAOIMPL_H)
 #define TDYMPFAOIMPL_H
 
-#include <petsc.h>
+#include <tdycore.h>
+#include <private/tdycharacteristiccurvesimpl.h>
+#include <private/tdyconditionsimpl.h>
+#include <private/tdymaterialpropertiesimpl.h>
+#include <private/tdymeshimpl.h>
 
 // This struct stores MPFA-O specific data for the dycore.
-typedef struct TDyMPFA_O {
+typedef struct TDyMPFAO {
   // Options
   PetscInt gmatrix_method;
   PetscInt bc_type;
@@ -14,6 +18,7 @@ typedef struct TDyMPFA_O {
   PetscReal *V; // cell volumes
   PetscReal *X; // point centroids
   PetscReal *N; // face normals
+  PetscInt *closureSize, **closure, maxClosureSize;
   PetscInt ncv, nfv; // number of {cell|face} vertices
 
   PetscReal ****subc_Gmatrix; // Gmatrix for subcells

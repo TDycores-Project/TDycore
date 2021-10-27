@@ -26,8 +26,6 @@ typedef struct TDyWY {
   PetscInt  *orient;
   PetscInt  *faces;
 
-  PetscInt *closureSize, **closure, maxClosureSize;
-
   // Quadrature type.
   TDyQuadratureType qtype;
 } TDyWY;

@@ -2,9 +2,10 @@
 #define TDYCOREMESHIMPL_H
 
 #include <petsc.h>
-#include "tdycore.h"
-#include "tdyregionimpl.h"
+#include <tdycore.h>
+#include <private/tdyregionimpl.h>
 
+typedef struct TDyMPFAO TDyMPFAO;
 
 typedef enum {
   CELL_QUAD_TYPE=0, /* quadrilateral cell for a 2D cell */
@@ -182,6 +183,6 @@ typedef struct TDyMesh {
   TDyRegion region_connected;
 } TDyMesh;
 
-PETSC_INTERN PetscErrorCode TDyBuildMesh(TDy);
-PETSC_INTERN PetscErrorCode TDyAllocateMemoryForMesh(TDy);
+PETSC_INTERN PetscErrorCode TDyBuildMesh(TDyMPFAO*,DM);
+PETSC_INTERN PetscErrorCode TDyAllocateMemoryForMesh(TDyMPFAO*,DM);
 #endif

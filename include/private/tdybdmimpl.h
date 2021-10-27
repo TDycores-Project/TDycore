@@ -26,8 +26,6 @@ typedef struct TDyBDM {
   PetscInt  *orient;
   PetscInt  *faces;
 
-  PetscInt *closureSize, **closure, maxClosureSize;
-
   // Quadrature type.
   TDyQuadratureType qtype;
 } TDyBDM;
