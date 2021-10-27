@@ -268,8 +268,8 @@ PetscErrorCode TDySetFromOptions_WY(DM dm, void *context) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetup_WY(void *context, DM dm, MaterialProp *matprop,
-                           TDyConditions* conditions) {
+PetscErrorCode TDySetup_WY(void *context, DM dm, TDyEOS *eos,
+                           MaterialProp *matprop, TDyConditions* conditions) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
@@ -941,6 +941,80 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
   norm_sum = PetscSqrtReal(norm_sum);
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(norm_sum);
+}
+
+PetscErrorCode TDyUpdateState_WY(void *context, DM dm,
+                                 TDyEOS *eos, MaterialProp *matprop,
+                                 CharacteristicCurve *cc, PetscReal *U) {
+  PetscFunctionBegin;
+  TDyWY *wy = context;
+
+  PetscReal Se,dSe_dS,dKr_dSe,Kr;
+  PetscReal *P, *temp;
+  PetscInt dim;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  PetscInt dim2 = dim*dim;
+  PetscInt cStart, cEnd;
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&P);CHKERRQ(ierr);
+  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+
+  for (PetscInt c=0;c<cEnd-cStart;c++) P[c] = U[c];
+
+  CharacteristicCurve *cc = tdy->cc;
+  MaterialProp *matprop = tdy->matprop;
+
+  for(PetscInt c=cStart; c<cEnd; c++) {
+    PetscInt i = c-cStart;
+
+    PetscReal n = cc->gardner_n[c];
+    PetscReal alpha = cc->vg_alpha[c];
+
+    switch (cc->SatFuncType[i]) {
+    case SAT_FUNC_GARDNER :
+      PressureSaturation_Gardner(n,cc->gardner_m[c],alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&(cc->dS_dP[i]),&(cc->d2S_dP2[i]));
+      break;
+    case SAT_FUNC_VAN_GENUCHTEN :
+      PressureSaturation_VanGenuchten(cc->vg_m[c],alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&cc->dS_dP[i],&(cc->d2S_dP2[i]));
+      break;
+    default:
+      SETERRQ(comm,PETSC_ERR_SUP,"Unknown saturation function");
+      break;
+    }
+
+    Se = (cc->S[i] - cc->sr[i])/(1.0 - cc->sr[i]);
+    dSe_dS = 1.0/(1.0 - cc->sr[i]);
+
+    switch (cc->RelPermFuncType[i]) {
+    case REL_PERM_FUNC_IRMAY :
+      RelativePermeability_Irmay(cc->irmay_m[c],Se,&Kr,NULL);
+      break;
+    case REL_PERM_FUNC_MUALEM :
+      RelativePermeability_Mualem(cc->mualem_m[c],cc->mualem_poly_low[c],cc->mualem_poly_coeffs[c],Se,&Kr,&dKr_dSe);
+      break;
+    default:
+      SETERRQ(comm,PETSC_ERR_SUP,"Unknown relative permeability function");
+      break;
+    }
+    cc->Kr[i] = Kr;
+    cc->dKr_dS[i] = dKr_dSe * dSe_dS;
+
+    for(PetscInt j=0; j<dim2; j++) {
+      matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
+    }
+
+    ierr = TDyEOSComputeWaterDensity(eos, P[i], &(mpfao->rho[i]),
+                                     &(mpfao->drho_dP[i]),
+                                     &(mpfao->d2rho_dP2[i])); CHKERRQ(ierr);
+    ierr = TDyEOSComputeWaterViscosity(eos, P[i], &(mpfao->vis[i]),
+                                       &(mpfao->dvis_dP[i]),
+                                       &(mpfao->d2vis_dP2[i])); CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {

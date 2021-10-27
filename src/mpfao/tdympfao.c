@@ -72,14 +72,14 @@ static PetscErrorCode ComputeGMatrix_MPFAO(TDyMPFAO* mpfao, DM dm,
           ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
 
           ierr = TDyComputeEntryOfGMatrix(area, normal, K, nu, subcells->T[subcell_id], dim,
-                                          &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+                                          &(mpfao->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
 
           if (mpfao->Temp_subc_Gmatrix) { // TH
             ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
 
             ierr = TDyComputeEntryOfGMatrix(area, normal, Kappa,
               nu, subcells->T[subcell_id], dim,
-              &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+              &(mpfao->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
           } // TH
         } // jj-subcell-faces
       } // ii-isubcell faces
@@ -155,7 +155,7 @@ PetscErrorCode ComputeGMatrix_TPF(TDyMPFAO *mpfao, DM dm,
 
           if (ii != jj) {
 
-            tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
+            mpfao->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
 
           } else {
 
@@ -209,7 +209,7 @@ PetscErrorCode ComputeGMatrix_TPF(TDyMPFAO *mpfao, DM dm,
             K_value          = 1.0/K_value;
             K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
 
-            tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist);
+            mpfao->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist);
           }
 
           if (mpfao->Temp_subc_Gmatrix) { // TH
@@ -217,9 +217,9 @@ PetscErrorCode ComputeGMatrix_TPF(TDyMPFAO *mpfao, DM dm,
               ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
 
               ierr = TDyComputeEntryOfGMatrix(area, normal, Kappa, nu, subcells->T[subcell_id], dim,
-                                              &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+                                              &(mpfao->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
             } else {
-              tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
+              mpfao->Temp_subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
             }
           } // TH
 
@@ -238,13 +238,13 @@ static PetscErrorCode ComputeGMatrix(TDyMPFAO* mpfao) {
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
 
-  switch (tdy->options.gmatrix_method) {
+  switch (mpfao->gmatrix_method) {
     case MPFAO_GMATRIX_DEFAULT:
-      ierr = ComputeGMatrix_MPFAO(tdy); CHKERRQ(ierr);
+      ierr = ComputeGMatrix_MPFAO(mpfao); CHKERRQ(ierr);
       break;
 
     case MPFAO_GMATRIX_TPF:
-      ierr = ComputeGMatrix_TPF(tdy); CHKERRQ(ierr);
+      ierr = ComputeGMatrix_TPF(mpfao); CHKERRQ(ierr);
       break;
   }
 
@@ -253,9 +253,9 @@ static PetscErrorCode ComputeGMatrix(TDyMPFAO* mpfao) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
+PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDyMPFAO mpfao) {
 
-  TDyMesh *mesh = tdy->mesh;
+  TDyMesh *mesh = mpfao->mesh;
   PetscInt nbnd_faces;
   PetscErrorCode ierr;
 
@@ -264,16 +264,16 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
 
   nbnd_faces = mesh->num_boundary_faces;
 
-  ierr = CharacteristicCurveCreate(nbnd_faces, &tdy->cc_bnd); CHKERRQ(ierr);
+  ierr = CharacteristicCurveCreate(nbnd_faces, &mpfao->cc_bnd); CHKERRQ(ierr);
 
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->P_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->rho_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->vis_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->P_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->rho_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->vis_BND)); CHKERRQ(ierr);
 
   PetscInt i;
   PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
   for (i=0;i<nbnd_faces;i++) {
-    ierr = ComputeWaterDensity(tdy->Pref, tdy->options.rho_type, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
+    ierr = TDyEOSComputeWaterDensity(mpfao->Pref, mpfao->options.rho_type, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(tdy->Pref, tdy->options.mu_type, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
   }
 
@@ -442,6 +442,7 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context) {
 // Setup function for Richards + MPFA_O
 PetscErrorCode TDySetup_Richards_MPFAO(void *context,
                                        DM dm,
+                                       TDyEOS *eos,
                                        MaterialProp *matprop,
                                        TDyConditions* conditions) {
   PetscErrorCode ierr;
@@ -822,11 +823,13 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
 }
 
 PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
-                                       TDyEOS *eos,
-                                       MaterialProp *matprop,
-                                       CharacteristicCurve *cc) {
+                                       TDyEOS *eos, MaterialProp *matprop,
+                                       CharacteristicCurve *cc, PetscReal *U) {
   PetscFunctionBegin;
   TDyMPFAO *mpfao = context;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
 
   PetscReal Se,dSe_dS,dKr_dSe,Kr;
   PetscReal *P, *temp;

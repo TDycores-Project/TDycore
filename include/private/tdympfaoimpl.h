@@ -70,12 +70,12 @@ typedef struct TDyMPFAO {
 PETSC_INTERN PetscErrorCode TDyCreate_MPFAO(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_MPFAO(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_MPFAO(void*);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, DM, MaterialProp*, TDyConditions*);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, DM, MaterialProp*, TDyConditions*);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void*, DM, MaterialProp*, TDyConditions*);
-PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM, MaterialProp*, TDyConditions*);
-PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, MaterialProp*, CharacteristicCurve*);
-PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, MaterialProp*, CharacteristicCurve*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, DM, TDyEOS*, MaterialProp*, TDyConditions*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, DM, TDyEOS*, MaterialProp*, TDyConditions*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void*, DM, TDyEOS*, MaterialProp*, TDyConditions*);
+PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM, TDyEOS*, MaterialProp*, TDyConditions*);
+PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, TDyEOS*, MaterialProp*, CharacteristicCurve*, PetscReal*);
+PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, TDyEOS*, MaterialProp*, CharacteristicCurve*, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeGravityDiscretization(TDy);

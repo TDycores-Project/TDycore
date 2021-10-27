@@ -47,11 +47,12 @@ struct _TDyOps {
   PetscErrorCode (*set_from_options)(void*);
 
   // Called by TDySetup -- configures the DM for solvers.
-  PetscErrorCode (*setup)(void*, DM, MaterialProp*, TDyConditions*);
+  PetscErrorCode (*setup)(void*, DM, TDyEOS*, MaterialProp*, TDyConditions*);
 
   // Called by TDyUpdateState -- updates the state maintained by the
   // implementation with provided solution data.
-  PetscErrorCode (*update_state)(void*, DM, TDyEOS*, MaterialProp*, CharacteristicCurve*);
+  PetscErrorCode (*update_state)(void*, DM, TDyEOS*, MaterialProp*,
+                                 CharacteristicCurve*, PetscReal*);
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.

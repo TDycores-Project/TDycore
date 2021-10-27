@@ -1091,13 +1091,11 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
 
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
-
   // Call the implementation-specific state update.
   CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;
-  tdy->ops->update_state(tdy->context, tdy->dm, &tdy->eos, tdy->matprop, tdy->cc);
+  tdy->ops->update_state(tdy->context, tdy->dm, &tdy->eos, tdy->matprop,
+                         tdy->cc, U);
 
   TDY_STOP_FUNCTION_TIMER()
   TDyExitProfilingStage("TDycore Setup");
