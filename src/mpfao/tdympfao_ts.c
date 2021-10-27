@@ -244,25 +244,25 @@ PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx
 /// @param [in] ctx user-defined context
 PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
 
-  TDy tdy = (TDy)ctx;
+  TDyMPFAO* mpfao = (TDyMPFAO*)ctx;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  TDyMesh *mesh  = tdy->mesh;
+  TDyMesh *mesh  = mpfao->mesh;
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   TDyVertex *vertices = &mesh->vertices;
-  CharacteristicCurve *cc = tdy->cc;
-  CharacteristicCurve *cc_bnd = tdy->cc_bnd;
+  CharacteristicCurve *cc = mpfao->cc;
+  CharacteristicCurve *cc_bnd = mpfao->cc_bnd;
 
   PetscErrorCode ierr;
 
   PetscBool set_jac_to_zero = PETSC_FALSE;
 
   PetscScalar *TtimesP_vec_ptr, *GravDis_ptr;
-  ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
-  ierr = VecGetArray(tdy->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
+  ierr = VecGetArray(mpfao->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
+  ierr = VecGetArray(mpfao->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
 
   for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -318,7 +318,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
       PetscInt cell_id_dn = cell_ids[1];
 
       // If using neumann bc (which is currently no-flux), then skip the face
-      if ( tdy->options.mpfao_bc_type == MPFAO_NEUMANN_BC  && (cell_id_up<0 || cell_id_dn <0))  continue;
+      if ( mpfao->bc_type == MPFAO_NEUMANN_BC  && (cell_id_up<0 || cell_id_dn <0))  continue;
 
       PetscReal dukvr_dPup = 0.0;
       PetscReal dukvr_dPdn = 0.0;
@@ -363,12 +363,12 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
         } else {
           // "up" is boundary cell
           PetscReal Kr = cc_bnd->Kr[-cell_id_up-1];
-          PetscReal vis = tdy->vis_BND[-cell_id_up-1];
+          PetscReal vis = mpfao->vis_BND[-cell_id_up-1];
 
           ukvr = Kr/vis;
           dukvr_dPup = 0.0;
 
-	  if (tdy->options.mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_up-1] <= tdy->Pref) {
+	  if (mpfao->bc_type == MPFAO_SEEPAGE_BC && mpfao->P_BND[-cell_id_up-1] <= mpfao->Pref) {
 	    set_jac_to_zero = PETSC_TRUE;
 	  }
         }

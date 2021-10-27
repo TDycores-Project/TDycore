@@ -10,6 +10,7 @@
 #include <private/tdytiimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdyconditionsimpl.h>
+#include <private/tdyeosimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdyoptions.h>
 
@@ -22,7 +23,7 @@ typedef struct _TDyOps *TDyOps;
 struct _TDyOps {
   // Called by TDyCreate to allocate implementation-specific resources. Returns
   // a pointer to a context.
-  PetscErrorCode (*create)(TDy);
+  PetscErrorCode (*create)(void**);
 
   // Called by TDyDestroy to free implementation-specific resources.
   PetscErrorCode (*destroy)(void*);
@@ -47,6 +48,10 @@ struct _TDyOps {
 
   // Called by TDySetup -- configures the DM for solvers.
   PetscErrorCode (*setup)(void*, DM, MaterialProp*, TDyConditions*);
+
+  // Called by TDyUpdateState -- updates the state maintained by the
+  // implementation with provided solution data.
+  PetscErrorCode (*update_state)(void*, DM, TDyEOS*, MaterialProp*, CharacteristicCurve*);
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.
@@ -89,30 +94,17 @@ struct _p_TDy {
   // boundary conditions and sources/sinks
   TDyConditions conditions;
 
-  // regression testing data
-  TDyRegression *regression;
+  // equation of state
+  TDyEOS eos;
 
-  //---------------------------------------------------
-  // Material models (probably should be factored out)
-  //---------------------------------------------------
-
-  /* non-linear function of liquid pressure */
-  PetscReal  *rho, *drho_dP, *d2rho_dP2;       /* density of water [kg m-3]*/
-  PetscReal  *vis, *dvis_dP, *d2vis_dP2;       /* viscosity of water [Pa s] */
-  PetscReal  *h, *dh_dP, *dh_dT;               /* enthalpy of water */
-  PetscReal  *u, *du_dP, *du_dT;               /* internal energy of water */
-  PetscReal  *drho_dT, *dvis_dT;
-
-  /* problem constants */
-  PetscReal  gravity[3]; /* vector of gravity [m s-2] */
-  PetscReal  Pref;       /* reference pressure */
-  PetscReal  Tref;       /* reference temperature */
-
-  /* material parameters */
+  // material parameters
   MaterialProp *matprop;
 
-  /* characteristic curve parameters */
+  // characteristic curve parameters
   CharacteristicCurve *cc;
+
+  // regression testing data
+  TDyRegression *regression;
 
   //------------------------------------------------------
   // Solver-specific information (should be factored out)

@@ -52,6 +52,18 @@ typedef struct TDyMPFAO {
   PetscReal *source_sink;         /* flow equation source sink */
   PetscReal *energy_source_sink;  /* energy equation source sink */
 
+  /* non-linear function of liquid pressure */
+  PetscReal  *rho, *drho_dP, *d2rho_dP2;       /* density of water [kg m-3]*/
+  PetscReal  *vis, *dvis_dP, *d2vis_dP2;       /* viscosity of water [Pa s] */
+  PetscReal  *h, *dh_dP, *dh_dT;               /* enthalpy of water */
+  PetscReal  *u, *du_dP, *du_dT;               /* internal energy of water */
+  PetscReal  *drho_dT, *dvis_dT;
+
+  /* problem constants */
+  PetscReal  gravity[3]; /* vector of gravity [m s-2] */
+  PetscReal  Pref;       /* reference pressure */
+  PetscReal  Tref;       /* reference temperature */
+
 } TDyMPFAO;
 
 // Functions specific to MPFA-O implementations.
@@ -62,9 +74,15 @@ PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, DM, MaterialProp*, TD
 PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, DM, MaterialProp*, TDyConditions*);
 PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void*, DM, MaterialProp*, TDyConditions*);
 PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM, MaterialProp*, TDyConditions*);
+PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, MaterialProp*, CharacteristicCurve*);
+PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, MaterialProp*, CharacteristicCurve*);
 PETSC_INTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeGravityDiscretization(TDy);
+PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
+PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy,Vec);
+PETSC_EXTERN PetscReal TDyMPFAOVelocityNorm(TDy);
+PETSC_EXTERN PetscReal TDyMPFAOPressureNorm(TDy,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy,Mat,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices(TDy,Mat,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices(TDy,Mat,Vec);
@@ -78,7 +96,7 @@ PETSC_INTERN PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS,PetscReal,Vec
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESFunction(SNES,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESJacobian(SNES,Vec,Mat,Mat,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESPreSolve(TDy);
-PETSC_INTERN PetscErrorCode TDySetMPFAOGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
-PETSC_INTERN PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
+PETSC_INTERN PetscErrorCode TDyMPFAOSetGmatrixMethod(TDyMPFAO*,TDyMPFAOGmatrixMethod);
+PETSC_INTERN PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDyMPFAO*,TDyMPFAOBoundaryConditionType);
 
 #endif

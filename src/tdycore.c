@@ -712,6 +712,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     TDySetDiscretization(tdy, discretization);
   }
 
+  // Set the EOS from options.
+  tdy->eos.density_type = tdy->options.rho_type;
+  tdy->eos.viscosity_type = tdy->options.mu_type;
+  tdy->eos.enthalpy_type = tdy->options.enthalpy_type;
+
   // Now that we know the discretization, we can create our implementation-
   // specific context.
   ierr = tdy->ops->create(&tdy->context); CHKERRQ(ierr);
@@ -1025,26 +1030,31 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
       tdy->ops->setup = TDySetup_Richards_MPFAO;
+      tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
     } else if (discretization == MPFA_O_DAE) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
       tdy->ops->setup = TDySetup_Richards_MPFAO_DAE;
+      tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
     } else if (discretization == MPFA_O_TRANSIENTVAR) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
       tdy->ops->setup = TDySetup_Richards_MPFAO_TRANSIENTVAR;
+      tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
     } else if (discretization == BDM) {
       tdy->ops->create = TDyCreate_BDM;
       tdy->ops->destroy = TDyDestroy_BDM;
       tdy->ops->set_from_options = TDySetFromOptions_BDM;
       tdy->ops->setup = TDySetup_BDM;
+      tdy->ops->update_state = NULL; // FIXME: ???
     } else if (discretization == WY) {
       tdy->ops->create = TDyCreate_WY;
       tdy->ops->destroy = TDyDestroy_WY;
       tdy->ops->set_from_options = TDySetFromOptions_WY;
       tdy->ops->setup = TDySetup_WY;
+      tdy->ops->update_state = TDyUpdateState_WY;
     } else {
       SETERRQ(comm,PETSC_ERR_USER, "Invalid discretization given!");
     }
@@ -1054,6 +1064,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
       tdy->ops->setup = TDySetup_TH_MPFAO;
+      tdy->ops->update_state = TDyUpdateState_TH_MPFAO;
     } else {
       SETERRQ(comm,PETSC_ERR_USER,
         "The TH mode does not support the selected discretization!");
@@ -1071,129 +1082,22 @@ PetscErrorCode TDySetWaterDensityType(TDy tdy, TDyWaterDensityType dentype) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetMPFAOGmatrixMethod(TDy tdy,TDyMPFAOGmatrixMethod method) {
-  PetscFunctionBegin;
-
-  PetscValidPointer(tdy,1);
-  tdy->options.mpfao_gmatrix_method = method;
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy tdy,TDyMPFAOBoundaryConditionType bctype) {
-  PetscFunctionBegin;
-
-  PetscValidPointer(tdy,1);
-  tdy->options.mpfao_bc_type = bctype;
-
-  PetscFunctionReturn(0);
-}
-
+/// Updates the secondary state of the system using the solution data.
+/// @param [inout] tdy a dycore object
+/// @param [in] U an array of solution data
 PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyEnterProfilingStage("TDycore Setup");
   TDY_START_FUNCTION_TIMER()
-  PetscReal Se,dSe_dS,dKr_dSe,Kr;
-  PetscReal *P, *temp;
-  PetscInt dim;
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
-  PetscInt dim2 = dim*dim;
-  PetscInt cStart, cEnd;
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&P);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
 
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
 
-  if (tdy->options.mode == TH) {
-    for (PetscInt c=0;c<cEnd-cStart;c++) {
-      P[c] = U[c*2];
-      temp[c] = U[c*2+1];
-    }
-  }
-  else {
-    for (PetscInt c=0;c<cEnd-cStart;c++) P[c] = U[c];
-  }
-
+  // Call the implementation-specific state update.
   CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;
-
-  for(PetscInt c=cStart; c<cEnd; c++) {
-    PetscInt i = c-cStart;
-
-    PetscReal n = cc->gardner_n[c];
-    PetscReal alpha = cc->vg_alpha[c];
-
-    switch (cc->SatFuncType[i]) {
-    case SAT_FUNC_GARDNER :
-      PressureSaturation_Gardner(n,cc->gardner_m[c],alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&(cc->dS_dP[i]),&(cc->d2S_dP2[i]));
-      break;
-    case SAT_FUNC_VAN_GENUCHTEN :
-      PressureSaturation_VanGenuchten(cc->vg_m[c],alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&cc->dS_dP[i],&(cc->d2S_dP2[i]));
-      break;
-    default:
-      SETERRQ(comm,PETSC_ERR_SUP,"Unknown saturation function");
-      break;
-    }
-
-    Se = (cc->S[i] - cc->sr[i])/(1.0 - cc->sr[i]);
-    dSe_dS = 1.0/(1.0 - cc->sr[i]);
-
-    switch (cc->RelPermFuncType[i]) {
-    case REL_PERM_FUNC_IRMAY :
-      RelativePermeability_Irmay(cc->irmay_m[c],Se,&Kr,NULL);
-      break;
-    case REL_PERM_FUNC_MUALEM :
-      RelativePermeability_Mualem(cc->mualem_m[c],cc->mualem_poly_low[c],cc->mualem_poly_coeffs[c],Se,&Kr,&dKr_dSe);
-      break;
-    default:
-      SETERRQ(comm,PETSC_ERR_SUP,"Unknown relative permeability function");
-      break;
-    }
-    cc->Kr[i] = Kr;
-    cc->dKr_dS[i] = dKr_dSe * dSe_dS;
-
-    for(PetscInt j=0; j<dim2; j++) {
-      matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
-    }
-
-    ierr = ComputeWaterDensity(P[i], tdy->options.rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
-    ierr = ComputeWaterViscosity(P[i], tdy->options.mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
-    if (tdy->options.mode ==  TH) {
-      for(PetscInt j=0; j<dim2; j++)
-        matprop->Kappa[i*dim2+j] = matprop->Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
-      ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->options.enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);
-      tdy->u[i] = tdy->h[i] - P[i]/tdy->rho[i];
-    }
-  }
-
-  if ( (tdy->options.discretization == MPFA_O ||
-        tdy->options.discretization == MPFA_O_DAE ||
-        tdy->options.discretization == MPFA_O_TRANSIENTVAR)) {
-    PetscReal *p_vec_ptr, gz;
-    TDyMesh *mesh = tdy->mesh;
-    TDyCell *cells = &mesh->cells;
-
-    ierr = VecGetArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
-    for (PetscInt c=cStart; c<cEnd; c++) {
-      PetscInt i = c-cStart;
-      ierr = ComputeGtimesZ(tdy->gravity,cells->centroid[i].X,dim,&gz);
-      p_vec_ptr[i] = P[i];
-    }
-    ierr = VecRestoreArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
-
-    if (tdy->options.mode == TH) {
-      PetscReal *t_vec_ptr;
-      ierr = VecGetArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
-      for (PetscInt c=cStart; c<cEnd; c++) {
-        PetscInt i = c-cStart;
-        t_vec_ptr[i] = temp[i];
-      }
-      ierr = VecRestoreArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
-    }
-  }
+  tdy->ops->update_state(tdy->context, tdy->dm, &tdy->eos, tdy->matprop, tdy->cc);
 
   TDY_STOP_FUNCTION_TIMER()
   TDyExitProfilingStage("TDycore Setup");

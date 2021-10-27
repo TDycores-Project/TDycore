@@ -2,7 +2,7 @@
 #include <private/tdyeosimpl.h>
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode ComputeWaterDensity_Constant(PetscReal p, PetscReal *den, PetscReal *dden_dP, PetscReal *d2den_dP2) {
+static PetscErrorCode ComputeWaterDensity_Constant(PetscReal p, PetscReal *den, PetscReal *dden_dP, PetscReal *d2den_dP2) {
 
   PetscFunctionBegin;
 
@@ -14,7 +14,7 @@ PetscErrorCode ComputeWaterDensity_Constant(PetscReal p, PetscReal *den, PetscRe
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode ComputeWaterDensity_Exponential(PetscReal p, PetscReal *den, PetscReal *dden_dP, PetscReal *d2den_dP2) {
+static PetscErrorCode ComputeWaterDensity_Exponential(PetscReal p, PetscReal *den, PetscReal *dden_dP, PetscReal *d2den_dP2) {
 
   PetscReal ReferenceDensity = 997.16e0;
   PetscReal ReferencePressure = 101325.e0;
@@ -37,29 +37,33 @@ PetscErrorCode ComputeWaterDensity_Exponential(PetscReal p, PetscReal *den, Pets
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode ComputeWaterDensity(PetscReal p, PetscInt density_type, PetscReal *den, PetscReal *dden_dP, PetscReal *d2den_dP2) {
+PetscErrorCode TDyEOSComputeWaterDensity(TDyEOS *eos, PetscReal p,
+                                         PetscReal *den, PetscReal *dden_dP,
+                                         PetscReal *d2den_dP2) {
 
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
-  switch (density_type) {
-  case WATER_DENSITY_CONSTANT :
-    ierr = ComputeWaterDensity_Constant(p,den,dden_dP,d2den_dP2); CHKERRQ(ierr);
-    break;
-  case WATER_DENSITY_EXPONENTIAL :
-    ierr = ComputeWaterDensity_Exponential(p,den,dden_dP,d2den_dP2); CHKERRQ(ierr);
-    break;
-  default:
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown water density function");
-    break;
+  switch (eos->density_type) {
+    case WATER_DENSITY_CONSTANT :
+      ierr = ComputeWaterDensity_Constant(p,den,dden_dP,d2den_dP2); CHKERRQ(ierr);
+      break;
+    case WATER_DENSITY_EXPONENTIAL :
+      ierr = ComputeWaterDensity_Exponential(p,den,dden_dP,d2den_dP2); CHKERRQ(ierr);
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown water density function");
+      break;
   }
 
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
-PetscErrorCode ComputeWaterViscosity_Constant(PetscReal p, PetscReal *vis, PetscReal *dvis_dP, PetscReal *d2vis_dP2) {
+static PetscErrorCode ComputeWaterViscosity_Constant(PetscReal p,
+                                                     PetscReal *vis,
+                                                     PetscReal *dvis_dP,
+                                                     PetscReal *d2vis_dP2) {
 
   PetscFunctionBegin;
 
@@ -70,27 +74,29 @@ PetscErrorCode ComputeWaterViscosity_Constant(PetscReal p, PetscReal *vis, Petsc
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
-PetscErrorCode ComputeWaterViscosity(PetscReal p, PetscInt density_type, PetscReal *vis, PetscReal *dvis_dP, PetscReal *d2vis_dP2) {
+PetscErrorCode TDyEOSComputeWaterViscosity(TDyEOS *eos, PetscReal p, PetscReal *vis,
+                                           PetscReal *dvis_dP, PetscReal *d2vis_dP2) {
 
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
-  switch (density_type) {
-  case WATER_VISCOSITY_CONSTANT :
-    ierr = ComputeWaterViscosity_Constant(p,vis,dvis_dP,d2vis_dP2); CHKERRQ(ierr);
-    break;
-  default:
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown water viscosity function");
-    break;
+  switch (eos->viscosity_type) {
+    case WATER_VISCOSITY_CONSTANT :
+      ierr = ComputeWaterViscosity_Constant(p,vis,dvis_dP,d2vis_dP2); CHKERRQ(ierr);
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown water viscosity function");
+      break;
   }
 
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
-PetscErrorCode ComputeWaterEnthalpy_Constant(PetscReal t, PetscReal p, PetscReal *hw, PetscReal *dhw_dP, PetscReal *dhw_dT) {
+static PetscErrorCode ComputeWaterEnthalpy_Constant(PetscReal t, PetscReal p,
+                                                    PetscReal *hw,
+                                                    PetscReal *dhw_dP,
+                                                    PetscReal *dhw_dT) {
 
   PetscFunctionBegin;
 
@@ -101,20 +107,21 @@ PetscErrorCode ComputeWaterEnthalpy_Constant(PetscReal t, PetscReal p, PetscReal
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
-PetscErrorCode ComputeWaterEnthalpy(PetscReal t, PetscReal p, PetscInt enthalpy_type, PetscReal *hw, PetscReal *dhw_dP, PetscReal *dhw_dT) {
+PetscErrorCode TDyEOSComputeWaterEnthalpy(TDyEOS *eos, PetscReal t, PetscReal p,
+                                          PetscReal *hw, PetscReal *dhw_dP,
+                                          PetscReal *dhw_dT) {
 
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
-  switch (enthalpy_type) {
-  case WATER_ENTHALPY_CONSTANT :
-    ierr = ComputeWaterEnthalpy_Constant(t,p,hw,dhw_dP,dhw_dT); CHKERRQ(ierr);
-    break;
-  default:
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown water enthalpy function");
-    break;
+  switch (eos->enthalpy_type) {
+    case WATER_ENTHALPY_CONSTANT :
+      ierr = ComputeWaterEnthalpy_Constant(t,p,hw,dhw_dP,dhw_dT); CHKERRQ(ierr);
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown water enthalpy function");
+      break;
   }
 
   PetscFunctionReturn(0);

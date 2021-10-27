@@ -8,12 +8,14 @@ typedef struct {
   // Model settings
   PetscReal gravity_constant;
   TDyMode mode;
-  TDyWaterDensityType rho_type;
-  PetscInt mu_type;
-  PetscInt enthalpy_type;
 
   // Numerics settings
   TDyDiscretization discretization;
+
+  // EOS settings
+  TDyWaterDensityType rho_type;
+  PetscInt mu_type;
+  PetscInt enthalpy_type;
 
   // Constant material properties
   PetscReal porosity;

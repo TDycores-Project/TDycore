@@ -181,11 +181,6 @@ PETSC_EXTERN PetscReal TDyL1norm(PetscReal*,PetscReal*,PetscInt);
 PETSC_EXTERN PetscReal TDyADotBMinusC(PetscReal*,PetscReal*,PetscReal*,PetscInt);
 PETSC_EXTERN PetscReal TDyADotB(PetscReal*,PetscReal*,PetscInt);
 
-PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
-PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy,Vec);
-PETSC_EXTERN PetscReal TDyMPFAOVelocityNorm(TDy);
-PETSC_EXTERN PetscReal TDyMPFAOPressureNorm(TDy,Vec);
-
 /* ---------------------------------------------------------------- */
 
 PETSC_EXTERN void PrintMatrix(PetscReal*,PetscInt,PetscInt,PetscBool);
