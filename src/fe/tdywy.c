@@ -217,19 +217,26 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyWYSetQuadrature(TDy tdy, TDyQuadratureType qtype) {
-  PetscValidPointer(tdy,1);
+PetscErrorCode TDyWYSetQuadrature(TDyWY* wy, TDyQuadratureType qtype) {
   PetscFunctionBegin;
-  TDyWY* wy = tdy->context;
   wy->qtype = qtype;
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyCreate_WY(void **context) {
+  PetscFunctionBegin;
   // Allocate a new context for the WY method.
   TDyWY* wy;
   ierr = PetscMalloc(sizeof(TDyWY), &wy);
   *context = wy;
+
+  // initialize data
+  wy->qtype = FULL;
+  wy->vmap = NULL; wy->emap = NULL; wy->Alocal = NULL; wy->Flocal = NULL;
+  wy->quad = NULL;
+  wy->faces = NULL; wy->LtoG = NULL; wy->orient = NULL;
+
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyDestroy_WY(void *context) {

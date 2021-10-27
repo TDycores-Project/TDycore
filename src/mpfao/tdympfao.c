@@ -90,8 +90,8 @@ static PetscErrorCode ComputeGMatrix_MPFAO(TDyMPFAO* mpfao, DM dm,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode ComputeGMatrix_TPF(TDyMPFAO *mpfao, DM dm,
-                                  MaterialProp *matprop) {
+static PetscErrorCode ComputeGMatrix_TPF(TDyMPFAO *mpfao, DM dm,
+                                         MaterialProp *matprop) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
@@ -253,7 +253,8 @@ static PetscErrorCode ComputeGMatrix(TDyMPFAO* mpfao) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDyMPFAO mpfao) {
+static PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDyMPFAO mpfao,
+                                                               TDyEOS *eos) {
 
   TDyMesh *mesh = mpfao->mesh;
   PetscInt nbnd_faces;
@@ -273,16 +274,16 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDyMPFAO mpfao) {
   PetscInt i;
   PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
   for (i=0;i<nbnd_faces;i++) {
-    ierr = TDyEOSComputeWaterDensity(mpfao->Pref, mpfao->options.rho_type, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
-    ierr = ComputeWaterViscosity(tdy->Pref, tdy->options.mu_type, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
+    ierr = TDyEOSComputeWaterDensity(eos, mpfao->Pref, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
+    ierr = TDyEOSComputeWaterViscosity(eos, tdy->Pref, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
   }
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy) {
+static PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy,
+                                                                     TDyEOS *eos) {
 
   TDyMesh *mesh = tdy->mesh;
   PetscInt nbnd_faces;
@@ -299,18 +300,17 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy) {
   PetscInt i;
   PetscReal dh_dP, dh_dT;
   for (i=0;i<nbnd_faces;i++) {
-    ierr = ComputeWaterEnthalpy(tdy->Tref, tdy->Pref,tdy->options.enthalpy_type,
-                                &(tdy->h_BND[i]), &dh_dP, &dh_dT); CHKERRQ(ierr);
+    ierr = TDyEOЅComputeWaterEnthalpy(eos, tdy->Tref, tdy->Pref,
+                                      &(tdy->h_BND[i]), &dh_dP, &dh_dT); CHKERRQ(ierr);
   }
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
+static PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDyMPFAO *mpfao) {
 
-  TDyMesh *mesh = tdy->mesh;
+  TDyMesh *mesh = mpfao->mesh;
   PetscInt ncells;
   PetscErrorCode ierr;
 
@@ -319,19 +319,18 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
 
   ncells = mesh->num_cells;
 
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(tdy->source_sink)); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(mpfao->source_sink)); CHKERRQ(ierr);
 
   PetscInt i;
-  for (i=0;i<ncells;i++) tdy->source_sink[i] = 0.0;
+  for (i=0;i<ncells;i++) mpfao->source_sink[i] = 0.0;
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(TDy tdy) {
+static PetscErrorCode TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(TDyMPFAO *mpfao) {
 
-  TDyMesh *mesh = tdy->mesh;
+  TDyMesh *mesh = mpfao->mesh;
   PetscInt ncells;
   PetscErrorCode ierr;
 
@@ -340,16 +339,17 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(TDy tdy) {
 
   ncells = mesh->num_cells;
 
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(tdy->energy_source_sink)); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(mpfao->energy_source_sink)); CHKERRQ(ierr);
 
   PetscInt i;
-  for (i=0;i<ncells;i++) tdy->energy_source_sink[i] = 0.0;
+  for (i=0;i<ncells;i++) mpfao->energy_source_sink[i] = 0.0;
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyMPFAOSetGmatrixMethod(TDyMPFAO* mpfao,TDyMPFAOGmatrixMethod method) {
+PetscErrorCode TDyMPFAOSetGmatrixMethod(TDyMPFAO* mpfao,
+                                        TDyMPFAOGmatrixMethod method) {
   PetscFunctionBegin;
 
   PetscValidPointer(tdy,1);
@@ -358,7 +358,8 @@ PetscErrorCode TDyMPFAOSetGmatrixMethod(TDyMPFAO* mpfao,TDyMPFAOGmatrixMethod me
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetMPFAOBoundaryConditionType(TDyMPFAO* mpfao,TDyMPFAOBoundaryConditionType bctype) {
+PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDyMPFAO* mpfao,
+                                                TDyMPFAOBoundaryConditionType bctype) {
   PetscFunctionBegin;
 
   PetscValidPointer(tdy,1);
@@ -375,6 +376,13 @@ PetscErrorCode TDyCreate_MPFAO(void **context) {
   ierr = PetscMalloc(sizeof(TDyMPFAO), &mpfao);
   *context = mpfao;
 
+  // Initialize defaults and data.
+  mpfao->gmatrix_method = MPFAO_GMATRIX_DEFAULT;
+  mpfao->bc_type = MPFAO_DIRICHLET_BC;
+  mpfao->Pref = 101325;
+  mpfao->Tref = 25;
+  mpfao->gravity[0] = 0; mpfao->gravity[1] = 0; mpfao->gravity[2] = 0;
+
   PetscFunctionReturn(0);
 }
 
@@ -384,25 +392,36 @@ PetscErrorCode TDyDestroy_MPFAO(void *context) {
 
   if (mpfao->vel   ) { ierr = PetscFree(mpfao->vel); CHKERRQ(ierr); }
 
-  ierr = PetscFree(wy->V); CHKERRQ(ierr);
-  ierr = PetscFree(wy->X); CHKERRQ(ierr);
-  ierr = PetscFree(wy->N); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->V); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->X); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->N); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->rho); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->d2rho_dP2); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->vis); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dvis_dP); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->d2vis_dP2); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->h); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dh_dP); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dh_dT); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dvis_dT); CHKERRQ(ierr);
 
-  // if (tdy->subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
+  if (tdy->cc_bnd) {ierr = CharacteristicCurveDestroy(tdy->cc_bnd); CHKERRQ(ierr);}
+
+  // if (mpfao->subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
   //                                   nsubcells, nrow, ncol); CHKERRQ(ierr); }
-  // if (tdy->Trans       ) { ierr = TDyDeallocate_RealArray_3D(&tdy->Trans,
-  //                                   tdy->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
-  // if (tdy->Trans_mat   ) { ierr = MatDestroy(&tdy->Trans_mat  ); CHKERRQ(ierr); }
-  if (tdy->P_vec       ) { ierr = VecDestroy(&tdy->P_vec      ); CHKERRQ(ierr); }
-  if (tdy->TtimesP_vec ) { ierr = VecDestroy(&tdy->TtimesP_vec); CHKERRQ(ierr); }
-  // if (tdy->Temp_subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&tdy->Temp_subc_Gmatrix,
-  //                                        tdy->mesh->num_cells,
+  // if (mpfao->Trans       ) { ierr = TDyDeallocate_RealArray_3D(&mpfao->Trans,
+  //                                   mpfao->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
+  // if (mpfao->Trans_mat   ) { ierr = MatDestroy(&mpfao->Trans_mat  ); CHKERRQ(ierr); }
+  if (mpfao->P_vec       ) { ierr = VecDestroy(&mpfao->P_vec      ); CHKERRQ(ierr); }
+  if (mpfao->TtimesP_vec ) { ierr = VecDestroy(&mpfao->TtimesP_vec); CHKERRQ(ierr); }
+  // if (mpfao->Temp_subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&mpfao->Temp_subc_Gmatrix,
+  //                                        mpfao->mesh->num_cells,
   //                                        nsubcells, nrow, ncol); CHKERRQ(ierr); }
-  // if (tdy->Temp_Trans       ) { ierr = TDyDeallocate_RealArray_3D(&tdy->Temp_Trans,
-  //                                        tdy->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
-  if (tdy->Temp_Trans_mat   ) { ierr = MatDestroy(&tdy->Temp_Trans_mat  ); CHKERRQ(ierr); }
-  if (tdy->Temp_P_vec       ) { ierr = VecDestroy(&tdy->Temp_P_vec      ); CHKERRQ(ierr); }
-  if (tdy->Temp_TtimesP_vec ) { ierr = VecDestroy(&tdy->Temp_TtimesP_vec); CHKERRQ(ierr); }
+  // if (mpfao->Temp_Trans       ) { ierr = TDyDeallocate_RealArray_3D(&mpfao->Temp_Trans,
+  //                                        mpfao->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
+  if (mpfao->Temp_Trans_mat   ) { ierr = MatDestroy(&mpfao->Temp_Trans_mat  ); CHKERRQ(ierr); }
+  if (mpfao->Temp_P_vec       ) { ierr = VecDestroy(&mpfao->Temp_P_vec      ); CHKERRQ(ierr); }
+  if (mpfao->Temp_TtimesP_vec ) { ierr = VecDestroy(&mpfao->Temp_TtimesP_vec); CHKERRQ(ierr); }
 
   // TODO: Need to destroy the mesh.
 
@@ -427,6 +446,10 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context) {
   if (flag && (bctype != mpfao->bc_type)) {
     ierr = TDySetMPFAOBoundaryConditionType(mpfao, bctype); CHKERRQ(ierr);
   }
+
+  // Copy g into place.
+  tdy->gravity[dim-1] = options->gravity_constant;
+
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
@@ -435,21 +458,12 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context) {
 // Setup functions
 //-----------------
 
-// There's a lot of duplicated code here for the moment. We'll factor out the
-// repeated stuff when we move the data out of the TDy struct and into
-// discretization-specific types.
-
-// Setup function for Richards + MPFA_O
-PetscErrorCode TDySetup_Richards_MPFAO(void *context,
-                                       DM dm,
-                                       TDyEOS *eos,
-                                       MaterialProp *matprop,
-                                       TDyConditions* conditions) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  TDyMPFAO *mpfao = context;
-
+// Performs setup common to all MPFA-O methods.
+static PetscErrorCode TDySetup_Common(TDyMPFAO *mpfao,
+                                      DM dm,
+                                      TDyEOS *eos,
+                                      MaterialProp *matprop,
+                                      TDyConditions* conditions) {
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
 
@@ -458,6 +472,74 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context,
   if (dim == 2) {
     SETERRQ(comm,PETSC_ERR_USER,"MPFA-O method supports only 3D calculations.");
   }
+
+  // Allocate storage for material data.
+  PetscInt cStart, cEnd;
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  PetscInt nc = cEnd-cStart;
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->rho)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->drho_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->d2rho_dP2)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->vis)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->dvis_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->d2vis_dP2)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->h)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->dh_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->dh_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->drho_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->u)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->du_dP)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->du_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->dvis_dT)); CHKERRQ(ierr);
+  for (PetscInt c=0; c<nc; c++) {
+    mpfao->rho[c] = 0.0;
+    mpfao->drho_dP[c] = 0.0;
+    mpfao->vis[c] = 0.0;
+    mpfao->dvis_dP[c] = 0.0;
+    mpfao->d2vis_dP2[c] = 0.0;
+    mpfao->h[c] = 0.0;
+    mpfao->dh_dT[c] = 0.0;
+    mpfao->dh_dP[c] = 0.0;
+    mpfao->drho_dT[c] = 0.0;
+    mpfao->u[c] = 0.0;
+    mpfao->du_dP[c] = 0.0;
+    mpfao->du_dT[c] = 0.0;
+    mpfao->dvis_dT[c] = 0.0;
+  }
+
+  // Compute/store plex geometry.
+  PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
+  TDyStartTimer(t1);
+  PetscInt pStart, pEnd, vStart, vEnd, eStart, eEnd;
+  ierr = DMPlexGetChart(tdy->dm,&pStart,&pEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(tdy->dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(tdy->dm,1,&eStart,&eEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(tdy->V));
+  CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->X));
+  CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->N));
+  CHKERRQ(ierr);
+  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal (dm, &coordinates); CHKERRQ(ierr);
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  for(PetscInt p=pStart; p<pEnd; p++) {
+    if((p >= vStart) && (p < vEnd)) {
+      PetscInt offset;
+      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
+      for(PetscInt d=0; d<dim; d++) tdy->X[p*dim+d] = coords[offset+d];
+    } else {
+      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
+      PetscLogEvent t11 = TDyGetTimer("DMPlexComputeCellGeometryFVM");
+      TDyStartTimer(t11);
+      ierr = DMPlexComputeCellGeometryFVM(tdy->dm,p,&(tdy->V[p]),
+                                          &(tdy->X[p*dim]),
+                                          &(tdy->N[p*dim])); CHKERRQ(ierr);
+      TDyStopTimer(t11);
+    }
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+  TDyStopTimer(t1);
 
   // Allocate mesh data.
   mpfao->mesh = (TDyMesh *) malloc(sizeof(TDyMesh));
@@ -474,6 +556,22 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context,
   PetscInt ncol = 3;
   ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
                                   nsubcells, nrow, ncol); CHKERRQ(ierr);
+
+}
+
+// Setup function for Richards + MPFA_O
+PetscErrorCode TDySetup_Richards_MPFAO(void *context,
+                                       DM dm,
+                                       TDyEOS *eos,
+                                       MaterialProp *matprop,
+                                       TDyConditions* conditions) {
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+  TDyMPFAO *mpfao = context;
+
+  // Perform all common setup operations.
+  ierr = TDySetup_Common(mpfao, dm, eos, matprop, conditions);
 
   // Set up the section, 1 dof per cell
   PetscSection sec;
@@ -522,46 +620,24 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context,
   ierr = TDyComputeTransmissibilityMatrix(mpfao); CHKERRQ(ierr);
   ierr = TDyComputeGravityDiscretization(mpfao); CHKERRQ(ierr);
 
-  ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(mpfao); CHKERRQ(ierr);
-  ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
+  ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
+  ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(mpfao, eos); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
 
 // Setup function for Richards + MPFA_O_DAE
-PetscErrorCode TDy_Setup_Richards_MPFAO_DAE(void *context, DM dm,
-                                            MaterialProp *matprop,
-                                            TDyConditions* conditions) {
+PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, TDyEOS *eos,
+                                           MaterialProp *matprop,
+                                           TDyConditions* conditions) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscFunctionReturn(0);
 
   TDyMPFAO *mpfao = context;
 
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  if (dim == 2) {
-    SETERRQ(comm,PETSC_ERR_USER,"MPFA-O method supports only 3D calculations.");
-  }
-
-  // Allocate mesh data.
-  mpfao->mesh = (TDyMesh *) malloc(sizeof(TDyMesh));
-  ierr = TDyAllocateMemoryForMesh(tdy); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, tdy->nfv, tdy->nfv + tdy->ncv); CHKERRQ(ierr);
-  ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
-                     &(tdy->vel )); CHKERRQ(ierr);
-  ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
-  ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscInt),
-                     &(tdy->vel_count)); CHKERRQ(ierr);
-  ierr = TDyInitialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_faces, 0); CHKERRQ(ierr);
-  PetscInt nsubcells = 8;
-  PetscInt nrow = 3;
-  PetscInt ncol = 3;
-  ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
-                                  nsubcells, nrow, ncol); CHKERRQ(ierr);
+  // Perform all common setup operations.
+  ierr = TDySetup_Common(mpfao, dm, eos, matprop, conditions);
 
   // Set up the section, 1 dof per cell
   PetscSection sec;
@@ -614,8 +690,8 @@ PetscErrorCode TDy_Setup_Richards_MPFAO_DAE(void *context, DM dm,
   ierr = TDyComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
   ierr = TDyComputeGravityDiscretization(tdy); CHKERRQ(ierr);
 
-  ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
-  ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(tdy); CHKERRQ(ierr);
+  ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
+  ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(mpfao, eos); CHKERRQ(ierr);
 }
 
 // Setup function for Richards + MPFA_O_TRANSIENTVAR
@@ -631,50 +707,18 @@ PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void *context, DM dm,
 }
 
 // Setup function for TH + MPFA-O
-PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm,
+PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, TDyEOS *eos,
                                  MaterialProp *matprop,
                                  TDyConditions* conditions) {
-  PetscErrorCode ierr;
-
   PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
 
+  PetscErrorCode ierr;
   TDyMPFAO* mpfao = context;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  if (dim == 2) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"MPFA-O method supports only 3D calculations.");
-  }
+  // Perform all common setup operations.
+  ierr = TDySetup_Common(mpfao, dm, eos, matprop, conditions);
 
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-
-  // Allocate mesh data.
-  mpfao->mesh = (TDyMesh *) malloc(sizeof(TDyMesh));
-  ierr = TDyAllocateMemoryForMesh(mpfao); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_3D(&mpfao->Trans, mpfao->mesh->num_vertices,
-                                  mpfao->nfv, mpfo->nfv + mpfao->ncv); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_3D(&mpfao->Temp_Trans, mpfao->mesh->num_vertices,
-                                  mpfao->nfv, mpfao->nfv); CHKERRQ(ierr);
-  ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscReal),
-                     &(mpfao->vel)); CHKERRQ(ierr);
-  ierr = TDyInitialize_RealArray_1D(mpfao->vel, mpfao->mesh->num_faces, 0.0); CHKERRQ(ierr);
-  ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscInt),
-                     &(mpfao->vel_count)); CHKERRQ(ierr);
-  ierr = TDyInitialize_IntegerArray_1D(mpfao->vel_count, mpfao->mesh->num_faces,
-                                       0); CHKERRQ(ierr);
-
-  PetscInt nsubcells = 8;
-  PetscInt nrow = 3;
-  PetscInt ncol = 3;
-
-  ierr = TDyAllocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
-                                  nsubcells, nrow, ncol); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_4D(&mpfao->Temp_subc_Gmatrix, mpfao->mesh->num_cells,
-                                  nsubcells, nrow, ncol); CHKERRQ(ierr);
-
-  // Set up the section, 1 dof per cell
+  // Set up the section, 2 dofs per cell
   PetscSection sec;
   PetscInt p, pStart, pEnd;
   ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
@@ -730,10 +774,10 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm,
   ierr = TDyComputeTransmissibilityMatrix(mpfao); CHKERRQ(ierr);
   ierr = TDyComputeGravityDiscretization(mpfao); CHKERRQ(ierr);
 
-  ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(mpfao); CHKERRQ(ierr);
-  ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
-  ierr = TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(mpfao); CHKERRQ(ierr);
-  ierr = TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(mpfao); CHKERRQ(ierr);
+  ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
+  ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(mpfao, eos); CHKERRQ(ierr);
+  ierr = TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(mpfao, eos); CHKERRQ(ierr);
+  ierr = TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(mpfao, eos); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);

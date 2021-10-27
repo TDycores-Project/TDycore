@@ -98,9 +98,6 @@ PETSC_EXTERN PetscErrorCode TDyGetDimension(TDy,PetscInt*);
 PETSC_EXTERN PetscErrorCode TDyGetDM(TDy,DM*);
 PETSC_EXTERN PetscErrorCode TDyGetBoundaryFaces(TDy,PetscInt*, const PetscInt**);
 PETSC_EXTERN PetscErrorCode TDyRestoreBoundaryFaces(TDy,PetscInt*, const PetscInt**);
-PETSC_EXTERN PetscErrorCode TDyGetCentroidArray(TDy,PetscReal**);
-
-PETSC_EXTERN PetscErrorCode TDySetGravityVector(TDy,PetscReal*);
 
 // Set material properties: via PETSc operations
 PETSC_EXTERN PetscErrorCode TDySetPorosityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);

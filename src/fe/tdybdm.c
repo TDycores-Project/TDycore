@@ -23,19 +23,26 @@ void TDyPiola(PetscReal *u,PetscReal *DF,PetscReal J,PetscInt dim){
   TDY_STOP_FUNCTION_TIMER()
 }
 
-PetscErrorCode TDyWYSetQuadrature(TDy tdy, TDyQuadratureType qtype) {
-  PetscValidPointer(tdy,1);
+PetscErrorCode TDyBDMSetQuadrature(TDyBDΜ* bdm, TDyQuadratureType qtype) {
   PetscFunctionBegin;
-  TDyBDM* bdm = tdy->context;
   bdm->qtype = qtype;
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyCreate_BDM(void **context) {
+  PetscFunctionBegin;
   // Allocate a new context for the WY method.
   TDyBDM* bdm;
   ierr = PetscMalloc(sizeof(TDyBDM), &bdm);
   *context = bdm;
+
+  // initialize data
+  wy->qtype = FULL;
+  wy->vmap = NULL; wy->emap = NULL; wy->Alocal = NULL; wy->Flocal = NULL;
+  wy->quad = NULL;
+  wy->faces = NULL; wy->LtoG = NULL; wy->orient = NULL;
+
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyDestroy_BDM(void *context) {

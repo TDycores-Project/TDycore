@@ -20,12 +20,12 @@ typedef struct {
   // Constant material properties
   PetscReal porosity;
   PetscReal permeability;
+  PetscReal thermal_conductivity;
+  PetscReal residual_saturation;
   PetscReal soil_density;
   PetscReal soil_specific_heat;
-  PetscReal thermal_conductivity;
 
   // Characteristic curve parameters
-  PetscReal residual_saturation;
   PetscReal gardner_n;
   PetscReal vangenuchten_m;
   PetscReal vangenuchten_alpha;

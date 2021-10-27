@@ -196,12 +196,6 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   options->mu_type = WATER_VISCOSITY_CONSTANT;
   options->enthalpy_type = WATER_ENTHALPY_CONSTANT;
 
-  options->mpfao_gmatrix_method = MPFAO_GMATRIX_DEFAULT;
-  options->mpfao_bc_type = MPFAO_DIRICHLET_BC;
-  options->tpf_allow_all_meshes = PETSC_FALSE;
-
-  options->qtype = FULL;
-
   options->porosity=0.25;
   options->permeability=1.e-12;
   options->soil_density=2650.;
@@ -243,17 +237,9 @@ PetscErrorCode TDyCreate(MPI_Comm comm, TDy *_tdy) {
   ierr = TDyIOCreate(&tdy->io); CHKERRQ(ierr);
 
   // initialize flags/parameters
-  tdy->Pref = 101325;
-  tdy->Tref = 25;
-  tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
   tdy->dm = NULL;
   tdy->solution = NULL;
   tdy->J = NULL;
-
-  /* initialize method information to null */
-  tdy->vmap = NULL; tdy->emap = NULL; tdy->Alocal = NULL; tdy->Flocal = NULL;
-  tdy->quad = NULL;
-  tdy->faces = NULL; tdy->LtoG = NULL; tdy->orient = NULL;
 
   tdy->setup_flags |= TDyParametersInitialized;
   PetscFunctionReturn(0);
@@ -298,7 +284,42 @@ PetscErrorCode TDySetDMConstructorF90(TDy tdy,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyMalloc(TDy tdy) {
+// This reads a single scalar value from a context into a scalar material
+// property.
+static PetscErrorCode ScalarPropertyFromContext(void *context,
+                                                PetscReal *x,
+                                                PetscReal *prop) {
+  PetscFunctionBegin;
+  PetscReal *val = context;
+  *prop = *val;
+  PetscFunctionReturn(0);
+}
+
+// This reads a single scalar value from a context into a tensor material
+// property (2D).
+static PetscErrorCode TensorPropertyFromScalarContext2D(void *context,
+                                                        PetscReal *x,
+                                                        PetscReal *prop) {
+  PetscFunctionBegin;
+  PetscReal *val = context;
+  prop[0] = prop[3] = *val;
+  prop[1] = prop[2] = 0.0;
+  PetscFunctionReturn(0);
+}
+
+// This reads a single scalar value from a context into a tensor material
+// property (3D).
+static PetscErrorCode TensorPropertyFromScalarContext3D(void *context,
+                                                        PetscReal *x,
+                                                        PetscReal *prop) {
+  PetscFunctionBegin;
+  PetscReal *val = context;
+  prop[0] = prop[4] = prop[8] = *val;
+  prop[1] = prop[2] = prop[3] = prop[5] = prop[6] = prop[7] = 0.0;
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode AllocateMaterialProps(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -313,35 +334,30 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
   /* allocate space for a full tensor perm for each cell */
-  PetscLogEvent t2 = TDyGetTimer("ComputePlexGeometry");
-  TDyStartTimer(t2);
   PetscInt cStart, cEnd;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   PetscInt nc = cEnd-cStart;
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->rho)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2rho_dP2)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->vis)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2vis_dP2)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->h)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dT)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dT)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->u)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dT)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
-  TDyStopTimer(t2);
 
   ierr = CharacteristicCurveCreate(nc, &tdy->cc); CHKERRQ(ierr);
-  ierr = MaterialPropertiesCreate(dim, nc, &tdy->matprop); CHKERRQ(ierr);
+
+  // Set up material properties from options (all scalars).
+  ierr = MaterialPropCreate(dim, nc, &tdy->matprop); CHKERRQ(ierr);
+  ierr = MaterialPropSetPorosityFn(tdy->matprop, &tdy->options.porosity, ScalarPropertyFromContext);
+  if (dim == 2) {
+    ierr = MaterialPropSetPermeabilityFn(tdy->matprop, &tdy->options.permeability, TensorPropertyFromScalarContext2d);
+  } else
+    ierr = MaterialPropSetPermeabilityFn(tdy->matprop, &tdy->options.permeability, TensorPropertyFromScalarContext3d);
+  }
+  ierr = MaterialPropSetThermalConductivityFn(tdy->matprop, &tdy->options.thermal_conductivity, ScalarPropertyFromContext);
+  ierr = MaterialPropSetResidualSaturationFn(tdy->matprop, &tdy->options.residual_saturation, ScalarPropertyFromContext);
+  ierr = MaterialPropSetSoilDensityFn(tdy->matprop, &tdy->options.soil_density, ScalarPropertyFromContext);
+  ierr = MaterialPropSetSoilSpecificHeat(tdy->matprop, &tdy->options.soil_specific_heat, ScalarPropertyFromContext);
 
   /* problem constants FIX: add mutators */
-   CharacteristicCurve *cc = tdy->cc;
-   TDyOptions *options = &tdy->options;
+  CharacteristicCurve *cc = tdy->cc;
+  TDyOptions *options = &tdy->options;
 
-   PetscReal mualem_poly_low = 0.99;
+  PetscReal mualem_poly_low = 0.99;
 
   for (PetscInt c=0; c<nc; c++) {
     cc->sr[c] = options->residual_saturation;
@@ -358,124 +374,11 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     cc->dKr_dS[c] = 0.0;
     cc->S[c] = 0.0;
     cc->dS_dP[c] = 0.0;
-    tdy->rho[c] = 0.0;
-    tdy->drho_dP[c] = 0.0;
-    tdy->vis[c] = 0.0;
-    tdy->dvis_dP[c] = 0.0;
-    tdy->d2vis_dP2[c] = 0.0;
-    tdy->h[c] = 0.0;
-    tdy->dh_dT[c] = 0.0;
-    tdy->dh_dP[c] = 0.0;
-    tdy->drho_dT[c] = 0.0;
     cc->dS_dT[c] = 0.0;
-    tdy->u[c] = 0.0;
-    tdy->du_dP[c] = 0.0;
-    tdy->du_dT[c] = 0.0;
-    tdy->dvis_dT[c] = 0.0;
   }
   ierr = RelativePermeability_Mualem_SetupSmooth(tdy->cc, nc);
 
-  tdy->gravity[dim-1] = options->gravity_constant;
   PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyCreateGrid(TDy tdy) {
-  Vec            coordinates;
-  PetscSection   coordSection;
-  PetscScalar   *coords;
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
-
-  if ((tdy->setup_flags & TDyOptionsSet) == 0) {
-    SETERRQ(comm,PETSC_ERR_USER,"Options must be set prior to TDyCreateGrid()");
-  }
-
-  if (!tdy->dm) {
-    DM dm;
-    if (tdy->options.read_mesh) {
-      ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
-                                  PETSC_TRUE, &dm); CHKERRQ(ierr);
-    } else {
-      if (tdy->ops->create_dm) {
-        // We've been instructed to create a DM ourselves.
-        ierr = tdy->ops->create_dm(comm, tdy->create_dm_context, &dm);
-      } else if (create_dm_f90_) {
-        // Create a DM all-Fortran-like.
-        MPI_Fint comm_f = MPI_Comm_c2f(comm);
-        create_dm_f90_(&comm_f, &dm, &ierr);
-      } else {
-        ierr = DMPlexCreate(comm, &dm); CHKERRQ(ierr);
-      }
-      // Here we lean on PETSc's DM* options for overrides.
-      ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
-    }
-    // Distribute the mesh, however we got it.
-    ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
-    tdy->dm = dm;
-  }
-
-  // Mark the grid's boundary faces and their transitive closure. All are
-  // stored at their appropriate strata within the label.
-  DMLabel boundary_label;
-  ierr = DMCreateLabel(tdy->dm, "boundary"); CHKERRQ(ierr);
-  ierr = DMGetLabel(tdy->dm, "boundary", &boundary_label); CHKERRQ(ierr);
-  ierr = DMPlexMarkBoundaryFaces(tdy->dm, 1, boundary_label); CHKERRQ(ierr);
-  ierr = DMPlexLabelComplete(tdy->dm, boundary_label); CHKERRQ(ierr);
-
-  // Compute/store plex geometry.
-  PetscInt dim;
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
-  PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
-  TDyStartTimer(t1);
-  PetscInt pStart, pEnd, vStart, vEnd, eStart, eEnd;
-  ierr = DMPlexGetChart(tdy->dm,&pStart,&pEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(tdy->dm,0,&vStart,&vEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(tdy->dm,1,&eStart,&eEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(tdy->V));
-  CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->X));
-  CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(tdy->N));
-  CHKERRQ(ierr);
-  ierr = DMGetCoordinateSection(tdy->dm, &coordSection); CHKERRQ(ierr);
-  ierr = DMGetCoordinatesLocal (tdy->dm, &coordinates); CHKERRQ(ierr);
-  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
-  for(PetscInt p=pStart; p<pEnd; p++) {
-    if((p >= vStart) && (p < vEnd)) {
-      PetscInt offset;
-      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
-      for(PetscInt d=0; d<dim; d++) tdy->X[p*dim+d] = coords[offset+d];
-    } else {
-      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
-      PetscLogEvent t11 = TDyGetTimer("DMPlexComputeCellGeometryFVM");
-      TDyStartTimer(t11);
-      ierr = DMPlexComputeCellGeometryFVM(tdy->dm,p,&(tdy->V[p]),
-                                          &(tdy->X[p*dim]),
-                                          &(tdy->N[p*dim])); CHKERRQ(ierr);
-      TDyStopTimer(t11);
-    }
-  }
-  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
-  TDyStopTimer(t1);
-  ierr = TDyMalloc(tdy); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetGravityVector(TDy tdy, PetscReal *gravity) {
-
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-
-  PetscInt dim;
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
-  for (PetscInt d=0;d<dim;d++) tdy->gravity[d] = gravity[d];
-
-  PetscFunctionReturn(0);
-
 }
 
 PetscErrorCode TDyDestroy(TDy *_tdy) {
@@ -493,18 +396,9 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
 
   // Call implementation-specific destructor.
   if (tdy->ops->destroy) {
-    tdy->options->destroy(tdy->context);
+    tdy->ops->destroy(tdy->context);
   }
 
-  ierr = PetscFree(tdy->rho); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->d2rho_dP2); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->vis); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->dvis_dP); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->d2vis_dP2); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->h); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->dh_dP); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
@@ -514,8 +408,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
 
   if (tdy->cc) {ierr = CharacteristicCurveDestroy(tdy->cc); CHKERRQ(ierr);}
-  if (tdy->cc_bnd) {ierr = CharacteristicCurveDestroy(tdy->cc_bnd); CHKERRQ(ierr);}
-  if (tdy->matprop) {ierr = MaterialPropertiesDestroy(tdy->matprop); CHKERRQ(ierr);}
+  if (tdy->matprop) {ierr = MaterialPropDestroy(tdy->matprop); CHKERRQ(ierr);}
 
   ierr = PetscFree(tdy); CHKERRQ(ierr);
 
@@ -570,13 +463,6 @@ PetscErrorCode TDyRestoreBoundaryFaces(TDy tdy, PetscInt *num_faces,
   ierr = DMGetLabel(tdy->dm, "boundary", &label); CHKERRQ(ierr);
   ierr = DMLabelGetStratumIS(label, 1, &is); CHKERRQ(ierr);
   ierr = ISRestoreIndices(is, faces); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyGetCentroidArray(TDy tdy,PetscReal **X) {
-  PetscFunctionBegin;
-  PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
-  *X = tdy->X;
   PetscFunctionReturn(0);
 }
 
@@ -723,15 +609,48 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 
   // Mode/discretization-specific options.
   if (tdy->ops->set_from_options) {
-    ierr = tdy->ops->set_from_options(tdy, &(tdy->context)); CHKERRQ(ierr);
+    ierr = tdy->ops->set_from_options(tdy->context); CHKERRQ(ierr);
   }
 
   // Wrap up and indicate that options are set.
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   tdy->setup_flags |= TDyOptionsSet;
 
-  // Create our mesh.
-  ierr = TDyCreateGrid(tdy); CHKERRQ(ierr);
+  // Create our DM.
+  if (!tdy->dm) {
+    DM dm;
+    if (tdy->options.read_mesh) {
+      ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
+                                  PETSC_TRUE, &dm); CHKERRQ(ierr);
+    } else {
+      if (tdy->ops->create_dm) {
+        // We've been instructed to create a DM ourselves.
+        ierr = tdy->ops->create_dm(comm, tdy->create_dm_context, &dm);
+      } else if (create_dm_f90_) {
+        // Create a DM all-Fortran-like.
+        MPI_Fint comm_f = MPI_Comm_c2f(comm);
+        create_dm_f90_(&comm_f, &dm, &ierr);
+      } else {
+        ierr = DMPlexCreate(comm, &dm); CHKERRQ(ierr);
+      }
+      // Here we lean on PETSc's DM* options for overrides.
+      ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+    }
+    // Distribute the mesh, however we got it.
+    ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
+    tdy->dm = dm;
+  }
+
+  // Mark the grid's boundary faces and their transitive closure. All are
+  // stored at their appropriate strata within the label.
+  DMLabel boundary_label;
+  ierr = DMCreateLabel(tdy->dm, "boundary"); CHKERRQ(ierr);
+  ierr = DMGetLabel(tdy->dm, "boundary", &boundary_label); CHKERRQ(ierr);
+  ierr = DMPlexMarkBoundaryFaces(tdy->dm, 1, boundary_label); CHKERRQ(ierr);
+  ierr = DMPlexLabelComplete(tdy->dm, boundary_label); CHKERRQ(ierr);
+
+  // Allocate material data.
+  ierr = AllocateMaterialProps(tdy); CHKERRQ(ierr);
 
   // If we have been instructed to initialize the solution from a file, do so.
   if (options->init_from_file) {
@@ -949,7 +868,9 @@ PetscErrorCode TDySetup(TDy tdy) {
   }
   TDyEnterProfilingStage("TDycore Setup");
 
-  // Set up material models.
+  // Update material properties.
+  ierr = MaterialPropUpdate(tdy->matprop); CHKERRQ(ierr);
+
   if (tdy->ops->computeporosity) {
     ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr);
   }

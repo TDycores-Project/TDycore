@@ -3,32 +3,55 @@
 #include <tdytimers.h>
 #include <private/tdyoptions.h>
 
-PetscErrorCode MaterialPropertiesCreate(PetscInt ndim, PetscInt ncells, MaterialProp **_matprop){
+// FIXME: This type needs to be reimagined as a description of material
+// FIXME: properties, with data owned by the implementations.
+
+/// Creates a new MaterialProp instance, allocating storage for data.
+/// @param [in] dim The dimension of the space occupied by the materials
+/// @param [in] npoints The number of points at which material properties
+///                     are stored.
+/// @param [in] points An array of points, not managed by the instance.
+/// @param [out] matprop Storage for the new instance
+PetscErrorCode MaterialPropCreate(PetscInt dim, PetscInt npoints,
+                                  PetscReal *points, MaterialProp **matprop) {
 
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  *_matprop = (MaterialProp *)malloc(sizeof(MaterialProp));
+  *matprop = (MaterialProp *)malloc(sizeof(MaterialProp));
+  (*matprop)->dim = dim;
+  (*matprop)->num_points = npoints;
+  (*matprop)->points = points;
 
-  ierr = PetscMalloc(ncells*ndim*ndim*sizeof(PetscReal),&(*_matprop)->K    ); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*ndim*ndim*sizeof(PetscReal),&(*_matprop)->K0   ); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*ndim*ndim*sizeof(PetscReal),&(*_matprop)->Kappa); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*ndim*ndim*sizeof(PetscReal),&(*_matprop)->Kappa0); CHKERRQ(ierr);
+  ierr = PetscMalloc(npoints*ndim*ndim*sizeof(PetscReal),&(*matprop)->K); CHKERRQ(ierr);
+  ierr = PetscMalloc(npoints*ndim*ndim*sizeof(PetscReal),&(*matprop)->K0); CHKERRQ(ierr);
+  ierr = PetscMalloc(npoints*ndim*ndim*sizeof(PetscReal),&(*matprop)->Kappa); CHKERRQ(ierr);
+  ierr = PetscMalloc(npoints*ndim*ndim*sizeof(PetscReal),&(*matprop)->Kappa0); CHKERRQ(ierr);
 
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_matprop)->porosity); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_matprop)->Cr      ); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_matprop)->rhosoil    ); CHKERRQ(ierr);
+  ierr = PetscMalloc(npoints*sizeof(PetscReal),&(*matprop)->porosity); CHKERRQ(ierr);
+  ierr = PetscMalloc(npoints*sizeof(PetscReal),&(*matprop)->Cr); CHKERRQ(ierr);
+  ierr = PetscMalloc(npoints*sizeof(PetscReal),&(*matprop)->rhosoil); CHKERRQ(ierr);
 
-  (*_matprop)-> permeability_is_set = 0;
-  (*_matprop)-> porosity_is_set = 0;
-  (*_matprop)-> thermal_conductivity_is_set = 0;
-  (*_matprop)-> soil_specific_heat_is_set = 0;
-  (*_matprop)-> soil_density_is_set = 0;
+  (*matprop)->porosity_context = NULL;
+  (*matprop)->permeability_context = NULL;
+  (*matprop)->thermal_conductivity_context = NULL;
+  (*matprop)->residual_saturation_context = NULL;
+  (*matprop)->soil_density_context = NULL;
+  (*matprop)->soil_specific_heat = NULL;
+
+  (*matprop)->compute_porosity = NULL;
+  (*matprop)->compute_permeability = NULL;
+  (*matprop)->compute_thermal_conductivity = NULL;
+  (*matprop)->compute_residual_saturation = NULL;
+  (*matprop)->compute_soil_density = NULL;
+  (*matprop)->compute_soil_specific_heat = NULL;
+
+  (*matprop)->updated = PETSC_FALSE;
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode MaterialPropertiesDestroy(MaterialProp *matprop){
+PetscErrorCode MaterialPropDestroy(MaterialProp *matprop) {
 
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -44,76 +67,46 @@ PetscErrorCode MaterialPropertiesDestroy(MaterialProp *matprop){
   PetscFunctionReturn(0);
 }
 
-//
-// Are material properties set
-//
-
-/* -------------------------------------------------------------------------- */
-/// Reports if permeability is set
-///
-/// @param [in] tdy    A TDy struct
-/// @returns boolean   1 if permeability is set otherwise 0
-PetscBool TDyIsPermeabilitySet(TDy tdy) {
-  PetscFunctionReturn(tdy->matprop->permeability_is_set);
-}
-
-/* -------------------------------------------------------------------------- */
-/// Reports if porosity is set
-///
-/// @param [in] tdy    A TDy struct
-/// @returns boolean   1 if porosity is set otherwise 0
-PetscBool TDyIsPorositySet(TDy tdy) {
-  PetscFunctionReturn(tdy->matprop->porosity_is_set);
-}
-
-/* -------------------------------------------------------------------------- */
-/// Reports if thermal conductivity is set
-///
-/// @param [in] tdy    A TDy struct
-/// @returns boolean   1 if thermal conductivity is set otherwise 0
-PetscBool TDyIsThermalConductivytSet(TDy tdy) {
-  PetscFunctionReturn(tdy->matprop->thermal_conductivity_is_set);
-}
-
-/* -------------------------------------------------------------------------- */
-/// Reports if soil specific heat is set
-///
-/// @param [in] tdy    A TDy struct
-/// @returns boolean   1 if soil specific heat is set otherwise 0
-PetscBool TDyIsSoilSpecificHeatSet(TDy tdy) {
-  PetscFunctionReturn(tdy->matprop->soil_specific_heat_is_set);
-}
-
-/* -------------------------------------------------------------------------- */
-/// Reports if soil density is set
-///
-/// @param [in] tdy    A TDy struct
-/// @returns boolean   1 if soil density is set otherwise 0
-PetscBool TDyIsSoilDensitySet(TDy tdy) {
-  PetscFunctionReturn(tdy->matprop->soil_density_is_set);
-}
-
-/*
-  Material properties set by PETSc operations
-*/
-
-PetscErrorCode TDySetPermeabilityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+/// Sets the permeability values at all points within the given material
+/// properties by calling the given function f with the given context.
+/// @param [in] matprop A MaterialProp instance
+/// @param [in] context A context pointer to be passed to f
+/// @param [in] f A function that updates of the specified number of values
+PetscErrorCode MaterialPropSetPermeability(MaterialProp *matprop, void *context,
+                                           PetscErrorCode(*f)(void*,int,PetscReal*,PetscReal*)) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
-  tdy->matprop->permeability_is_set = 1;
-  if (f) tdy->ops->computepermeability = f;
-  if (ctx) tdy->permeabilityctx = ctx;
+  ierr = f(context, matprop->num_points, 
+  matprop->compute_permeability = f;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetPorosityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+PetscErrorCode MaterialPropSetPorosity(MaterialProp *matprop, void *context,
+                                       PetscErrorCode(*f)(void*,int,PetscReal*,PetscReal*)) {
   PetscFunctionBegin;
-  tdy->matprop->porosity_is_set = 1;
-  if (f) tdy->ops->computeporosity = f;
-  if (ctx) tdy->porosityctx = ctx;
+  matprop->porosity_context = context;
+  matprop->compute_porosity = f;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetSoilDensityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+PetscErrorCode MaterialPropSetThermalConductivity(MaterialProp *matprop, void *context,
+                                                  PetscErrorCode(*f)(void*,int,PetscReal*,PetscReal*)) {
+  PetscFunctionBegin;
+  matprop->thermal_conductivity_context = context;
+  matprop->compute_thermal_conductivity = f;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode MaterialPropSetResidualSaturation(MaterialProp *matprop, void *context,
+                                                 PetscErrorCode(*f)(void*,int,PetscReal*,PetscReal*)) {
+  PetscFunctionBegin;
+  matprop->residual_saturation_context = context;
+  matprop->compute_residual_saturation = f;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode MaterialPropSetSoilDensity(MaterialProp *matprop, void *context,
+                                          PetscErrorCode(*f)(void*,int,PetscReal*,PetscReal*)) {
   PetscFunctionBegin;
   tdy->matprop->soil_density_is_set = 1;
   if (f) tdy->ops->computesoildensity = f;
@@ -121,7 +114,8 @@ PetscErrorCode TDySetSoilDensityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscRe
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetSoilSpecificHeatFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+PetscErrorCode MaterialPropSetSoilSpecificHeat(MaterialProp *matprop, void *context,
+                                               PetscErrorCode(*f)(void*,int,PetscReal*,PetscReal*)) {
   PetscFunctionBegin;
   tdy->matprop->soil_specific_heat_is_set = 1;
   if (f) tdy->ops->computesoilspecificheat = f;
@@ -129,19 +123,46 @@ PetscErrorCode TDySetSoilSpecificHeatFunction(TDy tdy, PetscErrorCode(*f)(TDy,Pe
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetThermalConductivityFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+/// Returns true if the porosity has been set, false otherwise.
+/// @param [in] matprop A MaterialProp instance
+PetscBool MaterialPropHasPorosity(MaterialProp* matprop) {
   PetscFunctionBegin;
-  tdy->matprop->thermal_conductivity_is_set = 1;
-  if (f) tdy->ops->computethermalconductivity = f;
-  if (ctx) tdy->thermalconductivityctx = ctx;
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(matprop->has_porosity);
 }
 
-PetscErrorCode TDySetResidualSaturationFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+/// Returns true if the permeability has been set, false otherwise.
+/// @param [in] matprop A MaterialProp instance
+PetscBool MaterialPropHasPermeability(MaterialProp*) {
   PetscFunctionBegin;
-  if (f) tdy->ops->computeresidualsaturation = f;
-  if (ctx) tdy->residualsaturationctx = ctx;
-  PetscFunctionReturn(0);
+  PetscFunctionReturn(matprop->has_permeability);
+}
+
+/// Returns true if the thermal conductivity has been set, false otherwise.
+/// @param [in] matprop A MaterialProp instance
+PetscBool MaterialPropHasThermalConductivity(MaterialProp*) {
+  PetscFunctionBegin;
+  PetscFunctionReturn(matprop->has_thermal_conductivity);
+}
+
+/// Returns true if the residual saturation has been set, false otherwise.
+/// @param [in] matprop A MaterialProp instance
+PetscBool MaterialPropHasResidualSaturation(MaterialProp*) {
+  PetscFunctionBegin;
+  PetscFunctionReturn(matprop->has_residual_saturation);
+}
+
+/// Returns true if the soil density has been set, false otherwise.
+/// @param [in] matprop A MaterialProp instance
+PetscBool MaterialPropHasSoilDensity(MaterialProp*) {
+  PetscFunctionBegin;
+  PetscFunctionReturn(matprop->has_soil_density);
+}
+
+/// Returns true if the soil specific heat has been set, false otherwise.
+/// @param [in] matprop A MaterialProp instance
+PetscBool MaterialPropHasSoilSpecificHeat(MaterialProp*) {
+  PetscFunctionBegin;
+  PetscFunctionReturn(matprop->has_soil_specific_heat);
 }
 
 /*
@@ -390,69 +411,5 @@ PetscErrorCode TDyGetPorosityValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[])
   }
 
   TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-/*
-  Constant functions for material properties
-*/
-
-PetscErrorCode TDyConstantSoilDensityFunction(TDy tdy, PetscReal *x, PetscReal *den, void *ctx) {
-  PetscFunctionBegin;
-  TDyOptions *options = &tdy->options;
-
-  *den = options->soil_density;
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyConstantSoilSpecificHeatFunction(TDy tdy, PetscReal *x, PetscReal *cr, void *ctx) {
-  PetscFunctionBegin;
-  TDyOptions *options = &tdy->options;
-
-  *cr = options->soil_specific_heat;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyConstantPermeabilityFunction(TDy tdy, PetscReal *x, PetscReal *K, void *ctx) {
-  PetscFunctionBegin;
-  TDyOptions *options = &tdy->options;
-  PetscInt dim;
-  PetscErrorCode ierr;
-
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
-  for (int j=0; j<dim; j++) {
-    for (int i=0; i<dim; i++) {
-      K[j*dim+i] = 0.;
-    }
-  }
-  for (int i=0; i<dim; i++)
-    K[i*dim+i] = options->permeability;
-  return 0;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyConstantThermalConductivityFunction(TDy tdy, PetscReal *x, PetscReal *K, void *ctx) {
-  PetscFunctionBegin;
-  TDyOptions *options = &tdy->options;
-  PetscErrorCode ierr;
-  PetscInt dim;
-
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
-  for (int j=0; j<dim; j++) {
-    for (int i=0; i<dim; i++) {
-      K[j*dim+i] = 0.;
-    }
-  }
-  for (int i=0; i<dim; i++)
-    K[i*dim+i] = options->thermal_conductivity;
-  return 0;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyConstantPorosityFunction(TDy tdy, PetscReal *x, PetscReal *por, void *ctx) {
-  PetscFunctionBegin;
-  TDyOptions *options = &tdy->options;
-  *por = options->porosity;
   PetscFunctionReturn(0);
 }

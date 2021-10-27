@@ -57,16 +57,6 @@ struct _TDyOps {
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.
   PetscErrorCode (*compute_error_norms)(void*,Vec,PetscReal*,PetscReal*);
-
-  // Functions used to define solver behavior.
-
-  // Material and boundary condition functions--we'll sort these out later.
-  PetscErrorCode (*computeporosity)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*computepermeability)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*computethermalconductivity)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*computeresidualsaturation)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*computesoildensity)(TDy,PetscReal*,PetscReal*,void*);
-  PetscErrorCode (*computesoilspecificheat)(TDy,PetscReal*,PetscReal*,void*);
 };
 
 // This type represents the dycore and all of its settings.

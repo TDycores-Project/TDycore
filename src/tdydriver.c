@@ -40,17 +40,18 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       break;
   }
 
-  if (!TDyIsPorositySet(tdy)) {
+  // FIXME: This stuff has to be reexamined.
+  if (!MaterialPropHasPorosity(tdy->matprop)) {
     size_t len;
     ierr = PetscStrlen(tdy->io->porosity_filename, &len); CHKERRQ(ierr);
     if (!len){
-      ierr = TDySetPorosityFunction(tdy,TDyConstantPorosityFunction,PETSC_NULL);CHKERRQ(ierr);
+      ierr = MaterialPropSetPorosity(tdy->matprop,TDyConstantPorosityFunction,PETSC_NULL);CHKERRQ(ierr);
     } else {
       ierr = TDyIOReadPorosity(tdy);CHKERRQ(ierr);
     }
   }
 
-  if (!TDyIsPermeabilitySet(tdy)){
+  if (!MaterialPropHasPermeability(tdy->matprop)){
     size_t len;
     ierr = PetscStrlen(tdy->io->permeability_filename, &len); CHKERRQ(ierr);
     if (!len){
