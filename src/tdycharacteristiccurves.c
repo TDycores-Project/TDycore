@@ -2,6 +2,7 @@
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
+#include <private/tdyutils.h>
 
 PetscErrorCode CharacteristicCurveCreate(PetscInt ncells, CharacteristicCurve **_cc){
 
@@ -300,20 +301,46 @@ void RelativePermeability_Mualem_Unsmoothed(PetscReal m,PetscReal Se,PetscReal *
 ///
 PetscErrorCode CubicPolynomialSetup(PetscReal x1, PetscReal x2, PetscReal rhs[4]) {
 
-  PetscInt n = 4, nrhs = 1;
+  PetscInt N = 4, d;
+  PetscInt *indx;
+  PetscReal **AA;
+  PetscReal *rhs_values;
+  PetscErrorCode ierr;
 
-  PetscReal A[16] = {
-     1.0,                  1.0,                  0.0,                      0.0,
-     x2,                   x1,                   1.0,                      1.0,
-     PetscPowReal(x2,2.0), PetscPowReal(x1,2.0), 2.0*x2,                   2.0*x1,
-     PetscPowReal(x2,3.0), PetscPowReal(x1,3.0), 3.0*PetscPowReal(x2,2.0), 3.0*PetscPowReal(x1,2.0)
-  };
+  ierr = TDyAllocate_RealArray_2D(&AA,N,N); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&indx, N); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&rhs_values, N); CHKERRQ(ierr);
 
-   PetscInt lda=4, ldb=4;
-   PetscInt info; // success/failure from LAPACK
-   PetscInt ipiv[n]; // pivot indices
+  AA[0][0] = 1.0;
+  AA[1][0] = 1.0;
+  AA[2][0] = 0.0;
+  AA[3][0] = 0.0;
 
-   dgesv_( &n, &nrhs, A, &lda, ipiv, rhs, &ldb, &info );
+  AA[0][1] = x2;
+  AA[1][1] = x1;
+  AA[2][1] = 1.0;
+  AA[3][1] = 1.0;
+
+  AA[0][2] = PetscPowReal(x2,2.0);
+  AA[1][2] = PetscPowReal(x1,2.0);
+  AA[2][2] = 2.0*x2;
+  AA[3][2] = 2.0*x1;
+
+  AA[0][3] = PetscPowReal(x2,3.0);
+  AA[1][3] = PetscPowReal(x1,3.0);
+  AA[2][3] = 3.0*PetscPowReal(x2,2.0);
+  AA[3][3] = 3.0*PetscPowReal(x1,2.0);
+
+  for (PetscInt ii=0; ii<4; ii++) {
+    rhs_values[ii] = rhs[ii];
+  }
+
+  ierr = ludcmp(AA, N, indx, &d); CHKERRQ(ierr);
+  ierr = ludksb(AA, N, indx, rhs_values); CHKERRQ(ierr);
+
+  for (PetscInt ii = 0; ii<4; ii++) {
+    rhs[ii] = rhs_values[ii];
+  }
 
   PetscFunctionReturn(0);
 }
