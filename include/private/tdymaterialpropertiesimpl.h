@@ -3,12 +3,13 @@
 
 #include <petsc.h>
 
+/// This type represents a set of material properties. It contains only
+//⁄ functions that evaluate these properties, and no data (since the storage
+/// needed for data is specific to implementations).
 typedef struct {
-  // Spatial dimension (for tensor properties)
-  int dim;
 
-  // Number of points at which data is stored
-  int num_points;
+  // Spatial dimension.
+  PetscInt dim;
 
   // Contexts provided to material property functions.
   void *porosity_context;
@@ -19,37 +20,78 @@ typedef struct {
   void *soil_specific_heat_context;
 
   // Material property functions.
-  PetscErrorCode (*compute_porosity)(void*,PetscReal*,PetscReal*);
-  PetscErrorCode (*compute_permeability)(void*,PetscReal*,PetscReal*);
-  PetscErrorCode (*compute_thermal_conductivity)(void*,PetscReal*,PetscReal*);
-  PetscErrorCode (*compute_residual_saturation)(void*,PetscReal*,PetscReal*);
-  PetscErrorCode (*compute_soil_density)(void*,PetscReal*,PetscReal*);
-  PetscErrorCode (*compute_soil_specific_heat)(void*, PetscReal*,PetscReal*);
+  PetscErrorCode (*compute_porosity)(void*,PetscInt,PetscReal*,PetscReal*);
+  PetscErrorCode (*compute_permeability)(void*,PetscInt,PetscReal*,PetscReal*);
+  PetscErrorCode (*compute_thermal_conductivity)(void*,PetscInt,PetscReal*,PetscReal*);
+  PetscErrorCode (*compute_residual_saturation)(void*,PetscInt,PetscReal*,PetscReal*);
+  PetscErrorCode (*compute_soil_density)(void*,PetscInt,PetscReal*,PetscReal*);
+  PetscErrorCode (*compute_soil_specific_heat)(void*,PetscInt,PetscReal*,PetscReal*);
+
+  // Material property context destructors.
+  void (*porosity_dtor)(void*);
+  void (*permeability_dtor)(void*);
+  void (*thermal_conductivity_dtor)(void*);
+  void (*residual_saturation_dtor)(void*);
+  void (*soil_density_dtor)(void*);
+  void (*soil_specific_heat_dtor)(void*);
 
   // Material data.
-  PetscReal *K, *K0;
-  PetscReal *porosity;
-  PetscReal *Kappa, *Kappa0;
-  PetscReal *Cr;
-  PetscReal *rhosoil;
-
+  //PetscReal *K, *K0;
+  //PetscReal *porosity;
+  //PetscReal *Kappa, *Kappa0;
+  //PetscReal *Cr;
+  //PetscReal *rhosoil;
 } MaterialProp;
 
+// material model creation/destruction
 PETSC_INTERN PetscErrorCode MaterialPropCreate(void*,PetscInt,PetscInt,MaterialProp**);
 PETSC_INTERN PetscErrorCode MaterialPropDestroy(MaterialProp*);
-PETSC_INTERN PetscErrorCode MaterialPropSetPorosity(MaterialProp*, void*, PetscErrorCode (*)(void*,int,PetscReal*,PetscReal*));
-PETSC_INTERN PetscErrorCode MaterialPropSetPermeability(MaterialProp*, void*, PetscErrorCode (*)(void*,int,PetscReal*,PetscReal*));
-PETSC_INTERN PetscErrorCode MaterialPropSetThermalConductivity(MaterialProp*, void*, PetscErrorCode (*)(void*,int,PetscReal*,PetscReal*));
-PETSC_INTERN PetscErrorCode MaterialPropSetResidualSaturation(MaterialProp*, void*, PetscErrorCode (*)(void*,int,PetscReal*,PetscReal*));
-PETSC_INTERN PetscErrorCode MaterialPropSetSoilDensity(MaterialProp*, void*, PetscErrorCode (*)(void*,int,PetscReal*,PetscReal*));
-PETSC_INTERN PetscErrorCode MaterialPropSetSoilSpecificHeat(MaterialProp*, void*, PetscErrorCode (*)(void*,int,PetscReal*,PetscReal*));
+
+// material model setup functions
+PETSC_INTERN PetscErrorCode MaterialPropSetPorosity(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*));
+PETSC_INTERN PetscErrorCode MaterialPropSetPermeability(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*));
+PETSC_INTERN PetscErrorCode MaterialPropSetThermalConductivity(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*));
+PETSC_INTERN PetscErrorCode MaterialPropSetResidualSaturation(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*));
+PETSC_INTERN PetscErrorCode MaterialPropSetSoilDensity(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*));
+PETSC_INTERN PetscErrorCode MaterialPropSetSoilSpecificHeat(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*));
+
+// material model query functions
 PETSC_INTERN PetscBool MaterialPropHasPorosity(MaterialProp*);
 PETSC_INTERN PetscBool MaterialPropHasPermeability(MaterialProp*);
 PETSC_INTERN PetscBool MaterialPropHasThermalConductivity(MaterialProp*);
 PETSC_INTERN PetscBool MaterialPropHasResidualSaturation(MaterialProp*);
 PETSC_INTERN PetscBool MaterialPropHasSoilDensity(MaterialProp*);
 PETSC_INTERN PetscBool MaterialPropHasSoilSpecificHeat(MaterialProp*);
-PETSC_INTERN PetscErrorCode MaterialPropUpdate(MaterialProp*);
+
+// material quantity computation
+PETSC_INTERN PetscErrorCode MaterialPropComputePorosity(MaterialProp*,PetscInt,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode MaterialPropComputePermeability(MaterialProp*,PetscInt,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode MaterialPropComputeThermalConductivity(MaterialProp*,PetscInt,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode MaterialPropComputeResidualSaturation(MaterialProp*,PetscInt,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode MaterialPropComputeSoilDensity(MaterialProp*,PetscInt,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode MaterialPropComputeSoilSpecificHeat(MaterialProp*,PetscInt,PetscReal*,PetscReal*);
+
+// convenient material functions
+PetscErrorCode MaterialPropSetConstantPorosity(MaterialProp*, PetscReal);
+PetscErrorCode MaterialPropSetHeterogeneousPorosity(MaterialProp*, ScalarFunction);
+PetscErrorCode MaterialPropSetConstantIsotropicPermeability(MaterialProp*, PetscReal);
+PetscErrorCode MaterialPropSetHeterogeneousIsotropicPermeability(MaterialProp*, SpatialScalarFunction);
+PetscErrorCode MaterialPropSetConstantDiagonalPermeability(MaterialProp*, PetscReal[3]);
+PetscErrorCode MaterialPropSetHeterogeneousDiagonalPermeability(MaterialProp*, SpatialVectorFunction);
+PetscErrorCode MaterialPropSetConstantTensorPermeability(MaterialProp*, PetscReal[9]);
+PetscErrorCode MaterialPropSetHeterogeneousTensorPermeability(MaterialProp*, SpatialTensorFunction);
+PetscErrorCode MaterialPropSetConstantIsotropicThermalConductivity(MaterialProp*, PetscReal);
+PetscErrorCode MaterialPropSetHeterogeneousIsotropicThermalConductivity(MaterialProp*, SpatialScalarFunction);
+PetscErrorCode MaterialPropSetConstantDiagonalThermalConductivity(MaterialProp*, PetscReal[3]);
+PetscErrorCode MaterialPropSetHeterogeneousDiagonalThermalConductivity(MaterialProp*, SpatialVectorFunction);
+PetscErrorCode MaterialPropSetConstantTensorThermalConductivity(MaterialProp*, PetscReal[9]);
+PetscErrorCode MaterialPropSetHeterogeneousTensorThermalConductivity(MaterialProp*, SpatialTensorFunction);
+PetscErrorCode MaterialPropSetConstantResidualSaturation(MaterialProp*, PetscReal);
+PetscErrorCode MaterialPropSetHeterogeneousResidualSaturation(MaterialProp*, ScalarFunction);
+PetscErrorCode MaterialPropSetConstantSoilDensity(MaterialProp*, PetscReal);
+PetscErrorCode MaterialPropSetHeterogeneousSoilDensity(MaterialProp*, ScalarFunction);
+PetscErrorCode MaterialPropSetConstantSoilSpecificHeat(MaterialProp*, PetscReal);
+PetscErrorCode MaterialPropSetHeterogeneousSoilSpecificHeat(MaterialProp*, ScalarFunction);
 
 #endif
 

@@ -319,68 +319,6 @@ static PetscErrorCode TensorPropertyFromScalarContext3D(void *context,
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode AllocateMaterialProps(TDy tdy) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
-
-  if (!tdy->dm) {
-    SETERRQ(comm,PETSC_ERR_USER,"tdy->dm must be set prior to TDyMalloc()");
-  }
-
-  PetscInt dim;
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
-
-  /* allocate space for a full tensor perm for each cell */
-  PetscInt cStart, cEnd;
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  PetscInt nc = cEnd-cStart;
-
-  ierr = CharacteristicCurveCreate(nc, &tdy->cc); CHKERRQ(ierr);
-
-  // Set up material properties from options (all scalars).
-  ierr = MaterialPropCreate(dim, nc, &tdy->matprop); CHKERRQ(ierr);
-  ierr = MaterialPropSetPorosityFn(tdy->matprop, &tdy->options.porosity, ScalarPropertyFromContext);
-  if (dim == 2) {
-    ierr = MaterialPropSetPermeabilityFn(tdy->matprop, &tdy->options.permeability, TensorPropertyFromScalarContext2d);
-  } else
-    ierr = MaterialPropSetPermeabilityFn(tdy->matprop, &tdy->options.permeability, TensorPropertyFromScalarContext3d);
-  }
-  ierr = MaterialPropSetThermalConductivityFn(tdy->matprop, &tdy->options.thermal_conductivity, ScalarPropertyFromContext);
-  ierr = MaterialPropSetResidualSaturationFn(tdy->matprop, &tdy->options.residual_saturation, ScalarPropertyFromContext);
-  ierr = MaterialPropSetSoilDensityFn(tdy->matprop, &tdy->options.soil_density, ScalarPropertyFromContext);
-  ierr = MaterialPropSetSoilSpecificHeat(tdy->matprop, &tdy->options.soil_specific_heat, ScalarPropertyFromContext);
-
-  /* problem constants FIX: add mutators */
-  CharacteristicCurve *cc = tdy->cc;
-  TDyOptions *options = &tdy->options;
-
-  PetscReal mualem_poly_low = 0.99;
-
-  for (PetscInt c=0; c<nc; c++) {
-    cc->sr[c] = options->residual_saturation;
-    cc->gardner_n[c] = options->gardner_n;
-    cc->gardner_m[c] = options->vangenuchten_m;
-    cc->vg_m[c] = options->vangenuchten_m;
-    cc->mualem_poly_low[c] = mualem_poly_low;
-    cc->mualem_m[c] = options->vangenuchten_m;
-    cc->irmay_m[c] = options->vangenuchten_m;
-    cc->vg_alpha[c] = options->vangenuchten_alpha;
-    cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
-    cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
-    cc->Kr[c] = 0.0;
-    cc->dKr_dS[c] = 0.0;
-    cc->S[c] = 0.0;
-    cc->dS_dP[c] = 0.0;
-    cc->dS_dT[c] = 0.0;
-  }
-  ierr = RelativePermeability_Mualem_SetupSmooth(tdy->cc, nc);
-
-  PetscFunctionReturn(0);
-}
-
 PetscErrorCode TDyDestroy(TDy *_tdy) {
   TDy            tdy;
   PetscErrorCode ierr;
@@ -649,8 +587,44 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = DMPlexMarkBoundaryFaces(tdy->dm, 1, boundary_label); CHKERRQ(ierr);
   ierr = DMPlexLabelComplete(tdy->dm, boundary_label); CHKERRQ(ierr);
 
-  // Allocate material data.
-  ierr = AllocateMaterialProps(tdy); CHKERRQ(ierr);
+  // Create material properties and set functions.
+  ierr = MaterialPropCreate(dim, &tdy->matprop); CHKERRQ(ierr);
+  // TODO: only constants right now! Implement named functions using registry stuff.
+  ierr = MaterialPropSetConstantPorosity(tdy->matprop, tdy->options.porosity); CHKERRQ(ierr);
+  ierr = MaterialPropSetConstantIsotropicPermeability(tdy->matprop, tdy->options.permeability);
+  ierr = MaterialPropSetConstantIsotropicThermalConductivity(tdy->matprop, tdy->options.thermal_conductivity);
+  ierr = MaterialPropSetConstantResidualSaturation(tdy->matprop, tdy->options.residual_saturation);
+  ierr = MaterialPropSetConstantSoilDensity(tdy->matprop, tdy->options.soil_density);
+  ierr = MaterialPropSetConstantSoilSpecificHeat(tdy->matprop, tdy->options.soil_specific_heat);
+
+  // Create characteristic curves.
+  ierr = CharacteristicCurveCreate(nc, &tdy->cc); CHKERRQ(ierr);
+
+  // TODO: This all needs sorting out.
+  /* problem constants FIX: add mutators */
+  CharacteristicCurve *cc = tdy->cc;
+  TDyOptions *options = &tdy->options;
+
+  PetscReal mualem_poly_low = 0.99;
+
+  for (PetscInt c=0; c<nc; c++) {
+    cc->sr[c] = options->residual_saturation;
+    cc->gardner_n[c] = options->gardner_n;
+    cc->gardner_m[c] = options->vangenuchten_m;
+    cc->vg_m[c] = options->vangenuchten_m;
+    cc->mualem_poly_low[c] = mualem_poly_low;
+    cc->mualem_m[c] = options->vangenuchten_m;
+    cc->irmay_m[c] = options->vangenuchten_m;
+    cc->vg_alpha[c] = options->vangenuchten_alpha;
+    cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
+    cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
+    cc->Kr[c] = 0.0;
+    cc->dKr_dS[c] = 0.0;
+    cc->S[c] = 0.0;
+    cc->dS_dP[c] = 0.0;
+    cc->dS_dT[c] = 0.0;
+  }
+  ierr = RelativePermeability_Mualem_SetupSmooth(tdy->cc, nc);
 
   // If we have been instructed to initialize the solution from a file, do so.
   if (options->init_from_file) {

@@ -64,7 +64,27 @@ typedef enum {
   TDySetupFinished=0x1<<4,
 } TDySetupFlags;
 
-typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */
+/// A SpatialScalarFunction computes the value of a scalar quantity f at n
+/// points x. Use this type to explicitly indicate that f is a scalar.
+/// Functions of this type accept an integer n for the number of points, an
+/// array x of length dim*n containing the coordinates of the points, and an
+/// array f of length n that stores the resulting n scalar values.
+typedef void (*SpatialScalarFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+
+/// A SpatialVectorFunction computes the value of a vector quantity (or perhaps
+/// a diagonal anisotropic tensor) f at n points x. Use this type to explicitly
+/// indicate that f is a vector. Functions of this type accept an integer n for
+/// the number of points, an array x of length dim*n containing the coordinates
+/// of the points, and an array f of length dim*n that stores the resulting n
+/// vector values.
+typedef void (*SpatialVectorFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+
+/// A SpatialTensorFunction computes the value of a rank-2 tensor quantity f at
+/// n points x. Use this type to explicitly indicate that f is a full tensor.
+/// Functions of this type accept an integer n for the number of points, an
+/// array x of length dim*n containing the coordinates of the points, and an
+/// array f of length dim*dim*n that stores the resulting n tensor values.
+typedef void (*SpatialTensorFunction)(PetscInt n, PetscReal *x, PetscReal *f);
 
 typedef struct _p_TDy *TDy;
 
