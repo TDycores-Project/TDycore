@@ -626,3 +626,128 @@ PetscErrorCode ComputeInverseOf3by3Matrix(PetscReal a[9], PetscReal inv_a[9]) {
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+/// Performs a LU decomposition of a matrix
+///
+/// The function is from "Numerical Recipes in C"
+///
+/// @param [inout] A is input as a 2D matrix and returned back as the 
+///                  LU decomposition of the matrix
+/// @param [in] n Size of the matrix
+/// @param [out] indx Permutation vector as returned by ludcmp
+/// @param [out] d is +1/-1 depending on whether the number of row interchanges was even
+///                or odd, respectively
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ludcmp(PetscReal **A, PetscInt n, PetscInt *indx, PetscInt *d) {
+
+  PetscFunctionBegin;
+
+  PetscInt imax;
+
+  PetscReal big,dum,sum,temp;
+  PetscReal vv[n];
+  PetscReal TINY=1.0e-20;
+
+  *d=1;
+  for (PetscInt i=0; i<n; i++) {
+    big=0.0;
+    for (PetscInt j=0; j<n; j++) {
+      if ((temp=fabs(A[i][j])) > big) big=temp;
+    }
+    if (big == 0.0) {
+      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "Singular matrix in routine ludcmp");
+    }
+    vv[i]=1.0/big;
+  }
+
+  for (PetscInt j=0; j<n; j++) {
+    for (PetscInt i=0; i<j; i++) {
+      sum=A[i][j];
+      for (PetscInt k=0; k<i; k++) {
+        sum -= A[i][k]*A[k][j];
+      }
+      A[i][j]=sum;
+    }
+
+    big=0.0;
+    for (PetscInt i=j; i<n; i++) {
+      sum=A[i][j];
+      for (PetscInt k=0; k<j; k++) {
+        sum -= A[i][k]*A[k][j];
+      }
+      A[i][j]=sum;
+      if ( (dum=vv[i]*fabs(sum)) >= big) {
+        big=dum;
+        imax=i;
+      }
+    }
+    if (j != imax) {
+      for (PetscInt k=0; k<n; k++) {
+        dum=A[imax][k];
+        A[imax][k]=A[j][k];
+        A[j][k]=dum;
+      }
+      *d = -(*d); 
+      vv[imax]=vv[j]; 
+    }
+    indx[j]=imax;
+    if (A[j][j] == 0.0) {
+      A[j][j]=TINY;
+    }
+    if (j != n-1) {
+      dum=1.0/(A[j][j]);
+      for (PetscInt i=j+1;i<n;i++) {
+        A[i][j] *= dum;
+      }
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Solves the set of n linear equations A·X = B
+///
+/// The function is from "Numerical Recipes in C"
+///
+/// @param [in] A Is the LU decomposition of the A matrix returned by ludcmp
+/// @param [in] n Size of the matrix
+/// @param [in] indx Permutation vector as returned by ludcmp
+/// @param [inout] b is input as the RHS vector and returned back as the solution
+///                  vector
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ludksb(PetscReal **A, PetscInt n, PetscInt *indx, PetscReal *b) {
+
+  PetscFunctionBegin;
+
+  PetscInt ii=-1;
+  PetscReal sum;
+  for (PetscInt i=0; i<n; i++) { // When ii is set to a positive value, it will become the
+                                // index of the first nonvanishing element of b. We now
+                      // do the forward substitution, equation (2.3.6). The
+                      // only new wrinkle is to unscramble the permutation
+                      //as we go.
+    PetscInt ip=indx[i];
+    sum=b[ip];
+    b[ip]=b[i];
+    if (ii > -1) {
+      for (PetscInt j=ii; j<i; j++) {
+        sum -= A[i][j]*b[j];
+      }
+    } else if (sum) {
+      ii=i; // A nonzero element was encountered, so from now on we
+    }
+    b[i]=sum; // will have to do the sums in the loop above.
+  }
+  for (PetscInt i=n-1; i>=0; i--) {
+    sum=b[i];
+    if (i<n-1){
+      for (PetscInt j=i+1; j<n; j++) {
+        sum -= A[i][j]*b[j];
+      }
+    }
+    b[i]=sum/A[i][i];
+  }
+
+  PetscFunctionReturn(0);
+}
