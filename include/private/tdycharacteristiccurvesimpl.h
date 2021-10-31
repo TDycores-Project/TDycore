@@ -3,18 +3,62 @@
 
 #include <petsc.h>
 
-typedef enum {
-  REL_PERM_FUNC_IRMAY=0,
-  REL_PERM_FUNC_MUALEM=1
-} TDyRelPermFuncType;
+/// Question: do we allow saturation and relative permeability parameters to
+/// vary point by point?
 
+/// This type enumerates the different parameterizations for saturation.
 typedef enum {
   SAT_FUNC_GARDNER=0,
   SAT_FUNC_VAN_GENUCHTEN=1
-} TDySatFuncType;
+} SaturationType;
 
+/// A Saturation model associates a saturation function and its parameters with
+/// each point in a given domain.
+typedef struct Saturation {
+  /// Number of points in a domain for which a saturation is defined.
+  PetscInt num_points;
+  /// Arrays of indices of points that use a given saturation function type.
+  PetscInt *points[2];
+  /// Saturation parameters for points of each saturation function type.
+  /// The ordering and number of the parameters depends on the model:
+  /// 1. The Gardner model associates 2 parameters (m, n) with each point.
+  /// 2. The Van Genuchten model associates 2 parameters (m, alpha) with each point.
+  PetscReal *parameters[2];
+} Saturation;
 
+/// This type enumerates the different parameterizations for relative
+/// permeability.
+typedef enum {
+  REL_PERM_FUNC_IRMAY=0,
+  REL_PERM_FUNC_MUALEM=1
+} RelativePermeabilityType;
+
+/// A RelativePermeability model associates a function and its parameters with
+/// each point in a given domain.
+typedef struct RelativePermeability {
+  /// Number of points in a domain for which a relative permeability is defined.
+  PetscInt num_points;
+  /// Arrays of indices of points that use a given saturation function type.
+  PetscInt *points[2];
+  /// Relative permeability parameters for points of each saturation function type.
+  /// The ordering and number of the parameters depends on the model:
+  /// 1. The Irmay model associates a single parameter m with each point.
+  /// 2. The Mualem model associates parameters with each point: the model
+  ///    parameter m; the value of the effective saturation above which the
+  ///    model employs a cubic interpolation polynomial; and the 4 coefficients
+  ///    of the cubic polynomial.
+  PetscReal *parameters[2];
+} RelativePermeability;
+
+/// This type collects parameterized functions that describe the saturation
+/// and relative permeability in a domain.
 typedef struct {
+  /// saturation model
+  Saturation* saturation;
+  /// relative permeability model
+  RelativePermeability* rel_perm;
+
+#if 0
   PetscInt *SatFuncType;         /* type of saturation function */
   PetscInt *RelPermFuncType;     /* type of relative permeability */
   PetscReal *sr;                 /* residual saturation (min) [1] */
@@ -32,13 +76,24 @@ typedef struct {
 
   PetscReal *mualem_poly_low;    /* value of effecitive saturation above which cubic interpolation is used */
   PetscReal **mualem_poly_coeffs;/* coefficients for cubic polynomial */
+#endif
 
-} CharacteristicCurve;
+} CharacteristicCurves;
 
-PETSC_INTERN PetscErrorCode CharacteristicCurveCreate(PetscInt,CharacteristicCurve**);
+PETSC_INTERN PetscErrorCode CharacteristicCurvesCreate(CharacteristicCurve**);
 PETSC_INTERN PetscErrorCode CharacteristicCurveDestroy(CharacteristicCurve*);
-PETSC_INTERN PetscErrorCode RelativePermeability_Mualem_SetupSmooth(CharacteristicCurve*,PetscInt);
 
+PETSC_INTERN PetscErrorCode SaturationCreate(Saturation**);
+PETSC_INTERN PetscErrorCode SaturationDestroy(Saturation*);
+PETSC_INTERN PetscErrorCode SaturationSetType(Saturation*,SaturationType,PetscInt,PetscInt*,PetscReal*);
+PETSC_INTERN PetscErrorCode SaturationCompute(Saturation*,SaturationType,PetscReal*,PetscReal*,PetscReal*,PetscReal*);
+
+PETSC_INTERN PetscErrorCode RelativePermeabilityCreate(RelativePermeability**);
+PETSC_INTERN PetscErrorCode RelativePermeabilityDestroy(RelativePermeability*);
+PETSC_INTERN PetscErrorCode RelativePermeabilitySetType(RelativePermeability*,RelativePermeabilityType,PetscInt,PetscInt*,PetscReal*);
+PETSC_INTERN PetscErrorCode RelativePermeabilityCompute(RelativePermeability*,RelativePermeabilityType,PetscReal*,PetscReal*);
+
+PETSC_INTERN PetscErrorCode RelativePermeability_Mualem_SetupSmooth(CharacteristicCurve*,PetscInt);
 
 PETSC_INTERN void RelativePermeability_Mualem(PetscReal,PetscReal,PetscReal*,PetscReal,PetscReal*,PetscReal*);
 PETSC_INTERN void RelativePermeability_Irmay(PetscReal,PetscReal,PetscReal*,PetscReal*);
