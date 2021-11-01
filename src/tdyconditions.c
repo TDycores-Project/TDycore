@@ -124,6 +124,12 @@ static void DestroyFunctionRegistry() {
   kh_destroy(TDY_FUNC_MAP, funcs_);
 }
 
+/// Registers a named function that evaluates a scalar quantity on a set of
+/// points in space.
+/// @param [in] name a name by which the function may be retrieved with
+///                  TDyGetFunction
+/// @param [in] f the function, which accepts (n, x, v), where n is the number
+///               of points x on which f will be evaluated to produce values v.
 PetscErrorCode TDyRegisterFunction(const char* name, Function f) {
   PetscFunctionBegin;
   if (funcs_ == NULL) {
@@ -137,6 +143,9 @@ PetscErrorCode TDyRegisterFunction(const char* name, Function f) {
   PetscFunctionReturn(0);
 }
 
+/// Retrieves a named function that was registered with TDyRegister.
+/// @param [in] name the name by which the desired function was registered
+/// @param [out] f the retrieved function
 PetscErrorCode TDyGetFunction(const char* name, Function* f) {
   PetscFunctionBegin;
   int ierr;
