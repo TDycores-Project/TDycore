@@ -217,8 +217,9 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyWYSetQuadrature(TDyWY* wy, TDyQuadratureType qtype) {
+PetscErrorCode TDyWYSetQuadrature(TDy tdy, TDyQuadratureType qtype) {
   PetscFunctionBegin;
+  TDyWY *wy = tdy->context;
   wy->qtype = qtype;
   PetscFunctionReturn(0);
 }

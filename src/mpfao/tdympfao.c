@@ -254,7 +254,7 @@ static PetscErrorCode ComputeGMatrix(TDyMPFAO* mpfao) {
 
 /* -------------------------------------------------------------------------- */
 static PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDyMPFAO mpfao,
-                                                               TDyEOS *eos) {
+                                                               EOS *eos) {
 
   TDyMesh *mesh = mpfao->mesh;
   PetscInt nbnd_faces;
@@ -274,8 +274,8 @@ static PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDyMPFAO mpfao,
   PetscInt i;
   PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
   for (i=0;i<nbnd_faces;i++) {
-    ierr = TDyEOSComputeWaterDensity(eos, mpfao->Pref, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
-    ierr = TDyEOSComputeWaterViscosity(eos, tdy->Pref, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
+    ierr = EOSComputeWaterDensity(eos, mpfao->Pref, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
+    ierr = EOSComputeWaterViscosity(eos, tdy->Pref, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
   }
 
   TDY_STOP_FUNCTION_TIMER()
@@ -283,7 +283,7 @@ static PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDyMPFAO mpfao,
 }
 
 static PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy,
-                                                                     TDyEOS *eos) {
+                                                                     EOS *eos) {
 
   TDyMesh *mesh = tdy->mesh;
   PetscInt nbnd_faces;
@@ -447,8 +447,13 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
     ierr = TDySetMPFAOBoundaryConditionType(mpfao, bctype); CHKERRQ(ierr);
   }
 
+  // Set characteristic curve data.
+  mpfao->vangenuchten_m = options->vangenuchten_m;
+  mpfao->vangenuchten_alpha = options->vangenuchten_alpha;
+  mpfao->mualem_poly_low = options->mualem_poly_low;
+
   // Copy g into place.
-  tdy->gravity[dim-1] = options->gravity_constant;
+  mpfao->gravity[dim-1] = options->gravity_constant;
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -461,9 +466,10 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
 // Performs setup common to all MPFA-O methods.
 static PetscErrorCode TDySetup_Common(TDyMPFAO *mpfao,
                                       DM dm,
-                                      TDyEOS *eos,
+                                      EOS *eos,
                                       MaterialProp *matprop,
-                                      TDyConditions* conditions) {
+                                      CharacteristicCurves *cc,
+                                      Conditions* conditions) {
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
 
@@ -473,38 +479,89 @@ static PetscErrorCode TDySetup_Common(TDyMPFAO *mpfao,
     SETERRQ(comm,PETSC_ERR_USER,"MPFA-O method supports only 3D calculations.");
   }
 
-  // Allocate storage for material data.
+  // Allocate storage for material data and characteristic curves, and set to
+  // zero using PetscCalloc instead of PetscMalloc.
   PetscInt cStart, cEnd;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   PetscInt nc = cEnd-cStart;
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->rho)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->drho_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->d2rho_dP2)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->vis)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->dvis_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->d2vis_dP2)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->h)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->dh_dT)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->dh_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->drho_dT)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->u)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->du_dP)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->du_dT)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(mpfao->dvis_dT)); CHKERRQ(ierr);
-  for (PetscInt c=0; c<nc; c++) {
-    mpfao->rho[c] = 0.0;
-    mpfao->drho_dP[c] = 0.0;
-    mpfao->vis[c] = 0.0;
-    mpfao->dvis_dP[c] = 0.0;
-    mpfao->d2vis_dP2[c] = 0.0;
-    mpfao->h[c] = 0.0;
-    mpfao->dh_dT[c] = 0.0;
-    mpfao->dh_dP[c] = 0.0;
-    mpfao->drho_dT[c] = 0.0;
-    mpfao->u[c] = 0.0;
-    mpfao->du_dP[c] = 0.0;
-    mpfao->du_dT[c] = 0.0;
-    mpfao->dvis_dT[c] = 0.0;
+
+  // Material properties
+  ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->K)); CHKERRQ(ierr);
+  ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->K0)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->porosity)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->rho_soil)); CHKERRQ(ierr);
+  if (MaterialPropHasThermalConductivity(matprop)) {
+    ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->Kappa)); CHKERRQ(ierr);
+    ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->Kappa0)); CHKERRQ(ierr);
+  }
+  if (MaterialPropHasSoilSpecificHeat(matprop)) {
+    ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->c_soil)); CHKERRQ(ierr);
+  }
+
+  // Characteristic curve values
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->Kr)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dKrdSe)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->S)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dSdP)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->d2SdP2)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dSdT)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->Sr)); CHKERRQ(ierr);
+
+  // Water properties
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->rho)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->drho_dP)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->d2rho_dP2)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->vis)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dvis_dP)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->d2vis_dP2)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->h)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dh_dT)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dh_dP)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->drho_dT)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->u)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->du_dP)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->du_dT)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dvis_dT)); CHKERRQ(ierr);
+
+  // Initialize characteristic curve parameters on cells.
+  // By default, we use the Van Genuchten saturation and the Mualem relative
+  // permeability models.
+  PetscInt points[nc];
+  for (PetscInt c = 0; c < nc; ++c) {
+    points[c] = cStart + c;
+  }
+
+  // By default, we use the Van Genuchten saturation model.
+  {
+    PetscReal parameters[2*nc];
+    for (PetscInt c = 0; c < nc; ++c) {
+      parameters[2*c]   = mpfao->vangenuchten_m;
+      parameters[2*c+1] = mpfao->vangenuchten_alpha;
+    }
+    ierr = SaturationSetType(cc->saturation, SAT_FUNC_VAN_GENUCHTEN, nc, points,
+                             parameters); CHKERRQ(ierr);
+  }
+
+  // By default, we use the the Mualem relative permeability model.
+  {
+    PetscReal mualem_poly_low = 0.99;
+    PetscReal parameters[6*nc];
+    for (PetscInt c = 0; c < nc; ++c) {
+      PetscReal m = mpfao->vangenuchten_m,
+                poly_low = mpfao->mualem_poly_low;
+      parameters[6*c]   = m;
+      parameters[6*c+1] = poly_low;
+
+      // Set up cubic polynomial coefficients for the cell.
+      PetscReal Kr, dKrdSe;
+      RelativePermeability_Mualem_Unsmoothed(m, poly_low, &Kr, &dKr_dSe);
+      parameters[6*c+2] = 1.0;
+      parameters[6*c+3] = Kr;
+      parameters[6*c+4] = 0.0;
+      parameters[6*c+5] = dKr_dSe;
+    }
+    ierr = RelativePermeabilitySetType(cc->rel_perm, REL_PERM_FUNC_MUALEM, nc,
+                                       points, parameters); CHKERRQ(ierr);
   }
 
   // Compute/store plex geometry.
@@ -541,6 +598,19 @@ static PetscErrorCode TDySetup_Common(TDyMPFAO *mpfao,
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
   TDyStopTimer(t1);
 
+  // Compute material properties.
+  MaterialPropComputePermeability(matprop, nc, mpfao->X, mpfao->K);
+  memcpy(mpfao->K0, mpfao->K, 9*nc*sizeof(PetscReal));
+  MaterialPropComputePorosity(matprop, nc, mpfao->X, mpfao->porosity);
+  MaterialPropComputeSoilDensity(matprop, nc, mpfao->X, mpfao->rho_soil);
+  if (MaterialPropHasThermalConductivity) {
+    MaterialPropComputeThermalConductivity(matprop, nc, mpfao->X, mpfao->Kappa);
+    memcpy(mpfao->Kappa0, mpfao->Kappa, 9*nc*sizeof(PetscReal));
+  }
+  if (MaterialPropHasSoilSpecificHeat) {
+    MaterialPropComputeSoilSpecificHeat(matprop, nc, mpfao->X, mpfao->c_soil);
+  }
+
   // Allocate mesh data.
   mpfao->mesh = (TDyMesh *) malloc(sizeof(TDyMesh));
   ierr = TDyAllocateMemoryForMesh(mpfao, dm); CHKERRQ(ierr);
@@ -560,11 +630,9 @@ static PetscErrorCode TDySetup_Common(TDyMPFAO *mpfao,
 }
 
 // Setup function for Richards + MPFA_O
-PetscErrorCode TDySetup_Richards_MPFAO(void *context,
-                                       DM dm,
-                                       TDyEOS *eos,
+PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
                                        MaterialProp *matprop,
-                                       TDyConditions* conditions) {
+                                       Conditions* conditions) {
   PetscFunctionBegin;
 
   PetscErrorCode ierr;
@@ -627,9 +695,9 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context,
 }
 
 // Setup function for Richards + MPFA_O_DAE
-PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, TDyEOS *eos,
+PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
                                            MaterialProp *matprop,
-                                           TDyConditions* conditions) {
+                                           Conditions* conditions) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscFunctionReturn(0);
@@ -697,7 +765,7 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, TDyEOS *eos,
 // Setup function for Richards + MPFA_O_TRANSIENTVAR
 PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void *context, DM dm,
                                                     MaterialProp *matprop,
-                                                    TDyConditions* conditions) {
+                                                    Conditions* conditions) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -707,9 +775,9 @@ PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void *context, DM dm,
 }
 
 // Setup function for TH + MPFA-O
-PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, TDyEOS *eos,
+PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
                                  MaterialProp *matprop,
-                                 TDyConditions* conditions) {
+                                 Conditions* conditions) {
   PetscFunctionBegin;
 
   PetscErrorCode ierr;
@@ -787,7 +855,7 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, TDyEOS *eos,
 // UpdateState functions
 //-----------------------
 PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
-                                             TDyEOS *eos,
+                                             EOS *eos,
                                              MaterialProp *matprop,
                                              CharacteristicCurve *cc) {
   PetscFunctionBegin;
@@ -844,12 +912,12 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
       matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
     }
 
-    ierr = TDyEOSComputeWaterDensity(eos, P[i], &(mpfao->rho[i]),
-                                     &(mpfao->drho_dP[i]),
-                                     &(mpfao->d2rho_dP2[i])); CHKERRQ(ierr);
-    ierr = TDyEOSComputeWaterViscosity(eos, P[i], &(mpfao->vis[i]),
-                                       &(mpfao->dvis_dP[i]),
-                                       &(mpfao->d2vis_dP2[i])); CHKERRQ(ierr);
+    ierr = EOSComputeWaterDensity(eos, P[i], &(mpfao->rho[i]),
+                                  &(mpfao->drho_dP[i]),
+                                  &(mpfao->d2rho_dP2[i])); CHKERRQ(ierr);
+    ierr = EOSComputeWaterViscosity(eos, P[i], &(mpfao->vis[i]),
+                                    &(mpfao->dvis_dP[i]),
+                                    &(mpfao->d2vis_dP2[i])); CHKERRQ(ierr);
   }
 
   PetscReal *p_vec_ptr, gz;
@@ -867,7 +935,7 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
 }
 
 PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
-                                       TDyEOS *eos, MaterialProp *matprop,
+                                       EOS *eos, MaterialProp *matprop,
                                        CharacteristicCurve *cc, PetscReal *U) {
   PetscFunctionBegin;
   TDyMPFAO *mpfao = context;
@@ -928,17 +996,17 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
       matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
     }
 
-    ierr = TDyEOSComputeWaterDensity(eos, P[i], &(mpfao->rho[i]),
-                                     &(mpfao->drho_dP[i]),
-                                     &(mpfao->d2rho_dP2[i])); CHKERRQ(ierr);
-    ierr = TDyEOSComputeWaterViscosity(eos, P[i], &(mpfao->vis[i]),
-                                       &(mpfao->dvis_dP[i]),
-                                       &(mpfao->d2vis_dP2[i])); CHKERRQ(ierr);
+    ierr = EOSComputeWaterDensity(eos, P[i], &(mpfao->rho[i]),
+                                  &(mpfao->drho_dP[i]),
+                                  &(mpfao->d2rho_dP2[i])); CHKERRQ(ierr);
+    ierr = EOSComputeWaterViscosity(eos, P[i], &(mpfao->vis[i]),
+                                    &(mpfao->dvis_dP[i]),
+                                    &(mpfao->d2vis_dP2[i])); CHKERRQ(ierr);
     for(PetscInt j=0; j<dim2; j++)
       matprop->Kappa[i*dim2+j] = matprop->Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
-    ierr = TDyEOSComputeWaterEnthalpy(eos, temp[i], P[i], &(mpfao->h[i]),
-                                      &(mpfao->dh_dP[i]),
-                                      &(mpfao->dh_dT[i])); CHKERRQ(ierr);
+    ierr = EOSComputeWaterEnthalpy(eos, temp[i], P[i], &(mpfao->h[i]),
+                                   &(mpfao->dh_dP[i]),
+                                   &(mpfao->dh_dT[i])); CHKERRQ(ierr);
     mpfao->u[i] = mpfao->h[i] - P[i]/mpfao->rho[i];
   }
 

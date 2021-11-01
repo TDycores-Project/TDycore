@@ -8,10 +8,10 @@
 /// needed for data is specific to implementations).
 typedef struct {
 
-  // Spatial dimension.
+  /// Spatial dimension.
   PetscInt dim;
 
-  // Contexts provided to material property functions.
+  /// Contexts provided to material property functions.
   void *porosity_context;
   void *permeability_context;
   void *thermal_conductivity_context;
@@ -19,7 +19,7 @@ typedef struct {
   void *soil_density_context;
   void *soil_specific_heat_context;
 
-  // Material property functions.
+  /// Material property functions.
   PetscErrorCode (*compute_porosity)(void*,PetscInt,PetscReal*,PetscReal*);
   PetscErrorCode (*compute_permeability)(void*,PetscInt,PetscReal*,PetscReal*);
   PetscErrorCode (*compute_thermal_conductivity)(void*,PetscInt,PetscReal*,PetscReal*);
@@ -27,7 +27,7 @@ typedef struct {
   PetscErrorCode (*compute_soil_density)(void*,PetscInt,PetscReal*,PetscReal*);
   PetscErrorCode (*compute_soil_specific_heat)(void*,PetscInt,PetscReal*,PetscReal*);
 
-  // Material property context destructors.
+  /// Material property context destructors.
   void (*porosity_dtor)(void*);
   void (*permeability_dtor)(void*);
   void (*thermal_conductivity_dtor)(void*);
@@ -35,12 +35,6 @@ typedef struct {
   void (*soil_density_dtor)(void*);
   void (*soil_specific_heat_dtor)(void*);
 
-  // Material data.
-  //PetscReal *K, *K0;
-  //PetscReal *porosity;
-  //PetscReal *Kappa, *Kappa0;
-  //PetscReal *Cr;
-  //PetscReal *rhosoil;
 } MaterialProp;
 
 // material model creation/destruction

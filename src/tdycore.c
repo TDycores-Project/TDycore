@@ -504,7 +504,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   } else {
     ierr = PetscOptionsReal("-tdy_pressure_bc_value", "Constant boundary pressure", NULL,options->boundary_pressure, &options->boundary_pressure,&flag); CHKERRQ(ierr);
     if (flag) {
-      ierr = TDySetBoundaryPressureFn(tdy, TDyConstantBoundaryPressureFn,PETSC_NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryPressureFn(tdy, ConstantBoundaryPressureFn,PETSC_NULL); CHKERRQ(ierr);
     } else { // TODO: what goes here??
     }
   }
@@ -515,7 +515,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   } else {
     ierr = PetscOptionsReal("-tdy_velocity_bc_value", "Constant normal boundary velocity",NULL, options->boundary_pressure, &options->boundary_pressure,&flag); CHKERRQ(ierr);
     if (flag) {
-      ierr = TDySetBoundaryVelocityFn(tdy, TDyConstantBoundaryVelocityFn,PETSC_NULL); CHKERRQ(ierr);
+      ierr = TDySetBoundaryVelocityFn(tdy, ConstantBoundaryVelocityFn,PETSC_NULL); CHKERRQ(ierr);
     } else { // TODO: what goes here??
     }
   }
@@ -625,33 +625,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = MaterialPropSetConstantSoilSpecificHeat(tdy->matprop, tdy->options.soil_specific_heat);
 
   // Create characteristic curves.
-  ierr = CharacteristicCurvesCreate(nc, &tdy->cc); CHKERRQ(ierr);
-
-  // TODO: This all needs sorting out.
-  /* problem constants FIX: add mutators */
-  CharacteristicCurve *cc = tdy->cc;
-  TDyOptions *options = &tdy->options;
-
-  PetscReal mualem_poly_low = 0.99;
-
-  for (PetscInt c=0; c<nc; c++) {
-    cc->sr[c] = options->residual_saturation;
-    cc->gardner_n[c] = options->gardner_n;
-    cc->gardner_m[c] = options->vangenuchten_m;
-    cc->vg_m[c] = options->vangenuchten_m;
-    cc->mualem_poly_low[c] = mualem_poly_low;
-    cc->mualem_m[c] = options->vangenuchten_m;
-    cc->irmay_m[c] = options->vangenuchten_m;
-    cc->vg_alpha[c] = options->vangenuchten_alpha;
-    cc->SatFuncType[c] = SAT_FUNC_VAN_GENUCHTEN;
-    cc->RelPermFuncType[c] = REL_PERM_FUNC_MUALEM;
-    cc->Kr[c] = 0.0;
-    cc->dKr_dS[c] = 0.0;
-    cc->S[c] = 0.0;
-    cc->dS_dP[c] = 0.0;
-    cc->dS_dT[c] = 0.0;
-  }
-  ierr = RelativePermeability_Mualem_SetupSmooth(tdy->cc, nc);
+  ierr = CharacteristicCurvesCreate(&tdy->cc); CHKERRQ(ierr);
 
   // If we have been instructed to initialize the solution from a file, do so.
   if (options->init_from_file) {
@@ -665,7 +639,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-
+#if 0
 //--------------------------------------------------------------------------
 // Material model setup functions. Not sure where these go yet, but they're
 // called from TDySetup, so we stick them here for now.
@@ -845,6 +819,7 @@ static PetscErrorCode SetSoilSpecificHeatFromFunction(TDy tdy) {
 //--------------------------------------------------------------------------
 // End material model setup functions
 //--------------------------------------------------------------------------
+#endif
 
 /// Performs setup, including allocation and configuration of any bookkeeping
 /// data structures and the configuration of the dycore's DM object, which can
@@ -869,27 +844,9 @@ PetscErrorCode TDySetup(TDy tdy) {
   }
   TDyEnterProfilingStage("TDycore Setup");
 
-  // Update material properties.
-  ierr = MaterialPropUpdate(tdy->matprop); CHKERRQ(ierr);
-
-  if (tdy->ops->computeporosity) {
-    ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr);
-  }
-  if (tdy->ops->computepermeability) {
-    ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);
-  }
-  if (tdy->ops->computethermalconductivity) {
-    ierr = SetThermalConductivityFromFunction(tdy); CHKERRQ(ierr);}
-  if (tdy->ops->computesoildensity) {
-    ierr = SetSoilDensityFromFunction(tdy); CHKERRQ(ierr);
-  }
-  if (tdy->ops->computesoilspecificheat) {
-    ierr = SetSoilSpecificHeatFromFunction(tdy); CHKERRQ(ierr);
-  }
-
   // Perform implementation-specific setup.
-  ierr = tdy->ops->setup(tdy->context, tdy->dm, tdy->matprop, tdy->cc,
-                         &tdy->conditions); CHKERRQ(ierr);
+  ierr = tdy->ops->setup(tdy->context, tdy->dm, &tdy->eos, tdy->matprop,
+                         tdy->cc, &tdy->conditions); CHKERRQ(ierr);
 
   // Record metadata for scaling studies.
   TDySetTimingMetadata(tdy);
@@ -1014,7 +971,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   TDY_START_FUNCTION_TIMER()
 
   // Call the implementation-specific state update.
-  CharacteristicCurve *cc = tdy->cc;
+  CharacteristicCurves *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;
   tdy->ops->update_state(tdy->context, tdy->dm, &tdy->eos, tdy->matprop,
                          tdy->cc, U);
@@ -1374,33 +1331,6 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
     break;
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for WY");
-    break;
-  }
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
-  MPI_Comm       comm;
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
-  switch (tdy->options.discretization) {
-  case MPFA_O:
-    ierr = TDyMPFAOComputeSystem(tdy,K,F); CHKERRQ(ierr);
-    break;
-  case MPFA_O_DAE:
-    SETERRQ(comm,PETSC_ERR_SUP,"TDyComputeSystem not implemented for MPFA_O_DAE");
-    break;
-  case MPFA_O_TRANSIENTVAR:
-    SETERRQ(comm,PETSC_ERR_SUP,"TDyComputeSystem not implemented for MPFA_O_TRANSIENTVAR");
-    break;
-  case BDM:
-    ierr = TDyBDMComputeSystem(tdy,K,F); CHKERRQ(ierr);
-    break;
-  case WY:
-    ierr = TDyWYComputeSystem(tdy,K,F); CHKERRQ(ierr);
     break;
   }
   TDY_STOP_FUNCTION_TIMER()

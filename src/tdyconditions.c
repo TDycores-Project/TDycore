@@ -1,28 +1,121 @@
 #include <private/tdycoreimpl.h>
 #include <petsc/private/khash/khash.h>
 
-/// Initializes a new TDyConditions object.
-/// @param [out] conditions a pointer to the conditions object initialized by
-///                         this function.
-PetscErrorCode TDyConditionsCreate(TDyConditions** conditions) {
+/// Initializes a new Conditions instance.
+/// @param [out] conditions a new instance
+PetscErrorCode ConditionsCreate(Conditions** conditions) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  ierr = PetscMalloc(sizeof(TDyConditions), conditions); CHKERRQ(ierr);
-  conditions->context = context;
-  conditions->compute_boundary_pressure = TDyConstantBoundaryPressure;
-  conditions->compute_boundary_temperature = TDyConstantBoundaryTemperature;
-  conditions->compute_boundary_velocity = TDyConstantBoundaryVelocityFn;
+  ierr = PetscCalloc(sizeof(TDyConditions), conditions); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyConditionsDestroy(TDyConditions*) {
+/// Frees the resources associated with the given Conditions instance.
+PetscErrorCode ConditionsDestroy(Conditions* conditions) {
   PetscFunctionBegin;
+  ConditionsSetForcing(conditions, NULL, NULL);
+  ConditionsSetEnergyForcing(conditions, NULL, NULL);
+  ConditionsSetBoundaryPressure(conditions, NULL, NULL);
+  ConditionsSetBoundaryTemperature(conditions, NULL, NULL);
+  ConditionsSetBoundaryVelocity(conditions, NULL, NULL);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute forcing.
+/// @param [in] conditions A Conditions instance
+/// @param [in] context A context pointer to be passed to f
+/// @param [in] f A function that computes forcing at a given number of points
+/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
+PetscErrorCode ConditionsSetForcing(Conditions *conditions, void *context,
+                                    PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
+                                    void (*dtor)(void*)) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  if (conditions->forcing_context && conditions->forcing_dtor)
+    conditions->forcing_dtor(conditions->forcing_context);
+  conditions->forcing_context = context;
+  conditions->compute_forcing = f;
+  conditions->forcing_dtor = dtor;
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute energy forcing.
+/// @param [in] conditions A Conditions instance
+/// @param [in] context A context pointer to be passed to f
+/// @param [in] f A function that computes energy forcing at a given number of points
+/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
+PetscErrorCode ConditionsSetEnergyForcing(Conditions *condition, void *context,
+                                          PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
+                                          void (*dtor)(void*)) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  if (conditions->energy_forcing_context && conditions->energy_forcing_dtor)
+    conditions->energy_forcing_dtor(conditions->energy_forcing_context);
+  conditions->energy_forcing_context = context;
+  conditions->compute_energy_forcing = f;
+  conditions->energy_forcing_dtor = dtor;
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute the boundary pressure.
+/// @param [in] conditions A Conditions instance
+/// @param [in] context A context pointer to be passed to f
+/// @param [in] f A function that computes the boundary pressure forcing at a given number of points
+/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
+PetscErrorCode ConditionsSetBoundaryPressure(Conditions *conditions, void *context,
+                                             PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
+                                             void (*dtor)(void*)) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  if (conditions->boundary_pressure_context && conditions->boundary_pressure_dtor)
+    conditions->boundary_pressure_dtor(conditions->boundary_pressure_context);
+  conditions->boundary_pressure_context = context;
+  conditions->compute_boundary_pressure = f;
+  conditions->boundary_pressure_dtor = dtor;
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute the boundary temperature.
+/// @param [in] conditions A Conditions instance
+/// @param [in] context A context pointer to be passed to f
+/// @param [in] f A function that computes the boundary temperature forcing at a given number of points
+/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
+PetscErrorCode ConditionsSetBoundaryTemperature(Conditions *conditions,
+                                                void *context,
+                                                PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
+                                                void (*dtor)(void*)) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  if (conditions->boundary_temperature_context && conditions->boundary_temperature_dtor)
+    conditions->boundary_temperature_dtor(conditions->boundary_temperature_context);
+  conditions->boundary_temperature_context = context;
+  conditions->compute_boundary_temperature = f;
+  conditions->boundary_temperature_dtor = dtor;
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute the (normal) boundary velocity.
+/// @param [in] conditions A Conditions instance
+/// @param [in] context A context pointer to be passed to f
+/// @param [in] f A function that computes the boundary temperature forcing at a given number of points
+/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
+PetscErrorCode ConditionsSetBoundaryVelocity(Conditions *conditions,
+                                             void *context,
+                                             PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
+                                             void (*dtor)(void*)) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  if (conditions->boundary_velocity_context && conditions->boundary_velocity_dtor)
+    conditions->boundary_velocity_dtor(conditions->boundary_velocity_context);
+  conditions->boundary_velocity_context = context;
+  conditions->compute_boundary_velocity = f;
+  conditions->boundary_velocity_dtor = dtor;
   PetscFunctionReturn(0);
 }
 
 // Here's a registry of functions that can be used for boundary conditions and
 // forcing terms.
-typedef PetscErrorCode(*Function)(TDy, PetscReal*, PetscReal*, void*);
+typedef PetscErrorCode(*Function)(void*, PetscInt, PetscReal*, PetscReal*);
 KHASH_MAP_INIT_STR(TDY_FUNC_MAP, Function)
 static khash_t(TDY_FUNC_MAP)* funcs_ = NULL;
 
@@ -65,66 +158,80 @@ PetscErrorCode TDyGetFunction(const char* name, Function* f) {
   PetscFunctionReturn(0);
 }
 
-
-PetscErrorCode TDySetForcingFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
-  PetscFunctionBegin;
-  if (f) tdy->ops->computeforcing = f;
-  if (ctx) tdy->forcingctx = ctx;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetEnergyForcingFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
-  PetscFunctionBegin;
-  if (f) tdy->ops->computeenergyforcing = f;
-  if (ctx) tdy->energyforcingctx = ctx;
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySelectBoundaryPressureFn(TDy tdy, const char* name, void* ctx) {
+PetscErrorCode ConditionsSelectBoundaryPressure(Conditions *conditions,
+                                                void *context,
+                                                const char* name) {
   PetscFunctionBegin;
   int ierr;
   Function f;
   ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
-  ierr = TDySetBoundaryPressureFn(tdy, f, ctx); CHKERRQ(ierr);
+  ierr = ConditionsSetBoundaryPressure(conditions, context, f, NULL); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySelectBoundaryTemperatureFn(TDy tdy, const char* name, void* ctx) {
+PetscErrorCode ConditionsSelectBoundaryTemperature(Conditions *conditions,
+                                                   void *context,
+                                                   const char* name) {
   PetscFunctionBegin;
   int ierr;
   Function f;
   ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
-  ierr = TDySetBoundaryTemperatureFn(tdy, f, ctx); CHKERRQ(ierr);
+  ierr = ConditionsSetBoundaryTemperature(conditions, context, f, NULL); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySelectBoundaryVelocityFn(TDy tdy, const char* name, void* ctx) {
+PetscErrorCode ConditionsSelectBoundaryVelocity(Conditions *conditions,
+                                                void *context,
+                                                const char* name) {
   PetscFunctionBegin;
   int ierr;
   Function f;
   ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
-  ierr = TDySetBoundaryVelocityFn(tdy, f, ctx); CHKERRQ(ierr);
+  ierr = ConditionsSetBoundaryVelocity(conditions, context, f, NULL); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetBoundaryTemperatureFn(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+static PetscErrorCode ConstantBoundaryFn(void *context,
+                                         PetscInt n, PetscReal *x,
+                                         PetscReal *v) {
   PetscFunctionBegin;
-  if (f) tdy->ops->compute_boundary_temperature = f;
-  if (ctx) tdy->boundary_temperature_ctx = ctx;
+  PetscReal v0 = *((PetscReal*)context);
+  for (PetscInt i = 0; i < n; ++i) {
+    v[i] = v0;
+  }
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetBoundaryPressureFn(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+PetscErrorCode ConditionsSetConstantBoundaryPressure(Conditions *conditions,
+                                                     PetscReal p0) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
-  if (f) tdy->ops->compute_boundary_pressure = f;
-  if (ctx) tdy->boundary_pressure_ctx = ctx;
+  PetscReal *val = malloc(sizeof(PetscReal));
+  *val = p0;
+  ierr = ConditionsSetBoundaryPressure(conditions, val, ConѕtantBoundaryFn,
+                                       free);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetBoundaryVelocityFn(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+PetscErrorCode ConditionsSetConstantBoundaryTemperature(Conditions *conditions,
+                                                        PetscReal T0) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
-  if (f) tdy->ops->compute_boundary_velocity = f;
-  if (ctx) tdy->boundary_velocity_ctx = ctx;
+  PetscReal *val = malloc(sizeof(PetscReal));
+  *val = T0;
+  ierr = ConditionsSetBoundaryTemperature(conditions, val, ConѕtantBoundaryFn,
+                                          free);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode ConditionsSetConstantBoundaryVelocity(Conditions *conditions,
+                                                     PetscReal v0) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  PetscReal *val = malloc(sizeof(PetscReal));
+  *val = v0;
+  ierr = ConditionsSetBoundaryVelocity(conditions, val, ConѕtantBoundaryFn,
+                                       free);
   PetscFunctionReturn(0);
 }
 
@@ -156,33 +263,6 @@ PetscErrorCode TDySetEnergySourceSinkValuesLocal(TDy tdy, PetscInt ni, const Pet
   for(i=0; i<ni; i++) {
     tdy->energy_source_sink[ix[i]] = y[i];
   }
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyConstantBoundaryPressureFn(TDy tdy, PetscReal *x, PetscReal *p, void *ctx) {
-  PetscFunctionBegin;
-  TDyOptions *options = &tdy->options;
-
-  *p = options->boundary_pressure;
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyConstantBoundaryTemperatureFn(TDy tdy, PetscReal *x, PetscReal *T, void *ctx) {
-  PetscFunctionBegin;
-  TDyOptions *options = &tdy->options;
-
-  *T = options->boundary_temperature;
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyConstantBoundaryVelocityFn(TDy tdy, PetscReal *x, PetscReal *v, void *ctx) {
-  PetscFunctionBegin;
-  TDyOptions *options = &tdy->options;
-
-  *v = options->boundary_velocity;
 
   PetscFunctionReturn(0);
 }

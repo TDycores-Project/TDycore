@@ -176,7 +176,6 @@ PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
 
 // We will remove the following functions in favor of setting function pointers
 // that a given solver uses to extract info from a DM.
-PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy,Mat,Vec);
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS,TDy);
 PETSC_EXTERN PetscErrorCode TDySetIJacobian(TS,TDy);
 PETSC_EXTERN PetscErrorCode TDySetSNESFunction(SNES,TDy);
@@ -288,6 +287,8 @@ typedef enum {
 PETSC_EXTERN const char *const TDyQuadratureTypes[];
 
 PETSC_EXTERN PetscErrorCode TDyWYSetQuadrature(TDy, TDyQuadratureType);
+PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy,Mat,Vec);
 PETSC_EXTERN PetscErrorCode TDyBDMSetQuadrature(TDy, TDyQuadratureType);
+PETSC_EXTERN PetscErrorCode TDyBDMComputeSystem(TDy,Mat,Vec);
 
 #endif

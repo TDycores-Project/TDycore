@@ -13,39 +13,8 @@ PetscErrorCode MaterialPropCreate(PetscInt dim, MaterialProp **matprop) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  *matprop = (MaterialProp *)malloc(sizeof(MaterialProp));
-
-//  ierr = PetscMalloc(npoints*ndim*ndim*sizeof(PetscReal),&(*matprop)->K); CHKERRQ(ierr);
-//  ierr = PetscMalloc(npoints*ndim*ndim*sizeof(PetscReal),&(*matprop)->K0); CHKERRQ(ierr);
-//  ierr = PetscMalloc(npoints*ndim*ndim*sizeof(PetscReal),&(*matprop)->Kappa); CHKERRQ(ierr);
-//  ierr = PetscMalloc(npoints*ndim*ndim*sizeof(PetscReal),&(*matprop)->Kappa0); CHKERRQ(ierr);
-
-//  ierr = PetscMalloc(npoints*sizeof(PetscReal),&(*matprop)->porosity); CHKERRQ(ierr);
-//  ierr = PetscMalloc(npoints*sizeof(PetscReal),&(*matprop)->Cr); CHKERRQ(ierr);
-//  ierr = PetscMalloc(npoints*sizeof(PetscReal),&(*matprop)->rhosoil); CHKERRQ(ierr);
-
+  ierr = PetscCalloc(sizeof(MaterialProp), matprop); CHKERRQ(ierr);
   (*matprop)->dim = dim;
-
-  (*matprop)->porosity_context = NULL;
-  (*matprop)->permeability_context = NULL;
-  (*matprop)->thermal_conductivity_context = NULL;
-  (*matprop)->residual_saturation_context = NULL;
-  (*matprop)->soil_density_context = NULL;
-  (*matprop)->soil_specific_heat_context = NULL;
-
-  (*matprop)->compute_porosity = NULL;
-  (*matprop)->compute_permeability = NULL;
-  (*matprop)->compute_thermal_conductivity = NULL;
-  (*matprop)->compute_residual_saturation = NULL;
-  (*matprop)->compute_soil_density = NULL;
-  (*matprop)->compute_soil_specific_heat = NULL;
-
-  (*matprop)->porosity_dtor = NULL;
-  (*matprop)->permeability_dtor = NULL;
-  (*matprop)->thermal_conductivity_dtor = NULL;
-  (*matprop)->residual_saturation_dtor = NULL;
-  (*matprop)->soil_density_dtor = NULL;
-  (*matprop)->soil_specific_heat_dtor = NULL;
 
   PetscFunctionReturn(0);
 }
@@ -78,6 +47,7 @@ PetscErrorCode MaterialPropSetPermeability(MaterialProp *matprop, void *context,
     matprop->permeability_dtor(matprop->permeability_context);
   matprop->permeability_context = context;
   matprop->compute_permeability = f;
+  matprop->permeability_dtor = dtor;
   PetscFunctionReturn(0);
 }
 
@@ -94,6 +64,7 @@ PetscErrorCode MaterialPropSetPorosity(MaterialProp *matprop, void *context,
     matprop->porosity_dtor(matprop->porosity_context);
   matprop->porosity_context = context;
   matprop->compute_porosity = f;
+  matprop->porosity_dtor = dtor;
   PetscFunctionReturn(0);
 }
 
@@ -110,6 +81,7 @@ PetscErrorCode MaterialPropSetThermalConductivity(MaterialProp *matprop, void *c
     matprop->thermal_conductivity_dtor(matprop->thermal_conductivity_context);
   matprop->thermal_conductivity_context = context;
   matprop->compute_thermal_conductivity = f;
+  matprop->thermal_conductivity_dtor = dtor;
   PetscFunctionReturn(0);
 }
 
@@ -126,6 +98,7 @@ PetscErrorCode MaterialPropSetResidualSaturation(MaterialProp *matprop, void *co
     matprop->residual_saturation_dtor(matprop->residual_saturation_context);
   matprop->residual_saturation_context = context;
   matprop->compute_residual_saturation = f;
+  matprop->residual_saturation_dtor = dtor;
   PetscFunctionReturn(0);
 }
 
@@ -142,6 +115,7 @@ PetscErrorCode MaterialPropSetSoilDensity(MaterialProp *matprop, void *context,
     matprop->soil_density_dtor(matprop->soil_density_context);
   matprop->soil_density_context = context;
   matprop->compute_soil_density = f;
+  matprop->soil_density_dtor = dtor;
   PetscFunctionReturn(0);
 }
 
@@ -158,6 +132,7 @@ PetscErrorCode MaterialPropSetSoilSpecificHeat(MaterialProp *matprop, void *cont
     matprop->soil_specific_heat_dtor(matprop->soil_specific_heat_context);
   matprop->soil_specific_heat = context;
   matprop->compute_specific_heat = f;
+  matprop->soil_specific_heat_dtor = dtor;
   PetscFunctionReturn(0);
 }
 

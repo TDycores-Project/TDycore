@@ -121,6 +121,15 @@ PetscErrorCode SaturationSetType(Saturation *sat, SaturationType type,
   } else {
     SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Invalid saturation model type!");
   }
+
+  // If we're changing the number of points for this type, free storage.
+  if (sat->num_points[type] != num_points) {
+    if (sat->points[type]) {
+      ierr = PetscFree(sat->points[type]); CHKERRQ(ierr);
+      ierr = PetscFree(sat->parameters[type]); CHKERRQ(ierr);
+    }
+  }
+
   sat->num_points[type] = num_points;
   ierr = PetscMalloc(num_points*sizeof(PetscInt),
                      &(sat->points[type])); CHKERRQ(ierr);
@@ -560,6 +569,7 @@ PetscErrorCode CubicPolynomialEvaluate(PetscReal *coeffs, PetscReal x, PetscReal
   PetscFunctionReturn(0);
 }
 
+#if 0
 /* -------------------------------------------------------------------------- */
 ///
 /// Sets up cubic polynomial smoothing for Mualem relative permeability function
@@ -591,6 +601,7 @@ PetscErrorCode RelativePermeability_Mualem_SetupSmooth(CharacteristicCurves *cc,
 
   PetscFunctionReturn(0);
 }
+#endif
 
 /* -------------------------------------------------------------------------- */
 ///

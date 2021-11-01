@@ -5,21 +5,21 @@
 
 typedef enum {
   WATER_VISCOSITY_CONSTANT=0,
-} TDyWaterViscosityType;
+} WaterViscosityType;
 
 typedef enum {
   WATER_ENTHALPY_CONSTANT=0,
-} TDyWaterEnthalpyType;
+} WaterEnthalpyType;
 
-typedef struct TDyEOS {
+typedef struct EOS {
   TDyWaterDensityType density_type;
   PetscInt viscosity_type;
   PetscInt enthalpy_type;
-} TDyEOS;
+} EOS;
 
-PETSC_INTERN PetscErrorCode TDyEOSComputeWaterDensity(TDyEOS*,PetscReal,PetscReal*,PetscReal*,PetscReal*);
-PETSC_INTERN PetscErrorCode TDyEOSComputeWaterViscosity(TDyEOS*,PetscReal,PetscReal*,PetscReal*,PetscReal*);
-PETSC_INTERN PetscErrorCode TDyEOSComputeWaterEnthalpy(TDyEOS*,PetscReal,PetscReal,PetscReal*,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode EOSComputeWaterDensity(EOS*,PetscReal,PetscReal*,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode EOSComputeWaterViscosity(EOS*,PetscReal,PetscReal*,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode EOSComputeWaterEnthalpy(EOS*,PetscReal,PetscReal,PetscReal*,PetscReal*,PetscReal*);
 
 #endif
 

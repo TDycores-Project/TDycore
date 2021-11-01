@@ -23,29 +23,33 @@ void TDyPiola(PetscReal *u,PetscReal *DF,PetscReal J,PetscInt dim){
   TDY_STOP_FUNCTION_TIMER()
 }
 
-PetscErrorCode TDyBDMSetQuadrature(TDyBDΜ* bdm, TDyQuadratureType qtype) {
+PetscErrorCode TDyBDMSetQuadrature(TDy tdy, TDyQuadratureType qtype) {
   PetscFunctionBegin;
+  TDyBDM *bdm = tdy->context;
   bdm->qtype = qtype;
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyCreate_BDM(void **context) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
+
   // Allocate a new context for the WY method.
   TDyBDM* bdm;
   ierr = PetscMalloc(sizeof(TDyBDM), &bdm);
   *context = bdm;
 
   // initialize data
-  wy->qtype = FULL;
-  wy->vmap = NULL; wy->emap = NULL; wy->Alocal = NULL; wy->Flocal = NULL;
-  wy->quad = NULL;
-  wy->faces = NULL; wy->LtoG = NULL; wy->orient = NULL;
+  bdm->qtype = FULL;
+  bdm->vmap = NULL; bdm->emap = NULL; bdm->Alocal = NULL; bdm->Flocal = NULL;
+  bdm->quad = NULL;
+  bdm->faces = NULL; bdm->LtoG = NULL; bdm->orient = NULL;
 
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyDestroy_BDM(void *context) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyBDM* bdm = context;
 
@@ -67,10 +71,11 @@ PetscErrorCode TDyDestroy_BDM(void *context) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetFromOptions_BDM(void *context, TDyoptions *options) {
+PetscErrorCode TDySetFromOptions_BDM(void *context, TDyOptions *options) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  TDyBDM* wy = context;
+  TDyBDM* bdm = context;
 
   // Set options.
   TDyQuadratureType qtype = FULL;
@@ -81,8 +86,8 @@ PetscErrorCode TDySetFromOptions_BDM(void *context, TDyoptions *options) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetup_BDM(void *context, DM dm, MaterialProp *matprop,
-                            TDyConditions* conditions) {
+PetscErrorCode TDySetup_BDM(void *context, DM dm, EOS *eos,MaterialProp *matprop,
+                            CharacteristicCurves *cc, Conditions *conditions) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
@@ -129,7 +134,7 @@ PetscErrorCode TDySetup_BDM(void *context, DM dm, MaterialProp *matprop,
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
   ierr = DMGetGlobalSection(dm,&sec); CHKERRQ(ierr);
   ierr = DMSetBasicAdjacency(dm,PETSC_TRUE,PETSC_TRUE); CHKERRQ(ierr);
-  tdy->ncv = TDyGetNumberOfCellVertices(dm);
+  bdm->ncv = TDyGetNumberOfCellVertices(dm);
 
   /* Build vmap and emap */
   ierr = TDyCreateCellVertexMap(tdy,&(tdy->vmap)); CHKERRQ(ierr);
@@ -161,28 +166,28 @@ PetscErrorCode TDySetup_BDM(void *context, DM dm, MaterialProp *matprop,
 
   /* use vmap, emap, and fmap to build a LtoG map for local element
      assembly */
-  ncv = tdy->ncv;
+  ncv = bdm->ncv;
   nlocal = dim*ncv + 1;
   ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),
-                     &(tdy->LtoG)); CHKERRQ(ierr);
+                     &(bdm->LtoG)); CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),
-                     &(tdy->orient)); CHKERRQ(ierr);
+                     &(bdm->orient)); CHKERRQ(ierr);
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&mStart,&mEnd); CHKERRQ(ierr);
     if(mStart<0) mStart = -(mStart+1);
-    tdy->LtoG[(c-cStart+1)*nlocal-1] = mStart;
+    bdm->LtoG[(c-cStart+1)*nlocal-1] = mStart;
     for(v=0; v<ncv; v++) {
       for(d=0; d<dim; d++) {
         /* which face is this local dof on? */
-        f = tdy->emap[(c-cStart)*ncv*dim+v*dim+d];
+        f = bdm->emap[(c-cStart)*ncv*dim+v*dim+d];
         f_abs = PetscAbsInt(f);
         ierr = DMPlexGetPointGlobal(dm,f_abs,&mStart,&mEnd); CHKERRQ(ierr);
 	if(mStart<0) mStart = -(mStart+1);
         found = PETSC_FALSE;
         for(i=0; i<nfv; i++) {
-          if(tdy->vmap[ncv*(c-cStart)+v] == tdy->fmap[nfv*(f_abs-fStart)+i]) {
-            tdy->LtoG  [(c-cStart)*nlocal + v*dim + d] = mStart + i;
-            tdy->orient[(c-cStart)*nlocal + v*dim + d] = PetscSign(f);
+          if(bdm->vmap[ncv*(c-cStart)+v] == bdm->fmap[nfv*(f_abs-fStart)+i]) {
+            bdm->LtoG  [(c-cStart)*nlocal + v*dim + d] = mStart + i;
+            bdm->orient[(c-cStart)*nlocal + v*dim + d] = PetscSign(f);
             found = PETSC_TRUE;
           }
         }
@@ -196,22 +201,22 @@ PetscErrorCode TDySetup_BDM(void *context, DM dm, MaterialProp *matprop,
 
   /* map(cell,dim,side) --> global_face */
   ierr = PetscMalloc((cEnd-cStart)*PetscPowInt(2,dim)*sizeof(PetscInt),
-                     &(tdy->faces)); CHKERRQ(ierr);
+                     &(bdm->faces)); CHKERRQ(ierr);
   #if defined(PETSC_USE_DEBUG)
-  for(c=0; c<((cEnd-cStart)*(2*dim)); c++) { tdy->faces[c] = -1; }
+  for(c=0; c<((cEnd-cStart)*(2*dim)); c++) { bdm->faces[c] = -1; }
   #endif
   PetscInt s;
   for(c=cStart; c<cEnd; c++) {
     for(d=0; d<dim; d++) {
       for(s=0; s<2; s++) {
         v = s*PetscPowInt(2,d);
-        tdy->faces[(c-cStart)*dim*2+d*2+s] = PetscAbsInt(tdy->emap[(c-cStart)*ncv*dim+v*dim+d]);
+        bdm->faces[(c-cStart)*dim*2+d*2+s] = PetscAbsInt(bdm->emap[(c-cStart)*ncv*dim+v*dim+d]);
       }
     }
   }
   #if defined(PETSC_USE_DEBUG)
   for(c=0; c<((cEnd-cStart)*(2*dim)); c++) {
-    if(tdy->faces[c] < 0) {
+    if(bdm->faces[c] < 0) {
       SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
               "Unable to find map(cell,dir,side) -> face");
     }
@@ -268,7 +273,7 @@ PetscErrorCode Inverse(PetscScalar *K,PetscInt nn) {
   <g,w>
 
  */
-PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal *gvdotn) {
+PetscErrorCode IntegratePressureBoundary(TDyBDM *bdm,DM dm,PetscInt f,PetscInt c,PetscReal *gvdotn) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
@@ -277,8 +282,7 @@ PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal
   PetscReal *single_point,*single_weight,lside[24],x[3],DF[9],DFinv[9],J[1],basis[72],g;
   PetscReal fJ[9],dummy[200],normal[3];
   PetscInt i,j,q,v,d,dim,ncv,nfq,nq1d,face_side,face_dir;
-  DM dm = tdy->dm;
-  ncv = tdy->ncv;
+  ncv = bdm->ncv;
   nq1d = 3;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -301,14 +305,14 @@ PetscErrorCode IntegratePressureBoundary(TDy tdy,PetscInt f,PetscInt c,PetscReal
   face_side = -1; face_dir = -1;
   for(v=0; v<ncv; v++) {
     for(d=0; d<dim; d++) {
-      normal[d] = tdy->N[f*dim+d];
-      if(PetscAbsInt(tdy->emap[c*ncv*dim+v*dim+d]) == f) {
+      normal[d] = bdm->N[f*dim+d];
+      if(PetscAbsInt(bdm->emap[c*ncv*dim+v*dim+d]) == f) {
         face_side = lside[v*dim+d];
         face_dir  = d;
       }
     }
   }
-  if(TDyADotBMinusC(normal,&(tdy->X[f*dim]),&(tdy->X[c*dim]),dim) < 0){
+  if(TDyADotBMinusC(normal,&(bdm->X[f*dim]),&(bdm->X[c*dim]),dim) < 0){
     for(d=0; d<dim; d++) normal[d] *= -1;
   }
 
@@ -373,16 +377,17 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   const PetscScalar *quad_w,*fquad_w;
   PetscQuadrature quadrature;
   PetscQuadrature face_quadrature;
+  TDyBDM *bdm = tdy->context;
   DM dm = tdy->dm;
 
   /* Get domain constants */
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr); dim2 = dim*dim;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  nv = tdy->ncv;
+  nv = bdm->ncv;
   nlocal = dim*nv + 1;
 
   /* Get quadrature */
-  switch(tdy->options.qtype) {
+  switch(bdm->qtype) {
   case FULL:
     ierr = PetscDTGaussTensorQuadrature(dim  ,1,nq1d,-1,+1,&     quadrature); CHKERRQ(ierr);
     ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&face_quadrature); CHKERRQ(ierr);
@@ -403,8 +408,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     /* Only assemble the cells that this processor owns */
     ierr = DMPlexGetPointGlobal(dm,c,&pStart,&pEnd); CHKERRQ(ierr);
     if (pStart < 0) continue;
-    const PetscInt *LtoG = &(tdy->LtoG[(c-cStart)*nlocal]);
-    const PetscInt *orient = &(tdy->orient[(c-cStart)*nlocal]);
+    const PetscInt *LtoG = &(bdm->LtoG[(c-cStart)*nlocal]);
+    const PetscInt *orient = &(bdm->orient[(c-cStart)*nlocal]);
     ierr = DMPlexComputeCellGeometryFEM(dm,c,quadrature,x,DF,DFinv,J); CHKERRQ(ierr);
     ierr = PetscMemzero(Klocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
     ierr = PetscMemzero(Flocal,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
@@ -433,8 +438,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
               local_col = vj*dim+dj;
               /* (K^-1 u, v) */
               Klocal[local_col*nlocal+local_row] += TDyKDotADotB(&(matprop->K[dim2*(c-cStart)]),
-								 &(basis_hdiv[dim*local_row]),
-								 &(basis_hdiv[dim*local_col]),dim)*quad_w[q]*J[q];
+                  &(basis_hdiv[dim*local_row]),
+                  &(basis_hdiv[dim*local_col]),dim)*quad_w[q]*J[q];
             }
           } /* end directions */
 
@@ -458,7 +463,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     for(f=0;f<coneSize;f++){
       ierr = DMGetLabelValue(dm,"marker",cone[f],&isbc); CHKERRQ(ierr);
       if(isbc == 1 && tdy->ops->compute_boundary_pressure){
-	ierr = IntegratePressureBoundary(tdy,cone[f],c,Flocal);
+        ierr = IntegratePressureBoundary(bdm,dm,cone[f],c,Flocal);
       }
     } /* end faces */
 

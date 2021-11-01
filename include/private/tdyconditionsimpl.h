@@ -4,32 +4,71 @@
 #include <private/tdyoptions.h>
 
 /// This type gathers settings related to boundary and source/sink conditions.
-typedef struct TDyConditions {
+typedef struct Conditions {
 
-  /// A context provided to each condition-related function.
-  void* context;
+  /// Contexts provided for condition-related functions.
+  void* forcing_context;
+  void* energy_context;
+  void* boundary_pressure_context;
+  void* boundary_temperature_context;
+  void* boundary_velocity_context;
 
-  /// Compute momentum source contributions at a given point.
-  PetscErrorCode (*compute_forcing)(TDy,PetscReal*,PetscReal*,void*);
+  /// Compute momentum source contributions at a set of given points.
+  PetscErrorCode (*compute_forcing)(void*,PetscInt,PetscReal*,PetscReal*);
 
-  /// Compute energy source contributions at a given point.
-  PetscErrorCode (*compute_energy_forcing)(TDy,PetscReal*,PetscReal*,void*);
+  /// Compute energy source contributions at a set of given points.
+  PetscErrorCode (*compute_energy_forcing)(void*,PetscInt,PetscReal*,PetscReal*);
 
-  /// Compute the pressure at a given point on the boundary.
-  PetscErrorCode (*compute_boundary_pressure)(TDy,PetscReal*,PetscReal*,void*);
+  /// Compute the pressure at a set of given points on the boundary.
+  PetscErrorCode (*compute_boundary_pressure)(void*,PetscInt,PetscReal*,PetscReal*);
 
-  /// Compute the temperature at a given point on the boundary.
-  PetscErrorCode (*compute_boundary_temperature)(TDy,PetscReal*,PetscReal*,void*);
+  /// Compute the temperature at a set of given points on the boundary.
+  PetscErrorCode (*compute_boundary_temperature)(void*,PetscInt,PetscReal*,PetscReal*);
 
   /// Compute the components of the component of the velocity normal to a given
-  /// point on the boundary.
-  PetscErrorCode (*compute_boundary_velocity)(TDy,PetscReal*,PetscReal*,void*);
+  /// set of points on the boundary.
+  PetscErrorCode (*compute_boundary_velocity)(void*,PetscInt,PetscReal*,PetscReal*);
 
-} TDyConditions;
+  /// Context destructors.
+  void (*forcing_dtor)(void*);
+  void (*energy_forcing_dtor)(void*);
+  void (*boundary_pressure_dtor)(void*);
+  void (*boundary_temperature_dtor)(void*);
+  void (*boundary_velocity_dtor)(void*);
+} Conditions;
 
-PETSC_INTERN PetscErrorCode TDyConstantBoundaryPressureFn(TDy,PetscReal*,PetscReal*,void*);
-PETSC_INTERN PetscErrorCode TDyConstantBoundaryTemperatureFn(TDy,PetscReal*,PetscReal*,void*);
-PETSC_INTERN PetscErrorCode TDyConstantBoundaryVelocityFn(TDy,PetscReal*,PetscReal*,void*);
+// conditions creation/destruction
+PETSC_INTERN PetscErrorCode ConditionsCreate(Conditions**);
+PETSC_INTERN PetscErrorCode ConditionsDestroy(Conditions*);
+
+// conditions setup functions
+PETSC_INTERN PetscErrorCode ConditionsSetForcing(Conditions*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetEnergyForcing(Conditions*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetBoundaryPressure(Conditions*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetBoundaryTemperature(Conditions*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetBoundaryVelocity(Conditions*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
+
+// conditions query functions
+PETSC_INTERN PetscBool ConditionsHasForcing(Conditions*);
+PETSC_INTERN PetscBool ConditionsHasEnergyForcing(Conditions*);
+PETSC_INTERN PetscBool ConditionsHasBoundaryPressure(Conditions*);
+PETSC_INTERN PetscBool ConditionsHasBoundaryTemperature(Conditions*);
+PETSC_INTERN PetscBool ConditionsHasBoundaryVelocity(Conditions*);
+
+// conditions computation
+PETSC_INTERN PetscErrorCode ConditionsComputeForcing(Conditions*,PetscInt,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode ConditionsComputeEnergyForcing(Conditions*,PetscInt,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryPressure(Conditions*,PetscInt,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryTemperature(Conditions*,PetscInt,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryVelocity(Conditions*,PetscInt,PetscReal*,PetscReal*);
+
+// convenience functions
+PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundaryPressure(Conditions*,PetscReal);
+PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundaryTemperature(Conditions*,PetscReal);
+PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundaryVelocity(Conditions*,PetscReal);
+PETSC_INTERN PetscErrorCode ConditionsSelectBoundaryPressure(Conditions*,void*,const char*);
+PETSC_INTERN PetscErrorCode ConditionsSelectBoundaryTemperature(Conditions*,void*,const char*);
+PETSC_INTERN PetscErrorCode ConditionsSelectBoundaryVelocity(Conditions*,void*,const char*);
 
 #endif
 
