@@ -1,5 +1,7 @@
 #include <private/tdycoreimpl.h>
+#include <private/tdyfeimpl.h>
 #include <private/tdyutils.h>
+#include <private/tdywyimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdydiscretization.h>
 #include <tdytimers.h>
@@ -166,11 +168,13 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
   PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],n0[3],n1[3],
               f; /* allocated at maximum possible size */
   DM dm = tdy->dm;
+  TDyWY *wy = tdy->context;
   MaterialProp *matprop = tdy->matprop;
+  Conditions *conditions = tdy->conditions;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  nq   = tdy->ncv;
+  nq   = wy->ncv;
   dim2 = dim*dim;
   for(i=0; i<dim; i++) {
     Ehat *= 2;
@@ -178,9 +182,9 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
   }
   ehat = Ehat / 2;
   for(c=cStart; c<cEnd; c++) {
-    tdy->Flocal[c] = 0;
+    wy->Flocal[c] = 0;
     // DF and DFinv are row major
-    ierr = DMPlexComputeCellGeometryFEM(dm,c,tdy->quad,x,DF,DFinv,J); CHKERRQ(ierr);
+    ierr = DMPlexComputeCellGeometryFEM(dm,c,wy->quad,x,DF,DFinv,J); CHKERRQ(ierr);
     for(q=0; q<nq; q++) {
 
       if(J[q]<0){
@@ -190,7 +194,7 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
 		"Determinant of the jacobian is negative");
       }
       // compute Kappa^-1 which will be in column major format (shouldn't matter as it is symmetric)
-      ierr = Pullback(&(matprop->K[dim2*(c-cStart)]),&DFinv[dim2*q],Kinv,J[q],dim);
+      ierr = Pullback(&(wy->K[dim2*(c-cStart)]),&DFinv[dim2*q],Kinv,J[q],dim);
       CHKERRQ(ierr);
 
       // at each vertex, we have a dim by dim system which we will store
@@ -200,15 +204,15 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
         for(j=0; j<dim; j++) {
           n1[0] = 0; n1[1] = 0; n1[2] = 0;
           n1[j] = ElementSide(q,j);
-          tdy->Alocal[c*(dim2*nq)+q*(dim2)+j*dim+i] = KDotADotB(Kinv,n0,n1,
+          wy->Alocal[c*(dim2*nq)+q*(dim2)+j*dim+i] = KDotADotB(Kinv,n0,n1,
               dim)*Ehat/ehat/ehat*wgt;
         }
       }
 
       // integrate the forcing function using the same quadrature
-      if (tdy->ops->computeforcing) {
-        ierr = (*tdy->ops->computeforcing)(tdy, &(x[q*dim]), &f, tdy->forcingctx);CHKERRQ(ierr);
-        tdy->Flocal[c] += f*J[q];
+      if (ConditionsHasForcing(conditions)) {
+        ierr = ConditionsComputeForcing(conditions, 1, &(x[q*dim]), &f);CHKERRQ(ierr);
+        wy->Flocal[c] += f*J[q];
       }
     }
 
@@ -225,22 +229,17 @@ PetscErrorCode TDyWYSetQuadrature(TDy tdy, TDyQuadratureType qtype) {
 }
 
 PetscErrorCode TDyCreate_WY(void **context) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
   // Allocate a new context for the WY method.
   TDyWY* wy;
-  ierr = PetscMalloc(sizeof(TDyWY), &wy);
+  ierr = PetscCalloc(sizeof(TDyWY), &wy);
   *context = wy;
-
-  // initialize data
-  wy->qtype = FULL;
-  wy->vmap = NULL; wy->emap = NULL; wy->Alocal = NULL; wy->Flocal = NULL;
-  wy->quad = NULL;
-  wy->faces = NULL; wy->LtoG = NULL; wy->orient = NULL;
-
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyDestroy_WY(void *context) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyWY* wy = context;
 
@@ -255,6 +254,11 @@ PetscErrorCode TDyDestroy_WY(void *context) {
   if (wy->orient) { ierr = PetscFree(wy->orient); CHKERRQ(ierr); }
   if (wy->quad  ) { ierr = PetscQuadratureDestroy(&(wy->quad)); CHKERRQ(ierr); }
 
+  if (wy->K) { ierr = PetscFree(wy->K); CHKERRQ(ierr); }
+  if (wy->K0) { ierr = PetscFree(wy->K0); CHKERRQ(ierr); }
+  if (wy->Kr) { ierr = PetscFree(wy->Kr); CHKERRQ(ierr); }
+  if (wy->porosity) { ierr = PetscFree(wy->porosity); CHKERRQ(ierr); }
+
   ierr = PetscFree(wy->V); CHKERRQ(ierr);
   ierr = PetscFree(wy->X); CHKERRQ(ierr);
   ierr = PetscFree(wy->N); CHKERRQ(ierr);
@@ -263,21 +267,24 @@ PetscErrorCode TDyDestroy_WY(void *context) {
 }
 
 PetscErrorCode TDySetFromOptions_WY(void *context, TDyOptions *options) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
 
   TDyWY* wy = context;
 
   // Set options.
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: WY options",""); CHKERRQ(ierr);
   TDyQuadratureType qtype = FULL;
   ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type for finite element methods",
     "TDyWYSetQuadrature",TDyQuadratureTypes,(PetscEnum)qtype,
     (PetscEnum *)&wy->qtype,NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetup_WY(void *context, DM dm, TDyEOS *eos,
-                           MaterialProp *matprop, TDyConditions* conditions) {
+PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
+                           MaterialProp *matprop, Conditions* conditions) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
@@ -296,30 +303,30 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, TDyEOS *eos,
   /* Check that the number of vertices per cell are constant. Soft
      limitation, method is flexible but my data structures are not. */
   wy->ncv = TDyGetNumberOfCellVertices(dm);
-  ncv = tdy->ncv;
+  ncv = wy->ncv;
 
   /* Create a PETSc quadrature, we don't really use this, it is just
      to evaluate the Jacobian via the PETSc interface. */
   ierr = PetscQuadratureCreate(comm,&(wy->quad)); CHKERRQ(ierr);
-  ierr = TDyQuadrature(wy->quad,dim); CHKERRQ(ierr);
+  ierr = SetQuadrature(wy->quad,dim); CHKERRQ(ierr);
 
   /* Build vmap and emap */
-  ierr = TDyCreateCellVertexMap(tdy,&(tdy->vmap)); CHKERRQ(ierr);
-  ierr = TDyCreateCellVertexDirFaceMap(tdy,&(tdy->emap)); CHKERRQ(ierr);
+  ierr = TDyCreateCellVertexMap(tdy,&(wy->vmap)); CHKERRQ(ierr);
+  ierr = TDyCreateCellVertexDirFaceMap(tdy,&(wy->emap)); CHKERRQ(ierr);
 
   /* Allocate space for Alocal and Flocal */
   ierr = PetscMalloc(dim*dim*ncv*(cEnd-cStart)*sizeof(PetscReal),
-                     &(tdy->Alocal)); CHKERRQ(ierr);
+                     &(wy->Alocal)); CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),
-                     &(tdy->Flocal)); CHKERRQ(ierr);
+                     &(wy->Flocal)); CHKERRQ(ierr);
 
   /* Allocate space for velocities and create a local_vertex->face map */
-  tdy->nfv = TDyGetNumberOfFaceVertices(dm);
-  nfv = tdy->nfv;
+  wy->nfv = TDyGetNumberOfFaceVertices(dm);
+  nfv = wy->nfv;
   ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscReal),
-                     &(tdy->vel )); CHKERRQ(ierr);
+                     &(wy->vel )); CHKERRQ(ierr);
   ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscInt ),
-                     &(tdy->fmap)); CHKERRQ(ierr);
+                     &(wy->fmap)); CHKERRQ(ierr);
   for(f=fStart; f<fEnd; f++) {
     closure = NULL;
     ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,&closureSize,&closure);
@@ -327,7 +334,7 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, TDyEOS *eos,
     c = 0;
     for (i=0; i<closureSize*2; i+=2) {
       if ((closure[i] >= vStart) && (closure[i] < vEnd)) {
-        tdy->fmap[nfv*(f-fStart)+c] = closure[i];
+        wy->fmap[nfv*(f-fStart)+c] = closure[i];
         c += 1;
       }
     }
@@ -342,24 +349,24 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, TDyEOS *eos,
   }
 
   /* map(cell,dim,side) --> global_face */
-  ierr = PetscMalloc((cEnd-cStart)*(2*dim)*sizeof(PetscInt),&(tdy->faces));
+  ierr = PetscMalloc((cEnd-cStart)*(2*dim)*sizeof(PetscInt),&(wy->faces));
   CHKERRQ(ierr);
   #if defined(PETSC_USE_DEBUG)
-  for(c=0; c<((cEnd-cStart)*(2*dim)); c++) { tdy->faces[c] = -1; }
+  for(c=0; c<((cEnd-cStart)*(2*dim)); c++) { wy->faces[c] = -1; }
   #endif
   PetscInt v,d,s;
   for(c=cStart; c<cEnd; c++) {
     for(d=0; d<dim; d++) {
       for(s=0; s<2; s++) {
         v = s*PetscPowInt(2,d);
-        tdy->faces[(c-cStart)*dim*2+d*2+s] = PetscAbsInt(tdy->emap[(c-cStart)*ncv*dim
+        wy->faces[(c-cStart)*dim*2+d*2+s] = PetscAbsInt(wy->emap[(c-cStart)*ncv*dim
                                              +v*dim+d]);
       }
     }
   }
   #if defined(PETSC_USE_DEBUG)
   for(c=0; c<((cEnd-cStart)*(2*dim)); c++) {
-    if(tdy->faces[c] < 0) {
+    if(wy->faces[c] < 0) {
       SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
               "Unable to find map(cell,dir,side) -> face");
     }
@@ -388,6 +395,7 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, TDyEOS *eos,
   PetscFunctionReturn(0);
 }
 
+#if 0
 /*
   nq = nq1d^2 = 9
   x  = nq*dim = 27
@@ -504,6 +512,7 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
+#endif
 
 PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
   TDY_START_FUNCTION_TIMER()
@@ -519,11 +528,12 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
               G[MAX_LOCAL_SIZE],D[MAX_LOCAL_SIZE],sign_row,sign_col;
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
   PetscScalar pdirichlet,wgt,tol=1e4*PETSC_MACHINE_EPSILON;
+  TDyWY *wy = tdy->context;
   DM dm = tdy->dm;
   PetscFunctionBegin;
 
   ierr = TDyWYLocalElementCompute(tdy); CHKERRQ(ierr);
-  nq   = tdy->ncv;
+  nq   = wy->ncv;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   wgt  = PetscPowReal(0.5,dim-1);
@@ -801,7 +811,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
       global_row = Amap[q];
       for(offset=0; offset<nv; offset++) {
         if(v == tdy->fmap[nv*(global_row-fStart)+offset]) {
-          tdy->vel[nv*(global_row-fStart)+offset] = F[q];
+          wy->vel[nv*(global_row-fStart)+offset] = F[q];
           break;
         }
       }
@@ -927,7 +937,7 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
               if(tdy->vmap[ncv*(c-cStart)+i] == tdy->fmap[nfv*(f-fStart)+j]) break;
             }
             if(j==nfv) continue;
-            C  = tdy->vel[nfv*(f-fStart)+j];
+            C  = wy->vel[nfv*(f-fStart)+j];
             va += Nn*C;
           }
           if (tdy->ops->compute_boundary_velocity) {
@@ -952,8 +962,8 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
 }
 
 PetscErrorCode TDyUpdateState_WY(void *context, DM dm,
-                                 TDyEOS *eos, MaterialProp *matprop,
-                                 CharacteristicCurve *cc, PetscReal *U) {
+                                 EOS *eos, MaterialProp *matprop,
+                                 CharacteristicCurves *cc, PetscReal *U) {
   PetscFunctionBegin;
   TDyWY *wy = context;
 
@@ -971,9 +981,6 @@ PetscErrorCode TDyUpdateState_WY(void *context, DM dm,
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
 
   for (PetscInt c=0;c<cEnd-cStart;c++) P[c] = U[c];
-
-  CharacteristicCurve *cc = tdy->cc;
-  MaterialProp *matprop = tdy->matprop;
 
   for(PetscInt c=cStart; c<cEnd; c++) {
     PetscInt i = c-cStart;
@@ -1011,15 +1018,8 @@ PetscErrorCode TDyUpdateState_WY(void *context, DM dm,
     cc->dKr_dS[i] = dKr_dSe * dSe_dS;
 
     for(PetscInt j=0; j<dim2; j++) {
-      matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
+      wy->K[i*dim2+j] = wy->K0[i*dim2+j] * Kr;
     }
-
-    ierr = TDyEOSComputeWaterDensity(eos, P[i], &(mpfao->rho[i]),
-                                     &(mpfao->drho_dP[i]),
-                                     &(mpfao->d2rho_dP2[i])); CHKERRQ(ierr);
-    ierr = TDyEOSComputeWaterViscosity(eos, P[i], &(mpfao->vis[i]),
-                                       &(mpfao->dvis_dP[i]),
-                                       &(mpfao->d2vis_dP2[i])); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
@@ -1034,10 +1034,11 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   Vec      Ul;
   PetscInt c,cStart,cEnd,nv,gref,nf,f,fStart,fEnd,i,j,dim;
   PetscReal *p,*dp_dt,*r,wgt,sign,div;
+  TDyWY *wy = tdy->context;
   MaterialProp *matprop = tdy->matprop;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
-  nv   = tdy->nfv;
+  nv   = wy->nfv;
   wgt  = 1/((PetscReal)nv);
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
@@ -1051,7 +1052,7 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
-  CharacteristicCurve *cc = tdy->cc;
+  CharacteristicCurves *cc = tdy->cc;
 
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd); CHKERRQ(ierr);
@@ -1067,16 +1068,16 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
       const PetscInt *verts;
       ierr = DMPlexGetConeSize(dm,f,&nv   ); CHKERRQ(ierr);
       ierr = DMPlexGetCone    (dm,f,&verts); CHKERRQ(ierr);
-      sign = PetscSign(TDyADotBMinusC(&(tdy->N[dim*f]),&(tdy->X[dim*f]),
+      sign = PetscSign(TDyADotBMinusC(&(wy->N[dim*f]),&(tdy->X[dim*f]),
                                       &(tdy->X[dim*c]),dim));
       for(j=0; j<nv; j++) {
-        div += sign*tdy->vel[nv*(f-fStart)+j]*wgt*tdy->V[f];
+        div += sign*wy->vel[nv*(f-fStart)+j]*wgt*tdy->V[f];
       }
     }
 
-    r[c] = matprop->porosity[c-cStart]*cc->dS_dP[c-cStart]*dp_dt[c] + div - tdy->Flocal[c-cStart];
+    r[c] = wy->porosity[c-cStart]*cc->dS_dP[c-cStart]*dp_dt[c] + div - tdy->Flocal[c-cStart];
     //PetscPrintf(PETSC_COMM_WORLD,"R[%2d] = %+e %+e %+e = %+e\n",
-    // 	c,matprop->porosity[c-cStart]*cc->dS_dP[c-cStart]*dp_dt[c],
+    // 	c,wy->porosity[c-cStart]*cc->dS_dP[c-cStart]*dp_dt[c],
     // 		div,tdy->Flocal[c-cStart],r[c]);
   }
 

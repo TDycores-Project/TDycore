@@ -941,30 +941,35 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
       tdy->ops->setup = TDySetup_Richards_MPFAO;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
+      tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
     } else if (discretization == MPFA_O_DAE) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
       tdy->ops->setup = TDySetup_Richards_MPFAO_DAE;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
+      tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
     } else if (discretization == MPFA_O_TRANSIENTVAR) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
       tdy->ops->setup = TDySetup_Richards_MPFAO_TRANSIENTVAR;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
+      tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
     } else if (discretization == BDM) {
       tdy->ops->create = TDyCreate_BDM;
       tdy->ops->destroy = TDyDestroy_BDM;
       tdy->ops->set_from_options = TDySetFromOptions_BDM;
       tdy->ops->setup = TDySetup_BDM;
       tdy->ops->update_state = NULL; // FIXME: ???
+      tdy->ops->compute_error_norms = TDyComputeErrorNorms_BDM;
     } else if (discretization == WY) {
       tdy->ops->create = TDyCreate_WY;
       tdy->ops->destroy = TDyDestroy_WY;
       tdy->ops->set_from_options = TDySetFromOptions_WY;
       tdy->ops->setup = TDySetup_WY;
       tdy->ops->update_state = TDyUpdateState_WY;
+      tdy->ops->compute_error_norms = TDyComputeErrorNorms_WY;
     } else {
       SETERRQ(comm,PETSC_ERR_USER, "Invalid discretization given!");
     }
@@ -1098,39 +1103,21 @@ PetscReal TDyADotB(PetscReal *a,PetscReal *b,PetscInt dim) {
   return norm;
 }
 
-PetscErrorCode TDyComputeErrorNorms(TDy tdy,Vec U,PetscReal *normp,
-                                    PetscReal *normv) {
+/// Computes error norms for the pressure and/or the velocity, given the
+/// solution vector.
+/// @param [in] tdy the dycore instance
+/// @param [in] U the solution vector
+/// @param [out] pressure_norm the norm for the pressure (can be NULL)
+/// @param [out] velocity_norm the norm for the velocity (can be NULL)
+PetscErrorCode TDyComputeErrorNorms(TDy tdy, Vec U,
+                                    PetscReal *pressure_norm,
+                                    PetscReal *velocity_norm) {
   MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-  ierr = PetscObjectGetComm((PetscObject)(tdy->dm),&comm); CHKERRQ(ierr);
-  switch (tdy->options.discretization) {
-  case MPFA_O:
-    if(normv) {
-      ierr = TDyMPFAORecoverVelocity(tdy,U); CHKERRQ(ierr);
-    }
-    if(normp != NULL) { *normp = TDyMPFAOPressureNorm(tdy,U); }
-    if(normv != NULL) { *normv = TDyMPFAOVelocityNorm(tdy); }
-    break;
-  case MPFA_O_DAE:
-    SETERRQ(comm,PETSC_ERR_SUP,"TDyComputeErrorNorms not implemented for MPFA_O_DAE");
-    break;
-  case MPFA_O_TRANSIENTVAR:
-    SETERRQ(comm,PETSC_ERR_SUP,"TDyComputeErrorNorms not implemented for MPFA_O_TRANSIENTVAR");
-    break;
-  case BDM:
-    if(normp != NULL) { *normp = TDyBDMPressureNorm(tdy,U); }
-    if(normv != NULL) { *normv = TDyBDMVelocityNorm(tdy,U); }
-    break;
-  case WY:
-    if(normv) {
-      ierr = TDyWYRecoverVelocity(tdy,U); CHKERRQ(ierr);
-    }
-    if(normp != NULL) { *normp = TDyWYPressureNorm(tdy,U); }
-    if(normv != NULL) { *normv = TDyWYVelocityNorm(tdy); }
-    break;
-  }
+  ierr = tdy->ops->compute_error_norms(tdy->context, tdy->dm, tdy->conditions,
+                                       U, pressure_norm, velocity_norm); CHKERRQ(ierr);
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }

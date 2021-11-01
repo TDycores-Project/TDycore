@@ -28,6 +28,9 @@ typedef struct TDyBDM {
 
   // Quadrature type.
   TDyQuadratureType qtype;
+
+  // Material property data
+  PetscReal *K; // permeability
 } TDyBDM;
 
 // Functions specific to BDM implementation
@@ -35,7 +38,6 @@ PETSC_INTERN PetscErrorCode TDyCreate_BDM(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_BDM(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_BDM(void*,TDyOptions*);
 PETSC_INTERN PetscErrorCode TDySetup_BDM(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,Conditions*);
-PETSC_INTERN PetscReal TDyBDMPressureNorm(TDy,Vec);
-PETSC_INTERN PetscReal TDyBDMVelocityNorm(TDy,Vec);
+PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_BDM(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 
 #endif

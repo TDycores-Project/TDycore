@@ -1032,6 +1032,12 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
   PetscFunctionReturn(0);
 }
 
+PetscReal TDyComputeErrorNorms_MPFAO(void *context, DM dm, Conditions *conditions,
+                                     Vec U, PetscReal *p_norm, PetscReal *v_norm) {
+  SETERRQ(((PetscObject)dm)->comm, PETSC_ERR_USER,
+          "Error norms are not implemented for the MPFAO method.");
+}
+
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 

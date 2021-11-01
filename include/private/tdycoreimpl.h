@@ -57,7 +57,7 @@ struct _TDyOps {
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.
-  PetscErrorCode (*compute_error_norms)(void*,Vec,PetscReal*,PetscReal*);
+  PetscErrorCode (*compute_error_norms)(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 };
 
 // This type represents the dycore and all of its settings.

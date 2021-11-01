@@ -1,4 +1,5 @@
 #include "private/tdyfeimpl.h"
+#include <tdytimers.h>
 
 const char *const TDyQuadratureTypes[] = {
   "LUMPED",
@@ -14,17 +15,15 @@ const char *const TDyQuadratureTypes[] = {
 
    Allocates memory inside routine, user must free.
 */
-PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
+PetscErrorCode CreateCellVertexMap(DM dm, PetscInt nv, PetscReal *X, PetscInt **map) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  PetscInt dim,i,v,vStart,vEnd,nv,c,cStart,cEnd,closureSize,*closure;
+  PetscInt dim,i,v,vStart,vEnd,c,cStart,cEnd,closureSize,*closure;
   PetscQuadrature quad;
   PetscReal x[24],DF[72],DFinv[72],J[8];
-  DM dm = tdy->dm;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  nv = tdy->ncv;
   ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quad); CHKERRQ(ierr);
-  ierr = TDyQuadrature(quad,dim); CHKERRQ(ierr);
+  ierr = SetQuadrature(quad,dim); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc(nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
@@ -39,7 +38,7 @@ PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
     for(v=0; v<nv; v++) {
       for (i=0; i<closureSize*2; i+=2) {
         if ((closure[i] >= vStart) && (closure[i] < vEnd)) {
-          if (TDyL1norm(&(x[v*dim]),&(tdy->X[closure[i]*dim]),dim) > 1e-12) continue;
+          if (TDyL1norm(&(x[v*dim]),&(X[closure[i]*dim]),dim) > 1e-12) continue;
           (*map)[c*nv+v] = closure[i];
           break;
         }
@@ -60,7 +59,6 @@ PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
   PetscFunctionReturn(0);
 }
 
-
 /* Create a map:
 
    map(cell,local_cell_vertex,direction) --> face
@@ -73,15 +71,16 @@ PetscErrorCode TDyCreateCellVertexMap(TDy tdy,PetscInt **map) {
    diagram always begins with cells, there isn't a conflict with 0
    being a possible point.
 */
-PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
+PetscErrorCode CreateCellVertexDirFaceMap(DM dm, PetscInt nv, PetscReal *X,
+                                          PetscReal *N, PetscInt *vmap,
+                                          PetscInt **map) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  PetscInt d,dim,i,f,fStart,fEnd,v,nv,q,c,cStart,cEnd,closureSize,*closure,
+  PetscInt d,dim,i,f,fStart,fEnd,v,q,c,cStart,cEnd,closureSize,*closure,
            fclosureSize,*fclosure,local_dirs[24];
-  DM dm = tdy->dm;
-  if(!(tdy->vmap)) {
+  if(!vmap) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must first create TDyCreateCellVertexMap on tdy->vmap");
+            "Must first create TDyCreateCellVertexMap to set vmap");
   }
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   if(dim == 2) {
@@ -99,7 +98,6 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
     local_dirs[18] = 0; local_dirs[19] = 3; local_dirs[20] = 5;
     local_dirs[21] = 1; local_dirs[22] = 2; local_dirs[23] = 4;
   }
-  nv = tdy->ncv;
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc(dim*nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
@@ -117,13 +115,13 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
           ierr = DMPlexGetTransitiveClosure(dm,closure[i],PETSC_TRUE,&fclosureSize,
                                             &fclosure); CHKERRQ(ierr);
           for(f=0; f<fclosureSize*2; f+=2) {
-            if (fclosure[f] == tdy->vmap[c*nv+q]) {
+            if (fclosure[f] == vmap[c*nv+q]) {
               for(v=0; v<fclosureSize*2; v+=2) {
                 for(d=0; d<dim; d++) {
-                  if (fclosure[v] == tdy->vmap[c*nv+local_dirs[q*dim+d]]) {
+                  if (fclosure[v] == vmap[c*nv+local_dirs[q*dim+d]]) {
                     (*map)[c*nv*dim+q*dim+d] = closure[i];
-                    if (TDyADotBMinusC(&(tdy->N[closure[i]*dim]),&(tdy->X[closure[i]*dim]),
-                                       &(tdy->X[c*dim]),dim) < 0) {
+                    if (TDyADotBMinusC(&(N[closure[i]*dim]),&(X[closure[i]*dim]),
+                                       &(X[c*dim]),dim) < 0) {
                       (*map)[c*nv*dim+q*dim+d] *= -1;
                       break;
                     }
@@ -151,7 +149,7 @@ PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy tdy,PetscInt **map) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyQuadrature(PetscQuadrature q,PetscInt dim) {
+PetscErrorCode SetQuadrature(PetscQuadrature q,PetscInt dim) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscReal *x,*w;

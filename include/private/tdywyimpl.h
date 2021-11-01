@@ -28,6 +28,10 @@ typedef struct TDyWY {
 
   // Quadrature type.
   TDyQuadratureType qtype;
+
+  // Material property data
+  PetscReal *K, *K0, *Kr; // permeability and relative permeability
+  PetscReal *porosity;
 } TDyWY;
 
 // Functions specific to WY implementation
@@ -36,11 +40,10 @@ PETSC_INTERN PetscErrorCode TDyDestroy_WY(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_WY(void*, TDyOptions*);
 PETSC_INTERN PetscErrorCode TDySetup_WY(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,Conditions*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_WY(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,PetscReal*);
+PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_WY(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode TDyWYRecoverVelocity(TDy,Vec);
-PETSC_INTERN PetscReal TDyWYPressureNorm(TDy,Vec);
-PETSC_INTERN PetscReal TDyWYVelocityNorm(TDy);
 PETSC_INTERN PetscErrorCode TDyWYResidual(TS,PetscReal,Vec,Vec,Vec,void *ctx);
 PETSC_INTERN PetscErrorCode Pullback(PetscScalar*,PetscScalar*,PetscScalar*,PetscScalar,PetscInt);
-PETSC_INTERN PetscErrorCode IntegrateOnFace(TDy,PetscInt,PetscInt,PetscReal*);
+//PETSC_INTERN PetscErrorCode IntegrateOnFace(TDy,PetscInt,PetscInt,PetscReal*);
 
 #endif

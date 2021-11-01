@@ -5,9 +5,9 @@
 #include <tdycore.h>
 
 // Functions common to multiple finite element implementations.
-PETSC_INTERN PetscErrorCode TDyCreateCellVertexMap(TDy,PetscInt**);
-PETSC_INTERN PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy,PetscInt**);
-PETSC_INTERN PetscErrorCode TDyQuadrature(PetscQuadrature,PetscInt);
+PETSC_INTERN PetscErrorCode CreateCellVertexMap(DM,PetscInt,PetscReal*,PetscInt**);
+PETSC_INTERN PetscErrorCode CreateCellVertexDirFaceMap(DM,PetscInt,PetscReal*,PetscReal*,PetscInt*,PetscInt**);
+PETSC_INTERN PetscErrorCode SetQuadrature(PetscQuadrature,PetscInt);
 PETSC_INTERN void HdivBasisQuad(const PetscReal*,PetscReal*,PetscReal*,PetscReal);
 PETSC_INTERN void HdivBasisHex(const PetscReal*,PetscReal*,PetscReal*,PetscReal);
 
