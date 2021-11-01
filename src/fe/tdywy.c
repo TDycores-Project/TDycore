@@ -261,7 +261,7 @@ PetscErrorCode TDyDestroy_WY(void *context) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetFromOptions_WY(DM dm, void *context) {
+PetscErrorCode TDySetFromOptions_WY(void *context, TDyOptions *options) {
   PetscFunctionBegin;
 
   TDyWY* wy = context;

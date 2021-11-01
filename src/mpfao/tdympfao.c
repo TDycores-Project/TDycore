@@ -428,7 +428,7 @@ PetscErrorCode TDyDestroy_MPFAO(void *context) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetFromOptions_MPFAO(void *context) {
+PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()

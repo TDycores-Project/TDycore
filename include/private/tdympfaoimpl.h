@@ -46,7 +46,7 @@ typedef struct TDyMPFAO {
   PetscReal *vis_BND;            /* viscosity of water [Pa s] */
   PetscReal *h_BND;              /* enthalpy of water */
 
-  CharacteristicCurve *cc_bnd;
+  CharacteristicCurves *cc_bnd;
   PetscReal *Kr_BND; /* relative permeability for each cell [1] */
   PetscReal *S_BND;  /* saturation, first derivative wrt boundary pressure, and */
   PetscReal *source_sink;         /* flow equation source sink */
@@ -69,13 +69,13 @@ typedef struct TDyMPFAO {
 // Functions specific to MPFA-O implementations.
 PETSC_INTERN PetscErrorCode TDyCreate_MPFAO(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_MPFAO(void*);
-PETSC_INTERN PetscErrorCode TDySetFromOptions_MPFAO(void*);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, DM, TDyEOS*, MaterialProp*, TDyConditions*);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, DM, TDyEOS*, MaterialProp*, TDyConditions*);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void*, DM, TDyEOS*, MaterialProp*, TDyConditions*);
-PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM, TDyEOS*, MaterialProp*, TDyConditions*);
-PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, TDyEOS*, MaterialProp*, CharacteristicCurve*, PetscReal*);
-PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, TDyEOS*, MaterialProp*, CharacteristicCurve*, PetscReal*);
+PETSC_INTERN PetscErrorCode TDySetFromOptions_MPFAO(void*, TDyOptions*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, DM, TDyEOS*, MaterialProp*, CharacteristicCurves*, TDyConditions*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, DM, TDyEOS*, MaterialProp*, CharacteristicCurves*, TDyConditions*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void*, DM, TDyEOS*, MaterialProp*, CharacteristicCurves*, TDyConditions*);
+PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM, TDyEOS*, MaterialProp*, CharacteristicCurves*, TDyConditions*);
+PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, TDyEOS*, MaterialProp*, CharacteristicCurves*, PetscReal*);
+PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, TDyEOS*, MaterialProp*, CharacteristicCurves*, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeGravityDiscretization(TDy);

@@ -15,13 +15,13 @@ typedef enum {
 /// A Saturation model associates a saturation function and its parameters with
 /// each point in a given domain.
 typedef struct Saturation {
-  /// Number of points in a domain for which a saturation is defined.
-  PetscInt num_points;
+  /// Number of points in a domain for each saturation model is defined.
+  PetscInt num_points[2];
   /// Arrays of indices of points that use a given saturation function type.
   PetscInt *points[2];
   /// Saturation parameters for points of each saturation function type.
   /// The ordering and number of the parameters depends on the model:
-  /// 1. The Gardner model associates 2 parameters (m, n) with each point.
+  /// 1. The Gardner model associates 3 parameters (n, m, alpha) with each point.
   /// 2. The Van Genuchten model associates 2 parameters (m, alpha) with each point.
   PetscReal *parameters[2];
 } Saturation;
@@ -43,7 +43,7 @@ typedef struct RelativePermeability {
   /// Relative permeability parameters for points of each saturation function type.
   /// The ordering and number of the parameters depends on the model:
   /// 1. The Irmay model associates a single parameter m with each point.
-  /// 2. The Mualem model associates parameters with each point: the model
+  /// 2. The Mualem model associates 6 parameters with each point: the model
   ///    parameter m; the value of the effective saturation above which the
   ///    model employs a cubic interpolation polynomial; and the 4 coefficients
   ///    of the cubic polynomial.
@@ -80,20 +80,20 @@ typedef struct {
 
 } CharacteristicCurves;
 
-PETSC_INTERN PetscErrorCode CharacteristicCurvesCreate(CharacteristicCurve**);
-PETSC_INTERN PetscErrorCode CharacteristicCurveDestroy(CharacteristicCurve*);
+PETSC_INTERN PetscErrorCode CharacteristicCurvesCreate(CharacteristicCurves**);
+PETSC_INTERN PetscErrorCode CharacteristicCurvesDestroy(CharacteristicCurves*);
 
 PETSC_INTERN PetscErrorCode SaturationCreate(Saturation**);
 PETSC_INTERN PetscErrorCode SaturationDestroy(Saturation*);
 PETSC_INTERN PetscErrorCode SaturationSetType(Saturation*,SaturationType,PetscInt,PetscInt*,PetscReal*);
-PETSC_INTERN PetscErrorCode SaturationCompute(Saturation*,SaturationType,PetscReal*,PetscReal*,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode SaturationCompute(Saturation*,SaturationType,PetscReal*,PetscReal*,PetscReal*,PetscReal*,PetscReal*);
 
 PETSC_INTERN PetscErrorCode RelativePermeabilityCreate(RelativePermeability**);
 PETSC_INTERN PetscErrorCode RelativePermeabilityDestroy(RelativePermeability*);
 PETSC_INTERN PetscErrorCode RelativePermeabilitySetType(RelativePermeability*,RelativePermeabilityType,PetscInt,PetscInt*,PetscReal*);
-PETSC_INTERN PetscErrorCode RelativePermeabilityCompute(RelativePermeability*,RelativePermeabilityType,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode RelativePermeabilityCompute(RelativePermeability*,RelativePermeabilityType,PetscReal*,PetscReal*,PetscReal*);
 
-PETSC_INTERN PetscErrorCode RelativePermeability_Mualem_SetupSmooth(CharacteristicCurve*,PetscInt);
+//PETSC_INTERN PetscErrorCode RelativePermeability_Mualem_SetupSmooth(CharacteristicCurves*,PetscInt);
 
 PETSC_INTERN void RelativePermeability_Mualem(PetscReal,PetscReal,PetscReal*,PetscReal,PetscReal*,PetscReal*);
 PETSC_INTERN void RelativePermeability_Irmay(PetscReal,PetscReal,PetscReal*,PetscReal*);

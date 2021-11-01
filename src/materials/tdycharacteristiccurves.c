@@ -3,13 +3,17 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 
-PetscErrorCode CharacteristicCurveCreate(PetscInt ncells, CharacteristicCurve **_cc){
-
+/// Creates a CharacteristicCurves instance with saturation and relative
+/// permeability models for use with specific discretizations.
+/// @param [out] cc the initialized instance
+PetscErrorCode CharacteristicCurvesCreate(CharacteristicCurve **cc) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  *_cc = (CharacteristicCurve *)malloc(sizeof(CharacteristicCurve));
-
+  ierr = PetscMalloc(sizeof(CharacteristicCurve), cc); CHKERRQ(ierr);
+  ierr = SaturationCreate(&(cc->saturation)); CHKERRQ(ierr);
+  ierr = RelativePermeabilityCreate(&(cc->rel_perm)); CHKERRQ(ierr);
+  /*
   ierr = PetscMalloc(ncells*sizeof(PetscInt),&((*_cc)->SatFuncType)); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscInt),&(*_cc)->RelPermFuncType); CHKERRQ(ierr);
 
@@ -28,15 +32,21 @@ PetscErrorCode CharacteristicCurveCreate(PetscInt ncells, CharacteristicCurve **
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->vg_alpha); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->mualem_poly_low); CHKERRQ(ierr);
   ierr = TDyAllocate_RealArray_2D(&(*_cc)->mualem_poly_coeffs,ncells,4); CHKERRQ(ierr);
+  */
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode CharacteristicCurveDestroy(CharacteristicCurve *cc){
+/// Frees the resources associated with the given CharacteristicCurves instance.
+PetscErrorCode CharacteristicCurvesDestroy(CharacteristicCurves *cc) {
 
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
+  ierr = RelativePermeabilityDestroy(cc->rel_perm); CHKERRQ(ierr);
+  ierr = SaturationDestroy(cc->saturation); CHKERRQ(ierr);
+  ierr = PetscFree(cc); CHKERRQ(ierr);
+  /*
   if (cc->SatFuncType    ) { ierr = PetscFree(cc->SatFuncType    ); CHKERRQ(ierr); }
   if (cc->RelPermFuncType) { ierr = PetscFree(cc->RelPermFuncType); CHKERRQ(ierr); }
   if (cc->Kr             ) { ierr = PetscFree(cc->Kr             ); CHKERRQ(ierr); }
@@ -53,10 +63,219 @@ PetscErrorCode CharacteristicCurveDestroy(CharacteristicCurve *cc){
   if (cc->gardner_n      ) { ierr = PetscFree(cc->gardner_n      ); CHKERRQ(ierr); }
   if (cc->vg_alpha       ) { ierr = PetscFree(cc->vg_alpha       ); CHKERRQ(ierr); }
   if (cc->mualem_poly_low    ) { ierr = PetscFree(cc->mualem_poly_low    ); CHKERRQ(ierr); }
-  
+*/
+
   PetscFunctionReturn(0);
 }
 
+/// Creates a new instance of a saturation model.
+PetscErrorCode SaturationCreate(Saturation **sat) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  ierr = PetscMalloc(sizeof(Saturation), sat); CHKERRQ(ierr);
+  sat->num_points = 0;
+  sat->points[0] = sat->points[1] = NULL;
+  sat->parameters[0] = sat->parameters[1] = NULL;
+  PetscFunctionReturn(0);
+}
+
+/// Frees all resources associated with a given Saturation instance.
+PetscErrorCode SaturationDestroy(Saturation *sat) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  for (int type = 0; type < 2; ++type) {
+    if (sat->points[type]) {
+      ierr = PetscFree(sat->points[type]); CHKERRQ(ierr);
+    }
+    if (sat->parameters[type]) {
+      ierr = PetscFree(sat->parameters[type]); CHKERRQ(ierr);
+    }
+  }
+  ierr = PetscFree(sat); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the type of the saturation model used for a give set of points, and its
+/// parameters. Point indices and parameters are copied into place.
+/// @param [in] sat the Saturation inѕtance
+/// @param [in] type the type of the saturation model
+/// @param [in] num_points the number of points on which the given saturation
+///                        model type operates
+/// @param [in] points an array of length num_points containing point indices
+/// @param [in] parameters an array of length num_params*num_points, with
+///                        parameters[num_params*i] containing the first
+///                        parameter for the ith point. The number of parameters
+///                        depends on the model used.
+PetscErrorCode SaturationSetType(Saturation *sat, SaturationType type,
+                                 PetscInt num_points, PetscInt* points,
+                                 PetscReal* parameters) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  int num_params = 0;
+  if (type == SAT_FUNC_GARDNER) {
+    num_params = 3;
+  } else if (type == SAT_FUNC_VAN_GENUCHTEN) {
+    num_params = 2;
+  } else {
+    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Invalid saturation model type!");
+  }
+  sat->num_points[type] = num_points;
+  ierr = PetscMalloc(num_points*sizeof(PetscInt),
+                     &(sat->points[type])); CHKERRQ(ierr);
+  memcpy(sat->points[type], points, num_points*sizeof(PetscInt));
+  ierr = PetscMalloc(num_params*num_points*sizeof(PetscInt),
+                     &(sat->parameters[type])); CHKERRQ(ierr);
+  memcpy(sat->parameters[type], parameters, num_params*num_points*sizeof(PetscInt));
+  PetscFunctionReturn(0);
+}
+
+/// Computes the saturation for the points assigned to the given type.
+/// @param [in] sat the Saturation inѕtance
+/// @param [in] type the type of the saturation model
+/// @param [in] Sr the residual saturation values on the points
+/// @param [in] Pc the capillary pressure values on the points
+/// @param [out] S the computed saturation values on the points
+/// @param [out] dSdP the computed values of the derivative of saturation w.r.t.
+///                   pressure on the points
+/// @param [out] d2SdP2 the computed values of the second derivative of
+///                     saturation w.r.t. pressure on the points
+PetscErrorCode SaturationCompute(Saturation *sat, SaturationType type,
+                                 PetscReal *Sr, PetscReal *Pc,
+                                 PetscReal *S, PetscReal *dSdP,
+                                 PetscReal *d2SdP2) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  if (type == SAT_FUNC_GARDNER) {
+    PetscInt num_points = sat->num_points[type];
+    for (PetscInt i = 0; i < num_points; ++i) {
+      PetscReal n = sat->parameters[type][3*i];
+      PetscReal m = sat->parameters[type][3*i+1];
+      PetscReal alpha = sat->parameters[type][3*i+2];
+      PressureSaturation_Gardner(n, m, alpha, Sr[i], Pc[i], &(S[i]), &(dSdP[i]),
+                                 &(d2SdP2[i]));
+    }
+  } else if (type == SAT_FUNC_VAN_GENUCHTEN) {
+    PetscInt num_points = sat->num_points[type];
+    for (PetscInt i = 0; i < num_points; ++i) {
+      PetscReal m = sat->parameters[type][2*i];
+      PetscReal alpha = sat->parameters[type][2*i+2];
+      PressureSaturation_VanGenuchten(m, alpha, Sr[i], Pc[i], &(S[i]), &(dSdP[i]),
+                                      &(d2SdP2[i]));
+    }
+  } else {
+    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Invalid saturation model type!");
+  }
+  PetscFunctionReturn(0);
+}
+
+/// Creates a new instance of a relative permeability model.
+PetscErrorCode RelativePermeabilityCreate(RelativePermeability **rel_perm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  ierr = PetscMalloc(sizeof(RelativePermeability), rel_perm); CHKERRQ(ierr);
+  rel_perm->num_points = 0;
+  rel_perm->points[0] = rel_perm->points[1] = NULL;
+  rel_perm->parameters[0] = rel_perm->parameters[1] = NULL;
+  PetscFunctionReturn(0);
+}
+
+/// Frees all resources associated with a given Saturation instance.
+PetscErrorCode RelativePermeabilityDestroy(RelativePermeability *rel_perm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  for (int type = 0; type < 2; ++type) {
+    if (rel_perm->points[type]) {
+      ierr = PetscFree(rel_perm->points[type]); CHKERRQ(ierr);
+    }
+    if (sat->parameters[type]) {
+      ierr = PetscFree(rel_perm->parameters[type]); CHKERRQ(ierr);
+    }
+  }
+  ierr = PetscFree(rel_perm); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the type of the relative permeability model used for a give set of
+/// points, and its parameters. Point indices and parameters are copied into
+/// place.
+/// @param [in] rel_perm the RelativePermeability inѕtance
+/// @param [in] type the type of the relative permeability model
+/// @param [in] num_points the number of points on which the given saturation
+///                        model type operates
+/// @param [in] points an array of length num_points containing point indices
+/// @param [in] parameters an array of length num_params*num_points, with
+///                        parameters[num_params*i] containing the first
+///                        parameter for the ith point. The number of parameters
+///                        depends on the model used.
+PetscErrorCode RelativePermeabilitySetType(RelativePermeability *rel_perm,
+                                           RelativePermeabilityType type,
+                                           PetscInt num_points,
+                                           PetscInt *points,
+                                           PetscReal *parameters) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  int num_params = 0;
+  if (type == REL_PERM_FUNC_IRMAY) {
+    num_params = 1;
+  } else if (type == REL_PERM_FUNC_MUALEM) {
+    num_params = 6;
+  } else {
+    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER,
+            "Invalid relative permeability model type!");
+  }
+  rel_perm->num_points[type] = num_points;
+  ierr = PetscMalloc(num_points*sizeof(PetscInt),
+                     &(rel_perm->points[type])); CHKERRQ(ierr);
+  memcpy(rel_perm->points[type], points, num_points*sizeof(PetscInt));
+  ierr = PetscMalloc(num_params*num_points*sizeof(PetscInt),
+                     &(rel_perm->parameters[type])); CHKERRQ(ierr);
+  memcpy(rel_perm->parameters[type], parameters,
+         num_params*num_points*sizeof(PetscInt));
+  PetscFunctionReturn(0);
+}
+
+/// Computes the relative permeability for the points assigned to the given
+/// type.
+/// @param [in] rel_perm the RelativePermeability inѕtance
+/// @param [in] type the type of the relative permeability model
+/// @param [in] Se the effective saturation values on the points
+/// @param [out] Kr the computed relative permeability values on the points
+/// @param [out] dKrdSe the computed values of the derivative of the relative
+///                     permeability w.r.t. effective saturation on the points
+PetscErrorCode RelativePermeabilityCompute(RelativePermeability *rel_perm,
+                                           RelativePermeabilityType type,
+                                           PetscReal *Se,
+                                           PetscReal *Kr,
+                                           PetscReal *dKrdSe) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  if (type == REL_PERM_FUNC_IRMAY) {
+    PetscInt num_points = sat->num_points[type];
+    for (PetscInt i = 0; i < num_points; ++i) {
+      PetscReal m = sat->parameters[type][i];
+      RelativePermeability_Irmay(m, Se[i], &(Kr[i]), &(dKrdSe[i]));
+    }
+  } else if (type == REL_PERM_FUNC_MUALEM) {
+    PetscInt num_points = sat->num_points[type];
+    for (PetscInt i = 0; i < num_points; ++i) {
+      PetscReal m = sat->parameters[type][6*i];
+      PetscReal poly_low = sat->parameters[type][6*i+1]; // cubic interp cutoff
+      PetscReal *poly_coeffs = &(sat->parameters[type][6*i+2]); // interp coeffs
+      RelativePermeability_Mualem(m, poly_low, poly_coeffs, Se[i], &(S[i]),
+                                  &(Kr[i]), &(dKrdSe[i]));
+    }
+  } else {
+    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER,
+            "Invalid relative permeability model type!");
+  }
+  PetscFunctionReturn(0);
+}
+
+/*
 PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[ni], const PetscScalar y[ni]){
 
   PetscInt i;
@@ -214,6 +433,7 @@ PetscErrorCode TDyGetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt *ni, 
 
   PetscFunctionReturn(0);
 }
+*/
 
 /* -------------------------------------------------------------------------- */
 /// Compute value and derivate of relative permeability using Irmay function
@@ -347,7 +567,7 @@ PetscErrorCode CubicPolynomialEvaluate(PetscReal *coeffs, PetscReal x, PetscReal
 /// @param [inout] *cc  Charcteristic curve
 /// @param [in] ncells  Number of cells
 ///
-PetscErrorCode RelativePermeability_Mualem_SetupSmooth(CharacteristicCurve *cc, PetscInt ncells){
+PetscErrorCode RelativePermeability_Mualem_SetupSmooth(CharacteristicCurves *cc, PetscInt ncells){
 
   PetscFunctionBegin;
 

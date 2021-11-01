@@ -15,7 +15,6 @@ static char help[] = "TDycore \n\
 #include <private/tdywyimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdympfaoutilsimpl.h>
-#include <private/tdydmimpl.h>
 #include <private/tdytiimpl.h>
 #include <tdytimers.h>
 #include <private/tdymaterialpropertiesimpl.h>
@@ -345,7 +344,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = TDyTimeIntegratorDestroy(&tdy->ti); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
 
-  if (tdy->cc) {ierr = CharacteristicCurveDestroy(tdy->cc); CHKERRQ(ierr);}
+  if (tdy->cc) {ierr = CharacteristicCurvesDestroy(tdy->cc); CHKERRQ(ierr);}
   if (tdy->matprop) {ierr = MaterialPropDestroy(tdy->matprop); CHKERRQ(ierr);}
 
   ierr = PetscFree(tdy); CHKERRQ(ierr);
@@ -411,6 +410,31 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
   if (!viewer) {ierr = PetscViewerASCIIGetStdout(((PetscObject)tdy)->comm,&viewer); CHKERRQ(ierr);}
   PetscValidHeaderSpecific(viewer,PETSC_VIEWER_CLASSID,2);
   PetscCheckSameComm(tdy,1,viewer,2);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode DistributeDM(DM *dm) {
+  DM dmDist;
+  PetscErrorCode ierr;
+
+  /* Define 1 DOF on cell center of each cell */
+  PetscInt dim;
+  PetscFE fe;
+  ierr = DMGetDimension(*dm, &dim); CHKERRQ(ierr);
+  ierr = PetscFECreateDefault(PETSC_COMM_SELF, dim, 1, PETSC_FALSE, "p_", -1, &fe); CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject) fe, "p");CHKERRQ(ierr);
+  ierr = DMSetField(*dm, 0, NULL, (PetscObject)fe); CHKERRQ(ierr);
+  ierr = DMCreateDS(*dm); CHKERRQ(ierr);
+  ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
+  ierr = DMSetUseNatural(*dm, PETSC_TRUE); CHKERRQ(ierr);
+
+  ierr = DMPlexDistribute(*dm, 1, NULL, &dmDist); CHKERRQ(ierr);
+  if (dmDist) {
+    DMDestroy(dm); CHKERRQ(ierr);
+    *dm = dmDist;
+  }
+  ierr = DMSetFromOptions(*dm); CHKERRQ(ierr);
+  ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -547,7 +571,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 
   // Mode/discretization-specific options.
   if (tdy->ops->set_from_options) {
-    ierr = tdy->ops->set_from_options(tdy->context); CHKERRQ(ierr);
+    ierr = tdy->ops->set_from_options(tdy->context, &tdy->options); CHKERRQ(ierr);
   }
 
   // Wrap up and indicate that options are set.
@@ -575,7 +599,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
       ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
     }
     // Distribute the mesh, however we got it.
-    ierr = TDyDistributeDM(&dm); CHKERRQ(ierr);
+    ierr = DistributeDM(&dm); CHKERRQ(ierr);
     tdy->dm = dm;
   }
 
@@ -586,6 +610,9 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = DMGetLabel(tdy->dm, "boundary", &boundary_label); CHKERRQ(ierr);
   ierr = DMPlexMarkBoundaryFaces(tdy->dm, 1, boundary_label); CHKERRQ(ierr);
   ierr = DMPlexLabelComplete(tdy->dm, boundary_label); CHKERRQ(ierr);
+
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
   // Create material properties and set functions.
   ierr = MaterialPropCreate(dim, &tdy->matprop); CHKERRQ(ierr);
@@ -598,7 +625,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = MaterialPropSetConstantSoilSpecificHeat(tdy->matprop, tdy->options.soil_specific_heat);
 
   // Create characteristic curves.
-  ierr = CharacteristicCurveCreate(nc, &tdy->cc); CHKERRQ(ierr);
+  ierr = CharacteristicCurvesCreate(nc, &tdy->cc); CHKERRQ(ierr);
 
   // TODO: This all needs sorting out.
   /* problem constants FIX: add mutators */
@@ -861,7 +888,7 @@ PetscErrorCode TDySetup(TDy tdy) {
   }
 
   // Perform implementation-specific setup.
-  ierr = tdy->ops->setup(tdy->context, tdy->dm, tdy->matprop,
+  ierr = tdy->ops->setup(tdy->context, tdy->dm, tdy->matprop, tdy->cc,
                          &tdy->conditions); CHKERRQ(ierr);
 
   // Record metadata for scaling studies.

@@ -44,7 +44,7 @@ typedef struct {
 } MaterialProp;
 
 // material model creation/destruction
-PETSC_INTERN PetscErrorCode MaterialPropCreate(void*,PetscInt,PetscInt,MaterialProp**);
+PETSC_INTERN PetscErrorCode MaterialPropCreate(PetscInt,MaterialProp**);
 PETSC_INTERN PetscErrorCode MaterialPropDestroy(MaterialProp*);
 
 // material model setup functions
@@ -73,7 +73,7 @@ PETSC_INTERN PetscErrorCode MaterialPropComputeSoilSpecificHeat(MaterialProp*,Pe
 
 // convenient material functions
 PetscErrorCode MaterialPropSetConstantPorosity(MaterialProp*, PetscReal);
-PetscErrorCode MaterialPropSetHeterogeneousPorosity(MaterialProp*, ScalarFunction);
+PetscErrorCode MaterialPropSetHeterogeneousPorosity(MaterialProp*, SpatialScalarFunction);
 PetscErrorCode MaterialPropSetConstantIsotropicPermeability(MaterialProp*, PetscReal);
 PetscErrorCode MaterialPropSetHeterogeneousIsotropicPermeability(MaterialProp*, SpatialScalarFunction);
 PetscErrorCode MaterialPropSetConstantDiagonalPermeability(MaterialProp*, PetscReal[3]);
@@ -87,11 +87,11 @@ PetscErrorCode MaterialPropSetHeterogeneousDiagonalThermalConductivity(MaterialP
 PetscErrorCode MaterialPropSetConstantTensorThermalConductivity(MaterialProp*, PetscReal[9]);
 PetscErrorCode MaterialPropSetHeterogeneousTensorThermalConductivity(MaterialProp*, SpatialTensorFunction);
 PetscErrorCode MaterialPropSetConstantResidualSaturation(MaterialProp*, PetscReal);
-PetscErrorCode MaterialPropSetHeterogeneousResidualSaturation(MaterialProp*, ScalarFunction);
+PetscErrorCode MaterialPropSetHeterogeneousResidualSaturation(MaterialProp*, SpatialScalarFunction);
 PetscErrorCode MaterialPropSetConstantSoilDensity(MaterialProp*, PetscReal);
-PetscErrorCode MaterialPropSetHeterogeneousSoilDensity(MaterialProp*, ScalarFunction);
+PetscErrorCode MaterialPropSetHeterogeneousSoilDensity(MaterialProp*, SpatialScalarFunction);
 PetscErrorCode MaterialPropSetConstantSoilSpecificHeat(MaterialProp*, PetscReal);
-PetscErrorCode MaterialPropSetHeterogeneousSoilSpecificHeat(MaterialProp*, ScalarFunction);
+PetscErrorCode MaterialPropSetHeterogeneousSoilSpecificHeat(MaterialProp*, SpatialScalarFunction);
 
 #endif
 

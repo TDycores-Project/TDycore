@@ -43,16 +43,17 @@ struct _TDyOps {
   PetscErrorCode (*view)(void*, PetscViewer);
 
   // Called by TDySetFromOptions -- sets implementation-specific options from
-  // command-line arguments.
-  PetscErrorCode (*set_from_options)(void*);
+  // command-line arguments (and possibly already-parsed options.
+  PetscErrorCode (*set_from_options)(void*, TDyOptions*);
 
   // Called by TDySetup -- configures the DM for solvers.
-  PetscErrorCode (*setup)(void*, DM, TDyEOS*, MaterialProp*, TDyConditions*);
+  PetscErrorCode (*setup)(void*, DM, TDyEOS*, MaterialProp*,
+                          CharacteristicCurves*, TDyConditions*);
 
   // Called by TDyUpdateState -- updates the state maintained by the
   // implementation with provided solution data.
   PetscErrorCode (*update_state)(void*, DM, TDyEOS*, MaterialProp*,
-                                 CharacteristicCurve*, PetscReal*);
+                                 CharacteristicCurves*, PetscReal*);
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.
@@ -88,11 +89,11 @@ struct _p_TDy {
   // equation of state
   TDyEOS eos;
 
-  // material parameters
+  // material properties
   MaterialProp *matprop;
 
-  // characteristic curve parameters
-  CharacteristicCurve *cc;
+  // characteristic curves
+  CharacteristicCurves *cc;
 
   // regression testing data
   TDyRegression *regression;

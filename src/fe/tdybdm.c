@@ -67,7 +67,7 @@ PetscErrorCode TDyDestroy_BDM(void *context) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetFromOptions_BDM(DM dm, void *context) {
+PetscErrorCode TDySetFromOptions_BDM(void *context, TDyoptions *options) {
   PetscFunctionBegin;
 
   TDyBDM* wy = context;

@@ -138,6 +138,7 @@ PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureFn(TDy,PetscErrorCode(*)(TDy,P
 PETSC_EXTERN PetscErrorCode TDySetBoundaryTemperatureFn(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryVelocityFn(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 
+/*
 // Set material properties: via spatial function
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (TDy,SpatialFunction f);
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy,SpatialFunction f);
@@ -154,6 +155,7 @@ PETSC_EXTERN PetscErrorCode TDySetResidualSaturationValuesLocal(TDy,PetscInt,con
 PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveMualemValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveNValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveVanGenuchtenValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[],const PetscScalar[]);
+*/
 
 // Set condition: for each cell
 PETSC_EXTERN PetscErrorCode TDySetSourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
