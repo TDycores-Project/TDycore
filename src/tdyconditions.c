@@ -115,7 +115,7 @@ PetscErrorCode ConditionsSetBoundaryVelocity(Conditions *conditions,
 
 // Here's a registry of functions that can be used for boundary conditions and
 // forcing terms.
-typedef PetscErrorCode(*Function)(void*, PetscInt, PetscReal*, PetscReal*);
+typedef PetscErrorCode(*Function)(PetscInt, PetscReal*, PetscReal*);
 KHASH_MAP_INIT_STR(TDY_FUNC_MAP, Function)
 static khash_t(TDY_FUNC_MAP)* funcs_ = NULL;
 
@@ -158,25 +158,39 @@ PetscErrorCode TDyGetFunction(const char* name, Function* f) {
   PetscFunctionReturn(0);
 }
 
+// This struct is stored in a context and used to call a Function with a NULL
+// context.
+typedef struct WrapperStruct {
+  Function func;
+} WrapperStruct;
+
+// This function calls an underlying Function with a NULL context.
+PetscErrorCode WrapperFunction(void *context, PetscInt n, PetscReal *x, PetscReal *v) {
+  WrapperStruct *wrapper = context;
+  return wrapper->func(n, x, v);
+}
+
 PetscErrorCode ConditionsSelectBoundaryPressure(Conditions *conditions,
-                                                void *context,
                                                 const char* name) {
   PetscFunctionBegin;
   int ierr;
   Function f;
   ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
-  ierr = ConditionsSetBoundaryPressure(conditions, context, f, NULL); CHKERRQ(ierr);
+  FunctionWrapper *wrapper = malloc(sizeof(FunctionWrapper));
+  wrapper->func = f;
+  ierr = ConditionsSetBoundaryPressure(conditions, wrapper, f, free); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode ConditionsSelectBoundaryTemperature(Conditions *conditions,
-                                                   void *context,
                                                    const char* name) {
   PetscFunctionBegin;
   int ierr;
   Function f;
   ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
-  ierr = ConditionsSetBoundaryTemperature(conditions, context, f, NULL); CHKERRQ(ierr);
+  FunctionWrapper *wrapper = malloc(sizeof(FunctionWrapper));
+  wrapper->func = f;
+  ierr = ConditionsSetBoundaryTemperature(conditions, wrapper, f, free); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -187,7 +201,9 @@ PetscErrorCode ConditionsSelectBoundaryVelocity(Conditions *conditions,
   int ierr;
   Function f;
   ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
-  ierr = ConditionsSetBoundaryVelocity(conditions, context, f, NULL); CHKERRQ(ierr);
+  FunctionWrapper *wrapper = malloc(sizeof(FunctionWrapper));
+  wrapper->func = f;
+  ierr = ConditionsSetBoundaryVelocity(conditions, wrapper, f, free); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

@@ -344,8 +344,15 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = TDyTimeIntegratorDestroy(&tdy->ti); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
 
-  if (tdy->cc) {ierr = CharacteristicCurvesDestroy(tdy->cc); CHKERRQ(ierr);}
-  if (tdy->matprop) {ierr = MaterialPropDestroy(tdy->matprop); CHKERRQ(ierr);}
+  if (tdy->conditions) {
+    ierr = ConditionsDestroy(tdy->conditions); CHKERRQ(ierr);
+  }
+  if (tdy->cc) {
+    ierr = CharacteristicCurvesDestroy(tdy->cc); CHKERRQ(ierr);
+  }
+  if (tdy->matprop) {
+    ierr = MaterialPropDestroy(tdy->matprop); CHKERRQ(ierr);
+  }
 
   ierr = PetscFree(tdy); CHKERRQ(ierr);
 
@@ -495,27 +502,51 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           (PetscEnum)options->rho_type,
                           (PetscEnum *)&options->rho_type, NULL); CHKERRQ(ierr);
 
-  // Boundary conditions.
+  // Create source/sink/boundary conditions.
+  ierr = ConditionsCreate(&tdy->conditions); CHKERRQ(ierr);
+
   char func_name[PETSC_MAX_PATH_LEN];
-  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_pressure_bc_func", func_name,sizeof(func_name), &flag); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_pressure_bc_func", func_name,
+                               sizeof(func_name), &flag); CHKERRQ(ierr);
   if (flag) {
-    // TODO: When/where are we supposed to get the context for this function?
-    ierr = TDySelectBoundaryPressureFn(tdy, func_name, NULL);
+    ierr = ConditionsSelectBoundaryPressure(tdy->conditions, func_name);
   } else {
-    ierr = PetscOptionsReal("-tdy_pressure_bc_value", "Constant boundary pressure", NULL,options->boundary_pressure, &options->boundary_pressure,&flag); CHKERRQ(ierr);
+    ierr = PetscOptionsReal("-tdy_pressure_bc_value", "Constant boundary pressure",
+                            NULL, options->boundary_pressure,
+                            &options->boundary_pressure,&flag); CHKERRQ(ierr);
     if (flag) {
-      ierr = TDySetBoundaryPressureFn(tdy, ConstantBoundaryPressureFn,PETSC_NULL); CHKERRQ(ierr);
+      ierr = ConditionsSetConstantBoundaryPressure(tdy->conditions,
+                                                   options->boundary_pressure); CHKERRQ(ierr);
     } else { // TODO: what goes here??
     }
   }
-  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_velocity_bc_func", func_name,sizeof(func_name), &flag); CHKERRQ(ierr);
+
+  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_velocity_bc_func", func_name,
+                               sizeof(func_name), &flag); CHKERRQ(ierr);
   if (flag) {
-    // TODO: When/where are we supposed to get the context for this function?
-    ierr = TDySelectBoundaryVelocityFn(tdy, func_name, NULL);
+    ierr = ConditionsSelectBoundaryVelocity(tdy->conditions, func_name);
   } else {
-    ierr = PetscOptionsReal("-tdy_velocity_bc_value", "Constant normal boundary velocity",NULL, options->boundary_pressure, &options->boundary_pressure,&flag); CHKERRQ(ierr);
+    ierr = PetscOptionsReal("-tdy_velocity_bc_value", "Constant normal boundary velocity",
+                            NULL, options->boundary_velocity,
+                            &options->boundary_velocity,&flag); CHKERRQ(ierr);
     if (flag) {
-      ierr = TDySetBoundaryVelocityFn(tdy, ConstantBoundaryVelocityFn,PETSC_NULL); CHKERRQ(ierr);
+      ierr = ConditionsSetConstantBoundaryVelocity(tdy->conditions,
+                                                   options->boundary_velocity);
+    } else { // TODO: what goes here??
+    }
+  }
+
+  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_temperature_bc_func", func_name,
+                               sizeof(func_name), &flag); CHKERRQ(ierr);
+  if (flag) {
+    ierr = ConditionsSelectBoundaryTemperature(tdy->conditions, func_name);
+  } else {
+    ierr = PetscOptionsReal("-tdy_temperature_bc_value", "Constant boundary temperature",
+                            NULL, options->boundary_temperature,
+                            &options->boundary_temperature,&flag); CHKERRQ(ierr);
+    if (flag) {
+      ierr = ConditionsSetConstantBoundaryTemperature(tdy->conditions,
+                                                      options->boundary_temperature);
     } else { // TODO: what goes here??
     }
   }
@@ -846,7 +877,7 @@ PetscErrorCode TDySetup(TDy tdy) {
 
   // Perform implementation-specific setup.
   ierr = tdy->ops->setup(tdy->context, tdy->dm, &tdy->eos, tdy->matprop,
-                         tdy->cc, &tdy->conditions); CHKERRQ(ierr);
+                         tdy->cc, tdy->conditions); CHKERRQ(ierr);
 
   // Record metadata for scaling studies.
   TDySetTimingMetadata(tdy);

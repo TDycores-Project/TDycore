@@ -84,7 +84,7 @@ struct _p_TDy {
   TDyOptions options;
 
   // boundary conditions and sources/sinks
-  Conditions conditions;
+  Conditions *conditions;
 
   // equation of state
   EOS eos;
