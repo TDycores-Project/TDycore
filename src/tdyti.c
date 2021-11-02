@@ -223,7 +223,7 @@ PetscErrorCode TDyTimeIntegratorOutputRegression(TDy tdy)
   PetscFunctionBegin;
 
   PetscErrorCode ierr;
-  ierr = TDyOutputRegression(tdy, tdy->solution);
+  ierr = TDyOutputRegression(tdy, tdy->soln_prev);
   CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
