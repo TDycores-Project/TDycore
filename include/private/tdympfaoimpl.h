@@ -4,6 +4,7 @@
 #include <tdycore.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdyconditionsimpl.h>
+#include <private/tdyeosimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdymeshimpl.h>
 

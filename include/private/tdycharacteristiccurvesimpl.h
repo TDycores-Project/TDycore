@@ -37,7 +37,7 @@ typedef enum {
 /// each point in a given domain.
 typedef struct RelativePermeability {
   /// Number of points in a domain for which a relative permeability is defined.
-  PetscInt num_points;
+  PetscInt num_points[2];
   /// Arrays of indices of points that use a given saturation function type.
   PetscInt *points[2];
   /// Relative permeability parameters for points of each saturation function type.

@@ -23,12 +23,12 @@ PetscErrorCode MaterialPropCreate(PetscInt dim, MaterialProp **matprop) {
 /// @param [inout] matprop A MaterialProp instance
 PetscErrorCode MaterialPropDestroy(MaterialProp *matprop) {
   PetscFunctionBegin;
-  MaterialPropSetPorosity(matprop, NULL, NULL);
-  MaterialPropSetPermeability(matprop, NULL, NULL);
-  MaterialPropSetThermalConductivity(matprop, NULL, NULL);
-  MaterialPropSetResidualSaturation(matprop, NULL, NULL);
-  MaterialPropSetSoilDensity(matprop, NULL, NULL);
-  MaterialPropSetSoilSpecificHeat(matprop, NULL, NULL);
+  MaterialPropSetPorosity(matprop, NULL, NULL, NULL);
+  MaterialPropSetPermeability(matprop, NULL, NULL, NULL);
+  MaterialPropSetThermalConductivity(matprop, NULL, NULL, NULL);
+  MaterialPropSetResidualSaturation(matprop, NULL, NULL, NULL);
+  MaterialPropSetSoilDensity(matprop, NULL, NULL, NULL);
+  MaterialPropSetSoilSpecificHeat(matprop, NULL, NULL, NULL);
 
   PetscFunctionReturn(0);
 }
@@ -130,8 +130,8 @@ PetscErrorCode MaterialPropSetSoilSpecificHeat(MaterialProp *matprop, void *cont
   PetscFunctionBegin;
   if (matprop->soil_specific_heat_context && matprop->soil_specific_heat_dtor)
     matprop->soil_specific_heat_dtor(matprop->soil_specific_heat_context);
-  matprop->soil_specific_heat = context;
-  matprop->compute_specific_heat = f;
+  matprop->soil_specific_heat_context = context;
+  matprop->compute_soil_specific_heat = f;
   matprop->soil_specific_heat_dtor = dtor;
   PetscFunctionReturn(0);
 }
@@ -175,7 +175,7 @@ PetscBool MaterialPropHasSoilDensity(MaterialProp *matprop) {
 /// @param [in] matprop A MaterialProp instance
 PetscBool MaterialPropHasSoilSpecificHeat(MaterialProp *matprop) {
   PetscFunctionBegin;
-  PetscFunctionReturn(matprop->has_soil_specific_heat);
+  PetscFunctionReturn(matprop->compute_soil_specific_heat != NULL);
 }
 
 /// Computes the porosity at the given set of points (if the material properties
@@ -304,7 +304,7 @@ static PetscErrorCode CreateConstantContext(int dim, PetscReal value[9],
   PetscFunctionBegin;
   WrapperStruct *wrapper;
   ierr = PetscMalloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
-  wrapper->dim = func;
+  wrapper->dim = dim;
   memcpy(wrapper->value, value, 9*sizeof(PetscReal));
   wrapper->func = NULL;
   *context = wrapper;
@@ -358,7 +358,7 @@ static PetscErrorCode ConstantIsotropicTensorWrapperFunction(void *context, Pets
   PetscInt dim2 = dim*dim;
   for (int i = 0; i < n; ++i) {
     for(int j = 0; j < dim; ++j) {
-      matprop->K[dim2*i+j*dim+j] = wrapper->value[0];
+      f[dim2*i+j*dim+j] = wrapper->value[0];
     }
   }
   PetscFunctionReturn(0);
@@ -376,7 +376,7 @@ static PetscErrorCode IsotropicTensorWrapperFunction(void *context, PetscInt n,
   PetscInt dim2 = dim*dim;
   for (int i = 0; i < n; ++i) {
     for(int j = 0; j < dim; ++j) {
-      matprop->K[dim2*i+j*dim+j] = values[i];
+      f[dim2*i+j*dim+j] = values[i];
     }
   }
   PetscFunctionReturn(0);
@@ -392,7 +392,7 @@ static PetscErrorCode ConstantDiagonalTensorWrapperFunction(void *context, Petsc
   PetscInt dim2 = dim*dim;
   for (int i = 0; i < n; ++i) {
     for(int j = 0; j < dim; ++j) {
-      matprop->K[dim2*i+j*dim+j] = wrapper->value[j];
+      f[dim2*i+j*dim+j] = wrapper->value[j];
     }
   }
   PetscFunctionReturn(0);
@@ -410,7 +410,7 @@ static PetscErrorCode DiagonalTensorWrapperFunction(void *context, PetscInt n,
   wrapper->func(n, x, values);
   for (int i = 0; i < n; ++i) {
     for(int j = 0; j < dim; ++j) {
-      matprop->K[dim2*i+j*dim+j] = values[3*i+j];
+      f[dim2*i+j*dim+j] = values[3*i+j];
     }
   }
   PetscFunctionReturn(0);
@@ -426,7 +426,7 @@ static PetscErrorCode ConstantFullTensorWrapperFunction(void *context, PetscInt 
   PetscInt dim2 = dim*dim;
   for (int i = 0; i < n; ++i) {
     for(int j = 0; j < dim2; ++j) {
-      matprop->K[dim2*i+j] = values[j];
+      f[dim2*i+j] = wrapper->value[j];
     }
   }
   PetscFunctionReturn(0);
@@ -438,8 +438,6 @@ static PetscErrorCode FullTensorWrapperFunction(void *context, PetscInt n,
                                                 PetscReal *x, PetscReal *f) {
   PetscFunctionBegin;
   WrapperStruct *wrapper = context;
-  for (int i = 0; i < n; ++i) {
-    for (int j = 0; j < ; ++i) {
   wrapper->func(n, x, f);
   PetscFunctionReturn(0);
 }
@@ -467,7 +465,7 @@ PetscErrorCode MaterialPropSetConstantPorosity(MaterialProp *matprop,
 
 /// Sets the porosity function to the given spatial scalar function f.
 PetscErrorCode MaterialPropSetHeterogeneousPorosity(MaterialProp *matprop,
-                                                    ScalarFunction f) {
+                                                    SpatialScalarFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -667,7 +665,7 @@ PetscErrorCode MaterialPropSetConstantResidualSaturation(MaterialProp *matprop,
 
 /// Sets the residual saturation function to the given spatial scalar function f.
 PetscErrorCode MaterialPropSetHeterogeneousResidualSaturation(MaterialProp *matprop,
-                                                              ScalarFunction f) {
+                                                              SpatialScalarFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -695,7 +693,7 @@ PetscErrorCode MaterialPropSetConstantSoilDensity(MaterialProp *matprop,
 
 /// Sets the soil density function to the given spatial scalar function f.
 PetscErrorCode MaterialPropSetHeterogeneousSoilDensity(MaterialProp *matprop,
-                                                       ScalarFunction f) {
+                                                       SpatialScalarFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -723,7 +721,7 @@ PetscErrorCode MaterialPropSetConstantSoilSpecificHeat(MaterialProp *matprop,
 
 /// Sets the soil specific heat function to the given spatial scalar function f.
 PetscErrorCode MaterialPropSetHeterogeneousSoilSpecificHeat(MaterialProp *matprop,
-                                                            ScalarFunction f) {
+                                                            SpatialScalarFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -734,6 +732,7 @@ PetscErrorCode MaterialPropSetHeterogeneousSoilSpecificHeat(MaterialProp *matpro
   PetscFunctionReturn(0);
 }
 
+#if 0
 /*
   Set material properties cell-by-cell
 */
@@ -853,3 +852,4 @@ PetscErrorCode TDyGetPorosityValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[])
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
+#endif

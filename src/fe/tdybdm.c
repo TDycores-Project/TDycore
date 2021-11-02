@@ -7,23 +7,6 @@
 /* (dim*vertices_per_cell+1)^2 */
 #define MAX_LOCAL_SIZE 625
 
-/*
-  u <-- 1/J DF u
-*/
-void TDyPiola(PetscReal *u,PetscReal *DF,PetscReal J,PetscInt dim){
-  TDY_START_FUNCTION_TIMER()
-  PetscInt i,j;
-  PetscReal v[3];
-  for(i=0;i<dim;i++){
-    v[i] = 0;
-    for(j=0;j<dim;j++){
-      v[i] += DF[i*dim+j]*u[j];
-    }
-  }
-  for(i=0;i<dim;i++) u[i] = v[i]/J;
-  TDY_STOP_FUNCTION_TIMER()
-}
-
 PetscErrorCode TDyBDMSetQuadrature(TDy tdy, TDyQuadratureType qtype) {
   PetscFunctionBegin;
   TDyBDM *bdm = tdy->context;

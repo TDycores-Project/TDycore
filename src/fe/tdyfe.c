@@ -183,6 +183,24 @@ PetscErrorCode SetQuadrature(PetscQuadrature q,PetscInt dim) {
 }
 
 /*
+  u <-- 1/J DF u
+*/
+static void Piola(PetscReal *u,PetscReal *DF,PetscReal J,PetscInt dim){
+  TDY_START_FUNCTION_TIMER()
+  PetscInt i,j;
+  PetscReal v[3];
+  for(i=0;i<dim;i++){
+    v[i] = 0;
+    for(j=0;j<dim;j++){
+      v[i] += DF[i*dim+j]*u[j];
+    }
+  }
+  for(i=0;i<dim;i++) u[i] = v[i]/J;
+  TDY_STOP_FUNCTION_TIMER()
+}
+
+
+/*
   BDM1 basis functions on [-1,1] with degrees of freedom chosen to
   match Wheeler2009. Indices map <-- local_vertex*dim + dir.
 
@@ -210,7 +228,7 @@ void HdivBasisQuad(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J) {
   B[13] = (-x[1]*x[1] + 1)*0.125;
   B[14] = (-x[0]*x[0] + 1)*0.125;
   B[15] = (x[0]*x[1] + x[0] + x[1] + 1)*0.25;
-  for(i=0;i<8;i++) TDyPiola(&(B[2*i]),DF,J,2);
+  for(i=0;i<8;i++) Piola(&(B[2*i]),DF,J,2);
   TDY_STOP_FUNCTION_TIMER()
 }
 
@@ -289,7 +307,7 @@ void HdivBasisHex(const PetscReal *x,PetscReal *B,PetscReal *DF,PetscReal J) {
   B[69] = (-x[0]*x[0] + 1)*0.0625;
   B[70] = (-x[0]*x[1]*x[1] + x[0] - x[1]*x[1] + 1)*0.0625;
   B[71] = (x[0]*x[1]*x[2] + x[0]*x[1] + x[0]*x[2] + x[0] + x[1]*x[2] + x[1] + x[2] + 1)*0.125;
-  for(i=0;i<24;i++) TDyPiola(&(B[3*i]),DF,J,3);
+  for(i=0;i<24;i++) Piola(&(B[3*i]),DF,J,3);
   TDY_STOP_FUNCTION_TIMER()
 }
 

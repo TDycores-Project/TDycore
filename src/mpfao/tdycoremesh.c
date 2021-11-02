@@ -1869,7 +1869,7 @@ PetscBool IsCellAboveTheVertex(TDyMPFAO *mpfao, PetscInt icell, PetscInt ivertex
 
     if (ivertex != ivertex_2) {
 
-      if (VerticesHaveSameXYCoords(tdy, ivertex, ivertex_2)) {
+      if (VerticesHaveSameXYCoords(mpfao, ivertex, ivertex_2)) {
         found = PETSC_TRUE;
         is_above = (vertices->coordinate[ivertex_2].X[2]>vertices->coordinate[ivertex].X[2]);
         break;
@@ -1906,7 +1906,7 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDyMPFAO *mpfao, PetscInt ivertex, Pe
   for (PetscInt icell=0; icell<ncells_int; icell++) {
     PetscInt cellID = vertices->internal_cell_ids[vOffsetIntCell + icell];
 
-    if (IsCellAboveTheVertex(tdy,cellID,ivertex)) {
+    if (IsCellAboveTheVertex(mpfao,cellID,ivertex)) {
       cellsAbvBlw[0][*ncells_abv] = cellID;
       (*ncells_abv)++;
     } else {

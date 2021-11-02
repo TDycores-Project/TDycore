@@ -37,9 +37,9 @@ static PetscErrorCode ComputeWaterDensity_Exponential(PetscReal p, PetscReal *de
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyEOSComputeWaterDensity(TDyEOS *eos, PetscReal p,
-                                         PetscReal *den, PetscReal *dden_dP,
-                                         PetscReal *d2den_dP2) {
+PetscErrorCode EOSComputeWaterDensity(EOS *eos, PetscReal p,
+                                      PetscReal *den, PetscReal *dden_dP,
+                                      PetscReal *d2den_dP2) {
 
   PetscErrorCode ierr;
 
@@ -74,8 +74,8 @@ static PetscErrorCode ComputeWaterViscosity_Constant(PetscReal p,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyEOSComputeWaterViscosity(TDyEOS *eos, PetscReal p, PetscReal *vis,
-                                           PetscReal *dvis_dP, PetscReal *d2vis_dP2) {
+PetscErrorCode EOSComputeWaterViscosity(EOS *eos, PetscReal p, PetscReal *vis,
+                                        PetscReal *dvis_dP, PetscReal *d2vis_dP2) {
 
   PetscErrorCode ierr;
 
@@ -107,9 +107,9 @@ static PetscErrorCode ComputeWaterEnthalpy_Constant(PetscReal t, PetscReal p,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyEOSComputeWaterEnthalpy(TDyEOS *eos, PetscReal t, PetscReal p,
-                                          PetscReal *hw, PetscReal *dhw_dP,
-                                          PetscReal *dhw_dT) {
+PetscErrorCode EOSComputeWaterEnthalpy(EOS *eos, PetscReal t, PetscReal p,
+                                       PetscReal *hw, PetscReal *dhw_dP,
+                                       PetscReal *dhw_dT) {
 
   PetscErrorCode ierr;
 

@@ -6,13 +6,13 @@
 /// Creates a CharacteristicCurves instance with saturation and relative
 /// permeability models for use with specific discretizations.
 /// @param [out] cc the initialized instance
-PetscErrorCode CharacteristicCurvesCreate(CharacteristicCurve **cc) {
+PetscErrorCode CharacteristicCurvesCreate(CharacteristicCurves **cc) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  ierr = PetscMalloc(sizeof(CharacteristicCurve), cc); CHKERRQ(ierr);
-  ierr = SaturationCreate(&(cc->saturation)); CHKERRQ(ierr);
-  ierr = RelativePermeabilityCreate(&(cc->rel_perm)); CHKERRQ(ierr);
+  ierr = PetscMalloc(sizeof(CharacteristicCurves), cc); CHKERRQ(ierr);
+  ierr = SaturationCreate(&((*cc)->saturation)); CHKERRQ(ierr);
+  ierr = RelativePermeabilityCreate(&((*cc)->rel_perm)); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -35,10 +35,7 @@ PetscErrorCode SaturationCreate(Saturation **sat) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  ierr = PetscMalloc(sizeof(Saturation), sat); CHKERRQ(ierr);
-  sat->num_points = 0;
-  sat->points[0] = sat->points[1] = NULL;
-  sat->parameters[0] = sat->parameters[1] = NULL;
+  ierr = PetscCalloc(sizeof(Saturation), sat); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -118,7 +115,7 @@ PetscErrorCode SaturationCompute(Saturation *sat,
     if (type == SAT_FUNC_GARDNER) {
       PetscInt num_points = sat->num_points[type];
       for (PetscInt i = 0; i < num_points; ++i) {
-        PetscInt j = sat->points[i];
+        PetscInt j = sat->points[type][i];
         PetscReal n = sat->parameters[type][3*i];
         PetscReal m = sat->parameters[type][3*i+1];
         PetscReal alpha = sat->parameters[type][3*i+2];
@@ -128,7 +125,7 @@ PetscErrorCode SaturationCompute(Saturation *sat,
     } else if (type == SAT_FUNC_VAN_GENUCHTEN) {
       PetscInt num_points = sat->num_points[type];
       for (PetscInt i = 0; i < num_points; ++i) {
-        PetscInt j = sat->points[i];
+        PetscInt j = sat->points[type][i];
         PetscReal m = sat->parameters[type][2*i];
         PetscReal alpha = sat->parameters[type][2*i+2];
         PressureSaturation_VanGenuchten(m, alpha, Sr[j], Pc[j], &(S[j]), &(dSdP[j]),
@@ -144,10 +141,7 @@ PetscErrorCode RelativePermeabilityCreate(RelativePermeability **rel_perm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  ierr = PetscMalloc(sizeof(RelativePermeability), rel_perm); CHKERRQ(ierr);
-  rel_perm->num_points = 0;
-  rel_perm->points[0] = rel_perm->points[1] = NULL;
-  rel_perm->parameters[0] = rel_perm->parameters[1] = NULL;
+  ierr = PetscCalloc(sizeof(RelativePermeability), rel_perm); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -226,20 +220,19 @@ PetscErrorCode RelativePermeabilityCompute(RelativePermeability *rel_perm,
   PetscErrorCode ierr;
   int num_types = (int)(sizeof(rel_perm->points)/sizeof(rel_perm->points[0]));
   for (int type = 0; type < num_types; ++type) {
+    PetscInt num_points = rel_perm->num_points[type];
     if (type == REL_PERM_FUNC_IRMAY) {
-      PetscInt num_points = sat->num_points[type];
       for (PetscInt i = 0; i < num_points; ++i) {
-        PetscReal m = sat->parameters[type][i];
+        PetscReal m = rel_perm->parameters[type][i];
         RelativePermeability_Irmay(m, Se[i], &(Kr[i]), &(dKrdSe[i]));
       }
     } else if (type == REL_PERM_FUNC_MUALEM) {
-      PetscInt num_points = sat->num_points[type];
       for (PetscInt i = 0; i < num_points; ++i) {
-        PetscReal m = sat->parameters[type][6*i];
-        PetscReal poly_low = sat->parameters[type][6*i+1]; // cubic interp cutoff
-        PetscReal *poly_coeffs = &(sat->parameters[type][6*i+2]); // interp coeffs
-        RelativePermeability_Mualem(m, poly_low, poly_coeffs, Se[i], &(S[i]),
-                                    &(Kr[i]), &(dKrdSe[i]));
+        PetscReal m = rel_perm->parameters[type][6*i];
+        PetscReal poly_low = rel_perm->parameters[type][6*i+1]; // cubic interp cutoff
+        PetscReal *poly_coeffs = &(rel_perm->parameters[type][6*i+2]); // interp coeffs
+        RelativePermeability_Mualem(m, poly_low, poly_coeffs, Se[i], &(Kr[i]),
+                                    &(dKrdSe[i]));
       }
     }
   }
