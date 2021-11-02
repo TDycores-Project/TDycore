@@ -383,7 +383,7 @@ implicit none
   call TDySetInitialCondition(tdy,U,ierr);
   CHKERRA(ierr);
 
-  call TDySetPreviousSolutionForSNESSolver(tdy, U, ierr)
+  !call TDySetPreviousSolutionForSNESSolver(tdy, U, ierr)
   CHKERRA(ierr);
 
   call SNESCreate(PETSC_COMM_WORLD,snes,ierr);

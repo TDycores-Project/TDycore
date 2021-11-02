@@ -120,7 +120,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       ierr = TSSetEquationType(ts,TS_EQ_IMPLICIT); CHKERRQ(ierr);
       ierr = TSSetProblemType(ts,TS_NONLINEAR); CHKERRQ(ierr);
       ierr = TSSetDM(ts,tdy->dm); CHKERRQ(ierr);
-      ierr = TSSetSolution(ts,tdy->solution); CHKERRQ(ierr);
+      ierr = TSSetSolution(ts,tdy->soln_prev); CHKERRQ(ierr);
       ierr = TDySetIFunction(ts,tdy); CHKERRQ(ierr);
       ierr = TDySetIJacobian(ts,tdy); CHKERRQ(ierr);
       ierr = TSGetSNES(ts,&snes); CHKERRQ(ierr);
@@ -175,7 +175,7 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
       ierr = SNESSetFromOptions(snes); CHKERRQ(ierr);
-      ierr = TDySetPreviousSolutionForSNESSolver(tdy,tdy->solution);
+      ierr = TDySetPreviousSolutionForSNESSolver(tdy,tdy->soln_prev);
              CHKERRQ(ierr);
       break;
     case TDyTS:

@@ -155,9 +155,9 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy, PetscReal sync_time)
       }
       ierr = TDyPreSolveSNESSolver(tdy);
       CHKERRQ(ierr);
-      ierr = SNESSolve(ti->snes, PETSC_NULL, tdy->solution);
+      ierr = SNESSolve(ti->snes, PETSC_NULL, tdy->soln_prev);
       CHKERRQ(ierr);
-      ierr = TDyPostSolveSNESSolver(tdy, tdy->solution);
+      ierr = TDyPostSolveSNESSolver(tdy, tdy->soln_prev);
       CHKERRQ(ierr);
       ti->time += ti->dt;
       ti->istep++;
@@ -205,7 +205,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy, PetscReal sync_time)
     CHKERRQ(ierr);
     ierr = TSSetMaxTime(ti->ts, delta_time);
     CHKERRQ(ierr);
-    ierr = TSSolve(ti->ts, tdy->solution);
+    ierr = TSSolve(ti->ts, tdy->soln_prev);
     CHKERRQ(ierr);
     ierr = TSGetTime(ti->ts, &ti->time);
     CHKERRQ(ierr);
@@ -221,7 +221,7 @@ PetscErrorCode TDyTimeIntegratorOutputRegression(TDy tdy)
   PetscFunctionBegin;
 
   PetscErrorCode ierr;
-  ierr = TDyOutputRegression(tdy, tdy->solution);
+  ierr = TDyOutputRegression(tdy, tdy->soln_prev);
   CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
