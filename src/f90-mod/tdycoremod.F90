@@ -430,13 +430,13 @@ module tdycore
   end interface
 
   interface
-     subroutine TDyPostSolveSNESSolver(a,b,z)
+     subroutine TDyPostSolve(a,b,z)
        use tdycoredef
        use petscvec
        TDy a
        Vec b
        integer z
-     end subroutine TDyPostSolveSNESSolver
+     end subroutine TDyPostSolve
   end interface
 
   abstract interface

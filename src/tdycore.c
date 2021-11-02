@@ -1564,7 +1564,7 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
+PetscErrorCode TDyPostSolve(TDy tdy,Vec U) {
 
   PetscErrorCode ierr;
 

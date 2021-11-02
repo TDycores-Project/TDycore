@@ -214,7 +214,7 @@ PETSC_EXTERN PetscReal TDyMPFAOPressureNorm(TDy,Vec);
 PETSC_EXTERN void PrintMatrix(PetscReal*,PetscInt,PetscInt,PetscBool);
 PETSC_EXTERN PetscErrorCode CheckSymmetric(PetscReal*,PetscInt);
 
-PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
+PETSC_EXTERN PetscErrorCode TDyPostSolve(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyCreateVectors(TDy);
 PETSC_EXTERN PetscErrorCode TDyCreateJacobian(TDy);
 

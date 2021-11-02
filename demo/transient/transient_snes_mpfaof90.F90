@@ -431,7 +431,7 @@ implicit none
        endif
     endif
 
-    call TDyPostSolveSNESSolver(tdy,U,ierr);
+    call TDyPostSolve(tdy,U,ierr);
     CHKERRA(ierr);
 
     call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)

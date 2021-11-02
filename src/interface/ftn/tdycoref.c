@@ -32,7 +32,7 @@
 #define tdysetinitialcondition_                        TDYSETINITIALCONDITION
 #define tdysetprevioussolutionforsnessolver_           TDYSETPREVIOUSSOLUTIONFORSNESSOLVER
 #define tdypresolvesnessolver_                         TDYSETPRESOLVESNESSOLVER
-#define tdypostsolvesnessolver_                        TDYSETPOSTSOLVESNESSOLVER
+#define _                        TDYSETPOSTSOLVESNESSOLVER
 #define tdycomputesystem_                              TDYCOMPUTESYSTEM
 #define tdycomputeerrornorms_                          TDYCOMPUTEERRORNORMS
 #define tdysetporosityfunction_                        TDYSETPOROSITYFUNCTION
@@ -94,7 +94,7 @@
 #define tdysetinitialcondition_                        tdysetinitialcondition
 #define tdysetprevioussolutionforsnessolver_           tdysetprevioussolutionforsnessolver
 #define tdypresolvesnessolver_                         tdypresolvesnessolver
-#define tdypostsolvesnessolver_                        tdypostsolvesnessolver
+#define tdypostsolve_                                  tdypostsolve
 #define tdycomputesystem_                              tdycomputesystem
 #define tdycomputeerrornorms_                          tdycomputeerrornorms
 #define tdysetporosityfunction_                        tdysetporosityfunction
@@ -387,8 +387,8 @@ PETSC_EXTERN void  tdypresolvesnessolver_(TDy tdy, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdypostsolvesnessolver_(TDy tdy, Vec solution, int *__ierr){
-*__ierr = TDyPostSolveSNESSolver(
+PETSC_EXTERN void  tdypostsolve_(TDy tdy, Vec solution, int *__ierr){
+*__ierr = TDyPostSolve(
   (TDy)PetscToPointer(tdy),
   (Vec)PetscToPointer(solution));
 }
