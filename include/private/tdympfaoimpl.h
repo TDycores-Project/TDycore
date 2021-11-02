@@ -20,7 +20,6 @@ typedef struct TDyMPFAO {
   PetscReal *V; // cell volumes
   PetscReal *X; // point centroids
   PetscReal *N; // face normals
-  PetscInt *closureSize, **closure, maxClosureSize;
   PetscInt ncv, nfv; // number of {cell|face} vertices
 
   PetscReal ****subc_Gmatrix; // Gmatrix for subcells
@@ -91,13 +90,12 @@ PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM, EOS*, MaterialProp*, Ch
 PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_MPFAO(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
+
 PETSC_INTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeGravityDiscretization(TDy);
-PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
-PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy,Vec);
-PETSC_EXTERN PetscReal TDyMPFAOVelocityNorm(TDy);
-PETSC_EXTERN PetscReal TDyMPFAOPressureNorm(TDy,Vec);
+PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
+PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy,Mat,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices(TDy,Mat,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices(TDy,Mat,Vec);
@@ -111,7 +109,5 @@ PETSC_INTERN PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS,PetscReal,Vec
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESFunction(SNES,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESJacobian(SNES,Vec,Mat,Mat,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESPreSolve(TDy);
-PETSC_INTERN PetscErrorCode TDyMPFAOSetGmatrixMethod(TDyMPFAO*,TDyMPFAOGmatrixMethod);
-PETSC_INTERN PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDyMPFAO*,TDyMPFAOBoundaryConditionType);
 
 #endif

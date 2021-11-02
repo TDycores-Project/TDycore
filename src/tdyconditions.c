@@ -113,64 +113,10 @@ PetscErrorCode ConditionsSetBoundaryVelocity(Conditions *conditions,
   PetscFunctionReturn(0);
 }
 
-// Here's a registry of functions that can be used for boundary conditions and
-// forcing terms.
-typedef PetscErrorCode(*Function)(PetscInt, PetscReal*, PetscReal*);
-KHASH_MAP_INIT_STR(TDY_FUNC_MAP, Function)
-static khash_t(TDY_FUNC_MAP)* funcs_ = NULL;
-
-// This function is called on finalization to destroy the function registry.
-static void DestroyFunctionRegistry() {
-  kh_destroy(TDY_FUNC_MAP, funcs_);
-}
-
-/// Registers a named function that evaluates a scalar quantity on a set of
-/// points in space.
-/// @param [in] name a name by which the function may be retrieved with
-///                  TDyGetFunction
-/// @param [in] f the function, which accepts (n, x, v), where n is the number
-///               of points x on which f will be evaluated to produce values v.
-PetscErrorCode TDyRegisterFunction(const char* name, Function f) {
-  PetscFunctionBegin;
-  if (funcs_ == NULL) {
-    funcs_ = kh_init(TDY_FUNC_MAP);
-    TDyOnFinalize(DestroyFunctionRegistry);
-  }
-
-  int retval;
-  khiter_t iter = kh_put(TDY_FUNC_MAP, funcs_, name, &retval);
-  kh_val(funcs_, iter) = f;
-  PetscFunctionReturn(0);
-}
-
-/// Retrieves a named function that was registered with TDyRegister.
-/// @param [in] name the name by which the desired function was registered
-/// @param [out] f the retrieved function
-PetscErrorCode TDyGetFunction(const char* name, Function* f) {
-  PetscFunctionBegin;
-  int ierr;
-
-  if (funcs_ != NULL) {
-    khiter_t iter = kh_get(TDY_FUNC_MAP, funcs_, name);
-    if (iter != kh_end(funcs_)) { // found it!
-      *f = kh_val(funcs_, iter);
-    } else {
-      ierr = -1;
-      SETERRQ(PETSC_COMM_WORLD, ierr, "Function not found!");
-      return ierr;
-    }
-  } else {
-    ierr = -1;
-    SETERRQ(PETSC_COMM_WORLD, ierr, "No functions have been registered!");
-    return ierr;
-  }
-  PetscFunctionReturn(0);
-}
-
 // This struct is stored in a context and used to call a Function with a NULL
 // context.
 typedef struct WrapperStruct {
-  Function func;
+  TDySpatialFunction func;
 } WrapperStruct;
 
 // This function calls an underlying Function with a NULL context.

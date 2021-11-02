@@ -465,7 +465,7 @@ PetscErrorCode MaterialPropSetConstantPorosity(MaterialProp *matprop,
 
 /// Sets the porosity function to the given spatial scalar function f.
 PetscErrorCode MaterialPropSetHeterogeneousPorosity(MaterialProp *matprop,
-                                                    SpatialScalarFunction f) {
+                                                    TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -495,7 +495,7 @@ PetscErrorCode MaterialPropSetConstantIsotropicPermeability(MaterialProp *matpro
 /// Sets the permeability function to the given spatial scalar function f that
 /// provides an isotropic permeability.
 PetscErrorCode MaterialPropSetHeterogeneousIsotropicPermeability(MaterialProp *matprop,
-                                                                 SpatialScalarFunction f) {
+                                                                 TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -524,7 +524,7 @@ PetscErrorCode MaterialPropSetConstantDiagonalPermeability(MaterialProp *matprop
 /// Sets the permeability function to a given spatial vector function f that
 /// will compute a diagonal anisotropic permeability tensor.
 PetscErrorCode MaterialPropSetHeterogeneousDiagonalPermeability(MaterialProp *matprop,
-                                                                SpatialVectorFunction f) {
+                                                                TDyVectorSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -551,7 +551,7 @@ PetscErrorCode MaterialPropSetConstantTensorPermeability(MaterialProp *matprop,
 /// Sets the permeability function to a given spatial tensor function f that
 /// will compute a full anisotropic permeability tensor.
 PetscErrorCode MaterialPropSetHeterogeneousTensorPermeability(MaterialProp *matprop,
-                                                              SpatialTensorFunction f) {
+                                                              TDyTensorSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -581,7 +581,7 @@ PetscErrorCode MaterialPropSetConstantIsotropicThermalConductivity(MaterialProp 
 /// Sets the thermal conductivity function to the given spatial scalar function f that
 /// provides an isotropic conductivity.
 PetscErrorCode MaterialPropSetHeterogeneousIsotropicThermalConductivity(MaterialProp *matprop,
-                                                                        SpatialScalarFunction f) {
+                                                                        TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -610,7 +610,7 @@ PetscErrorCode MaterialPropSetConstantDiagonalThermalConductivity(MaterialProp *
 /// Sets the thermal conductivity function to a given spatial vector function f that
 /// will compute a diagonal anisotropic conductivity tensor.
 PetscErrorCode MaterialPropSetHeterogeneousDiagonalThermalConductivity(MaterialProp *matprop,
-                                                                       SpatialVectorFunction f) {
+                                                                       TDyVectorSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -637,7 +637,7 @@ PetscErrorCode MaterialPropSetConstantTensorThermalConductivity(MaterialProp *ma
 /// Sets the thermal conductivity function to a given spatial tensor function f that
 /// will compute a full anisotropic conductivity tensor.
 PetscErrorCode MaterialPropSetHeterogeneousTensorThermalConductivity(MaterialProp *matprop,
-                                                                     SpatialTensorFunction f) {
+                                                                     TDyTensorSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -665,7 +665,7 @@ PetscErrorCode MaterialPropSetConstantResidualSaturation(MaterialProp *matprop,
 
 /// Sets the residual saturation function to the given spatial scalar function f.
 PetscErrorCode MaterialPropSetHeterogeneousResidualSaturation(MaterialProp *matprop,
-                                                              SpatialScalarFunction f) {
+                                                              TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -693,7 +693,7 @@ PetscErrorCode MaterialPropSetConstantSoilDensity(MaterialProp *matprop,
 
 /// Sets the soil density function to the given spatial scalar function f.
 PetscErrorCode MaterialPropSetHeterogeneousSoilDensity(MaterialProp *matprop,
-                                                       SpatialScalarFunction f) {
+                                                       TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -721,7 +721,7 @@ PetscErrorCode MaterialPropSetConstantSoilSpecificHeat(MaterialProp *matprop,
 
 /// Sets the soil specific heat function to the given spatial scalar function f.
 PetscErrorCode MaterialPropSetHeterogeneousSoilSpecificHeat(MaterialProp *matprop,
-                                                            SpatialScalarFunction f) {
+                                                            TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 

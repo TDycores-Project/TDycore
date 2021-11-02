@@ -64,27 +64,31 @@ typedef enum {
   TDySetupFinished=0x1<<4,
 } TDySetupFlags;
 
-/// A SpatialScalarFunction computes the value of a scalar quantity f at n
+/// A TDyScalarSpatialFunction computes the value of a scalar quantity f at n
 /// points x. Use this type to explicitly indicate that f is a scalar.
 /// Functions of this type accept an integer n for the number of points, an
 /// array x of length dim*n containing the coordinates of the points, and an
 /// array f of length n that stores the resulting n scalar values.
-typedef void (*SpatialScalarFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+typedef void (*TDyScalarSpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
 
-/// A SpatialVectorFunction computes the value of a vector quantity (or perhaps
+/// A TDyVectorSpatialFunction computes the value of a vector quantity (or perhaps
 /// a diagonal anisotropic tensor) f at n points x. Use this type to explicitly
 /// indicate that f is a vector. Functions of this type accept an integer n for
 /// the number of points, an array x of length dim*n containing the coordinates
 /// of the points, and an array f of length dim*n that stores the resulting n
 /// vector values.
-typedef void (*SpatialVectorFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+typedef void (*TDyVectorSpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
 
-/// A SpatialTensorFunction computes the value of a rank-2 tensor quantity f at
+/// A TDyTensorSpatialFunction computes the value of a rank-2 tensor quantity f at
 /// n points x. Use this type to explicitly indicate that f is a full tensor.
 /// Functions of this type accept an integer n for the number of points, an
 /// array x of length dim*n containing the coordinates of the points, and an
 /// array f of length dim*dim*n that stores the resulting n tensor values.
-typedef void (*SpatialTensorFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+typedef void (*TDyTensorSpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+
+/// A TDySpatialFunction has the same type as the above functions, but can be
+/// used to store any one of them.
+typedef void (*TDySpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
 
 typedef struct _p_TDy *TDy;
 
@@ -128,34 +132,18 @@ PETSC_EXTERN PetscErrorCode TDySetSoilDensityFunction(TDy,PetscErrorCode(*)(TDy,
 PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeatFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 
 // Set boundary and source-sink: via PETSc operations
-PetscErrorCode TDyRegisterFunction(const char*, PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*));
-PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySetEnergyForcingFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryPressureFn(TDy,const char*,void*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryTemperatureFn(TDy,const char*,void*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFn(TDy,const char*,void*);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureFn(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryTemperatureFn(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryVelocityFn(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-
-/*
-// Set material properties: via spatial function
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (TDy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (TDy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetCellPermeability(TDy,PetscInt,PetscReal*);
-PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeat    (TDy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetSoilDensity         (TDy,SpatialFunction f);
-
-// Set material properties: For each cell
-PETSC_EXTERN PetscErrorCode TDySetPorosityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetResidualSaturationValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveMualemValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveNValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveVanGenuchtenValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[],const PetscScalar[]);
-*/
+PetscErrorCode TDyRegisterFunction(const char*, TDySpatialFunction);
+PetscErrorCode TDyGetFunction(const char*, TDySpatialFunction*);
+PETSC_EXTERN PetscErrorCode TDySetForcingFn(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetEnergyForcingFn(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureFn(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetBoundaryTemperatureFn(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetBoundaryVelocityFn(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySelectForcingFn(TDy,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectEnergyForcingFn(TDy,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectBoundaryPressureFn(TDy,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectBoundaryTemperatureFn(TDy,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFn(TDy,const char*);
 
 // Set condition: for each cell
 PETSC_EXTERN PetscErrorCode TDySetSourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
@@ -214,66 +202,12 @@ PETSC_EXTERN PetscErrorCode TDyTimeIntegratorOutputRegression(TDy);
 
 PETSC_EXTERN PetscErrorCode TDyDriverInitializeTDy(TDy);
 
-/* ---------------------------------------------------------------- */
-
-typedef struct TDyMesh TDyMesh;
-
-typedef struct {
-  PetscReal X[3];
-} TDyCoordinate;
-
-typedef struct {
-  PetscReal V[3];
-} TDyVector;
-
-PETSC_EXTERN PetscErrorCode TDyMeshCreateFromDM(DM, TDyMesh*);
-PETSC_EXTERN PetscErrorCode TDyMeshDestroy(TDyMesh*);
-
-PETSC_INTERN PetscErrorCode TDyMeshGetCellVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellEdges(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellNeighbors(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellCentroid(TDyMesh*, PetscInt, TDyCoordinate*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellVolume(TDyMesh*, PetscInt, PetscReal*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellNumVertices(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellNumVertices(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellNumFaces(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellNumNeighbors(TDyMesh*, PetscInt, PetscInt*);
-
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexInternalCells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexSubcells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexSubfaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexBoundaryFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexNumInternalCells(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexNumSubcells(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexNumFaces(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexNumBoundaryFaces(TDyMesh*, PetscInt, PetscInt*);
-
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceCells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceCentroid(TDyMesh*, PetscInt, TDyCoordinate*);
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceNormal(TDyMesh*, PetscInt, TDyVector*);
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceArea(TDyMesh*, PetscInt, PetscReal*);
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceNumCells(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceNumVertices(TDyMesh*, PetscInt, PetscInt*);
-
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellIsFaceUp(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceUnknownIdxs(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceFluxIdxs(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceAreas(TDyMesh*, PetscInt, PetscReal**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNuVectors(TDyMesh*, PetscInt, TDyVector**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNuStarVectors(TDyMesh*, PetscInt, TDyVector**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVariableContinutiyCoordinates(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceCentroids(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNumFaces(TDyMesh*, PetscInt, PetscInt*);
-
 //-------------------------------------------------
 // Multi-point Flux Approximation (MPFA-O) methods
 //-------------------------------------------------
+
+PETSC_EXTERN PetscErrorCode TDyMPFAOSetGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
+PETSC_EXTERN PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
 
 //------------------------
 // Finite element methods

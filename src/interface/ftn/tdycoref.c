@@ -20,8 +20,8 @@
 #define tdysetup_                                      TDYSETUP
 #define tdygetdm_                                      TDYGETDM
 #define tdysetwaterdensitytype_                        TDYSETWATERDENSITYTYPE
-#define tdysetmpfaogmatrixmethod_                      TDYSETMPFAOGMATRIXMETHOD
-#define tdysetmpfaoboundaryconditiontype_              TDYSETMPFAOGBOUNDARYCONDITIONTYPE
+#define tdympfaosetgmatrixmethod_                      TDYMPFAOSETGMATRIXMETHOD
+#define tdympfaosetboundaryconditiontype_              TDYMPFAOSETBOUNDARYCONDITIONTYPE
 #define tdysetifunction_                               TDYSETIFUNCTION
 #define tdysetijacobian_                               TDYSETIJACOBIAN
 #define tdysetsnesfunction_                            TDYSETSNESFUNCTION
@@ -82,8 +82,8 @@
 #define tdysetup_                                      tdysetup
 #define tdygetdm_                                      tdygetdm
 #define tdysetwaterdensitytype_                        tdysetwaterdensitytype
-#define tdysetmpfaogmatrixmethod_                      tdysetmpfaogmatrixmethod
-#define tdysetmpfaoboundaryconditiontype_              tdysetmpfaoboundaryconditiontype
+#define tdympfaosetgmatrixmethod_                      tdympfaosetgmatrixmethod
+#define tdympfaosetboundaryconditiontype_              tdympfaosetboundaryconditiontype
 #define tdysetifunction_                               tdysetifunction
 #define tdysetijacobian_                               tdysetijacobian
 #define tdysetsnesfunction_                            tdysetsnesfunction
@@ -275,8 +275,8 @@ PETSC_EXTERN void  tdysetwaterdensitytype_(TDy tdy, PetscInt *method, int *__ier
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdysetmpfaogmatrixmthod_(TDy tdy, PetscInt *method, int *__ierr){
-*__ierr = TDySetMPFAOGmatrixMethod((TDy)PetscToPointer((tdy)), *method);
+PETSC_EXTERN void  tdympfaosetgmatrixmthod_(TDy tdy, PetscInt *method, int *__ierr){
+*__ierr = TDyMPFAOSetGmatrixMethod((TDy)PetscToPointer((tdy)), *method);
 }
 #if defined(__cplusplus)
 }
@@ -285,8 +285,8 @@ PETSC_EXTERN void  tdysetmpfaogmatrixmthod_(TDy tdy, PetscInt *method, int *__ie
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdysetmpfaoboundaryconditiontype_(TDy tdy, PetscInt *bctype, int *__ierr){
-*__ierr = TDySetMPFAOBoundaryConditionType((TDy)PetscToPointer((tdy)), *bctype);
+PETSC_EXTERN void  tdympfaosetboundaryconditiontype_(TDy tdy, PetscInt *bctype, int *__ierr){
+*__ierr = TDyMPFAOSetBoundaryConditionType((TDy)PetscToPointer((tdy)), *bctype);
 }
 #if defined(__cplusplus)
 }
