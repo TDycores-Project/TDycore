@@ -723,188 +723,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-#if 0
-//--------------------------------------------------------------------------
-// Material model setup functions. Not sure where these go yet, but they're
-// called from TDySetup, so we stick them here for now.
-//--------------------------------------------------------------------------
-static PetscErrorCode SetPermeabilityFromFunction(TDy tdy) {
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  PetscInt dim;
-  PetscErrorCode ierr;
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-
-  if (tdy->ops->computepermeability) {
-
-    PetscReal *localK;
-    PetscInt icell, ii, jj;
-    TDyMesh *mesh = tdy->mesh;
-
-    MaterialProp *matprop = tdy->matprop;
-
-    // If permeability function is set, use it instead.
-    // Will need to consolidate this code with code in tdypermeability.c
-    ierr = PetscMalloc(9*sizeof(PetscReal),&localK); CHKERRQ(ierr);
-    for (icell=0; icell<mesh->num_cells; icell++) {
-      ierr = (*tdy->ops->computepermeability)(tdy, &(tdy->X[icell*dim]), localK, tdy->permeabilityctx);CHKERRQ(ierr);
-
-      PetscInt count = 0;
-      for (ii=0; ii<dim; ii++) {
-        for (jj=0; jj<dim; jj++) {
-          matprop->K[icell*dim*dim + ii*dim + jj] = localK[count];
-          matprop->K0[icell*dim*dim + ii*dim + jj] = localK[count];
-          count++;
-        }
-      }
-    }
-    ierr = PetscFree(localK); CHKERRQ(ierr);
-  }
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-static PetscErrorCode SetPorosityFromFunction(TDy tdy) {
-
-  PetscInt dim;
-  PetscInt c,cStart,cEnd;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-  MaterialProp *matprop = tdy->matprop;
-
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(matprop->porosity,sizeof(PetscReal)*(cEnd-cStart));CHKERRQ(ierr);
-
-  for(c=cStart; c<cEnd; c++) {
-    ierr = (*tdy->ops->computeporosity)(tdy, &(tdy->X[c*dim]), &(matprop->porosity[c]), tdy->porosityctx);CHKERRQ(ierr);
-  }
-
-  /*
-  if (tdy->ops->computepermeability) {
-
-    PetscReal *localK;
-    PetscInt icell, ii, jj;
-    TDyMesh *mesh = tdy->mesh;
-
-
-    // If peremeability function is set, use it instead.
-    // Will need to consolidate this code with code in tdypermeability.c
-    ierr = PetscMalloc(9*sizeof(PetscReal),&localK); CHKERRQ(ierr);
-    for (icell=0; icell<mesh->num_cells; icell++) {
-      ierr = (*tdy->ops->computepermeability)(tdy, &(tdy->X[icell*dim]), localK, tdy->permeabilityctx);CHKERRQ(ierr);
-
-      PetscInt count = 0;
-      for (ii=0; ii<dim; ii++) {
-        for (jj=0; jj<dim; jj++) {
-          matprop->K[icell*dim*dim + ii*dim + jj] = localK[count];
-          matprop->K0[icell*dim*dim + ii*dim + jj] = localK[count];
-          count++;
-        }
-      }
-    }
-    ierr = PetscFree(localK); CHKERRQ(ierr);
-  }
-  */
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-static PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  PetscInt dim;
-  PetscErrorCode ierr;
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-
-  if (tdy->ops->computethermalconductivity) {
-
-    PetscReal *localKappa;
-    PetscInt icell, ii, jj;
-    TDyMesh *mesh = tdy->mesh;
-    MaterialProp *matprop = tdy->matprop;
-
-
-    ierr = PetscMalloc(9*sizeof(PetscReal),&localKappa); CHKERRQ(ierr);
-    for (icell=0; icell<mesh->num_cells; icell++) {
-      ierr = (*tdy->ops->computethermalconductivity)(tdy, &(tdy->X[icell*dim]), localKappa, tdy->thermalconductivityctx);CHKERRQ(ierr);
-
-      PetscInt count = 0;
-      for (ii=0; ii<dim; ii++) {
-        for (jj=0; jj<dim; jj++) {
-          matprop->Kappa[icell*dim*dim + ii*dim + jj] = localKappa[count];
-          matprop->Kappa0[icell*dim*dim + ii*dim + jj] = localKappa[count];
-          count++;
-        }
-      }
-    }
-    ierr = PetscFree(localKappa); CHKERRQ(ierr);
-  }
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-static PetscErrorCode SetSoilDensityFromFunction(TDy tdy) {
-
-  PetscInt dim;
-  PetscInt c,cStart,cEnd;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-  MaterialProp *matprop = tdy->matprop;
-
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(matprop->rhosoil,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
-
-  for(c=cStart; c<cEnd; c++) {
-    ierr = (*tdy->ops->computesoildensity)(tdy, &(tdy->X[c*dim]), &(matprop->rhosoil[c]), tdy->soildensityctx);CHKERRQ(ierr);
-  }
-
-  PetscFunctionReturn(0);
-
-}
-
-static PetscErrorCode SetSoilSpecificHeatFromFunction(TDy tdy) {
-
-  PetscInt dim;
-  PetscInt c,cStart,cEnd;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-  MaterialProp *matprop = tdy->matprop;
-
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(matprop->Cr,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
-
-  for(c=cStart; c<cEnd; c++) {
-    ierr = (*tdy->ops->computesoilspecificheat)(tdy, &(tdy->X[c*dim]), &(matprop->Cr[c]), tdy->soilspecificheatctx);CHKERRQ(ierr);
-  }
-
-  PetscFunctionReturn(0);
-
-}
-
-//--------------------------------------------------------------------------
-// End material model setup functions
-//--------------------------------------------------------------------------
-#endif
-
 /// Performs setup, including allocation and configuration of any bookkeeping
 /// data structures and the configuration of the dycore's DM object, which can
 /// subsequently be passed to a solver (e.g. SNES or TS). This function must be
@@ -1047,6 +865,243 @@ PetscErrorCode TDySetWaterDensityType(TDy tdy, TDyWaterDensityType dentype) {
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
   tdy->options.rho_type = dentype;
+  PetscFunctionReturn(0);
+}
+
+/// Sets the porosity used by the dycore to the given constant. May be called
+/// anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantPorosity(TDy tdy, PetscReal value) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantPorosity(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute porosities in the dycore. May be called
+/// anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetPorosityFunction(TDy tdy,
+                                      TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousPorosity(tdy->matprop, f); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the permeability used by the dycore to the given constant. May be called
+/// anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantIsotropicPermeability(TDy tdy, PetscReal value) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantIsotropicPermeability(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute (isotropic) permeabilities in the dycore.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetIsotropicPermeabilityFunction(TDy tdy,
+                                                   TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousIsotropicPermeability(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the permeability used by the dycore to the given diagonal constant. May be
+/// called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantDiagonalPermeability(TDy tdy, PetscReal value[]) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantDiagonalPermeability(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute (diagonal anisotropic) permeabilities in
+/// the dycore. May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetDiagonalPermeabilityFunction(TDy tdy,
+                                                  TDyVectorSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousDiagonalPermeability(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the permeability used by the dycore to the given tensor constant. May be
+/// called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantTensorPermeability(TDy tdy, PetscReal value[]) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantTensorPermeability(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute anisotropic permeabilities in the dycore.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetTensorPermeabilityFunction(TDy tdy,
+                                                TDyTensorSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousTensorPermeability(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the thermal conductivity used by the dycore to the given constant.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantIsotropicThermalConductivity(TDy tdy, PetscReal value) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantIsotropicThermalConductivity(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute (isotropic) thermal conductivities in the
+/// dycore. May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetIsotropicThermalConductivityFunction(TDy tdy,
+                                                          TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousIsotropicThermalConductivity(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the thermal conductivity used by the dycore to the given diagonal constant.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantDiagonalThermalConductivity(TDy tdy, PetscReal value[]) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantDiagonalThermalConductivity(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute (diagonal anisotropic) thermal
+/// conductivities in the dycore. May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetDiagonalThermalConductivityFunction(TDy tdy,
+                                                         TDyVectorSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousDiagonalThermalConductivity(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the thermal conductivity used by the dycore to the given tensor constant.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantTensorThermalConductivity(TDy tdy, PetscReal value[]) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantTensorThermalConductivity(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute anisotropic thermal conductivities in the
+/// dycore. May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetTensorThermalConductivityFunction(TDy tdy,
+                                                       TDyTensorSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousTensorThermalConductivity(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the residual saturation used by the dycore to the given constant. May be called
+/// anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantResidualSaturation(TDy tdy, PetscReal value) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantResidualSaturation(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute residual saturations in the dycore. May be
+/// called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetResidualSaturationFunction(TDy tdy,
+                                                TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousResidualSaturation(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the soil density used by the dycore to the given constant. May be called
+/// anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantSoilDensity(TDy tdy, PetscReal value) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantSoilDensity(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute soil densities in the dycore. May be
+/// called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetSoilDensityFunction(TDy tdy,
+                                         TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousSoilDensity(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the soil specific heat used by the dycore to the given constant. May be called
+/// anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantSoilSpecificHeat(TDy tdy, PetscReal value) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantSoilSpecificHeat(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute soil specific heats in the dycore. May be
+/// called anytime after TDySetFromOptions.
+PetscErrorCode TDySetSoilSpecificHeatFunction(TDy tdy,
+                                              TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousSoilSpecificHeat(tdy->matprop, f);
+  CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

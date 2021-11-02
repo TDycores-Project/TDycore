@@ -94,7 +94,6 @@ PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_MPFAO(void*,DM,Conditions*,Vec,
 PETSC_INTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeGravityDiscretization(TDy);
-PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy,Mat,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices(TDy,Mat,Vec);

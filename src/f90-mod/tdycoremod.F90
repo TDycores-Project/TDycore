@@ -94,229 +94,229 @@ module tdycore
      end subroutine TDyComputeSystem
   end interface
 
-  Interface TDySetBlockPermeabilityValuesLocal
-     subroutine TDySetBlockPermeabilityValuesLocal0(a,b,c,d,z)
-       use tdycoredef
-       TDy a ! Vec
-       PetscInt b ! PetscInt
-       PetscInt c (*) ! PetscInt
-       PetscScalar d (*) ! PetscScalar
-       integer z
-     end subroutine TDySetBlockPermeabilityValuesLocal0
-     subroutine TDySetBlockPermeabilityValuesLocal11(a,b,c,d,z)
-       use tdycoredef
-       TDy a ! TDy
-       PetscInt b ! PetscInt
-       PetscInt c ! PetscInt
-       PetscScalar d ! PetscScalar
-       integer z
-     end subroutine TDySetBlockPermeabilityValuesLocal11
-  end interface TDySetBlockPermeabilityValuesLocal
+!  Interface TDySetBlockPermeabilityValuesLocal
+!     subroutine TDySetBlockPermeabilityValuesLocal0(a,b,c,d,z)
+!       use tdycoredef
+!       TDy a ! Vec
+!       PetscInt b ! PetscInt
+!       PetscInt c (*) ! PetscInt
+!       PetscScalar d (*) ! PetscScalar
+!       integer z
+!     end subroutine TDySetBlockPermeabilityValuesLocal0
+!     subroutine TDySetBlockPermeabilityValuesLocal11(a,b,c,d,z)
+!       use tdycoredef
+!       TDy a ! TDy
+!       PetscInt b ! PetscInt
+!       PetscInt c ! PetscInt
+!       PetscScalar d ! PetscScalar
+!       integer z
+!     end subroutine TDySetBlockPermeabilityValuesLocal11
+!  end interface TDySetBlockPermeabilityValuesLocal
+!
+!  Interface TDySetPorosityValuesLocal
+!     subroutine TDySetPorosityValuesLocal0(a,b,c,d,z)
+!       use tdycoredef
+!       TDy a ! Vec
+!       PetscInt b ! PetscInt
+!       PetscInt c (*) ! PetscInt
+!       PetscScalar d (*) ! PetscScalar
+!       integer z
+!     end subroutine TDySetPorosityValuesLocal0
+!     subroutine TDySetPorosityValuesLocal11(a,b,c,d,z)
+!       use tdycoredef
+!       TDy a ! TDy
+!       PetscInt b ! PetscInt
+!       PetscInt c ! PetscInt
+!       PetscScalar d ! PetscScalar
+!       integer z
+!     end subroutine TDySetPorosityValuesLocal11
+!  end interface TDySetPorosityValuesLocal
+!
+!  Interface TDySetResidualSaturationValuesLocal
+!     subroutine TDySetResidualSaturationValuesLocal0(a,b,c,d,z)
+!       use tdycoredef
+!       TDy a ! Vec
+!       PetscInt b ! PetscInt
+!       PetscInt c (*) ! PetscInt
+!       PetscScalar d (*) ! PetscScalar
+!       integer z
+!     end subroutine TDySetResidualSaturationValuesLocal0
+!     subroutine TDySetResidualSaturationValuesLocal11(a,b,c,d,z)
+!       use tdycoredef
+!       TDy a ! TDy
+!       PetscInt b ! PetscInt
+!       PetscInt c ! PetscInt
+!       PetscScalar d ! PetscScalar
+!       integer z
+!     end subroutine TDySetResidualSaturationValuesLocal11
+!  end interface TDySetResidualSaturationValuesLocal
+!
+!  Interface TDySetCharacteristicCurveMualemValuesLocal
+!     subroutine TDySetCharacteristicCurveMualemValuesLocal0(a,b,c,d,z)
+!       use tdycoredef
+!       TDy a ! Vec
+!       PetscInt b ! PetscInt
+!       PetscInt c (*) ! PetscInt
+!       PetscScalar d (*) ! PetscScalar
+!       integer z
+!     end subroutine TDySetCharacteristicCurveMualemValuesLocal0
+!     subroutine TDySetCharacteristicCurveMualemValuesLocal11(a,b,c,d,z)
+!       use tdycoredef
+!       TDy a ! TDy
+!       PetscInt b ! PetscInt
+!       PetscInt c ! PetscInt
+!       PetscScalar d ! PetscScalar
+!       integer z
+!     end subroutine TDySetCharacteristicCurveMualemValuesLocal11
+!  end interface TDySetCharacteristicCurveMualemValuesLocal
+!
+!  Interface TDySetCharacteristicCurveNValuesLocal
+!     subroutine TDySetCharacteristicCurveNValuesLocal0(a,b,c,d,z)
+!       use tdycoredef
+!       TDy a ! Vec
+!       PetscInt b ! PetscInt
+!       PetscInt c (*) ! PetscInt
+!       PetscScalar d (*) ! PetscScalar
+!       integer z
+!     end subroutine TDySetCharacteristicCurveNValuesLocal0
+!     subroutine TDySetCharacteristicCurveNValuesLocal11(a,b,c,d,z)
+!       use tdycoredef
+!       TDy a ! TDy
+!       PetscInt b ! PetscInt
+!       PetscInt c ! PetscInt
+!       PetscScalar d ! PetscScalar
+!       integer z
+!     end subroutine TDySetCharacteristicCurveNValuesLocal11
+!  end interface TDySetCharacteristicCurveNValuesLocal
+!
+!  Interface TDySetCharacteristicCurveVanGenuchtenValuesLocal
+!     subroutine TDySetCharacteristicCurveVanGenuchtenValuesLocal0(a,b,c,d,e,z)
+!       use tdycoredef
+!       TDy a ! Vec
+!       PetscInt b ! PetscInt
+!       PetscInt c (*) ! PetscInt
+!       PetscScalar d (*) ! PetscScalar
+!       PetscScalar e (*) ! PetscScalar
+!       integer z
+!     end subroutine TDySetCharacteristicCurveVanGenuchtenValuesLocal0
+!     subroutine TDySetCharacteristicCurveVanGenuchtenValuesLocal11(a,b,c,d,e,f,z)
+!       use tdycoredef
+!       TDy a ! TDy
+!       PetscInt b ! PetscInt
+!       PetscInt c ! PetscInt
+!       PetscScalar d ! PetscScalar
+!       PetscScalar e ! PetscScalar
+!       integer z
+!     end subroutine TDySetCharacteristicCurveVanGenuchtenValuesLocal11
+!  end interface TDySetCharacteristicCurveVanGenuchtenValuesLocal
+!
+!  Interface TDySetSourceSinkValuesLocal
+!     subroutine TDySetSourceSinkValuesLocal0(a,b,c,d,z)
+!       use tdycoredef
+!       TDy a ! Vec
+!       PetscInt b ! PetscInt
+!       PetscInt c (*) ! PetscInt
+!       PetscScalar d (*) ! PetscScalar
+!       integer z
+!     end subroutine TDySetSourceSinkValuesLocal0
+!     subroutine TDySetSourceSinkValuesLocal11(a,b,c,d,z)
+!       use tdycoredef
+!       TDy a ! TDy
+!       PetscInt b ! PetscInt
+!       PetscInt c ! PetscInt
+!       PetscScalar d ! PetscScalar
+!       integer z
+!     end subroutine TDySetSourceSinkValuesLocal11
+!  end interface TDySetSourceSinkValuesLocal
+!
+!  Interface TDyGetSaturationValuesLocal
+!     subroutine TDyGetSaturationValuesLocal(a,b,c,z)
+!       use tdycoredef
+!       TDy a ! tdy
+!       PetscInt b ! PetscInt
+!       PetscScalar c (*) ! PetscScalar
+!       integer z
+!     end subroutine TDyGetSaturationValuesLocal
+!  end interface TDyGetSaturationValuesLocal
+!
+!  Interface TDyGetLiquidMassValuesLocal
+!     subroutine TDyGetLiquidMassValuesLocal(a,b,c,z)
+!       use tdycoredef
+!       TDy a ! tdy
+!       PetscInt b ! PetscInt
+!       PetscScalar c (*) ! PetscScalar
+!       integer z
+!     end subroutine TDyGetLiquidMassValuesLocal
+!  end interface TDyGetLiquidMassValuesLocal
+!
+!  Interface TDyGetCharacteristicCurveMValuesLocal
+!     subroutine TDyGetCharacteristicCurveMValuesLocal(a,b,c,z)
+!       use tdycoredef
+!       TDy a ! tdy
+!       PetscInt b ! PetscInt
+!       PetscScalar c (*) ! PetscScalar
+!       integer z
+!     end subroutine TDyGetCharacteristicCurveMValuesLocal
+!  end interface TDyGetCharacteristicCurveMValuesLocal
+!
+!  Interface TDyGetCharacteristicCurveAlphaValuesLocal
+!     subroutine TDyGetCharacteristicCurveAlphaValuesLocal(a,b,c,z)
+!       use tdycoredef
+!       TDy a ! tdy
+!       PetscInt b ! PetscInt
+!       PetscScalar c (*) ! PetscScalar
+!       integer z
+!     end subroutine TDyGetCharacteristicCurveAlphaValuesLocal
+!  end interface TDyGetCharacteristicCurveAlphaValuesLocal
+!
+!  Interface TDyGetPorosityValuesLocal
+!     subroutine TDyGetPorosityValuesLocal(a,b,c,z)
+!       use tdycoredef
+!       TDy a ! tdy
+!       PetscInt b ! PetscInt
+!       PetscScalar c (*) ! PetscScalar
+!       integer z
+!     end subroutine TDyGetPorosityValuesLocal
+!  end interface TDyGetPorosityValuesLocal
 
-  Interface TDySetPorosityValuesLocal
-     subroutine TDySetPorosityValuesLocal0(a,b,c,d,z)
-       use tdycoredef
-       TDy a ! Vec
-       PetscInt b ! PetscInt
-       PetscInt c (*) ! PetscInt
-       PetscScalar d (*) ! PetscScalar
-       integer z
-     end subroutine TDySetPorosityValuesLocal0
-     subroutine TDySetPorosityValuesLocal11(a,b,c,d,z)
-       use tdycoredef
-       TDy a ! TDy
-       PetscInt b ! PetscInt
-       PetscInt c ! PetscInt
-       PetscScalar d ! PetscScalar
-       integer z
-     end subroutine TDySetPorosityValuesLocal11
-  end interface TDySetPorosityValuesLocal
-
-  Interface TDySetResidualSaturationValuesLocal
-     subroutine TDySetResidualSaturationValuesLocal0(a,b,c,d,z)
-       use tdycoredef
-       TDy a ! Vec
-       PetscInt b ! PetscInt
-       PetscInt c (*) ! PetscInt
-       PetscScalar d (*) ! PetscScalar
-       integer z
-     end subroutine TDySetResidualSaturationValuesLocal0
-     subroutine TDySetResidualSaturationValuesLocal11(a,b,c,d,z)
-       use tdycoredef
-       TDy a ! TDy
-       PetscInt b ! PetscInt
-       PetscInt c ! PetscInt
-       PetscScalar d ! PetscScalar
-       integer z
-     end subroutine TDySetResidualSaturationValuesLocal11
-  end interface TDySetResidualSaturationValuesLocal
-
-  Interface TDySetCharacteristicCurveMualemValuesLocal
-     subroutine TDySetCharacteristicCurveMualemValuesLocal0(a,b,c,d,z)
-       use tdycoredef
-       TDy a ! Vec
-       PetscInt b ! PetscInt
-       PetscInt c (*) ! PetscInt
-       PetscScalar d (*) ! PetscScalar
-       integer z
-     end subroutine TDySetCharacteristicCurveMualemValuesLocal0
-     subroutine TDySetCharacteristicCurveMualemValuesLocal11(a,b,c,d,z)
-       use tdycoredef
-       TDy a ! TDy
-       PetscInt b ! PetscInt
-       PetscInt c ! PetscInt
-       PetscScalar d ! PetscScalar
-       integer z
-     end subroutine TDySetCharacteristicCurveMualemValuesLocal11
-  end interface TDySetCharacteristicCurveMualemValuesLocal
-
-  Interface TDySetCharacteristicCurveNValuesLocal
-     subroutine TDySetCharacteristicCurveNValuesLocal0(a,b,c,d,z)
-       use tdycoredef
-       TDy a ! Vec
-       PetscInt b ! PetscInt
-       PetscInt c (*) ! PetscInt
-       PetscScalar d (*) ! PetscScalar
-       integer z
-     end subroutine TDySetCharacteristicCurveNValuesLocal0
-     subroutine TDySetCharacteristicCurveNValuesLocal11(a,b,c,d,z)
-       use tdycoredef
-       TDy a ! TDy
-       PetscInt b ! PetscInt
-       PetscInt c ! PetscInt
-       PetscScalar d ! PetscScalar
-       integer z
-     end subroutine TDySetCharacteristicCurveNValuesLocal11
-  end interface TDySetCharacteristicCurveNValuesLocal
-
-  Interface TDySetCharacteristicCurveVanGenuchtenValuesLocal
-     subroutine TDySetCharacteristicCurveVanGenuchtenValuesLocal0(a,b,c,d,e,z)
-       use tdycoredef
-       TDy a ! Vec
-       PetscInt b ! PetscInt
-       PetscInt c (*) ! PetscInt
-       PetscScalar d (*) ! PetscScalar
-       PetscScalar e (*) ! PetscScalar
-       integer z
-     end subroutine TDySetCharacteristicCurveVanGenuchtenValuesLocal0
-     subroutine TDySetCharacteristicCurveVanGenuchtenValuesLocal11(a,b,c,d,e,f,z)
-       use tdycoredef
-       TDy a ! TDy
-       PetscInt b ! PetscInt
-       PetscInt c ! PetscInt
-       PetscScalar d ! PetscScalar
-       PetscScalar e ! PetscScalar
-       integer z
-     end subroutine TDySetCharacteristicCurveVanGenuchtenValuesLocal11
-  end interface TDySetCharacteristicCurveVanGenuchtenValuesLocal
-
-  Interface TDySetSourceSinkValuesLocal
-     subroutine TDySetSourceSinkValuesLocal0(a,b,c,d,z)
-       use tdycoredef
-       TDy a ! Vec
-       PetscInt b ! PetscInt
-       PetscInt c (*) ! PetscInt
-       PetscScalar d (*) ! PetscScalar
-       integer z
-     end subroutine TDySetSourceSinkValuesLocal0
-     subroutine TDySetSourceSinkValuesLocal11(a,b,c,d,z)
-       use tdycoredef
-       TDy a ! TDy
-       PetscInt b ! PetscInt
-       PetscInt c ! PetscInt
-       PetscScalar d ! PetscScalar
-       integer z
-     end subroutine TDySetSourceSinkValuesLocal11
-  end interface TDySetSourceSinkValuesLocal
-
-  Interface TDyGetSaturationValuesLocal
-     subroutine TDyGetSaturationValuesLocal(a,b,c,z)
-       use tdycoredef
-       TDy a ! tdy
-       PetscInt b ! PetscInt
-       PetscScalar c (*) ! PetscScalar
-       integer z
-     end subroutine TDyGetSaturationValuesLocal
-  end interface TDyGetSaturationValuesLocal
-
-  Interface TDyGetLiquidMassValuesLocal
-     subroutine TDyGetLiquidMassValuesLocal(a,b,c,z)
-       use tdycoredef
-       TDy a ! tdy
-       PetscInt b ! PetscInt
-       PetscScalar c (*) ! PetscScalar
-       integer z
-     end subroutine TDyGetLiquidMassValuesLocal
-  end interface TDyGetLiquidMassValuesLocal
-
-  Interface TDyGetCharacteristicCurveMValuesLocal
-     subroutine TDyGetCharacteristicCurveMValuesLocal(a,b,c,z)
-       use tdycoredef
-       TDy a ! tdy
-       PetscInt b ! PetscInt
-       PetscScalar c (*) ! PetscScalar
-       integer z
-     end subroutine TDyGetCharacteristicCurveMValuesLocal
-  end interface TDyGetCharacteristicCurveMValuesLocal
-
-  Interface TDyGetCharacteristicCurveAlphaValuesLocal
-     subroutine TDyGetCharacteristicCurveAlphaValuesLocal(a,b,c,z)
-       use tdycoredef
-       TDy a ! tdy
-       PetscInt b ! PetscInt
-       PetscScalar c (*) ! PetscScalar
-       integer z
-     end subroutine TDyGetCharacteristicCurveAlphaValuesLocal
-  end interface TDyGetCharacteristicCurveAlphaValuesLocal
-
-  Interface TDyGetPorosityValuesLocal
-     subroutine TDyGetPorosityValuesLocal(a,b,c,z)
-       use tdycoredef
-       TDy a ! tdy
-       PetscInt b ! PetscInt
-       PetscScalar c (*) ! PetscScalar
-       integer z
-     end subroutine TDyGetPorosityValuesLocal
-  end interface TDyGetPorosityValuesLocal
-
-  Interface TDyGetBlockPermeabilityValuesLocal
-     subroutine TDyGetBlockPermeabilityValuesLocal(a,b,c,z)
-       use tdycoredef
-       TDy a ! tdy
-       PetscInt b ! PetscInt
-       PetscScalar c (*) ! PetscScalar
-       integer z
-     end subroutine TDyGetBlockPermeabilityValuesLocal
-  end interface TDyGetBlockPermeabilityValuesLocal
-
-  Interface TDyGetNumCellsLocal
-     subroutine TDyGetNumCellsLocal(a,b,z)
-       use tdycoredef
-       TDy a ! tdy
-       PetscInt b ! PetscInt
-       integer z
-     end subroutine TDyGetNumCellsLocal
-  end interface TDyGetNumCellsLocal
-
-  Interface TDyGetCellNaturalIDsLocal
-     subroutine TDyGetCellNaturalIDsLocal(a,b,c,z)
-       use tdycoredef
-       TDy a ! tdy
-       PetscInt b ! PetscInt
-       PetscInt c (*) ! PetscInt
-       integer z
-     end subroutine TDyGetCellNaturalIDsLocal
-  end interface TDyGetCellNaturalIDsLocal
-
-  Interface TDyGetCellIsLocal
-     subroutine TDyGetCellIsLocal(a,b,c,z)
-       use tdycoredef
-       TDy a
-       PetscInt b
-       PetscInt c (*)
-       integer z
-     end subroutine TDyGetCellIsLocal
-  end interface TDyGetCellIsLocal
+!  Interface TDyGetBlockPermeabilityValuesLocal
+!     subroutine TDyGetBlockPermeabilityValuesLocal(a,b,c,z)
+!       use tdycoredef
+!       TDy a ! tdy
+!       PetscInt b ! PetscInt
+!       PetscScalar c (*) ! PetscScalar
+!       integer z
+!     end subroutine TDyGetBlockPermeabilityValuesLocal
+!  end interface TDyGetBlockPermeabilityValuesLocal
+!
+!  Interface TDyGetNumCellsLocal
+!     subroutine TDyGetNumCellsLocal(a,b,z)
+!       use tdycoredef
+!       TDy a ! tdy
+!       PetscInt b ! PetscInt
+!       integer z
+!     end subroutine TDyGetNumCellsLocal
+!  end interface TDyGetNumCellsLocal
+!
+!  Interface TDyGetCellNaturalIDsLocal
+!     subroutine TDyGetCellNaturalIDsLocal(a,b,c,z)
+!       use tdycoredef
+!       TDy a ! tdy
+!       PetscInt b ! PetscInt
+!       PetscInt c (*) ! PetscInt
+!       integer z
+!     end subroutine TDyGetCellNaturalIDsLocal
+!  end interface TDyGetCellNaturalIDsLocal
+!
+!  Interface TDyGetCellIsLocal
+!     subroutine TDyGetCellIsLocal(a,b,c,z)
+!       use tdycoredef
+!       TDy a
+!       PetscInt b
+!       PetscInt c (*)
+!       integer z
+!     end subroutine TDyGetCellIsLocal
+!  end interface TDyGetCellIsLocal
 
   Interface TDyUpdateState
      subroutine TDyUpdateState(a,b,z)
@@ -431,13 +431,12 @@ module tdycore
   end interface
 
   abstract interface
-    subroutine TDyFunction(tdy, x, f, dummy, ierr)
+    subroutine TDySpatialFunction(n, x, f, ierr)
       use tdycoredef
-      TDy :: tdy
-      PetscReal, intent(in)  :: x(3)
-      PetscReal, intent(out) :: f
-      integer                :: dummy(*)
-      PetscErrorCode         :: ierr
+      PetscInt,          intent(in)  :: n
+      PetscReal, target, intent(in)  :: x(:)
+      PetscReal, target, intent(out) :: f(:)
+      PetscErrorCode                 :: ierr
     end subroutine
   end interface
 
@@ -480,7 +479,7 @@ module tdycore
     use, intrinsic :: iso_c_binding
     implicit none
     character(len=*), intent(in)   :: name
-    procedure(TDyFunction)         :: func
+    procedure(TDySpatialFunction)  :: func
     PetscErrorCode                 :: ierr
 
     interface
@@ -525,8 +524,8 @@ module tdycore
     character(len=*), intent(in)   :: name
     PetscErrorCode                 :: ierr
 
-    type(c_funptr)                  :: c_func
-    procedure(TDyFunction), pointer :: f_func
+    type(c_funptr)                         :: c_func
+    procedure(TDySpatialFunction), pointer :: f_func
 
     ierr = GetRegFn(FtoCString(name), c_func)
     call c_f_procpointer(c_func, f_func)
@@ -541,8 +540,8 @@ module tdycore
     character(len=*), intent(in)   :: name
     PetscErrorCode                 :: ierr
 
-    type(c_funptr)                  :: c_func
-    procedure(TDyFunction), pointer :: f_func
+    type(c_funptr)                         :: c_func
+    procedure(TDySpatialFunction), pointer :: f_func
 
     ierr = GetRegFn(FtoCString(name), c_func)
     call c_f_procpointer(c_func, f_func)
@@ -558,8 +557,8 @@ module tdycore
 !    character(len=*), intent(in)   :: name
 !    PetscErrorCode                 :: ierr
 !
-!    type(c_funptr)                  :: c_func
-!    procedure(TDyFunction), pointer :: f_func
+!    type(c_funptr)                         :: c_func
+!    procedure(TDySpatialFunction), pointer :: f_func
 !
 !    ierr = GetRegFn(FtoCString(name), c_func)
 !    call c_f_procpointer(c_func, f_func)
@@ -575,8 +574,8 @@ module tdycore
 !    character(len=*), intent(in)   :: name
 !    PetscErrorCode                 :: ierr
 !
-!    type(c_funptr)                  :: c_func
-!    procedure(TDyFunction), pointer :: f_func
+!    type(c_funptr)                         :: c_func
+!    procedure(TDySpatialFunction), pointer :: f_func
 !
 !    ierr = GetRegFn(FtoCString(name), c_func)
 !    call c_f_procpointer(c_func, f_func)
@@ -591,8 +590,8 @@ module tdycore
     character(len=*), intent(in)   :: name
     PetscErrorCode                 :: ierr
 
-    type(c_funptr)                  :: c_func
-    procedure(TDyFunction), pointer :: f_func
+    type(c_funptr)                         :: c_func
+    procedure(TDySpatialFunction), pointer :: f_func
 
     ierr = GetRegFn(FtoCString(name), c_func)
     call c_f_procpointer(c_func, f_func)
@@ -607,12 +606,54 @@ module tdycore
     character(len=*), intent(in)   :: name
     PetscErrorCode                 :: ierr
 
-    type(c_funptr)                  :: c_func
-    procedure(TDyFunction), pointer :: f_func
+    type(c_funptr)                         :: c_func
+    procedure(TDySpatialFunction), pointer :: f_func
 
     ierr = GetRegFn(FtoCString(name), c_func)
     call c_f_procpointer(c_func, f_func)
     call TDySetBoundaryVelocityFn(tdy, f_func, 0, ierr)
+  end subroutine
+
+  subroutine TDySetConstantPorosity(tdy, val, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy, target                 :: tdy
+    PetscReal, value            :: val
+    PetscErrorCode              :: ierr
+
+    interface
+      function Func(tdy, val) bind (c, name="TDySetConstantPorosity") result(ierr)
+        use, intrinsic :: iso_c_binding
+        implicit none
+        type(c_ptr), value    :: tdy
+        real(c_double), value :: val
+        integer(c_int)        :: ierr
+      end function
+    end interface
+
+    ierr = Func(c_loc(tdy), val)
+  end subroutine
+
+  subroutine TDySetPorosityFunction(tdy, f, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy, target                   :: tdy
+    procedure(TDySpatialFunction) :: f
+    PetscErrorCode                :: ierr
+
+    interface
+      function Func(tdy, f) bind (c, name="TDySetPorosityFunctionF90") result(ierr)
+        use, intrinsic :: iso_c_binding
+        implicit none
+        type(c_ptr), value    :: tdy
+        type(c_funptr), value :: f
+        integer(c_int)        :: ierr
+      end function
+    end interface
+
+    ierr = Func(c_loc(tdy), c_funloc(f))
   end subroutine
 
   ! Here's a function that converts a Fortran string to a C string and

@@ -33,38 +33,37 @@
 #define tdysetprevioussolutionforsnessolver_           TDYSETPREVIOUSSOLUTIONFORSNESSOLVER
 #define tdypresolvesnessolver_                         TDYSETPRESOLVESNESSOLVER
 #define tdypostsolvesnessolver_                        TDYSETPOSTSOLVESNESSOLVER
-#define tdycomputesystem_                              TDYCOMPUTESYSTEM
 #define tdycomputeerrornorms_                          TDYCOMPUTEERRORNORMS
-#define tdysetporosityfunction_                        TDYSETPOROSITYFUNCTION
-#define tdysetpermeabilityfunction_                    TDYSETPERMEABILITYFUNCTION
-#define tdysetresidualsaturationfunction_              TDYSETRESIDUALSATURATIONFUNCTION
+//#define tdysetporosityfunction_                        TDYSETPOROSITYFUNCTION
+//#define tdysetpermeabilityfunction_                    TDYSETPERMEABILITYFUNCTION
+//#define tdysetresidualsaturationfunction_              TDYSETRESIDUALSATURATIONFUNCTION
 #define tdysetforcingfunction_                         TDYSETFORCINGFUNCTION
 #define tdysetboundarypressurefn_                      TDYSETBOUNDARYPRESSUREFN
 #define tdysetboundaryvelocityfn_                      TDYSETBOUNDARYVELOCITYFN
-#define tdysetporosityvalueslocal0_                    TDYSETPOROSITYVALUESLOCAL0
-#define tdysetporosityvalueslocal11_                   TDYSETPOROSITYVALUESLOCAL11
-#define tdysetblockpermeabilityueslocal0_              TDYSETBLOCKPERMEABILITYVALUESLOCAL0
-#define tdysetblockpermeabilityvalueslocal11_          TDYSETBLOCKPERMEABILITYVALUESLOCAL11
-#define tdysetresidualsaturationvalueslocal0_          TDYSETRESIDUALSATURATIONVALUESLOCAL0
-#define tdysetresidualsaturationvalueslocal11_         TDYSETRESIDUALSATURATIONVALUESLOCAL11
-#define tdysetresidualsaturationvalueslocal0_          TDYSETRESIDUALSATURATIONVALUESLOCAL0
-#define tdysetresidualsaturationvalueslocal11_         TDYSETRESIDUALSATURATIONVALUESLOCAL11
-#define tdysetcharacteristiccurvemualemvaluesLocal0_        TDYSETCCHARACTERISTICCURVENMUALEMALUESLOCAL0
-#define tdysetcharacteristiccurvemualemvaluesLocal11_       TDYSETCCHARACTERISTICCURVENMUALEMALUESLOCAL11
-#define tdysetcharacteristiccurvenvalueslocal0_        TDYSETCHARACTERISTICCURVENVALUESLOCAL0
-#define tdysetcharacteristiccurvenvalueslocal11_       TDYSETCHARACTERISTICCURVENVALUESLOCAL11
-#define tdysetcharacteristiccurvevangenuchtenvalueslocal0_    TDYSETCHARACTERISTICCURVEVANGENUCHTENVALUESLOCAL0
-#define tdysetcharacteristiccurvevangenuchtenvalueslocal11_   TDYSETCHARACTERISTICCURVEVANGENUCHTENVALUESLOCAL11
-#define tdysetsourcesinkvalueslocal0_                  TDYSETSOURCESINKVALUESLOCAL0
-#define tdysetsourcesinkvalueslocal11_                 TDYSETSOURCESINKVALUESLOCAL11
-#define tdygetsatruationvalueslocal_                   TDYGETSATURATIONVALUESLOCAL
-#define tdygetliquidmassvalueslocal_                   TDYGETLIQUIDMASSVALUESLOCAL
-#define tdygetcharacteristiccurvemvalueslocal_         TDYGETCHARACTERISTICCURVEMVALUESLOCAL
+//#define tdysetporosityvalueslocal0_                    TDYSETPOROSITYVALUESLOCAL0
+//#define tdysetporosityvalueslocal11_                   TDYSETPOROSITYVALUESLOCAL11
+//#define tdysetblockpermeabilityueslocal0_              TDYSETBLOCKPERMEABILITYVALUESLOCAL0
+//#define tdysetblockpermeabilityvalueslocal11_          TDYSETBLOCKPERMEABILITYVALUESLOCAL11
+//#define tdysetresidualsaturationvalueslocal0_          TDYSETRESIDUALSATURATIONVALUESLOCAL0
+//#define tdysetresidualsaturationvalueslocal11_         TDYSETRESIDUALSATURATIONVALUESLOCAL11
+//#define tdysetresidualsaturationvalueslocal0_          TDYSETRESIDUALSATURATIONVALUESLOCAL0
+//#define tdysetresidualsaturationvalueslocal11_         TDYSETRESIDUALSATURATIONVALUESLOCAL11
+//#define tdysetcharacteristiccurvemualemvaluesLocal0_        TDYSETCCHARACTERISTICCURVENMUALEMALUESLOCAL0
+//#define tdysetcharacteristiccurvemualemvaluesLocal11_       TDYSETCCHARACTERISTICCURVENMUALEMALUESLOCAL11
+//#define tdysetcharacteristiccurvenvalueslocal0_        TDYSETCHARACTERISTICCURVENVALUESLOCAL0
+//#define tdysetcharacteristiccurvenvalueslocal11_       TDYSETCHARACTERISTICCURVENVALUESLOCAL11
+//#define tdysetcharacteristiccurvevangenuchtenvalueslocal0_    TDYSETCHARACTERISTICCURVEVANGENUCHTENVALUESLOCAL0
+//#define tdysetcharacteristiccurvevangenuchtenvalueslocal11_   TDYSETCHARACTERISTICCURVEVANGENUCHTENVALUESLOCAL11
+//#define tdysetsourcesinkvalueslocal0_                  TDYSETSOURCESINKVALUESLOCAL0
+//#define tdysetsourcesinkvalueslocal11_                 TDYSETSOURCESINKVALUESLOCAL11
+//#define tdygetsaturationvalueslocal_                   TDYGETSATURATIONVALUESLOCAL
+//#define tdygetliquidmassvalueslocal_                   TDYGETLIQUIDMASSVALUESLOCAL
+//#define tdygetcharacteristiccurvemvalueslocal_         TDYGETCHARACTERISTICCURVEMVALUESLOCAL
 #define tdysetcharacteristiccurvevangenuchtenvalueslocal_     TDYGETCHARACTERISTICCURVEALPHAVALUESLOCAL
-#define tdygetporosityalueslocal_                      TDYGETPOROSITYVALUESLOCAL
-#define tdygetblockpermeabilityueslocal_               TDYGETBLOCKPERMEABILITYVALUESLOCAL
-#define tdygetnumcellslocal_                           TDYGETNUMCELLSLOCAL
-#define tdygetcellnaturalidslocal_                     TDYGETCELLNATURALIDSLOCAL
+//#define tdygetporosityalueslocal_                      TDYGETPOROSITYVALUESLOCAL
+//#define tdygetblockpermeabilityueslocal_               TDYGETBLOCKPERMEABILITYVALUESLOCAL
+//#define tdygetnumcellslocal_                           TDYGETNUMCELLSLOCAL
+//#define tdygetcellnaturalidslocal_                     TDYGETCELLNATURALIDSLOCAL
 #define tdyupdatestate_                                TDYUPDATESTATE
 #define tdyoutputregression_                           TDYOUTPUTREGRESSION
 #define tdydestroy_                                    TDYDESTROY
@@ -95,36 +94,35 @@
 #define tdysetprevioussolutionforsnessolver_           tdysetprevioussolutionforsnessolver
 #define tdypresolvesnessolver_                         tdypresolvesnessolver
 #define tdypostsolvesnessolver_                        tdypostsolvesnessolver
-#define tdycomputesystem_                              tdycomputesystem
 #define tdycomputeerrornorms_                          tdycomputeerrornorms
-#define tdysetporosityfunction_                        tdysetporosityfunction
-#define tdysetpermeabilityfunction_                    tdysetpermeabilityfunction
-#define tdysetresidualsaturationfunction_              tdysetresidualsaturationfunction
+//#define tdysetporosityfunction_                        tdysetporosityfunction
+//#define tdysetpermeabilityfunction_                    tdysetpermeabilityfunction
+//#define tdysetresidualsaturationfunction_              tdysetresidualsaturationfunction
 #define tdysetforcingfunction_                         tdysetforcingfunction
 #define tdysetboundarypressurefn_                      tdysetboundarypressurefn
 #define tdysetboundaryvelocityfn_                      tdysetboundaryvelocityfn
-#define tdysetporosityvalueslocal0_                    tdysetporosityvalueslocal0
-#define tdysetporosityvalueslocal11_                   tdysetporosityvalueslocal11
-#define tdysetblockpermeabilityueslocal0_              tdysetblockpermeabilityvalueslocal0
-#define tdysetblockpermeabilityvalueslocal11_          tdysetblockpermeabilityvalueslocal11
-#define tdysetresidualsaturationvalueslocal0_          tdysetresidualsaturationvalueslocal0
-#define tdysetresidualsaturationvalueslocal11_         tdysetresidualsaturationvalueslocal11
-#define tdysetcharacteristiccurvemualemvalueslocal0_        tdysetcharacteristiccurvemualemvalueslocal0
-#define tdysetcharacteristiccurvemualemvalueslocal11_       tdysetcharacteristiccurvemualemvalueslocal11
-#define tdysetcharacteristiccurvenvalueslocal0_        tdysetcharacteristiccurvenvalueslocal0
-#define tdysetcharacteristiccurvenvalueslocal11_       tdysetcharacteristiccurvenvalueslocal11
-#define tdysetcharacteristiccurvevangenuchtenvalueslocal0_    tdysetcharacteristiccurvevangenuchtenvalueslocal0
-#define tdysetcharacteristiccurvevangenuchtenvalueslocal11_   tdysetcharacteristiccurvevangenuchtenvalueslocal11
-#define tdysetsourcesinkvalueslocal0_                  tdysetsourcesinkvalueslocal0
-#define tdysetsourcesinkvalueslocal11_                 tdysetsourcesinkvalueslocal11
-#define tdygetsatruationvalueslocal_                   tdygetsaturationvalueslocal
-#define tdygetliquidmassvalueslocal_                   tdygetliquidmassvalueslocal
-#define tdygetcharacteristiccurvemvalueslocal_         tdygetcharacteristiccurvemvalueslocal
+//#define tdysetporosityvalueslocal0_                    tdysetporosityvalueslocal0
+//#define tdysetporosityvalueslocal11_                   tdysetporosityvalueslocal11
+//#define tdysetblockpermeabilityueslocal0_              tdysetblockpermeabilityvalueslocal0
+//#define tdysetblockpermeabilityvalueslocal11_          tdysetblockpermeabilityvalueslocal11
+//#define tdysetresidualsaturationvalueslocal0_          tdysetresidualsaturationvalueslocal0
+//#define tdysetresidualsaturationvalueslocal11_         tdysetresidualsaturationvalueslocal11
+//#define tdysetcharacteristiccurvemualemvalueslocal0_        tdysetcharacteristiccurvemualemvalueslocal0
+//#define tdysetcharacteristiccurvemualemvalueslocal11_       tdysetcharacteristiccurvemualemvalueslocal11
+//#define tdysetcharacteristiccurvenvalueslocal0_        tdysetcharacteristiccurvenvalueslocal0
+//#define tdysetcharacteristiccurvenvalueslocal11_       tdysetcharacteristiccurvenvalueslocal11
+//#define tdysetcharacteristiccurvevangenuchtenvalueslocal0_    tdysetcharacteristiccurvevangenuchtenvalueslocal0
+//#define tdysetcharacteristiccurvevangenuchtenvalueslocal11_   tdysetcharacteristiccurvevangenuchtenvalueslocal11
+//#define tdysetsourcesinkvalueslocal0_                  tdysetsourcesinkvalueslocal0
+//#define tdysetsourcesinkvalueslocal11_                 tdysetsourcesinkvalueslocal11
+//#define tdygetsaturationvalueslocal_                   tdygetsaturationvalueslocal
+//#define tdygetliquidmassvalueslocal_                   tdygetliquidmassvalueslocal
+//#define tdygetcharacteristiccurvemvalueslocal_         tdygetcharacteristiccurvemvalueslocal
 #define tdysetcharacteristiccurvevangenuchtenvalueslocal_     tdysetcharacteristiccurvevangenuchtenvalueslocal
-#define tdygetporosityvalueslocal_                     tdygetporosityvalueslocal
-#define tdygetblockpermeabilityueslocal_               tdygetblockpermeabilityvalueslocal
-#define tdygetnumcellslocal_                           tdygetnumcellslocal
-#define tdygetcellnaturalidslocal_                     tdygetcellnaturalidslocal
+//#define tdygetporosityvalueslocal_                     tdygetporosityvalueslocal
+//#define tdygetblockpermeabilityueslocal_               tdygetblockpermeabilityvalueslocal
+//#define tdygetnumcellslocal_                           tdygetnumcellslocal
+//#define tdygetcellnaturalidslocal_                     tdygetcellnaturalidslocal
 #define tdyupdatestate_                                tdyupdatestate
 #define tdyoutputregression_                           tdyoutputregression
 #define tdydestroy_                                    tdydestroy
@@ -399,19 +397,6 @@ PETSC_EXTERN void  tdypostsolvesnessolver_(TDy tdy, Vec solution, int *__ierr){
 #if defined(__cplusplus)
 extern "C" {
 #endif
-PETSC_EXTERN void  tdycomputesystem_(TDy tdy, Mat K, Vec F, int *__ierr){
-*__ierr = TDyComputeSystem(
-  (TDy)PetscToPointer((tdy) ),
-  (Mat)PetscToPointer((K) ),
-  (Vec)PetscToPointer((F) ));
-}
-#if defined(__cplusplus)
-}
-#endif
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdycomputeerrornorms_(TDy tdy, Vec U, PetscReal *normp, PetscReal *normv,  int *__ierr){
 *__ierr = TDyComputeErrorNorms(
   (TDy)PetscToPointer((tdy) ),
@@ -466,6 +451,7 @@ PETSC_EXTERN void  tdydestroy_(TDy *_tdy, int *__ierr){
 }
 #endif
 
+/*
 static PetscErrorCode ourtdyporosityfunction(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
 {
 #if defined(PETSC_HAVE_F90_2PTR_ARG)
@@ -475,7 +461,7 @@ static PetscErrorCode ourtdyporosityfunction(TDy tdy,PetscReal *x,PetscReal *f,v
   PetscObjectUseFortranCallback(tdy,_cb.porosity,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
 }
 
-static PetscErrorCode ourtdypermeabilityfunction(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
+static PetscErrorCode ourtdypermeabilityfunction(PetscInt n,PetscReal *x,PetscReal *f)
 {
 #if defined(PETSC_HAVE_F90_2PTR_ARG)
   void* ptr;
@@ -484,7 +470,7 @@ static PetscErrorCode ourtdypermeabilityfunction(TDy tdy,PetscReal *x,PetscReal 
   PetscObjectUseFortranCallback(tdy,_cb.permeability,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
 }
 
-PETSC_EXTERN void tdysetporosityfunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
+PETSC_EXTERN void tdysetporosityfunction_(TDy *tdy, PetscErrorCode (*func)(PetscInt,PetscReal*,PetscReal*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
 {
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.porosity,(PetscVoidFunction)func,ctx);
   if (*ierr) return;
@@ -523,6 +509,7 @@ PETSC_EXTERN void tdysetresidualsaturationfunction_(TDy *tdy, PetscErrorCode (*f
 #endif
   *ierr = TDySetResidualSaturationFunction(*tdy,ourtdysetresidualfunction,NULL);
 }
+*/
 
 static PetscErrorCode ourtdyforcingfunction2(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
 {
@@ -581,6 +568,7 @@ PETSC_EXTERN void tdysetboundaryvelocityfn_(TDy *tdy, PetscErrorCode (*func)(TDy
   *ierr = TDySetBoundaryVelocityFn(*tdy,ourtdyboundaryvelocityfn,NULL);
 }
 
+/*
 PETSC_EXTERN void tdysetporosityvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
 {
   *ierr = TDySetPorosityValuesLocal(*tdy,*ni,ix,y);
@@ -730,9 +718,84 @@ PETSC_EXTERN void tdygetcellislocal_(TDy *tdy,PetscInt *ni, PetscInt y[], int *i
 {
   *ierr = TDyGetCellIsLocal(*tdy,ni,y);
 }
+*/
 
 PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int *ierr )
 {
   *ierr = TDyUpdateState(*tdy,y);
+}
+
+//--------------------------------------------------------------------------
+//                  Fortran 90 material property functions
+//--------------------------------------------------------------------------
+// These wrappers convert Fortran spatial functions to C functions that can
+// be used with all vectorized signatures.
+//--------------------------------------------------------------------------
+typedef void (*F90SpatialFunction)(PetscInt*,PetscReal*,PetscReal*,PetscErrorCode*);
+typedef F90SpatialFunctionWrapper {
+  F90SpatialFunction func;
+} F90SpatialFunctionWrapper;
+
+static void* F90ContextFromSpatialFunc(F90SpatialFunction f)
+  F90SpatialFunctionWrapper *wrapper;
+  PetscMalloc(sizeof(F90SpatialFunctionWrapper), &wrapper);
+  wrapper->func = f;
+}
+
+static PetscErrorCode F90CallSpatialFunc(void* context, PetscInt n,
+                                         PetscReal *x, PetscReal *f) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  F90SpatialFunctionWrapper* wrapper = context;
+  wrapper->func(&n, x, f, &ierr);
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TDySetPorosityFunctionF90(TDy tdy, F90SpatialFunction f) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  void *context = F90ContextFromSpatialFunc(f);
+  ierr = MaterialPropSetPorosity(tdy->matprop, context, F90CallSpatialFunc, PetscFree);
+  PetscFunctionReturn(ierr);
+}
+
+PetscErrorCode TDySetPermeabilityFunctionF90(TDy tdy, F90SpatialFunction f) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  void *context = F90ContextFromSpatialFunc(f);
+  irr = MaterialPropSetPermeability(tdy->matprop, context, F90CallSpatialFunc, PetscFree);
+  PetscFunctionReturn(ierr);
+}
+
+void TDySetThermalConductivityFunctionF90(TDy tdy, F90SpatialFunction f) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  void *context = F90ContextFromSpatialFunc(f);
+  irr = MaterialPropSetThermalConductivity(tdy->matprop, context, F90CallSpatialFunc, PetscFree);
+  PetscFunctionReturn(ierr);
+}
+
+void TDySetResidualSaturationFunctionF90(TDy tdy, F90SpatialFunction f) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  void *context = F90ContextFromSpatialFunc(f);
+  ierr = MaterialPropSetResidualSaturation(tdy->matprop, context, F90CallSpatialFunc, PetscFree);
+  PetscFunctionReturn(ierr);
+}
+
+void TDySetSoilDensityFunctionF90(TDy tdy, F90SpatialFunction f) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  void *context = F90ContextFromSpatialFunc(f);
+  ierr = MaterialPropSetResidualSaturation(tdy->matprop, context, F90CallSpatialFunc, PetscFree);
+  PetscFunctionReturn(ierr);
+}
+
+void TDySetSoilSpecificHeatFunctionF90(TDy tdy, F90SpatialFunction f) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  void *context = F90ContextFromSpatialFunc(f);
+  ierr = MaterialPropSetResidualSaturation(tdy->matprop, context, F90CallSpatialFunc, PetscFree);
+  PetscFunctionReturn(ierr);
 }
 
