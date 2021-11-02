@@ -128,7 +128,7 @@ struct _p_TDy {
 
   /* For SNES based timestepping */
   PetscReal dtime;
-  Vec solution;
+  Vec soln;
   Vec soln_prev;
   Vec accumulation_prev;
   Vec residual;

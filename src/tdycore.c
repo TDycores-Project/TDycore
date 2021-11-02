@@ -252,7 +252,7 @@ PetscErrorCode TDyCreate(TDy *_tdy) {
   tdy->Tref = 25;
   tdy->gravity[0] = 0; tdy->gravity[1] = 0; tdy->gravity[2] = 0;
   tdy->dm = NULL;
-  tdy->solution = NULL;
+  tdy->soln = NULL;
   tdy->J = NULL;
 
   /* initialize method information to null */
@@ -472,7 +472,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
-  ierr = VecDestroy(&tdy->solution); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->soln); CHKERRQ(ierr);
   ierr = TDyIODestroy(&tdy->io); CHKERRQ(ierr);
   ierr = TDyTimeIntegratorDestroy(&tdy->ti); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
@@ -760,8 +760,8 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     PetscViewer viewer;
     ierr = PetscViewerBinaryOpen(comm, options->init_file, FILE_MODE_READ,
                                  &viewer); CHKERRQ(ierr);
-    ierr = VecLoad(tdy->solution, viewer); CHKERRQ(ierr);
-    ierr = VecCopy(tdy->solution, tdy->soln_prev); CHKERRQ(ierr);
+    ierr = VecLoad(tdy->soln, viewer); CHKERRQ(ierr);
+    ierr = VecCopy(tdy->soln, tdy->soln_prev); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -1516,7 +1516,7 @@ PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
-  ierr = TDyNaturalToGlobal(tdy,initial,tdy->solution); CHKERRQ(ierr);
+  ierr = TDyNaturalToGlobal(tdy,initial,tdy->soln); CHKERRQ(ierr);
   ierr = TDyNaturalToGlobal(tdy,initial,tdy->soln_prev); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -1581,11 +1581,11 @@ PetscErrorCode TDyCreateVectors(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-  if (tdy->solution == NULL) {
-    ierr = TDyCreateGlobalVector(tdy,&tdy->solution); CHKERRQ(ierr);
-    ierr = VecDuplicate(tdy->solution,&tdy->residual); CHKERRQ(ierr);
-    ierr = VecDuplicate(tdy->solution,&tdy->accumulation_prev); CHKERRQ(ierr);
-    ierr = VecDuplicate(tdy->solution,&tdy->soln_prev); CHKERRQ(ierr);
+  if (tdy->soln == NULL) {
+    ierr = TDyCreateGlobalVector(tdy,&tdy->soln); CHKERRQ(ierr);
+    ierr = VecDuplicate(tdy->soln,&tdy->residual); CHKERRQ(ierr);
+    ierr = VecDuplicate(tdy->soln,&tdy->accumulation_prev); CHKERRQ(ierr);
+    ierr = VecDuplicate(tdy->soln,&tdy->soln_prev); CHKERRQ(ierr);
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
