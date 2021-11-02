@@ -7,6 +7,9 @@
 // This struct stores Wheeler-Yotov specific data for the dycore.
 typedef struct TDyWY {
 
+  // Reference pressure.
+  PetscReal Pref;
+
   // Mesh information
   PetscReal *V; // cell volumes
   PetscReal *X; // point centroids
@@ -30,8 +33,12 @@ typedef struct TDyWY {
   TDyQuadratureType qtype;
 
   // Material property data
-  PetscReal *K, *K0, *Kr; // permeability and relative permeability
+  PetscReal *K, *K0; // permeability
   PetscReal *porosity;
+
+  PetscReal *Kr, *dKrdS; // relative permeability and derivative per cell
+  PetscReal *S, *dSdP, *d2SdP2; // saturation and derivatives per cell
+  PetscReal *Sr; // residual saturation
 } TDyWY;
 
 // Functions specific to WY implementation

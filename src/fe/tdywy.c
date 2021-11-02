@@ -272,6 +272,9 @@ PetscErrorCode TDySetFromOptions_WY(void *context, TDyOptions *options) {
 
   TDyWY* wy = context;
 
+  // Set defaults.
+  wy->Pref = 101325;
+
   // Set options.
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: WY options",""); CHKERRQ(ierr);
   TDyQuadratureType qtype = FULL;
@@ -284,7 +287,8 @@ PetscErrorCode TDySetFromOptions_WY(void *context, TDyOptions *options) {
 }
 
 PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
-                           MaterialProp *matprop, Conditions* conditions) {
+                           MaterialProp *matprop, CharacteristicCurves *cc,
+                           Conditions* conditions) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
@@ -311,8 +315,9 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
   ierr = SetQuadrature(wy->quad,dim); CHKERRQ(ierr);
 
   /* Build vmap and emap */
-  ierr = TDyCreateCellVertexMap(tdy,&(wy->vmap)); CHKERRQ(ierr);
-  ierr = TDyCreateCellVertexDirFaceMap(tdy,&(wy->emap)); CHKERRQ(ierr);
+  ierr = CreateCellVertexMap(dm, wy->ncv, wy->X, &(wy->vmap)); CHKERRQ(ierr);
+  ierr = CreateCellVertexDirFaceMap(dm, wy->ncv, wy->X, wy->N, wy->vmap,
+                                    &(wy->emap)); CHKERRQ(ierr);
 
   /* Allocate space for Alocal and Flocal */
   ierr = PetscMalloc(dim*dim*ncv*(cEnd-cStart)*sizeof(PetscReal),
@@ -530,6 +535,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscScalar pdirichlet,wgt,tol=1e4*PETSC_MACHINE_EPSILON;
   TDyWY *wy = tdy->context;
   DM dm = tdy->dm;
+  Conditions *conditions = tdy->conditions;
   PetscFunctionBegin;
 
   ierr = TDyWYLocalElementCompute(tdy); CHKERRQ(ierr);
@@ -571,7 +577,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
       // for the cell, which local vertex is this vertex?
       element_vertex = -1;
       for(q=0; q<nq; q++) {
-        if(v == tdy->vmap[closure[c]*nq+q]) {
+        if(v == wy->vmap[closure[c]*nq+q]) {
           element_vertex = q;
           break;
         }
@@ -580,7 +586,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
 
       for(element_row=0; element_row<dim;
           element_row++) { // which test function, local to the element/vertex
-        global_row = tdy->emap[closure[c]*nq*dim+element_vertex*dim
+        global_row = wy->emap[closure[c]*nq*dim+element_vertex*dim
                                +element_row]; // DMPlex point index of the face
         sign_row   = PetscSign(global_row);
         global_row = PetscAbsInt(global_row);
@@ -601,24 +607,23 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
         } if(local_col < 0) { CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE); }
 
         // B here is B.T in the paper, assembled in column major
-        B[local_col*nA+local_row] += wgt*sign_row*tdy->V[global_row];
+        B[local_col*nA+local_row] += wgt*sign_row*wy->V[global_row];
 
         // Pressure boundary conditions
         PetscInt isbc;
         ierr = DMGetLabelValue(dm,"marker",global_row,&isbc); CHKERRQ(ierr);
-        if(isbc == 1 && tdy->ops->compute_boundary_pressure) {
+        if(isbc == 1 && ConditionsHasBoundaryPressure(conditions)) {
           //ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
           //G[local_row] = wgt*pdirichlet;
-	  ierr = (*tdy->ops->compute_boundary_pressure)(tdy,
-	  					    &(tdy->X[global_row*dim]),
-	  					    &pdirichlet,
-	  					    tdy->boundary_pressure_ctx);CHKERRQ(ierr);
-          G[local_row] = wgt*sign_row*pdirichlet*tdy->V[global_row];
+          ierr = ConditionsComputeBoundaryPressure(conditions, 1,
+                                                   &(wy->X[global_row*dim]),
+                                                   &pdirichlet); CHKERRQ(ierr);
+          G[local_row] = wgt*sign_row*pdirichlet*wy->V[global_row];
         }
 
         for(element_col=0; element_col<dim;
             element_col++) { // which trial function, local to the element/vertex
-          global_col = tdy->emap[closure[c]*nq*dim+element_vertex*dim
+          global_col = wy->emap[closure[c]*nq*dim+element_vertex*dim
                                  +element_col]; // DMPlex point index of the face
           sign_col   = PetscSign(global_col);
           global_col = PetscAbsInt(global_col);
@@ -635,10 +640,10 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
             CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE);
           }
           /* Assembled col major, but should be symmetric */
-          A[local_col*nA+local_row] += tdy->Alocal[closure[c]    *(dim2*nq)+
+          A[local_col*nA+local_row] += wy->Alocal[closure[c]    *(dim2*nq)+
                                        element_vertex*(dim2   )+
                                        element_row   *(dim    )+
-                                       element_col]*sign_row*sign_col*tdy->V[global_row]*tdy->V[global_col];
+                                       element_col]*sign_row*sign_col*wy->V[global_row]*wy->V[global_col];
         }
       }
     }
@@ -669,7 +674,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
     ierr = DMPlexGetPointGlobal(dm,c,&gStart,&junk); CHKERRQ(ierr);
     ierr = DMPlexGetPointLocal (dm,c,&lStart,&junk); CHKERRQ(ierr);
     if(gStart < 0) continue;
-    ierr = VecSetValue(F,gStart,tdy->Flocal[c],ADD_VALUES); CHKERRQ(ierr);
+    ierr = VecSetValue(F,gStart,wy->Flocal[c],ADD_VALUES); CHKERRQ(ierr);
   }
 
   ierr = VecAssemblyBegin(F); CHKERRQ(ierr);
@@ -694,6 +699,9 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   PetscScalar A[MAX_LOCAL_SIZE],F[MAX_LOCAL_SIZE],sign_row,sign_col;
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
   DM dm = tdy->dm;
+  TDyWY *wy = tdy->context;
+  Conditions *conditions = tdy->conditions;
+
   ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
@@ -704,8 +712,8 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   ierr = TDyGlobalToLocal(tdy,U,localU); CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
   ierr = DMGetSection(dm, &section); CHKERRQ(ierr);
-  nq   = tdy->ncv;
-  nv   = tdy->nfv;
+  nq   = wy->ncv;
+  nv   = wy->nfv;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   wgt  = PetscPowReal(0.5,dim-1);
@@ -731,7 +739,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
       // for the cell, which local vertex is this vertex?
       element_vertex = -1;
       for(q=0; q<nq; q++) {
-        if(v == tdy->vmap[closure[c]*nq+q]) {
+        if(v == wy->vmap[closure[c]*nq+q]) {
           element_vertex = q;
           break;
         }
@@ -740,7 +748,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
 
       for(element_row=0; element_row<dim;
           element_row++) { // which test function, local to the element/vertex
-        global_row = tdy->emap[closure[c]*nq*dim+element_vertex*dim
+        global_row = wy->emap[closure[c]*nq*dim+element_vertex*dim
                                +element_row]; // DMPlex point index of the face
         sign_row   = PetscSign(global_row);
         global_row = PetscAbsInt(global_row);
@@ -762,24 +770,23 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
 
         // B P
         ierr = PetscSectionGetOffset(section,closure[c],&offset); CHKERRQ(ierr);
-        F[local_row] += wgt*sign_row*u[offset]*tdy->V[global_row];
+        F[local_row] += wgt*sign_row*u[offset]*wy->V[global_row];
 
         // boundary conditions
         PetscInt isbc;
         ierr = DMGetLabelValue(dm,"marker",global_row,&isbc); CHKERRQ(ierr);
-        if(isbc == 1 && tdy->ops->compute_boundary_pressure) {
+        if(isbc == 1 && ConditionsHasBoundaryPressure(conditions)) {
           //ierr = IntegrateOnFaceConstant(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
           //F[local_row] -= wgt*sign_row*pdirichlet;
-	  ierr = (*tdy->ops->compute_boundary_pressure)(tdy,
-	  					    &(tdy->X[global_row*dim]),
-	  					    &pdirichlet,
-	  					    tdy->boundary_pressure_ctx);CHKERRQ(ierr);
-          F[local_row] += -wgt*sign_row*pdirichlet*tdy->V[global_row];
+          ierr = ConditionsComputeBoundaryPressure(conditions, 1,
+                                                   &(wy->X[global_row*dim]),
+                                                   &pdirichlet); CHKERRQ(ierr);
+          F[local_row] += -wgt*sign_row*pdirichlet*wy->V[global_row];
         }
 
         for(element_col=0; element_col<dim;
             element_col++) { // which trial function, local to the element/vertex
-          global_col = tdy->emap[closure[c]*nq*dim+element_vertex*dim
+          global_col = wy->emap[closure[c]*nq*dim+element_vertex*dim
                                  +element_col]; // DMPlex point index of the face
           sign_col   = PetscSign(global_col);
           global_col = PetscAbsInt(global_col);
@@ -796,10 +803,10 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
             CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE);
           }
           // Assembled col major, but should be symmetric
-          A[local_col*nA+local_row] += tdy->Alocal[closure[c]    *(dim2*nq)+
+          A[local_col*nA+local_row] += wy->Alocal[closure[c]    *(dim2*nq)+
                                        element_vertex*(dim2   )+
                                        element_row   *(dim    )+
-                                       element_col]*sign_row*sign_col*tdy->V[global_row]*tdy->V[global_col];
+                                       element_col]*sign_row*sign_col*wy->V[global_row]*wy->V[global_col];
         }
       }
     }
@@ -810,7 +817,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
     for(q=0; q<nA; q++) {
       global_row = Amap[q];
       for(offset=0; offset<nv; offset++) {
-        if(v == tdy->fmap[nv*(global_row-fStart)+offset]) {
+        if(v == wy->fmap[nv*(global_row-fStart)+offset]) {
           wy->vel[nv*(global_row-fStart)+offset] = F[q];
           break;
         }
@@ -825,46 +832,8 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   PetscFunctionReturn(0);
 }
 
-/*
-  norm = sqrt( sum_i^n  V_i * ( p(X_i) - P_i )^2 )
-
-  where n is the number of cells.
- */
-PetscReal TDyWYPressureNorm(TDy tdy,Vec U) {
-  TDY_START_FUNCTION_TIMER()
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  PetscSection sec;
-  PetscInt c,cStart,cEnd,offset,dim,gref,junk;
-  PetscReal p,*u,norm,norm_sum;
-  DM dm = tdy->dm;
-  if(!(tdy->ops->compute_boundary_pressure)) {
-    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the pressure function with TDySetDirichletValueFunction");
-  }
-  norm = 0;
-  ierr = VecGetArray(U,&u); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = DMGetSection(dm,&sec); CHKERRQ(ierr);
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  for(c=cStart; c<cEnd; c++) {
-    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
-    if(gref<0) continue;
-    ierr = PetscSectionGetOffset(sec,c,&offset); CHKERRQ(ierr);
-    if (tdy->ops->compute_boundary_pressure) {
-      ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(tdy->X[c*dim]), &p, tdy->boundary_pressure_ctx);CHKERRQ(ierr);
-    }
-    norm += tdy->V[c]*PetscSqr(u[offset]-p);
-  }
-  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
-                       PetscObjectComm((PetscObject)U)); CHKERRQ(ierr);
-  norm_sum = PetscSqrtReal(norm_sum);
-  ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(norm_sum);
-}
-
-/*
+/* Compute pressure and velocity norms.
+  Pressure norm = sqrt( sum_i^n  V_i * ( p(X_i) - P_i )^2 )
   Velocity norm given in section 5 of Wheeler2012.
 
   ||u-uh||^2 = sum_E sum_e |E| ( 1/|e| int(u.n) - 1/|e| int(uh.n) )^2
@@ -873,90 +842,118 @@ PetscReal TDyWYPressureNorm(TDy tdy,Vec U) {
   the L2 difference in the mean normal velocity over faces of each
   cell, weighted by the cell area.
 */
-PetscReal TDyWYVelocityNorm(TDy tdy) {
+PetscErrorCode TDyComputeErrorNorms_WY(void *context, DM dm, Conditions *conditions,
+                                       Vec U, PetscReal *p_norm, PetscReal *v_norm) {
   TDY_START_FUNCTION_TIMER()
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  PetscInt c,cStart,cEnd,dim,gref,fStart,fEnd,junk,d,s,f;
-  DM dm = tdy->dm;
-  if(!(tdy->ops->compute_boundary_velocity)) {
-    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the velocity function with TDySetDirichletFluxFunction");
+  PetscInt c,cStart,cEnd,offset,dim,gref,fStart,fEnd,junk,d,s,f;
+  PetscSection sec;
+  PetscReal p,*u,norm,norm_sum;
+
+  TDyWY *wy = context;
+
+  if (p_norm) {
+    if(!ConditionsHasBoundaryPressure(conditions)) {
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+          "Must set the pressure function with TDySetDirichletValueFunction");
+    }
+    norm = 0;
+    ierr = VecGetArray(U,&u); CHKERRQ(ierr);
+    ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+    ierr = DMGetSection(dm,&sec); CHKERRQ(ierr);
+    ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+    for(c=cStart; c<cEnd; c++) {
+      ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
+      if(gref<0) continue;
+      ierr = PetscSectionGetOffset(sec,c,&offset); CHKERRQ(ierr);
+      ierr = ConditionsComputeBoundaryPressure(conditions, 1, &(wy->X[c*dim]),
+                                               &p);CHKERRQ(ierr);
+      norm += wy->V[c]*PetscSqr(u[offset]-p);
+    }
+    ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
+        PetscObjectComm((PetscObject)U)); CHKERRQ(ierr);
+    norm_sum = PetscSqrtReal(norm_sum);
+    ierr = VecRestoreArray(U,&u); CHKERRQ(ierr);
   }
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
-  PetscInt i,j,ncv,nfv,q,nq,nq1d=1;
-  const PetscScalar *quad_x,*quad_w;
-  PetscReal xq[3],x[100],DF[100],DFinv[100],J[100],N[24],vel[3],ve,va,flux0,flux,
-            norm,norm_sum,Nn,C;
-  PetscQuadrature quad;
-  ncv  = tdy->ncv;
-  nfv  = tdy->nfv;
-  ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quad); CHKERRQ(ierr);
-  ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w);
-  CHKERRQ(ierr);
+  if (v_norm) {
+    if(!ConditionsHasBoundaryVelocity(conditions)) {
+      SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+          "Must set the velocity function with TDySetDirichletFluxFunction");
+    }
+    ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+    ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+    ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
-  /* loop cells */
-  norm = 0; norm_sum = 0;
-  for(c=cStart; c<cEnd; c++) {
-    ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
-    if (gref < 0) continue;
+    PetscInt i,j,ncv,nfv,q,nq,nq1d=1;
+    const PetscScalar *quad_x,*quad_w;
+    PetscReal xq[3],x[100],DF[100],DFinv[100],J[100],N[24],vel[3],ve,va,flux0,flux,
+              norm,norm_sum,Nn,C;
+    PetscQuadrature quad;
+    ncv  = wy->ncv;
+    nfv  = wy->nfv;
+    ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quad); CHKERRQ(ierr);
+    ierr = PetscQuadratureGetData(quad,NULL,NULL,&nq,&quad_x,&quad_w);
+    CHKERRQ(ierr);
 
-    /* loop faces */
-    for(d=0; d<dim; d++) {
-      for(s=0; s<2; s++) {
-        f = tdy->faces[(c-cStart)*dim*2+d*2+s];
-        ierr = DMPlexComputeCellGeometryFEM(dm,f,quad,x,DF,DFinv,J); CHKERRQ(ierr);
+    /* loop cells */
+    norm = 0; norm_sum = 0;
+    for(c=cStart; c<cEnd; c++) {
+      ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
+      if (gref < 0) continue;
 
-        /* loop quadrature */
-        flux0 = flux = 0;
-        for(q=0; q<nq; q++) {
+      /* loop faces */
+      for(d=0; d<dim; d++) {
+        for(s=0; s<2; s++) {
+          f = wy->faces[(c-cStart)*dim*2+d*2+s];
+          ierr = DMPlexComputeCellGeometryFEM(dm,f,quad,x,DF,DFinv,J); CHKERRQ(ierr);
 
-          /* extend the dim-1 quadrature point to dim */
-          j = 0;
-          xq[0] = 0; xq[1] = 0; xq[2] = 0;
-          for(i=0; i<dim; i++) {
-            if(i == d) {
-              xq[i] = PetscPowInt(-1,s+1);
+          /* loop quadrature */
+          flux0 = flux = 0;
+          for(q=0; q<nq; q++) {
+
+            /* extend the dim-1 quadrature point to dim */
+            j = 0;
+            xq[0] = 0; xq[1] = 0; xq[2] = 0;
+            for(i=0; i<dim; i++) {
+              if(i == d) {
+                xq[i] = PetscPowInt(-1,s+1);
+              } else {
+                xq[i] = quad_x[q*(dim-1)+j];
+                j += 1;
+              }
+            }
+            if(dim==2) {
+              //HdivBasisQuad(xq,N);
             } else {
-              xq[i] = quad_x[q*(dim-1)+j];
-              j += 1;
+              //HdivBasisHex(xq,N);
             }
-          }
-          if(dim==2) {
-            //HdivBasisQuad(xq,N);
-          } else {
-            //HdivBasisHex(xq,N);
-          }
-          va = 0;
-          for(i=0; i<ncv; i++) {
-            Nn = PetscPowInt(-1,s+1)*N[i*dim+d];
-            for(j=0; j<nfv; j++) {
-              if(tdy->vmap[ncv*(c-cStart)+i] == tdy->fmap[nfv*(f-fStart)+j]) break;
+            va = 0;
+            for(i=0; i<ncv; i++) {
+              Nn = PetscPowInt(-1,s+1)*N[i*dim+d];
+              for(j=0; j<nfv; j++) {
+                if(wy->vmap[ncv*(c-cStart)+i] == wy->fmap[nfv*(f-fStart)+j]) break;
+              }
+              if(j==nfv) continue;
+              C  = wy->vel[nfv*(f-fStart)+j];
+              va += Nn*C;
             }
-            if(j==nfv) continue;
-            C  = wy->vel[nfv*(f-fStart)+j];
-            va += Nn*C;
+            ierr = ConditionsComputeBoundaryVelocity(conditions, 1, &(x[q*dim]),
+                                                     vel);CHKERRQ(ierr);
+            ve = TDyADotB(vel,&(wy->N[dim*f]),dim);
+            flux  += va*quad_w[q]*J[q];
+            flux0 += ve*quad_w[q]*J[q];
           }
-          if (tdy->ops->compute_boundary_velocity) {
-            ierr = (*tdy->ops->compute_boundary_velocity)(tdy, &(x[q*dim]), vel, tdy->boundary_velocity_ctx);CHKERRQ(ierr);
-          }
-          ve = TDyADotB(vel,&(tdy->N[dim*f]),dim);
-          flux  += va*quad_w[q]*J[q];
-          flux0 += ve*quad_w[q]*J[q];
-
+          norm += PetscSqr((flux-flux0)/wy->V[f])*wy->V[c];
         }
-        norm += PetscSqr((flux-flux0)/tdy->V[f])*tdy->V[c];
       }
     }
-
+    ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
+    ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
+        PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
+    norm_sum = PetscSqrtReal(norm_sum);
   }
-  ierr = PetscQuadratureDestroy(&quad); CHKERRQ(ierr);
-  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
-                       PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
-  norm_sum = PetscSqrtReal(norm_sum);
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(norm_sum);
 }
@@ -964,61 +961,46 @@ PetscReal TDyWYVelocityNorm(TDy tdy) {
 PetscErrorCode TDyUpdateState_WY(void *context, DM dm,
                                  EOS *eos, MaterialProp *matprop,
                                  CharacteristicCurves *cc, PetscReal *U) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyWY *wy = context;
 
-  PetscReal Se,dSe_dS,dKr_dSe,Kr;
-  PetscReal *P, *temp;
   PetscInt dim;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   PetscInt dim2 = dim*dim;
   PetscInt cStart, cEnd;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&P);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
+  PetscInt nc = cEnd - cStart;
 
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
 
-  for (PetscInt c=0;c<cEnd-cStart;c++) P[c] = U[c];
+  // Compute the capillary pressure on all cells.
+  PetscReal Pc[nc];
+  for (PetscInt c=0;c<nc;c++) {
+    Pc[c] = wy->Pref - U[c];
+  }
 
-  for(PetscInt c=cStart; c<cEnd; c++) {
-    PetscInt i = c-cStart;
+  // Compute the saturation and its derivatives.
+  ierr = SaturationCompute(cc->saturation, wy->Sr, Pc, wy->S, wy->dSdP,
+                           wy->d2SdP2);
 
-    PetscReal n = cc->gardner_n[c];
-    PetscReal alpha = cc->vg_alpha[c];
+  // Compute the effective saturation on cells.
+  PetscReal Se[nc];
+  for (PetscInt c=0;c<nc;c++) {
+    Se[c] = (wy->S[c] - wy->Sr[c])/(1.0 - wy->Sr[c]);
+  }
 
-    switch (cc->SatFuncType[i]) {
-    case SAT_FUNC_GARDNER :
-      PressureSaturation_Gardner(n,cc->gardner_m[c],alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&(cc->dS_dP[i]),&(cc->d2S_dP2[i]));
-      break;
-    case SAT_FUNC_VAN_GENUCHTEN :
-      PressureSaturation_VanGenuchten(cc->vg_m[c],alpha,cc->sr[i],tdy->Pref-P[i],&(cc->S[i]),&cc->dS_dP[i],&(cc->d2S_dP2[i]));
-      break;
-    default:
-      SETERRQ(comm,PETSC_ERR_SUP,"Unknown saturation function");
-      break;
-    }
+  // Compute the relative permeability and its derivative (w.r.t. Se).
+  ierr = RelativePermeabilityCompute(cc->rel_perm, Se, wy->Kr, wy->dKrdS);
 
-    Se = (cc->S[i] - cc->sr[i])/(1.0 - cc->sr[i]);
-    dSe_dS = 1.0/(1.0 - cc->sr[i]);
-
-    switch (cc->RelPermFuncType[i]) {
-    case REL_PERM_FUNC_IRMAY :
-      RelativePermeability_Irmay(cc->irmay_m[c],Se,&Kr,NULL);
-      break;
-    case REL_PERM_FUNC_MUALEM :
-      RelativePermeability_Mualem(cc->mualem_m[c],cc->mualem_poly_low[c],cc->mualem_poly_coeffs[c],Se,&Kr,&dKr_dSe);
-      break;
-    default:
-      SETERRQ(comm,PETSC_ERR_SUP,"Unknown relative permeability function");
-      break;
-    }
-    cc->Kr[i] = Kr;
-    cc->dKr_dS[i] = dKr_dSe * dSe_dS;
+  // Correct dKr/dS using the chain rule, and update the permeability.
+  for (PetscInt c=0;c<nc;c++) {
+    PetscReal dSe_dS = 1.0/(1.0 - wy->Sr[c]);
+    wy->dKrdS[c] *= dSe_dS; // correct dKr/dS
 
     for(PetscInt j=0; j<dim2; j++) {
-      wy->K[i*dim2+j] = wy->K0[i*dim2+j] * Kr;
+      wy->K[c*dim2+j] = wy->K0[c*dim2+j] * wy->Kr[c];
     }
   }
 
@@ -1068,17 +1050,17 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
       const PetscInt *verts;
       ierr = DMPlexGetConeSize(dm,f,&nv   ); CHKERRQ(ierr);
       ierr = DMPlexGetCone    (dm,f,&verts); CHKERRQ(ierr);
-      sign = PetscSign(TDyADotBMinusC(&(wy->N[dim*f]),&(tdy->X[dim*f]),
-                                      &(tdy->X[dim*c]),dim));
+      sign = PetscSign(TDyADotBMinusC(&(wy->N[dim*f]),&(wy->X[dim*f]),
+                                      &(wy->X[dim*c]),dim));
       for(j=0; j<nv; j++) {
-        div += sign*wy->vel[nv*(f-fStart)+j]*wgt*tdy->V[f];
+        div += sign*wy->vel[nv*(f-fStart)+j]*wgt*wy->V[f];
       }
     }
 
-    r[c] = wy->porosity[c-cStart]*cc->dS_dP[c-cStart]*dp_dt[c] + div - tdy->Flocal[c-cStart];
+    r[c] = wy->porosity[c-cStart]*wy->dSdP[c-cStart]*dp_dt[c] + div - wy->Flocal[c-cStart];
     //PetscPrintf(PETSC_COMM_WORLD,"R[%2d] = %+e %+e %+e = %+e\n",
-    // 	c,wy->porosity[c-cStart]*cc->dS_dP[c-cStart]*dp_dt[c],
-    // 		div,tdy->Flocal[c-cStart],r[c]);
+    // 	c,wy->porosity[c-cStart]*wy->dSdP[c-cStart]*dp_dt[c],
+    // 		div,wy->Flocal[c-cStart],r[c]);
   }
 
   /* Cleanup */

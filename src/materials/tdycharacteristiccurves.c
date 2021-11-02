@@ -13,26 +13,6 @@ PetscErrorCode CharacteristicCurvesCreate(CharacteristicCurve **cc) {
   ierr = PetscMalloc(sizeof(CharacteristicCurve), cc); CHKERRQ(ierr);
   ierr = SaturationCreate(&(cc->saturation)); CHKERRQ(ierr);
   ierr = RelativePermeabilityCreate(&(cc->rel_perm)); CHKERRQ(ierr);
-  /*
-  ierr = PetscMalloc(ncells*sizeof(PetscInt),&((*_cc)->SatFuncType)); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscInt),&(*_cc)->RelPermFuncType); CHKERRQ(ierr);
-
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->Kr); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->dKr_dS); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->S); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->dS_dP); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->d2S_dP2); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->dS_dT); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->sr); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->gardner_m); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->vg_m); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->mualem_m); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->irmay_m); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->gardner_n); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->vg_alpha); CHKERRQ(ierr);
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_cc)->mualem_poly_low); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_2D(&(*_cc)->mualem_poly_coeffs,ncells,4); CHKERRQ(ierr);
-  */
 
   PetscFunctionReturn(0);
 }
@@ -46,24 +26,6 @@ PetscErrorCode CharacteristicCurvesDestroy(CharacteristicCurves *cc) {
   ierr = RelativePermeabilityDestroy(cc->rel_perm); CHKERRQ(ierr);
   ierr = SaturationDestroy(cc->saturation); CHKERRQ(ierr);
   ierr = PetscFree(cc); CHKERRQ(ierr);
-  /*
-  if (cc->SatFuncType    ) { ierr = PetscFree(cc->SatFuncType    ); CHKERRQ(ierr); }
-  if (cc->RelPermFuncType) { ierr = PetscFree(cc->RelPermFuncType); CHKERRQ(ierr); }
-  if (cc->Kr             ) { ierr = PetscFree(cc->Kr             ); CHKERRQ(ierr); }
-  if (cc->dKr_dS         ) { ierr = PetscFree(cc->dKr_dS         ); CHKERRQ(ierr); }
-  if (cc->S              ) { ierr = PetscFree(cc->S              ); CHKERRQ(ierr); }
-  if (cc->dS_dP          ) { ierr = PetscFree(cc->dS_dP          ); CHKERRQ(ierr); }
-  if (cc->d2S_dP2        ) { ierr = PetscFree(cc->d2S_dP2        ); CHKERRQ(ierr); }
-  if (cc->dS_dT          ) { ierr = PetscFree(cc->dS_dT          ); CHKERRQ(ierr); }
-  if (cc->sr             ) { ierr = PetscFree(cc->sr             ); CHKERRQ(ierr); }
-  if (cc->gardner_m      ) { ierr = PetscFree(cc->gardner_m      ); CHKERRQ(ierr); }
-  if (cc->vg_m           ) { ierr = PetscFree(cc->vg_m           ); CHKERRQ(ierr); }
-  if (cc->irmay_m        ) { ierr = PetscFree(cc->irmay_m        ); CHKERRQ(ierr); }
-  if (cc->mualem_m       ) { ierr = PetscFree(cc->mualem_m       ); CHKERRQ(ierr); }
-  if (cc->gardner_n      ) { ierr = PetscFree(cc->gardner_n      ); CHKERRQ(ierr); }
-  if (cc->vg_alpha       ) { ierr = PetscFree(cc->vg_alpha       ); CHKERRQ(ierr); }
-  if (cc->mualem_poly_low    ) { ierr = PetscFree(cc->mualem_poly_low    ); CHKERRQ(ierr); }
-*/
 
   PetscFunctionReturn(0);
 }
@@ -84,13 +46,9 @@ PetscErrorCode SaturationCreate(Saturation **sat) {
 PetscErrorCode SaturationDestroy(Saturation *sat) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  for (int type = 0; type < 2; ++type) {
-    if (sat->points[type]) {
-      ierr = PetscFree(sat->points[type]); CHKERRQ(ierr);
-    }
-    if (sat->parameters[type]) {
-      ierr = PetscFree(sat->parameters[type]); CHKERRQ(ierr);
-    }
+  int num_types = (int)(sizeof(sat->points)/sizeof(sat->points[0]));
+  for (int type = 0; type < num_types; ++type) {
+    SaturationSetType(sat, type, 0, NULL, NULL);
   }
   ierr = PetscFree(sat); CHKERRQ(ierr);
   PetscFunctionReturn(0);
@@ -142,7 +100,6 @@ PetscErrorCode SaturationSetType(Saturation *sat, SaturationType type,
 
 /// Computes the saturation for the points assigned to the given type.
 /// @param [in] sat the Saturation inѕtance
-/// @param [in] type the type of the saturation model
 /// @param [in] Sr the residual saturation values on the points
 /// @param [in] Pc the capillary pressure values on the points
 /// @param [out] S the computed saturation values on the points
@@ -150,31 +107,34 @@ PetscErrorCode SaturationSetType(Saturation *sat, SaturationType type,
 ///                   pressure on the points
 /// @param [out] d2SdP2 the computed values of the second derivative of
 ///                     saturation w.r.t. pressure on the points
-PetscErrorCode SaturationCompute(Saturation *sat, SaturationType type,
+PetscErrorCode SaturationCompute(Saturation *sat,
                                  PetscReal *Sr, PetscReal *Pc,
                                  PetscReal *S, PetscReal *dSdP,
                                  PetscReal *d2SdP2) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  if (type == SAT_FUNC_GARDNER) {
-    PetscInt num_points = sat->num_points[type];
-    for (PetscInt i = 0; i < num_points; ++i) {
-      PetscReal n = sat->parameters[type][3*i];
-      PetscReal m = sat->parameters[type][3*i+1];
-      PetscReal alpha = sat->parameters[type][3*i+2];
-      PressureSaturation_Gardner(n, m, alpha, Sr[i], Pc[i], &(S[i]), &(dSdP[i]),
-                                 &(d2SdP2[i]));
+  int num_types = (int)(sizeof(sat->points)/sizeof(sat->points[0]));
+  for (int type = 0; type < num_types; ++type) {
+    if (type == SAT_FUNC_GARDNER) {
+      PetscInt num_points = sat->num_points[type];
+      for (PetscInt i = 0; i < num_points; ++i) {
+        PetscInt j = sat->points[i];
+        PetscReal n = sat->parameters[type][3*i];
+        PetscReal m = sat->parameters[type][3*i+1];
+        PetscReal alpha = sat->parameters[type][3*i+2];
+        PressureSaturation_Gardner(n, m, alpha, Sr[j], Pc[j], &(S[j]), &(dSdP[j]),
+                                   &(d2SdP2[j]));
+      }
+    } else if (type == SAT_FUNC_VAN_GENUCHTEN) {
+      PetscInt num_points = sat->num_points[type];
+      for (PetscInt i = 0; i < num_points; ++i) {
+        PetscInt j = sat->points[i];
+        PetscReal m = sat->parameters[type][2*i];
+        PetscReal alpha = sat->parameters[type][2*i+2];
+        PressureSaturation_VanGenuchten(m, alpha, Sr[j], Pc[j], &(S[j]), &(dSdP[j]),
+                                        &(d2SdP2[j]));
+      }
     }
-  } else if (type == SAT_FUNC_VAN_GENUCHTEN) {
-    PetscInt num_points = sat->num_points[type];
-    for (PetscInt i = 0; i < num_points; ++i) {
-      PetscReal m = sat->parameters[type][2*i];
-      PetscReal alpha = sat->parameters[type][2*i+2];
-      PressureSaturation_VanGenuchten(m, alpha, Sr[i], Pc[i], &(S[i]), &(dSdP[i]),
-                                      &(d2SdP2[i]));
-    }
-  } else {
-    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Invalid saturation model type!");
   }
   PetscFunctionReturn(0);
 }
@@ -195,13 +155,9 @@ PetscErrorCode RelativePermeabilityCreate(RelativePermeability **rel_perm) {
 PetscErrorCode RelativePermeabilityDestroy(RelativePermeability *rel_perm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  for (int type = 0; type < 2; ++type) {
-    if (rel_perm->points[type]) {
-      ierr = PetscFree(rel_perm->points[type]); CHKERRQ(ierr);
-    }
-    if (sat->parameters[type]) {
-      ierr = PetscFree(rel_perm->parameters[type]); CHKERRQ(ierr);
-    }
+  int num_types = (int)(sizeof(rel_perm->points)/sizeof(rel_perm->points[0]));
+  for (int type = 0; type < num_types; ++type) {
+    RelativePermeabilitySetType(rel_perm, type, 0, NULL, NULL);
   }
   ierr = PetscFree(rel_perm); CHKERRQ(ierr);
   PetscFunctionReturn(0);
@@ -236,6 +192,15 @@ PetscErrorCode RelativePermeabilitySetType(RelativePermeability *rel_perm,
     SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER,
             "Invalid relative permeability model type!");
   }
+
+  // If we're changing the number of points for this type, free storage.
+  if (rel_perm->num_points[type] != num_points) {
+    if (rel_perm->points[type]) {
+      ierr = PetscFree(rel_perm->points[type]); CHKERRQ(ierr);
+      ierr = PetscFree(rel_perm->parameters[type]); CHKERRQ(ierr);
+    }
+  }
+
   rel_perm->num_points[type] = num_points;
   ierr = PetscMalloc(num_points*sizeof(PetscInt),
                      &(rel_perm->points[type])); CHKERRQ(ierr);
@@ -250,36 +215,33 @@ PetscErrorCode RelativePermeabilitySetType(RelativePermeability *rel_perm,
 /// Computes the relative permeability for the points assigned to the given
 /// type.
 /// @param [in] rel_perm the RelativePermeability inѕtance
-/// @param [in] type the type of the relative permeability model
 /// @param [in] Se the effective saturation values on the points
 /// @param [out] Kr the computed relative permeability values on the points
 /// @param [out] dKrdSe the computed values of the derivative of the relative
 ///                     permeability w.r.t. effective saturation on the points
 PetscErrorCode RelativePermeabilityCompute(RelativePermeability *rel_perm,
-                                           RelativePermeabilityType type,
-                                           PetscReal *Se,
-                                           PetscReal *Kr,
+                                           PetscReal *Se, PetscReal *Kr,
                                            PetscReal *dKrdSe) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  if (type == REL_PERM_FUNC_IRMAY) {
-    PetscInt num_points = sat->num_points[type];
-    for (PetscInt i = 0; i < num_points; ++i) {
-      PetscReal m = sat->parameters[type][i];
-      RelativePermeability_Irmay(m, Se[i], &(Kr[i]), &(dKrdSe[i]));
+  int num_types = (int)(sizeof(rel_perm->points)/sizeof(rel_perm->points[0]));
+  for (int type = 0; type < num_types; ++type) {
+    if (type == REL_PERM_FUNC_IRMAY) {
+      PetscInt num_points = sat->num_points[type];
+      for (PetscInt i = 0; i < num_points; ++i) {
+        PetscReal m = sat->parameters[type][i];
+        RelativePermeability_Irmay(m, Se[i], &(Kr[i]), &(dKrdSe[i]));
+      }
+    } else if (type == REL_PERM_FUNC_MUALEM) {
+      PetscInt num_points = sat->num_points[type];
+      for (PetscInt i = 0; i < num_points; ++i) {
+        PetscReal m = sat->parameters[type][6*i];
+        PetscReal poly_low = sat->parameters[type][6*i+1]; // cubic interp cutoff
+        PetscReal *poly_coeffs = &(sat->parameters[type][6*i+2]); // interp coeffs
+        RelativePermeability_Mualem(m, poly_low, poly_coeffs, Se[i], &(S[i]),
+                                    &(Kr[i]), &(dKrdSe[i]));
+      }
     }
-  } else if (type == REL_PERM_FUNC_MUALEM) {
-    PetscInt num_points = sat->num_points[type];
-    for (PetscInt i = 0; i < num_points; ++i) {
-      PetscReal m = sat->parameters[type][6*i];
-      PetscReal poly_low = sat->parameters[type][6*i+1]; // cubic interp cutoff
-      PetscReal *poly_coeffs = &(sat->parameters[type][6*i+2]); // interp coeffs
-      RelativePermeability_Mualem(m, poly_low, poly_coeffs, Se[i], &(S[i]),
-                                  &(Kr[i]), &(dKrdSe[i]));
-    }
-  } else {
-    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER,
-            "Invalid relative permeability model type!");
   }
   PetscFunctionReturn(0);
 }
@@ -444,7 +406,6 @@ PetscErrorCode TDyGetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt *ni, 
 }
 */
 
-/* -------------------------------------------------------------------------- */
 /// Compute value and derivate of relative permeability using Irmay function
 ///
 /// @param [in] m            parameter for Irmay function
@@ -469,7 +430,6 @@ void RelativePermeability_Irmay(PetscReal m,PetscReal Se,PetscReal *Kr,
   if(dKr_dSe) *dKr_dSe = PetscPowReal(Se,m-1)*m;
 }
 
-/* -------------------------------------------------------------------------- */
 /// Compute value and derivate of relative permeability using Mualem function
 ///
 /// @param [in] m            parameter for Mualem function
@@ -503,8 +463,6 @@ void RelativePermeability_Mualem_Unsmoothed(PetscReal m,PetscReal Se,PetscReal *
   }
 }
 
-/* -------------------------------------------------------------------------- */
-///
 /// Sets up a cubic polynomial interpolation for relative permeability following
 /// PFLOTRAN's approach of smoothing relative permeability functions
 ///
@@ -702,7 +660,7 @@ void PressureSaturation_Gardner(PetscReal n,PetscReal m,PetscReal alpha, PetscRe
 void PressureSaturation_VanGenuchten(PetscReal m,PetscReal alpha,  PetscReal Sr,
 				     PetscReal Pc,PetscReal *S,PetscReal *dS_dP,PetscReal *d2S_dP2) {
   PetscReal pc_alpha,pc_alpha_n,one_plus_pc_alpha_n,n;
-  if(Pc <= 0) { 
+  if(Pc <= 0) {
     *S = 1;
     if(dS_dP) *dS_dP = 0;
     if(d2S_dP2) *d2S_dP2 =0.0;

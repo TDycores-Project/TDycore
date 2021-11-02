@@ -58,26 +58,6 @@ typedef struct {
   /// relative permeability model
   RelativePermeability* rel_perm;
 
-#if 0
-  PetscInt *SatFuncType;         /* type of saturation function */
-  PetscInt *RelPermFuncType;     /* type of relative permeability */
-  PetscReal *sr;                 /* residual saturation (min) [1] */
-  PetscReal *gardner_m;          /* parameter used in Gardner saturation [-] */
-  PetscReal *vg_m;               /* parameter used in VanGenuchten saturation function [-] */
-  PetscReal *irmay_m;            /* parameter used in Irmay relative permeability function [-] */
-  PetscReal *mualem_m;           /* parameter used in Mualem relative permeability function [-] */
-  PetscReal *gardner_n;          /* parameter used in Gardner saturation function [-] */
-  PetscReal *vg_alpha;           /* parameter used in VanGenuchten saturation function [-] */
-  PetscReal *S,                  /* saturation for each cell */
-            *dS_dP,              /* derivative of saturation wrt pressure for each cell [Pa^-1] */
-            *d2S_dP2,            /* second derivative of saturation wrt pressure for each cell [Pa^-2] */
-            *dS_dT;              /* derivate of saturation wrt to temperature for each cell [K^-1] */
-  PetscReal *Kr, *dKr_dS;        /* relative permeability for each cell [1] */
-
-  PetscReal *mualem_poly_low;    /* value of effecitive saturation above which cubic interpolation is used */
-  PetscReal **mualem_poly_coeffs;/* coefficients for cubic polynomial */
-#endif
-
 } CharacteristicCurves;
 
 PETSC_INTERN PetscErrorCode CharacteristicCurvesCreate(CharacteristicCurves**);
@@ -86,12 +66,12 @@ PETSC_INTERN PetscErrorCode CharacteristicCurvesDestroy(CharacteristicCurves*);
 PETSC_INTERN PetscErrorCode SaturationCreate(Saturation**);
 PETSC_INTERN PetscErrorCode SaturationDestroy(Saturation*);
 PETSC_INTERN PetscErrorCode SaturationSetType(Saturation*,SaturationType,PetscInt,PetscInt*,PetscReal*);
-PETSC_INTERN PetscErrorCode SaturationCompute(Saturation*,SaturationType,PetscReal*,PetscReal*,PetscReal*,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode SaturationCompute(Saturation*,PetscReal*,PetscReal*,PetscReal*,PetscReal*,PetscReal*);
 
 PETSC_INTERN PetscErrorCode RelativePermeabilityCreate(RelativePermeability**);
 PETSC_INTERN PetscErrorCode RelativePermeabilityDestroy(RelativePermeability*);
 PETSC_INTERN PetscErrorCode RelativePermeabilitySetType(RelativePermeability*,RelativePermeabilityType,PetscInt,PetscInt*,PetscReal*);
-PETSC_INTERN PetscErrorCode RelativePermeabilityCompute(RelativePermeability*,RelativePermeabilityType,PetscReal*,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode RelativePermeabilityCompute(RelativePermeability*,PetscReal*,PetscReal*,PetscReal*);
 
 //PETSC_INTERN PetscErrorCode RelativePermeability_Mualem_SetupSmooth(CharacteristicCurves*,PetscInt);
 
