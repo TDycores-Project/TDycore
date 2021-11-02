@@ -429,10 +429,11 @@ implicit none
        if (reason<0) then
           call PetscError(PETSC_COMM_WORLD, 0, PETSC_ERR_USER, "SNES did not converge");
        endif
+
+       call TDyPostSolve(tdy,U,ierr);
+       CHKERRA(ierr);
     endif
 
-    call TDyPostSolve(tdy,U,ierr);
-    CHKERRA(ierr);
 
     call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)
     CHKERRA(ierr);
