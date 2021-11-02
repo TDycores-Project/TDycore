@@ -175,6 +175,8 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
       ierr = SNESSetFromOptions(snes); CHKERRQ(ierr);
+      ierr = TDySetPreviousSolutionForSNESSolver(tdy,tdy->solution);
+             CHKERRQ(ierr);
       break;
     case TDyTS:
       ierr = TSSetFromOptions(ts); CHKERRQ(ierr);
