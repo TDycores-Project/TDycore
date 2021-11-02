@@ -761,6 +761,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     ierr = PetscViewerBinaryOpen(comm, options->init_file, FILE_MODE_READ,
                                  &viewer); CHKERRQ(ierr);
     ierr = VecLoad(tdy->solution, viewer); CHKERRQ(ierr);
+    ierr = VecCopy(tdy->solution, tdy->soln_prev); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -1516,6 +1517,7 @@ PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
 
   PetscFunctionBegin;
   ierr = TDyNaturalToGlobal(tdy,initial,tdy->solution); CHKERRQ(ierr);
+  ierr = TDyNaturalToGlobal(tdy,initial,tdy->soln_prev); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

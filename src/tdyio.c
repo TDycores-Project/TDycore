@@ -298,7 +298,7 @@ PetscErrorCode TDyIOOutputCheckpoint(TDy tdy){
   PetscErrorCode ierr;
   PetscViewer viewer;
   PetscSection sec;
-  Vec p = tdy->solution;
+  Vec p = tdy->soln_prev;
   Vec p_natural;
   PetscReal time = tdy->ti->time;
   char filename[PETSC_MAX_PATH_LEN];
@@ -344,7 +344,7 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
     ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
     ierr = DMPlexGetHeightStratum(dm,3,&istart,&iend);CHKERRQ(ierr);
     numVert = iend-istart;
-    ierr = VecGetSize(tdy->solution, &numCell);CHKERRQ(ierr);
+    ierr = VecGetSize(tdy->soln_prev, &numCell);CHKERRQ(ierr);
 
     ierr = TDyIOInitializeHDF5(ofilename,dm);CHKERRQ(ierr);
     ierr = TDyIOWriteXMFHeader(numCell,dim,numVert,numCorner);CHKERRQ(ierr);
@@ -359,7 +359,7 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   Vec s;
   PetscReal *s_vec_ptr;
   PetscInt cStart,cEnd,c,i,n;
-  Vec p = tdy->solution;
+  Vec p = tdy->soln_prev;
   DM dm = tdy->dm;
   PetscReal time = tdy->ti->time;
   int num_vars = tdy->io->num_vars;

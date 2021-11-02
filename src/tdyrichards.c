@@ -22,6 +22,7 @@ PetscErrorCode TDyRichardsInitialize(TDy tdy) {
   } else {
     ierr = VecSet(tdy->solution,101325.); CHKERRQ(ierr);
   }
+  ierr = VecCopy(tdy->solution, tdy->soln_prev); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
