@@ -470,9 +470,10 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->soln); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->soln_loc); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
-  ierr = VecDestroy(&tdy->soln); CHKERRQ(ierr);
   ierr = TDyIODestroy(&tdy->io); CHKERRQ(ierr);
   ierr = TDyTimeIntegratorDestroy(&tdy->ti); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
@@ -1586,6 +1587,7 @@ PetscErrorCode TDyCreateVectors(TDy tdy) {
     ierr = VecDuplicate(tdy->soln,&tdy->residual); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->accumulation_prev); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->soln_prev); CHKERRQ(ierr);
+    ierr = TDyCreateLocalVector(tdy,&tdy->soln_loc); CHKERRQ(ierr);
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
