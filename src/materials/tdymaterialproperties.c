@@ -319,7 +319,7 @@ static PetscErrorCode CreateSpatialContext(int dim,
   PetscFunctionBegin;
   WrapperStruct *wrapper;
   ierr = PetscMalloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
-  wrapper->dim = func;
+  wrapper->dim = dim;
   memset(wrapper->value, 0, 9*sizeof(PetscReal));
   wrapper->func = func;
   *context = wrapper;

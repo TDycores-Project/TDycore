@@ -33,8 +33,8 @@ typedef struct {
 
   PetscInt *cell_id;                               /* cell id in local numbering to which the subcell belongs to */
 
-  PetscInt       *num_nu_vectors;                  /* number of nu vectors of the subcell                        */
-  PetscInt       *nu_vector_offset;
+  PetscInt      *num_nu_vectors;                  /* number of nu vectors of the subcell                        */
+  PetscInt      *nu_vector_offset;
   TDyVector     *nu_vector;                       /* nu vectors used to compute transmissibility                */
   TDyVector     *nu_star_vector;                  /* nu_star vectors used to compute TPF transmissibility       */
   TDyCoordinate *variable_continuity_coordinates; /* coordinates at which variable continuity is enforced       */
@@ -182,6 +182,8 @@ typedef struct TDyMesh {
   PetscInt   num_boundary_faces;
   PetscInt   num_subcells;
 
+  PetscInt max_vertex_cells, max_vertex_faces;
+
   TDyCell    cells;
   TDySubcell subcells;
   TDyVertex  vertices;
@@ -195,8 +197,12 @@ typedef struct TDyMesh {
 
 PETSC_INTERN PetscErrorCode TDyMeshCreate(DM, TDyMesh**);
 PETSC_INTERN PetscErrorCode TDyMeshDestroy(TDyMesh*);
+
 PETSC_INTERN PetscErrorCode TDyMeshReadGeometry(TDyMesh*,const char*);
 PETSC_INTERN PetscErrorCode TDyMeshWriteGeometry(TDyMesh*,const char*);
+
+PETSC_INTERN PetscErrorCode TDyMeshGetNumLocalCells(TDyMesh*,PetscInt*);
+PETSC_INTERN PetscErrorCode TDyMeshGetLocalCellNaturalIDs(TDyMesh*,PetscInt*,PetscInt[]);
 PETSC_INTERN PetscErrorCode TDyMeshGetMaxVertexConnectivity(TDyMesh*,PetscInt*,PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetCellVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetCellEdges(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
@@ -208,6 +214,7 @@ PETSC_INTERN PetscErrorCode TDyMeshGetCellNumVertices(TDyMesh*, PetscInt, PetscI
 PETSC_INTERN PetscErrorCode TDyMeshGetCellNumVertices(TDyMesh*, PetscInt, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetCellNumFaces(TDyMesh*, PetscInt, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetCellNumNeighbors(TDyMesh*, PetscInt, PetscInt*);
+PETSC_INTERN PetscErrorCode TDyMeshGetCellIsLocal(TDyMesh*, PetscInt*, PetscInt[]);
 
 PETSC_INTERN PetscErrorCode TDyMeshGetVertexInternalCells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetVertexSubcells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
@@ -239,5 +246,44 @@ PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVariableContinutiyCoordinates(TDyMe
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceCentroids(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNumFaces(TDyMesh*, PetscInt, PetscInt*);
+
+PETSC_INTERN TDyCellType GetCellType(PetscInt);
+PETSC_INTERN PetscInt GetNumVerticesForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetNumOfCellsSharingAVertexForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetNumCellsPerEdgeForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetNumCellsPerFaceForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetNumOfCellsSharingAFaceForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetNumOfVerticesFormingAFaceForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetNumOfEdgesFormingAFaceForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetNumEdgesForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetNumNeighborsForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetNumFacesForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetNumFacesSharedByVertexForCellType(TDyCellType);
+PETSC_INTERN TDySubcellType GetSubcellTypeForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetNumSubcellsForSubcellType(TDySubcellType);
+PETSC_INTERN PetscInt GetNumOfNuVectorsForSubcellType(TDySubcellType);
+PETSC_INTERN PetscInt GetNumVerticesForSubcellType(TDySubcellType);
+PETSC_INTERN PetscInt GetNumFacesForSubcellType(TDySubcellType);
+PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalCells(TDyMesh*);
+PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalFacess(TDyMesh*);
+PETSC_INTERN PetscInt TDyMeshGetNumberOfNonLocalFacess(TDyMesh*);
+PETSC_INTERN PetscInt TDyMeshGetNumberOfNonInternalFacess(TDyMesh*);
+PETSC_INTERN PetscErrorCode TDyMeshFindFaceIDShareByTwoCells(TDyMesh*,PetscInt,PetscInt,PetscInt*);
+PETSC_INTERN PetscErrorCode TDyMeshPrintSubcellInfo(TDyMesh*, PetscInt, PetscInt);
+PETSC_INTERN PetscErrorCode TDyMeshPrintFaceInfo(TDyMesh*, PetscInt);
+PETSC_INTERN PetscErrorCode TDySubCell_GetIthNuVector(TDySubcell*, PetscInt, PetscInt, PetscInt, PetscReal*);
+PETSC_INTERN PetscErrorCode TDySubCell_GetIthFaceCentroid(TDySubcell*, PetscInt, PetscInt, PetscInt, PetscReal*);
+PETSC_INTERN PetscErrorCode TDySubCell_GetFaceIndexForAFace(TDySubcell*, PetscInt, PetscInt, PetscInt*);
+PETSC_INTERN PetscErrorCode TDyEdge_GetCentroid(TDyEdge*, PetscInt, PetscInt, PetscReal*);
+PETSC_INTERN PetscErrorCode TDyFace_GetCentroid(TDyFace*, PetscInt, PetscInt, PetscReal*);
+PETSC_INTERN PetscErrorCode TDyFace_GetNormal(TDyFace*, PetscInt, PetscInt, PetscReal*);
+PETSC_INTERN PetscErrorCode TDyVertex_GetCoordinate(TDyVertex*, PetscInt, PetscInt, PetscReal *);
+PETSC_INTERN PetscErrorCode TDyCell_GetCentroid2(TDyCell*, PetscInt, PetscInt, PetscReal*);
+PETSC_INTERN PetscErrorCode FindNeighboringVerticesOfAFace(TDyFace*, PetscInt, PetscInt, PetscInt[2]);
+PETSC_INTERN PetscErrorCode SetupCell2CellConnectivity(TDyVertex*, PetscInt, TDyCell*, TDyFace*, TDySubcell*, PetscInt**);
+PETSC_INTERN PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt, TDyFace*, TDyVertex*, PetscInt,PetscInt[3],PetscInt*);
+PETSC_INTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDyCell*, PetscInt, TDyVertex*, PetscInt, TDySubcell*, PetscInt*);
+PETSC_INTERN PetscErrorCode TDySubCell_GetIthNuStarVector(TDySubcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
+PETSC_INTERN PetscErrorCode TDyEdge_GetNormal(TDyEdge*,PetscInt,PetscInt, PetscReal*);
 
 #endif
