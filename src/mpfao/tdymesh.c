@@ -951,7 +951,6 @@ PetscErrorCode TDyMeshReadGeometry(TDyMesh *mesh, const char* filename) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
 
@@ -1135,11 +1134,10 @@ PetscErrorCode TDyMeshReadGeometry(TDyMesh *mesh, const char* filename) {
 ///
 /// @param [inout] tdy A TDy struct
 /// @returns 0  on success or a non-zero error code on failure
-PetscErrorCode TDyMeshWriteGeometry(TDy tdy, const char* filename) {
+PetscErrorCode TDyMeshWriteGeometry(TDyMesh *mesh, const char* filename) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  TDyMesh *mesh = tdy->mesh;
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
 
