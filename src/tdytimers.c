@@ -94,7 +94,7 @@ PetscErrorCode TDySetTimingMetadata(TDy tdy) {
     md->method = tdy->options.method;
     md->mode = tdy->options.mode;
     if (tdy->mesh != NULL) {
-      md->num_cells = TDyMeshGetNumberOfLocalCells(tdy->mesh);
+      md->num_cells = tdy->mesh->num_cells_local;
     } else {
       md->num_cells = 0;
     }

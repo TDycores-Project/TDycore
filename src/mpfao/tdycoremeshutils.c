@@ -352,21 +352,6 @@ PetscInt GetNumFacesForSubcellType(TDySubcellType subcell_type) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscInt TDyMeshGetNumberOfLocalCells(TDyMesh *mesh) {
-
-  PetscInt nLocalCells = 0;
-  PetscInt icell;
-
-  PetscFunctionBegin;
-
-  for (icell = 0; icell<mesh->num_cells; icell++) {
-    if (mesh->cells.is_local[icell]) nLocalCells++;
-  }
-
-  PetscFunctionReturn(nLocalCells);
-}
-
-/* -------------------------------------------------------------------------- */
 PetscInt TDyMeshGetNumberOfLocalFacess(TDyMesh *mesh) {
 
   PetscInt nLocalFaces = 0;
@@ -700,16 +685,19 @@ PetscErrorCode IdentifyLocalCells(TDy tdy) {
   ierr = VecDestroy(&junkVec); CHKERRQ(ierr);
 
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+  PetscInt num_cells_local = 0;
   for (c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
       cells->is_local[c] = PETSC_TRUE;
       cells->global_id[c] = gref;
+      num_cells_local++;
     } else {
       cells->is_local[c] = PETSC_FALSE;
       cells->global_id[c] = -gref-1;
     }
   }
+  mesh->num_cells_local = num_cells_local;
 
   PetscFunctionReturn(0);
 
@@ -885,7 +873,7 @@ PetscErrorCode TDyGetNumCellsLocal(TDy tdy, PetscInt *num_cells) {
 
   PetscFunctionBegin;
 
-  *num_cells = tdy->mesh->num_cells;
+  *num_cells = tdy->mesh->num_cells_local;
 
   PetscFunctionReturn(0);
 }

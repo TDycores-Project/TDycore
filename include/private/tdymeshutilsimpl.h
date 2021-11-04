@@ -18,7 +18,6 @@ PETSC_INTERN PetscInt GetNumSubcellsForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt GetNumOfNuVectorsForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt GetNumVerticesForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt GetNumFacesForSubcellType(TDySubcellType);
-PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalCells(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalFacess(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfNonLocalFacess(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfNonInternalFacess(TDyMesh*);

@@ -416,7 +416,7 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
     PetscInt nrow, ncol, nz;
 
     nFaces = tdy->mesh->num_faces;
-    nLocalCells = TDyMeshGetNumberOfLocalCells(tdy->mesh);
+    nLocalCells = tdy->mesh->num_cells_local;
     nNonLocalFaces = TDyMeshGetNumberOfNonLocalFacess(tdy->mesh);
     nNonInternalFaces = TDyMeshGetNumberOfNonInternalFacess(tdy->mesh);
 

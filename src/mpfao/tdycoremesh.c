@@ -3293,7 +3293,7 @@ PetscErrorCode ReadMeshGeometricAttributes(TDy tdy) {
   // volume_i, centroid_<x|y|z>_i, numNeighbor, nat_id_ij, face_area_of_ij, face_centroid_<x|y|z>_ij
   //
   
-  PetscInt numLocalCells = TDyMeshGetNumberOfLocalCells(mesh);
+  PetscInt numLocalCells = mesh->num_cells_local;
   PetscInt numNeighbor = cells->num_neighbors[0]; // It is assumed that all cells have same number of neighbors
   PetscInt numCellAttr = 5; // volume_i, centroid_<x|y|z>_i, numNeighbor
   PetscInt numNeigbhorAttr = 5; // nat_id_ij, face_centroid_<x|y|z>_ij face_area_of_ij
@@ -3477,7 +3477,7 @@ PetscErrorCode OutputMeshGeometricAttributes(TDy tdy) {
   // volume_i, centroid_<x|y|z>_i, numNeighbor, nat_id_ij, face_area_of_ij, face_centroid_<x|y|z>_ij
   //
 
-  PetscInt numLocalCells = TDyMeshGetNumberOfLocalCells(mesh);
+  PetscInt numLocalCells = mesh->num_cells_local;
 
   PetscInt numNeighbor = cells->num_neighbors[0]; // It is assumed that all cells have same number of neighbors
   PetscInt numCellAttr = 5; // volume_i, centroid_<x|y|z>_i, numNeighbor
