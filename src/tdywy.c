@@ -923,6 +923,9 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   MaterialProp *matprop = tdy->matprop;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
+
   nv   = tdy->nfv;
   wgt  = 1/((PetscReal)nv);
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
@@ -930,12 +933,10 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy,p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy,p,cEnd-cStart); CHKERRQ(ierr);
   ierr = TDyWYLocalElementCompute(tdy); CHKERRQ(ierr);
   ierr = TDyWYRecoverVelocity(tdy,Ul); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
 
   CharacteristicCurve *cc = tdy->cc;
 

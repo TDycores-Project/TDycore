@@ -32,7 +32,7 @@ PetscErrorCode TDyMPFAOTransientVariable(TS ts, Vec U, Vec C, void *ctx) {
 
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(tdy->soln_loc,&p); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, p, tdy->mesh->num_cells); CHKERRQ(ierr);
   ierr = VecRestoreArray(tdy->soln_loc,&p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,tdy->soln_loc); CHKERRQ(ierr);
@@ -76,7 +76,7 @@ PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS ts,PetscReal t,Vec U,Vec M
 
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(tdy->soln_loc,&p); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, p, tdy->mesh->num_cells); CHKERRQ(ierr);
   ierr = VecRestoreArray(tdy->soln_loc,&p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,tdy->soln_loc); CHKERRQ(ierr);

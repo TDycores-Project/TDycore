@@ -173,7 +173,7 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
 
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(tdy->soln_loc,&u_p); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy,u_p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy,u_p,tdy->mesh->num_cells); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,tdy->soln_loc); CHKERRQ(ierr);
   ierr = TDyMPFAO_SetBoundaryTemperature(tdy,tdy->soln_loc); CHKERRQ(ierr);

@@ -42,7 +42,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void 
 
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(P,&p); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, p, tdy->mesh->num_cells); CHKERRQ(ierr);
   ierr = VecRestoreArray(P,&p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,P); CHKERRQ(ierr);

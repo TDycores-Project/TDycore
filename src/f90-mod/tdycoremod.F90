@@ -328,10 +328,11 @@ module tdycore
   end interface TDyGetCellIsLocal
 
   Interface TDyUpdateState
-     subroutine TDyUpdateState(a,b,z)
+     subroutine TDyUpdateState(a,b,c,z)
        use tdycoredef
        TDy a ! tdy
        PetscScalar b (*) ! PetscScalar
+       PetscInt c
        integer z
      end subroutine TDyUpdateState
   end interface TDyUpdateState

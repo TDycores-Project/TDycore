@@ -731,8 +731,8 @@ PETSC_EXTERN void tdygetcellislocal_(TDy *tdy,PetscInt *ni, PetscInt y[], int *i
   *ierr = TDyGetCellIsLocal(*tdy,ni,y);
 }
 
-PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int *ierr )
+PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int ncells, int *ierr )
 {
-  *ierr = TDyUpdateState(*tdy,y);
+  *ierr = TDyUpdateState(*tdy,y,ncells);
 }
 

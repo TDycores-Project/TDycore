@@ -45,7 +45,7 @@ PetscErrorCode TDyMPFAOSNESPreSolve(TDy tdy) {
 
   // Update the auxillary variables
   ierr = VecGetArray(tdy->soln_prev,&p); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, p, tdy->mesh->num_cells_local); CHKERRQ(ierr);
   ierr = VecRestoreArray(tdy->soln_prev,&p); CHKERRQ(ierr);
 
   ierr = VecGetArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
@@ -95,7 +95,7 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(tdy->soln_loc,&p); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, p, tdy->mesh->num_cells); CHKERRQ(ierr);
   ierr = VecRestoreArray(tdy->soln_loc,&p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,tdy->soln_loc); CHKERRQ(ierr);

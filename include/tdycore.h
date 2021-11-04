@@ -188,7 +188,7 @@ PETSC_EXTERN PetscReal TDyWYPressureNorm(TDy,Vec);
 PETSC_EXTERN PetscReal TDyWYVelocityNorm(TDy);
 PETSC_EXTERN PetscErrorCode TDyWYResidual(TS,PetscReal,Vec,Vec,Vec,void *ctx);
 
-PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*,PetscInt);
 
 PETSC_EXTERN PetscErrorCode Pullback(PetscScalar*,PetscScalar*,PetscScalar*,PetscScalar,PetscInt);
 PETSC_EXTERN PetscInt TDyGetNumberOfCellVertices(DM);

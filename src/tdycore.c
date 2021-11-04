@@ -1072,7 +1072,7 @@ PetscErrorCode TDyComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
+PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U, PetscInt num_cells) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyEnterProfilingStage("TDycore Setup");
@@ -1082,8 +1082,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
   PetscInt dim2 = dim*dim;
-  PetscInt cStart, cEnd;
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  PetscInt cStart = 0, cEnd = num_cells;
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&P);CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
 
