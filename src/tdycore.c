@@ -1518,6 +1518,7 @@ PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
   PetscFunctionBegin;
   ierr = TDyNaturalToGlobal(tdy,initial,tdy->soln); CHKERRQ(ierr);
   ierr = TDyNaturalToGlobal(tdy,initial,tdy->soln_prev); CHKERRQ(ierr);
+  ierr = TDyNaturaltoLocal(tdy,initial,&(tdy->soln_loc)); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
