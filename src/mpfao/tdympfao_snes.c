@@ -71,8 +71,6 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   TDy      tdy = (TDy)ctx;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  DM       dm = tdy->dm;
-  Vec      Ul;
   PetscReal *p,*r;
   PetscErrorCode ierr;
 
@@ -91,23 +89,22 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 
   //ierr = SNESGetDM(snes,&dm); CHKERRQ(ierr);
 
-  ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
-  ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->soln_loc,&p); CHKERRQ(ierr);
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
-  ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->soln_loc,&p); CHKERRQ(ierr);
 
-  ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
+  ierr = TDyMPFAO_SetBoundaryPressure(tdy,tdy->soln_loc); CHKERRQ(ierr);
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
 
   PetscReal *accum_prev;
 
-  ierr = TDyMPFAOIFunction_Vertices(Ul,R,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_Vertices(tdy->soln_loc,R,ctx); CHKERRQ(ierr);
 
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
@@ -131,7 +128,6 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   /* Cleanup */
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
   ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
 
   if (tdy->options.output_residual) {
     ierr = TDySavePetscVecAsBinary(R,"residual.bin");
@@ -153,25 +149,18 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 PetscErrorCode TDyMPFAOSNESJacobian(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  DM             dm = tdy->dm;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  Vec Ul, Udotl;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-
-
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 
-  ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
-  ierr = DMGetLocalVector(dm,&Udotl); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
 
-  ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
-
-  ierr = TDyMPFAOIJacobian_Vertices(Ul, B, ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIJacobian_Vertices(tdy->soln_loc, B, ctx); CHKERRQ(ierr);
 
   PetscReal dtInv = 1.0/tdy->dtime;
 
@@ -204,9 +193,6 @@ PetscErrorCode TDyMPFAOSNESJacobian(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
     ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
-
-  ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm,&Udotl); CHKERRQ(ierr);
 
   if (tdy->options.output_jacobian) {
     ierr = TDySavePetscMatAsBinary(A,"jacobian.bin");

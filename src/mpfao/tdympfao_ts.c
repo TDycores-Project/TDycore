@@ -157,8 +157,6 @@ PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx
   TDy      tdy = (TDy)ctx;
   TDyMesh       *mesh = tdy->mesh;
   TDyCell       *cells = &mesh->cells;
-  DM       dm;
-  Vec      Ul;
   PetscReal *p,*dp_dt,*r;
   PetscErrorCode ierr;
 
@@ -176,23 +174,20 @@ PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
 
-  ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
-
-  ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
-  ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->soln_loc,&p); CHKERRQ(ierr);
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
-  ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->soln_loc,&p); CHKERRQ(ierr);
 
-  ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
+  ierr = TDyMPFAO_SetBoundaryPressure(tdy,tdy->soln_loc); CHKERRQ(ierr);
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
 
-  ierr = TDyMPFAOIFunction_Vertices(Ul,R,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_Vertices(tdy->soln_loc,R,ctx); CHKERRQ(ierr);
 
   ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
@@ -223,7 +218,6 @@ PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx
   /* Cleanup */
   ierr = VecRestoreArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
 
 #if defined(DEBUG)
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"IFunction.vec",&viewer); CHKERRQ(ierr);
@@ -533,7 +527,7 @@ PetscErrorCode TDyMPFAOIJacobian(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal shift
 
   TDy      tdy = (TDy)ctx;
   DM             dm = tdy->dm;
-  Vec Ul, Udotl;
+  Vec Udotl;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -542,23 +536,21 @@ PetscErrorCode TDyMPFAOIJacobian(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal shift
 
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 
-  ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm,&Udotl); CHKERRQ(ierr);
 
-  ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
   ierr = TDyGlobalToLocal(tdy,U_t,Udotl); CHKERRQ(ierr);
 
-  ierr = TDyMPFAOIJacobian_Vertices(Ul, B, ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIJacobian_Vertices(tdy->soln_loc, B, ctx); CHKERRQ(ierr);
 
   //ierr = TDyMPFAOIJacobian_BoundaryVertices_NotSharedWithInternalVertices(Ul, A, ctx);
-  ierr = TDyMPFAOIJacobian_Accumulation(Ul, Udotl, shift, B, ctx);
+  ierr = TDyMPFAOIJacobian_Accumulation(tdy->soln_loc, Udotl, shift, B, ctx);
 
   if (A !=B ) {
     ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
 
-  ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Udotl); CHKERRQ(ierr);
 
 #if defined(DEBUG)
