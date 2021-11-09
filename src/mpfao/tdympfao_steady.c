@@ -1,6 +1,7 @@
 #include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
+#include <private/tdympfaoimpl.h>
 #include <private/tdyutils.h>
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
@@ -8,9 +9,9 @@
 #include <private/tdycharacteristiccurvesimpl.h>
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDyMPFAO* mpfao,
-    DM dm, Mat K,Vec F) {
-
+PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy, Mat K,Vec F) {
+  DM             dm = tdy->dm;
+  TDyMPFAO      *mpfao = tdy->context;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
@@ -83,9 +84,12 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDyMPFAO* mpfao,
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices(TDyMPFAO* mpfao,
-    DM dm, Mat K,Vec F) {
+PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices(TDy tdy,
+    Mat K,Vec F) {
 
+  DM            dm = tdy->dm;
+  TDyMPFAO      *mpfao = tdy->context;
+  Conditions    *conditions = tdy->conditions;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
@@ -184,7 +188,8 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         if (faces->is_internal[face_id] == 0) {
           PetscInt f;
           f = faces->id[face_id] + fStart;
-          ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(mpfao->X[f*dim]), &pBoundary[numBoundary], tdy->boundary_pressure_ctx);CHKERRQ(ierr);
+          ierr = ConditionsComputeBoundaryPressure(conditions, 1, &(mpfao->X[f*dim]),
+            &pBoundary[numBoundary]);CHKERRQ(ierr);
           numBoundary++;
         }
       }
@@ -297,9 +302,12 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices(TDyMPFAO* mpfao,
-    DM dm, Mat K,Vec F) {
+PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices(TDy tdy,
+    Mat K,Vec F) {
 
+  DM             dm = tdy->dm;
+  TDyMPFAO      *mpfao = tdy->context;
+  Conditions    *conditions = tdy->conditions;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
@@ -356,7 +364,8 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
       PetscInt f;
       f = faces->id[face_id] + fStart;
-       ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(mpfao->X[f*dim]), &pBoundary[numBoundary], tdy->boundary_pressure_ctx);CHKERRQ(ierr);
+       ierr = ConditionsComputeBoundaryPressure(conditions, 1, &(mpfao->X[f*dim]), 
+           &pBoundary[numBoundary]);CHKERRQ(ierr);
        numBoundary++;
 
     }

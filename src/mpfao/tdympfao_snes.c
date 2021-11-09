@@ -1,5 +1,6 @@
 #include <tdytimers.h>
 #include <private/tdycoreimpl.h>
+#include <private/tdympfaoimpl.h>
 #include <private/tdymeshimpl.h>
 #include <private/tdyutils.h>
 #include <private/tdymemoryimpl.h>
@@ -21,12 +22,11 @@ PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accu
 
   PetscFunctionBegin;
 
-  TDyMesh *mesh = tdy->mesh;
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh *mesh = mpfao->mesh;
   TDyCell *cells = &mesh->cells;
-  CharacteristicCurve *cc = tdy->cc;
-  MaterialProp *matprop = tdy->matprop;
 
-  *accum = tdy->rho[icell] * matprop->porosity[icell] * cc->S[icell] * cells->volume[icell] / tdy->dtime;
+  *accum = mpfao->rho[icell] * mpfao->porosity[icell] * mpfao->S[icell] * cells->volume[icell] / tdy->dtime;
 
   PetscFunctionReturn(0);
 }
@@ -34,8 +34,9 @@ PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accu
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOSNESPreSolve(TDy tdy) {
 
-  TDyMesh       *mesh = tdy->mesh;
-  TDyCell       *cells = &mesh->cells;
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
   PetscReal *p, *accum_prev;
   PetscInt icell;
   PetscErrorCode ierr;
@@ -69,8 +70,9 @@ PetscErrorCode TDyMPFAOSNESPreSolve(TDy tdy) {
 PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDyMesh       *mesh = tdy->mesh;
-  TDyCell       *cells = &mesh->cells;
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh  *mesh = mpfao->mesh;
+  TDyCell  *cells = &mesh->cells;
   DM       dm = tdy->dm;
   Vec      Ul;
   PetscReal *p,*r;
@@ -101,9 +103,9 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
 
-  ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
-  ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
-  ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
+  ierr = TDyMPFAO_SetBoundaryPressure(mpfao,Ul); CHKERRQ(ierr);
+  ierr = TDyUpdateBoundaryState(mpfao); CHKERRQ(ierr);
+  ierr = MatMult(mpfao->Trans_mat, mpfao->P_vec, mpfao->TtimesP_vec);
 
   PetscReal *accum_prev;
 
@@ -125,7 +127,7 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
     ierr = TDyMPFAOSNESAccumulation(tdy,icell,&accum_current); CHKERRQ(ierr);
 
     r[icell] += accum_current - accum_prev[icell];
-    r[icell] -= tdy->source_sink[icell];
+    r[icell] -= mpfao->source_sink[icell];
   }
 
   /* Cleanup */
@@ -150,16 +152,15 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 PetscErrorCode TDyMPFAOSNESJacobian(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
+  TDyMPFAO *mpfao = tdy->context;
   DM             dm = tdy->dm;
-  TDyMesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
   Vec Ul, Udotl;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-
-
 
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 
@@ -176,9 +177,6 @@ PetscErrorCode TDyMPFAOSNESJacobian(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
   PetscReal dmass_dP, Jac;
   PetscInt icell;
 
-  CharacteristicCurve *cc = tdy->cc;
-  MaterialProp *matprop = tdy->matprop;
-
   for (icell=0;icell<mesh->num_cells;icell++){
 
     if (!cells->is_local[icell]) continue;
@@ -186,9 +184,9 @@ PetscErrorCode TDyMPFAOSNESJacobian(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
     // d/dP ( d(rho*phi*s)/dt * Vol )
     //  = d/dP [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
     //  = d/dP [(rho*phi*s)^{t+1}]
-    dmass_dP = tdy->rho[icell]     * dporosity_dP         * cc->S[icell] +
-               tdy->drho_dP[icell] * matprop->porosity[icell] * cc->S[icell] +
-               tdy->rho[icell]     * matprop->porosity[icell] * cc->dS_dP[icell];
+    dmass_dP = mpfao->rho[icell]     * dporosity_dP         * mpfao->S[icell] +
+               mpfao->drho_dP[icell] * mpfao->porosity[icell] * mpfao->S[icell] +
+               mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->dSdP[icell];
     Jac = dmass_dP * cells->volume[icell] * dtInv;
 
     ierr = MatSetValuesLocal(B,1,&icell,1,&icell,&Jac,ADD_VALUES);CHKERRQ(ierr);

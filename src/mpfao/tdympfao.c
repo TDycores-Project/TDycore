@@ -1942,7 +1942,7 @@ static PetscErrorCode UpdateTransmissibilityMatrix(TDyMPFAO *mpfao) {
           PetscInt row[1];
           row[0] = iface*num_subfaces + isubface;
           ierr = MatZeroRows(mpfao->Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
-          if (tdy->options.mode == TH) {
+          if (mpfao->Temp_subc_Gmatrix) { // TH
             ierr = MatZeroRows(mpfao->Temp_Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
           }
         }
@@ -1972,7 +1972,7 @@ static PetscErrorCode ComputeTransmissibilityMatrix(TDyMPFAO *mpfao, DM dm) {
 
     if (vertices->num_boundary_faces[ivertex] == 0 || vertices->num_internal_cells[ivertex] > 1) {
       ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(mpfao, ivertex, cells, 0); CHKERRQ(ierr);
-      if (tdy->options.mode == TH) {
+      if (mpfao->Temp_subc_Gmatrix) { // TH
         ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(mpfao, ivertex, cells, 1); CHKERRQ(ierr);
       }
     } else {
@@ -1981,7 +1981,7 @@ static PetscErrorCode ComputeTransmissibilityMatrix(TDyMPFAO *mpfao, DM dm) {
       if (mpfao->bc_type == MPFAO_DIRICHLET_BC ||
           mpfao->bc_type == MPFAO_SEEPAGE_BC) {
         ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(mpfao, dm, ivertex, cells, 0); CHKERRQ(ierr);
-        if (tdy->options.mode == TH) {
+        if (mpfao->Temp_subc_Gmatrix) { // TH
           ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(mpfao, dm, ivertex, cells, 1); CHKERRQ(ierr);
         }
       }
@@ -1991,7 +1991,7 @@ static PetscErrorCode ComputeTransmissibilityMatrix(TDyMPFAO *mpfao, DM dm) {
   ierr = MatAssemblyBegin(mpfao->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(mpfao->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
-  if (tdy->options.mode == TH) {
+  if (mpfao->Temp_subc_Gmatrix) { // TH
     ierr = MatAssemblyBegin(mpfao->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(mpfao->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
