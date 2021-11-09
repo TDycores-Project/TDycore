@@ -113,6 +113,59 @@ PetscErrorCode ConditionsSetBoundaryVelocity(Conditions *conditions,
   PetscFunctionReturn(0);
 }
 
+PetscBool ConditionsHasForcing(Conditions *conditions) {
+  return (conditions->compute_forcing != NULL);
+}
+
+PetscBool ConditionsHasEnergyForcing(Conditions *conditions) {
+  return (conditions->compute_energy_forcing != NULL);
+}
+
+PetscBool ConditionsHasBoundaryPressure(Conditions *conditions) {
+  return (conditions->compute_boundary_pressure != NULL);
+}
+
+PetscBool ConditionsHasBoundaryTemperature(Conditions *conditions) {
+  return (conditions->compute_boundary_temperature != NULL);
+}
+
+PetscBool ConditionsHasBoundaryVelocity(Conditions *conditions) {
+  return (conditions->compute_boundary_velocity != NULL);
+}
+
+PetscErrorCode ConditionsComputeForcing(Conditions *conditions, PetscInt n,
+                                        PetscReal *x, PetscReal *F) {
+  return conditions->compute_forcing(conditions->forcing_context, n, x, F);
+}
+
+PetscErrorCode ConditionsComputeEnergyForcing(Conditions *conditions,
+                                              PetscInt n, PetscReal *x,
+                                              PetscReal *E) {
+  return conditions->compute_energy_forcing(conditions->energy_forcing_context,
+                                            n, x, E);
+}
+
+PetscErrorCode ConditionsComputeBoundaryPressure(Conditions *conditions,
+                                                 PetscInt n, PetscReal *x,
+                                                 PetscReal *p) {
+  return conditions->compute_boundary_pressure(conditions->boundary_pressure_context,
+                                               n, x, p);
+}
+
+PetscErrorCode ConditionsComputeBoundaryTemperature(Conditions *conditions,
+                                                    PetscInt n, PetscReal *x,
+                                                    PetscReal *T) {
+  return conditions->compute_boundary_temperature(conditions->boundary_temperature_context,
+                                                  n, x, T);
+}
+
+PetscErrorCode ConditionsComputeBoundaryVelocity(Conditions *conditions,
+                                                 PetscInt n, PetscReal *x,
+                                                 PetscReal *v) {
+  return conditions->compute_boundary_velocity(conditions->boundary_velocity_context,
+                                                  n, x, v);
+}
+
 // This struct is stored in a context and used to call a Function with a NULL
 // context.
 typedef struct WrapperStruct {

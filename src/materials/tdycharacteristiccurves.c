@@ -478,7 +478,8 @@ void RelativePermeability_Mualem_Unsmoothed(PetscReal m,PetscReal Se,PetscReal *
 ///      a1      + 2 * a2 * x1 + 3 * a3 * x1^2 = df1_dx
 ///      a1      + 2 * a2 * x2 + 3 * a3 * x2^2 = df2_dx
 ///
-PetscErrorCode CubicPolynomialSetup(PetscReal x1, PetscReal x2, PetscReal rhs[4]) {
+static PetscErrorCode CubicPolynomialSetup(PetscReal x1, PetscReal x2,
+                                           PetscReal rhs[4]) {
 
   PetscInt n = 4, nrhs = 1;
 
@@ -510,7 +511,8 @@ PetscErrorCode CubicPolynomialSetup(PetscReal x1, PetscReal x2, PetscReal rhs[4]
 ///  f(x) = a0 + a1 * x + a2 * x^2 + a2 * x^3
 ///  df_dx = a1 + 2 * a2 * x + 3 * a3 * x^2
 ///
-PetscErrorCode CubicPolynomialEvaluate(PetscReal *coeffs, PetscReal x, PetscReal *f, PetscReal *df_dx) {
+static PetscErrorCode CubicPolynomialEvaluate(PetscReal *coeffs, PetscReal x,
+                                              PetscReal *f, PetscReal *df_dx) {
 
   PetscFunctionBegin;
 
@@ -520,51 +522,42 @@ PetscErrorCode CubicPolynomialEvaluate(PetscReal *coeffs, PetscReal x, PetscReal
   PetscFunctionReturn(0);
 }
 
-#if 0
-/* -------------------------------------------------------------------------- */
-///
 /// Sets up cubic polynomial smoothing for Mualem relative permeability function
 ///
 /// @param [inout] *cc  Charcteristic curve
 /// @param [in] ncells  Number of cells
 ///
-PetscErrorCode RelativePermeability_Mualem_SetupSmooth(CharacteristicCurves *cc, PetscInt ncells){
-
+/// Computes the coefficients for the cubic polynomial used to smooth the Mualem
+/// relative permeability between poly_low and 1.
+/// @param [in] m         Mualem parameter
+/// @param [in] poly_low  Value of Se above which polynomial smoothing should be done
+/// @param [out] *coeffs   Coefficents of cubic polynomial
+PetscErrorCode RelativePermeability_Mualem_SetSmoothingCoeffs(PetscReal m,
+                                                              PetscReal poly_low,
+                                                              PetscReal *coeffs) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
+  PetscReal poly_high = 1.0;
 
-  for (PetscInt c=0; c<ncells; c++){
+  PetscReal Kr, dKr_dSe;
+  RelativePermeability_Mualem_Unsmoothed(m, poly_low, &Kr, &dKr_dSe);
 
-    PetscReal m = cc->vg_m[c];
-    PetscReal poly_low = cc->mualem_poly_low[c];
-    PetscReal poly_high = 1.0;
+  coeffs[0] = 1.0;
+  coeffs[1] = Kr;
+  coeffs[2] = 0.0;
+  coeffs[3] = dKr_dSe;
 
-    PetscReal Kr, dKr_dSe;
-    PetscErrorCode ierr;
-    RelativePermeability_Mualem_Unsmoothed(m, poly_low, &Kr, &dKr_dSe);
-
-    cc->mualem_poly_coeffs[c][0] = 1.0;
-    cc->mualem_poly_coeffs[c][1] = Kr;
-    cc->mualem_poly_coeffs[c][2] = 0.0;
-    cc->mualem_poly_coeffs[c][3] = dKr_dSe;
-
-    ierr = CubicPolynomialSetup(poly_low, poly_high, cc->mualem_poly_coeffs[c]); CHKERRQ(ierr);
-  }
-
+  ierr = CubicPolynomialSetup(poly_low, poly_high, coeffs); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
-#endif
 
-/* -------------------------------------------------------------------------- */
-///
 /// Computes relative permeability using Mualem function
-///
 /// @param [in] m         Mualem parameter
 /// @param [in] poly_low  Value of Se above which polynomial smoothing should be done
 /// @param [in] *coeffs   Coefficents of cubic polynomial
 /// @param [in] Se        Effective saturation
 /// @param [out] *Kr      Relative permeability
 /// @param [out] *dKr_dSe Derivative of relative permeability
-///
 void RelativePermeability_Mualem(PetscReal m, PetscReal poly_low, PetscReal *coeffs, PetscReal Se,PetscReal *Kr,PetscReal *dKr_dSe) {
 
   if (Se > poly_low) {

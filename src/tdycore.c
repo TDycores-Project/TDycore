@@ -3,8 +3,8 @@ static char help[] = "TDycore \n\
   -tdy_velocity_bc_func <string>                : select one of the registered velocity boundary function \n\
   -tdy_init_file <input_file>                   : file for reading the initial conditions\n\
   -tdy_read_mesh <input_file>                   : mesh file \n\
-  -tdy_output_cell_geo_attributes <output_file> : file to output cell geometric attributes\n\
-  -tdy_read_cell_geo_attributes <input_file>    : file for reading cell geometric attribtue\n\n";
+  -tdy_output_cell_geom_attributes <output_file> : file to output cell geometric attributes\n\
+  -tdy_read_cell_geom_attributes <input_file>    : file for reading cell geometric attribtue\n\n";
 
 #include <private/tdycoreimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
@@ -258,6 +258,7 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   options->gardner_n=0.5;
   options->vangenuchten_m=0.8;
   options->vangenuchten_alpha=1.e-4;
+  options->mualem_poly_low=0.99;
 
   options->boundary_pressure = 0.0;
   options->boundary_temperature = 273.0;
@@ -626,11 +627,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Mesh options",""); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_mesh", options->mesh_file,sizeof(options->mesh_file),&options->read_mesh); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-tdy_output_mesh","Enable output of mesh attributes","",options->output_mesh,&(options->output_mesh),NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_output_geo_attributes", options->geom_attributes_file,sizeof(options->geom_attributes_file),&options->output_geom_attributes); CHKERRQ(ierr);
-  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_geo_attributes", options->geom_attributes_file,sizeof(options->geom_attributes_file),&options->read_geom_attributes); CHKERRQ(ierr);
-  if (options->output_geom_attributes && options->read_geom_attributes){
-    SETERRQ(comm,PETSC_ERR_USER,"Only one of -tdy_output_geom_attributes and -tdy_read_geom_attributes can be specified");
-  }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Other options

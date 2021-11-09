@@ -29,6 +29,7 @@ typedef struct {
   PetscReal gardner_n;
   PetscReal vangenuchten_m;
   PetscReal vangenuchten_alpha;
+  PetscReal mualem_poly_low;
 
   // Constant boundary values
   PetscReal boundary_pressure;
@@ -43,10 +44,6 @@ typedef struct {
   // Mesh-related options
   PetscBool read_mesh;
   char mesh_file[PETSC_MAX_PATH_LEN];
-
-  PetscBool output_geom_attributes;
-  PetscBool read_geom_attributes;
-  char geom_attributes_file[PETSC_MAX_PATH_LEN];
 
   // I/O settings
   PetscBool output_mesh;

@@ -633,7 +633,7 @@ PetscInt TDyMeshGetNumberOfLocalCells(TDyMesh *mesh) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscInt TDyMeshGetNumberOfLocalFacess(TDyMesh *mesh) {
+PetscInt TDyMeshGetNumberOfLocalFaces(TDyMesh *mesh) {
 
   PetscInt nLocalFaces = 0;
   PetscInt iface;
@@ -648,7 +648,7 @@ PetscInt TDyMeshGetNumberOfLocalFacess(TDyMesh *mesh) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscInt TDyMeshGetNumberOfNonLocalFacess(TDyMesh *mesh) {
+PetscInt TDyMeshGetNumberOfNonLocalFaces(TDyMesh *mesh) {
 
   PetscInt nNonLocalFaces = 0;
   PetscInt iface;
@@ -663,7 +663,7 @@ PetscInt TDyMeshGetNumberOfNonLocalFacess(TDyMesh *mesh) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscInt TDyMeshGetNumberOfNonInternalFacess(TDyMesh *mesh) {
+PetscInt TDyMeshGetNumberOfNonInternalFaces(TDyMesh *mesh) {
 
   PetscInt nNonInternalFaces = 0;
   PetscInt iface;
@@ -1165,7 +1165,7 @@ PetscErrorCode TDyMeshGetLocalCellNaturalIDs(TDyMesh *mesh, PetscInt *ni, PetscI
 /// @param [in] face_id ID of face
 /// @param [out] *subcell_id ID of subcell
 /// @returns 0 on success, or a non-zero error code on failure
-static PetscErrorCode TDyMeshGetSubcellIDGivenCellIdVertexIdFaceId(TDyMesh *mesh,
+PetscErrorCode TDyMeshGetSubcellIDGivenCellIdVertexIdFaceId(TDyMesh *mesh,
     PetscInt cell_id, PetscInt vertex_id, PetscInt face_id,
     PetscInt *subcell_id) {
 

@@ -246,6 +246,7 @@ PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVariableContinutiyCoordinates(TDyMe
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceCentroids(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNumFaces(TDyMesh*, PetscInt, PetscInt*);
+PETSC_INTERN PetscErrorCode TDyMeshGetSubcellIDGivenCellIdVertexIdFaceId(TDyMesh*,PetscInt,PetscInt,PetscInt,PetscInt*);
 
 PETSC_INTERN TDyCellType GetCellType(PetscInt);
 PETSC_INTERN PetscInt GetNumVerticesForCellType(TDyCellType);
@@ -265,9 +266,9 @@ PETSC_INTERN PetscInt GetNumOfNuVectorsForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt GetNumVerticesForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt GetNumFacesForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalCells(TDyMesh*);
-PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalFacess(TDyMesh*);
-PETSC_INTERN PetscInt TDyMeshGetNumberOfNonLocalFacess(TDyMesh*);
-PETSC_INTERN PetscInt TDyMeshGetNumberOfNonInternalFacess(TDyMesh*);
+PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalFaces(TDyMesh*);
+PETSC_INTERN PetscInt TDyMeshGetNumberOfNonLocalFaces(TDyMesh*);
+PETSC_INTERN PetscInt TDyMeshGetNumberOfNonInternalFaces(TDyMesh*);
 PETSC_INTERN PetscErrorCode TDyMeshFindFaceIDShareByTwoCells(TDyMesh*,PetscInt,PetscInt,PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshPrintSubcellInfo(TDyMesh*, PetscInt, PetscInt);
 PETSC_INTERN PetscErrorCode TDyMeshPrintFaceInfo(TDyMesh*, PetscInt);
@@ -285,5 +286,6 @@ PETSC_INTERN PetscErrorCode FindFaceIDsOfACellCommonToAVertex(PetscInt, TDyFace*
 PETSC_INTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDyCell*, PetscInt, TDyVertex*, PetscInt, TDySubcell*, PetscInt*);
 PETSC_INTERN PetscErrorCode TDySubCell_GetIthNuStarVector(TDySubcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyEdge_GetNormal(TDyEdge*,PetscInt,PetscInt, PetscReal*);
+PETSC_INTERN PetscBool IsClosureWithinBounds(PetscInt,PetscInt,PetscInt);
 
 #endif

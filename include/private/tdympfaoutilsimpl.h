@@ -3,14 +3,14 @@
 
 #include <petsc.h>
 
-PETSC_INTERN PetscErrorCode ExtractSubGmatrix(TDy,PetscInt,PetscInt,PetscInt,PetscReal**);
-PETSC_INTERN PetscErrorCode ExtractTempSubGmatrix(TDy,PetscInt,PetscInt,PetscInt,PetscReal**);
-PETSC_INTERN PetscErrorCode TDyUpdateBoundaryState(TDy);
-PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDy,Vec,PetscReal*,PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices(TDy,Vec,PetscReal*,PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices(TDy,Vec,PetscReal*,PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy,Vec);
-PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy,Vec);
+PETSC_INTERN PetscErrorCode ExtractSubGmatrix(TDyMPFAO*,PetscInt,PetscInt,PetscInt,PetscReal**);
+PETSC_INTERN PetscErrorCode ExtractTempSubGmatrix(TDyMPFAO*,PetscInt,PetscInt,PetscInt,PetscReal**);
+PETSC_INTERN PetscErrorCode TDyUpdateBoundaryState(TDyMPFAO*);
+PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDyMPFAO*,Vec,PetscReal*,PetscInt*);
+PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices(TDyMPFAO*,Vec,PetscReal*,PetscInt*);
+PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices(TDyMPFAO*,Vec,PetscReal*,PetscInt*);
+PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDyMPFAO*,Vec);
+PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDyMPFAO*,Vec);
 PETSC_INTERN PetscErrorCode ComputeGtimesZ(PetscReal*,PetscReal*,PetscInt,PetscReal*);
 
 #endif

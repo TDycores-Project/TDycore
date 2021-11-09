@@ -14,6 +14,9 @@ typedef struct TDyMPFAO {
   PetscInt gmatrix_method;
   PetscInt bc_type;
   PetscReal vangenuchten_m, vangenuchten_alpha, mualem_poly_low;
+  PetscBool output_geom_attributes;
+  PetscBool read_geom_attributes;
+  char geom_attributes_file[PETSC_MAX_PATH_LEN];
 
   // Mesh information
   TDyMesh *mesh;
@@ -48,7 +51,7 @@ typedef struct TDyMPFAO {
   PetscReal *c_soil; // soil specific heat per cell
 
   // Characteristic curve data
-  PetscReal *Kr, *dKrdSe; // relative permeability and derivative per cell
+  PetscReal *Kr, *dKrdS; // relative permeability and derivative per cell
   PetscReal *S, *dSdP, *d2SdP2, *dSdT; // saturation and derivatives per cell
   PetscReal *Sr; // residual saturation
 
