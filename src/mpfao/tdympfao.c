@@ -4,9 +4,7 @@
 #include <private/tdyoptions.h>
 #include <private/tdyutils.h>
 #include <private/tdymemoryimpl.h>
-#include <private/tdympfaoutilsimpl.h>
 #include <private/tdympfaoimpl.h>
-#include <private/tdympfaoutilsimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdydiscretization.h>
@@ -291,15 +289,17 @@ static PetscErrorCode AllocateMemoryForBoundaryValues(TDyMPFAO *mpfao,
 
   nbnd_faces = mesh->num_boundary_faces;
 
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->P_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->rho_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->vis_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->Kr_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->S_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->P_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->rho_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->vis_bnd)); CHKERRQ(ierr);
 
   PetscInt i;
   PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
   for (i=0;i<nbnd_faces;i++) {
-    ierr = EOSComputeWaterDensity(eos, mpfao->Pref, &(mpfao->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
-    ierr = EOSComputeWaterViscosity(eos, mpfao->Pref, &(mpfao->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
+    ierr = EOSComputeWaterDensity(eos, mpfao->Pref, &(mpfao->rho_bnd[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
+    ierr = EOSComputeWaterViscosity(eos, mpfao->Pref, &(mpfao->vis_bnd[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
   }
 
   TDY_STOP_FUNCTION_TIMER()
@@ -318,14 +318,14 @@ static PetscErrorCode AllocateMemoryForEnergyBoundaryValues(TDyMPFAO *mpfao,
 
   nbnd_faces = mesh->num_boundary_faces;
 
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->T_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->h_BND)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->T_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->h_bnd)); CHKERRQ(ierr);
 
   PetscInt i;
   PetscReal dh_dP, dh_dT;
   for (i=0;i<nbnd_faces;i++) {
     ierr = EOSComputeWaterEnthalpy(eos, mpfao->Tref, mpfao->Pref,
-                                   &(mpfao->h_BND[i]), &dh_dP, &dh_dT); CHKERRQ(ierr);
+                                   &(mpfao->h_bnd[i]), &dh_dP, &dh_dT); CHKERRQ(ierr);
   }
 
   TDY_STOP_FUNCTION_TIMER()
@@ -931,11 +931,11 @@ static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
 
   // Characteristic curve values
   ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->Kr)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dKrdS)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dKr_dS)); CHKERRQ(ierr);
   ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->S)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dSdP)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->d2SdP2)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dSdT)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dS_dP)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->d2S_dP2)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dS_dT)); CHKERRQ(ierr);
   ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->Sr)); CHKERRQ(ierr);
 
   // Water properties
@@ -999,11 +999,11 @@ static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
   memcpy(mpfao->K0, mpfao->K, 9*nc*sizeof(PetscReal));
   MaterialPropComputePorosity(matprop, nc, mpfao->X, mpfao->porosity);
   MaterialPropComputeSoilDensity(matprop, nc, mpfao->X, mpfao->rho_soil);
-  if (MaterialPropHasThermalConductivity) {
+  if (MaterialPropHasThermalConductivity(matprop)) {
     MaterialPropComputeThermalConductivity(matprop, nc, mpfao->X, mpfao->Kappa);
     memcpy(mpfao->Kappa0, mpfao->Kappa, 9*nc*sizeof(PetscReal));
   }
-  if (MaterialPropHasSoilSpecificHeat) {
+  if (MaterialPropHasSoilSpecificHeat(matprop)) {
     MaterialPropComputeSoilSpecificHeat(matprop, nc, mpfao->X, mpfao->c_soil);
   }
 
@@ -2529,8 +2529,8 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
   }
 
   // Compute the saturation and its derivatives.
-  ierr = SaturationCompute(cc->saturation, mpfao->Sr, Pc, mpfao->S, mpfao->dSdP,
-                           mpfao->d2SdP2);
+  ierr = SaturationCompute(cc->saturation, mpfao->Sr, Pc, mpfao->S, mpfao->dS_dP,
+                           mpfao->d2S_dP2);
 
   // Compute the effective saturation on cells.
   PetscReal Se[nc];
@@ -2539,12 +2539,12 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
   }
 
   // Compute the relative permeability and its derivative (w.r.t. Se).
-  ierr = RelativePermeabilityCompute(cc->rel_perm, Se, mpfao->Kr, mpfao->dKrdS);
+  ierr = RelativePermeabilityCompute(cc->rel_perm, Se, mpfao->Kr, mpfao->dKr_dS);
 
   // Correct dKr/dS using the chain rule, and update the permeability.
   for (PetscInt c=0;c<nc;c++) {
     PetscReal dSe_dS = 1.0/(1.0 - mpfao->Sr[c]);
-    mpfao->dKrdS[c] *= dSe_dS; // correct dKr/dS
+    mpfao->dKr_dS[c] *= dSe_dS; // correct dKr/dS
 
     for(PetscInt j=0; j<dim2; j++) {
       mpfao->K[c*dim2+j] = mpfao->K0[c*dim2+j] * mpfao->Kr[c];
@@ -2596,8 +2596,8 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
   }
 
   // Compute the saturation and its derivatives.
-  ierr = SaturationCompute(cc->saturation, mpfao->Sr, Pc, mpfao->S, mpfao->dSdP,
-                           mpfao->d2SdP2);
+  ierr = SaturationCompute(cc->saturation, mpfao->Sr, Pc, mpfao->S, mpfao->dS_dP,
+                           mpfao->d2S_dP2);
 
   // Compute the effective saturation on cells.
   PetscReal Se[nc];
@@ -2606,12 +2606,12 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
   }
 
   // Compute the relative permeability and its derivative (w.r.t. Se).
-  ierr = RelativePermeabilityCompute(cc->rel_perm, Se, mpfao->Kr, mpfao->dKrdS);
+  ierr = RelativePermeabilityCompute(cc->rel_perm, Se, mpfao->Kr, mpfao->dKr_dS);
 
   // Correct dKr/dS using the chain rule, and update the permeability.
   for (PetscInt c=0;c<nc;c++) {
     PetscReal dSe_dS = 1.0/(1.0 - mpfao->Sr[c]);
-    mpfao->dKrdS[c] *= dSe_dS; // correct dKr/dS
+    mpfao->dKr_dS[c] *= dSe_dS; // correct dKr/dS
 
     for(PetscInt j=0; j<dim2; j++) {
       mpfao->K[c*dim2+j] = mpfao->K0[c*dim2+j] * mpfao->Kr[c];

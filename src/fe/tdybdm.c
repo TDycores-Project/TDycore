@@ -368,7 +368,6 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscQuadrature face_quadrature;
   TDyBDM *bdm = tdy->context;
   DM dm = tdy->dm;
-  MaterialProp *matprop = tdy->matprop;
   Conditions *conditions = tdy->conditions;
 
   /* Get domain constants */
@@ -517,6 +516,7 @@ PetscErrorCode TDyComputeErrorNorms_BDM(void *context, DM dm, Conditions *condit
     ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
     ierr = DMGetSection(dm,&sec); CHKERRQ(ierr);
     ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+    norm = 0; norm_sum = 0;
     for(c=cStart; c<cEnd; c++) {
       ierr = DMPlexGetPointGlobal(dm,c,&gref,&junk); CHKERRQ(ierr);
       if(gref<0) continue;

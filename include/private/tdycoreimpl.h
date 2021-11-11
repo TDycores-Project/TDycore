@@ -55,6 +55,13 @@ struct _TDyOps {
   PetscErrorCode (*update_state)(void*, DM, EOS*, MaterialProp*,
                                  CharacteristicCurves*, PetscReal*);
 
+  // Called by TDyUpdateBoundaryState -- updates any state on the boundary
+  // maintained by the implementation with provided solution data.
+  // TODO: Should this be optional? Seems like MPFA-O needs it, but maybe FE
+  // TODO: methods don't...
+  PetscErrorCode (*update_boundary_state)(void*, DM, EOS*, MaterialProp*,
+                                          CharacteristicCurves*, PetscReal*);
+
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.
   PetscErrorCode (*compute_error_norms)(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);

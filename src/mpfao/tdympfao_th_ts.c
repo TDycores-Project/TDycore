@@ -5,7 +5,6 @@
 #include <private/tdyutils.h>
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
-#include <private/tdympfaoutilsimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdydiscretization.h>
 
@@ -45,8 +44,6 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_TH(Vec Ul, Vec R, void *ctx) {
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
   ierr = VecGetArray(mpfao->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
   ierr = VecGetArray(mpfao->Temp_TtimesP_vec,&Temp_TtimesP_vec_ptr); CHKERRQ(ierr);
-
-   CharacteristicCurves *cc_bnd = tdy->cc_bnd;
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -97,8 +94,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_TH(Vec Ul, Vec R, void *ctx) {
           uh   = mpfao->h[cell_id_up];
         }
         else {
-          ukvr = cc_bnd->Kr[-cell_id_up-1]/mpfao->vis_BND[-cell_id_up-1];
-          uh   = mpfao->h_BND[-cell_id_up-1];
+          ukvr = mpfao->Kr_bnd[-cell_id_up-1]/mpfao->vis_bnd[-cell_id_up-1];
+          uh   = mpfao->h_bnd[-cell_id_up-1];
         }
       }
       else {
@@ -108,16 +105,16 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_TH(Vec Ul, Vec R, void *ctx) {
           uh   = mpfao->h[cell_id_dn];
          }
          else {
-          ukvr = cc_bnd->Kr[-cell_id_dn-1]/mpfao->vis_BND[-cell_id_dn-1];
-          uh   = mpfao->h_BND[-cell_id_dn-1];
+          ukvr = mpfao->Kr_bnd[-cell_id_dn-1]/mpfao->vis_bnd[-cell_id_dn-1];
+          uh   = mpfao->h_bnd[-cell_id_dn-1];
          }
       }
 
       den = 0.0;
       if (cell_id_up>=0) den += mpfao->rho[cell_id_up];
-      else               den += mpfao->rho_BND[-cell_id_up-1];
+      else               den += mpfao->rho_bnd[-cell_id_up-1];
       if (cell_id_dn>=0) den += mpfao->rho[cell_id_dn];
-      else               den += mpfao->rho_BND[-cell_id_dn-1];
+      else               den += mpfao->rho_bnd[-cell_id_dn-1];
       den *= 0.5;
       flow_rate = ukvr*(-TtimesP[irow]); // flow_rate is darcy flux times area
 
@@ -185,7 +182,7 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
 
   ierr = TDyMPFAO_SetBoundaryPressure(mpfao,Ul); CHKERRQ(ierr);
   ierr = TDyMPFAO_SetBoundaryTemperature(mpfao,Ul); CHKERRQ(ierr);
-  ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
+  ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(mpfao->Trans_mat,mpfao->P_vec,mpfao->TtimesP_vec);
   ierr = MatMult(mpfao->Temp_Trans_mat,mpfao->Temp_P_vec,mpfao->Temp_TtimesP_vec);
 
@@ -238,10 +235,10 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
     // A_M = d(rho*phi*s)/dP * dP_dtime * Vol + d(rho*phi*s)/dT * dT_dtime * Vol
     dmass_dP = mpfao->rho[icell]     * dporosity_dP         * mpfao->S[icell] +
                mpfao->drho_dP[icell] * mpfao->porosity[icell] * mpfao->S[icell] +
-               mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->dSdP[icell];
+               mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->dS_dP[icell];
     dmass_dT = mpfao->rho[icell]     * dporosity_dT         * mpfao->S[icell] +
                mpfao->drho_dT[icell] * mpfao->porosity[icell] * mpfao->S[icell] +
-               mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->dSdT[icell];
+               mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->dS_dT[icell];
 
     // A_E = [d(rho*phi*s*U)/dP + d(rho*(1-phi)*T)/dP] * dP_dtime *Vol +
     //       [d(rho*phi*s*U)/dT + d(rho*(1-phi)*T)/dT] * dT_dtime *Vol
@@ -258,18 +255,18 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
     //              rock_dencpr * (-dpor_dt) * temp            + &
     //              rock_dencpr * (1-por)
 
-    PetscReal rock_dencpr = mpfao->rho_soil[icell]*mpfao->Cr[icell];
+    PetscReal rock_dencpr = mpfao->rho_soil[icell]*mpfao->c_soil[icell];
     PetscReal denergy_dP,denergy_dT;
 
     denergy_dP = mpfao->drho_dP[icell] * mpfao->porosity[icell] * mpfao->S[icell]     * mpfao->u[icell]     +
                  mpfao->rho[icell]     * dporosity_dP         * mpfao->S[icell]     * mpfao->u[icell]     +
-                 mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->dSdP[icell] * mpfao->u[icell]     +
+                 mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->dS_dP[icell] * mpfao->u[icell]     +
                  mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->S[icell]     * mpfao->du_dP[icell] +
                  rock_dencpr         * (-dporosity_dP)      * temp[icell];
 
     denergy_dT = mpfao->drho_dT[icell] * mpfao->porosity[icell] * mpfao->S[icell]     * mpfao->u[icell]     +
                  mpfao->rho[icell]     * dporosity_dT         * mpfao->S[icell]     * mpfao->u[icell]     +
-                 mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->dSdT[icell] * mpfao->u[icell]     +
+                 mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->dS_dT[icell] * mpfao->u[icell]     +
                  mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->S[icell]     * mpfao->du_dT[icell] +
                  rock_dencpr         * (-dporosity_dT)      * temp[icell]                           +
                  rock_dencpr         * (1.0 - mpfao->porosity[icell]);
@@ -331,8 +328,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_TH(Vec Ul, Mat A, void *ctx) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-
-  CharacteristicCurves *cc_bnd = tdy->cc_bnd;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
@@ -412,19 +407,19 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_TH(Vec Ul, Mat A, void *ctx) {
         if (cell_id_up>=0) {
           // "up" is an internal cell
           ukvr       = mpfao->Kr[cell_id_up]/mpfao->vis[cell_id_up];
-          dukvr_dPup = mpfao->dKrdS[cell_id_up]*mpfao->dSdP[cell_id_up]/mpfao->vis[cell_id_up] -
+          dukvr_dPup = mpfao->dKr_dS[cell_id_up]*mpfao->dS_dP[cell_id_up]/mpfao->vis[cell_id_up] -
                       mpfao->Kr[cell_id_up]/(mpfao->vis[cell_id_up]*mpfao->vis[cell_id_up])*mpfao->dvis_dP[cell_id_up];
-          dukvr_dTup = mpfao->dKrdS[cell_id_up]*mpfao->dSdT[cell_id_up]/mpfao->vis[cell_id_up] -
+          dukvr_dTup = mpfao->dKr_dS[cell_id_up]*mpfao->dS_dT[cell_id_up]/mpfao->vis[cell_id_up] -
                       mpfao->Kr[cell_id_up]/(mpfao->vis[cell_id_up]*mpfao->vis[cell_id_up])*mpfao->dvis_dT[cell_id_up];
           uh         = mpfao->h[cell_id_up];
           duh_dPup   = mpfao->dh_dP[cell_id_up];
           duh_dTup   = mpfao->dh_dT[cell_id_up];
         } else {
            // "up" is boundary cell
-          ukvr       = cc_bnd->Kr[-cell_id_up-1]/mpfao->vis_BND[-cell_id_up-1];
+          ukvr       = mpfao->Kr_bnd[-cell_id_up-1]/mpfao->vis_bnd[-cell_id_up-1];
           dukvr_dPup = 0.0;
           dukvr_dTup = 0.0;
-          uh         = mpfao->h_BND[-cell_id_up-1];
+          uh         = mpfao->h_bnd[-cell_id_up-1];
           duh_dPup   = 0.0;
           duh_dTup   = 0.0;
         }
@@ -433,19 +428,19 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_TH(Vec Ul, Mat A, void *ctx) {
         // Flow: up <--- dn
         if (cell_id_dn >= 0) {
           ukvr       = mpfao->Kr[cell_id_dn]/mpfao->vis[cell_id_dn];
-            dukvr_dPdn = mpfao->dKrdS[cell_id_dn]*mpfao->dSdP[cell_id_dn]/mpfao->vis[cell_id_dn] -
+            dukvr_dPdn = mpfao->dKr_dS[cell_id_dn]*mpfao->dS_dP[cell_id_dn]/mpfao->vis[cell_id_dn] -
                         mpfao->Kr[cell_id_dn]/(mpfao->vis[cell_id_dn]*mpfao->vis[cell_id_dn])*mpfao->dvis_dP[cell_id_dn];
-            dukvr_dTdn = mpfao->dKrdS[cell_id_dn]*mpfao->dSdT[cell_id_dn]/mpfao->vis[cell_id_dn] -
+            dukvr_dTdn = mpfao->dKr_dS[cell_id_dn]*mpfao->dS_dT[cell_id_dn]/mpfao->vis[cell_id_dn] -
                         mpfao->Kr[cell_id_dn]/(mpfao->vis[cell_id_dn]*mpfao->vis[cell_id_dn])*mpfao->dvis_dT[cell_id_dn];
             uh         = mpfao->h[cell_id_dn];
             duh_dPdn   = mpfao->dh_dP[cell_id_dn];
             duh_dTdn   = mpfao->dh_dT[cell_id_dn];
         } else {
           // "dn" is a boundary cell
-          ukvr       = cc_bnd->Kr[-cell_id_dn-1]/mpfao->vis_BND[-cell_id_dn-1];
+          ukvr       = mpfao->Kr_bnd[-cell_id_dn-1]/mpfao->vis_bnd[-cell_id_dn-1];
           dukvr_dPdn = 0.0;
           dukvr_dTdn = 0.0;
-          uh         = mpfao->h_BND[-cell_id_dn-1];
+          uh         = mpfao->h_bnd[-cell_id_dn-1];
           duh_dPdn   = 0.0;
           duh_dTdn   = 0.0;
         }
@@ -453,9 +448,9 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_TH(Vec Ul, Mat A, void *ctx) {
 
       den = 0.0;
       if (cell_id_up>=0) den += mpfao->rho[cell_id_up];
-      else               den += mpfao->rho_BND[-cell_id_up-1];
+      else               den += mpfao->rho_bnd[-cell_id_up-1];
       if (cell_id_dn>=0) den += mpfao->rho[cell_id_dn];
-      else               den += mpfao->rho_BND[-cell_id_dn-1];
+      else               den += mpfao->rho_bnd[-cell_id_dn-1];
       den *= 0.5;
 
       // If one of the cell is on the boundary
@@ -649,9 +644,9 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_TH(Vec Ul,Vec Udotl,PetscReal shif
 
     // Saturation
     sat = mpfao->S[icell];
-    dsat_dP = mpfao->dSdP[icell];
-    dsat_dT = mpfao->dSdT[icell];
-    d2sat_dP2 = mpfao->d2SdP2[icell];
+    dsat_dP = mpfao->dS_dP[icell];
+    dsat_dT = mpfao->dS_dT[icell];
+    d2sat_dP2 = mpfao->d2S_dP2[icell];
     d2sat_dT2 = 0.0;
     d2sat_dTdP = 0.0;
     d2sat_dPdT = d2sat_dTdP;
@@ -665,7 +660,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_TH(Vec Ul,Vec Udotl,PetscReal shif
     d2u_dTdP = 0.0;
     d2u_dPdT = d2u_dTdP;
 
-    PetscReal rock_dencpr = mpfao->rho_soil[icell]*mpfao->Cr[icell];
+    PetscReal rock_dencpr = mpfao->rho_soil[icell]*mpfao->c_soil[icell];
 
 
     // A_M = d(rho*phi*s)/dP * dP_dtime * Vol + d(rho*phi*s)/dT * dT_dtime * Vol

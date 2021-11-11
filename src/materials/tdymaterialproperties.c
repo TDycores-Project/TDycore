@@ -41,7 +41,6 @@ PetscErrorCode MaterialPropDestroy(MaterialProp *matprop) {
 PetscErrorCode MaterialPropSetPermeability(MaterialProp *matprop, void *context,
                                            PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
                                            void (*dtor)(void*)) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   if (matprop->permeability_context && matprop->permeability_dtor)
     matprop->permeability_dtor(matprop->permeability_context);

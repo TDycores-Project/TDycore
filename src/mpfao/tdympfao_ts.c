@@ -1,10 +1,10 @@
 #include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
+#include <private/tdympfaoimpl.h>
 #include <private/tdyutils.h>
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
-#include <private/tdympfaoutilsimpl.h>
 #include <private/tdydiscretization.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 
@@ -12,7 +12,8 @@
 PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
 
   TDy tdy = (TDy)ctx;
-  TDyMesh *mesh = tdy->mesh;
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh *mesh = mpfao->mesh;
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   TDyVertex *vertices = &mesh->vertices;
@@ -27,12 +28,9 @@ PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  CharacteristicCurve *cc = tdy->cc;
-  CharacteristicCurve *cc_bnd = tdy->cc_bnd;
-
   ierr = VecGetArray(R,&r_ptr); CHKERRQ(ierr);
-  ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
-  ierr = VecGetArray(tdy->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
+  ierr = VecGetArray(mpfao->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
+  ierr = VecGetArray(mpfao->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
 
   for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -74,15 +72,15 @@ PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
 
       PetscReal den_aveg = 0.0;
       if (cell_id_up>=0) {
-        den_aveg += tdy->rho[cell_id_up];
+        den_aveg += mpfao->rho[cell_id_up];
       } else {
-        den_aveg += tdy->rho_BND[-cell_id_up-1];
+        den_aveg += mpfao->rho_bnd[-cell_id_up-1];
       }
 
       if (cell_id_dn>=0) {
-        den_aveg += tdy->rho[cell_id_dn];
+        den_aveg += mpfao->rho[cell_id_dn];
       } else {
-        den_aveg += tdy->rho_BND[-cell_id_dn-1];
+        den_aveg += mpfao->rho_bnd[-cell_id_dn-1];
       }
 
       den_aveg *= 0.5;
@@ -94,32 +92,32 @@ PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
       if (TtimesP[irow] + den_aveg * G < 0.0) { // up ---> dn
         // Is the cell_id_up an internal or boundary cell?
         if (cell_id_up>=0) {
-          PetscReal Kr = cc->Kr[cell_id_up];
-          PetscReal vis = tdy->vis[cell_id_up];
+          PetscReal Kr = mpfao->Kr[cell_id_up];
+          PetscReal vis = mpfao->vis[cell_id_up];
 
           ukvr = Kr/vis;
         } else {
-          PetscReal Kr = cc_bnd->Kr[-cell_id_up-1];
-          PetscReal vis = tdy->vis_BND[-cell_id_up-1];
+          PetscReal Kr = mpfao->Kr_bnd[-cell_id_up-1];
+          PetscReal vis = mpfao->vis_bnd[-cell_id_up-1];
 
           ukvr = Kr/vis;
-	  if (tdy->options.mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_up-1] <= tdy->Pref) {
+          if (mpfao->bc_type == MPFAO_SEEPAGE_BC && mpfao->P_bnd[-cell_id_up-1] <= mpfao->Pref) {
             set_flow_to_zero = PETSC_TRUE;
           }
         }
       } else {
         // Is the cell_id_dn an internal or boundary cell?
         if (cell_id_dn>=0) {
-          PetscReal Kr = cc->Kr[cell_id_dn];
-          PetscReal vis = tdy->vis[cell_id_dn];
+          PetscReal Kr = mpfao->Kr[cell_id_dn];
+          PetscReal vis = mpfao->vis[cell_id_dn];
 
           ukvr = Kr/vis;
         } else {
-          PetscReal Kr = cc_bnd->Kr[-cell_id_dn-1];
-          PetscReal vis = tdy->vis_BND[-cell_id_dn-1];
+          PetscReal Kr = mpfao->Kr_bnd[-cell_id_dn-1];
+          PetscReal vis = mpfao->vis_bnd[-cell_id_dn-1];
 
           ukvr = Kr/vis;
-	  if (tdy->options.mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_dn-1] <= tdy->Pref) {
+	  if (mpfao->bc_type == MPFAO_SEEPAGE_BC && mpfao->P_bnd[-cell_id_dn-1] <= mpfao->Pref) {
             set_flow_to_zero = PETSC_TRUE;
 	  }
         }
@@ -144,8 +142,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
   }
 
   ierr = VecRestoreArray(R,&r_ptr); CHKERRQ(ierr);
-  ierr = VecRestoreArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
-  ierr = VecRestoreArray(tdy->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
+  ierr = VecRestoreArray(mpfao->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
+  ierr = VecRestoreArray(mpfao->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -155,7 +153,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
 PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDyMesh       *mesh = tdy->mesh;
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
   DM       dm;
   Vec      Ul;
@@ -164,9 +163,6 @@ PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-
-  CharacteristicCurve *cc = tdy->cc;
-  MaterialProp *matprop = tdy->matprop;
 
 //#define DEBUG
 #if defined(DEBUG)
@@ -188,9 +184,9 @@ PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
 
-  ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
-  ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
-  ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
+  ierr = TDyMPFAO_SetBoundaryPressure(mpfao,Ul); CHKERRQ(ierr);
+  ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
+  ierr = MatMult(mpfao->Trans_mat, mpfao->P_vec, mpfao->TtimesP_vec);
 
   ierr = TDyMPFAOIFunction_Vertices(Ul,R,ctx); CHKERRQ(ierr);
 
@@ -202,12 +198,12 @@ PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx
     if (!cells->is_local[icell]) continue;
 
     // d(rho*phi*s)/dP * dP/dt * Vol
-    PetscReal rho = tdy->rho[icell];
-    PetscReal drho_dP = tdy->drho_dP[icell];
-    PetscReal porosity = matprop->porosity[icell];
+    PetscReal rho = mpfao->rho[icell];
+    PetscReal drho_dP = mpfao->drho_dP[icell];
+    PetscReal porosity = mpfao->porosity[icell];
     PetscReal dporosity_dP = 0.0;
-    PetscReal S = cc->S[icell];
-    PetscReal dS_dP = cc->dS_dP[icell];
+    PetscReal S = mpfao->S[icell];
+    PetscReal dS_dP = mpfao->dS_dP[icell];
 
     PetscReal dmass_dP =
                 rho     * dporosity_dP * S   +
@@ -217,7 +213,7 @@ PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx
     PetscReal volume = cells->volume[icell];
 
     r[icell] += dmass_dP * dp_dt[icell] * volume;
-    r[icell] -= tdy->source_sink[icell] * volume;
+    r[icell] -= mpfao->source_sink[icell] * volume;
   }
 
   /* Cleanup */
@@ -253,8 +249,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   TDyVertex *vertices = &mesh->vertices;
-  CharacteristicCurve *cc = mpfao->cc;
-  CharacteristicCurve *cc_bnd = mpfao->cc_bnd;
 
   PetscErrorCode ierr;
 
@@ -329,18 +323,18 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
       PetscReal dden_aveg_dPdn = 0.0;
 
       if (cell_id_up>=0) {
-        den_aveg += 0.5*tdy->rho[cell_id_up];
-        dden_aveg_dPup = 0.5*tdy->drho_dP[cell_id_up];
+        den_aveg += 0.5*mpfao->rho[cell_id_up];
+        dden_aveg_dPup = 0.5*mpfao->drho_dP[cell_id_up];
       } else {
-        den_aveg += 0.5*tdy->rho_BND[-cell_id_up-1];
+        den_aveg += 0.5*mpfao->rho_bnd[-cell_id_up-1];
         dden_aveg_dPup = 0.0;
       }
 
       if (cell_id_dn>=0) {
-        den_aveg += 0.5*tdy->rho[cell_id_dn];
-        dden_aveg_dPdn = 0.5*tdy->drho_dP[cell_id_dn];
+        den_aveg += 0.5*mpfao->rho[cell_id_dn];
+        dden_aveg_dPdn = 0.5*mpfao->drho_dP[cell_id_dn];
       } else {
-        den_aveg += 0.5*tdy->rho_BND[-cell_id_dn-1];
+        den_aveg += 0.5*mpfao->rho_bnd[-cell_id_dn-1];
         dden_aveg_dPdn = 0.0;
       }
 
@@ -351,24 +345,24 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
         // Flow: up --> dn
         if (cell_id_up>=0) {
           // "up" is an internal cell
-          PetscReal Kr = cc->Kr[cell_id_up];
-          PetscReal dKr_dS = cc->dKr_dS[cell_id_up];
-          PetscReal vis = tdy->vis[cell_id_up];
-          PetscReal dvis_dP = tdy->dvis_dP[cell_id_up];
-          PetscReal dS_dP = cc->dS_dP[cell_id_up];
+          PetscReal Kr = mpfao->Kr[cell_id_up];
+          PetscReal dKr_dS = mpfao->dKr_dS[cell_id_up];
+          PetscReal vis = mpfao->vis[cell_id_up];
+          PetscReal dvis_dP = mpfao->dvis_dP[cell_id_up];
+          PetscReal dS_dP = mpfao->dS_dP[cell_id_up];
 
           ukvr       = Kr/vis;
           dukvr_dPup = dKr_dS*dS_dP/vis - Kr/(vis*vis)*dvis_dP;
 
         } else {
           // "up" is boundary cell
-          PetscReal Kr = cc_bnd->Kr[-cell_id_up-1];
-          PetscReal vis = mpfao->vis_BND[-cell_id_up-1];
+          PetscReal Kr = mpfao->Kr_bnd[-cell_id_up-1];
+          PetscReal vis = mpfao->vis_bnd[-cell_id_up-1];
 
           ukvr = Kr/vis;
           dukvr_dPup = 0.0;
 
-	  if (mpfao->bc_type == MPFAO_SEEPAGE_BC && mpfao->P_BND[-cell_id_up-1] <= mpfao->Pref) {
+	  if (mpfao->bc_type == MPFAO_SEEPAGE_BC && mpfao->P_bnd[-cell_id_up-1] <= mpfao->Pref) {
 	    set_jac_to_zero = PETSC_TRUE;
 	  }
         }
@@ -377,24 +371,24 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
         // Flow: up <--- dn
         if (cell_id_dn>=0) {
           // "dn" is an internal cell
-          PetscReal Kr = cc->Kr[cell_id_dn];
-          PetscReal dKr_dS = cc->dKr_dS[cell_id_dn];
-          PetscReal vis = tdy->vis[cell_id_dn];
-          PetscReal dvis_dP = tdy->dvis_dP[cell_id_dn];
-          PetscReal dS_dP = cc->dS_dP[cell_id_dn];
+          PetscReal Kr = mpfao->Kr[cell_id_dn];
+          PetscReal dKr_dS = mpfao->dKr_dS[cell_id_dn];
+          PetscReal vis = mpfao->vis[cell_id_dn];
+          PetscReal dvis_dP = mpfao->dvis_dP[cell_id_dn];
+          PetscReal dS_dP = mpfao->dS_dP[cell_id_dn];
 
           ukvr       = Kr/vis;
           dukvr_dPdn = dKr_dS*dS_dP/vis - Kr/(vis*vis)*dvis_dP;
 
         } else {
           // "dn" is a boundary cell
-          PetscReal Kr = cc_bnd->Kr[-cell_id_dn-1];
-          PetscReal vis = tdy->vis_BND[-cell_id_dn-1];
+          PetscReal Kr = mpfao->Kr_bnd[-cell_id_dn-1];
+          PetscReal vis = mpfao->vis_bnd[-cell_id_dn-1];
 
           ukvr       = Kr/vis;
           dukvr_dPdn = 0.0;
 
-          if (tdy->options.mpfao_bc_type == MPFAO_SEEPAGE_BC && tdy->P_BND[-cell_id_dn-1] <= tdy->Pref) {
+          if (mpfao->bc_type == MPFAO_SEEPAGE_BC && mpfao->P_bnd[-cell_id_dn-1] <= mpfao->Pref) {
             set_jac_to_zero = PETSC_TRUE;
           }
         }
@@ -408,7 +402,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
         dn_cols[icol] = -1;
         PetscInt cell_id = vertices->internal_cell_ids[vOffsetCell + icol];
 
-        PetscReal T = tdy->Trans[vertex_id][irow][icol];
+        PetscReal T = mpfao->Trans[vertex_id][irow][icol];
 
         PetscReal Jac;
 
@@ -456,8 +450,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
     }
   }
 
-  ierr = VecRestoreArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
-  ierr = VecRestoreArray(tdy->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
+  ierr = VecRestoreArray(mpfao->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
+  ierr = VecRestoreArray(mpfao->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
 
   ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
@@ -470,8 +464,9 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
 PetscErrorCode TDyMPFAOIJacobian_Accumulation(Vec Ul,Vec Udotl,PetscReal shift,Mat A,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDyMesh       *mesh = tdy->mesh;
-  TDyCell       *cells = &mesh->cells;
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
   PetscInt icell;
   PetscReal *dp_dt;
   PetscErrorCode ierr;
@@ -484,8 +479,6 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation(Vec Ul,Vec Udotl,PetscReal shift,M
   TDY_START_FUNCTION_TIMER()
 
   cells = &mesh->cells;
-  CharacteristicCurve *cc = tdy->cc;
-  MaterialProp *matprop = tdy->matprop;
 
   ierr = VecGetArray(Udotl,&dp_dt); CHKERRQ(ierr);
 
@@ -493,24 +486,24 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation(Vec Ul,Vec Udotl,PetscReal shift,M
 
     if (!cells->is_local[icell]) continue;
 
-    drho_dP = tdy->drho_dP[icell];
-    d2rho_dP2 = tdy->d2rho_dP2[icell];
+    drho_dP = mpfao->drho_dP[icell];
+    d2rho_dP2 = mpfao->d2rho_dP2[icell];
 
     // d(rho*phi*s)/dP * dP/dt * Vol
-    dmass_dP = tdy->rho[icell] * dporosity_dP         * cc->S[icell] +
-               drho_dP         * matprop->porosity[icell] * cc->S[icell] +
-               tdy->rho[icell] * matprop->porosity[icell] * cc->dS_dP[icell];
+    dmass_dP = mpfao->rho[icell] * dporosity_dP         * mpfao->S[icell] +
+               drho_dP         * mpfao->porosity[icell] * mpfao->S[icell] +
+               mpfao->rho[icell] * mpfao->porosity[icell] * mpfao->dS_dP[icell];
 
     d2mass_dP2 = (
-      cc->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP         +
-      cc->S[icell]       * drho_dP                * dporosity_dP         +
-      cc->S[icell]       * tdy->rho[icell]        * d2porosity_dP2       +
-      cc->dS_dP[icell]   * drho_dP                * matprop->porosity[icell] +
-      cc->S[icell]       * d2rho_dP2              * matprop->porosity[icell] +
-      cc->S[icell]       * drho_dP                * dporosity_dP         +
-      cc->d2S_dP2[icell] * tdy->rho[icell]        * matprop->porosity[icell] +
-      cc->dS_dP[icell]   * drho_dP                * matprop->porosity[icell] +
-      cc->dS_dP[icell]   * tdy->rho[icell]        * dporosity_dP
+      mpfao->dS_dP[icell]   * mpfao->rho[icell]        * dporosity_dP         +
+      mpfao->S[icell]       * drho_dP                * dporosity_dP         +
+      mpfao->S[icell]       * mpfao->rho[icell]        * d2porosity_dP2       +
+      mpfao->dS_dP[icell]   * drho_dP                * mpfao->porosity[icell] +
+      mpfao->S[icell]       * d2rho_dP2              * mpfao->porosity[icell] +
+      mpfao->S[icell]       * drho_dP                * dporosity_dP         +
+      mpfao->d2S_dP2[icell] * mpfao->rho[icell]        * mpfao->porosity[icell] +
+      mpfao->dS_dP[icell]   * drho_dP                * mpfao->porosity[icell] +
+      mpfao->dS_dP[icell]   * mpfao->rho[icell]        * dporosity_dP
        );
 
     PetscReal value = (shift*dmass_dP + d2mass_dP2*dp_dt[icell])*cells->volume[icell];
@@ -531,8 +524,8 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation(Vec Ul,Vec Udotl,PetscReal shift,M
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOIJacobian(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal shift,Mat A,Mat B,void *ctx) {
 
-  TDy      tdy = (TDy)ctx;
-  DM             dm = tdy->dm;
+  TDy tdy = (TDy)ctx;
+  DM dm = tdy->dm;
   Vec Ul, Udotl;
   PetscErrorCode ierr;
 

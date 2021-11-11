@@ -5,7 +5,6 @@
 #include <private/tdyutils.h>
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
-#include <private/tdympfaoutilsimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfaotsimpl.h>
 #include <private/tdydiscretization.h>
@@ -17,7 +16,6 @@ PetscInt icount_j = 0;
 PetscInt max_count = 5;
 #endif
 
-/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accum) {
 
   PetscFunctionBegin;
@@ -31,7 +29,6 @@ PetscErrorCode TDyMPFAOSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accu
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOSNESPreSolve(TDy tdy) {
 
   TDyMPFAO *mpfao = tdy->context;
@@ -104,7 +101,7 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(mpfao,Ul); CHKERRQ(ierr);
-  ierr = TDyUpdateBoundaryState(mpfao); CHKERRQ(ierr);
+  ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(mpfao->Trans_mat, mpfao->P_vec, mpfao->TtimesP_vec);
 
   PetscReal *accum_prev;
@@ -184,9 +181,9 @@ PetscErrorCode TDyMPFAOSNESJacobian(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
     // d/dP ( d(rho*phi*s)/dt * Vol )
     //  = d/dP [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
     //  = d/dP [(rho*phi*s)^{t+1}]
-    dmass_dP = mpfao->rho[icell]     * dporosity_dP         * mpfao->S[icell] +
+    dmass_dP = mpfao->rho[icell]     * dporosity_dP           * mpfao->S[icell] +
                mpfao->drho_dP[icell] * mpfao->porosity[icell] * mpfao->S[icell] +
-               mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->dSdP[icell];
+               mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->dS_dP[icell];
     Jac = dmass_dP * cells->volume[icell] * dtInv;
 
     ierr = MatSetValuesLocal(B,1,&icell,1,&icell,&Jac,ADD_VALUES);CHKERRQ(ierr);
@@ -218,5 +215,4 @@ PetscErrorCode TDyMPFAOSNESJacobian(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
 
   PetscFunctionReturn(0);
 }
-
 

@@ -51,22 +51,21 @@ typedef struct TDyMPFAO {
   PetscReal *c_soil; // soil specific heat per cell
 
   // Characteristic curve data
-  PetscReal *Kr, *dKrdS; // relative permeability and derivative per cell
-  PetscReal *S, *dSdP, *d2SdP2, *dSdT; // saturation and derivatives per cell
+  PetscReal *Kr, *dKr_dS; // relative permeability and derivative per cell
+  PetscReal *S, *dS_dP, *d2S_dP2, *dS_dT; // saturation and derivatives per cell
   PetscReal *Sr; // residual saturation
 
-  /* boundary pressure and auxillary variables that depend on boundary pressure */
-  PetscReal *P_BND;
-  PetscReal *T_BND;              /* boundary temperature */
-  PetscReal *rho_BND;            /* density of water [kg m-3]*/
-  PetscReal *vis_BND;            /* viscosity of water [Pa s] */
-  PetscReal *h_BND;              /* enthalpy of water */
+  // boundary pressure and auxillary variables that depend on boundary pressure
+  PetscReal *P_bnd; // pressure [Pa]
+  PetscReal *T_bnd; // temperature [K]
+  PetscReal *rho_bnd; // water density [kg m-3]
+  PetscReal *vis_bnd; // water viscosity [Pa s]
+  PetscReal *h_bnd; // water enthalpy
 
-  CharacteristicCurves *cc_bnd;
-  PetscReal *Kr_BND; /* relative permeability for each cell [1] */
-  PetscReal *S_BND;  /* saturation, first derivative wrt boundary pressure, and */
-  PetscReal *source_sink;         /* flow equation source sink */
-  PetscReal *energy_source_sink;  /* energy equation source sink */
+  PetscReal *Kr_bnd, *dKr_dS_bnd; // boundary rel perm and derivative
+  PetscReal *S_bnd, *dS_dP_bnd, *d2S_dP2_bnd; // saturation and derivatives
+  PetscReal *source_sink;         // flow equation source sink
+  PetscReal *energy_source_sink;  // energy equation source sink
 
   /* non-linear function of liquid pressure */
   PetscReal  *rho, *drho_dP, *d2rho_dP2;       /* density of water [kg m-3]*/
@@ -111,5 +110,16 @@ PETSC_INTERN PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS,PetscReal,Vec
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESFunction(SNES,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESJacobian(SNES,Vec,Mat,Mat,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESPreSolve(TDy);
+
+// Utils
+PETSC_INTERN PetscErrorCode ExtractSubGmatrix(TDyMPFAO*,PetscInt,PetscInt,PetscInt,PetscReal**);
+PETSC_INTERN PetscErrorCode ExtractTempSubGmatrix(TDyMPFAO*,PetscInt,PetscInt,PetscInt,PetscReal**);
+PETSC_INTERN PetscErrorCode TDyMPFAOUpdateBoundaryState(TDy);
+PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDy,Vec,PetscReal*,PetscInt*);
+PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices(TDy, Vec,PetscReal*,PetscInt*);
+PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices(TDy,Vec,PetscReal*,PetscInt*);
+PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy,Vec);
+PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy,Vec);
+PETSC_INTERN PetscErrorCode ComputeGtimesZ(PetscReal*,PetscReal*,PetscInt,PetscReal*);
 
 #endif

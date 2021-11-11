@@ -169,7 +169,6 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
               f; /* allocated at maximum possible size */
   DM dm = tdy->dm;
   TDyWY *wy = tdy->context;
-  MaterialProp *matprop = tdy->matprop;
   Conditions *conditions = tdy->conditions;
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -1017,7 +1016,6 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   PetscInt c,cStart,cEnd,nv,gref,nf,f,fStart,fEnd,i,j,dim;
   PetscReal *p,*dp_dt,*r,wgt,sign,div;
   TDyWY *wy = tdy->context;
-  MaterialProp *matprop = tdy->matprop;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
   nv   = wy->nfv;
@@ -1033,8 +1031,6 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
-
-  CharacteristicCurves *cc = tdy->cc;
 
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&gref,&fEnd); CHKERRQ(ierr);

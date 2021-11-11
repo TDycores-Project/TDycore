@@ -1,10 +1,10 @@
 #include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
+#include <private/tdympfaoimpl.h>
 #include <private/tdyutils.h>
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
-#include <private/tdympfaoutilsimpl.h>
 #include <private/tdydiscretization.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfaotsimpl.h>
@@ -13,8 +13,9 @@
 PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDyMesh       *mesh = tdy->mesh;
-  TDyCell       *cells = &mesh->cells;
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
   DM       dm;
   Vec      Ul,P,M,R_P,R_M;
   PetscReal *p,*u_t,*r,*r_p,*m;
@@ -24,9 +25,6 @@ PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void 
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-
-    CharacteristicCurve *cc = tdy->cc;
-  MaterialProp *matprop = tdy->matprop;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
@@ -46,9 +44,9 @@ PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void 
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
   ierr = VecRestoreArray(P,&p); CHKERRQ(ierr);
 
-  ierr = TDyMPFAO_SetBoundaryPressure(tdy,P); CHKERRQ(ierr);
-  ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
-  ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
+  ierr = TDyMPFAO_SetBoundaryPressure(mpfao,P); CHKERRQ(ierr);
+  ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
+  ierr = MatMult(mpfao->Trans_mat, mpfao->P_vec, mpfao->TtimesP_vec);
 
   ierr = TDyMPFAOIFunction_Vertices(P,R_P,ctx); CHKERRQ(ierr);
 
@@ -71,8 +69,8 @@ PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void 
     p_idx = icell*2;
     m_idx = p_idx + 1;
 
-    r[p_idx]  = u_t[m_idx] * cells->volume[icell] - tdy->source_sink[icell] * cells->volume[icell]+ r_p[icell];
-    r[m_idx]  = m  [icell] - tdy->rho[icell] * matprop->porosity[icell] * cc->S[icell]* cells->volume[icell];
+    r[p_idx]  = u_t[m_idx] * cells->volume[icell] - mpfao->source_sink[icell] * cells->volume[icell]+ r_p[icell];
+    r[m_idx]  = m  [icell] - mpfao->rho[icell] * mpfao->porosity[icell] * mpfao->S[icell]* cells->volume[icell];
   }
 
   /* Cleanup */

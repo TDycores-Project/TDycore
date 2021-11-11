@@ -109,7 +109,6 @@ PetscErrorCode SaturationCompute(Saturation *sat,
                                  PetscReal *S, PetscReal *dSdP,
                                  PetscReal *d2SdP2) {
   PetscFunctionBegin;
-  PetscErrorCode ierr;
   int num_types = (int)(sizeof(sat->points)/sizeof(sat->points[0]));
   for (int type = 0; type < num_types; ++type) {
     if (type == SAT_FUNC_GARDNER) {
@@ -217,7 +216,6 @@ PetscErrorCode RelativePermeabilityCompute(RelativePermeability *rel_perm,
                                            PetscReal *Se, PetscReal *Kr,
                                            PetscReal *dKrdSe) {
   PetscFunctionBegin;
-  PetscErrorCode ierr;
   int num_types = (int)(sizeof(rel_perm->points)/sizeof(rel_perm->points[0]));
   for (int type = 0; type < num_types; ++type) {
     PetscInt num_points = rel_perm->num_points[type];
