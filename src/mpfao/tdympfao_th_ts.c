@@ -180,8 +180,8 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = TDyUpdateState(tdy,u_p); CHKERRQ(ierr);
 
-  ierr = TDyMPFAO_SetBoundaryPressure(mpfao,Ul); CHKERRQ(ierr);
-  ierr = TDyMPFAO_SetBoundaryTemperature(mpfao,Ul); CHKERRQ(ierr);
+  ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
+  ierr = TDyMPFAO_SetBoundaryTemperature(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(mpfao->Trans_mat,mpfao->P_vec,mpfao->TtimesP_vec);
   ierr = MatMult(mpfao->Temp_Trans_mat,mpfao->Temp_P_vec,mpfao->Temp_TtimesP_vec);

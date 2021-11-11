@@ -44,7 +44,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void 
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
   ierr = VecRestoreArray(P,&p); CHKERRQ(ierr);
 
-  ierr = TDyMPFAO_SetBoundaryPressure(mpfao,P); CHKERRQ(ierr);
+  ierr = TDyMPFAO_SetBoundaryPressure(tdy,P); CHKERRQ(ierr);
   ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(mpfao->Trans_mat, mpfao->P_vec, mpfao->TtimesP_vec);
 

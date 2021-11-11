@@ -100,7 +100,7 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = TDyUpdateState(tdy, p); CHKERRQ(ierr);
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
 
-  ierr = TDyMPFAO_SetBoundaryPressure(mpfao,Ul); CHKERRQ(ierr);
+  ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(mpfao->Trans_mat, mpfao->P_vec, mpfao->TtimesP_vec);
 

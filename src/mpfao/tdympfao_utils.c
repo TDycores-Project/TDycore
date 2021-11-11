@@ -27,85 +27,68 @@ PetscErrorCode TDyMPFAOUpdateBoundaryState(TDy tdy) {
   TDyMesh *mesh = mpfao->mesh;
   TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
-  PetscReal Se,dSe_dS,dKr_dSe,n,m,alpha,Kr;
-  PetscInt dim;
-  PetscInt p_bnd_idx, cell_id, iface;
-  PetscReal Sr,S,dS_dP,d2S_dP2,P;
 
   PetscFunctionBegin;
 
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
-  CharacteristicCurves *cc = tdy->cc;
+  // Loop over boundary faces and assemble a list of "boundary cells" attached
+  // to them, plus indices for storing quantities on the boundary.
+  // num_boundary_cells <= mesh->num_boundary_faces, so we can pre-size
+  // our list of cells.
+  PetscInt num_boundary_cells = 0;
+  PetscInt boundary_cells[mesh->num_boundary_faces];
+  PetscInt p_bnd_indices[mesh->num_boundary_faces];
+  for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
 
-  for (iface=0; iface<mesh->num_faces; iface++) {
-
-    if (faces->is_internal[iface]) continue;
+    if (faces->is_internal[iface]) continue; // skip non-boundary faces
 
     PetscInt *cell_ids, num_cells;
     ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
 
     if (cell_ids[0] >= 0) {
-      cell_id = cell_ids[0];
-      p_bnd_idx = -cell_ids[1] - 1;
+      boundary_cells[num_boundary_cells] = cell_ids[0];
+      p_bnd_indices[num_boundary_cells] = -cell_ids[1] - 1;
     } else {
-      cell_id = cell_ids[1];
-      p_bnd_idx = -cell_ids[0] - 1;
+      boundary_cells[num_boundary_cells] = cell_ids[1];
+      p_bnd_indices[num_boundary_cells] = -cell_ids[0] - 1;
     }
+    ++num_boundary_cells;
+  }
 
-    // Compute the capillary pressure on the cells.
-    PetscReal Pc[num_cells];
-    for (PetscInt c = 0; c < num_cells; ++c) {
-      P = mpfao->Pref - mpfao->P_bnd[p_bnd_idx];
-    }
+  // Store the capillary pressure and residual saturation on the boundary.
+  PetscReal Pc[num_boundary_cells], Sr[num_boundary_cells];
+  for (PetscInt c = 0; c < num_boundary_cells; ++c) {
+    PetscInt c_index = boundary_cells[c];
+    Sr[c_index] = mpfao->Sr[c_index];
+    PetscInt b_index = p_bnd_indices[c];
+    Pc[b_index] = mpfao->Pref - mpfao->P_bnd[b_index];
+  }
 
-    switch (mpfao->SatFuncType[cell_id]) {
-    case SAT_FUNC_GARDNER :
-      n = cc->gardner_n[cell_id];
-      m = cc->gardner_m[cell_id];
-      alpha = cc->vg_alpha[cell_id];
-      Sr = mpfao->Sr[cell_id];
-      P = mpfao->Pref - mpfao->P_bnd[p_bnd_idx];
+  // Compute the saturation and its derivatives on the boundary.
+  CharacteristicCurves *cc = tdy->cc;
+  PetscReal S[num_boundary_cells], dS_dP[num_boundary_cells],
+            d2S_dP2[num_boundary_cells];
+  ierr = SaturationCompute(cc->saturation, Sr, Pc, S, dS_dP, d2S_dP2); CHKERRQ(ierr);
 
-      PressureSaturation_Gardner(n,m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
-      break;
-    case SAT_FUNC_VAN_GENUCHTEN :
-      n = cc->gardner_n[cell_id];
-      m = cc->vg_m[cell_id];
-      alpha = cc->vg_alpha[cell_id];
-      Sr = cc->sr[cell_id];
-      P = mpfao->Pref - mpfao->P_bnd[p_bnd_idx];
+  // Compute the effective saturation and its derivative w.r.t. S on the
+  // boundary.
+  PetscReal Se[num_boundary_cells], dSe_dS[num_boundary_cells];
+  for (PetscInt c = 0; c < num_boundary_cells; ++c) {
+    Se[c] = (S[c] - Sr[c])/(1.0 - Sr[c]);
+    dSe_dS[c] = 1.0/(1.0 - Sr[c]);
+  }
 
-      PressureSaturation_VanGenuchten(m,alpha,Sr,P,&S,&dS_dP,&d2S_dP2);
-      break;
-    default:
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown saturation function");
-      break;
-    }
+  // Compute the relative permeability and its derivative on the boundary.
+  PetscReal Kr[num_boundary_cells], dKr_dSe[num_boundary_cells];
+  ierr = RelativePermeabilityCompute(cc->rel_perm, Se, Kr, dKr_dSe); CHKERRQ(ierr);
 
-    Se = (S - Sr)/(1.0 - Sr);
-    dSe_dS = 1.0/(1.0 - Sr);
-
-    switch (cc->RelPermFuncType[cell_id]) {
-    case REL_PERM_FUNC_IRMAY :
-      m = cc->irmay_m[cell_id];
-      RelativePermeability_Irmay(m,Se,&Kr,NULL);
-      break;
-    case REL_PERM_FUNC_MUALEM :
-      m = cc->mualem_m[cell_id];
-      RelativePermeability_Mualem(m,cc->mualem_poly_low[cell_id],cc->mualem_poly_coeffs[cell_id],Se,&Kr,&dKr_dSe);
-      break;
-    default:
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown relative permeability function");
-      break;
-    }
-
-    mpfao->S_bnd[p_bnd_idx] = S;
-    mpfao->dS_dP_bnd[p_bnd_idx] = dS_dP;
-    mpfao->d2S_dP2_bnd[p_bnd_idx] = d2S_dP2;
-    mpfao->Kr_bnd[p_bnd_idx] = Kr;
-    mpfao->dKr_dS_bnd[p_bnd_idx] = dKr_dSe * dSe_dS;
-
-    //for(j=0; j<dim2; j++) matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
+  // Copy the boundary quantities into place.
+  for (PetscInt c = 0; c < num_boundary_cells; ++c) {
+    PetscInt p_bnd_idx = p_bnd_indices[c];
+    mpfao->S_bnd[p_bnd_idx] = S[c];
+    mpfao->dS_dP_bnd[p_bnd_idx] = dS_dP[c];
+    mpfao->d2S_dP2_bnd[p_bnd_idx] = d2S_dP2[c];
+    mpfao->Kr_bnd[p_bnd_idx] = Kr[c];
+    mpfao->dKr_dS_bnd[p_bnd_idx] = dKr_dSe[c] * dSe_dS[c];
   }
 
   PetscFunctionReturn(0);
@@ -822,7 +805,8 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
 }
 
 PetscErrorCode ExtractSubGmatrix(TDyMPFAO *mpfao, PetscInt cell_id,
-                                 PetscInt sub_cell_id, PetscInt dim, PetscReal **Gmatrix) {
+                                 PetscInt sub_cell_id, PetscInt dim,
+                                 PetscReal **Gmatrix) {
 
   PetscInt i, j;
 
@@ -838,7 +822,8 @@ PetscErrorCode ExtractSubGmatrix(TDyMPFAO *mpfao, PetscInt cell_id,
 }
 
 PetscErrorCode ExtractTempSubGmatrix(TDyMPFAO *mpfao, PetscInt cell_id,
-                                 PetscInt sub_cell_id, PetscInt dim, PetscReal **Gmatrix) {
+                                     PetscInt sub_cell_id, PetscInt dim,
+                                     PetscReal **Gmatrix) {
 
   PetscInt i, j;
 
