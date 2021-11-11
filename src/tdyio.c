@@ -6,6 +6,7 @@
 #if defined(PETSC_HAVE_EXODUSII)
 #include "exodusII.h"
 #endif
+#include <petscsys.h>
 #include <petsc/private/dmpleximpl.h>
 #include <petscviewerhdf5.h>
 #include <private/tdymemoryimpl.h>
@@ -97,26 +98,69 @@ PetscErrorCode TDyIOSetIOProcess(TDyIO io, PetscBool flag){
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
+// This context and function assign diagonal tensors to each cell in
+// TDyIOReadPermeability below.
+typedef struct {
+  PetscInt dim;
+  PetscReal *Tx, *Ty, *Tz;
+} DiagonalTensors;
+
+static PetscErrorCode DiagonalTensorsCreate(PetscInt dim, PetscReal *Tx,
+                                            PetscReal *Ty, PetscReal *Tz,
+                                            DiagonalTensors **diag_tensors) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  ierr = PetscMalloc(sizeof(DiagonalTensors), diag_tensors); CHKERRQ(ierr);
+  (*diag_tensors)->dim = dim;
+  (*diag_tensors)->Tx = Tx;
+  (*diag_tensors)->Ty = Ty;
+  (*diag_tensors)->Tz = Tz;
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode AssignDiagonalTensors(void *context, PetscInt n,
+                                            PetscReal *x, PetscReal *tensors) {
+  PetscFunctionBegin;
+  DiagonalTensors *diag_tensors = context;
+  PetscInt dim = diag_tensors->dim;
+  PetscInt dim2 = dim*dim;
+  memset(tensors, 0, sizeof(dim*dim) * n);
+  if (dim == 2) {
+    for (PetscInt i = 0; i < n; ++i) {
+      tensors[dim2*i] = diag_tensors->Tx[i];
+      tensors[dim2*i + 3] = diag_tensors->Ty[i];
+    }
+  } else { // dim == 3
+    for (PetscInt i = 0; i < n; ++i) {
+      tensors[dim2*i] = diag_tensors->Tx[i];
+      tensors[dim2*i + 4] = diag_tensors->Ty[i];
+      tensors[dim2*i + 8] = diag_tensors->Tz[i];
+    }
+  }
+  PetscFunctionReturn(0);
+}
+
+static void DiagonalTensorsDestroy(void *context) {
+  DiagonalTensors *diag_tensors = context;
+  if (diag_tensors->Tx) PetscFree(diag_tensors->Tx);
+  if (diag_tensors->Ty) PetscFree(diag_tensors->Ty);
+  if (diag_tensors->Tz) PetscFree(diag_tensors->Tz);
+  PetscFree(diag_tensors);
+}
+
 /// Reads in and sets initial permeability for the TDy solver
 ///
 /// @param [inout] tdy A TDy struct
 /// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyIOReadPermeability(TDy tdy){
   PetscFunctionBegin;
-  PetscInt cStart,cEnd,ncell,c,BlockSize;
+  PetscInt cStart,cEnd,ncell,c;
   PetscErrorCode ierr;
-  PetscReal *K;
-  PetscReal *Kx;
-  PetscReal *Ky;
-  PetscReal *Kz;
   char VariableName[PETSC_MAX_PATH_LEN-1];
   char VariableNameX[PETSC_MAX_PATH_LEN];
   char VariableNameY[PETSC_MAX_PATH_LEN];
   char VariableNameZ[PETSC_MAX_PATH_LEN];
   PetscInt dim;
-  PetscReal *BlockPerm;
-  PetscReal *perm;
   size_t len;
   char *filename = tdy->io->permeability_filename;
 
@@ -130,51 +174,47 @@ PetscErrorCode TDyIOReadPermeability(TDy tdy){
   ierr = DMGetDimension(tdy->dm, &dim);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ncell = (cEnd-cStart);
-  BlockSize = ncell * dim * dim;
-  ierr = TDyAllocate_RealArray_1D(&BlockPerm,BlockSize);CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_1D(&perm,9);CHKERRQ(ierr);
 
   if (tdy->io->anisotropic_permeability) {
+    // Set up a function/context that assigns a diagonal anisotropic
+    // permeability to each cell.
     sprintf(VariableNameX,"%s%s",VariableName,"X");
     sprintf(VariableNameY,"%s%s",VariableName,"Y");
     sprintf(VariableNameZ,"%s%s",VariableName,"Z");
+
+    PetscReal *Kx, *Ky, *Kz;
     ierr = TDyIOReadVariable(tdy,VariableNameX,filename,&Kx);CHKERRQ(ierr);
     ierr = TDyIOReadVariable(tdy,VariableNameY,filename,&Ky);CHKERRQ(ierr);
     ierr = TDyIOReadVariable(tdy,VariableNameZ,filename,&Kz);CHKERRQ(ierr);
-
-  }
-  else {
-    ierr = TDyIOReadVariable(tdy,VariableName,filename,&K);CHKERRQ(ierr);
-  }
-
-  PetscInt index[ncell];
-  for (c = 0;c<=ncell;++c){
-    index[c] = c;
-  }
-
-  if (tdy->io->anisotropic_permeability) {
-    for (int i = 0;i<ncell;++i){
-      perm[0] = Kx[i];
-      perm[4] = Ky[i];
-      perm[8] = Kz[i];
-      for (int j=0;j<dim*dim;++j) {
-        BlockPerm[i*dim*dim + j] = perm[j];
-      }
-    }
-    ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,BlockPerm);CHKERRQ(ierr);
+    DiagonalTensors *diag_perms;
+    ierr = DiagonalTensorsCreate(dim, Kx, Ky, Kz, &diag_perms); CHKERRQ(ierr);
+    ierr = MaterialPropSetPermeability(tdy->matprop, diag_perms,
+        AssignDiagonalTensors, DiagonalTensorsDestroy);CHKERRQ(ierr);
   } else {
-    perm[0] = K[0];
-    perm[4] = K[1];
-    perm[8] = K[2];
-    for (int i = 0;i<ncell;++i){
-      for (int j=0;j<dim*dim;++j) {
-        BlockPerm[i*dim*dim + j] = perm[j];
-      }
-    }
-    ierr = TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,BlockPerm);CHKERRQ(ierr);
+    PetscReal *K;
+    ierr = TDyIOReadVariable(tdy,VariableName,filename,&K);CHKERRQ(ierr);
+
+    // Constant diagonal (yet still anisotropic) permeability. Maybe we should
+    // change io->anisotropic_permeability to io->heterogeneous_permeability?
+    PetscReal perm[3] = {K[0], K[1], K[2]};
+    ierr = MaterialPropSetConstantDiagonalPermeability(tdy->matprop, perm);CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
+}
+
+// This function is used to assign scalar values to each cell below.
+static PetscErrorCode AssignScalars(void *context, PetscInt n, PetscReal *x,
+                                    PetscReal *scalars) {
+  PetscFunctionBegin;
+  PetscReal *values = context;
+  for (PetscInt i = 0; i < n; ++i) {
+    scalars[i] = values[i];
+  }
+  PetscFunctionReturn(0);
+}
+static void ScalarsDestroy(void* context) {
+  PetscFree(context);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -186,7 +226,6 @@ PetscErrorCode TDyIOReadPorosity(TDy tdy){
   PetscFunctionBegin;
   PetscInt cStart,cEnd,ncell,c;
   PetscErrorCode ierr;
-  PetscReal *Porosity;
   char VariableName[PETSC_MAX_PATH_LEN];
   size_t len;
   char *filename = tdy->io->porosity_filename;
@@ -201,13 +240,15 @@ PetscErrorCode TDyIOReadPorosity(TDy tdy){
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
   ncell = (cEnd-cStart);
 
+  PetscReal *Porosity;
   ierr = TDyIOReadVariable(tdy,VariableName,filename,&Porosity);
   PetscInt index[ncell];
   for (c = 0;c<=ncell;++c){
      index[c] = c;
   }
 
-  ierr = TDySetPorosityValuesLocal(tdy,ncell,index,Porosity);
+  ierr = MaterialPropSetPorosity(tdy->matprop, Porosity, AssignScalars,
+                                 ScalarsDestroy);
 
   PetscFunctionReturn(0);
 }
