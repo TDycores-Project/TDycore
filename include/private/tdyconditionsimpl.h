@@ -8,7 +8,7 @@ typedef struct Conditions {
 
   /// Contexts provided for condition-related functions.
   void* forcing_context;
-  void* energy_context;
+  void* energy_forcing_context;
   void* boundary_pressure_context;
   void* boundary_temperature_context;
   void* boundary_velocity_context;
@@ -42,11 +42,11 @@ PETSC_INTERN PetscErrorCode ConditionsCreate(Conditions**);
 PETSC_INTERN PetscErrorCode ConditionsDestroy(Conditions*);
 
 // conditions setup functions
-PETSC_INTERN PetscErrorCode ConditionsSetForcing(Conditions*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetEnergyForcing(Conditions*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetBoundaryPressure(Conditions*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetBoundaryTemperature(Conditions*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetBoundaryVelocity(Conditions*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetForcing(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetEnergyForcing(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetBoundaryPressure(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetBoundaryTemperature(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*) , void (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetBoundaryVelocity(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
 
 // conditions query functions
 PETSC_INTERN PetscBool ConditionsHasForcing(Conditions*);

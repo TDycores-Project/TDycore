@@ -90,7 +90,6 @@ typedef void (*TDyTensorSpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f)
 /// used to store any one of them.
 typedef void (*TDySpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
 
-
 typedef struct _p_TDy *TDy;
 
 typedef enum {

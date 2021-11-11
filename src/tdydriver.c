@@ -1,5 +1,4 @@
 #include <private/tdycoreimpl.h>
-#include <private/tdydmimpl.h>
 #include <private/tdyrichardsimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdythimpl.h>
@@ -45,17 +44,18 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     size_t len;
     ierr = PetscStrlen(tdy->io->porosity_filename, &len); CHKERRQ(ierr);
     if (!len){
-      ierr = MaterialPropSetPorosity(tdy->matprop,TDyConstantPorosityFunction,PETSC_NULL);CHKERRQ(ierr);
+      ierr = MaterialPropSetConstantPorosity(tdy->matprop,tdy->options.porosity);CHKERRQ(ierr);
     } else {
       ierr = TDyIOReadPorosity(tdy);CHKERRQ(ierr);
     }
   }
 
-  if (!MaterialPropHasPermeability(tdy->matprop)){
+  if (!MaterialPropHasPermeability(tdy->matprop)) {
     size_t len;
     ierr = PetscStrlen(tdy->io->permeability_filename, &len); CHKERRQ(ierr);
     if (!len){
-      ierr = TDySetPermeabilityFunction(tdy,TDyConstantPermeabilityFunction,PETSC_NULL); CHKERRQ(ierr);     
+      ierr = MaterialPropSetConstantIsotropicPermeability(tdy->matprop,
+          tdy->options.permeability);CHKERRQ(ierr);
     } else {
       ierr = TDyIOReadPermeability(tdy);CHKERRQ(ierr);
     }
@@ -63,17 +63,19 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
 
   if (tdy->options.mode == TH) {
 
-    if (!TDyIsThermalConductivytSet(tdy)) {
-      ierr = TDySetThermalConductivityFunction(tdy,TDyConstantThermalConductivityFunction,PETSC_NULL); CHKERRQ(ierr);
+    if (!MaterialPropHasThermalConductivity(tdy->matprop)) {
+      ierr = MaterialPropSetConstantIsotropicThermalConductivity(tdy->matprop,
+          tdy->options.thermal_conductivity); CHKERRQ(ierr);
     }
 
-    if (!TDyIsSoilDensitySet(tdy)) {
-      //ierr = TDySetSoilDensity(tdy,TDyConstantSoilDensityFunction); CHKERRQ(ierr);
-      ierr = TDySetSoilDensityFunction(tdy,TDyConstantSoilDensityFunction,PETSC_NULL); CHKERRQ(ierr);
+    if (!MaterialPropHasSoilDensity(tdy->matprop)) {
+      ierr = MaterialPropSetConstantSoilDensity(tdy->matprop,
+          tdy->options.soil_density); CHKERRQ(ierr);
     }
 
-    if (!TDyIsSoilSpecificHeatSet(tdy)) {
-      ierr = TDySetSoilSpecificHeatFunction(tdy,TDyConstantSoilSpecificHeatFunction,PETSC_NULL); CHKERRQ(ierr);
+    if (!MaterialPropHasSoilSpecificHeat(tdy->matprop)) {
+      ierr = MaterialPropSetConstantSoilSpecificHeat(tdy->matprop,
+          tdy->options.soil_specific_heat); CHKERRQ(ierr);
     }
   }
 

@@ -6,18 +6,18 @@
 PetscErrorCode ConditionsCreate(Conditions** conditions) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  ierr = PetscCalloc(sizeof(TDyConditions), conditions); CHKERRQ(ierr);
+  ierr = PetscCalloc(sizeof(Conditions), conditions); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 /// Frees the resources associated with the given Conditions instance.
 PetscErrorCode ConditionsDestroy(Conditions* conditions) {
   PetscFunctionBegin;
-  ConditionsSetForcing(conditions, NULL, NULL);
-  ConditionsSetEnergyForcing(conditions, NULL, NULL);
-  ConditionsSetBoundaryPressure(conditions, NULL, NULL);
-  ConditionsSetBoundaryTemperature(conditions, NULL, NULL);
-  ConditionsSetBoundaryVelocity(conditions, NULL, NULL);
+  ConditionsSetForcing(conditions, NULL, NULL, NULL);
+  ConditionsSetEnergyForcing(conditions, NULL, NULL, NULL);
+  ConditionsSetBoundaryPressure(conditions, NULL, NULL, NULL);
+  ConditionsSetBoundaryTemperature(conditions, NULL, NULL, NULL);
+  ConditionsSetBoundaryVelocity(conditions, NULL, NULL, NULL);
   PetscFunctionReturn(0);
 }
 
@@ -44,7 +44,7 @@ PetscErrorCode ConditionsSetForcing(Conditions *conditions, void *context,
 /// @param [in] context A context pointer to be passed to f
 /// @param [in] f A function that computes energy forcing at a given number of points
 /// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
-PetscErrorCode ConditionsSetEnergyForcing(Conditions *condition, void *context,
+PetscErrorCode ConditionsSetEnergyForcing(Conditions *conditions, void *context,
                                           PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
                                           void (*dtor)(void*)) {
   PetscErrorCode ierr;
@@ -175,18 +175,20 @@ typedef struct WrapperStruct {
 // This function calls an underlying Function with a NULL context.
 PetscErrorCode WrapperFunction(void *context, PetscInt n, PetscReal *x, PetscReal *v) {
   WrapperStruct *wrapper = context;
-  return wrapper->func(n, x, v);
+  wrapper->func(n, x, v);
+  PetscFunctionReturn(0);
 }
 
 PetscErrorCode ConditionsSelectBoundaryPressure(Conditions *conditions,
                                                 const char* name) {
   PetscFunctionBegin;
   int ierr;
-  Function f;
+  TDySpatialFunction f;
   ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
-  FunctionWrapper *wrapper = malloc(sizeof(FunctionWrapper));
+  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
   wrapper->func = f;
-  ierr = ConditionsSetBoundaryPressure(conditions, wrapper, f, free); CHKERRQ(ierr);
+  ierr = ConditionsSetBoundaryPressure(conditions, wrapper, WrapperFunction, free);
+  CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -194,24 +196,25 @@ PetscErrorCode ConditionsSelectBoundaryTemperature(Conditions *conditions,
                                                    const char* name) {
   PetscFunctionBegin;
   int ierr;
-  Function f;
+  TDySpatialFunction f;
   ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
-  FunctionWrapper *wrapper = malloc(sizeof(FunctionWrapper));
+  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
   wrapper->func = f;
-  ierr = ConditionsSetBoundaryTemperature(conditions, wrapper, f, free); CHKERRQ(ierr);
+  ierr = ConditionsSetBoundaryTemperature(conditions, wrapper, WrapperFunction, free);
+  CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 PetscErrorCode ConditionsSelectBoundaryVelocity(Conditions *conditions,
-                                                void *context,
                                                 const char* name) {
   PetscFunctionBegin;
   int ierr;
-  Function f;
+  TDySpatialFunction f;
   ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
-  FunctionWrapper *wrapper = malloc(sizeof(FunctionWrapper));
+  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
   wrapper->func = f;
-  ierr = ConditionsSetBoundaryVelocity(conditions, wrapper, f, free); CHKERRQ(ierr);
+  ierr = ConditionsSetBoundaryVelocity(conditions, wrapper, WrapperFunction, free);
+  CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -232,7 +235,7 @@ PetscErrorCode ConditionsSetConstantBoundaryPressure(Conditions *conditions,
   PetscFunctionBegin;
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = p0;
-  ierr = ConditionsSetBoundaryPressure(conditions, val, ConѕtantBoundaryFn,
+  ierr = ConditionsSetBoundaryPressure(conditions, val, ConstantBoundaryFn,
                                        free);
   PetscFunctionReturn(0);
 }
@@ -243,7 +246,7 @@ PetscErrorCode ConditionsSetConstantBoundaryTemperature(Conditions *conditions,
   PetscFunctionBegin;
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = T0;
-  ierr = ConditionsSetBoundaryTemperature(conditions, val, ConѕtantBoundaryFn,
+  ierr = ConditionsSetBoundaryTemperature(conditions, val, ConstantBoundaryFn,
                                           free);
   PetscFunctionReturn(0);
 }
@@ -254,11 +257,12 @@ PetscErrorCode ConditionsSetConstantBoundaryVelocity(Conditions *conditions,
   PetscFunctionBegin;
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = v0;
-  ierr = ConditionsSetBoundaryVelocity(conditions, val, ConѕtantBoundaryFn,
+  ierr = ConditionsSetBoundaryVelocity(conditions, val, ConstantBoundaryFn,
                                        free);
   PetscFunctionReturn(0);
 }
 
+#if 0
 /*
   Boundary and source-sink conditions are cell-by-cell
 */
@@ -291,3 +295,4 @@ PetscErrorCode TDySetEnergySourceSinkValuesLocal(TDy tdy, PetscInt ni, const Pet
   PetscFunctionReturn(0);
 }
 
+#endif

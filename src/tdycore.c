@@ -14,7 +14,6 @@ static char help[] = "TDycore \n\
 #include <private/tdybdmimpl.h>
 #include <private/tdywyimpl.h>
 #include <private/tdyeosimpl.h>
-#include <private/tdympfaoutilsimpl.h>
 #include <private/tdytiimpl.h>
 #include <tdytimers.h>
 #include <private/tdymaterialpropertiesimpl.h>
