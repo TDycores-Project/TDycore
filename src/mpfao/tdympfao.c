@@ -2781,6 +2781,13 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
-
 }
 
+PetscErrorCode TDyGetSaturation_MPFAO(void* context, PetscReal* S) {
+  PetscFunctionBegin;
+  TDyMPFAO *mpfao = context;
+  for (PetscInt c = 0; c < mpfao->mesh->num_cells; ++c) {
+    S[c] = mpfao->S[c];
+  }
+  PetscFunctionReturn(0);
+}

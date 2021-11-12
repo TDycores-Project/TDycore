@@ -410,13 +410,10 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     zonalVarNames[n] =  tdy->io->zonalVarNames[n];
   }
 
-  ierr = TDyCreateGlobalVector(tdy, &s);
-  ierr = VecGetArray(s,&s_vec_ptr);
+  ierr = TDyCreateGlobalVector(tdy, &s); CHKERRQ(ierr);
+  ierr = VecGetArray(s,&s_vec_ptr); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  for (c=cStart;c<cEnd;c++) {
-    i = c-cStart;
-    s_vec_ptr[i] = tdy->cc->S[i];
-  }
+  ierr = TDyGetSaturation(tdy, s_vec_ptr); CHKERRQ(ierr);
   ierr = VecRestoreArray(s,&s_vec_ptr);CHKERRQ(ierr);
 
   if (tdy->io->format == PetscViewerASCIIFormat) {

@@ -48,6 +48,7 @@ PETSC_INTERN PetscErrorCode TDySetFromOptions_WY(void*, TDyOptions*);
 PETSC_INTERN PetscErrorCode TDySetup_WY(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,Conditions*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_WY(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,PetscReal*);
 PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_WY(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
+
 PETSC_INTERN PetscErrorCode TDyWYRecoverVelocity(TDy,Vec);
 PETSC_INTERN PetscErrorCode TDyWYResidual(TS,PetscReal,Vec,Vec,Vec,void *ctx);
 PETSC_INTERN PetscErrorCode Pullback(PetscScalar*,PetscScalar*,PetscScalar*,PetscScalar,PetscInt);

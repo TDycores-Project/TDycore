@@ -55,16 +55,13 @@ struct _TDyOps {
   PetscErrorCode (*update_state)(void*, DM, EOS*, MaterialProp*,
                                  CharacteristicCurves*, PetscReal*);
 
-  // Called by TDyUpdateBoundaryState -- updates any state on the boundary
-  // maintained by the implementation with provided solution data.
-  // TODO: Should this be optional? Seems like MPFA-O needs it, but maybe FE
-  // TODO: methods don't...
-  PetscErrorCode (*update_boundary_state)(void*, DM, EOS*, MaterialProp*,
-                                          CharacteristicCurves*, PetscReal*);
-
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.
   PetscErrorCode (*compute_error_norms)(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
+
+  // Called by TDyIOWriteVec to retrieve the saturation values -- can we figure
+  // out a better way to do this?
+  PetscErrorCode (*get_saturation)(void*, PetscReal*);
 };
 
 // This type represents the dycore and all of its settings.
@@ -121,6 +118,8 @@ struct _p_TDy {
 
 };
 
-
+// TODO: This is a temporary way for the I/O system to get the saturation
+// TODO: values.
+PETSC_INTERN PetscErrorCode TDyGetSaturation(TDy, PetscReal*);
 
 #endif

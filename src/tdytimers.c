@@ -1,7 +1,5 @@
 #include <tdytimers.h>
 #include <private/tdycoreimpl.h>
-#include <private/tdymeshimpl.h>
-#include <private/tdymeshutilsimpl.h>
 
 // Timers registry (maps timer names to PetscLogEvents).
 khash_t(TDY_TIMER_MAP)* TDY_TIMERS = NULL;
@@ -93,8 +91,10 @@ PetscErrorCode TDySetTimingMetadata(TDy tdy) {
     }
     md->mode = tdy->options.mode;
     md->discretization = tdy->options.discretization;
-    if (tdy->mesh != NULL) {
-      md->num_cells = TDyMeshGetNumberOfLocalCells(tdy->mesh);
+    if (tdy->dm != NULL) {
+      PetscInt cStart, cEnd;
+      DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);
+      md->num_cells = cEnd-cStart;
     } else {
       md->num_cells = 0;
     }

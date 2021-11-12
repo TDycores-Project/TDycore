@@ -808,6 +808,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->setup = TDySetup_Richards_MPFAO;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
+      tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
     } else if (discretization == MPFA_O_DAE) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
@@ -815,6 +816,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->setup = TDySetup_Richards_MPFAO_DAE;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
+      tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
     } else if (discretization == MPFA_O_TRANSIENTVAR) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
@@ -822,6 +824,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->setup = TDySetup_Richards_MPFAO_TRANSIENTVAR;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
+      tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
     } else if (discretization == BDM) {
       tdy->ops->create = TDyCreate_BDM;
       tdy->ops->destroy = TDyDestroy_BDM;
@@ -1540,3 +1543,17 @@ PetscErrorCode TDyCreateJacobian(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
+// TODO: Temporary method to retrieve saturation values. We need a better I/O
+// TODO: strategy.
+PetscErrorCode TDyGetSaturation(TDy tdy, PetscReal* saturation) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  if (tdy->ops->get_saturation) {
+    ierr = tdy->ops->get_saturation(tdy->context, saturation); CHKERRQ(ierr);
+  } else {
+    ierr = -1;
+    SETERRQ(PETSC_COMM_WORLD, ierr,
+      "This implementation does not allow the retrieval of saturation values!");
+  }
+  PetscFunctionReturn(0);
+}
