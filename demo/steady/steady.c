@@ -16,30 +16,78 @@ void PermTest3D(PetscReal *x,PetscReal *K) {
 
 /*--- -dim {2|3} -problem 1 ---------------------------------------------------------------*/
 
-PetscErrorCode PressureConstant(TDy tdy,PetscReal *x,PetscReal *p,void *ctx) { (*p) = 3.14; PetscFunctionReturn(0);}
-PetscErrorCode VelocityConstant(TDy tdy,PetscReal *x,PetscReal *v,void *ctx) { v[0] = 0; v[1] = 0; v[2] = 0; PetscFunctionReturn(0);}
-PetscErrorCode ForcingConstant(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) { (*f) = 0; PetscFunctionReturn(0);}
+void PressureConstant(PetscInt n, PetscReal *x, PetscReal *p) {
+  for (PetscInt i = 0; i < n; ++i) {
+    p[i] = 3.14;
+  }
+}
+
+void VelocityConstant(PetscInt n, PetscReal *x, PetscReal *v) {
+  for (PetscInt i = 0; i < n; ++i) {
+    v[3*i] = 0;
+    v[3*i+1] = 0;
+    v[3*i+2] = 0;
+  }
+}
+
+void ForcingConstant(PetscInt n, PetscReal *x, PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    f[i] = 0;
+  }
+}
 
 /*--- -dim 2 -problem 2 ---------------------------------------------------------------*/
 
-PetscErrorCode PressureQuadratic2D(TDy tdy,PetscReal *x,PetscReal *p,void *ctx) { (*p) = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1]); PetscFunctionReturn(0);}
-PetscErrorCode VelocityQuadratic2D(TDy tdy,PetscReal *x,PetscReal *v,void *ctx) {
-  double K[4]; PermTest2D(x,K);
-  v[0] = -K[0]*(1-2*x[0]) - K[1]*(1-2*x[1]);
-  v[1] = -K[2]*(1-2*x[0]) - K[3]*(1-2*x[1]);
-  PetscFunctionReturn(0);
+void PressureQuadratic2D(PetscInt n, PetscReal *x, PetscReal *p) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[2*i], Y = x[2*i+1];
+    p[i] = 3.14+X*(1-X)+Y*(1-Y);
+  }
 }
-PetscErrorCode ForcingQuadratic2D(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) { double K[4]; PermTest2D(x,K); (*f) = 2*K[0]+2*K[3]; PetscFunctionReturn(0);}
 
-PetscErrorCode PressureQuadratic3D(TDy tdy,PetscReal *x,PetscReal *p,void *ctx) { (*p) = 3.14+x[0]*(1-x[0])+x[1]*(1-x[1])+x[2]*(1-x[2]); PetscFunctionReturn(0);}
-PetscErrorCode VelocityQuadratic3D(TDy tdy,PetscReal *x,PetscReal *v,void *ctx) {
-  double K[9]; PermTest3D(x,K);
-  v[0] = -K[0]*(1-2*x[0]) - K[1]*(1-2*x[1]) - K[2]*(1-2*x[2]);
-  v[1] = -K[3]*(1-2*x[0]) - K[4]*(1-2*x[1]) - K[5]*(1-2*x[2]);
-  v[2] = -K[6]*(1-2*x[0]) - K[7]*(1-2*x[1]) - K[8]*(1-2*x[2]);
-  PetscFunctionReturn(0);
+void VelocityQuadratic2D(PetscInt n, PetscReal *x, PetscReal *v) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[2*i], Y = x[2*i+1];
+    PetscReal K[4];
+    PermTest2D(&(x[2*i]),K);
+    v[2*i]   = -K[0]*(1-2*X) - K[1]*(1-2*Y);
+    v[2*i+1] = -K[2]*(1-2*X) - K[3]*(1-2*Y);
+  }
 }
-PetscErrorCode ForcingQuadratic3D(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) { double K[4]; PermTest3D(x,K); (*f) = 2*(K[0]+K[3]+K[8]); PetscFunctionReturn(0);}
+
+void ForcingQuadratic2D(PetscInt n, PetscReal *x, PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal K[4];
+    PermTest2D(&(x[2*i]),K);
+    f[i] = 2*K[0]+2*K[3];
+  }
+}
+
+void PressureQuadratic3D(PetscInt n, PetscReal *x, PetscReal *p) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
+    p[i] = 3.14+X*(1-X)+Y*(1-Y)+Z*(1-Z);
+  }
+}
+
+void VelocityQuadratic3D(PetscInt n, PetscReal *x, PetscReal *v) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
+    PetscReal K[9];
+    PermTest3D(&(x[3*i]),K);
+    v[3*i+0] = -K[0]*(1-2*X) - K[1]*(1-2*Y) - K[2]*(1-2*Z);
+    v[3*i+1] = -K[3]*(1-2*X) - K[4]*(1-2*Y) - K[5]*(1-2*Z);
+    v[3*i+2] = -K[6]*(1-2*X) - K[7]*(1-2*Y) - K[8]*(1-2*Z);
+  }
+}
+
+void ForcingQuadratic3D(PetscInt n, PetscReal *x, PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal K[9];
+    PermTest3D(&(x[3*i]),K);
+    f[i] = 2*(K[0]+K[3]+K[8]);
+  }
+}
 
 /*--- -paper Wheeler2006 -------------------------------------------------------*/
 
@@ -50,35 +98,40 @@ void PermWheeler2006_1(PetscReal *x,PetscReal *K) {
   K[2] = 1; K[3] = 2;
 }
 
-PetscErrorCode PressureWheeler2006_1(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) {
-  (*f)  = PetscPowReal(1-x[0],4);
-  (*f) += PetscPowReal(1-x[1],3)*(1-x[0]);
-  (*f) += PetscSinReal(1-x[1])*PetscCosReal(1-x[0]);
-  PetscFunctionReturn(0);
+void PressureWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[2*i], Y = x[2*i+1];
+    f[n]  = PetscPowReal(1-X,4);
+    f[n] += PetscPowReal(1-Y,3)*(1-X);
+    f[n] += PetscSinReal(1-Y)*PetscCosReal(1-X);
+  }
 }
-PetscErrorCode VelocityWheeler2006_1(TDy tdy,PetscReal *x,PetscReal *v,void *ctx) {
-  double vx,vy,K[4];
-  PermWheeler2006_1(x,K);
-  vx  = -4*PetscPowReal(1-x[0],3);
-  vx += -PetscPowReal(1-x[1],3);
-  vx += +PetscSinReal(x[1]-1)*PetscSinReal(x[0]-1);
-  vy  = -3*PetscPowReal(1-x[1],2)*(1-x[0]);
-  vy += -PetscCosReal(x[0]-1)*PetscCosReal(x[1]-1);
-  v[0] = -(K[0]*vx+K[1]*vy);
-  v[1] = -(K[2]*vx+K[3]*vy);
-  PetscFunctionReturn(0);
+
+void VelocityWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *v) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[2*i], Y = x[2*i+1];
+    PetscReal vx, vy, K[4];
+    PermWheeler2006_1(&(x[2*i]),K);
+    vx  = -4*PetscPowReal(1-X,3);
+    vx += -PetscPowReal(1-Y,3);
+    vx += +PetscSinReal(Y-1)*PetscSinReal(X-1);
+    vy  = -3*PetscPowReal(1-Y,2)*(1-X);
+    vy += -PetscCosReal(X-1)*PetscCosReal(Y-1);
+    v[2*i] = -(K[0]*vx+K[1]*vy);
+    v[2*i+1] = -(K[2]*vx+K[3]*vy);
+  }
 }
-PetscErrorCode ForcingWheeler2006_1(TDy tdy,PetscReal *x,PetscReal *f, void *ctx) {
-  double K[4];
-  PermWheeler2006_1(x,K);
-  (*f)  = -K[0]*(12*PetscPowReal(1-x[0],
-                                 2)+PetscSinReal(x[1]-1)*PetscCosReal(x[0]-1));
-  (*f) += -K[1]*( 3*PetscPowReal(1-x[1],
-                                 2)+PetscSinReal(x[0]-1)*PetscCosReal(x[1]-1));
-  (*f) += -K[2]*( 3*PetscPowReal(1-x[1],
-                                 2)+PetscSinReal(x[0]-1)*PetscCosReal(x[1]-1));
-  (*f) += -K[3]*(-6*(1-x[0])*(x[1]-1)+PetscSinReal(x[1]-1)*PetscCosReal(x[0]-1));
-  PetscFunctionReturn(0);
+
+void ForcingWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[2*i], Y = x[2*i+1];
+    double K[4];
+    PermWheeler2006_1(&(x[2*i]),K);
+    f[i]  = -K[0]*(12*PetscPowReal(1-X, 2)+PetscSinReal(Y-1)*PetscCosReal(X-1));
+    f[i] += -K[1]*( 3*PetscPowReal(1-Y, 2)+PetscSinReal(X-1)*PetscCosReal(Y-1));
+    f[i] += -K[2]*( 3*PetscPowReal(1-Y, 2)+PetscSinReal(X-1)*PetscCosReal(Y-1));
+    f[i] += -K[3]*(-6*(1-X)*(Y-1)+PetscSinReal(Y-1)*PetscCosReal(X-1));
+  }
 }
 
 /* -problem 2 */
@@ -89,38 +142,46 @@ void PermWheeler2006_2(PetscReal *x,PetscReal *K) {
   K[2] = K[1];
   K[3] = 2;
 }
-PetscErrorCode PressureWheeler2006_2(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) {
-  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
-  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
-  (*f) = sx*sx*sy*sy;
-  PetscFunctionReturn(0);
-}
-PetscErrorCode VelocityWheeler2006_2(TDy tdy,PetscReal *x,PetscReal *v,void *ctx) {
-  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
-  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
-  PetscReal cx = PetscCosReal(3*PETSC_PI*x[0]);
-  PetscReal cy = PetscCosReal(3*PETSC_PI*x[1]);
-  v[0] = -6*PETSC_PI*((sin(x[0]*x[1]) + 1)*sx*cy + (x[1]*x[1] + PetscSqr(x[0]+2) + 4)*sy*cx)*sx*sy;
-  v[1] = -6*PETSC_PI*((sin(x[0]*x[1]) + 1)*sy*cx + 2*sx*cy)*sx*sy;
-  PetscFunctionReturn(0);
-}
-PetscErrorCode ForcingWheeler2006_2(TDy tdy,PetscReal *x,PetscReal *f, void *ctx) {
-  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
-  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
-  PetscReal cx = PetscCosReal(3*PETSC_PI*x[0]);
-  PetscReal cy = PetscCosReal(3*PETSC_PI*x[1]);
-  (*f)  = -12*PETSC_PI*(PetscSinReal(x[0]*x[1]) + 1)*sx*sy*cx*cy;
-  (*f) +=  3*PETSC_PI*(x[1]*x[1] + PetscSqr(x[0] + 2) + 4)*sx*sx*sy*sy;
-  (*f) -=  3*PETSC_PI*(x[1]*x[1] + PetscSqr(x[0] + 2) + 4)*sy*sy*cx*cx;
-  (*f) +=  6*PETSC_PI*sx*sx*sy*sy;
-  (*f) -=  6*PETSC_PI*sx*sx*cy*cy;
-  (*f) -=  x[0]*sx*sy*sy*cx*PetscCosReal(x[0]*x[1]);
-  (*f) -=  x[1]*sx*sx*sy*cy*PetscCosReal(x[0]*x[1]);
-  (*f) -=  2*(x[0] + 2)*sx*sy*sy*cx;
-  (*f) *= 6*PETSC_PI;
-  PetscFunctionReturn(0);
+
+void PressureWheeler2006_2(PetscInt n, PetscReal *x, PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[2*i], Y = x[2*i+1];
+    PetscReal sx = PetscSinReal(3*PETSC_PI*X);
+    PetscReal sy = PetscSinReal(3*PETSC_PI*Y);
+    f[i] = sx*sx*sy*sy;
+  }
 }
 
+void VelocityWheeler2006_2(PetscInt n, PetscReal *x, PetscReal *v) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[2*i], Y = x[2*i+1];
+    PetscReal sx = PetscSinReal(3*PETSC_PI*X);
+    PetscReal sy = PetscSinReal(3*PETSC_PI*Y);
+    PetscReal cx = PetscCosReal(3*PETSC_PI*X);
+    PetscReal cy = PetscCosReal(3*PETSC_PI*Y);
+    v[2*i]   = -6*PETSC_PI*((sin(X*Y) + 1)*sx*cy + (Y*Y + PetscSqr(X+2) + 4)*sy*cx)*sx*sy;
+    v[2*i+1] = -6*PETSC_PI*((sin(X*Y) + 1)*sy*cx + 2*sx*cy)*sx*sy;
+  }
+}
+
+void ForcingWheeler2006_2(PetscInt n, PetscReal *x,PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[2*i], Y = x[2*i+1];
+    PetscReal sx = PetscSinReal(3*PETSC_PI*X);
+    PetscReal sy = PetscSinReal(3*PETSC_PI*Y);
+    PetscReal cx = PetscCosReal(3*PETSC_PI*X);
+    PetscReal cy = PetscCosReal(3*PETSC_PI*Y);
+    f[i]  = -12*PETSC_PI*(PetscSinReal(X*Y) + 1)*sx*sy*cx*cy;
+    f[i] +=  3*PETSC_PI*(Y*Y + PetscSqr(X + 2) + 4)*sx*sx*sy*sy;
+    f[i] -=  3*PETSC_PI*(Y*Y + PetscSqr(X + 2) + 4)*sy*sy*cx*cx;
+    f[i] +=  6*PETSC_PI*sx*sx*sy*sy;
+    f[i] -=  6*PETSC_PI*sx*sx*cy*cy;
+    f[i] -=  X*sx*sy*sy*cx*PetscCosReal(X*Y);
+    f[i] -=  Y*sx*sx*sy*cy*PetscCosReal(X*Y);
+    f[i] -=  2*(X + 2)*sx*sy*sy*cx;
+    f[i] *= 6*PETSC_PI;
+  }
+}
 
 /*--- -paper Wheeler2012 -------------------------------------------------------*/
 
@@ -131,41 +192,48 @@ void PermWheeler2012_1(PetscReal *x,PetscReal *K) {
   K[2] = 1.25; K[3] = 3;
 }
 
-PetscErrorCode PressureWheeler2012_1(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) {
-  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
-  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
-  (*f) = sx*sx*sy*sy;
-  PetscFunctionReturn(0);
+void PressureWheeler2012_1(PetscInt n, PetscReal *x, PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[2*i], Y = x[2*i+1];
+    PetscReal sx = PetscSinReal(3*PETSC_PI*X);
+    PetscReal sy = PetscSinReal(3*PETSC_PI*Y);
+    f[i] = sx*sx*sy*sy;
+  }
 }
 
-PetscErrorCode VelocityWheeler2012_1(TDy tdy,PetscReal *x,PetscReal *v,void *ctx) {
-  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
-  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
-  PetscReal cx = PetscCosReal(3*PETSC_PI*x[0]);
-  PetscReal cy = PetscCosReal(3*PETSC_PI*x[1]);
-  double px,py,K[4];
-  PermWheeler2012_1(x,K);
-  px = 6*PETSC_PI*sx*sy*sy*cx;
-  py = 6*PETSC_PI*sx*sx*sy*cy;
-  v[0] = -(K[0]*px+K[1]*py);
-  v[1] = -(K[2]*px+K[3]*py);
-  PetscFunctionReturn(0);
+void VelocityWheeler2012_1(PetscInt n, PetscReal *x, PetscReal *v) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[2*i], Y = x[2*i+1];
+    PetscReal sx = PetscSinReal(3*PETSC_PI*X);
+    PetscReal sy = PetscSinReal(3*PETSC_PI*Y);
+    PetscReal cx = PetscCosReal(3*PETSC_PI*X);
+    PetscReal cy = PetscCosReal(3*PETSC_PI*Y);
+    PetscReal px,py,K[4];
+    PermWheeler2012_1(&(x[2*i]),K);
+    px = 6*PETSC_PI*sx*sy*sy*cx;
+    py = 6*PETSC_PI*sx*sx*sy*cy;
+    v[0] = -(K[0]*px+K[1]*py);
+    v[1] = -(K[2]*px+K[3]*py);
+  }
 }
-PetscErrorCode ForcingWheeler2012_1(TDy tdy,PetscReal *x,PetscReal *f, void *ctx) {
-  PetscReal sx = PetscSinReal(3*PETSC_PI*x[0]);
-  PetscReal sy = PetscSinReal(3*PETSC_PI*x[1]);
-  PetscReal cx = PetscCosReal(3*PETSC_PI*x[0]);
-  PetscReal cy = PetscCosReal(3*PETSC_PI*x[1]);
-  double K[4];
-  PermWheeler2012_1(x,K);
-  (*f)  = K[0]*sx*sx*sy*sy;
-  (*f) -= K[0]*sy*sy*cx*cx;
-  (*f) -= K[1]*(PetscCosReal(6*PETSC_PI*(x[0]-x[1]))-PetscCosReal(6*PETSC_PI*(x[0]+x[1])))*0.25;
-  (*f) -= K[2]*(PetscCosReal(6*PETSC_PI*(x[0]-x[1]))-PetscCosReal(6*PETSC_PI*(x[0]+x[1])))*0.25;
-  (*f) += K[3]*sx*sx*sy*sy;
-  (*f) -= K[3]*sx*sx*cy*cy;
-  (*f) *= 18*PETSC_PI*PETSC_PI;
-  PetscFunctionReturn(0);
+
+void ForcingWheeler2012_1(PetscInt n, PetscReal *x, PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[2*i], Y = x[2*i+1];
+    PetscReal sx = PetscSinReal(3*PETSC_PI*X);
+    PetscReal sy = PetscSinReal(3*PETSC_PI*Y);
+    PetscReal cx = PetscCosReal(3*PETSC_PI*X);
+    PetscReal cy = PetscCosReal(3*PETSC_PI*Y);
+    double K[4];
+    PermWheeler2012_1(x,K);
+    f[i]  = K[0]*sx*sx*sy*sy;
+    f[i] -= K[0]*sy*sy*cx*cx;
+    f[i] -= K[1]*(PetscCosReal(6*PETSC_PI*(X-Y))-PetscCosReal(6*PETSC_PI*(X+Y)))*0.25;
+    f[i] -= K[2]*(PetscCosReal(6*PETSC_PI*(X-Y))-PetscCosReal(6*PETSC_PI*(X+Y)))*0.25;
+    f[i] += K[3]*sx*sx*sy*sy;
+    f[i] -= K[3]*sx*sx*cy*cy;
+    f[i] *= 18*PETSC_PI*PETSC_PI;
+  }
 }
 
 /* -problem 2 */
@@ -176,92 +244,106 @@ void PermWheeler2012_2(PetscReal *x,PetscReal *K) {
   K[6] = 1    ; K[7] = 1; K[8] = 2;
 }
 
-PetscErrorCode PressureWheeler2012_2(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) {
-  PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
-  PetscReal xm12 = PetscSqr(x[0]-1);
-  PetscReal ym12 = PetscSqr(x[1]-1);
-  PetscReal zm12 = PetscSqr(x[2]-1);
-  (*f) = x2*y2*z2*xm12*ym12*zm12;
-  PetscFunctionReturn(0);
+void PressureWheeler2012_2(PetscInt n, PetscReal *x, PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
+    PetscReal X2 = X*X, Y2 = Y*Y, Z2 = Z*Z;
+    PetscReal Xm12 = PetscSqr(X-1);
+    PetscReal Ym12 = PetscSqr(Y-1);
+    PetscReal Zm12 = PetscSqr(Z-1);
+    f[i] = X2*Y2*Z2*Xm12*Ym12*Zm12;
+  }
 }
 
-PetscErrorCode VelocityWheeler2012_2(TDy tdy,PetscReal *x,PetscReal *v,void *ctx) {
-  PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
-  PetscReal xm12 = PetscSqr(x[0]-1);
-  PetscReal ym12 = PetscSqr(x[1]-1);
-  PetscReal zm12 = PetscSqr(x[2]-1);
+void VelocityWheeler2012_2(PetscInt n, PetscReal *x, PetscReal *v) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
+    PetscReal X2 = X*X, Y2 = Y*Y, Z2 = Z*Z;
+    PetscReal Xm12 = PetscSqr(X-1);
+    PetscReal Ym12 = PetscSqr(Y-1);
+    PetscReal Zm12 = PetscSqr(Z-1);
 
-  PetscReal a1 = 2*x[0]*(x[0]-1)*(2*x[0]-1);
-  PetscReal b1 = 2*x[1]*(x[1]-1)*(2*x[1]-1);
-  PetscReal c1 = 2*x[2]*(x[2]-1)*(2*x[2]-1);
+    PetscReal a1 = 2*X*(X-1)*(2*X-1);
+    PetscReal b1 = 2*Y*(Y-1)*(2*Y-1);
+    PetscReal c1 = 2*Z*(Z-1)*(2*Z-1);
 
-  PetscReal px = a1     *y2*ym12 *z2*zm12;
-  PetscReal py = x2*xm12*b1      *z2*zm12;
-  PetscReal pz = x2*xm12*y2*ym12*c1     ;
+    PetscReal px = a1     *Y2*Ym12 *Z2*Zm12;
+    PetscReal py = X2*Xm12*b1      *Z2*Zm12;
+    PetscReal pz = X2*Xm12*Y2*Ym12*c1     ;
 
-  double K[9]; PermWheeler2012_2(x,K);
-  v[0] = -K[0]*px - K[1]*py - K[2]*pz;
-  v[1] = -K[3]*px - K[4]*py - K[5]*pz;
-  v[2] = -K[6]*px - K[7]*py - K[8]*pz;
-  PetscFunctionReturn(0);
+    PetscReal K[9];
+    PermWheeler2012_2(&(x[3*i]),K);
+    v[3*i]   = -K[0]*px - K[1]*py - K[2]*pz;
+    v[3*i+1] = -K[3]*px - K[4]*py - K[5]*pz;
+    v[3*i+2] = -K[6]*px - K[7]*py - K[8]*pz;
+  }
 }
 
-PetscErrorCode ForcingWheeler2012_2(TDy tdy,PetscReal *x,PetscReal *f, void *ctx) {
-  PetscReal x2 = x[0]*x[0], y2 = x[1]*x[1], z2 = x[2]*x[2];
-  PetscReal xm12 = PetscSqr(x[0]-1);
-  PetscReal ym12 = PetscSqr(x[1]-1);
-  PetscReal zm12 = PetscSqr(x[2]-1);
-  double K[9]; PermWheeler2012_2(x,K);
+void ForcingWheeler2012_2(PetscInt n, PetscReal *x, PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
+    PetscReal X2 = X*X, Y2 = Y*Y, Z2 = Z*Z;
+    PetscReal Xm12 = PetscSqr(X-1);
+    PetscReal Ym12 = PetscSqr(Y-1);
+    PetscReal Zm12 = PetscSqr(Z-1);
+    PetscReal K[9];
+    PermWheeler2012_2(&(x[3*i]),K);
 
-  PetscReal a1 = 2*x[0]*(x[0]-1)*(2*x[0]-1);
-  PetscReal b1 = 2*x[1]*(x[1]-1)*(2*x[1]-1);
-  PetscReal c1 = 2*x[2]*(x[2]-1)*(2*x[2]-1);
+    PetscReal a1 = 2*X*(X-1)*(2*X-1);
+    PetscReal b1 = 2*Y*(Y-1)*(2*Y-1);
+    PetscReal c1 = 2*Z*(Z-1)*(2*Z-1);
 
-  PetscReal a2 = 12*x2 - 12*x[0] + 2;
-  PetscReal b2 = 12*y2 - 12*x[1] + 2;
-  PetscReal c2 = 12*z2 - 12*x[2] + 2;
+    PetscReal a2 = 12*X2 - 12*X + 2;
+    PetscReal b2 = 12*Y2 - 12*Y + 2;
+    PetscReal c2 = 12*Z2 - 12*Z + 2;
 
-  (*f) =
-    -K[0]*a2*y2*ym12*z2*zm12 -K[1]*a1     *b1*z2*zm12 -K[2]*a1     *y2*ym12*c1 +
-    -K[3]*a1*b1     *z2*zm12 -K[4]*x2*xm12*b2*z2*zm12 -K[5]*x2*xm12*b1     *c1 +
-    -K[6]*a1*y2*ym12*c1      -K[7]*x2*xm12*b1*c1      -K[8]*x2*xm12*y2*ym12*c2;
-
-  PetscFunctionReturn(0);
+    f[i] =
+      -K[0]*a2*Y2*Ym12*Z2*Zm12 -K[1]*a1     *b1*Z2*Zm12 -K[2]*a1     *Y2*Ym12*c1 +
+      -K[3]*a1*b1     *Z2*Zm12 -K[4]*X2*Xm12*b2*Z2*Zm12 -K[5]*X2*Xm12*b1     *c1 +
+      -K[6]*a1*Y2*Ym12*c1      -K[7]*X2*Xm12*b1*c1      -K[8]*X2*Xm12*Y2*Ym12*c2;
+  }
 }
 
 /*--- -dim 3 -problem 3 ---------------------------------------------------------------*/
 
-PetscErrorCode Pressure3(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) {
-  (*f) = PetscCosReal(x[0])*PetscCosReal(x[1])*PetscCosReal(x[2]);
-  PetscFunctionReturn(0);
+void Pressure3(PetscInt n, PetscReal *x, PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
+    f[i] = PetscCosReal(X)*PetscCosReal(Y)*PetscCosReal(Z);
+  }
 }
 
-PetscErrorCode Velocity3(TDy tdy,PetscReal *x,PetscReal *v,void *ctx) {
-  double K[9]; PermWheeler2012_2(x,K);
-  v[0]  =  K[0]*PetscSinReal(x[0])*PetscCosReal(x[1])*PetscCosReal(
-             x[2]) + K[1]*PetscSinReal(x[1])*PetscCosReal(x[0])*PetscCosReal(
-             x[2]) + K[2]*PetscSinReal(x[2])*PetscCosReal(x[0])*PetscCosReal(x[1]);
-  v[1]  =  K[3]*PetscSinReal(x[0])*PetscCosReal(x[1])*PetscCosReal(
-             x[2]) + K[4]*PetscSinReal(x[1])*PetscCosReal(x[0])*PetscCosReal(
-             x[2]) + K[5]*PetscSinReal(x[2])*PetscCosReal(x[0])*PetscCosReal(x[1]);
-  v[2]  =  K[6]*PetscSinReal(x[0])*PetscCosReal(x[1])*PetscCosReal(
-             x[2]) + K[7]*PetscSinReal(x[1])*PetscCosReal(x[0])*PetscCosReal(
-             x[2]) + K[8]*PetscSinReal(x[2])*PetscCosReal(x[0])*PetscCosReal(x[1]);
-  PetscFunctionReturn(0);
+void Velocity3(PetscInt n, PetscReal *x, PetscReal *v) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
+    PetscReal K[9];
+    PermWheeler2012_2(&(x[3*i]),K);
+    v[3*i]   = K[0]*PetscSinReal(X)*PetscCosReal(Y)*PetscCosReal(Z) +
+               K[1]*PetscSinReal(Y)*PetscCosReal(X)*PetscCosReal(Z) +
+               K[2]*PetscSinReal(Z)*PetscCosReal(X)*PetscCosReal(Y);
+    v[3*i+1] = K[3]*PetscSinReal(X)*PetscCosReal(Y)*PetscCosReal(Z) +
+               K[4]*PetscSinReal(Y)*PetscCosReal(X)*PetscCosReal(Z) +
+               K[5]*PetscSinReal(Z)*PetscCosReal(X)*PetscCosReal(Y);
+    v[3*i+2] = K[6]*PetscSinReal(X)*PetscCosReal(Y)*PetscCosReal(Z) +
+               K[7]*PetscSinReal(Y)*PetscCosReal(X)*PetscCosReal(Z) +
+               K[8]*PetscSinReal(Z)*PetscCosReal(X)*PetscCosReal(Y);
+  }
 }
 
-PetscErrorCode Forcing3(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) {
-  double K[9]; PermWheeler2012_2(x,K);
-  (*f) = K[0]*PetscCosReal(x[0])*PetscCosReal(x[1])*PetscCosReal(
-           x[2]) - K[1]*PetscSinReal(x[0])*PetscSinReal(x[1])*PetscCosReal(
-           x[2]) - K[2]*PetscSinReal(x[0])*PetscSinReal(x[2])*PetscCosReal(
-           x[1]) - K[3]*PetscSinReal(x[0])*PetscSinReal(x[1])*PetscCosReal(
-           x[2]) + K[4]*PetscCosReal(x[0])*PetscCosReal(x[1])*PetscCosReal(
-           x[2]) - K[5]*PetscSinReal(x[1])*PetscSinReal(x[2])*PetscCosReal(
-           x[0]) - K[6]*PetscSinReal(x[0])*PetscSinReal(x[2])*PetscCosReal(
-           x[1]) - K[7]*PetscSinReal(x[1])*PetscSinReal(x[2])*PetscCosReal(
-           x[0]) + K[8]*PetscCosReal(x[0])*PetscCosReal(x[1])*PetscCosReal(x[2]);
-  PetscFunctionReturn(0);
+void Forcing3(PetscInt n, PetscReal *x, PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
+    PetscReal K[9];
+    PermWheeler2012_2(&(x[3*i]),K);
+    f[i] = K[0]*PetscCosReal(X)*PetscCosReal(Y)*PetscCosReal(Z) -
+           K[1]*PetscSinReal(X)*PetscSinReal(Y)*PetscCosReal(Z) -
+           K[2]*PetscSinReal(X)*PetscSinReal(Z)*PetscCosReal(Y) -
+           K[3]*PetscSinReal(X)*PetscSinReal(Y)*PetscCosReal(Z) +
+           K[4]*PetscCosReal(X)*PetscCosReal(Y)*PetscCosReal(Z) -
+           K[5]*PetscSinReal(Y)*PetscSinReal(Z)*PetscCosReal(X) -
+           K[6]*PetscSinReal(X)*PetscSinReal(Z)*PetscCosReal(Y) -
+           K[7]*PetscSinReal(Y)*PetscSinReal(Z)*PetscCosReal(X) +
+           K[8]*PetscCosReal(X)*PetscCosReal(Y)*PetscCosReal(Z);
 }
 
 PetscErrorCode PerturbVerticesRandom(DM dm,PetscReal h) {
@@ -458,7 +540,8 @@ PetscErrorCode SaveTrueSolution(TDy tdy, char filename[256]){
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexComputeCellGeometryFVM(dm, c, PETSC_NULL, &centroid[0],
                                         PETSC_NULL); CHKERRQ(ierr);
-    ierr = tdy->ops->compute_boundary_pressure(tdy,&centroid[0],&pres[c],NULL);
+    ierr = ConditionsComputeBoundaryPressure(tdy->conditions, 1, &centroid[0],
+                                             &pres[c]); CHKERRQ(ierr);
   }
   ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
   ierr = VecRestoreArray(pressure,&pres); CHKERRQ(ierr);
@@ -491,7 +574,7 @@ PetscErrorCode SaveForcing(TDy tdy, char filename[256]){
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexComputeCellGeometryFVM(dm, c, PETSC_NULL, &centroid[0],
                                         PETSC_NULL); CHKERRQ(ierr);
-    ierr = tdy->ops->computeforcing(tdy,&centroid[0],&f[c],NULL);
+    ierr = ConditionsComputeForcing(tdy->conditions, 1, &centroid[0],&f[c]);
   }
   ierr = VecRestoreArray(forcing,&f); CHKERRQ(ierr);
   ierr = VecView(forcing,viewer); CHKERRQ(ierr);
@@ -645,22 +728,22 @@ int main(int argc, char **argv) {
     }
     switch(problem) {
         case 0: // not a problem in the paper, but want to check constants on the geometry
-        ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
-        ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
-        ierr = TDySetBoundaryPressureFn(tdy,PressureConstant,NULL); CHKERRQ(ierr);
-        ierr = TDySetBoundaryVelocityFn(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
+        ierr = TDySetTensorPermeabilityFunction(tdy,PermTest2D); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingConstant); CHKERRQ(ierr);
+        ierr = TDySetBoundaryPressureFunction(tdy,PressureConstant); CHKERRQ(ierr);
+        ierr = TDySetBoundaryVelocityFunction(tdy,VelocityConstant); CHKERRQ(ierr);
         break;
         case 1:
-        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2006_1); CHKERRQ(ierr);
-        ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_1,NULL); CHKERRQ(ierr);
-        ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2006_1,NULL); CHKERRQ(ierr);
-        ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2006_1,NULL); CHKERRQ(ierr);
+        ierr = TDySetTensorPermeabilityFunction(tdy,PermWheeler2006_1); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_1); CHKERRQ(ierr);
+        ierr = TDySetBoundaryPressureFunction(tdy,PressureWheeler2006_1); CHKERRQ(ierr);
+        ierr = TDySetBoundaryVelocityFunction(tdy,VelocityWheeler2006_1); CHKERRQ(ierr);
         break;
         case 2:
-        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2006_2); CHKERRQ(ierr);
-        ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_2,NULL); CHKERRQ(ierr);
-        ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2006_2,NULL); CHKERRQ(ierr);
-        ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2006_2,NULL); CHKERRQ(ierr);
+        ierr = TDySetTensorPermeabilityFunction(tdy,PermWheeler2006_2); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_2); CHKERRQ(ierr);
+        ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2006_2); CHKERRQ(ierr);
+        ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2006_2); CHKERRQ(ierr);
         break;
         default:
         SETERRQ(comm,PETSC_ERR_USER,"-paper wheeler2006 only valid for -problem {0,1,2}");
@@ -671,19 +754,19 @@ int main(int argc, char **argv) {
         if(dim != 2){
           SETERRQ(comm,PETSC_ERR_USER,"-paper wheeler2012 -problem 1 is only for -dim 2");
         }
-        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_1); CHKERRQ(ierr);
-        ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_1,NULL); CHKERRQ(ierr);
-        ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2012_1,NULL); CHKERRQ(ierr);
-        ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2012_1,NULL); CHKERRQ(ierr);
+        ierr = TDySetTensorPermeabilityFunction(tdy,PermWheeler2012_1); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_1); CHKERRQ(ierr);
+        ierr = TDySetBoundaryPressureFunction(tdy,PressureWheeler2012_1); CHKERRQ(ierr);
+        ierr = TDySetBoundaryVelocityFunction(tdy,VelocityWheeler2012_1); CHKERRQ(ierr);
         break;
         case 2:
         if(dim != 3){
           SETERRQ(comm,PETSC_ERR_USER,"-paper wheeler2012 -problem 2 is only for -dim 3");
         }
-        ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
-        ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_2,NULL); CHKERRQ(ierr);
-        ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2012_2,NULL); CHKERRQ(ierr);
-        ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2012_2,NULL); CHKERRQ(ierr);
+        ierr = TDySetTensorPermeabilityFunction(tdy,PermWheeler2012_2); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_2); CHKERRQ(ierr);
+        ierr = TDySetBoundaryPressureFunction(tdy,PressureWheeler2012_2); CHKERRQ(ierr);
+        ierr = TDySetBoundaryVelocityFunction(tdy,VelocityWheeler2012_2); CHKERRQ(ierr);
         break;
         default:
         SETERRQ(comm,PETSC_ERR_USER,"-paper wheeler2012 only valid for -problem {1,2}");
@@ -692,52 +775,50 @@ int main(int argc, char **argv) {
     switch(problem) {
         case 1:
         if (dim == 2) {
-          ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
+          ierr = TDySetTensorPermeabilityFunction(tdy,PermTest2D); CHKERRQ(ierr);
         } else {
-          ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
+          ierr = TDySetTensorPermeabilityFunction(tdy,PermWheeler2012_2); CHKERRQ(ierr);
         }
-        ierr = TDySetForcingFunction(tdy,ForcingConstant,NULL); CHKERRQ(ierr);
-        ierr = TDySetBoundaryPressureFn(tdy,PressureConstant,NULL); CHKERRQ(ierr);
-        ierr = TDySetBoundaryVelocityFn(tdy,VelocityConstant,NULL); CHKERRQ(ierr);
+        ierr = TDySetForcingFunction(tdy,ForcingConstant); CHKERRQ(ierr);
+        ierr = TDySetBoundaryPressureFunction(tdy,PressureConstant); CHKERRQ(ierr);
+        ierr = TDySetBoundaryVelocityFunction(tdy,VelocityConstant); CHKERRQ(ierr);
         break;
 
         case 2:
 
         if (dim == 2) {
-          ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
-          ierr = TDySetForcingFunction(tdy,ForcingQuadratic2D,NULL); CHKERRQ(ierr);
-          ierr = TDySetBoundaryPressureFn(tdy,PressureQuadratic2D,NULL); CHKERRQ(ierr);
-          ierr = TDySetBoundaryVelocityFn(tdy,VelocityQuadratic2D,NULL); CHKERRQ(ierr);
+          ierr = TDySetTensorPermeabilityFunction(tdy,PermTest2D); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,ForcingQuadratic2D); CHKERRQ(ierr);
+          ierr = TDySetBoundaryPressureFunction(tdy,PressureQuadratic2D); CHKERRQ(ierr);
+          ierr = TDySetBoundaryVelocityFunction(tdy,VelocityQuadratic2D); CHKERRQ(ierr);
         } else {
-          ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
-          ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_2,NULL); CHKERRQ(ierr);
-          ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2012_2,NULL); CHKERRQ(ierr);
-          ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2012_2,NULL); CHKERRQ(ierr);
+          ierr = TDySetTensorPermeabilityFunction(tdy,PermWheeler2012_2); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_2); CHKERRQ(ierr);
+          ierr = TDySetBoundaryPressureFunction(tdy,PressureWheeler2012_2); CHKERRQ(ierr);
+          ierr = TDySetBoundaryVelocityFunction(tdy,VelocityWheeler2012_2); CHKERRQ(ierr);
         }
         break;
 
         case 3:
         if (dim == 2) {
-          ierr = TDySetPermeabilityTensor(tdy,PermTest2D); CHKERRQ(ierr);
-          ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_1,NULL); CHKERRQ(ierr);
-          ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2006_1,NULL); CHKERRQ(ierr);
-          ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2006_1,NULL); CHKERRQ(ierr);
+          ierr = TDySetTensorPermeabilityFunction(tdy,PermTest2D); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,ForcingWheeler2006_1); CHKERRQ(ierr);
+          ierr = TDySetBoundaryPressureFunction(tdy,PressureWheeler2006_1); CHKERRQ(ierr);
+          ierr = TDySetBoundaryVelocityFunction(tdy,VelocityWheeler2006_1); CHKERRQ(ierr);
         } else {
-          ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_2); CHKERRQ(ierr);
-          ierr = TDySetForcingFunction(tdy,Forcing3,NULL); CHKERRQ(ierr);
-          ierr = TDySetBoundaryPressureFn(tdy,Pressure3,NULL); CHKERRQ(ierr);
-          ierr = TDySetBoundaryVelocityFn(tdy,Velocity3,NULL); CHKERRQ(ierr);
+          ierr = TDySetTensorPermeabilityFunction(tdy,PermWheeler2012_2); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,Forcing3); CHKERRQ(ierr);
+          ierr = TDySetBoundaryPressureFunction(tdy,Pressure3); CHKERRQ(ierr);
+          ierr = TDySetBoundaryVelocityFunction(tdy,Velocity3); CHKERRQ(ierr);
         }
         break;
 
         case 4:
         if (dim == 2) {
-          ierr = TDySetPermeabilityTensor(tdy,PermWheeler2012_1); CHKERRQ(ierr);
-          ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_1,NULL); CHKERRQ(ierr);
-          ierr = TDySetBoundaryPressureFn(tdy,PressureWheeler2012_1,NULL); CHKERRQ(ierr);
-          ierr = TDySetBoundaryVelocityFn(tdy,VelocityWheeler2012_1,NULL); CHKERRQ(ierr);
-        } else {
-
+          ierr = TDySetTensorPermeabilityFunction(tdy,PermWheeler2012_1); CHKERRQ(ierr);
+          ierr = TDySetForcingFunction(tdy,ForcingWheeler2012_1); CHKERRQ(ierr);
+          ierr = TDySetBoundaryPressureFunction(tdy,PressureWheeler2012_1); CHKERRQ(ierr);
+          ierr = TDySetBoundaryVelocityFunction(tdy,VelocityWheeler2012_1); CHKERRQ(ierr);
         }
         break;
     }
@@ -772,7 +853,7 @@ int main(int argc, char **argv) {
   ierr = DMCreateGlobalVector(dm,&Ue); CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(dm,&F ); CHKERRQ(ierr);
   ierr = DMCreateMatrix      (dm,&K ); CHKERRQ(ierr);
-  ierr = TDyComputeSystem(tdy,K,F); CHKERRQ(ierr);
+  ierr = TDyWYComputeSystem(tdy,K,F); CHKERRQ(ierr);
 
   /* Solve system */
   KSP ksp;

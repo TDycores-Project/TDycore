@@ -66,9 +66,6 @@ PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryVelocity(Conditions*,PetscI
 PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundaryPressure(Conditions*,PetscReal);
 PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundaryTemperature(Conditions*,PetscReal);
 PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundaryVelocity(Conditions*,PetscReal);
-PETSC_INTERN PetscErrorCode ConditionsSelectBoundaryPressure(Conditions*,const char*);
-PETSC_INTERN PetscErrorCode ConditionsSelectBoundaryTemperature(Conditions*,const char*);
-PETSC_INTERN PetscErrorCode ConditionsSelectBoundaryVelocity(Conditions*,const char*);
 
 #endif
 

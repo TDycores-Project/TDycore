@@ -562,7 +562,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsGetString(NULL, NULL, "-tdy_pressure_bc_func", func_name,
                                sizeof(func_name), &flag); CHKERRQ(ierr);
   if (flag) {
-    ierr = ConditionsSelectBoundaryPressure(tdy->conditions, func_name);
+    ierr = TDySelectBoundaryPressureFunction(tdy, func_name);
   } else {
     ierr = PetscOptionsReal("-tdy_pressure_bc_value", "Constant boundary pressure",
                             NULL, options->boundary_pressure,
@@ -577,7 +577,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsGetString(NULL, NULL, "-tdy_velocity_bc_func", func_name,
                                sizeof(func_name), &flag); CHKERRQ(ierr);
   if (flag) {
-    ierr = ConditionsSelectBoundaryVelocity(tdy->conditions, func_name);
+    ierr = TDySelectBoundaryVelocityFunction(tdy, func_name);
   } else {
     ierr = PetscOptionsReal("-tdy_velocity_bc_value", "Constant normal boundary velocity",
                             NULL, options->boundary_velocity,
@@ -592,7 +592,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsGetString(NULL, NULL, "-tdy_temperature_bc_func", func_name,
                                sizeof(func_name), &flag); CHKERRQ(ierr);
   if (flag) {
-    ierr = ConditionsSelectBoundaryTemperature(tdy->conditions, func_name);
+    ierr = TDySelectBoundaryTemperatureFunction(tdy, func_name); CHKERRQ(ierr);
   } else {
     ierr = PetscOptionsReal("-tdy_temperature_bc_value", "Constant boundary temperature",
                             NULL, options->boundary_temperature,
@@ -1100,6 +1100,124 @@ PetscErrorCode TDySetSoilSpecificHeatFunction(TDy tdy,
   PetscFunctionBegin;
   ierr = MaterialPropSetHeterogeneousSoilSpecificHeat(tdy->matprop, f);
   CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+// This struct is stored in a context and used to call a spatial function with a
+// NULL context.
+typedef struct WrapperStruct {
+  TDySpatialFunction func;
+} WrapperStruct;
+
+// This function calls an underlying Function with a NULL context.
+static PetscErrorCode WrapperFunction(void *context, PetscInt n, PetscReal *x, PetscReal *v) {
+  WrapperStruct *wrapper = context;
+  wrapper->func(n, x, v);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetForcingFunction(TDy tdy,
+                                     TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+  wrapper->func = f;
+  ierr = ConditionsSetForcing(tdy->conditions, wrapper,
+                              WrapperFunction, free); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetEnergyForcingFunction(TDy tdy,
+                                           TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+  wrapper->func = f;
+  ierr = ConditionsSetEnergyForcing(tdy->conditions, wrapper,
+                                    WrapperFunction, free); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetBoundaryPressureFunction(TDy tdy,
+                                              TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+  wrapper->func = f;
+  ierr = ConditionsSetBoundaryPressure(tdy->conditions, wrapper,
+                                       WrapperFunction, free); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetBoundaryTemperatureFunction(TDy tdy,
+                                                 TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+  wrapper->func = f;
+  ierr = ConditionsSetBoundaryTemperature(tdy->conditions, wrapper,
+                                          WrapperFunction, free); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetBoundaryVelocityFunction(TDy tdy,
+                                              TDyVectorSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+  wrapper->func = f;
+  ierr = ConditionsSetBoundaryVelocity(tdy->conditions, wrapper,
+                                       WrapperFunction, free); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySelectForcingFunction(TDy tdy,
+                                        const char *func_name) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDySpatialFunction f;
+  ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
+  ierr = TDySetForcingFunction(tdy, f); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySelectEnergyForcingFunction(TDy tdy,
+                                              const char *func_name) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDySpatialFunction f;
+  ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
+  ierr = TDySetEnergyForcingFunction(tdy, f); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySelectBoundaryPressureFunction(TDy tdy,
+                                                 const char *func_name) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDySpatialFunction f;
+  ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
+  ierr = TDySetBoundaryPressureFunction(tdy, f); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy tdy,
+                                                    const char *func_name) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDySpatialFunction f;
+  ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
+  ierr = TDySetBoundaryTemperatureFunction(tdy, f); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySelectBoundaryVelocityFunction(TDy tdy,
+                                                 const char *func_name) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDySpatialFunction f;
+  ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
+  ierr = TDySetBoundaryVelocityFunction(tdy, f); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

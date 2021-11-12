@@ -166,58 +166,6 @@ PetscErrorCode ConditionsComputeBoundaryVelocity(Conditions *conditions,
                                                   n, x, v);
 }
 
-// This struct is stored in a context and used to call a Function with a NULL
-// context.
-typedef struct WrapperStruct {
-  TDySpatialFunction func;
-} WrapperStruct;
-
-// This function calls an underlying Function with a NULL context.
-PetscErrorCode WrapperFunction(void *context, PetscInt n, PetscReal *x, PetscReal *v) {
-  WrapperStruct *wrapper = context;
-  wrapper->func(n, x, v);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode ConditionsSelectBoundaryPressure(Conditions *conditions,
-                                                const char* name) {
-  PetscFunctionBegin;
-  int ierr;
-  TDySpatialFunction f;
-  ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
-  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
-  wrapper->func = f;
-  ierr = ConditionsSetBoundaryPressure(conditions, wrapper, WrapperFunction, free);
-  CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode ConditionsSelectBoundaryTemperature(Conditions *conditions,
-                                                   const char* name) {
-  PetscFunctionBegin;
-  int ierr;
-  TDySpatialFunction f;
-  ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
-  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
-  wrapper->func = f;
-  ierr = ConditionsSetBoundaryTemperature(conditions, wrapper, WrapperFunction, free);
-  CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode ConditionsSelectBoundaryVelocity(Conditions *conditions,
-                                                const char* name) {
-  PetscFunctionBegin;
-  int ierr;
-  TDySpatialFunction f;
-  ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
-  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
-  wrapper->func = f;
-  ierr = ConditionsSetBoundaryVelocity(conditions, wrapper, WrapperFunction, free);
-  CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
 static PetscErrorCode ConstantBoundaryFn(void *context,
                                          PetscInt n, PetscReal *x,
                                          PetscReal *v) {
@@ -261,38 +209,3 @@ PetscErrorCode ConditionsSetConstantBoundaryVelocity(Conditions *conditions,
                                        free);
   PetscFunctionReturn(0);
 }
-
-#if 0
-/*
-  Boundary and source-sink conditions are cell-by-cell
-*/
-
-PetscErrorCode TDySetSourceSinkValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[ni], const PetscScalar y[ni]){
-
-  PetscInt i;
-
-  PetscFunctionBegin;
-  if (!ni) PetscFunctionReturn(0);
-
-  for(i=0; i<ni; i++) {
-    tdy->source_sink[ix[i]] = y[i];
-  }
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetEnergySourceSinkValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[ni], const PetscScalar y[ni]){
-
-  PetscInt i;
-
-  PetscFunctionBegin;
-  if (!ni) PetscFunctionReturn(0);
-
-  for(i=0; i<ni; i++) {
-    tdy->energy_source_sink[ix[i]] = y[i];
-  }
-
-  PetscFunctionReturn(0);
-}
-
-#endif

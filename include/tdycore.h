@@ -161,25 +161,7 @@ PETSC_EXTERN PetscErrorCode TDySelectForcingFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectEnergyForcingFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectBoundaryPressureFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy,const char*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFn(TDy,const char*);
-
-/*
-// TODO: do we actually need any of these?
-// Set condition: for each cell
-PETSC_EXTERN PetscErrorCode TDySetSourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetEnergySourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-
-// Get material value: for each cell
-PETSC_EXTERN PetscErrorCode TDyGetSaturationValuesLocal(TDy,PetscInt*,PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDyGetLiquidMassValuesLocal(TDy,PetscInt*,PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDyGetCharacteristicCurveMValuesLocal(TDy,PetscInt*,PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDyGetCharacteristicCurveAlphaValuesLocal(TDy,PetscInt*,PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDyGetPorosityValuesLocal(TDy,PetscInt*,PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDyGetBlockPermeabilityValuesLocal(TDy,PetscInt*,PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDyGetNumCellsLocal(TDy,PetscInt*);
-PETSC_EXTERN PetscErrorCode TDyGetCellNaturalIDsLocal(TDy,PetscInt*,PetscInt[]);
-PETSC_EXTERN PetscErrorCode TDyGetCellIsLocal(TDy,PetscInt*,PetscInt[]);
-*/
+PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFunction(TDy,const char*);
 
 PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
