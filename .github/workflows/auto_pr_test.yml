@@ -34,6 +34,7 @@ jobs:
         make -j codecov=1 V=1
 
     - name: Running tests (${{ matrix.build-type }})
+      if: github.event.pull_request.draft == false # skip for draft PRs
       run: |
         set +e # disable "fast fail" (continue on test failures)
         num_failures=0
