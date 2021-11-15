@@ -291,17 +291,48 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
-  MPI_Comm       comm;
   PetscInt i,dim,ncv,nfv,c,cStart,cEnd,f,fStart,fEnd,vStart,vEnd,p,pStart,pEnd;
   PetscInt  closureSize,  *closure;
 
   TDyWY* wy = context;
 
-  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
+  // Compute/store plex geometry.
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum (dm,0,&vStart,&vEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
+  TDyStartTimer(t1);
+  ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
+  cStart = pStart; cEnd = pEnd; // TODO: jettison these redundant variables
+  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  PetscInt eStart, eEnd;
+  ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(wy->V));
+  CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(wy->X));
+  CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(wy->N));
+  CHKERRQ(ierr);
+  PetscSection coordSection;
+  Vec coordinates;
+  PetscReal *coords;
+  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal (dm, &coordinates); CHKERRQ(ierr);
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  for(PetscInt p=pStart; p<pEnd; p++) {
+    if((p >= vStart) && (p < vEnd)) {
+      PetscInt offset;
+      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
+      for(PetscInt d=0; d<dim; d++) wy->X[p*dim+d] = coords[offset+d];
+    } else {
+      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
+      PetscLogEvent t11 = TDyGetTimer("DMPlexComputeCellGeometryFVM");
+      TDyStartTimer(t11);
+      ierr = DMPlexComputeCellGeometryFVM(dm,p,&(wy->V[p]),
+                                          &(wy->X[p*dim]),
+                                          &(wy->N[p*dim])); CHKERRQ(ierr);
+      TDyStopTimer(t11);
+    }
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
 
   /* Check that the number of vertices per cell are constant. Soft
      limitation, method is flexible but my data structures are not. */
@@ -310,16 +341,18 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
 
   /* Create a PETSc quadrature, we don't really use this, it is just
      to evaluate the Jacobian via the PETSc interface. */
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
   ierr = PetscQuadratureCreate(comm,&(wy->quad)); CHKERRQ(ierr);
   ierr = SetQuadrature(wy->quad,dim); CHKERRQ(ierr);
 
   /* Build vmap and emap */
-  ierr = CreateCellVertexMap(dm, wy->ncv, wy->X, &(wy->vmap)); CHKERRQ(ierr);
-  ierr = CreateCellVertexDirFaceMap(dm, wy->ncv, wy->X, wy->N, wy->vmap,
+  ierr = CreateCellVertexMap(dm, ncv, wy->X, &(wy->vmap)); CHKERRQ(ierr);
+  ierr = CreateCellVertexDirFaceMap(dm, ncv, wy->X, wy->N, wy->vmap,
                                     &(wy->emap)); CHKERRQ(ierr);
 
   /* Allocate space for Alocal and Flocal */
-  ierr = PetscMalloc(dim*dim*ncv*(cEnd-cStart)*sizeof(PetscReal),
+  ierr = PetscMalloc(dim*dim*wy->ncv*(cEnd-cStart)*sizeof(PetscReal),
                      &(wy->Alocal)); CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),
                      &(wy->Flocal)); CHKERRQ(ierr);

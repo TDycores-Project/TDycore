@@ -605,6 +605,8 @@ PetscErrorCode SaveForcing(TDy tdy, char filename[256]){
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   ierr = VecGetArray(forcing,&f); CHKERRQ(ierr);
 
+  // TODO: This kind of stuff doesn't belong in a demo. We need to hash out our
+  // TODO: library interface to provide a higher-level way of accomplishing this.
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexComputeCellGeometryFVM(dm, c, PETSC_NULL, &centroid[0],
                                         PETSC_NULL); CHKERRQ(ierr);

@@ -56,9 +56,11 @@ PETSC_INTERN PetscBool ConditionsHasBoundaryTemperature(Conditions*);
 PETSC_INTERN PetscBool ConditionsHasBoundaryVelocity(Conditions*);
 
 // conditions computation
-PETSC_INTERN PetscErrorCode ConditionsComputeForcing(Conditions*,PetscInt,PetscReal*,PetscReal*);
+// TODO: Change to PETSC_INTERN when we fix demo/steady steady.c
+PETSC_EXTERN PetscErrorCode ConditionsComputeForcing(Conditions*,PetscInt,PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode ConditionsComputeEnergyForcing(Conditions*,PetscInt,PetscReal*,PetscReal*);
-PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryPressure(Conditions*,PetscInt,PetscReal*,PetscReal*);
+// TODO: Change to PETSC_INTERN when we fix demo/steady steady.c
+PETSC_EXTERN PetscErrorCode ConditionsComputeBoundaryPressure(Conditions*,PetscInt,PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryTemperature(Conditions*,PetscInt,PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryVelocity(Conditions*,PetscInt,PetscReal*,PetscReal*);
 
