@@ -65,6 +65,7 @@ jobs:
         test $num_failures -eq 0
 
     - name: Evaluating test coverage
+      if: github.event.pull_request.draft == false # skip for draft PRs
       run: |
         lcov --capture --directory . --output-file coverage.info
         lcov --list coverage.info # debug info
