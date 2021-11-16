@@ -114,9 +114,9 @@ void PermWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *K) {
 void PressureWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *f) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
-    f[n]  = PetscPowReal(1-X,4);
-    f[n] += PetscPowReal(1-Y,3)*(1-X);
-    f[n] += PetscSinReal(1-Y)*PetscCosReal(1-X);
+    f[i]  = PetscPowReal(1-X,4);
+    f[i] += PetscPowReal(1-Y,3)*(1-X);
+    f[i] += PetscSinReal(1-Y)*PetscCosReal(1-X);
   }
 }
 

@@ -622,12 +622,13 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
     ierr = PetscMemzero(D,sizeof(PetscScalar)*MAX_LOCAL_SIZE); CHKERRQ(ierr);
 
     for (c=0; c<closureSize*2; c+=2) { // loop connected cells
-      if ((closure[c] < cStart) || (closure[c] >= cEnd)) continue;
+      PetscInt c1 = closure[c]; // connected cell index
+      if ((c1 < cStart) || (c1 >= cEnd)) continue;
 
       // for the cell, which local vertex is this vertex?
       element_vertex = -1;
       for(q=0; q<nq; q++) {
-        if(v == wy->vmap[closure[c]*nq+q]) {
+        if(v == wy->vmap[c1*nq+q]) {
           element_vertex = q;
           break;
         }
@@ -636,7 +637,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
 
       for(element_row=0; element_row<dim;
           element_row++) { // which test function, local to the element/vertex
-        global_row = wy->emap[closure[c]*nq*dim+element_vertex*dim
+        global_row = wy->emap[c1*nq*dim+element_vertex*dim
                                +element_row]; // DMPlex point index of the face
         sign_row   = PetscSign(global_row);
         global_row = PetscAbsInt(global_row);
@@ -650,7 +651,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
 
         local_col  = -1;
         for(q=0; q<nB; q++) {
-          if(Bmap[q] == closure[c]) {
+          if(Bmap[q] == c1) {
             local_col = q; // col into block matrix B, local to vertex
             break;
           }
@@ -661,9 +662,9 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
 
         // Pressure boundary conditions
         PetscInt isbc;
-        ierr = DMGetLabelValue(dm,"marker",global_row,&isbc); CHKERRQ(ierr);
+        ierr = DMGetLabelValue(dm,"boundary",global_row,&isbc); CHKERRQ(ierr);
         if(isbc == 1 && ConditionsHasBoundaryPressure(conditions)) {
-          //ierr = IntegrateOnFace(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
+          //ierr = IntegrateOnFace(tdy,c1,global_row,&pdirichlet); CHKERRQ(ierr);
           //G[local_row] = wgt*pdirichlet;
           ierr = ConditionsComputeBoundaryPressure(conditions, 1,
                                                    &(wy->X[global_row*dim]),
@@ -673,7 +674,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
 
         for(element_col=0; element_col<dim;
             element_col++) { // which trial function, local to the element/vertex
-          global_col = wy->emap[closure[c]*nq*dim+element_vertex*dim
+          global_col = wy->emap[c1*nq*dim+element_vertex*dim
                                  +element_col]; // DMPlex point index of the face
           sign_col   = PetscSign(global_col);
           global_col = PetscAbsInt(global_col);
@@ -690,7 +691,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
             CHKERRQ(PETSC_ERR_ARG_OUTOFRANGE);
           }
           /* Assembled col major, but should be symmetric */
-          A[local_col*nA+local_row] += wy->Alocal[closure[c]    *(dim2*nq)+
+          A[local_col*nA+local_row] += wy->Alocal[c1*(dim2*nq)+
                                        element_vertex*(dim2   )+
                                        element_row   *(dim    )+
                                        element_col]*sign_row*sign_col*wy->V[global_row]*wy->V[global_col];
@@ -710,7 +711,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
       if(gStart < 0) continue;
       ierr = VecSetValue(F,gStart,D[c],ADD_VALUES); CHKERRQ(ierr);
       for(q=0; q<nB; q++) {
-	if (PetscAbsReal(C[q*nB+c])<(tol*maxC)) continue;
+        if (PetscAbsReal(C[q*nB+c])<(tol*maxC)) continue;
         ierr = DMPlexGetPointGlobal(dm,Bmap[q],&lStart,&junk); CHKERRQ(ierr);
         if (lStart < 0) lStart = -lStart-1;
         ierr = MatSetValue(K,gStart,lStart,C[q*nB+c],ADD_VALUES); CHKERRQ(ierr);
@@ -824,7 +825,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
 
         // boundary conditions
         PetscInt isbc;
-        ierr = DMGetLabelValue(dm,"marker",global_row,&isbc); CHKERRQ(ierr);
+        ierr = DMGetLabelValue(dm,"boundary",global_row,&isbc); CHKERRQ(ierr);
         if(isbc == 1 && ConditionsHasBoundaryPressure(conditions)) {
           //ierr = IntegrateOnFaceConstant(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
           //F[local_row] -= wgt*sign_row*pdirichlet;
