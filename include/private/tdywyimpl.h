@@ -11,6 +11,7 @@ typedef struct TDyWY {
   PetscReal Pref;
 
   // Mesh information
+  PetscInt dim; // spatial dimension
   PetscReal *V; // cell volumes
   PetscReal *X; // point centroids
   PetscReal *N; // face normals
@@ -36,8 +37,8 @@ typedef struct TDyWY {
   PetscReal *K, *K0; // permeability
   PetscReal *porosity;
 
-  PetscReal *Kr, *dKrdS; // relative permeability and derivative per cell
-  PetscReal *S, *dSdP, *d2SdP2; // saturation and derivatives per cell
+  PetscReal *Kr, *dKr_dS; // relative permeability and derivative per cell
+  PetscReal *S, *dS_dP, *d2S_dP2; // saturation and derivatives per cell
   PetscReal *Sr; // residual saturation
 } TDyWY;
 
