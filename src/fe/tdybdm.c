@@ -19,13 +19,13 @@ PetscErrorCode TDyCreate_BDM(void **context) {
   PetscFunctionBegin;
 
   // Allocate a new context for the WY method.
-  TDyBDM* bdm;
+  TDyBDM *bdm;
   ierr = PetscMalloc(sizeof(TDyBDM), &bdm);
   *context = bdm;
 
   // initialize data
   bdm->qtype = FULL;
-  bdm->vmap = NULL; bdm->emap = NULL; bdm->Alocal = NULL; bdm->Flocal = NULL;
+  bdm->vmap = NULL; bdm->emap = NULL;
   bdm->quad = NULL;
   bdm->faces = NULL; bdm->LtoG = NULL; bdm->orient = NULL;
 
@@ -35,13 +35,10 @@ PetscErrorCode TDyCreate_BDM(void **context) {
 PetscErrorCode TDyDestroy_BDM(void *context) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  TDyBDM* bdm = context;
+  TDyBDM *bdm = context;
 
   if (bdm->vmap  ) { ierr = PetscFree(bdm->vmap  ); CHKERRQ(ierr); }
   if (bdm->emap  ) { ierr = PetscFree(bdm->emap  ); CHKERRQ(ierr); }
-  if (bdm->Alocal) { ierr = PetscFree(bdm->Alocal); CHKERRQ(ierr); }
-  if (bdm->Flocal) { ierr = PetscFree(bdm->Flocal); CHKERRQ(ierr); }
-  if (bdm->vel   ) { ierr = PetscFree(bdm->vel   ); CHKERRQ(ierr); }
   if (bdm->fmap  ) { ierr = PetscFree(bdm->fmap  ); CHKERRQ(ierr); }
   if (bdm->faces ) { ierr = PetscFree(bdm->faces ); CHKERRQ(ierr); }
   if (bdm->LtoG  ) { ierr = PetscFree(bdm->LtoG  ); CHKERRQ(ierr); }
@@ -59,7 +56,7 @@ PetscErrorCode TDySetFromOptions_BDM(void *context, TDyOptions *options) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  TDyBDM* bdm = context;
+  TDyBDM *bdm = context;
 
   // Set options.
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: BDM options",""); CHKERRQ(ierr);
@@ -78,14 +75,48 @@ PetscErrorCode TDySetup_BDM(void *context, DM dm, EOS *eos, MaterialProp *matpro
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscInt pStart,pEnd,c,cStart,cEnd,f,f_abs,fStart,fEnd,nfv,ncv,v,vStart,vEnd,
-           mStart,mEnd,i,nlocal,closureSize,*closure;
+           mStart,mEnd,i,nlocal,closureSize,*closure,d,dim;
 
-  // Allocate a new context for the WY method.
-  TDyBDM* bdm = context;
+  TDyBDM *bdm = context;
 
-  PetscInt d,dim,dofs_per_face = 1;
-  PetscBool found;
+  // Compute/store plex geometry.
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  PetscLogEvent t1 = TDyGetTimer("ComputePlexGeometry");
+  TDyStartTimer(t1);
+  ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  PetscInt eStart, eEnd;
+  ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(bdm->V));
+  CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(bdm->X));
+  CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(bdm->N));
+  CHKERRQ(ierr);
+  PetscSection coordSection;
+  Vec coordinates;
+  PetscReal *coords;
+  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal (dm, &coordinates); CHKERRQ(ierr);
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  for(PetscInt p=pStart; p<pEnd; p++) {
+    if((p >= vStart) && (p < vEnd)) {
+      PetscInt offset;
+      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
+      for(PetscInt d=0; d<dim; d++) bdm->X[p*dim+d] = coords[offset+d];
+    } else {
+      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
+      PetscLogEvent t11 = TDyGetTimer("DMPlexComputeCellGeometryFVM");
+      TDyStartTimer(t11);
+      ierr = DMPlexComputeCellGeometryFVM(dm,p,&(bdm->V[p]),
+                                          &(bdm->X[p*dim]),
+                                          &(bdm->N[p*dim])); CHKERRQ(ierr);
+      TDyStopTimer(t11);
+    }
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
 
   /* Get plex limits */
   ierr = DMPlexGetChart        (dm,  &pStart,&pEnd); CHKERRQ(ierr);
@@ -110,6 +141,7 @@ PetscErrorCode TDySetup_BDM(void *context, DM dm, EOS *eos, MaterialProp *matpro
   }
 
   /* Setup dofs_per_face considering quads and hexes only */
+  PetscInt dofs_per_face = 1;
   for(d=0; d<(dim-1); d++) dofs_per_face *= 2;
   for(f=fStart; f<fEnd; f++) {
     ierr = PetscSectionSetFieldDof(sec,f,1,dofs_per_face); CHKERRQ(ierr);
@@ -159,6 +191,7 @@ PetscErrorCode TDySetup_BDM(void *context, DM dm, EOS *eos, MaterialProp *matpro
                      &(bdm->LtoG)); CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),
                      &(bdm->orient)); CHKERRQ(ierr);
+  PetscBool found;
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&mStart,&mEnd); CHKERRQ(ierr);
     if(mStart<0) mStart = -(mStart+1);
@@ -169,7 +202,7 @@ PetscErrorCode TDySetup_BDM(void *context, DM dm, EOS *eos, MaterialProp *matpro
         f = bdm->emap[(c-cStart)*ncv*dim+v*dim+d];
         f_abs = PetscAbsInt(f);
         ierr = DMPlexGetPointGlobal(dm,f_abs,&mStart,&mEnd); CHKERRQ(ierr);
-	if(mStart<0) mStart = -(mStart+1);
+        if(mStart<0) mStart = -(mStart+1);
         found = PETSC_FALSE;
         for(i=0; i<nfv; i++) {
           if(bdm->vmap[ncv*(c-cStart)+v] == bdm->fmap[nfv*(f_abs-fStart)+i]) {
@@ -180,7 +213,7 @@ PetscErrorCode TDySetup_BDM(void *context, DM dm, EOS *eos, MaterialProp *matpro
         }
         if(!found) {
           SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-                  "Could not find a face vertex for this cell");
+              "Could not find a face vertex for this cell");
         }
       }
     }
@@ -209,6 +242,11 @@ PetscErrorCode TDySetup_BDM(void *context, DM dm, EOS *eos, MaterialProp *matpro
     }
   }
   #endif
+
+  // Initialize material properties.
+  PetscInt nc = cEnd-cStart;
+  ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(bdm->K)); CHKERRQ(ierr);
+  ierr = MaterialPropComputePermeability(matprop, nc, bdm->X, bdm->K); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);

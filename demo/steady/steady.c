@@ -889,7 +889,15 @@ int main(int argc, char **argv) {
   ierr = DMCreateGlobalVector(dm,&Ue); CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(dm,&F ); CHKERRQ(ierr);
   ierr = DMCreateMatrix      (dm,&K ); CHKERRQ(ierr);
-  ierr = TDyWYComputeSystem(tdy,K,F); CHKERRQ(ierr);
+  // TODO: This is obviously not great, but we're likely going to kick this
+  // TODO: stuff out of the library interface soon.
+  TDyDiscretization disc;
+  ierr = TDyGetDiscretization(tdy, &disc); CHKERRQ(ierr);
+  if (disc == WY) {
+    ierr = TDyWYComputeSystem(tdy,K,F); CHKERRQ(ierr);
+  } else {
+    ierr = TDyBDMComputeSystem(tdy,K,F); CHKERRQ(ierr);
+  }
 
   /* Solve system */
   KSP ksp;

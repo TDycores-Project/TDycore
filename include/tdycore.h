@@ -124,6 +124,7 @@ PETSC_EXTERN PetscErrorCode TDyDestroy(TDy*);
 PETSC_EXTERN PetscErrorCode TDyView(TDy,PetscViewer);
 
 PETSC_EXTERN PetscErrorCode TDyGetDimension(TDy,PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyGetDiscretization(TDy,TDyDiscretization*);
 PETSC_EXTERN PetscErrorCode TDyGetDM(TDy,DM*);
 PETSC_EXTERN PetscErrorCode TDyGetBoundaryFaces(TDy,PetscInt*, const PetscInt**);
 PETSC_EXTERN PetscErrorCode TDyRestoreBoundaryFaces(TDy,PetscInt*, const PetscInt**);

@@ -16,11 +16,7 @@ typedef struct TDyBDM {
   PetscInt  *vmap;      /* [cell,local_vertex] --> global_vertex */
   PetscInt  *emap;      /* [cell,local_vertex,direction] --> global_face */
   PetscInt  *fmap;      /* [face,local_vertex] --> global_vertex */
-  PetscReal *Alocal;    /* local element matrices (Ku,v) */
-  PetscReal *Flocal;    /* local element vectors (f,w) */
   PetscQuadrature quad; /* vertex-based quadrature rule */
-  PetscReal *vel;       /* [face,local_vertex] --> velocity normal to face at vertex */
-  PetscInt *vel_count;  /* For MPFAO, the number of subfaces that are used to determine velocity at the face. For 3D+hex, vel_count = 4 */
 
   PetscInt  *LtoG;
   PetscInt  *orient;

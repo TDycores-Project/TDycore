@@ -414,8 +414,15 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
 
 PetscErrorCode TDyGetDimension(TDy tdy,PetscInt *dim) {
   PetscErrorCode ierr;
+  PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   ierr = DMGetDimension(tdy->dm,dim); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyGetDiscretization(TDy tdy, TDyDiscretization* disc) {
+  PetscFunctionBegin;
+  *disc = tdy->options.discretization;
   PetscFunctionReturn(0);
 }
 
