@@ -89,9 +89,9 @@ PetscErrorCode SaturationSetType(Saturation *sat, SaturationType type,
   ierr = PetscMalloc(num_points*sizeof(PetscInt),
                      &(sat->points[type])); CHKERRQ(ierr);
   memcpy(sat->points[type], points, num_points*sizeof(PetscInt));
-  ierr = PetscMalloc(num_params*num_points*sizeof(PetscInt),
+  ierr = PetscMalloc(num_params*num_points*sizeof(PetscReal),
                      &(sat->parameters[type])); CHKERRQ(ierr);
-  memcpy(sat->parameters[type], parameters, num_params*num_points*sizeof(PetscInt));
+  memcpy(sat->parameters[type], parameters, num_params*num_points*sizeof(PetscReal));
   PetscFunctionReturn(0);
 }
 
@@ -126,7 +126,7 @@ PetscErrorCode SaturationCompute(Saturation *sat,
       for (PetscInt i = 0; i < num_points; ++i) {
         PetscInt j = sat->points[type][i];
         PetscReal m = sat->parameters[type][2*i];
-        PetscReal alpha = sat->parameters[type][2*i+2];
+        PetscReal alpha = sat->parameters[type][2*i+1];
         PressureSaturation_VanGenuchten(m, alpha, Sr[j], Pc[j], &(S[j]), &(dSdP[j]),
                                         &(d2SdP2[j]));
       }
@@ -198,10 +198,10 @@ PetscErrorCode RelativePermeabilitySetType(RelativePermeability *rel_perm,
   ierr = PetscMalloc(num_points*sizeof(PetscInt),
                      &(rel_perm->points[type])); CHKERRQ(ierr);
   memcpy(rel_perm->points[type], points, num_points*sizeof(PetscInt));
-  ierr = PetscMalloc(num_params*num_points*sizeof(PetscInt),
+  ierr = PetscMalloc(num_params*num_points*sizeof(PetscReal),
                      &(rel_perm->parameters[type])); CHKERRQ(ierr);
   memcpy(rel_perm->parameters[type], parameters,
-         num_params*num_points*sizeof(PetscInt));
+         num_params*num_points*sizeof(PetscReal));
   PetscFunctionReturn(0);
 }
 

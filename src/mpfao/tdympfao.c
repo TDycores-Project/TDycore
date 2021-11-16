@@ -995,8 +995,8 @@ static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
   }
 
   // Compute material properties.
-  MaterialPropComputePermeability(matprop, nc, mpfao->X, mpfao->K);
-  memcpy(mpfao->K0, mpfao->K, 9*nc*sizeof(PetscReal));
+  MaterialPropComputePermeability(matprop, nc, mpfao->X, mpfao->K0);
+  memcpy(mpfao->K, mpfao->K0, 9*nc*sizeof(PetscReal));
   MaterialPropComputePorosity(matprop, nc, mpfao->X, mpfao->porosity);
   MaterialPropComputeSoilDensity(matprop, nc, mpfao->X, mpfao->rho_soil);
   if (MaterialPropHasThermalConductivity(matprop)) {

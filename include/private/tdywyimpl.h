@@ -3,9 +3,15 @@
 
 #include <petsc.h>
 #include <tdycore.h>
+#include <private/tdyeosimpl.h>
+#include <private/tdymaterialpropertiesimpl.h>
+#include <private/tdycharacteristiccurvesimpl.h>
+#include <private/tdyconditionsimpl.h>
 
 // This struct stores Wheeler-Yotov specific data for the dycore.
 typedef struct TDyWY {
+  // Options
+  PetscReal vangenuchten_m, vangenuchten_alpha, mualem_poly_low;
 
   // Reference pressure.
   PetscReal Pref;
@@ -26,8 +32,6 @@ typedef struct TDyWY {
   PetscReal *vel;       /* [face,local_vertex] --> velocity normal to face at vertex */
   PetscInt *vel_count;  /* For MPFAO, the number of subfaces that are used to determine velocity at the face. For 3D+hex, vel_count = 4 */
 
-  PetscInt  *LtoG;
-  PetscInt  *orient;
   PetscInt  *faces;
 
   // Quadrature type.
@@ -51,7 +55,8 @@ PETSC_INTERN PetscErrorCode TDyUpdateState_WY(void*,DM,EOS*,MaterialProp*,Charac
 PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_WY(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 
 PETSC_INTERN PetscErrorCode TDyWYRecoverVelocity(TDy,Vec);
-PETSC_INTERN PetscErrorCode TDyWYResidual(TS,PetscReal,Vec,Vec,Vec,void *ctx);
+// TODO: This should be internal.
+PETSC_EXTERN PetscErrorCode TDyWYResidual(TS,PetscReal,Vec,Vec,Vec,void *ctx);
 PETSC_INTERN PetscErrorCode Pullback(PetscScalar*,PetscScalar*,PetscScalar*,PetscScalar,PetscInt);
 //PETSC_INTERN PetscErrorCode IntegrateOnFace(TDy,PetscInt,PetscInt,PetscReal*);
 

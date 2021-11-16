@@ -187,10 +187,10 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
     for(q=0; q<nq; q++) {
 
       if(J[q]<0){
-	PetscPrintf(((PetscObject)dm)->comm,"cell %d:  DF = \n",c);
-	PrintMatrix(DF,dim,dim,PETSC_TRUE);
-	SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-		"Determinant of the jacobian is negative");
+        PetscPrintf(((PetscObject)dm)->comm,"cell %d:  DF = \n",c);
+        PrintMatrix(DF,dim,dim,PETSC_TRUE);
+        SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+            "Determinant of the jacobian is negative");
       }
       // compute Kappa^-1 which will be in column major format (shouldn't matter as it is symmetric)
       ierr = Pullback(&(wy->K[dim2*(c-cStart)]),&DFinv[dim2*q],Kinv,J[q],dim);
@@ -249,8 +249,6 @@ PetscErrorCode TDyDestroy_WY(void *context) {
   if (wy->vel   ) { ierr = PetscFree(wy->vel   ); CHKERRQ(ierr); }
   if (wy->fmap  ) { ierr = PetscFree(wy->fmap  ); CHKERRQ(ierr); }
   if (wy->faces ) { ierr = PetscFree(wy->faces ); CHKERRQ(ierr); }
-  if (wy->LtoG  ) { ierr = PetscFree(wy->LtoG  ); CHKERRQ(ierr); }
-  if (wy->orient) { ierr = PetscFree(wy->orient); CHKERRQ(ierr); }
   if (wy->quad  ) { ierr = PetscQuadratureDestroy(&(wy->quad)); CHKERRQ(ierr); }
 
   if (wy->Sr) { ierr = PetscFree(wy->Sr); CHKERRQ(ierr); }
@@ -258,6 +256,7 @@ PetscErrorCode TDyDestroy_WY(void *context) {
   if (wy->d2S_dP2) { ierr = PetscFree(wy->d2S_dP2); CHKERRQ(ierr); }
   if (wy->S) { ierr = PetscFree(wy->S); CHKERRQ(ierr); }
   if (wy->Kr) { ierr = PetscFree(wy->Kr); CHKERRQ(ierr); }
+  if (wy->dKr_dS) { ierr = PetscFree(wy->dKr_dS); CHKERRQ(ierr); }
   if (wy->porosity) { ierr = PetscFree(wy->porosity); CHKERRQ(ierr); }
   if (wy->K0) { ierr = PetscFree(wy->K0); CHKERRQ(ierr); }
   if (wy->K) { ierr = PetscFree(wy->K); CHKERRQ(ierr); }
@@ -285,6 +284,11 @@ PetscErrorCode TDySetFromOptions_WY(void *context, TDyOptions *options) {
     "TDyWYSetQuadrature",TDyQuadratureTypes,(PetscEnum)qtype,
     (PetscEnum *)&wy->qtype,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // Set characteristic curve data.
+  wy->vangenuchten_m = options->vangenuchten_m;
+  wy->vangenuchten_alpha = options->vangenuchten_alpha;
+  wy->mualem_poly_low = options->mualem_poly_low;
 
   PetscFunctionReturn(0);
 }
@@ -420,13 +424,53 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
   ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(wy->K0)); CHKERRQ(ierr);
   ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->porosity)); CHKERRQ(ierr);
   ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->Kr)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->dKr_dS)); CHKERRQ(ierr);
   ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->S)); CHKERRQ(ierr);
   ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->dS_dP)); CHKERRQ(ierr);
   ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->d2S_dP2)); CHKERRQ(ierr);
   ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->Sr)); CHKERRQ(ierr);
 
-  // Compute the permeability.
-  ierr = MaterialPropComputePermeability(matprop, nc, wy->X, wy->K); CHKERRQ(ierr);
+  PetscInt points[nc];
+  for (PetscInt c = 0; c < nc; ++c) {
+    points[c] = cStart + c;
+  }
+
+  // By default, we use the Van Genuchten saturation model.
+  {
+    PetscReal parameters[2*nc];
+    for (PetscInt c = 0; c < nc; ++c) {
+      parameters[2*c]   = wy->vangenuchten_m;
+      parameters[2*c+1] = wy->vangenuchten_alpha;
+    }
+    ierr = SaturationSetType(cc->saturation, SAT_FUNC_VAN_GENUCHTEN, nc, points,
+                             parameters); CHKERRQ(ierr);
+  }
+
+  // By default, we use the the Mualem relative permeability model.
+  {
+    PetscReal parameters[6*nc];
+    for (PetscInt c = 0; c < nc; ++c) {
+      PetscReal m = wy->vangenuchten_m,
+                poly_low = wy->mualem_poly_low;
+      parameters[6*c]   = m;
+      parameters[6*c+1] = poly_low;
+
+      // Set up cubic polynomial coefficients for the cell.
+      PetscReal coeffs[4];
+      RelativePermeability_Mualem_SetSmoothingCoeffs(m, poly_low, coeffs);
+      parameters[6*c+2] = coeffs[0];
+      parameters[6*c+3] = coeffs[1];
+      parameters[6*c+4] = coeffs[2];
+      parameters[6*c+5] = coeffs[3];
+    }
+    ierr = RelativePermeabilitySetType(cc->rel_perm, REL_PERM_FUNC_MUALEM, nc,
+                                       points, parameters); CHKERRQ(ierr);
+  }
+
+  // Compute material properties.
+  ierr = MaterialPropComputePermeability(matprop, nc, wy->X, wy->K0); CHKERRQ(ierr);
+  memcpy(wy->K, wy->K0, 9*sizeof(PetscReal)*nc);
+  MaterialPropComputePorosity(matprop, nc, wy->X, wy->porosity);
 
   /* Setup the section, 1 dof per cell */
   PetscSection sec;
