@@ -299,7 +299,7 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
-  PetscInt i,dim,ncv,c,cStart,cEnd,f,fStart,fEnd,vStart,vEnd,p,pStart,pEnd;
+  PetscInt i,dim,c,cStart,cEnd,f,fStart,fEnd,vStart,vEnd,p,pStart,pEnd;
   PetscInt  closureSize,  *closure;
 
   TDyWY *wy = context;

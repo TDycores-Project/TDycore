@@ -29,7 +29,6 @@ PetscErrorCode ConditionsDestroy(Conditions* conditions) {
 PetscErrorCode ConditionsSetForcing(Conditions *conditions, void *context,
                                     PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
                                     void (*dtor)(void*)) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   if (conditions->forcing_context && conditions->forcing_dtor)
     conditions->forcing_dtor(conditions->forcing_context);
@@ -47,7 +46,6 @@ PetscErrorCode ConditionsSetForcing(Conditions *conditions, void *context,
 PetscErrorCode ConditionsSetEnergyForcing(Conditions *conditions, void *context,
                                           PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
                                           void (*dtor)(void*)) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   if (conditions->energy_forcing_context && conditions->energy_forcing_dtor)
     conditions->energy_forcing_dtor(conditions->energy_forcing_context);
@@ -65,7 +63,6 @@ PetscErrorCode ConditionsSetEnergyForcing(Conditions *conditions, void *context,
 PetscErrorCode ConditionsSetBoundaryPressure(Conditions *conditions, void *context,
                                              PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
                                              void (*dtor)(void*)) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   if (conditions->boundary_pressure_context && conditions->boundary_pressure_dtor)
     conditions->boundary_pressure_dtor(conditions->boundary_pressure_context);
@@ -84,7 +81,6 @@ PetscErrorCode ConditionsSetBoundaryTemperature(Conditions *conditions,
                                                 void *context,
                                                 PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
                                                 void (*dtor)(void*)) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   if (conditions->boundary_temperature_context && conditions->boundary_temperature_dtor)
     conditions->boundary_temperature_dtor(conditions->boundary_temperature_context);
@@ -103,7 +99,6 @@ PetscErrorCode ConditionsSetBoundaryVelocity(Conditions *conditions,
                                              void *context,
                                              PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
                                              void (*dtor)(void*)) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   if (conditions->boundary_velocity_context && conditions->boundary_velocity_dtor)
     conditions->boundary_velocity_dtor(conditions->boundary_velocity_context);

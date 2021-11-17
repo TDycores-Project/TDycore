@@ -336,41 +336,6 @@ PetscErrorCode TDySetDMConstructorF90(TDy tdy,
   PetscFunctionReturn(0);
 }
 
-// This reads a single scalar value from a context into a scalar material
-// property.
-static PetscErrorCode ScalarPropertyFromContext(void *context,
-                                                PetscReal *x,
-                                                PetscReal *prop) {
-  PetscFunctionBegin;
-  PetscReal *val = context;
-  *prop = *val;
-  PetscFunctionReturn(0);
-}
-
-// This reads a single scalar value from a context into a tensor material
-// property (2D).
-static PetscErrorCode TensorPropertyFromScalarContext2D(void *context,
-                                                        PetscReal *x,
-                                                        PetscReal *prop) {
-  PetscFunctionBegin;
-  PetscReal *val = context;
-  prop[0] = prop[3] = *val;
-  prop[1] = prop[2] = 0.0;
-  PetscFunctionReturn(0);
-}
-
-// This reads a single scalar value from a context into a tensor material
-// property (3D).
-static PetscErrorCode TensorPropertyFromScalarContext3D(void *context,
-                                                        PetscReal *x,
-                                                        PetscReal *prop) {
-  PetscFunctionBegin;
-  PetscReal *val = context;
-  prop[0] = prop[4] = prop[8] = *val;
-  prop[1] = prop[2] = prop[3] = prop[5] = prop[6] = prop[7] = 0.0;
-  PetscFunctionReturn(0);
-}
-
 PetscErrorCode TDyDestroy(TDy *_tdy) {
   TDy            tdy;
   PetscErrorCode ierr;
@@ -1238,10 +1203,8 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
   TDY_START_FUNCTION_TIMER()
 
   // Call the implementation-specific state update.
-  CharacteristicCurves *cc = tdy->cc;
-  MaterialProp *matprop = tdy->matprop;
-  tdy->ops->update_state(tdy->context, tdy->dm, &tdy->eos, tdy->matprop,
-                         tdy->cc, U);
+  ierr = tdy->ops->update_state(tdy->context, tdy->dm, &tdy->eos, tdy->matprop,
+                                tdy->cc, U); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   TDyExitProfilingStage("TDycore Setup");
@@ -1343,12 +1306,12 @@ PetscReal TDyADotB(PetscReal *a,PetscReal *b,PetscInt dim) {
 PetscErrorCode TDyComputeErrorNorms(TDy tdy, Vec U,
                                     PetscReal *pressure_norm,
                                     PetscReal *velocity_norm) {
-  MPI_Comm       comm;
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   ierr = tdy->ops->compute_error_norms(tdy->context, tdy->dm, tdy->conditions,
-                                       U, pressure_norm, velocity_norm); CHKERRQ(ierr);
+                                       U, pressure_norm, velocity_norm);
+  CHKERRQ(ierr);
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }

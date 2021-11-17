@@ -154,7 +154,6 @@ static void DiagonalTensorsDestroy(void *context) {
 /// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyIOReadPermeability(TDy tdy){
   PetscFunctionBegin;
-  PetscInt cStart,cEnd,ncell,c;
   PetscErrorCode ierr;
   char VariableName[PETSC_MAX_PATH_LEN-1];
   char VariableNameX[PETSC_MAX_PATH_LEN];
@@ -172,8 +171,8 @@ PetscErrorCode TDyIOReadPermeability(TDy tdy){
   }
 
   ierr = DMGetDimension(tdy->dm, &dim);
+  PetscInt cStart,cEnd;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
-  ncell = (cEnd-cStart);
 
   if (tdy->io->anisotropic_permeability) {
     // Set up a function/context that assigns a diagonal anisotropic
@@ -224,7 +223,6 @@ static void ScalarsDestroy(void* context) {
 /// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyIOReadPorosity(TDy tdy){
   PetscFunctionBegin;
-  PetscInt cStart,cEnd,ncell,c;
   PetscErrorCode ierr;
   char VariableName[PETSC_MAX_PATH_LEN];
   size_t len;
@@ -237,13 +235,14 @@ PetscErrorCode TDyIOReadPorosity(TDy tdy){
     strcpy(VariableName, tdy->io->porosity_dataset);
   }
 
+  PetscInt cStart,cEnd;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
-  ncell = (cEnd-cStart);
+  PetscInt ncell = (cEnd-cStart);
 
   PetscReal *Porosity;
   ierr = TDyIOReadVariable(tdy,VariableName,filename,&Porosity);
   PetscInt index[ncell];
-  for (c = 0;c<=ncell;++c){
+  for (PetscInt c = 0;c<=ncell;++c){
      index[c] = c;
   }
 
@@ -338,7 +337,6 @@ PetscErrorCode TDyIOOutputCheckpoint(TDy tdy){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscViewer viewer;
-  PetscSection sec;
   Vec p = tdy->solution;
   Vec p_natural;
   PetscReal time = tdy->ti->time;
@@ -399,20 +397,18 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscBool useNatural;
   Vec s;
   PetscReal *s_vec_ptr;
-  PetscInt cStart,cEnd,c,i,n;
   Vec p = tdy->solution;
   DM dm = tdy->dm;
   PetscReal time = tdy->ti->time;
   int num_vars = tdy->io->num_vars;
   char *zonalVarNames[num_vars];
 
-  for (n=0;n<num_vars;++n){
-    zonalVarNames[n] =  tdy->io->zonalVarNames[n];
+  for (PetscInt i=0;i<num_vars;++i){
+    zonalVarNames[i] =  tdy->io->zonalVarNames[i];
   }
 
   ierr = TDyCreateGlobalVector(tdy, &s); CHKERRQ(ierr);
   ierr = VecGetArray(s,&s_vec_ptr); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = TDyGetSaturation(tdy, s_vec_ptr); CHKERRQ(ierr);
   ierr = VecRestoreArray(s,&s_vec_ptr);CHKERRQ(ierr);
 
