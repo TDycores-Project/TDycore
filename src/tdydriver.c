@@ -3,6 +3,7 @@
 #include <private/tdyrichardsimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdythimpl.h>
+#include <private/tdysalinityimpl.h>
 #include <private/tdyioimpl.h>
 #include <tdytimers.h>
 #include <private/tdycharacteristiccurvesimpl.h>
@@ -69,7 +70,13 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       ierr = TDySetSoilSpecificHeatFunction(tdy,TDyConstantSoilSpecificHeatFunction,PETSC_NULL); CHKERRQ(ierr);
     }
   }
-
+  else if (tdy->options.mode == SALINITY) {
+    ierr = TDyConstantMolecularWeight(tdy);CHKERRQ(ierr);
+    if (!TDyIsPorDiffSet(tdy)) {
+      ierr = TDySetPorDiffFunction(tdy,TDyConstantPorosityDiffusionFunction,PETSC_NULL); CHKERRQ(ierr);
+    }
+  }
+  
   ierr = TDySetupNumericalMethods(tdy); CHKERRQ(ierr);
 
   ierr = TDyTimeIntegratorCreate(&tdy->ti); CHKERRQ(ierr);

@@ -14,16 +14,20 @@ PetscErrorCode MaterialPropertiesCreate(PetscInt ndim, PetscInt ncells, Material
   ierr = PetscMalloc(ncells*ndim*ndim*sizeof(PetscReal),&(*_matprop)->K0   ); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*ndim*ndim*sizeof(PetscReal),&(*_matprop)->Kappa); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*ndim*ndim*sizeof(PetscReal),&(*_matprop)->Kappa0); CHKERRQ(ierr);
+  ierr = PetscMalloc(ncells*ndim*ndim*sizeof(PetscReal),&(*_matprop)->pordiff    ); CHKERRQ(ierr);
 
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_matprop)->porosity); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_matprop)->Cr      ); CHKERRQ(ierr);
   ierr = PetscMalloc(ncells*sizeof(PetscReal),&(*_matprop)->rhosoil    ); CHKERRQ(ierr);
+  ierr = PetscMalloc(sizeof(PetscReal),&(*_matprop)->molecular_weight    ); CHKERRQ(ierr);
+
 
   (*_matprop)-> permeability_is_set = 0;
   (*_matprop)-> porosity_is_set = 0;
   (*_matprop)-> thermal_conductivity_is_set = 0;
   (*_matprop)-> soil_specific_heat_is_set = 0;
   (*_matprop)-> soil_density_is_set = 0;
+  (*_matprop)-> pordiff_is_set = 0;
 
   PetscFunctionReturn(0);
 }
@@ -37,6 +41,7 @@ PetscErrorCode MaterialPropertiesDestroy(MaterialProp *matprop){
   if (matprop->K0      ) {ierr = PetscFree(matprop->K0      ); CHKERRQ(ierr);}
   if (matprop->Kappa   ) {ierr = PetscFree(matprop->Kappa   ); CHKERRQ(ierr);}
   if (matprop->Kappa0  ) {ierr = PetscFree(matprop->Kappa0  ); CHKERRQ(ierr);}
+  if (matprop->Kappa0  ) {ierr = PetscFree(matprop->pordiff ); CHKERRQ(ierr);}
   if (matprop->porosity) {ierr = PetscFree(matprop->porosity); CHKERRQ(ierr);}
   if (matprop->Cr      ) {ierr = PetscFree(matprop->Cr      ); CHKERRQ(ierr);}
   if (matprop->rhosoil ) {ierr = PetscFree(matprop->rhosoil ); CHKERRQ(ierr);}
@@ -75,6 +80,9 @@ PetscBool TDyIsThermalConductivytSet(TDy tdy) {
   PetscFunctionReturn(tdy->matprop->thermal_conductivity_is_set);
 }
 
+PetscBool TDyIsPorDiffSet(TDy tdy) {
+  PetscFunctionReturn(tdy->matprop->pordiff_is_set);
+}
 /* -------------------------------------------------------------------------- */
 /// Reports if soil specific heat is set
 ///
@@ -134,6 +142,14 @@ PetscErrorCode TDySetThermalConductivityFunction(TDy tdy, PetscErrorCode(*f)(TDy
   tdy->matprop->thermal_conductivity_is_set = 1;
   if (f) tdy->ops->computethermalconductivity = f;
   if (ctx) tdy->thermalconductivityctx = ctx;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetPorDiffFunction(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  tdy->matprop->pordiff_is_set = 1;
+  if (f) tdy->ops->computepordiff = f;
+  if (ctx) tdy->pordiffctx = ctx;
   PetscFunctionReturn(0);
 }
 
@@ -450,9 +466,34 @@ PetscErrorCode TDyConstantThermalConductivityFunction(TDy tdy, PetscReal *x, Pet
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyConstantPorosityDiffusionFunction(TDy tdy, PetscReal *x, PetscReal *pordiff, void *ctx) {
+  PetscFunctionBegin;
+  TDyOptions *options = &tdy->options;
+  PetscErrorCode ierr;
+  PetscInt dim;
+
+  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  for (int j=0; j<dim; j++) {
+    for (int i=0; i<dim; i++) {
+      pordiff[j*dim+i] = 0.;
+    }
+  }
+  for (int i=0; i<dim; i++)
+    pordiff[i*dim+i] = options->diffusion * options->porosity;
+  return 0;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyConstantPorosityFunction(TDy tdy, PetscReal *x, PetscReal *por, void *ctx) {
   PetscFunctionBegin;
   TDyOptions *options = &tdy->options;
   *por = options->porosity;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyConstantMolecularWeight(TDy tdy) {
+  PetscFunctionBegin;
+  TDyOptions *options = &tdy->options;
+  *tdy->matprop->molecular_weight= options->molecular_weight;
   PetscFunctionReturn(0);
 }

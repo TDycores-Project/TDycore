@@ -14,6 +14,7 @@
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
+#define VAR_CONCENTRATION 2
 
 typedef struct _TDyOps *TDyOps;
 struct _TDyOps {
@@ -25,6 +26,7 @@ struct _TDyOps {
   PetscErrorCode (*computeporosity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computepermeability)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computethermalconductivity)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*computepordiff)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeresidualsaturation)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeforcing)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeenergyforcing)(TDy,PetscReal*,PetscReal*,void*);
@@ -85,10 +87,12 @@ struct _p_TDy {
   PetscReal *S_BND;  /* saturation, first derivative wrt boundary pressure, and */
   PetscReal *source_sink;         /* flow equation source sink */
   PetscReal *energy_source_sink;  /* energy equation source sink */
+  PetscReal *salinity_source_sink;  /* salinity equation source sink */
 
   void *porosityctx;
   void *permeabilityctx;
   void *thermalconductivityctx;
+  void *pordiffctx;
   void *residualsaturationctx;
   void *forcingctx;
   void *energyforcingctx;
@@ -128,8 +132,12 @@ struct _p_TDy {
 
   /* For salinity */
   PetscReal ****Psi_subc_Gmatrix; /* Gmatrix for subcells */
+  PetscReal ***Psi_Trans;
   Mat Psi_Trans_mat;
   Vec Psi_vec, TtimesPsi_vec;
+  PetscReal *m_nacl;
+  PetscReal *dm_nacl;
+  PetscReal *d2m_nacl;
 
   Mat J, Jpre;
 

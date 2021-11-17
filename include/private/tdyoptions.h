@@ -25,6 +25,8 @@ typedef struct {
   PetscReal soil_density;
   PetscReal soil_specific_heat;
   PetscReal thermal_conductivity;
+  PetscReal molecular_weight;
+   PetscReal diffusion;
 
   // Characteristic curve parameters
   PetscReal residual_saturation;

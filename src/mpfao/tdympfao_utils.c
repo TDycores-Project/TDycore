@@ -708,6 +708,11 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
       p[c] = u_p[c*2];
     }
   }
+  else if (tdy->options.mode == SALINITY) {
+    for (c=0;c<cEnd-cStart;c++) {
+      p[c] = u_p[c*2];
+    }
+  }
   else {
     for (c=0;c<cEnd-cStart;c++) p[c] = u_p[c];
   }
@@ -848,10 +853,10 @@ PetscErrorCode TDyMPFAO_SetBoundaryConcentration(TDy tdy, Vec Ul) {
     //   if (tdy->ops->compute_boundary_temperature) {
     //   ierr = (*tdy->ops->compute_boundary_temperature)(tdy, (faces->centroid[iface].X), &(tdy->T_BND[t_bnd_idx]), tdy->boundary_temperature_ctx);CHKERRQ(ierr);
     //   } else {
-      tdy->Psi_BND[t_bnd_idx] = psi[cell_id];
+      tdy->Psi_BND[psi_bnd_idx] = psi[cell_id];
       // }
 
-    psi_vec_ptr[t_bnd_idx + ncells] = tdy->Psi_BND[t_bnd_idx];
+    psi_vec_ptr[psi_bnd_idx + ncells] = tdy->Psi_BND[psi_bnd_idx];
   }
 
   ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);

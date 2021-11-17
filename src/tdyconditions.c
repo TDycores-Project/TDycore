@@ -145,6 +145,20 @@ PetscErrorCode TDySetEnergySourceSinkValuesLocal(TDy tdy, PetscInt ni, const Pet
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetSalinitySourceSinkValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[ni], const PetscScalar y[ni]){
+
+  PetscInt i;
+
+  PetscFunctionBegin;
+  if (!ni) PetscFunctionReturn(0);
+
+  for(i=0; i<ni; i++) {
+    tdy->salinity_source_sink[ix[i]] = y[i];
+  }
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyConstantBoundaryPressureFn(TDy tdy, PetscReal *x, PetscReal *p, void *ctx) {
   PetscFunctionBegin;
   TDyOptions *options = &tdy->options;

@@ -66,8 +66,13 @@ typedef struct _p_TDy *TDy;
 typedef enum {
   WATER_DENSITY_CONSTANT=0,
   WATER_DENSITY_EXPONENTIAL=1,
-  WATER_DENSITY_BATZLEWANG=2
+  WATER_DENSITY_BATZLE_AND_WANG=2
 } TDyWaterDensityType;
+
+typedef enum {
+  WATER_VISCOSITY_CONSTANT=0,
+  WATER_VISCOSITY_BATZLE_AND_WANG=1,
+} TDyWaterViscosityType;
 
 PETSC_EXTERN const char *const TDyWaterDensityTypes[];
 
@@ -102,6 +107,7 @@ PETSC_EXTERN PetscErrorCode TDySetGravityVector(TDy,PetscReal*);
 PETSC_EXTERN PetscErrorCode TDySetPorosityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetPermeabilityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetThermalConductivityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
+PETSC_EXTERN PetscErrorCode TDySetPorDiffFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetResidualSaturationFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetSoilDensityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
 PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeatFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
@@ -137,6 +143,7 @@ PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveVanGenuchtenValuesLocal(TDy
 // Set condition: for each cell
 PETSC_EXTERN PetscErrorCode TDySetSourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 PETSC_EXTERN PetscErrorCode TDySetEnergySourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
+PETSC_EXTERN PetscErrorCode TDySetSalinitySourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
 
 // Get material value: for each cell
 PETSC_EXTERN PetscErrorCode TDyGetSaturationValuesLocal(TDy,PetscInt*,PetscScalar[]);
@@ -154,6 +161,7 @@ PETSC_EXTERN PetscErrorCode TDyResetDiscretizationMethod(TDy);
 
 PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy,TDyQuadratureType);
 PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
+PETSC_EXTERN PetscErrorCode TDySetWaterViscosityType(TDy,TDyWaterViscosityType);
 PETSC_EXTERN PetscErrorCode TDySetMPFAOGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
 PETSC_EXTERN PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
 

@@ -9,10 +9,13 @@ typedef struct {
     PetscReal *Kappa, *Kappa0;
     PetscReal *Cr;
     PetscReal *rhosoil;
+    PetscReal *molecular_weight;
+    PetscReal *pordiff;
 
     PetscBool permeability_is_set;
     PetscBool porosity_is_set;
     PetscBool thermal_conductivity_is_set;
+    PetscBool pordiff_is_set;
     PetscBool soil_specific_heat_is_set;
     PetscBool soil_density_is_set;
 
@@ -23,6 +26,7 @@ PETSC_INTERN PetscErrorCode MaterialPropertiesDestroy(MaterialProp*);
 PETSC_INTERN PetscBool TDyIsPermeabilitySet(TDy);
 PETSC_INTERN PetscBool TDyIsPorositySet(TDy);
 PETSC_INTERN PetscBool TDyIsThermalConductivytSet(TDy);
+PETSC_INTERN PetscBool TDyIsPorDiffSet(TDy);
 PETSC_INTERN PetscBool TDyIsSoilSpecificHeatSet(TDy);
 PETSC_INTERN PetscBool TDyIsSoilDensitySet(TDy);
 
@@ -30,7 +34,8 @@ PETSC_INTERN PetscErrorCode TDyConstantSoilDensityFunction(TDy,PetscReal*,PetscR
 PETSC_INTERN PetscErrorCode TDyConstantSoilSpecificHeatFunction(TDy,PetscReal*,PetscReal*,void*);
 PETSC_INTERN PetscErrorCode TDyConstantPermeabilityFunction(TDy,PetscReal *,PetscReal *,void*);
 PETSC_INTERN PetscErrorCode TDyConstantThermalConductivityFunction(TDy,PetscReal *,PetscReal *,void*);
+PETSC_INTERN PetscErrorCode TDyConstantPorosityDiffusionFunction(TDy,PetscReal *,PetscReal *,void*);
 PETSC_INTERN PetscErrorCode TDyConstantPorosityFunction(TDy,PetscReal *,PetscReal *,void*);
-
+PETSC_INTERN PetscErrorCode TDyConstantMolecularWeight(TDy);
 #endif
 
