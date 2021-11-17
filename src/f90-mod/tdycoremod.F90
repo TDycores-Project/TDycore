@@ -433,6 +433,7 @@ module tdycore
     TDy, target                   :: tdy
     procedure(TDySpatialFunction) :: f
     PetscErrorCode                :: ierr
+    type(c_ptr)                   :: p_tdy
 
     interface
       function Func(tdy, f) bind (c, name="TDySetBoundaryPressureFunctionF90") result(ierr)
@@ -444,7 +445,8 @@ module tdycore
       end function
     end interface
 
-    ierr = Func(c_loc(tdy), c_funloc(f))
+    p_tdy = transfer(tdy%v, p_tdy)
+    ierr = Func(p_tdy, c_funloc(f))
   end subroutine
 
   subroutine TDySelectBoundaryVelocityFunction(tdy, name, ierr)
@@ -470,6 +472,7 @@ module tdycore
     TDy, target                   :: tdy
     procedure(TDySpatialFunction) :: f
     PetscErrorCode                :: ierr
+    type(c_ptr)                   :: p_tdy
 
     interface
       function Func(tdy, f) bind (c, name="TDySetBoundaryVelocityFunctionF90") result(ierr)
@@ -481,16 +484,18 @@ module tdycore
       end function
     end interface
 
-    ierr = Func(c_loc(tdy), c_funloc(f))
+    p_tdy = transfer(tdy%v, p_tdy)
+    ierr = Func(p_tdy, c_funloc(f))
   end subroutine
 
   subroutine TDySetConstantPorosity(tdy, val, ierr)
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
-    TDy, target                 :: tdy
-    PetscReal                   :: val
-    PetscErrorCode              :: ierr
+    TDy, target    :: tdy
+    PetscReal      :: val
+    PetscErrorCode :: ierr
+    type(c_ptr)    :: p_tdy
 
     interface
       function Func(tdy, val) bind (c, name="TDySetConstantPorosity") result(ierr)
@@ -502,7 +507,8 @@ module tdycore
       end function
     end interface
 
-    ierr = Func(c_loc(tdy), val)
+    p_tdy = transfer(tdy%v, p_tdy)
+    ierr = Func(p_tdy, val)
   end subroutine
 
   subroutine TDySetPorosityFunction(tdy, f, ierr)
@@ -512,6 +518,7 @@ module tdycore
     TDy, target                   :: tdy
     procedure(TDySpatialFunction) :: f
     PetscErrorCode                :: ierr
+    type(c_ptr)                   :: p_tdy
 
     interface
       function Func(tdy, f) bind (c, name="TDySetPorosityFunctionF90") result(ierr)
@@ -523,7 +530,8 @@ module tdycore
       end function
     end interface
 
-    ierr = Func(c_loc(tdy), c_funloc(f))
+    p_tdy = transfer(tdy%v, p_tdy)
+    ierr = Func(p_tdy, c_funloc(f))
   end subroutine
 
   subroutine TDySetConstantTensorPermeability(tdy, val, ierr)
@@ -533,6 +541,7 @@ module tdycore
     TDy, target                 :: tdy
     PetscReal, target           :: val(9)
     PetscErrorCode              :: ierr
+    type(c_ptr)                 :: p_tdy
 
     interface
       function Func(tdy, val) bind (c, name="TDySetConstantTensorPermeability") result(ierr)
@@ -544,7 +553,8 @@ module tdycore
       end function
     end interface
 
-    ierr = Func(c_loc(tdy), c_loc(val))
+    p_tdy = transfer(tdy%v, p_tdy)
+    ierr = Func(p_tdy, c_loc(val))
   end subroutine
 
   subroutine TDySetConstantResidualSaturation(tdy, val, ierr)
@@ -554,6 +564,7 @@ module tdycore
     TDy, target    :: tdy
     PetscReal      :: val
     PetscErrorCode :: ierr
+    type(c_ptr)    :: p_tdy
 
     interface
       function Func(tdy, val) bind (c, name="TDySetConstantResidualSaturation") result(ierr)
@@ -565,7 +576,8 @@ module tdycore
       end function
     end interface
 
-    ierr = Func(c_loc(tdy), val)
+    p_tdy = transfer(tdy%v, p_tdy)
+    ierr = Func(p_tdy, val)
   end subroutine
 
   subroutine TDySetResidualSaturationFunction(tdy, f, ierr)
@@ -575,6 +587,7 @@ module tdycore
     TDy, target                   :: tdy
     procedure(TDySpatialFunction) :: f
     PetscErrorCode                :: ierr
+    type(c_ptr)                   :: p_tdy
 
     interface
       function Func(tdy, f) bind (c, name="TDySetResidualSaturationFunctionF90") result(ierr)
@@ -586,7 +599,8 @@ module tdycore
       end function
     end interface
 
-    ierr = Func(c_loc(tdy), c_funloc(f))
+    p_tdy = transfer(tdy%v, p_tdy)
+    ierr = Func(p_tdy, c_funloc(f))
   end subroutine
 
   ! Here's a function that converts a Fortran string to a C string and
