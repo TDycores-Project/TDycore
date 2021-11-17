@@ -529,7 +529,7 @@ module tdycore
 
     ierr = GetRegFn(FtoCString(name), c_func)
     call c_f_procpointer(c_func, f_func)
-    call TDySetPorosityFunction(tdy, f_func, 0, ierr)
+    call TDySetPorosityFunction(tdy, f_func, ierr)
   end subroutine
 
   subroutine TDySelectForcingFunction(tdy, name, ierr)

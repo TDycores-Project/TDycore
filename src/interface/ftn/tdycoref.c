@@ -2,6 +2,8 @@
 #include "petscfix.h"
 #include "petsc/private/fortranimpl.h"
 #include <tdycore.h>
+#include <private/tdycoreimpl.h>
+#include <private/tdymaterialpropertiesimpl.h>
 #include <petsc/private/f90impl.h>
 
 #define PetscToPointer(a) (*(PetscFortranAddr *)(a))
@@ -451,35 +453,59 @@ PETSC_EXTERN void  tdydestroy_(TDy *_tdy, int *__ierr){
 }
 #endif
 
+//------------------------------------------------------------------------
+//                  Material properties and conditions
+//------------------------------------------------------------------------
+
+// This is the Fortran version of TDySpatialFunction, whose final argument is
+// an error code.
+typedef void (*F90SpatialFunction)(PetscInt, PetscReal*, PetscReal*, PetscErrorCode*);
+
+// This is a context wrapped around an F90 spatial function that allows it to
+// be called within a C spatial function.
+typedef struct F90SpatialFunctionWrapper {
+  F90SpatialFunction f90_func;
+} F90SpatialFunctionWrapper;
+
+// This creates a wrapped F90 function context.
+static PetscErrorCode CreateF90SpatialFunctionContext(F90SpatialFunction f,
+                                                      void **context) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  F90SpatialFunctionWrapper *wrapper;
+  ierr = PetscMalloc(sizeof(F90SpatialFunctionWrapper), &wrapper); CHKERRQ(ierr);
+  wrapper->f90_func = f;
+  *context = wrapper;
+  PetscFunctionReturn(0);
+}
+
+// This calls the F90 function embedded within its context.
+static PetscErrorCode WrappedF90SpatialFunction(void *context, PetscInt n,
+                                                PetscReal *x, PetscReal *f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  F90SpatialFunctionWrapper *wrapper = context;
+  wrapper->f90_func(n, x, f, &ierr); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+// Generic destructor for contexts that wrap F90 functions.
+static void DestroyContext(void* context) {
+  PetscFree(context);
+}
+
+PETSC_EXTERN PetscErrorCode TDySetPorosityFunctionF90(TDy tdy, F90SpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  void *context;
+  ierr = CreateF90SpatialFunctionContext(f, &context); CHKERRQ(ierr);
+  ierr = MaterialPropSetPorosity(tdy->matprop, context, WrappedF90SpatialFunction,
+                                 DestroyContext); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 /*
-static PetscErrorCode ourtdyporosityfunction(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
-{
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  void* ptr;
-  PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,_cb.function_pgiptr,NULL,&ptr);
-#endif
-  PetscObjectUseFortranCallback(tdy,_cb.porosity,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
-}
-
-static PetscErrorCode ourtdypermeabilityfunction(PetscInt n,PetscReal *x,PetscReal *f)
-{
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  void* ptr;
-  PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,_cb.function_pgiptr,NULL,&ptr);
-#endif
-  PetscObjectUseFortranCallback(tdy,_cb.permeability,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
-}
-
-PETSC_EXTERN void tdysetporosityfunction_(TDy *tdy, PetscErrorCode (*func)(PetscInt,PetscReal*,PetscReal*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
-{
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.porosity,(PetscVoidFunction)func,ctx);
-  if (*ierr) return;
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
-#endif
-  *ierr = TDySetPorosityFunction(*tdy,ourtdyporosityfunction,NULL);
-}
-
 PETSC_EXTERN void tdysetpermeabilityfunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
 {
   *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.permeability,(PetscVoidFunction)func,ctx);
