@@ -197,7 +197,7 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   TDyOptions *options = &tdy->options;
   options->mode = RICHARDS;
   options->method = WY;
-  options->gravity_constant = 9.8068;
+  options->gravity_constant = 0.0; //9.8068;
   options->rho_type = WATER_DENSITY_CONSTANT;
   options->mu_type = WATER_VISCOSITY_CONSTANT;
   options->enthalpy_type = WATER_ENTHALPY_CONSTANT;
@@ -208,11 +208,13 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
 
   options->qtype = FULL;
 
-  options->porosity=0.25;
+  options->porosity=0.1;
   options->permeability=1.e-12;
   options->soil_density=2650.;
   options->soil_specific_heat=1000.0;
   options->thermal_conductivity=1.0;
+  options->molecular_weight = 58.44;
+  options->diffusion = 1.e-8;
 
   options->residual_saturation=0.15;
   options->gardner_n=0.5;
@@ -310,10 +312,15 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dPsi)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->u)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->m_nacl)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dm_nacl)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2m_nacl)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dPsi)); CHKERRQ(ierr);
   TDyStopTimer(t2);
 
   ierr = CharacteristicCurveCreate(nc, &tdy->cc); CHKERRQ(ierr);
@@ -342,8 +349,10 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     cc->dS_dP[c] = 0.0;
     tdy->rho[c] = 0.0;
     tdy->drho_dP[c] = 0.0;
+    tdy->drho_dPsi[c] = 0.0;
     tdy->vis[c] = 0.0;
     tdy->dvis_dP[c] = 0.0;
+    tdy->dvis_dPsi[c] = 0.0;
     tdy->d2vis_dP2[c] = 0.0;
     tdy->h[c] = 0.0;
     tdy->dh_dT[c] = 0.0;
@@ -354,6 +363,9 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->du_dP[c] = 0.0;
     tdy->du_dT[c] = 0.0;
     tdy->dvis_dT[c] = 0.0;
+    tdy->m_nacl[c] = 0.0;
+    tdy->dm_nacl[c] = 0.0;
+    tdy->d2m_nacl[c] = 0.0;
   }
   ierr = RelativePermeability_Mualem_SetupSmooth(tdy->cc, nc);
 
@@ -470,6 +482,9 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->dh_dP); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->m_nacl); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->dm_nacl); CHKERRQ(ierr);
+  ierr = PetscFree(tdy->d2m_nacl); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
@@ -850,6 +865,13 @@ PetscErrorCode TDySetWaterDensityType(TDy tdy, TDyWaterDensityType dentype) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetWaterViscosityType(TDy tdy, TDyWaterViscosityType mutype) {
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  tdy->options.mu_type = mutype;
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetMPFAOGmatrixMethod(TDy tdy,TDyMPFAOGmatrixMethod method) {
   PetscFunctionBegin;
 
@@ -944,7 +966,7 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
       ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_TH,tdy); CHKERRQ(ierr);
       break;
     case SALINITY:
-      ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian,tdy); CHKERRQ(ierr);
+      //  ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian,tdy); CHKERRQ(ierr);
       break;
     }
     break;
@@ -1101,9 +1123,16 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     for (PetscInt c=0;c<cEnd-cStart;c++) {
       P[c] = U[c*2];
       Psi[c] = U[c*2+1];
+      //    printf("p %f\n",P[c]);
+      //	printf("psi %f\n",Psi[c]);
     }
+    break;
   }
 
+PetscViewer viewer;
+    ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"U_vec2.vec",&viewer); CHKERRQ(ierr);
+  ierr = VecView(tdy->solution,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   CharacteristicCurve *cc = tdy->cc;
   MaterialProp *matprop = tdy->matprop;
@@ -1147,14 +1176,18 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
       matprop->K[i*dim2+j] = matprop->K0[i*dim2+j] * Kr;
     }
 
-    ierr = ComputeWaterDensity(P[i], tdy->options.rho_type, &(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
-    ierr = ComputeWaterViscosity(P[i], tdy->options.mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
+    if (tdy->options.mode == SALINITY) {
+      ierr = ComputeSalinityFraction(Psi[i],*(matprop->molecular_weight),tdy->rho[i],&(tdy->m_nacl[i]),&(tdy->dm_nacl[i]),&(tdy->d2m_nacl[i]));
+    }
+    ierr = ComputeWaterDensity(P[i], tdy->Tref,*tdy->m_nacl,*tdy->dm_nacl,*tdy->d2m_nacl,tdy->options.rho_type,&(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i]), &(tdy->drho_dPsi[i])); CHKERRQ(ierr);
+    ierr = ComputeWaterViscosity(P[i], tdy->Tref,*tdy->m_nacl,tdy->options.mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i]),&(tdy->dvis_dPsi[i])); CHKERRQ(ierr);
     if (tdy->options.mode ==  TH) {
       for(PetscInt j=0; j<dim2; j++)
         matprop->Kappa[i*dim2+j] = matprop->Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
       ierr = ComputeWaterEnthalpy(temp[i], P[i], tdy->options.enthalpy_type, &(tdy->h[i]), &(tdy->dh_dP[i]), &(tdy->dh_dT[i])); CHKERRQ(ierr);
       tdy->u[i] = tdy->h[i] - P[i]/tdy->rho[i];
     }
+
   }
 
   if ( (tdy->options.method == MPFA_O ||
@@ -1163,7 +1196,10 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     PetscReal *p_vec_ptr, gz;
     TDyMesh *mesh = tdy->mesh;
     TDyCell *cells = &mesh->cells;
-
+    PetscViewer viewer;
+ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"P_vecb4.vec",&viewer); CHKERRQ(ierr);
+  ierr = VecView(tdy->P_vec,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
     ierr = VecGetArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
     for (PetscInt c=cStart; c<cEnd; c++) {
       PetscInt i = c-cStart;
@@ -1171,9 +1207,11 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
       p_vec_ptr[i] = P[i];
     }
     ierr = VecRestoreArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
-
+ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"P_veca4.vec",&viewer); CHKERRQ(ierr);
+  ierr = VecView(tdy->P_vec,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
     switch (tdy->options.mode) {
-    case TH:
+    case TH: ;
       PetscReal *t_vec_ptr;
       ierr = VecGetArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
       for (PetscInt c=cStart; c<cEnd; c++) {
@@ -1181,7 +1219,8 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
         t_vec_ptr[i] = temp[i];
       }
       ierr = VecRestoreArray(tdy->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
-    case SALINITY:
+      break;
+    case SALINITY: ;
       PetscReal *psi_vec_ptr;
       ierr = VecGetArray(tdy->Psi_vec, &psi_vec_ptr); CHKERRQ(ierr);
       for (PetscInt c=cStart; c<cEnd; c++) {
@@ -1189,6 +1228,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
         psi_vec_ptr[i] = Psi[i];
       }
       ierr = VecRestoreArray(tdy->Psi_vec, &psi_vec_ptr); CHKERRQ(ierr);
+      break;
     }
   }
 
