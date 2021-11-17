@@ -297,7 +297,7 @@ typedef struct WrapperStruct {
 } WrapperStruct;
 
 // Generic constructor for contexts for constant functions in this file.
-static PetscErrorCode CreateConstantContext(int dim, PetscReal value[9],
+static PetscErrorCode CreateConstantContext(PetscInt dim, PetscReal value[9],
                                             void **context) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -311,7 +311,7 @@ static PetscErrorCode CreateConstantContext(int dim, PetscReal value[9],
 }
 
 // Generic constructor for contexts for spatial functions in this file.
-static PetscErrorCode CreateSpatialContext(int dim,
+static PetscErrorCode CreateSpatialContext(PetscInt dim,
                                            void (*func)(PetscInt, PetscReal*, PetscReal*),
                                            void **context) {
   PetscErrorCode ierr;
@@ -331,7 +331,7 @@ static PetscErrorCode ConstantScalarWrapperFunction(void *context, PetscInt n,
                                                     PetscReal *x, PetscReal *f) {
   PetscFunctionBegin;
   WrapperStruct *wrapper = context;
-  for (int i = 0; i < n; ++i) {
+  for (PetscInt i = 0; i < n; ++i) {
     f[i] = wrapper->value[0];
   }
   PetscFunctionReturn(0);
@@ -355,8 +355,8 @@ static PetscErrorCode ConstantIsotropicTensorWrapperFunction(void *context, Pets
   WrapperStruct *wrapper = context;
   PetscInt dim = wrapper->dim;
   PetscInt dim2 = dim*dim;
-  for (int i = 0; i < n; ++i) {
-    for(int j = 0; j < dim; ++j) {
+  for (PetscInt i = 0; i < n; ++i) {
+    for(PetscInt j = 0; j < dim; ++j) {
       f[dim2*i+j*dim+j] = wrapper->value[0];
     }
   }
@@ -373,8 +373,8 @@ static PetscErrorCode IsotropicTensorWrapperFunction(void *context, PetscInt n,
   wrapper->func(n, x, values);
   PetscInt dim = wrapper->dim;
   PetscInt dim2 = dim*dim;
-  for (int i = 0; i < n; ++i) {
-    for(int j = 0; j < dim; ++j) {
+  for (PetscInt i = 0; i < n; ++i) {
+    for(PetscInt j = 0; j < dim; ++j) {
       f[dim2*i+j*dim+j] = values[i];
     }
   }
@@ -389,8 +389,8 @@ static PetscErrorCode ConstantDiagonalTensorWrapperFunction(void *context, Petsc
   WrapperStruct *wrapper = context;
   PetscInt dim = wrapper->dim;
   PetscInt dim2 = dim*dim;
-  for (int i = 0; i < n; ++i) {
-    for(int j = 0; j < dim; ++j) {
+  for (PetscInt i = 0; i < n; ++i) {
+    for(PetscInt j = 0; j < dim; ++j) {
       f[dim2*i+j*dim+j] = wrapper->value[j];
     }
   }
@@ -407,8 +407,8 @@ static PetscErrorCode DiagonalTensorWrapperFunction(void *context, PetscInt n,
   PetscInt dim2 = dim*dim;
   PetscReal values[3*n];
   wrapper->func(n, x, values);
-  for (int i = 0; i < n; ++i) {
-    for(int j = 0; j < dim; ++j) {
+  for (PetscInt i = 0; i < n; ++i) {
+    for(PetscInt j = 0; j < dim; ++j) {
       f[dim2*i+j*dim+j] = values[3*i+j];
     }
   }
@@ -423,8 +423,8 @@ static PetscErrorCode ConstantFullTensorWrapperFunction(void *context, PetscInt 
   WrapperStruct *wrapper = context;
   PetscInt dim = wrapper->dim;
   PetscInt dim2 = dim*dim;
-  for (int i = 0; i < n; ++i) {
-    for(int j = 0; j < dim2; ++j) {
+  for (PetscInt i = 0; i < n; ++i) {
+    for(PetscInt j = 0; j < dim2; ++j) {
       f[dim2*i+j] = wrapper->value[j];
     }
   }

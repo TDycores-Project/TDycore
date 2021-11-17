@@ -36,36 +36,6 @@
 #define tdypresolvesnessolver_                         TDYSETPRESOLVESNESSOLVER
 #define tdypostsolvesnessolver_                        TDYSETPOSTSOLVESNESSOLVER
 #define tdycomputeerrornorms_                          TDYCOMPUTEERRORNORMS
-//#define tdysetporosityfunction_                        TDYSETPOROSITYFUNCTION
-//#define tdysetpermeabilityfunction_                    TDYSETPERMEABILITYFUNCTION
-//#define tdysetresidualsaturationfunction_              TDYSETRESIDUALSATURATIONFUNCTION
-#define tdysetforcingfunction_                         TDYSETFORCINGFUNCTION
-#define tdysetboundarypressurefn_                      TDYSETBOUNDARYPRESSUREFN
-#define tdysetboundaryvelocityfn_                      TDYSETBOUNDARYVELOCITYFN
-//#define tdysetporosityvalueslocal0_                    TDYSETPOROSITYVALUESLOCAL0
-//#define tdysetporosityvalueslocal11_                   TDYSETPOROSITYVALUESLOCAL11
-//#define tdysetblockpermeabilityueslocal0_              TDYSETBLOCKPERMEABILITYVALUESLOCAL0
-//#define tdysetblockpermeabilityvalueslocal11_          TDYSETBLOCKPERMEABILITYVALUESLOCAL11
-//#define tdysetresidualsaturationvalueslocal0_          TDYSETRESIDUALSATURATIONVALUESLOCAL0
-//#define tdysetresidualsaturationvalueslocal11_         TDYSETRESIDUALSATURATIONVALUESLOCAL11
-//#define tdysetresidualsaturationvalueslocal0_          TDYSETRESIDUALSATURATIONVALUESLOCAL0
-//#define tdysetresidualsaturationvalueslocal11_         TDYSETRESIDUALSATURATIONVALUESLOCAL11
-//#define tdysetcharacteristiccurvemualemvaluesLocal0_        TDYSETCCHARACTERISTICCURVENMUALEMALUESLOCAL0
-//#define tdysetcharacteristiccurvemualemvaluesLocal11_       TDYSETCCHARACTERISTICCURVENMUALEMALUESLOCAL11
-//#define tdysetcharacteristiccurvenvalueslocal0_        TDYSETCHARACTERISTICCURVENVALUESLOCAL0
-//#define tdysetcharacteristiccurvenvalueslocal11_       TDYSETCHARACTERISTICCURVENVALUESLOCAL11
-//#define tdysetcharacteristiccurvevangenuchtenvalueslocal0_    TDYSETCHARACTERISTICCURVEVANGENUCHTENVALUESLOCAL0
-//#define tdysetcharacteristiccurvevangenuchtenvalueslocal11_   TDYSETCHARACTERISTICCURVEVANGENUCHTENVALUESLOCAL11
-//#define tdysetsourcesinkvalueslocal0_                  TDYSETSOURCESINKVALUESLOCAL0
-//#define tdysetsourcesinkvalueslocal11_                 TDYSETSOURCESINKVALUESLOCAL11
-//#define tdygetsaturationvalueslocal_                   TDYGETSATURATIONVALUESLOCAL
-//#define tdygetliquidmassvalueslocal_                   TDYGETLIQUIDMASSVALUESLOCAL
-//#define tdygetcharacteristiccurvemvalueslocal_         TDYGETCHARACTERISTICCURVEMVALUESLOCAL
-#define tdysetcharacteristiccurvevangenuchtenvalueslocal_     TDYGETCHARACTERISTICCURVEALPHAVALUESLOCAL
-//#define tdygetporosityalueslocal_                      TDYGETPOROSITYVALUESLOCAL
-//#define tdygetblockpermeabilityueslocal_               TDYGETBLOCKPERMEABILITYVALUESLOCAL
-//#define tdygetnumcellslocal_                           TDYGETNUMCELLSLOCAL
-//#define tdygetcellnaturalidslocal_                     TDYGETCELLNATURALIDSLOCAL
 #define tdyupdatestate_                                TDYUPDATESTATE
 #define tdyoutputregression_                           TDYOUTPUTREGRESSION
 #define tdydestroy_                                    TDYDESTROY
@@ -97,361 +67,152 @@
 #define tdypresolvesnessolver_                         tdypresolvesnessolver
 #define tdypostsolvesnessolver_                        tdypostsolvesnessolver
 #define tdycomputeerrornorms_                          tdycomputeerrornorms
-//#define tdysetporosityfunction_                        tdysetporosityfunction
-//#define tdysetpermeabilityfunction_                    tdysetpermeabilityfunction
-//#define tdysetresidualsaturationfunction_              tdysetresidualsaturationfunction
-#define tdysetforcingfunction_                         tdysetforcingfunction
-#define tdysetboundarypressurefn_                      tdysetboundarypressurefn
-#define tdysetboundaryvelocityfn_                      tdysetboundaryvelocityfn
-//#define tdysetporosityvalueslocal0_                    tdysetporosityvalueslocal0
-//#define tdysetporosityvalueslocal11_                   tdysetporosityvalueslocal11
-//#define tdysetblockpermeabilityueslocal0_              tdysetblockpermeabilityvalueslocal0
-//#define tdysetblockpermeabilityvalueslocal11_          tdysetblockpermeabilityvalueslocal11
-//#define tdysetresidualsaturationvalueslocal0_          tdysetresidualsaturationvalueslocal0
-//#define tdysetresidualsaturationvalueslocal11_         tdysetresidualsaturationvalueslocal11
-//#define tdysetcharacteristiccurvemualemvalueslocal0_        tdysetcharacteristiccurvemualemvalueslocal0
-//#define tdysetcharacteristiccurvemualemvalueslocal11_       tdysetcharacteristiccurvemualemvalueslocal11
-//#define tdysetcharacteristiccurvenvalueslocal0_        tdysetcharacteristiccurvenvalueslocal0
-//#define tdysetcharacteristiccurvenvalueslocal11_       tdysetcharacteristiccurvenvalueslocal11
-//#define tdysetcharacteristiccurvevangenuchtenvalueslocal0_    tdysetcharacteristiccurvevangenuchtenvalueslocal0
-//#define tdysetcharacteristiccurvevangenuchtenvalueslocal11_   tdysetcharacteristiccurvevangenuchtenvalueslocal11
-//#define tdysetsourcesinkvalueslocal0_                  tdysetsourcesinkvalueslocal0
-//#define tdysetsourcesinkvalueslocal11_                 tdysetsourcesinkvalueslocal11
-//#define tdygetsaturationvalueslocal_                   tdygetsaturationvalueslocal
-//#define tdygetliquidmassvalueslocal_                   tdygetliquidmassvalueslocal
-//#define tdygetcharacteristiccurvemvalueslocal_         tdygetcharacteristiccurvemvalueslocal
-#define tdysetcharacteristiccurvevangenuchtenvalueslocal_     tdysetcharacteristiccurvevangenuchtenvalueslocal
-//#define tdygetporosityvalueslocal_                     tdygetporosityvalueslocal
-//#define tdygetblockpermeabilityueslocal_               tdygetblockpermeabilityvalueslocal
-//#define tdygetnumcellslocal_                           tdygetnumcellslocal
-//#define tdygetcellnaturalidslocal_                     tdygetcellnaturalidslocal
 #define tdyupdatestate_                                tdyupdatestate
 #define tdyoutputregression_                           tdyoutputregression
 #define tdydestroy_                                    tdydestroy
 #endif
 
-// Legacy Fortran function pointer registry
-static struct {
-  PetscFortranCallbackId porosity;
-  PetscFortranCallbackId permeability;
-  PetscFortranCallbackId residualsaturation;
-  PetscFortranCallbackId forcing;
-  PetscFortranCallbackId boundary_pressure;
-  PetscFortranCallbackId boundary_velocity;
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  PetscFortranCallbackId function_pgiptr;
-#endif
-} _cb;
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdyinitnoarguments_(int *__ierr){
 *__ierr = TDyInitNoArguments();
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdyfinalize_(int *__ierr){
 *__ierr = TDyFinalize();
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdycreate_(TDy *_tdy, int *__ierr){
 *__ierr = TDyCreate(PETSC_COMM_WORLD,_tdy);
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdysetmode_(TDy _tdy, PetscInt *mode, int *__ierr){
 *__ierr = TDySetMode((TDy)PetscToPointer((_tdy)), *mode);
 }
-#if defined(__cplusplus)
-}
-#endif
-#if defined(__cplusplus)
-extern "C" {
-#endif
+
 PETSC_EXTERN void  tdysetdiscretization_(TDy _tdy, PetscInt *discretization, int *__ierr){
 *__ierr = TDySetDiscretization((TDy)PetscToPointer((_tdy)), *discretization);
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdysetfromoptions_(TDy tdy, int *__ierr){
 *__ierr = TDySetFromOptions((TDy)PetscToPointer((tdy)));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdydriverinitializetdy_(TDy tdy, int *__ierr){
 *__ierr = TDyDriverInitializeTDy((TDy)PetscToPointer((tdy)));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdytimeintegratorruntotime_(TDy tdy, PetscReal *time, int *__ierr){
 *__ierr = TDyTimeIntegratorRunToTime((TDy)PetscToPointer((tdy)), *time);
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdytimeintegratorsettimestep_(TDy tdy, PetscReal *dtime, int *__ierr){
 *__ierr = TDyTimeIntegratorSetTimeStep((TDy)PetscToPointer((tdy)), *dtime);
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdytimeintegratoroutputregression_(TDy tdy, int *__ierr){
 *__ierr = TDyTimeIntegratorOutputRegression((TDy)PetscToPointer((tdy)));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdysetup_(TDy _tdy, int *__ierr){
 *__ierr = TDySetup((TDy)PetscToPointer((_tdy)));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdygetdm_(TDy _tdy, DM *dm, int *__ierr){
 *__ierr = TDyGetDM((TDy)PetscToPointer((_tdy)), dm);
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdysetwaterdensitytype_(TDy tdy, PetscInt *method, int *__ierr){
 *__ierr = TDySetWaterDensityType((TDy)PetscToPointer((tdy)), *method);
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdympfaosetgmatrixmthod_(TDy tdy, PetscInt *method, int *__ierr){
 *__ierr = TDyMPFAOSetGmatrixMethod((TDy)PetscToPointer((tdy)), *method);
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdympfaosetboundaryconditiontype_(TDy tdy, PetscInt *bctype, int *__ierr){
 *__ierr = TDyMPFAOSetBoundaryConditionType((TDy)PetscToPointer((tdy)), *bctype);
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdysetifunction_(TS ts, TDy tdy, int *__ierr){
 *__ierr = TDySetIFunction(
   (TS)PetscToPointer((ts)),
   (TDy)PetscToPointer((tdy)));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdysetijacobian_(TS ts, TDy tdy, int *__ierr){
 *__ierr = TDySetIJacobian(
   (TS)PetscToPointer((ts)),
   (TDy)PetscToPointer((tdy)));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdysetsnesfunction_(SNES snes, TDy tdy, int *__ierr){
 *__ierr = TDySetSNESFunction(
   (SNES)PetscToPointer((snes)),
   (TDy)PetscToPointer((tdy)));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdysetsnesjacobian_(SNES snes, TDy tdy, int *__ierr){
 *__ierr = TDySetSNESJacobian(
   (SNES)PetscToPointer((snes)),
   (TDy)PetscToPointer((tdy)));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdysetdtimeforsnessolver_(TDy tdy, PetscReal *dtime, int *__ierr){
 *__ierr = TDySetDtimeForSNESSolver((TDy)PetscToPointer(tdy), *dtime);
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdysetinitialcondition_(TDy tdy, Vec solution, int *__ierr){
 *__ierr = TDySetInitialCondition(
   (TDy)PetscToPointer(tdy),
   (Vec)PetscToPointer(solution));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdysetprevioussolutionforsnessolver_(TDy tdy, Vec solution, int *__ierr){
 *__ierr = TDySetPreviousSolutionForSNESSolver(
   (TDy)PetscToPointer(tdy),
   (Vec)PetscToPointer(solution));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdypresolvesnessolver_(TDy tdy, int *__ierr){
 *__ierr = TDyPreSolveSNESSolver((TDy)PetscToPointer(tdy));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdypostsolvesnessolver_(TDy tdy, Vec solution, int *__ierr){
 *__ierr = TDyPostSolveSNESSolver(
   (TDy)PetscToPointer(tdy),
   (Vec)PetscToPointer(solution));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdycomputeerrornorms_(TDy tdy, Vec U, PetscReal *normp, PetscReal *normv,  int *__ierr){
 *__ierr = TDyComputeErrorNorms(
   (TDy)PetscToPointer((tdy) ),
   (Vec)PetscToPointer((U) ),
   normp, normv);
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdycreatevectors_(TDy tdy, int *__ierr){
 *__ierr = TDyCreateVectors(
   (TDy)PetscToPointer((tdy)));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdycreatejacobian_(TDy tdy, int *__ierr){
 *__ierr = TDyCreateJacobian(
   (TDy)PetscToPointer((tdy)));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdyoutputregression_(TDy tdy, Vec U, int *__ierr){
 *__ierr = TDyOutputRegression(
   (TDy)PetscToPointer((tdy) ),
   (Vec)PetscToPointer((U) ));
 }
-#if defined(__cplusplus)
-}
-#endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
 PETSC_EXTERN void  tdydestroy_(TDy *_tdy, int *__ierr){
 *__ierr = TDyDestroy(_tdy);
 }
-#if defined(__cplusplus)
+
+PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int *ierr )
+{
+  *ierr = TDyUpdateState(*tdy,y);
 }
-#endif
 
 //------------------------------------------------------------------------
 //                  Material properties and conditions
@@ -464,16 +225,19 @@ typedef void (*F90SpatialFunction)(PetscInt, PetscReal*, PetscReal*, PetscErrorC
 // This is a context wrapped around an F90 spatial function that allows it to
 // be called within a C spatial function.
 typedef struct F90SpatialFunctionWrapper {
+  PetscInt dim;
   F90SpatialFunction f90_func;
 } F90SpatialFunctionWrapper;
 
 // This creates a wrapped F90 function context.
-static PetscErrorCode CreateF90SpatialFunctionContext(F90SpatialFunction f,
+static PetscErrorCode CreateF90SpatialFunctionContext(PetscInt dim,
+                                                      F90SpatialFunction f,
                                                       void **context) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   F90SpatialFunctionWrapper *wrapper;
   ierr = PetscMalloc(sizeof(F90SpatialFunctionWrapper), &wrapper); CHKERRQ(ierr);
+  wrapper->dim = dim;
   wrapper->f90_func = f;
   *context = wrapper;
   PetscFunctionReturn(0);
@@ -489,339 +253,98 @@ static PetscErrorCode WrappedF90SpatialFunction(void *context, PetscInt n,
   PetscFunctionReturn(0);
 }
 
+// This calls the F90 function embedded within its context, assigning its value
+// to the diagonal components of an isotropic tensor
+static PetscErrorCode WrappedF90IsotropicTensorFunction(void *context, PetscInt n,
+                                                        PetscReal *x, PetscReal *f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  F90SpatialFunctionWrapper *wrapper = context;
+  PetscInt dim = wrapper->dim;
+  PetscInt dim2 = dim*dim;
+  PetscReal values[n];
+  memset(f, 0, n * dim2 * sizeof(PetscReal));
+  wrapper->f90_func(n, x, values, &ierr); CHKERRQ(ierr);
+  for (PetscInt i = 0; i < n; ++i) {
+    for(PetscInt j = 0; j < dim; ++j) {
+      f[dim2*i+j*dim+j] = values[i];
+    }
+  }
+  PetscFunctionReturn(0);
+}
+
+// This calls the F90 function embedded within its context, assigning its value
+// to the components of a diagonal anisotropic tensor
+static PetscErrorCode WrappedF90DiagonalTensorFunction(void *context, PetscInt n,
+                                                       PetscReal *x, PetscReal *f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  F90SpatialFunctionWrapper *wrapper = context;
+  PetscInt dim = wrapper->dim;
+  PetscInt dim2 = dim*dim;
+  PetscReal values[dim*n];
+  wrapper->f90_func(n, x, values, &ierr); CHKERRQ(ierr);
+  for (PetscInt i = 0; i < n; ++i) {
+    for(PetscInt j = 0; j < dim; ++j) {
+      f[dim2*i+j*dim+j] = values[dim*i+j];
+    }
+  }
+  PetscFunctionReturn(0);
+}
+
 // Generic destructor for contexts that wrap F90 functions.
 static void DestroyContext(void* context) {
   PetscFree(context);
 }
 
-PETSC_EXTERN PetscErrorCode TDySetPorosityFunctionF90(TDy tdy, F90SpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
 
-  void *context;
-  ierr = CreateF90SpatialFunctionContext(f, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetPorosity(tdy->matprop, context, WrappedF90SpatialFunction,
-                                 DestroyContext); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+// This macro can be used to expose a Fortran 90 subroutine that assigns a
+// spatial function to a material property.
+#define WRAP_MATPROP(f90_fn, matprop_fn, wrapper_fn) \
+PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, F90SpatialFunction f) { \
+  PetscErrorCode ierr; \
+  PetscFunctionBegin; \
+  PetscInt dim; \
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr); \
+  void *context; \
+  ierr = CreateF90SpatialFunctionContext(dim, f, &context); CHKERRQ(ierr); \
+  ierr = matprop_fn(tdy->matprop, context, wrapper_fn, \
+                    DestroyContext); CHKERRQ(ierr); \
+  PetscFunctionReturn(0); \
+} \
 
-/*
-PETSC_EXTERN void tdysetpermeabilityfunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
-{
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.permeability,(PetscVoidFunction)func,ctx);
-  if (*ierr) return;
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
-#endif
-  *ierr = TDySetPermeabilityFunction(*tdy,ourtdypermeabilityfunction,NULL);
-}
+WRAP_MATPROP(TDySetPorosityFunctionF90, MaterialPropSetPorosity, WrappedF90SpatialFunction)
 
-static PetscErrorCode ourtdysetresidualfunction(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
-{
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  void* ptr;
-  PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,_cb.function_pgiptr,NULL,&ptr);
-#endif
-  PetscObjectUseFortranCallback(tdy,_cb.residualsaturation,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
-}
+WRAP_MATPROP(TDySetIsotropicPermeabilityFunctionF90, MaterialPropSetPermeability, WrappedF90IsotropicTensorFunction)
+WRAP_MATPROP(TDySetDiagonalPermeabilityFunctionF90, MaterialPropSetPermeability, WrappedF90DiagonalTensorFunction)
+WRAP_MATPROP(TDySetTensorPermeabilityFunctionF90, MaterialPropSetPermeability, WrappedF90SpatialFunction)
 
+WRAP_MATPROP(TDySetIsotropicThermalConductivityFunctionF90, MaterialPropSetThermalConductivity, WrappedF90IsotropicTensorFunction)
+WRAP_MATPROP(TDySetDiagonalThermalConductivityFunctionF90, MaterialPropSetThermalConductivity, WrappedF90DiagonalTensorFunction)
+WRAP_MATPROP(TDySetTensorThermalConductivityFunctionF90, MaterialPropSetThermalConductivity, WrappedF90SpatialFunction)
 
-PETSC_EXTERN void tdysetresidualsaturationfunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
-{
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.residualsaturation,(PetscVoidFunction)func,ctx);
-  if (*ierr) return;
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
-#endif
-  *ierr = TDySetResidualSaturationFunction(*tdy,ourtdysetresidualfunction,NULL);
-}
-*/
+WRAP_MATPROP(TDySetResidualSaturationFunctionF90, MaterialPropSetResidualSaturation, WrappedF90SpatialFunction)
+WRAP_MATPROP(TDySetSoilDensityFunctionF90, MaterialPropSetSoilDensity, WrappedF90SpatialFunction)
+WRAP_MATPROP(TDySetSoilSpecificHeat, MaterialPropSetSoilSpecificHeat, WrappedF90SpatialFunction)
 
-static PetscErrorCode ourtdyforcingfunction2(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
-{
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  void* ptr;
-  PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,_cb.function_pgiptr,NULL,&ptr);
-#endif
-  PetscObjectUseFortranCallback(tdy,_cb.forcing,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
-}
+// This macro can be used to expose a Fortran 90 subroutine that assigns a
+// spatial function to a boundary condition/source/sink.
+#define WRAP_CONDITION(f90_fn, condition_fn, wrapper_fn) \
+PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, F90SpatialFunction f) { \
+  PetscErrorCode ierr; \
+  PetscFunctionBegin; \
+  PetscInt dim; \
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr); \
+  void *context; \
+  ierr = CreateF90SpatialFunctionContext(dim, f, &context); CHKERRQ(ierr); \
+  ierr = condition_fn(tdy->conditions, context, wrapper_fn, \
+                      DestroyContext); CHKERRQ(ierr); \
+  PetscFunctionReturn(0); \
+} \
 
-PETSC_EXTERN void tdysetforcingfunction_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
-{
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.forcing,(PetscVoidFunction)func,ctx);
-  if (*ierr) return;
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
-#endif
-  *ierr = TDySetForcingFunction(*tdy,ourtdyforcingfunction2,NULL);
-}
-
-static PetscErrorCode ourtdyboundarypressurefn(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
-{
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  void* ptr;
-  PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,_cb.function_pgiptr,NULL,&ptr);
-#endif
-  PetscObjectUseFortranCallback(tdy,_cb.boundary_pressure,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
-}
-
-PETSC_EXTERN void tdysetboundarypressurefn_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
-{
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.boundary_pressure,(PetscVoidFunction)func,ctx);
-  if (*ierr) return;
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
-#endif
-  *ierr = TDySetBoundaryPressureFn(*tdy,ourtdyboundarypressurefn,NULL);
-}
-
-static PetscErrorCode ourtdyboundaryvelocityfn(TDy tdy,PetscReal *x,PetscReal *f,void *ctx)
-{
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  void* ptr;
-  PetscObjectGetFortranCallback((PetscObject)tdy,PETSC_FORTRAN_CALLBACK_CLASS,_cb.function_pgiptr,NULL,&ptr);
-#endif
-  PetscObjectUseFortranCallback(tdy,_cb.boundary_velocity,(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode* PETSC_F90_2PTR_PROTO_NOVAR),(&tdy,x,f,_ctx,&ierr PETSC_F90_2PTR_PARAM(ptr)));
-}
-
-PETSC_EXTERN void tdysetboundaryvelocityfn_(TDy *tdy, PetscErrorCode (*func)(TDy*,PetscReal*,PetscReal*,void*,PetscErrorCode*),void *ctx,PetscErrorCode *ierr PETSC_F90_2PTR_PROTO(ptr))
-{
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy ,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.boundary_velocity,(PetscVoidFunction)func,ctx);
-  if (*ierr) return;
-#if defined(PETSC_HAVE_F90_2PTR_ARG)
-  *ierr = PetscObjectSetFortranCallback((PetscObject)*tdy,PETSC_FORTRAN_CALLBACK_CLASS,&_cb.function_pgiptr,NULL,ptr);if (*ierr) return;
-#endif
-  *ierr = TDySetBoundaryVelocityFn(*tdy,ourtdyboundaryvelocityfn,NULL);
-}
-
-/*
-PETSC_EXTERN void tdysetporosityvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  *ierr = TDySetPorosityValuesLocal(*tdy,*ni,ix,y);
-}
-
-PETSC_EXTERN void tdysetporosityvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  tdysetporosityvalueslocal_(tdy,ni,ix,y,ierr);
-}
-
-PETSC_EXTERN void tdysetporosityvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  tdysetporosityvalueslocal_(tdy,ni,ix,y,ierr);
-}
-
-PETSC_EXTERN void tdysetblockpermeabilityvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  *ierr = TDySetBlockPermeabilityValuesLocal(*tdy,*ni,ix,y);
-}
-
-PETSC_EXTERN void tdysetblockpermeabilityvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  tdysetblockpermeabilityvalueslocal_(tdy,ni,ix,y,ierr);
-}
-
-PETSC_EXTERN void tdysetblockpermeabilityvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  tdysetblockpermeabilityvalueslocal_(tdy,ni,ix,y,ierr);
-}
-
-PETSC_EXTERN void tdysetresidualsaturationvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  *ierr = TDySetResidualSaturationValuesLocal(*tdy,*ni,ix,y);
-}
-
-PETSC_EXTERN void tdysetresidualsaturationvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  tdysetresidualsaturationvalueslocal_(tdy,ni,ix,y,ierr);
-}
-
-PETSC_EXTERN void tdysetresidualsaturationvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  tdysetresidualsaturationvalueslocal_(tdy,ni,ix,y,ierr);
-}
-
-PETSC_EXTERN void tdysetcharacteristiccurvemualemvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  *ierr = TDySetCharacteristicCurveMualemValuesLocal(*tdy,*ni,ix,y);
-}
-
-PETSC_EXTERN void tdysetcharacteristiccurvemualemvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  tdysetcharacteristiccurvemualemvalueslocal_(tdy,ni,ix,y,ierr);
-}
-
-PETSC_EXTERN void tdysetcharacteristiccurvemualemvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  tdysetcharacteristiccurvemualemvalueslocal_(tdy,ni,ix,y,ierr);
-}
-
-PETSC_EXTERN void tdysetcharacteristiccurvenvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  *ierr = TDySetCharacteristicCurveNValuesLocal(*tdy,*ni,ix,y);
-}
-
-PETSC_EXTERN void tdysetcharacteristiccurvenvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  tdysetcharacteristiccurvenvalueslocal_(tdy,ni,ix,y,ierr);
-}
-
-PETSC_EXTERN void tdysetcharacteristiccurvenvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  tdysetcharacteristiccurvenvalueslocal_(tdy,ni,ix,y,ierr);
-}
-
-PETSC_EXTERN void tdysetcharacteristiccurvevangenuchtenvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], PetscScalar z[], int *ierr )
-{
-  *ierr = TDySetCharacteristicCurveVanGenuchtenValuesLocal(*tdy,*ni,ix,y,z);
-}
-
-PETSC_EXTERN void tdysetcharacteristiccurvevangenuchtenvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], PetscScalar z[], int *ierr )
-{
-  tdysetcharacteristiccurvevangenuchtenvalueslocal_(tdy,ni,ix,y,z,ierr);
-}
-
-PETSC_EXTERN void tdysetcharacteristiccurvevangenuchtenvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], PetscScalar z[], int *ierr )
-{
-  tdysetcharacteristiccurvevangenuchtenvalueslocal_(tdy,ni,ix,y,z,ierr);
-}
-
-PETSC_EXTERN void tdysetsourcesinkvalueslocal_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  *ierr = TDySetSourceSinkValuesLocal(*tdy,*ni,ix,y);
-}
-
-PETSC_EXTERN void tdysetsourcesinkvalueslocal0_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  tdysetsourcesinkvalueslocal_(tdy,ni,ix,y,ierr);
-}
-
-PETSC_EXTERN void tdysetsourcesinkvalueslocal11_(TDy *tdy,PetscInt *ni, PetscInt ix[], PetscScalar y[], int *ierr )
-{
-  tdysetsourcesinkvalueslocal_(tdy,ni,ix,y,ierr);
-}
-
-PETSC_EXTERN void tdygetsaturationvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
-{
-  *ierr = TDyGetSaturationValuesLocal(*tdy,ni,y);
-}
-
-PETSC_EXTERN void tdygetliquidmassvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
-{
-  *ierr = TDyGetLiquidMassValuesLocal(*tdy,ni,y);
-}
-
-PETSC_EXTERN void tdygetcharacteristiccurvemvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
-{
-  *ierr = TDyGetCharacteristicCurveMValuesLocal(*tdy,ni,y);
-}
-
-PETSC_EXTERN void tdygetcharacteristiccurvealphavalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
-{
-  *ierr = TDyGetCharacteristicCurveAlphaValuesLocal(*tdy,ni,y);
-}
-
-PETSC_EXTERN void tdygetporosityvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
-{
-  *ierr = TDyGetPorosityValuesLocal(*tdy,ni,y);
-}
-
-PETSC_EXTERN void tdygetblockpermeabilityvalueslocal_(TDy *tdy,PetscInt *ni, PetscScalar y[], int *ierr )
-{
-  *ierr = TDyGetBlockPermeabilityValuesLocal(*tdy,ni,y);
-}
-
-PETSC_EXTERN void tdygetnumcellslocal_(TDy *tdy,PetscInt *ni, int *ierr )
-{
-  *ierr = TDyGetNumCellsLocal(*tdy,ni);
-}
-
-PETSC_EXTERN void tdygetcellnaturalidslocal_(TDy *tdy,PetscInt *ni, PetscInt y[], int *ierr )
-{
-  *ierr = TDyGetCellNaturalIDsLocal(*tdy,ni,y);
-}
-
-PETSC_EXTERN void tdygetcellislocal_(TDy *tdy,PetscInt *ni, PetscInt y[], int *ierr )
-{
-  *ierr = TDyGetCellIsLocal(*tdy,ni,y);
-}
-*/
-
-PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int *ierr )
-{
-  *ierr = TDyUpdateState(*tdy,y);
-}
-
-//--------------------------------------------------------------------------
-//                  Fortran 90 material property functions
-//--------------------------------------------------------------------------
-// These wrappers convert Fortran spatial functions to C functions that can
-// be used with all vectorized signatures.
-//--------------------------------------------------------------------------
-typedef void (*F90SpatialFunction)(PetscInt*,PetscReal*,PetscReal*,PetscErrorCode*);
-typedef F90SpatialFunctionWrapper {
-  F90SpatialFunction func;
-} F90SpatialFunctionWrapper;
-
-static void* F90ContextFromSpatialFunc(F90SpatialFunction f)
-  F90SpatialFunctionWrapper *wrapper;
-  PetscMalloc(sizeof(F90SpatialFunctionWrapper), &wrapper);
-  wrapper->func = f;
-}
-
-static PetscErrorCode F90CallSpatialFunc(void* context, PetscInt n,
-                                         PetscReal *x, PetscReal *f) {
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  F90SpatialFunctionWrapper* wrapper = context;
-  wrapper->func(&n, x, f, &ierr);
-  PetscFunctionReturn(ierr);
-}
-
-PetscErrorCode TDySetPorosityFunctionF90(TDy tdy, F90SpatialFunction f) {
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  void *context = F90ContextFromSpatialFunc(f);
-  ierr = MaterialPropSetPorosity(tdy->matprop, context, F90CallSpatialFunc, PetscFree);
-  PetscFunctionReturn(ierr);
-}
-
-PetscErrorCode TDySetPermeabilityFunctionF90(TDy tdy, F90SpatialFunction f) {
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  void *context = F90ContextFromSpatialFunc(f);
-  irr = MaterialPropSetPermeability(tdy->matprop, context, F90CallSpatialFunc, PetscFree);
-  PetscFunctionReturn(ierr);
-}
-
-void TDySetThermalConductivityFunctionF90(TDy tdy, F90SpatialFunction f) {
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  void *context = F90ContextFromSpatialFunc(f);
-  irr = MaterialPropSetThermalConductivity(tdy->matprop, context, F90CallSpatialFunc, PetscFree);
-  PetscFunctionReturn(ierr);
-}
-
-void TDySetResidualSaturationFunctionF90(TDy tdy, F90SpatialFunction f) {
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  void *context = F90ContextFromSpatialFunc(f);
-  ierr = MaterialPropSetResidualSaturation(tdy->matprop, context, F90CallSpatialFunc, PetscFree);
-  PetscFunctionReturn(ierr);
-}
-
-void TDySetSoilDensityFunctionF90(TDy tdy, F90SpatialFunction f) {
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  void *context = F90ContextFromSpatialFunc(f);
-  ierr = MaterialPropSetResidualSaturation(tdy->matprop, context, F90CallSpatialFunc, PetscFree);
-  PetscFunctionReturn(ierr);
-}
-
-void TDySetSoilSpecificHeatFunctionF90(TDy tdy, F90SpatialFunction f) {
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  void *context = F90ContextFromSpatialFunc(f);
-  ierr = MaterialPropSetResidualSaturation(tdy->matprop, context, F90CallSpatialFunc, PetscFree);
-  PetscFunctionReturn(ierr);
-}
+WRAP_CONDITION(TDySetForcingFunctionF90, ConditionsSetForcing, WrappedF90SpatialFunction)
+WRAP_CONDITION(TDySetEnergyForcingFunctionF90, ConditionsSetEnergyForcing, WrappedF90SpatialFunction)
+WRAP_CONDITION(TDySetBoundaryPressureFunctionF90, ConditionsSetBoundaryPressure, WrappedF90SpatialFunction)
+WRAP_CONDITION(TDySetBoundaryTemperatureFunctionF90, ConditionsSetBoundaryTemperature, WrappedF90SpatialFunction)
+WRAP_CONDITION(TDySetBoundaryVelocityFunctionF90, ConditionsSetBoundaryVelocity, WrappedF90SpatialFunction)
 

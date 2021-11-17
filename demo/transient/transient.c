@@ -53,10 +53,10 @@ PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
         coords[offset+1] += r*PetscSinReal(t);
       }
     } else {
-      /* this is because 'marker' is broken in 3D */
+      /* this is because 'boundary' is broken in 3D */ // TODO: maybe not true anymore
       if(coords[offset] > -0.5 && coords[offset] < 0.5 &&
-	 coords[offset+1] > -0.5 && coords[offset+1] < 0.5 &&
-	 coords[offset+2] > -0.5 && coords[offset+2] < 0.5) {
+          coords[offset+1] > -0.5 && coords[offset+1] < 0.5 &&
+          coords[offset+2] > -0.5 && coords[offset+2] < 0.5) {
         coords[offset+2] += (((PetscReal)rand())/((PetscReal)RAND_MAX)-0.5)*h*0.8;
       }
     }
@@ -76,7 +76,8 @@ typedef struct DMOptions {
 // This function creates a DM specifically for this demo. Overrides are applied
 // to the resulting DM with TDySetFromOptions.
 PetscErrorCode CreateDM(MPI_Comm comm, void* context, DM* dm) {
-  int ierr;
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
   DMOptions* options = context;
 
   PetscInt N = options->N;
@@ -89,8 +90,8 @@ PetscErrorCode CreateDM(MPI_Comm comm, void* context, DM* dm) {
     const PetscReal upper[3] = {+0.5,+0.5,+0.5};
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,options->dim,PETSC_FALSE,
       faces,lower,upper,NULL,PETSC_TRUE,dm); CHKERRQ(ierr);
-    ierr = PerturbInteriorVertices(*dm,1./N); CHKERRQ(ierr);
   }
+  PetscFunctionReturn(0);
 }
 
 int main(int argc, char **argv) {
@@ -126,9 +127,10 @@ int main(int argc, char **argv) {
   // Apply overrides.
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
-  // View the configured DM.
+  // Perturb the interior mesh points and viѕualize them.
   DM dm;
   TDyGetDM(tdy, &dm);
+  ierr = PerturbInteriorVertices(dm,1./N); CHKERRQ(ierr);
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
   /* Setup problem parameters */

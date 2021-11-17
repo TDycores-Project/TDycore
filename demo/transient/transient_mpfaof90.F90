@@ -9,18 +9,6 @@ module mpfaof90mod
 
 contains
 
-   subroutine PorosityFunction(tdy,x,theta,dummy,ierr)
-     implicit none
-     TDy                    :: tdy
-     PetscReal, intent(in) :: x
-     PetscReal, intent(out):: theta
-     integer                :: dummy(*)
-     PetscErrorCode :: ierr
-
-     theta = 0.115d0
-     ierr = 0
-   end subroutine PorosityFunction
-
    subroutine Permeability(K)
      implicit none
      PetscReal, intent(out) :: K(9)
@@ -29,32 +17,17 @@ contains
       K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 1.0d-10;
    end subroutine
 
-   subroutine PermeabilityFunction(tdy,x,K,dummy,ierr)
-      implicit none
-      TDy                    :: tdy
-      PetscReal, intent(in)  :: x(2)
-      PetscReal, intent(out) :: K(9)
-      integer                :: dummy(*)
-      PetscErrorCode         :: ierr
+  subroutine PressureFunction(n,x,pressure,ierr)
+    implicit none
+    PetscInt,                intent(in)  :: n
+    PetscReal, dimension(:), intent(in)  :: x
+    PetscReal, dimension(:), intent(out) :: pressure
+    PetscErrorCode         :: ierr
 
-      call Permeability(K)
+    pressure(:) = 100000.d0
 
-      ierr = 0
-  end subroutine PermeabilityFunction
-
-  subroutine PressureFunction(tdy,x,pressure,dummy,ierr)
-     implicit none
-
-      TDy                    :: tdy
-      PetscReal, intent(in)  :: x(2)
-      PetscReal, intent(out) :: pressure
-      integer                :: dummy(*)
-      PetscErrorCode         :: ierr
-
-      pressure = 100000.d0
-
-      ierr = 0
-    end subroutine PressureFunction
+    ierr = 0
+  end subroutine PressureFunction
 
   subroutine CreateDM(comm, dm, ierr)
     use petscdm
@@ -100,11 +73,8 @@ implicit none
   PetscInt       :: rank, successful_exit_code
   PetscBool      :: flg
   PetscErrorCode :: ierr
-  PetscInt, pointer :: index(:)
-  PetscReal, pointer :: residualSat(:), blockPerm(:), liquid_sat(:), liquid_mass(:)
   PetscReal, pointer :: p_loc(:)
   PetscReal ::  perm(9)
-  PetscInt :: c, cStart, cEnd, j, nvalues
 
   call TDyInit(ierr);
   CHKERRA(ierr);
@@ -130,38 +100,20 @@ implicit none
   CHKERRA(ierr);
 
   call TDyGetDM(tdy, dm, ierr);
-  call DMPlexGetHeightStratum(dm,0,cStart,cEnd,ierr);
   CHKERRA(ierr);
-
-  allocate(blockPerm((cEnd-cStart)*dim*dim));
-  allocate(residualSat(cEnd-cStart));
-  allocate(liquid_mass(cEnd-cStart));
-  allocate(liquid_sat(cEnd-cStart));
-  allocate(index(cEnd-cStart));
 
   call Permeability(perm);
 
-  do c=1,cEnd-cStart
-    index(c) = c-1;
-    residualSat(c) = 0.115d0;
-    do j = 1,dim*dim
-      blockPerm((c-1)*dim*dim+j) = perm(j)
-    enddo
-  enddo
-
-  call TDySetPorosityFunction(tdy,PorosityFunction,0,ierr);
+  call TDySetConstantPorosity(tdy,0.115d0,ierr);
   CHKERRA(ierr);
 
-  call TDySetPermeabilityFunction(tdy,PermeabilityFunction,0,ierr);
+  call TDySetConstantTensorPermeability(tdy,perm,ierr);
   CHKERRA(ierr);
 
-  call TDySetBoundaryPressureFn(tdy,PressureFunction,0,ierr);
+  call TDySetBoundaryPressureFunction(tdy,PressureFunction,ierr);
   CHKERRA(ierr);
 
-  call TDySetBlockPermeabilityValuesLocal(tdy,cEnd-cStart,index,blockPerm,ierr);
-  CHKERRA(ierr);
-
-  call TDySetResidualSaturationValuesLocal(tdy,cEnd-cStart,index,residualSat,ierr);
+  call TDySetConstantResidualSaturation(tdy,0.115d0,ierr)
   CHKERRA(ierr);
 
   call TDySetup(tdy,ierr);
@@ -221,12 +173,6 @@ implicit none
   call TSSolve(ts,U,ierr);
   CHKERRA(ierr);
 
-  call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)
-  CHKERRA(ierr);
-
-  call TDyGetSaturationValuesLocal(tdy,nvalues,liquid_sat,ierr)
-  CHKERRA(ierr);
-
   call TDyOutputRegression(tdy,U,ierr);
   CHKERRA(ierr);
 
@@ -235,10 +181,6 @@ implicit none
 
   call TDyFinalize(ierr);
   CHKERRA(ierr);
-
-  deallocate(blockPerm)
-  deallocate(residualSat)
-  deallocate(index)
 
   call exit(successful_exit_code)
 
