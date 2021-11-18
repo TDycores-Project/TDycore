@@ -195,7 +195,7 @@ typedef struct TDyMesh {
   PetscInt *closureSize, **closure, maxClosureSize;
 } TDyMesh;
 
-PETSC_INTERN PetscErrorCode TDyMeshCreate(DM, TDyMesh**);
+PETSC_INTERN PetscErrorCode TDyMeshCreate(DM,PetscReal*,PetscReal*,PetscReal*,TDyMesh**);
 PETSC_INTERN PetscErrorCode TDyMeshDestroy(TDyMesh*);
 
 PETSC_INTERN PetscErrorCode TDyMeshReadGeometry(TDyMesh*,const char*);
