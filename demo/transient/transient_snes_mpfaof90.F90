@@ -104,19 +104,26 @@ contains
     resSat = 0.1d0
   end subroutine ResidualSat_PFLOTRAN
 
-  subroutine PressureFunction(tdy,x,pressure,dummy,ierr)
+  subroutine PressureFunction(n, x, pressure,ierr)
     implicit none
-    TDy                    :: tdy
-    PetscReal, intent(in)  :: x(3)
-    PetscReal, intent(out) :: pressure
-    integer                :: dummy(*)
-    PetscErrorCode :: ierr
+    PetscInt,                intent(in)  :: n
+    PetscReal, dimension(:), intent(in)  :: x
+    PetscReal, dimension(:), intent(out) :: pressure
+    PetscErrorCode,          intent(out) :: ierr
 
-    if (x(1) > 0.d0 .and. x(1) < 1.d0 .and. x(2) > 0.d0 .and. x(2) < 1.d0 .and. x(3) > 0.99d0) then
-      pressure = 110000.d0
-    else
-      pressure = 100000.d0
-    end if
+    PetscInt :: i
+    PetscReal :: x1, x2, x3
+
+    do i = 1, n
+      x1 = x(3*i)
+      x2 = x(3*i+1)
+      x3 = x(3*i+2)
+      if (x1 > 0.d0 .and. x1 < 1.d0 .and. x2 > 0.d0 .and. x2 < 1.d0 .and. x3 > 0.99d0) then
+        pressure = 110000.d0
+      else
+        pressure = 100000.d0
+      end if
+    end do
     ierr = 0
   end subroutine PressureFunction
 

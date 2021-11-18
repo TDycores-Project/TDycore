@@ -239,11 +239,10 @@ module tdycore
   !> indicating any (non-zero) error status in err.
   abstract interface
     subroutine TDySpatialFunction(n, x, f, ierr)
-      use tdycoredef
       PetscInt,                intent(in)  :: n
       PetscReal, dimension(:), intent(in)  :: x
       PetscReal, dimension(:), intent(out) :: f
-      PetscErrorCode                       :: ierr
+      PetscErrorCode,          intent(out) :: ierr
     end subroutine
   end interface
 
@@ -430,7 +429,7 @@ module tdycore
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
-    TDy, target                   :: tdy
+    TDy                           :: tdy
     procedure(TDySpatialFunction) :: f
     PetscErrorCode                :: ierr
     type(c_ptr)                   :: p_tdy
@@ -469,7 +468,7 @@ module tdycore
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
-    TDy, target                   :: tdy
+    TDy                           :: tdy
     procedure(TDySpatialFunction) :: f
     PetscErrorCode                :: ierr
     type(c_ptr)                   :: p_tdy
@@ -492,7 +491,7 @@ module tdycore
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
-    TDy, target    :: tdy
+    TDy            :: tdy
     PetscReal      :: val
     PetscErrorCode :: ierr
     type(c_ptr)    :: p_tdy
@@ -515,7 +514,7 @@ module tdycore
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
-    TDy, target                   :: tdy
+    TDy                           :: tdy
     procedure(TDySpatialFunction) :: f
     PetscErrorCode                :: ierr
     type(c_ptr)                   :: p_tdy
@@ -538,7 +537,7 @@ module tdycore
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
-    TDy, target                 :: tdy
+    TDy                         :: tdy
     PetscReal, target           :: val(9)
     PetscErrorCode              :: ierr
     type(c_ptr)                 :: p_tdy
@@ -561,7 +560,7 @@ module tdycore
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
-    TDy, target    :: tdy
+    TDy            :: tdy
     PetscReal      :: val
     PetscErrorCode :: ierr
     type(c_ptr)    :: p_tdy
@@ -584,7 +583,7 @@ module tdycore
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
-    TDy, target                   :: tdy
+    TDy                           :: tdy
     procedure(TDySpatialFunction) :: f
     PetscErrorCode                :: ierr
     type(c_ptr)                   :: p_tdy

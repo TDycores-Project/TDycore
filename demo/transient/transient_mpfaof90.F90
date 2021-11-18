@@ -12,9 +12,9 @@ contains
    subroutine Permeability(K)
      implicit none
      PetscReal, intent(out) :: K(9)
-      K(1) = 1.0d-10; K(2) = 0.0    ; K(3) = 0.0    ;
-      K(4) = 0.0    ; K(5) = 1.0d-10; K(6) = 0.0    ;
-      K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 1.0d-10;
+     K(1) = 1.0d-10; K(2) = 0.0    ; K(3) = 0.0    ;
+     K(4) = 0.0    ; K(5) = 1.0d-10; K(6) = 0.0    ;
+     K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 1.0d-10;
    end subroutine
 
   subroutine PressureFunction(n,x,pressure,ierr)
@@ -22,10 +22,9 @@ contains
     PetscInt,                intent(in)  :: n
     PetscReal, dimension(:), intent(in)  :: x
     PetscReal, dimension(:), intent(out) :: pressure
-    PetscErrorCode         :: ierr
+    PetscErrorCode,          intent(out) :: ierr
 
     pressure(:) = 100000.d0
-
     ierr = 0
   end subroutine PressureFunction
 
@@ -110,7 +109,7 @@ implicit none
   call TDySetConstantTensorPermeability(tdy,perm,ierr);
   CHKERRA(ierr);
 
-  call TDySetBoundaryPressureFunction(tdy,PressureFunction,ierr);
+  call TDySetBoundaryPressureFunction(tdy, PressureFunction,ierr);
   CHKERRA(ierr);
 
   call TDySetConstantResidualSaturation(tdy,0.115d0,ierr)
