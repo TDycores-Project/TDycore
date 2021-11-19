@@ -240,7 +240,8 @@ PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx
 /// @param [in] ctx user-defined context
 PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
 
-  TDyMPFAO* mpfao = (TDyMPFAO*)ctx;
+  TDy tdy = ctx;
+  TDyMPFAO* mpfao = tdy->context;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
@@ -362,9 +363,9 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
           ukvr = Kr/vis;
           dukvr_dPup = 0.0;
 
-	  if (mpfao->bc_type == MPFAO_SEEPAGE_BC && mpfao->P_bnd[-cell_id_up-1] <= mpfao->Pref) {
-	    set_jac_to_zero = PETSC_TRUE;
-	  }
+          if (mpfao->bc_type == MPFAO_SEEPAGE_BC && mpfao->P_bnd[-cell_id_up-1] <= mpfao->Pref) {
+            set_jac_to_zero = PETSC_TRUE;
+          }
         }
 
       } else {
@@ -406,9 +407,9 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
 
         PetscReal Jac;
 
-	if (set_jac_to_zero == PETSC_TRUE){
-	  Jac = 0.0;
-	} else if (cell_id_up>-1 && cell_id == cell_id_up) {
+        if (set_jac_to_zero == PETSC_TRUE){
+          Jac = 0.0;
+        } else if (cell_id_up>-1 && cell_id == cell_id_up) {
           Jac =
             dden_aveg_dPup * ukvr       * TtimesP[irow] +
             den_aveg       * dukvr_dPup * TtimesP[irow] +
