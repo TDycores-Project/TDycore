@@ -8,7 +8,34 @@ module tdycoredef
 end module tdycoredef
 
 module tdycore
+  use iso_c_binding
   use tdycoredef
+
+  public
+
+  private :: spatial_funcs, last_spatial_func_id, SpatialFunctionWrapper, &
+             AppendSpatialFunction
+
+  !> A TDySpatialFunction is a function that computes values f on n points x,
+  !> indicating any (non-zero) error status in err.
+  abstract interface
+    subroutine TDySpatialFunction(n, x, f, ierr)
+      PetscInt,                intent(in)  :: n
+      PetscReal, dimension(:), intent(in)  :: x
+      PetscReal, dimension(:), intent(out) :: f
+      PetscErrorCode,          intent(out) :: ierr
+    end subroutine
+  end interface
+
+  ! Derived type that wraps TDySpatialFunctions.
+  type :: SpatialFunctionWrapper
+    procedure(TDySpatialFunction), pointer, nopass :: f => null()
+  end type
+
+  ! An array of Fortran TDySpatialFunctions
+  type(SpatialFunctionWrapper), dimension(:), allocatable :: spatial_funcs
+  ! The ID of the most recently added spatial function
+  integer(c_int) :: last_spatial_func_id
 
   interface
      subroutine TDyFinalize(ierr)
@@ -235,20 +262,9 @@ module tdycore
      end subroutine TDyPostSolveSNESSolver
   end interface
 
-  !> A TDySpatialFunction is a function that computes values f on n points x,
-  !> indicating any (non-zero) error status in err.
-  abstract interface
-    subroutine TDySpatialFunction(n, x, f, ierr)
-      PetscInt,                intent(in)  :: n
-      PetscReal, dimension(:), intent(in)  :: x
-      PetscReal, dimension(:), intent(out) :: f
-      PetscErrorCode,          intent(out) :: ierr
-    end subroutine
-  end interface
-
   ! We use GetRegFn to retrieve function pointers from the C registry.
   interface
-    function GetRegFn(name, c_func) bind (c, name="TDyGetFunction") result(ierr)
+    function GetRegFn(name, c_func) bind(c, name="TDyGetFunction") result(ierr)
       use, intrinsic :: iso_c_binding
       implicit none
       type(c_ptr), value :: name
@@ -270,6 +286,50 @@ module tdycore
 
   contains
 
+  ! This subroutine calls the TDySpatialFunction with the given id, supplying
+  ! it with the given parameters.
+  subroutine TDyCallF90SpatialFunction(id, n, c_x, c_f, ierr) &
+      bind(c, name="TDyCallF90SpatialFunction")
+    use, intrinsic :: iso_c_binding
+    implicit none
+    integer(c_int), value, intent(in) :: id
+    integer(c_int), value, intent(in) :: n
+    type(c_ptr),    value, intent(in) :: c_x, c_f
+    integer(c_int),       intent(out) :: ierr
+
+    procedure(TDySpatialFunction), pointer :: f_func
+    real(c_double), dimension(:), pointer  :: f_x, f_f
+
+    f_func => spatial_funcs(id)%f
+    call c_f_pointer(c_x, f_x, [n])
+    call c_f_pointer(c_f, f_f, [n])
+    call f_func(n, f_x, f_f, ierr)
+  end subroutine
+
+  ! This function appends the given spatial function to the ones in our list,
+  ! returning its (integer) ID.
+  function AppendSpatialFunction(func) result(id)
+    implicit none
+    procedure(TDySpatialFunction), pointer :: func
+    type(SpatialFunctionWrapper) :: elem
+    integer :: id
+    type(SpatialFunctionWrapper), dimension(:), allocatable :: new_array
+    integer :: old_size
+
+    if (.not. allocated(spatial_funcs)) then
+      allocate(spatial_funcs(32))
+      last_spatial_func_id = 1
+    else if (last_spatial_func_id > size(spatial_funcs)) then ! need more room
+      old_size = size(spatial_funcs)
+      allocate(new_array(2*old_size))
+      new_array(1:old_size) = spatial_funcs(1:old_size)
+      call move_alloc(new_array, spatial_funcs)
+    end if
+    elem%f => func
+    spatial_funcs(last_spatial_func_id) = elem
+    last_spatial_func_id = last_spatial_func_id + 1
+  end function
+
   subroutine TDyInit(ierr)
 #include <petsc/finclude/petscvec.h>
      use petscvec
@@ -289,7 +349,7 @@ module tdycore
     PetscErrorCode                 :: ierr
 
     interface
-      function RegisterFn(name, func) bind (c, name="TDyRegisterFunction") result(ierr)
+      function RegisterFn(name, func) bind(c, name="TDyRegisterFunction") result(ierr)
         use, intrinsic :: iso_c_binding
         implicit none
         type(c_ptr), value :: name
@@ -310,7 +370,7 @@ module tdycore
     PetscErrorCode              :: ierr
 
     interface
-      function SetDMConstructor(tdy, dm_ctor) bind (c, name="TDySetDMConstructorF90") result(ierr)
+      function SetDMConstructor(tdy, dm_ctor) bind(c, name="TDySetDMConstructorF90") result(ierr)
         use, intrinsic :: iso_c_binding
         implicit none
         type(c_ptr), value    :: tdy
@@ -352,27 +412,6 @@ module tdycore
     ierr = GetRegFn(FtoCString(name), c_func)
     call c_f_procpointer(c_func, f_func)
     call TDySetForcingFunction(tdy, f_func, ierr)
-  end subroutine
-
-  subroutine TDySetForcingFunction(tdy, f, ierr)
-    use, intrinsic :: iso_c_binding
-    use tdycoredef
-    implicit none
-    TDy, target                   :: tdy
-    procedure(TDySpatialFunction) :: f
-    PetscErrorCode                :: ierr
-
-    interface
-      function Func(tdy, f) bind (c, name="TDySetForcingFunctionF90") result(ierr)
-        use, intrinsic :: iso_c_binding
-        implicit none
-        type(c_ptr), value    :: tdy
-        type(c_funptr), value :: f
-        integer(c_int)        :: ierr
-      end function
-    end interface
-
-    ierr = Func(c_loc(tdy), c_funloc(f))
   end subroutine
 
 ! Uncomment this when we are ready to set energy forcing fns in Fortran.
@@ -425,29 +464,6 @@ module tdycore
     call TDySetBoundaryPressureFunction(tdy, f_func, ierr)
   end subroutine
 
-  subroutine TDySetBoundaryPressureFunction(tdy, f, ierr)
-    use, intrinsic :: iso_c_binding
-    use tdycoredef
-    implicit none
-    TDy                           :: tdy
-    procedure(TDySpatialFunction) :: f
-    PetscErrorCode                :: ierr
-    type(c_ptr)                   :: p_tdy
-
-    interface
-      function Func(tdy, f) bind (c, name="TDySetBoundaryPressureFunctionF90") result(ierr)
-        use, intrinsic :: iso_c_binding
-        implicit none
-        type(c_ptr), value    :: tdy
-        type(c_funptr), value :: f
-        integer(c_int)        :: ierr
-      end function
-    end interface
-
-    p_tdy = transfer(tdy%v, p_tdy)
-    ierr = Func(p_tdy, c_funloc(f))
-  end subroutine
-
   subroutine TDySelectBoundaryVelocityFunction(tdy, name, ierr)
     use, intrinsic :: iso_c_binding
     use tdycoredef
@@ -464,27 +480,82 @@ module tdycore
     call TDySetBoundaryVelocityFunction(tdy, f_func, ierr)
   end subroutine
 
-  subroutine TDySetBoundaryVelocityFunction(tdy, f, ierr)
+  subroutine TDySetForcingFunction(tdy, f, ierr)
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
-    TDy                           :: tdy
-    procedure(TDySpatialFunction) :: f
-    PetscErrorCode                :: ierr
-    type(c_ptr)                   :: p_tdy
+    TDy                                    :: tdy
+    procedure(TDySpatialFunction), pointer :: f
+    PetscErrorCode                         :: ierr
+
+    type(c_ptr)    :: p_tdy
+    integer(c_int) :: id
 
     interface
-      function Func(tdy, f) bind (c, name="TDySetBoundaryVelocityFunctionF90") result(ierr)
+      function Func(tdy, id) bind(c, name="TDySetForcingFunctionF90") result(ierr)
         use, intrinsic :: iso_c_binding
         implicit none
-        type(c_ptr), value    :: tdy
-        type(c_funptr), value :: f
-        integer(c_int)        :: ierr
+        type(c_ptr),    value, intent(in) :: tdy
+        integer(c_int), value, intent(in) :: id
+        integer(c_int) :: ierr
       end function
     end interface
 
     p_tdy = transfer(tdy%v, p_tdy)
-    ierr = Func(p_tdy, c_funloc(f))
+    id = AppendSpatialFunction(f)
+    ierr = Func(p_tdy, id)
+  end subroutine
+
+  subroutine TDySetBoundaryPressureFunction(tdy, f, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy                                    :: tdy
+    procedure(TDySpatialFunction), pointer :: f
+    PetscErrorCode                         :: ierr
+
+    type(c_ptr)    :: p_tdy
+    integer(c_int) :: id
+
+    interface
+      function Func(tdy, id) bind(c, name="TDySetBoundaryPressureFunctionF90") result(ierr)
+        use, intrinsic :: iso_c_binding
+        implicit none
+        type(c_ptr),    value, intent(in) :: tdy
+        integer(c_int), value, intent(in) :: id
+        integer(c_int) :: ierr
+      end function
+    end interface
+
+    p_tdy = transfer(tdy%v, p_tdy)
+    id = AppendSpatialFunction(f)
+    ierr = Func(p_tdy, id)
+  end subroutine
+
+  subroutine TDySetBoundaryVelocityFunction(tdy, f, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy                                    :: tdy
+    procedure(TDySpatialFunction), pointer :: f
+    PetscErrorCode                         :: ierr
+
+    type(c_ptr)    :: p_tdy
+    integer(c_int) :: id
+
+    interface
+      function Func(tdy, id) bind(c, name="TDySetBoundaryVelocityFunctionF90") result(ierr)
+        use, intrinsic :: iso_c_binding
+        implicit none
+        type(c_ptr),    value, intent(in) :: tdy
+        integer(c_int), value, intent(in) :: id
+        integer(c_int) :: ierr
+      end function
+    end interface
+
+    p_tdy = transfer(tdy%v, p_tdy)
+    id = AppendSpatialFunction(f)
+    ierr = Func(p_tdy, id)
   end subroutine
 
   subroutine TDySetConstantPorosity(tdy, val, ierr)
@@ -497,7 +568,7 @@ module tdycore
     type(c_ptr)    :: p_tdy
 
     interface
-      function Func(tdy, val) bind (c, name="TDySetConstantPorosity") result(ierr)
+      function Func(tdy, val) bind(c, name="TDySetConstantPorosity") result(ierr)
         use, intrinsic :: iso_c_binding
         implicit none
         type(c_ptr), value    :: tdy
@@ -520,7 +591,7 @@ module tdycore
     type(c_ptr)                   :: p_tdy
 
     interface
-      function Func(tdy, f) bind (c, name="TDySetPorosityFunctionF90") result(ierr)
+      function Func(tdy, f) bind(c, name="TDySetPorosityFunctionF90") result(ierr)
         use, intrinsic :: iso_c_binding
         implicit none
         type(c_ptr), value    :: tdy
@@ -543,7 +614,7 @@ module tdycore
     type(c_ptr)                 :: p_tdy
 
     interface
-      function Func(tdy, val) bind (c, name="TDySetConstantTensorPermeability") result(ierr)
+      function Func(tdy, val) bind(c, name="TDySetConstantTensorPermeability") result(ierr)
         use, intrinsic :: iso_c_binding
         implicit none
         type(c_ptr), value    :: tdy
@@ -566,7 +637,7 @@ module tdycore
     type(c_ptr)    :: p_tdy
 
     interface
-      function Func(tdy, val) bind (c, name="TDySetConstantResidualSaturation") result(ierr)
+      function Func(tdy, val) bind(c, name="TDySetConstantResidualSaturation") result(ierr)
         use, intrinsic :: iso_c_binding
         implicit none
         type(c_ptr), value    :: tdy
@@ -589,7 +660,7 @@ module tdycore
     type(c_ptr)                   :: p_tdy
 
     interface
-      function Func(tdy, f) bind (c, name="TDySetResidualSaturationFunctionF90") result(ierr)
+      function Func(tdy, f) bind(c, name="TDySetResidualSaturationFunctionF90") result(ierr)
         use, intrinsic :: iso_c_binding
         implicit none
         type(c_ptr), value    :: tdy
@@ -613,7 +684,7 @@ module tdycore
      type(c_ptr) :: c_string
 
      interface
-       function NewCString(f_str_ptr, f_str_len) bind (c, name="NewCString") result(c_string)
+       function NewCString(f_str_ptr, f_str_len) bind(c, name="NewCString") result(c_string)
          use, intrinsic :: iso_c_binding
          type(c_ptr), value :: f_str_ptr
          integer(c_int), value :: f_str_len
