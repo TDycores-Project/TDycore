@@ -4169,8 +4169,12 @@ PetscErrorCode TDyMeshCreate(DM dm, PetscReal *volumes, PetscReal *coords,
   ierr = AllocateEdges(num_edges, cell_type, &m->edges); CHKERRQ(ierr);
   ierr = AllocateFaces(num_faces, cell_type, &m->faces); CHKERRQ(ierr);
 
-  PetscInt ncells_per_vertex = TDyMaxNumberOfCellsSharingAVertex(dm, m->closureSize, m->closure);
-  PetscInt nfaces_per_vertex = TDyMaxNumberOfFacesSharingAVertex(dm, m->closureSize, m->closure);
+  // We stash the maximum number of cells and faces per vertex here.
+  m->max_vertex_cells = TDyMaxNumberOfCellsSharingAVertex(dm, m->closureSize, m->closure);
+  m->max_vertex_faces = TDyMaxNumberOfFacesSharingAVertex(dm, m->closureSize, m->closure);
+
+  PetscInt ncells_per_vertex = m->max_vertex_cells;
+  PetscInt nfaces_per_vertex = m->max_vertex_faces;
   PetscInt nedges_per_vertex = TDyMaxNumberOfEdgesSharingAVertex(dm, m->closureSize, m->closure);
   ierr = AllocateVertices(num_vertices, ncells_per_vertex, nfaces_per_vertex,
                           nedges_per_vertex, cell_type, &m->vertices); CHKERRQ(ierr);
@@ -4200,10 +4204,6 @@ PetscErrorCode TDyMeshCreate(DM dm, PetscReal *volumes, PetscReal *coords,
   ierr = UpdateFaceOrderAroundAVertex(dm, m); CHKERRQ(ierr);
   ierr = UpdateCellOrientationAroundAFace(dm, m); CHKERRQ(ierr);
   ierr = SetupSubcells(dm, m); CHKERRQ(ierr);
-
-  // We stash the maximum number of cells and faces per vertex here.
-  m->max_vertex_cells = TDyMaxNumberOfCellsSharingAVertex(dm, m->closureSize, m->closure);
-  m->max_vertex_faces = TDyMaxNumberOfFacesSharingAVertex(dm, m->closureSize, m->closure);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);

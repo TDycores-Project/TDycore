@@ -290,7 +290,10 @@ static PetscErrorCode AllocateMemoryForBoundaryValues(TDyMPFAO *mpfao,
   nbnd_faces = mesh->num_boundary_faces;
 
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->Kr_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->dKr_dS_bnd)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->S_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->dS_dP_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->d2S_dP2_bnd)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->P_bnd)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->rho_bnd)); CHKERRQ(ierr);
   ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->vis_bnd)); CHKERRQ(ierr);

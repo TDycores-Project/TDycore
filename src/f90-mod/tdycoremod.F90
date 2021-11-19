@@ -310,8 +310,8 @@ module tdycore
   ! returning its (integer) ID.
   function AppendSpatialFunction(func) result(id)
     implicit none
-    procedure(TDySpatialFunction), pointer :: func
-    type(SpatialFunctionWrapper) :: elem
+    procedure(TDySpatialFunction) :: func
+    type(SpatialFunctionWrapper)  :: elem
     integer :: id
     type(SpatialFunctionWrapper), dimension(:), allocatable :: new_array
     integer :: old_size
@@ -327,6 +327,7 @@ module tdycore
     end if
     elem%f => func
     spatial_funcs(last_spatial_func_id) = elem
+    id = last_spatial_func_id
     last_spatial_func_id = last_spatial_func_id + 1
   end function
 
@@ -510,9 +511,9 @@ module tdycore
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
-    TDy                                    :: tdy
-    procedure(TDySpatialFunction), pointer :: f
-    PetscErrorCode                         :: ierr
+    TDy                           :: tdy
+    procedure(TDySpatialFunction) :: f
+    PetscErrorCode                :: ierr
 
     type(c_ptr)    :: p_tdy
     integer(c_int) :: id

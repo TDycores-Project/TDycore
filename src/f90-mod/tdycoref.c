@@ -218,27 +218,27 @@ PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int *ierr )
 //                  Material properties and conditions
 //------------------------------------------------------------------------
 
-// This is the Fortran version of TDySpatialFunction, whose final argument is
-// an error code.
-typedef void (*F90SpatialFunction)(PetscInt, PetscReal*, PetscReal*, PetscErrorCode*);
-
-// This is a context wrapped around an F90 spatial function that allows it to
-// be called within a C spatial function.
+// This is a context wrapped around an F90 spatial function (identified by an
+// integer ID) that allows it to be called within a C spatial function.
 typedef struct F90SpatialFunctionWrapper {
-  PetscInt dim;
-  F90SpatialFunction f90_func;
+  PetscInt dim, id;
 } F90SpatialFunctionWrapper;
+
+// This subroutine is defined on the Fortran side and calls the Fortran-defined
+// spatial function with the given ID.
+extern void TDyCallF90SpatialFunction(PetscInt, PetscInt, PetscReal*,
+                                      PetscReal*, PetscErrorCode*);
 
 // This creates a wrapped F90 function context.
 static PetscErrorCode CreateF90SpatialFunctionContext(PetscInt dim,
-                                                      F90SpatialFunction f,
+                                                      PetscInt id,
                                                       void **context) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   F90SpatialFunctionWrapper *wrapper;
   ierr = PetscMalloc(sizeof(F90SpatialFunctionWrapper), &wrapper); CHKERRQ(ierr);
   wrapper->dim = dim;
-  wrapper->f90_func = f;
+  wrapper->id = id;
   *context = wrapper;
   PetscFunctionReturn(0);
 }
@@ -249,7 +249,7 @@ static PetscErrorCode WrappedF90SpatialFunction(void *context, PetscInt n,
   PetscErrorCode ierr;
   PetscFunctionBegin;
   F90SpatialFunctionWrapper *wrapper = context;
-  wrapper->f90_func(n, x, f, &ierr); CHKERRQ(ierr);
+  TDyCallF90SpatialFunction(wrapper->id, n, x, f, &ierr); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -264,7 +264,7 @@ static PetscErrorCode WrappedF90IsotropicTensorFunction(void *context, PetscInt 
   PetscInt dim2 = dim*dim;
   PetscReal values[n];
   memset(f, 0, n * dim2 * sizeof(PetscReal));
-  wrapper->f90_func(n, x, values, &ierr); CHKERRQ(ierr);
+  TDyCallF90SpatialFunction(wrapper->id, n, x, values, &ierr); CHKERRQ(ierr);
   for (PetscInt i = 0; i < n; ++i) {
     for(PetscInt j = 0; j < dim; ++j) {
       f[dim2*i+j*dim+j] = values[i];
@@ -283,7 +283,7 @@ static PetscErrorCode WrappedF90DiagonalTensorFunction(void *context, PetscInt n
   PetscInt dim = wrapper->dim;
   PetscInt dim2 = dim*dim;
   PetscReal values[dim*n];
-  wrapper->f90_func(n, x, values, &ierr); CHKERRQ(ierr);
+  TDyCallF90SpatialFunction(wrapper->id, n, x, values, &ierr); CHKERRQ(ierr);
   for (PetscInt i = 0; i < n; ++i) {
     for(PetscInt j = 0; j < dim; ++j) {
       f[dim2*i+j*dim+j] = values[dim*i+j];
@@ -301,15 +301,15 @@ static void DestroyContext(void* context) {
 // This macro can be used to expose a Fortran 90 subroutine that assigns a
 // spatial function to a material property.
 #define WRAP_MATPROP(f90_fn, matprop_fn, wrapper_fn) \
-PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, F90SpatialFunction f) { \
+PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   PetscErrorCode ierr; \
   PetscFunctionBegin; \
   PetscInt dim; \
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr); \
   void *context; \
-  ierr = CreateF90SpatialFunctionContext(dim, f, &context); CHKERRQ(ierr); \
-  ierr = matprop_fn(tdy->matprop, context, wrapper_fn, \
-                    DestroyContext); CHKERRQ(ierr); \
+  ierr = CreateF90SpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
+  ierr = matprop_fn(tdy->matprop, context, wrapper_fn, DestroyContext); \
+  CHKERRQ(ierr); \
   PetscFunctionReturn(0); \
 } \
 
@@ -330,15 +330,15 @@ WRAP_MATPROP(TDySetSoilSpecificHeat, MaterialPropSetSoilSpecificHeat, WrappedF90
 // This macro can be used to expose a Fortran 90 subroutine that assigns a
 // spatial function to a boundary condition/source/sink.
 #define WRAP_CONDITION(f90_fn, condition_fn, wrapper_fn) \
-PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, F90SpatialFunction f) { \
+PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   PetscErrorCode ierr; \
   PetscFunctionBegin; \
   PetscInt dim; \
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr); \
   void *context; \
-  ierr = CreateF90SpatialFunctionContext(dim, f, &context); CHKERRQ(ierr); \
-  ierr = condition_fn(tdy->conditions, context, wrapper_fn, \
-                      DestroyContext); CHKERRQ(ierr); \
+  ierr = CreateF90SpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
+  ierr = condition_fn(tdy->conditions, context, wrapper_fn, DestroyContext); \
+  CHKERRQ(ierr); \
   PetscFunctionReturn(0); \
 } \
 
