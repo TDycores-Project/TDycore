@@ -345,6 +345,10 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
 
   if (!tdy) PetscFunctionReturn(0);
 
+  if (tdy->regression) {
+    free(tdy->regression);
+  }
+
   // Destroy Jacobian data.
   if (tdy->J           ) { ierr = MatDestroy(&tdy->J   ); CHKERRQ(ierr); }
   if (tdy->Jpre        ) { ierr = MatDestroy(&tdy->Jpre); CHKERRQ(ierr); }

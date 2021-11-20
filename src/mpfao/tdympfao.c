@@ -955,6 +955,8 @@ static PetscErrorCode ComputeCandFmatrix(TDyMPFAO *mpfao, PetscInt ivertex,
     }
   }
 
+  ierr = TDyDeallocate_RealArray_2D(Gmatrix, ndim); CHKERRQ(ierr);
+
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
@@ -1204,7 +1206,6 @@ static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
     }
   }
 
-
   idx = 0;
   for (j=0; j<npitf_in; j++) {
     for (i=0; i<nflux_dir_bc_up; i++) {
@@ -1361,14 +1362,35 @@ static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
   ierr = TDyDeallocate_RealArray_2D(Fdn_dir_bc, nflux_dir_bc_dn); CHKERRQ(ierr);
   ierr = TDyDeallocate_RealArray_2D(Fdn_neu_bc, nflux_neu_bc_dn); CHKERRQ(ierr);
 
+  ierr = TDyDeallocate_RealArray_2D(Cup_11, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_12, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_13, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_21, nflux_dir_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_22, nflux_dir_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_23, nflux_dir_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_31, nflux_neu_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_32, nflux_neu_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_33, nflux_neu_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_11, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_12, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_13, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_21, nflux_dir_bc_dn); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_22, nflux_dir_bc_dn); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_23, nflux_dir_bc_dn); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_31, nflux_neu_bc_dn); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_32, nflux_neu_bc_dn); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_33, nflux_neu_bc_dn); CHKERRQ(ierr);
+
   free(AinvB_1d);
   free(CupInxIntimesAinvB_1d);
   free(CupBCxIntimesAinvB_1d);
   free(CdnBCxIntimesAinvB_1d);
-  free(AINBCxINBC_1d             );
-  free(CupINBCxINBC_1d           );
-  free(CupDBCxIn_1d           );
-  free(CdnDBCxIn_1d           );
+  free(AINBCxINBC_1d);
+  free(BINBCxCDBC_1d);
+  free(CupINBCxINBC_1d);
+  free(CupDBCxIn_1d);
+  free(CdnDBCxIn_1d);
+
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -1552,6 +1574,7 @@ static PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedW
     T_1[iface][dim] = 0.0;
     for (j=0; j<dim; j++) T_1[iface][dim] += (Gmatrix[row][j]);
   }
+  ierr = TDyDeallocate_RealArray_2D(Gmatrix, dim); CHKERRQ(ierr);
 
   // Swap columns
   PetscReal Told[subcells->num_faces[subcell_id]][dim];

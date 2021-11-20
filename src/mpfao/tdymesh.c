@@ -3371,6 +3371,7 @@ PetscErrorCode DetermineUpwindFacesForSubcell_PlanarVerticalFaces(TDyMesh *mesh,
 
   ierr = TDyDeallocate_IntegerArray_2D(cell_traversal, 2); CHKERRQ(ierr);
   ierr = TDyDeallocate_IntegerArray_2D(cell_up2dw, mesh->max_vertex_faces); CHKERRQ(ierr);
+  ierr = TDyDeallocate_IntegerArray_2D(cell_ids_abv_blw, 2); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -3736,6 +3737,9 @@ PetscErrorCode SetupSubcells(DM dm, TDyMesh *mesh) {
       ierr = DetermineUpwindFacesForSubcell_PlanarVerticalFaces(mesh, ivertex, cellsAbove, cellsBelow); CHKERRQ(ierr);
     }
   }
+
+  ierr = TDyDeallocate_IntegerArray_2D(cellsAbove, mesh->num_vertices);
+  ierr = TDyDeallocate_IntegerArray_2D(cellsBelow, mesh->num_vertices);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
