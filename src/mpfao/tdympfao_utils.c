@@ -41,8 +41,8 @@ PetscErrorCode TDyMPFAOUpdateBoundaryState(TDy tdy) {
 
     if (faces->is_internal[iface]) continue; // skip non-boundary faces
 
-    PetscInt *cell_ids, num_cells;
-    ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_cells); CHKERRQ(ierr);
+    PetscInt *cell_ids, num_face_cells;
+    ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
 
     if (cell_ids[0] >= 0) {
       boundary_cells[num_boundary_cells] = cell_ids[0];
@@ -58,12 +58,14 @@ PetscErrorCode TDyMPFAOUpdateBoundaryState(TDy tdy) {
   PetscReal Pc[num_boundary_cells], Sr[num_boundary_cells];
   for (PetscInt c = 0; c < num_boundary_cells; ++c) {
     PetscInt c_index = boundary_cells[c];
-    Sr[c_index] = mpfao->Sr[c_index];
+    Sr[c] = mpfao->Sr[c_index];
     PetscInt b_index = p_bnd_indices[c];
-    Pc[b_index] = mpfao->Pref - mpfao->P_bnd[b_index];
+    Pc[c] = mpfao->Pref - mpfao->P_bnd[b_index];
   }
 
   // Compute the saturation and its derivatives on the boundary.
+  // TODO: we either need to compute the saturation on ALL cells and store only
+  // TODO: those values on boundary cells, OR do a selective computation.
   CharacteristicCurves *cc = tdy->cc;
   PetscReal S[num_boundary_cells], dS_dP[num_boundary_cells],
             d2S_dP2[num_boundary_cells];
@@ -78,6 +80,8 @@ PetscErrorCode TDyMPFAOUpdateBoundaryState(TDy tdy) {
   }
 
   // Compute the relative permeability and its derivative on the boundary.
+  // TODO: we either need to compute this on ALL cells and store only
+  // TODO: those values on boundary cells, OR do a selective computation.
   PetscReal Kr[num_boundary_cells], dKr_dSe[num_boundary_cells];
   ierr = RelativePermeabilityCompute(cc->rel_perm, Se, Kr, dKr_dSe); CHKERRQ(ierr);
 

@@ -95,7 +95,8 @@ PetscErrorCode SaturationSetType(Saturation *sat, SaturationType type,
   PetscFunctionReturn(0);
 }
 
-/// Computes the saturation for the points assigned to the given type.
+/// Computes the saturation on all points, according to the type set for each
+/// point.
 /// @param [in] sat the Saturation inѕtance
 /// @param [in] Sr the residual saturation values on the points
 /// @param [in] Pc the capillary pressure values on the points

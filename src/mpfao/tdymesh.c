@@ -4189,8 +4189,8 @@ PetscErrorCode TDyMeshCreate(DM dm, PetscReal *volumes, PetscReal *coords,
   ierr = AllocateSubcells(num_cells, num_subcells, subcell_type,
                           &m->subcells); CHKERRQ(ierr);
 
-  ierr = DetermineConnectivity(dm, m); CHKERRQ(ierr);
   ierr = AssignGeometry(dm, volumes, coords, normals, m); CHKERRQ(ierr);
+  ierr = DetermineConnectivity(dm, m); CHKERRQ(ierr);
 
   ierr = TDyRegionCreate(&m->region_connected); CHKERRQ(ierr);
 
