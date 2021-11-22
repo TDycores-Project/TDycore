@@ -64,12 +64,12 @@ PetscErrorCode TDyMPFAOUpdateBoundaryState(TDy tdy) {
   }
 
   // Compute the saturation and its derivatives on the boundary.
-  // TODO: we either need to compute the saturation on ALL cells and store only
-  // TODO: those values on boundary cells, OR do a selective computation.
   CharacteristicCurves *cc = tdy->cc;
   PetscReal S[num_boundary_cells], dS_dP[num_boundary_cells],
             d2S_dP2[num_boundary_cells];
-  ierr = SaturationCompute(cc->saturation, Sr, Pc, S, dS_dP, d2S_dP2); CHKERRQ(ierr);
+  ierr = SaturationComputeOnPoints(cc->saturation, num_boundary_cells,
+                                   boundary_cells, Sr, Pc, S, dS_dP, d2S_dP2);
+  CHKERRQ(ierr);
 
   // Compute the effective saturation and its derivative w.r.t. S on the
   // boundary.
@@ -80,10 +80,10 @@ PetscErrorCode TDyMPFAOUpdateBoundaryState(TDy tdy) {
   }
 
   // Compute the relative permeability and its derivative on the boundary.
-  // TODO: we either need to compute this on ALL cells and store only
-  // TODO: those values on boundary cells, OR do a selective computation.
   PetscReal Kr[num_boundary_cells], dKr_dSe[num_boundary_cells];
-  ierr = RelativePermeabilityCompute(cc->rel_perm, Se, Kr, dKr_dSe); CHKERRQ(ierr);
+  ierr = RelativePermeabilityComputeOnPoints(cc->rel_perm, num_boundary_cells,
+                                             boundary_cells, Se, Kr, dKr_dSe);
+  CHKERRQ(ierr);
 
   // Copy the boundary quantities into place.
   for (PetscInt c = 0; c < num_boundary_cells; ++c) {

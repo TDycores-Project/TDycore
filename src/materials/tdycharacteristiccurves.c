@@ -85,6 +85,15 @@ PetscErrorCode SaturationSetType(Saturation *sat, SaturationType type,
     }
   }
 
+  // Delete all point sets, which can be invalidated by this operation.
+  PetscInt num_types = (PetscInt)(sizeof(sat->points)/sizeof(sat->points[0]));
+  for (PetscInt t = 0; t < num_types; ++t) {
+    if (sat->point_sets[t]) {
+      kh_destroy(CharacteristicCurvesPointSet, sat->point_sets[t]);
+      sat->point_sets[t] = NULL;
+    }
+  }
+
   sat->num_points[type] = num_points;
   ierr = PetscMalloc(num_points*sizeof(PetscInt),
                      &(sat->points[type])); CHKERRQ(ierr);
@@ -130,6 +139,77 @@ PetscErrorCode SaturationCompute(Saturation *sat,
         PetscReal alpha = sat->parameters[type][2*i+1];
         PressureSaturation_VanGenuchten(m, alpha, Sr[j], Pc[j], &(S[j]), &(dSdP[j]),
                                         &(d2SdP2[j]));
+      }
+    }
+  }
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode SaturationBuildPointSets(Saturation *sat) {
+  PetscFunctionBegin;
+  PetscInt num_types = (PetscInt)(sizeof(sat->points)/sizeof(sat->points[0]));
+  for (PetscInt type = 0; type < num_types; ++type) {
+    sat->point_sets[type] = kh_init(CharacteristicCurvesPointSet);
+    PetscInt num_points = sat->num_points[type];
+    for (PetscInt i = 0; i < num_points; ++i) {
+      int ret;
+      kh_put(CharacteristicCurvesPointSet, sat->point_sets[type],
+             sat->points[type][i], &ret);
+    }
+  }
+  PetscFunctionReturn(0);
+}
+
+/// Computes the saturation on only the points with the specified indices,
+/// according to the type set for each point.
+/// @param [in] sat the Saturation inѕtance
+/// @param [in] n the number of points on which to compute the saturation
+/// @param [in] points the indices of the points
+/// @param [in] Sr the residual saturation values on the points
+/// @param [in] Pc the capillary pressure values on the points
+/// @param [out] S the computed saturation values on the points
+/// @param [out] dSdP the computed values of the derivative of saturation w.r.t.
+///                   pressure on the points
+/// @param [out] d2SdP2 the computed values of the second derivative of
+///                     saturation w.r.t. pressure on the points
+PetscErrorCode SaturationComputeOnPoints(Saturation *sat,
+                                         PetscInt n, PetscInt *points,
+                                         PetscReal *Sr, PetscReal *Pc,
+                                         PetscReal *S, PetscReal *dSdP,
+                                         PetscReal *d2SdP2) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  // If we haven't built our point sets yet, do so now.
+  if (!sat->point_sets[0]) {
+    ierr = SaturationBuildPointSets(sat); CHKERRQ(ierr);
+  }
+
+  // Loop over available model types.
+  PetscInt num_types = (PetscInt)(sizeof(sat->points)/sizeof(sat->points[0]));
+  for (PetscInt type = 0; type < num_types; ++type) {
+
+    if (kh_size(sat->point_sets[type]) == 0) continue;
+
+    // Compute the saturation and its derivatives on points belonging to
+    // this type.
+    for (PetscInt i = 0; i < n; ++i) {
+      PetscInt i1 = points[i];
+      khiter_t iter = kh_get(CharacteristicCurvesPointSet, sat->point_sets[type], i1);
+      if (kh_exist(sat->point_sets[type], iter)) {
+        if (type == SAT_FUNC_GARDNER) {
+          PetscReal n = sat->parameters[type][3*i1];
+          PetscReal m = sat->parameters[type][3*i1+1];
+          PetscReal alpha = sat->parameters[type][3*i1+2];
+          PressureSaturation_Gardner(n, m, alpha, Sr[i1], Pc[i1],
+                                     &(S[i1]), &(dSdP[i1]), &(d2SdP2[i1]));
+        } else if (type == SAT_FUNC_VAN_GENUCHTEN) {
+          PetscInt num_points = sat->num_points[type];
+          PetscReal m = sat->parameters[type][2*i1];
+          PetscReal alpha = sat->parameters[type][2*i1+1];
+          PressureSaturation_VanGenuchten(m, alpha, Sr[i1], Pc[i1],
+                                          &(S[i1]), &(dSdP[i1]), &(d2SdP2[i1]));
+        }
       }
     }
   }
@@ -187,6 +267,15 @@ PetscErrorCode RelativePermeabilitySetType(RelativePermeability *rel_perm,
             "Invalid relative permeability model type!");
   }
 
+  // Delete all point sets, which can be invalidated by this operation.
+  PetscInt num_types = (PetscInt)(sizeof(rel_perm->points)/sizeof(rel_perm->points[0]));
+  for (PetscInt t = 0; t < num_types; ++t) {
+    if (rel_perm->point_sets[t]) {
+      kh_destroy(CharacteristicCurvesPointSet, rel_perm->point_sets[t]);
+      rel_perm->point_sets[t] = NULL;
+    }
+  }
+
   // If we're changing the number of points for this type, free storage.
   if (rel_perm->num_points[type] != num_points) {
     if (rel_perm->points[type]) {
@@ -238,165 +327,69 @@ PetscErrorCode RelativePermeabilityCompute(RelativePermeability *rel_perm,
   PetscFunctionReturn(0);
 }
 
-/*
-PetscErrorCode TDySetResidualSaturationValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[ni], const PetscScalar y[ni]){
-
-  PetscInt i;
-
+static PetscErrorCode RelativePermeabilityBuildPointSets(RelativePermeability *rel_perm) {
   PetscFunctionBegin;
-  if (!ni) PetscFunctionReturn(0);
-
-  CharacteristicCurve *cc = tdy->cc;
-
-  for(i=0; i<ni; i++) {
-    cc->sr[ix[i]] = y[i];
-  }
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetCharacteristicCurveMualemValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[ni], const PetscScalar y[ni]){
-
-  PetscInt i;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  if (!ni) PetscFunctionReturn(0);
-
-  CharacteristicCurve *cc = tdy->cc;
-  for(i=0; i<ni; i++) {
-    cc->mualem_m[ix[i]] = y[i];
-  }
-
-  ierr = RelativePermeability_Mualem_SetupSmooth(cc, ni); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetCharacteristicCurveNValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[ni], const PetscScalar y[ni]){
-
-  PetscInt i;
-
-  PetscFunctionBegin;
-  if (!ni) PetscFunctionReturn(0);
-
-  CharacteristicCurve *cc = tdy->cc;
-  for(i=0; i<ni; i++) {
-    cc->gardner_n[ix[i]] = y[i];
-  }
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetCharacteristicCurveVanGenuchtenValuesLocal(TDy tdy, PetscInt ni, const PetscInt ix[], const PetscScalar y[], const PetscScalar z[]){
-
-  PetscInt i;
-
-  PetscFunctionBegin;
-  if (!ni) PetscFunctionReturn(0);
-
-  CharacteristicCurve *cc = tdy->cc;
-  for(i=0; i<ni; i++) {
-    cc->vg_m[ix[i]] = y[i];
-    cc->vg_alpha[ix[i]] = z[i];
-  }
-
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyGetSaturationValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
-
-  PetscInt c,cStart,cEnd;
-  PetscInt junkInt, gref;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  *ni = 0;
-
-  CharacteristicCurve *cc = tdy->cc;
-  for (c=cStart; c<cEnd; c++) {
-    ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
-    if (gref>=0) {
-      y[*ni] = cc->S[c-cStart];
-      *ni += 1;
+  PetscInt num_types = (PetscInt)(sizeof(rel_perm->points)/sizeof(rel_perm->points[0]));
+  for (PetscInt type = 0; type < num_types; ++type) {
+    rel_perm->point_sets[type] = kh_init(CharacteristicCurvesPointSet);
+    PetscInt num_points = rel_perm->num_points[type];
+    for (PetscInt i = 0; i < num_points; ++i) {
+      int ret;
+      kh_put(CharacteristicCurvesPointSet, rel_perm->point_sets[type],
+             rel_perm->points[type][i], &ret);
     }
   }
-
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyGetLiquidMassValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
-
-  PetscInt c,cStart,cEnd;
-  PetscInt junkInt, gref;
+/// Computes the relative permeability on only the points with the specified
+/// indices, according to the type set for each point.
+/// @param [in] rel_perm the RelativePermeability inѕtance
+/// @param [in] n the number of points on which to compute the permeability
+/// @param [in] points the indices of the points
+/// @param [in] Se the effective saturation values on the points
+/// @param [out] Kr the computed relative permeability values on the points
+/// @param [out] dKrdSe the computed values of the derivative of the relative
+///                     permeability w.r.t. effective saturation on the points
+PetscErrorCode RelativePermeabilityComputeOnPoints(RelativePermeability *rel_perm,
+                                                   PetscInt n, PetscInt *points,
+                                                   PetscReal *Se, PetscReal *Kr,
+                                                   PetscReal *dKrdSe) {
   PetscErrorCode ierr;
-
   PetscFunctionBegin;
 
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  *ni = 0;
-
-  CharacteristicCurve *cc = tdy->cc;
-  MaterialProp *matprop = tdy->matprop;
-  for (c=cStart; c<cEnd; c++) {
-    ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
-    if (gref>=0) {
-      y[*ni] = tdy->rho[c-cStart]*matprop->porosity[c-cStart]*cc->S[c-cStart]*tdy->V[c];
-      *ni += 1;
-    }
+  // If we haven't built our point sets yet, do so now.
+  if (!rel_perm->point_sets[0]) {
+    ierr = RelativePermeabilityBuildPointSets(rel_perm); CHKERRQ(ierr);
   }
 
-  PetscFunctionReturn(0);
-}
+  // Loop over available model types.
+  PetscInt num_types = (PetscInt)(sizeof(rel_perm->points)/sizeof(rel_perm->points[0]));
+  for (PetscInt type = 0; type < num_types; ++type) {
 
-PetscErrorCode TDyGetCharacteristicCurveMValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
+    if (kh_size(rel_perm->point_sets[type]) == 0) continue;
 
-  PetscInt c,cStart,cEnd;
-  PetscInt junkInt, gref;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  *ni = 0;
-
-  CharacteristicCurve *cc = tdy->cc;
-  for (c=cStart; c<cEnd; c++) {
-    ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
-    if (gref>=0) {
-      y[*ni] = cc->mualem_m[c-cStart];
-      *ni += 1;
+    // Compute the relative permeability and its derivative on points belonging
+    // to this type.
+    for (PetscInt i = 0; i < n; ++i) {
+      PetscInt i1 = points[i];
+      khiter_t iter = kh_get(CharacteristicCurvesPointSet, rel_perm->point_sets[type], i1);
+      if (kh_exist(rel_perm->point_sets[type], iter)) {
+        if (type == REL_PERM_FUNC_IRMAY) {
+          PetscReal m = rel_perm->parameters[type][i1];
+          RelativePermeability_Irmay(m, Se[i1], &(Kr[i1]), &(dKrdSe[i1]));
+        } else if (type == REL_PERM_FUNC_MUALEM) {
+          PetscReal m = rel_perm->parameters[type][6*i1];
+          PetscReal poly_low = rel_perm->parameters[type][6*i1+1]; // cubic interp cutoff
+          PetscReal *poly_coeffs = &(rel_perm->parameters[type][6*i1+2]); // interp coeffs
+          RelativePermeability_Mualem(m, poly_low, poly_coeffs, Se[i1],
+                                      &(Kr[i1]), &(dKrdSe[i1]));
+        }
+      }
     }
   }
-
   PetscFunctionReturn(0);
 }
-
-PetscErrorCode TDyGetCharacteristicCurveAlphaValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[]){
-
-  PetscInt c,cStart,cEnd;
-  PetscInt junkInt, gref;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  *ni = 0;
-
-  CharacteristicCurve *cc = tdy->cc;
-  for (c=cStart; c<cEnd; c++) {
-    ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
-    if (gref>=0) {
-      y[*ni] = cc->vg_alpha[c-cStart];
-      *ni += 1;
-    }
-  }
-
-  PetscFunctionReturn(0);
-}
-*/
 
 /// Compute value and derivate of relative permeability using Irmay function
 ///

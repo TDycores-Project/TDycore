@@ -2,9 +2,12 @@
 #define TDYCHARACTERISTICCURVESIMPL_H
 
 #include <petsc.h>
+#include <petsc/private/khash/khash.h>
 
-/// Question: do we allow saturation and relative permeability parameters to
-/// vary point by point?
+/// This type defines a set of integers that can be queried for membership.
+/// We use it to ask whether a point with a given index belongs to a set of
+/// points for a given saturation or relative permeability model.
+KHASH_SET_INIT_INT(CharacteristicCurvesPointSet)
 
 /// This type enumerates the different parameterizations for saturation.
 typedef enum {
@@ -24,6 +27,10 @@ typedef struct Saturation {
   /// 1. The Gardner model associates 3 parameters (n, m, alpha) with each point.
   /// 2. The Van Genuchten model associates 2 parameters (m, alpha) with each point.
   PetscReal *parameters[2];
+
+  /// Sets of point indices belonging to the given model types. This allows
+  /// updates of specific sets of points using SaturationComputeOnPoints.
+  khash_t(CharacteristicCurvesPointSet) *point_sets[2];
 } Saturation;
 
 /// This type enumerates the different parameterizations for relative
@@ -48,6 +55,10 @@ typedef struct RelativePermeability {
   ///    model employs a cubic interpolation polynomial; and the 4 coefficients
   ///    of the cubic polynomial.
   PetscReal *parameters[2];
+
+  /// Sets of point indices belonging to the given model types. This allows
+  /// updates of specific sets of points using RelativePermeabilityComputeOnPoints.
+  khash_t(CharacteristicCurvesPointSet) *point_sets[2];
 } RelativePermeability;
 
 /// This type collects parameterized functions that describe the saturation
@@ -67,11 +78,13 @@ PETSC_INTERN PetscErrorCode SaturationCreate(Saturation**);
 PETSC_INTERN PetscErrorCode SaturationDestroy(Saturation*);
 PETSC_INTERN PetscErrorCode SaturationSetType(Saturation*,SaturationType,PetscInt,PetscInt*,PetscReal*);
 PETSC_INTERN PetscErrorCode SaturationCompute(Saturation*,PetscReal*,PetscReal*,PetscReal*,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode SaturationComputeOnPoints(Saturation*,PetscInt,PetscInt*,PetscReal*,PetscReal*,PetscReal*,PetscReal*,PetscReal*);
 
 PETSC_INTERN PetscErrorCode RelativePermeabilityCreate(RelativePermeability**);
 PETSC_INTERN PetscErrorCode RelativePermeabilityDestroy(RelativePermeability*);
 PETSC_INTERN PetscErrorCode RelativePermeabilitySetType(RelativePermeability*,RelativePermeabilityType,PetscInt,PetscInt*,PetscReal*);
 PETSC_INTERN PetscErrorCode RelativePermeabilityCompute(RelativePermeability*,PetscReal*,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode RelativePermeabilityComputeOnPoints(RelativePermeability*,PetscInt,PetscInt*,PetscReal*,PetscReal*,PetscReal*);
 
 PETSC_INTERN PetscErrorCode RelativePermeability_Mualem_SetSmoothingCoeffs(PetscReal,PetscReal,PetscReal*);
 PETSC_INTERN void RelativePermeability_Mualem(PetscReal,PetscReal,PetscReal*,PetscReal,PetscReal*,PetscReal*);
