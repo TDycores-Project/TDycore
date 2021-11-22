@@ -693,16 +693,17 @@ static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
   }
 
   // Compute material properties.
-  MaterialPropComputePermeability(matprop, nc, mpfao->X, mpfao->K0);
+  ierr = MaterialPropComputePermeability(matprop, nc, mpfao->X, mpfao->K0); CHKERRQ(ierr);
   memcpy(mpfao->K, mpfao->K0, 9*nc*sizeof(PetscReal));
-  MaterialPropComputePorosity(matprop, nc, mpfao->X, mpfao->porosity);
-  MaterialPropComputeSoilDensity(matprop, nc, mpfao->X, mpfao->rho_soil);
+  ierr = MaterialPropComputePorosity(matprop, nc, mpfao->X, mpfao->porosity); CHKERRQ(ierr);
+  ierr = MaterialPropComputeSoilDensity(matprop, nc, mpfao->X, mpfao->rho_soil); CHKERRQ(ierr);
+  ierr = MaterialPropComputeResidualSaturation(matprop, nc, mpfao->X, mpfao->Sr); CHKERRQ(ierr);
   if (MaterialPropHasThermalConductivity(matprop)) {
-    MaterialPropComputeThermalConductivity(matprop, nc, mpfao->X, mpfao->Kappa);
+    ierr = MaterialPropComputeThermalConductivity(matprop, nc, mpfao->X, mpfao->Kappa); CHKERRQ(ierr);
     memcpy(mpfao->Kappa0, mpfao->Kappa, 9*nc*sizeof(PetscReal));
   }
   if (MaterialPropHasSoilSpecificHeat(matprop)) {
-    MaterialPropComputeSoilSpecificHeat(matprop, nc, mpfao->X, mpfao->c_soil);
+    ierr = MaterialPropComputeSoilSpecificHeat(matprop, nc, mpfao->X, mpfao->c_soil); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
