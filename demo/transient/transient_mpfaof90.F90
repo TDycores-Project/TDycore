@@ -101,11 +101,10 @@ implicit none
   call TDyGetDM(tdy, dm, ierr);
   CHKERRA(ierr);
 
-  call Permeability(perm);
-
   call TDySetConstantPorosity(tdy,0.115d0,ierr);
   CHKERRA(ierr);
 
+  call Permeability(perm);
   call TDySetConstantTensorPermeability(tdy,perm,ierr);
   CHKERRA(ierr);
 
@@ -120,7 +119,6 @@ implicit none
 
   ! Set initial condition
   call DMCreateGlobalVector(dm,U,ierr);
-  CHKERRA(ierr);
   CHKERRA(ierr);
   call VecSet(U,91325.d0,ierr);
   CHKERRA(ierr);

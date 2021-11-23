@@ -172,13 +172,13 @@ static PetscErrorCode SaturationBuildPointMap(Saturation *sat) {
 /// @param [in] sat the Saturation inѕtance
 /// @param [in] n the number of points on which to compute the saturation
 /// @param [in] points the indices of the points
-/// @param [in] Sr the residual saturation values on the points
-/// @param [in] Pc the capillary pressure values on the points
-/// @param [out] S the computed saturation values on the points
+/// @param [in] Sr the residual saturation values ONLY on the points
+/// @param [in] Pc the capillary pressure values ONLY on the points
+/// @param [out] S the computed saturation values ONLY on the points
 /// @param [out] dSdP the computed values of the derivative of saturation w.r.t.
-///                   pressure on the points
+///                   pressure ONLY on the points
 /// @param [out] d2SdP2 the computed values of the second derivative of
-///                     saturation w.r.t. pressure on the points
+///                     saturation w.r.t. pressure ONLY on the points
 PetscErrorCode SaturationComputeOnPoints(Saturation *sat,
                                          PetscInt n, PetscInt *points,
                                          PetscReal *Sr, PetscReal *Pc,
@@ -210,13 +210,13 @@ PetscErrorCode SaturationComputeOnPoints(Saturation *sat,
         PetscReal n = sat->parameters[type][3*i1];
         PetscReal m = sat->parameters[type][3*i1+1];
         PetscReal alpha = sat->parameters[type][3*i1+2];
-        PressureSaturation_Gardner(n, m, alpha, Sr[i1], Pc[i1],
-                                   &(S[i1]), &(dSdP[i1]), &(d2SdP2[i1]));
+        PressureSaturation_Gardner(n, m, alpha, Sr[i], Pc[i],
+                                   &(S[i]), &(dSdP[i]), &(d2SdP2[i]));
       } else if (type == SAT_FUNC_VAN_GENUCHTEN) {
         PetscReal m = sat->parameters[type][2*i1];
         PetscReal alpha = sat->parameters[type][2*i1+1];
-        PressureSaturation_VanGenuchten(m, alpha, Sr[i1], Pc[i1],
-                                        &(S[i1]), &(dSdP[i1]), &(d2SdP2[i1]));
+        PressureSaturation_VanGenuchten(m, alpha, Sr[i], Pc[i],
+                                        &(S[i]), &(dSdP[i]), &(d2SdP2[i]));
       }
     }
   }
@@ -355,10 +355,10 @@ static PetscErrorCode RelativePermeabilityBuildPointMap(RelativePermeability *re
 /// @param [in] rel_perm the RelativePermeability inѕtance
 /// @param [in] n the number of points on which to compute the permeability
 /// @param [in] points the indices of the points
-/// @param [in] Se the effective saturation values on the points
-/// @param [out] Kr the computed relative permeability values on the points
+/// @param [in] Se the effective saturation values ONLY on the points
+/// @param [out] Kr the computed relative permeability values ONLY on the points
 /// @param [out] dKrdSe the computed values of the derivative of the relative
-///                     permeability w.r.t. effective saturation on the points
+///                     permeability w.r.t. effective saturation ONLY on the points
 PetscErrorCode RelativePermeabilityComputeOnPoints(RelativePermeability *rel_perm,
                                                    PetscInt n, PetscInt *points,
                                                    PetscReal *Se, PetscReal *Kr,
@@ -387,13 +387,13 @@ PetscErrorCode RelativePermeabilityComputeOnPoints(RelativePermeability *rel_per
       // to this type.
       if (type == REL_PERM_FUNC_IRMAY) {
         PetscReal m = rel_perm->parameters[type][i1];
-        RelativePermeability_Irmay(m, Se[i1], &(Kr[i1]), &(dKrdSe[i1]));
+        RelativePermeability_Irmay(m, Se[i], &(Kr[i]), &(dKrdSe[i]));
       } else if (type == REL_PERM_FUNC_MUALEM) {
         PetscReal m = rel_perm->parameters[type][6*i1];
         PetscReal poly_low = rel_perm->parameters[type][6*i1+1]; // cubic interp cutoff
         PetscReal *poly_coeffs = &(rel_perm->parameters[type][6*i1+2]); // interp coeffs
-        RelativePermeability_Mualem(m, poly_low, poly_coeffs, Se[i1],
-                                    &(Kr[i1]), &(dKrdSe[i1]));
+        RelativePermeability_Mualem(m, poly_low, poly_coeffs, Se[i],
+                                    &(Kr[i]), &(dKrdSe[i]));
       }
     }
   }

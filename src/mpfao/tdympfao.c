@@ -1079,7 +1079,7 @@ static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
   PetscInt nptif_neu_bc = nflux_neu_bc_up + nflux_neu_bc_dn;
 
   // Determine:
-  //  (1) number of internal and boudnary fluxes,
+  //  (1) number of internal and boundary fluxes,
   //  (2) number of internal unknown pressure values and known boundary pressure values
 
   PetscInt nflux_in = vertices->num_faces[ivertex] - nptif_dir_bc - nptif_neu_bc;
@@ -2105,7 +2105,7 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
   PetscFunctionReturn(0);
 }
 
-// Setup function for Richards + MPFA_O_DAE
+// Setup function for Richards + MPFAO_DAE
 PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
                                            MaterialProp *matprop,
                                            CharacteristicCurves *cc,
