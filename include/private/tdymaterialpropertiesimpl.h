@@ -4,7 +4,7 @@
 #include <petsc.h>
 
 /// This type represents a set of material properties. It contains only
-//⁄ functions that evaluate these properties, and no data (since the storage
+/// functions that evaluate these properties, and no data (since the storage
 /// needed for data is specific to implementations).
 typedef struct {
 
