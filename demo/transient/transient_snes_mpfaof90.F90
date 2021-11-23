@@ -13,15 +13,14 @@ module snes_mpfaof90mod
 
 contains
 
-   subroutine PorosityFunction(tdy,x,theta,dummy,ierr)
+   subroutine PorosityFunction(n,x,theta,ierr)
      implicit none
-     TDy                    :: tdy
-     PetscReal, intent(in)  :: x(3)
-     PetscReal, intent(out) :: theta
-     integer                :: dummy(*)
-     PetscErrorCode :: ierr
+     PetscInt,                intent(in)  :: n
+     PetscReal, dimension(:), intent(in)  :: x
+     PetscReal, dimension(:), intent(out) :: theta
+     PetscErrorCode,          intent(out) :: ierr
 
-     theta = 0.115d0
+     theta(:) = 0.115d0
      ierr = 0
    end subroutine PorosityFunction
 
@@ -33,17 +32,17 @@ contains
       K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 1.0d-10;
    end subroutine
 
-   subroutine PermeabilityFunction(tdy,x,K,dummy,ierr)
-      implicit none
-      TDy                    :: tdy
-      PetscReal, intent(in)  :: x(2)
-      PetscReal, intent(out) :: K(9)
-      integer                :: dummy(*)
-      PetscErrorCode         :: ierr
+   subroutine PermeabilityFunction(n,x,K,ierr)
+     implicit none
+     PetscInt,                intent(in)  :: n
+     PetscReal, dimension(:), intent(in)  :: x
+     PetscReal, dimension(:), intent(out) :: K
+     PetscErrorCode,          intent(out) :: ierr
+     PetscReal :: K0(9)
 
-      call Permeability(K)
-
-      ierr = 0
+     call Permeability(K0)
+     K(:) = K0
+     ierr = 0
   end subroutine PermeabilityFunction
 
   subroutine ResidualSaturation(resSat)
@@ -53,15 +52,14 @@ contains
     resSat = 0.115d0
   end subroutine ResidualSaturation
 
-  subroutine PorosityFunctionPFLOTRAN(tdy,x,theta,dummy,ierr)
+  subroutine PorosityFunctionPFLOTRAN(n,x,theta,ierr)
     implicit none
-    TDy                    :: tdy
-    PetscReal, intent(in)  :: x(3)
-    PetscReal, intent(out) :: theta
-    integer                :: dummy(*)
-    PetscErrorCode :: ierr
+    PetscInt,                intent(in)  :: n
+    PetscReal, dimension(:), intent(in)  :: x
+    PetscReal, dimension(:), intent(out) :: theta
+    PetscErrorCode,          intent(out) :: ierr
 
-    theta = 0.3d0
+    theta(:) = 0.3d0
     ierr  = 0
   end subroutine PorosityFunctionPFLOTRAN
 
@@ -73,16 +71,16 @@ contains
     K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 5.0d-13;
   end subroutine Permeability_PFLOTRAN
 
-  subroutine PermeabilityFunctionPFLOTRAN(tdy,x,K,dummy,ierr)
+  subroutine PermeabilityFunctionPFLOTRAN(n,x,K,ierr)
     implicit none
-    TDy                    :: tdy
-    PetscReal, intent(in)  :: x(2)
-    PetscReal, intent(out) :: K(9)
-    integer                :: dummy(*)
+    PetscInt,                intent(in)  :: n
+    PetscReal, dimension(:), intent(in)  :: x
+    PetscReal, dimension(:), intent(out) :: K
     PetscErrorCode         :: ierr
+    PetscReal :: K0(9)
 
-    call Permeability_PFLOTRAN(K)
-
+    call Permeability_PFLOTRAN(K0)
+    K(:) = K0
     ierr = 0
   end subroutine PermeabilityFunctionPFLOTRAN
 
@@ -191,7 +189,7 @@ implicit none
   PetscErrorCode      :: ierr
   PetscInt            :: ncell, bc_type
   PetscInt  , pointer :: index(:)
-  PetscReal , pointer :: residualSat(:), blockPerm(:), liquid_sat(:), liquid_mass(:)
+  PetscReal , pointer :: liquid_sat(:), liquid_mass(:)
   PetscReal , pointer :: alpha(:), m(:)
   PetscReal           :: perm(9), resSat
   PetscInt            :: c, cStart, cEnd, j, nvalues,g, max_steps, step
@@ -211,9 +209,6 @@ implicit none
   CHKERRA(ierr);
 
   ! Register some functions.
-  call TDyRegisterFunction("p0", PressureFunction, ierr)
-  call TDyRegisterFunction("porosity", PorosityFunction, ierr)
-  call TDyRegisterFunction("porosity_pflotran", PorosityFunctionPFLOTRAN, ierr)
   CHKERRA(ierr);
 
   call TDyCreate(tdy, ierr);
@@ -302,73 +297,53 @@ implicit none
   CHKERRA(ierr);
 
   ncell = (cEnd-cStart)
-  allocate(blockPerm   (ncell*dim*dim));
-  allocate(residualSat (ncell))
   allocate(liquid_mass (ncell))
   allocate(liquid_sat  (ncell))
   allocate(alpha       (ncell))
   allocate(m           (ncell))
   allocate(index       (ncell))
 
+  ! TODO: We disable the PFlotran stuff for now, because it requires us to
+  ! TODO: directly fiddle with characteristic curves.
   if (pflotran_consistent) then
-     call Permeability_PFLOTRAN(perm);
-     call ResidualSat_PFLOTRAN(resSat)
+    print *, "pflotran_consistent option is temporarily disabled!"
+    stop
+    call Permeability_PFLOTRAN(perm);
+    call ResidualSat_PFLOTRAN(resSat)
   else
      call Permeability(perm);
      call ResidualSaturation(resSat)
   end if
-
-  do c = 1,ncell
-    index(c) = c-1;
-    residualSat(c) = resSat
-    do j = 1,dim*dim
-      blockPerm((c-1)*dim*dim+j) = perm(j)
-    enddo
-  enddo
+  call TDySetConstantTensorPermeability(tdy, perm, ierr)
+  CHKERRA(ierr)
+  call TDySetConstantResidualSaturation(tdy, resSat, ierr)
+  CHKERRA(ierr)
 
   call TDySetWaterDensityType(tdy,WATER_DENSITY_EXPONENTIAL,ierr);
   CHKERRA(ierr)
 
   if (pflotran_consistent) then
-!     call TDySetPorosityFunction(tdy,PorosityFunctionPFLOTRAN,0,ierr);
-     call TDySelectPorosityFunction(tdy,"porosity_pflotran",ierr);
-     CHKERRA(ierr);
-
-     do c = 1,ncell
-        index(c) = c-1;
-        call MaterialPropAlpha_PFLOTRAN(alpha(c))
-        call MaterialPropM_PFLOTRAN(m(c))
-     enddo
-
-     call TDySetCharacteristicCurveVanGenuchtenValuesLocal(tdy,ncell,index,m,alpha,ierr)
-     CHKERRA(ierr);
-
-     call TDySetCharacteristicCurveMualemValuesLocal(tdy,ncell,index,m,ierr)
-     CHKERRA(ierr);
-
-     call TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,blockPerm,ierr);
-     CHKERRA(ierr);
-
-     call TDySetResidualSaturationValuesLocal(tdy,ncell,index,residualSat,ierr);
-     CHKERRA(ierr);
-
+!     call TDySetPorosityFunction(tdy,PorosityFunctionPFLOTRAN,ierr);
+!     CHKERRA(ierr);
+!
+!     do c = 1,ncell
+!        index(c) = c-1;
+!        call MaterialPropAlpha_PFLOTRAN(alpha(c))
+!        call MaterialPropM_PFLOTRAN(m(c))
+!     enddo
+!
+!     call TDySetCharacteristicCurveVanGenuchtenValuesLocal(tdy,ncell,index,m,alpha,ierr)
+!     CHKERRA(ierr);
+!
+!     call TDySetCharacteristicCurveMualemValuesLocal(tdy,ncell,index,m,ierr)
+!     CHKERRA(ierr);
   else
-
-!     call TDySetPorosityFunction(tdy,PorosityFunction,0,ierr);
-     call TDySelectPorosityFunction(tdy,"porosity",ierr);
+     call TDySetPorosityFunction(tdy,PorosityFunction,ierr);
      CHKERRA(ierr);
-
-     call TDySetBlockPermeabilityValuesLocal(tdy,ncell,index,blockPerm,ierr);
-     CHKERRA(ierr);
-
-     call TDySetResidualSaturationValuesLocal(tdy,ncell,index,residualSat,ierr);
-     CHKERRA(ierr);
-
   end if
 
   if (bc_type == MPFAO_DIRICHLET_BC .OR. bc_type == MPFAO_SEEPAGE_BC ) then
-!     call TDySetBoundaryPressureFn(tdy,PressureFunction,0,ierr);
-     call TDySelectBoundaryPressureFn(tdy,"p0",ierr);
+     call TDySetBoundaryPressureFunction(tdy,PressureFunction,ierr);
      CHKERRA(ierr)
   endif
 
@@ -424,12 +399,13 @@ implicit none
     call TDyPreSolveSNESSolver(tdy,ierr);
     CHKERRA(ierr);
 
-    call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)
-    CHKERRA(ierr);
-    mass_pre = 0.d0
-    do g = 1,nvalues
-    mass_pre = mass_pre + liquid_mass(g)
-    enddo
+    ! TODO: Mass conservation diagnostic output is disabled for the moment.
+    !call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)
+    !CHKERRA(ierr);
+    !mass_pre = 0.d0
+    !do g = 1,nvalues
+    !mass_pre = mass_pre + liquid_mass(g)
+    !enddo
 
     if (use_tdydriver) then
        call TDyTimeIntegratorSetTimeStep(tdy,1800.d0, ierr);
@@ -452,13 +428,14 @@ implicit none
     call TDyPostSolveSNESSolver(tdy,U,ierr);
     CHKERRA(ierr);
 
-    call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)
-    CHKERRA(ierr);
-    mass_post = 0.d0
-    do g = 1,nvalues
-    mass_post = mass_post + liquid_mass(g)
-    enddo
-    write(*,*)'Liquid mass pre,post,diff ',step,mass_pre,mass_post,mass_pre-mass_post
+    ! TODO: Mass conservation diagnostic output is disabled for the moment.
+    !call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)
+    !CHKERRA(ierr);
+    !mass_post = 0.d0
+    !do g = 1,nvalues
+    !mass_post = mass_post + liquid_mass(g)
+    !enddo
+    !write(*,*)'Liquid mass pre,post,diff ',step,mass_pre,mass_post,mass_pre-mass_post
 
     step_mod = mod(step,48);
     write(string,*) step
@@ -475,8 +452,8 @@ implicit none
 
   end do
 
-  call TDyGetSaturationValuesLocal(tdy,nvalues,liquid_sat,ierr)
-  CHKERRA(ierr);
+  !call TDyGetSaturationValuesLocal(tdy,nvalues,liquid_sat,ierr)
+  !CHKERRA(ierr);
 
   if (use_tdydriver) then
      call TDyTimeIntegratorOutputRegression(tdy,ierr);
@@ -492,8 +469,6 @@ implicit none
   call TDyFinalize(ierr);
   CHKERRA(ierr);
 
-  deallocate(blockPerm)
-  deallocate(residualSat)
   deallocate(index)
 
   call exit(successful_exit_code)
