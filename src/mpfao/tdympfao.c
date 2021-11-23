@@ -2394,7 +2394,7 @@ PetscErrorCode TDyComputeErrorNorms_MPFAO(void *context, DM dm, Conditions *cond
 
   if (!ConditionsHasBoundaryPressure(conditions)) {
     SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the boundary pressure function with TDySetBoundaryPressureFn");
+            "Must set the boundary pressure function with TDySetBoundaryPressureFunction");
   }
 
   PetscInt dim = 3;
