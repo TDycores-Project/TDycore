@@ -13,8 +13,9 @@ module tdycore
 
   public
 
-  private :: spatial_funcs, last_spatial_func_id, SpatialFunctionWrapper, &
-             AppendSpatialFunction
+  private :: spatial_funcs_, spatial_func_names_, last_spatial_func_id_, &
+             SpatialFunctionWrapper, FindOrAppendSpatialFunction, &
+             RegisterSpatialFunction, GetSpatialFunction
 
   !> A TDySpatialFunction is a function that computes values f on n points x,
   !> indicating any (non-zero) error status in err.
@@ -32,8 +33,10 @@ module tdycore
     procedure(TDySpatialFunction), pointer, nopass :: f => null()
   end type
 
-  ! An array of Fortran TDySpatialFunctions
-  type(SpatialFunctionWrapper), dimension(:), allocatable :: spatial_funcs
+  ! An array of Fortran TDySpatialFunctions and any associated names
+  type(SpatialFunctionWrapper), dimension(:), allocatable :: spatial_funcs_
+  character(len=32), dimension(:), allocatable :: spatial_func_names_
+
   ! The ID of the most recently added spatial function
   integer(c_int) :: last_spatial_func_id
 
@@ -262,17 +265,6 @@ module tdycore
      end subroutine TDyPostSolveSNESSolver
   end interface
 
-  ! We use GetRegFn to retrieve function pointers from the C registry.
-  interface
-    function GetRegFn(name, c_func) bind(c, name="TDyGetFunction") result(ierr)
-      use, intrinsic :: iso_c_binding
-      implicit none
-      type(c_ptr), value :: name
-      type(c_funptr) :: c_func
-      integer(c_int) :: ierr
-    end function
-  end interface
-
   abstract interface
     subroutine TDyDMConstructor(comm, dm, ierr)
       use, intrinsic :: iso_c_binding
@@ -283,6 +275,10 @@ module tdycore
       PetscErrorCode     :: ierr
     end subroutine
   end interface
+
+  ! Fortran spatial function registry stuff.
+  ! This is maintained separate from the C registry of functions because
+  ! vectorized Fortran subroutines are not interoperable with C.
 
   contains
 
@@ -300,35 +296,78 @@ module tdycore
     procedure(TDySpatialFunction), pointer :: f_func
     real(c_double), dimension(:), pointer  :: f_x, f_f
 
-    f_func => spatial_funcs(id)%f
+    f_func => spatial_funcs_(id)%f
     call c_f_pointer(c_x, f_x, [n])
     call c_f_pointer(c_f, f_f, [n])
     call f_func(n, f_x, f_f, ierr)
   end subroutine
 
-  ! This function appends the given spatial function to the ones in our list,
-  ! returning its (integer) ID.
-  function AppendSpatialFunction(func) result(id)
+  ! This function finds the ID of the given spatial function, or appends it to
+  ! the list if it's not found. In either case, the resulting ID is returned.
+  function FindOrAppendSpatialFunction(func) result(id)
     implicit none
     procedure(TDySpatialFunction) :: func
     type(SpatialFunctionWrapper)  :: elem
     integer :: id
-    type(SpatialFunctionWrapper), dimension(:), allocatable :: new_array
+    type(SpatialFunctionWrapper), dimension(:), allocatable :: new_funcs_array
+    character(len=32), dimension(:), allocatable :: new_names_array
     integer :: old_size
 
-    if (.not. allocated(spatial_funcs)) then
-      allocate(spatial_funcs(32))
+    if (.not. allocated(spatial_funcs_)) then
+      allocate(spatial_funcs_(32))
+      allocate(spatial_func_names_(32))
       last_spatial_func_id = 1
-    else if (last_spatial_func_id > size(spatial_funcs)) then ! need more room
-      old_size = size(spatial_funcs)
-      allocate(new_array(2*old_size))
-      new_array(1:old_size) = spatial_funcs(1:old_size)
-      call move_alloc(new_array, spatial_funcs)
+      id = 1
+    else
+      do id = 1, size(spatial_funcs_)
+        if (associated(spatial_funcs_(id)%f, func)) then
+          exit
+        end if
+      end do
     end if
-    elem%f => func
-    spatial_funcs(last_spatial_func_id) = elem
-    id = last_spatial_func_id
-    last_spatial_func_id = last_spatial_func_id + 1
+
+    if (.not. associated(spatial_funcs_(id)%f, func)) then
+      ! We didn't find the function, so we must append it.
+      if (last_spatial_func_id > size(spatial_funcs_)) then ! need more room
+        old_size = size(spatial_funcs_)
+        allocate(new_funcs_array(2*old_size))
+        allocate(new_names_array(2*old_size))
+        new_funcs_array(1:old_size) = spatial_funcs_(1:old_size)
+        new_names_array(1:old_size) = spatial_func_names_(1:old_size)
+        call move_alloc(new_funcs_array, spatial_funcs_)
+        call move_alloc(new_names_array, spatial_func_names_)
+      end if
+      elem%f => func
+      spatial_funcs_(last_spatial_func_id) = elem
+      id = last_spatial_func_id
+      last_spatial_func_id = last_spatial_func_id + 1
+    end if
+  end function
+
+  subroutine RegisterSpatialFunction(name, func)
+    character(len=*), intent(in)           :: name
+    procedure(TDySpatialFunction), pointer :: func
+
+    integer :: i, id
+    logical :: found
+
+    ! Assign an ID to the function and set its name.
+    id = FindOrAppendSpatialFunction(func)
+    spatial_func_names_(id) = name
+  end subroutine
+
+  function GetSpatialFunction(name) result(func)
+    character(len=*), intent(in)  :: name
+    procedure(TDySpatialFunction), pointer :: func
+
+    integer :: i
+
+    func => null()
+    do i = 1, size(spatial_funcs_)
+      if (spatial_func_names_(i) == name(1:32)) then
+        func => spatial_funcs_(i)%f
+      end if
+    end do
   end function
 
   subroutine TDyInit(ierr)
@@ -345,21 +384,11 @@ module tdycore
   subroutine TDyRegisterFunction(name, func, ierr)
     use, intrinsic :: iso_c_binding
     implicit none
-    character(len=*), intent(in)   :: name
-    procedure(TDySpatialFunction)  :: func
-    PetscErrorCode                 :: ierr
+    character(len=*), intent(in)            :: name
+    procedure(TDySpatialFunction), pointer  :: func
+    PetscErrorCode                          :: ierr
 
-    interface
-      function RegisterFn(name, func) bind(c, name="TDyRegisterFunction") result(ierr)
-        use, intrinsic :: iso_c_binding
-        implicit none
-        type(c_ptr), value :: name
-        type(c_funptr), value :: func
-        integer(c_int) :: ierr
-      end function
-    end interface
-
-    ierr = RegisterFn(FtoCString(name), c_funloc(func))
+    call RegisterSpatialFunction(name, func)
   end subroutine
 
   subroutine TDySetDMConstructor(tdy, dm_ctor, ierr)
@@ -391,12 +420,10 @@ module tdycore
     character(len=*), intent(in)   :: name
     PetscErrorCode                 :: ierr
 
-    type(c_funptr)                         :: c_func
-    procedure(TDySpatialFunction), pointer :: f_func
+    procedure(TDySpatialFunction), pointer :: func
 
-    ierr = GetRegFn(FtoCString(name), c_func)
-    call c_f_procpointer(c_func, f_func)
-    call TDySetPorosityFunction(tdy, f_func, ierr)
+    func => GetSpatialFunction(name)
+    call TDySetPorosityFunction(tdy, func, ierr)
   end subroutine
 
   subroutine TDySelectForcingFunction(tdy, name, ierr)
@@ -407,47 +434,25 @@ module tdycore
     character(len=*), intent(in)   :: name
     PetscErrorCode                 :: ierr
 
-    type(c_funptr)                         :: c_func
-    procedure(TDySpatialFunction), pointer :: f_func
+    procedure(TDySpatialFunction), pointer :: func
 
-    ierr = GetRegFn(FtoCString(name), c_func)
-    call c_f_procpointer(c_func, f_func)
-    call TDySetForcingFunction(tdy, f_func, ierr)
+    func => GetSpatialFunction(name)
+    call TDySetForcingFunction(tdy, func, ierr)
   end subroutine
 
-! Uncomment this when we are ready to set energy forcing fns in Fortran.
-!  subroutine TDySelectEnergyForcingFunction(tdy, name, ierr)
-!    use, intrinsic :: iso_c_binding
-!    use tdycoredef
-!    implicit none
-!    TDy :: tdy
-!    character(len=*), intent(in)   :: name
-!    PetscErrorCode                 :: ierr
-!
-!    type(c_funptr)                         :: c_func
-!    procedure(TDySpatialFunction), pointer :: f_func
-!
-!    ierr = GetRegFn(FtoCString(name), c_func)
-!    call c_f_procpointer(c_func, f_func)
-!    call TDySetEnergyForcingFunction(tdy, f_func, ierr)
-!  end subroutine
+  subroutine TDySelectEnergyForcingFunction(tdy, name, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy :: tdy
+    character(len=*), intent(in)   :: name
+    PetscErrorCode                 :: ierr
 
-! Uncomment this when we are ready to set permeability functions programmatically.
-!  subroutine TDySelectPermeabilityFunction(tdy, name, ierr)
-!    use, intrinsic :: iso_c_binding
-!    use tdycoredef
-!    implicit none
-!    TDy :: tdy
-!    character(len=*), intent(in)   :: name
-!    PetscErrorCode                 :: ierr
-!
-!    type(c_funptr)                         :: c_func
-!    procedure(TDySpatialFunction), pointer :: f_func
-!
-!    ierr = GetRegFn(FtoCString(name), c_func)
-!    call c_f_procpointer(c_func, f_func)
-!    call TDySetPermeabilityFunction(tdy, f_func, ierr)
-!  end subroutine
+    procedure(TDySpatialFunction), pointer :: func
+
+    func => GetSpatialFunction(name)
+    call TDySetEnergyForcingFunction(tdy, func, ierr)
+  end subroutine
 
   subroutine TDySelectBoundaryPressureFunction(tdy, name, ierr)
     use, intrinsic :: iso_c_binding
@@ -457,12 +462,10 @@ module tdycore
     character(len=*), intent(in)   :: name
     PetscErrorCode                 :: ierr
 
-    type(c_funptr)                         :: c_func
-    procedure(TDySpatialFunction), pointer :: f_func
+    procedure(TDySpatialFunction), pointer :: func
 
-    ierr = GetRegFn(FtoCString(name), c_func)
-    call c_f_procpointer(c_func, f_func)
-    call TDySetBoundaryPressureFunction(tdy, f_func, ierr)
+    func => GetSpatialFunction(name)
+    call TDySetBoundaryPressureFunction(tdy, func, ierr)
   end subroutine
 
   subroutine TDySelectBoundaryVelocityFunction(tdy, name, ierr)
@@ -473,12 +476,10 @@ module tdycore
     character(len=*), intent(in)   :: name
     PetscErrorCode                 :: ierr
 
-    type(c_funptr)                         :: c_func
-    procedure(TDySpatialFunction), pointer :: f_func
+    procedure(TDySpatialFunction), pointer :: func
 
-    ierr = GetRegFn(FtoCString(name), c_func)
-    call c_f_procpointer(c_func, f_func)
-    call TDySetBoundaryVelocityFunction(tdy, f_func, ierr)
+    func => GetSpatialFunction(name)
+    call TDySetBoundaryVelocityFunction(tdy, func, ierr)
   end subroutine
 
   subroutine TDySetForcingFunction(tdy, f, ierr)
@@ -503,7 +504,33 @@ module tdycore
     end interface
 
     p_tdy = transfer(tdy%v, p_tdy)
-    id = AppendSpatialFunction(f)
+    id = FindOrAppendSpatialFunction(f)
+    ierr = Func(p_tdy, id)
+  end subroutine
+
+  subroutine TDySetEnergyForcingFunction(tdy, f, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy                                    :: tdy
+    procedure(TDySpatialFunction), pointer :: f
+    PetscErrorCode                         :: ierr
+
+    type(c_ptr)    :: p_tdy
+    integer(c_int) :: id
+
+    interface
+      function Func(tdy, id) bind(c, name="TDySetEnergyForcingFunctionF90") result(ierr)
+        use, intrinsic :: iso_c_binding
+        implicit none
+        type(c_ptr),    value, intent(in) :: tdy
+        integer(c_int), value, intent(in) :: id
+        integer(c_int) :: ierr
+      end function
+    end interface
+
+    p_tdy = transfer(tdy%v, p_tdy)
+    id = FindOrAppendSpatialFunction(f)
     ierr = Func(p_tdy, id)
   end subroutine
 
@@ -529,7 +556,7 @@ module tdycore
     end interface
 
     p_tdy = transfer(tdy%v, p_tdy)
-    id = AppendSpatialFunction(f)
+    id = FindOrAppendSpatialFunction(f)
     ierr = Func(p_tdy, id)
   end subroutine
 
@@ -555,7 +582,7 @@ module tdycore
     end interface
 
     p_tdy = transfer(tdy%v, p_tdy)
-    id = AppendSpatialFunction(f)
+    id = FindOrAppendSpatialFunction(f)
     ierr = Func(p_tdy, id)
   end subroutine
 
@@ -589,20 +616,23 @@ module tdycore
     TDy                           :: tdy
     procedure(TDySpatialFunction) :: f
     PetscErrorCode                :: ierr
-    type(c_ptr)                   :: p_tdy
+
+    type(c_ptr)    :: p_tdy
+    integer(c_int) :: id
 
     interface
-      function Func(tdy, f) bind(c, name="TDySetPorosityFunctionF90") result(ierr)
+      function Func(tdy, id) bind(c, name="TDySetPorosityFunctionF90") result(ierr)
         use, intrinsic :: iso_c_binding
         implicit none
         type(c_ptr), value    :: tdy
-        type(c_funptr), value :: f
+        integer(c_int), value, intent(in) :: id
         integer(c_int)        :: ierr
       end function
     end interface
 
     p_tdy = transfer(tdy%v, p_tdy)
-    ierr = Func(p_tdy, c_funloc(f))
+    id = FindOrAppendSpatialFunction(f)
+    ierr = Func(p_tdy, id)
   end subroutine
 
   subroutine TDySetConstantTensorPermeability(tdy, val, ierr)
@@ -658,43 +688,23 @@ module tdycore
     TDy                           :: tdy
     procedure(TDySpatialFunction) :: f
     PetscErrorCode                :: ierr
-    type(c_ptr)                   :: p_tdy
+
+    type(c_ptr)    :: p_tdy
+    integer(c_int) :: id
 
     interface
-      function Func(tdy, f) bind(c, name="TDySetResidualSaturationFunctionF90") result(ierr)
+      function Func(tdy, id) bind(c, name="TDySetResidualSaturationFunctionF90") result(ierr)
         use, intrinsic :: iso_c_binding
         implicit none
         type(c_ptr), value    :: tdy
-        type(c_funptr), value :: f
+        integer(c_int), value, intent(in) :: id
         integer(c_int)        :: ierr
       end function
     end interface
 
     p_tdy = transfer(tdy%v, p_tdy)
-    ierr = Func(p_tdy, c_funloc(f))
+    id = FindOrAppendSpatialFunction(f)
+    ierr = Func(p_tdy, id)
   end subroutine
-
-  ! Here's a function that converts a Fortran string to a C string and
-  ! stashes it in TDycore's Fortran string registry. This allows us to
-  ! create more expressive (and standard) Fortran interfaces.
-  function FtoCString(f_string) result(c_string)
-     use, intrinsic :: iso_c_binding
-     implicit none
-     character(len=*), target :: f_string
-     character(len=:), pointer :: f_ptr
-     type(c_ptr) :: c_string
-
-     interface
-       function NewCString(f_str_ptr, f_str_len) bind(c, name="NewCString") result(c_string)
-         use, intrinsic :: iso_c_binding
-         type(c_ptr), value :: f_str_ptr
-         integer(c_int), value :: f_str_len
-         type(c_ptr) :: c_string
-       end function NewCString
-     end interface
-
-     f_ptr => f_string
-     c_string = NewCString(c_loc(f_ptr), len(f_string))
-   end function FtoCString
 
 end module tdycore

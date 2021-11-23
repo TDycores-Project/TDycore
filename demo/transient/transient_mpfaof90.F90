@@ -26,6 +26,7 @@ contains
 
     pressure(:) = 100000.d0
     ierr = 0
+    print *, 'P = ', pressure(1)
   end subroutine PressureFunction
 
   subroutine CreateDM(comm, dm, ierr)

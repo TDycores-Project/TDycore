@@ -215,7 +215,7 @@ PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int *ierr )
 }
 
 //------------------------------------------------------------------------
-//                  Material properties and conditions
+//                  Fortran 90 spatial functions
 //------------------------------------------------------------------------
 
 // This is a context wrapped around an F90 spatial function (identified by an
@@ -297,6 +297,9 @@ static void DestroyContext(void* context) {
   PetscFree(context);
 }
 
+//------------------------------------------------------------------------
+//                  Material properties and conditions
+//------------------------------------------------------------------------
 
 // This macro can be used to expose a Fortran 90 subroutine that assigns a
 // spatial function to a material property.

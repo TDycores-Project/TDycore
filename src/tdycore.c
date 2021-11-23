@@ -1357,42 +1357,6 @@ PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
   PetscFunctionReturn(0);
 }
 
-// Here's a registry of C-backed strings created from Fortran.
-KHASH_SET_INIT_STR(TDY_STRING_SET)
-static khash_t(TDY_STRING_SET)* fortran_strings_ = NULL;
-
-// This function is called on finalization to destroy the Fortran ѕtring
-// registry.
-static void DestroyFortranStrings() {
-  kh_destroy(TDY_STRING_SET, fortran_strings_);
-}
-
-// Returns a newly-allocated C string for the given Fortran string pointer with
-// the given length. Resources for this string are managed by the running model.
-const char* NewCString(char* f_str_ptr, int f_str_len) {
-  if (fortran_strings_ == NULL) {
-    fortran_strings_ = kh_init(TDY_STRING_SET);
-    TDyOnFinalize(DestroyFortranStrings);
-  }
-
-  // Copy the Fortran character array to a C string.
-  char c_str[f_str_len+1];
-  memcpy(c_str, f_str_ptr, sizeof(char) * f_str_len);
-  c_str[f_str_len] = '\0';
-
-  // Does this string already exist?
-  khiter_t iter = kh_get(TDY_STRING_SET, fortran_strings_, c_str);
-  if (iter != kh_end(fortran_strings_)) { // yep
-    return kh_key(fortran_strings_, iter);
-  } else { // nope
-    int retval;
-    const char* str = malloc(sizeof(char) * (f_str_len+1));
-    strcpy((char*)str, c_str);
-    iter = kh_put(TDY_STRING_SET, fortran_strings_, str, &retval);
-    return str;
-  }
-}
-
 //------------------------------------------
 // Solver-related functions (to be deleted)
 //------------------------------------------
