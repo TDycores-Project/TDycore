@@ -2,6 +2,12 @@
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
+#include <petsc/private/khash/khash.h>
+
+/// This type defines a mapping from point indices to (integer) model indices.
+/// We use it to select the saturation or relative permeability model for
+/// specific points.
+KHASH_MAP_INIT_INT(CharacteristicCurvesPointMap, int)
 
 /// Creates a CharacteristicCurves instance with saturation and relative
 /// permeability models for use with specific discretizations.
@@ -85,13 +91,11 @@ PetscErrorCode SaturationSetType(Saturation *sat, SaturationType type,
     }
   }
 
-  // Delete all point sets, which can be invalidated by this operation.
-  PetscInt num_types = (PetscInt)(sizeof(sat->points)/sizeof(sat->points[0]));
-  for (PetscInt t = 0; t < num_types; ++t) {
-    if (sat->point_sets[t]) {
-      kh_destroy(CharacteristicCurvesPointSet, sat->point_sets[t]);
-      sat->point_sets[t] = NULL;
-    }
+  // Delete the point map, which is invalidated by this operation.
+  if (sat->point_map) {
+    khash_t(CharacteristicCurvesPointMap) *point_map = sat->point_map;
+    kh_destroy(CharacteristicCurvesPointMap, point_map);
+    sat->point_map = NULL;
   }
 
   sat->num_points[type] = num_points;
@@ -145,18 +149,21 @@ PetscErrorCode SaturationCompute(Saturation *sat,
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode SaturationBuildPointSets(Saturation *sat) {
+static PetscErrorCode SaturationBuildPointMap(Saturation *sat) {
   PetscFunctionBegin;
+  khash_t(CharacteristicCurvesPointMap) *point_map =
+    kh_init(CharacteristicCurvesPointMap);
   PetscInt num_types = (PetscInt)(sizeof(sat->points)/sizeof(sat->points[0]));
   for (PetscInt type = 0; type < num_types; ++type) {
-    sat->point_sets[type] = kh_init(CharacteristicCurvesPointSet);
     PetscInt num_points = sat->num_points[type];
     for (PetscInt i = 0; i < num_points; ++i) {
       int ret;
-      kh_put(CharacteristicCurvesPointSet, sat->point_sets[type],
-             sat->points[type][i], &ret);
+      khiter_t iter = kh_put(CharacteristicCurvesPointMap, point_map,
+                             sat->points[type][i], &ret);
+      kh_value(point_map, iter) = type;
     }
   }
+  sat->point_map = point_map;
   PetscFunctionReturn(0);
 }
 
@@ -181,35 +188,35 @@ PetscErrorCode SaturationComputeOnPoints(Saturation *sat,
   PetscFunctionBegin;
 
   // If we haven't built our point sets yet, do so now.
-  if (!sat->point_sets[0]) {
-    ierr = SaturationBuildPointSets(sat); CHKERRQ(ierr);
+  if (!sat->point_map) {
+    ierr = SaturationBuildPointMap(sat); CHKERRQ(ierr);
+  }
+  khash_t(CharacteristicCurvesPointMap) *point_map = sat->point_map;
+  if (kh_size(point_map) == 0) {
+    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER,
+            "No points were set in Saturation model! Call SaturationSetType.");
+    PetscFunctionReturn(-1);
   }
 
-  // Loop over available model types.
-  PetscInt num_types = (PetscInt)(sizeof(sat->points)/sizeof(sat->points[0]));
-  for (PetscInt type = 0; type < num_types; ++type) {
-
-    if (kh_size(sat->point_sets[type]) == 0) continue;
-
-    // Compute the saturation and its derivatives on points belonging to
-    // this type.
-    for (PetscInt i = 0; i < n; ++i) {
-      PetscInt i1 = points[i];
-      khiter_t iter = kh_get(CharacteristicCurvesPointSet, sat->point_sets[type], i1);
-      if (kh_exist(sat->point_sets[type], iter)) {
-        if (type == SAT_FUNC_GARDNER) {
-          PetscReal n = sat->parameters[type][3*i1];
-          PetscReal m = sat->parameters[type][3*i1+1];
-          PetscReal alpha = sat->parameters[type][3*i1+2];
-          PressureSaturation_Gardner(n, m, alpha, Sr[i1], Pc[i1],
-                                     &(S[i1]), &(dSdP[i1]), &(d2SdP2[i1]));
-        } else if (type == SAT_FUNC_VAN_GENUCHTEN) {
-          PetscInt num_points = sat->num_points[type];
-          PetscReal m = sat->parameters[type][2*i1];
-          PetscReal alpha = sat->parameters[type][2*i1+1];
-          PressureSaturation_VanGenuchten(m, alpha, Sr[i1], Pc[i1],
-                                          &(S[i1]), &(dSdP[i1]), &(d2SdP2[i1]));
-        }
+  // Loop over the points.
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscInt i1 = points[i];
+    khiter_t iter = kh_get(CharacteristicCurvesPointMap, point_map, i1);
+    if (kh_exist(point_map, iter)) {
+      int type = kh_value(point_map, iter);
+      // Compute the saturation and its derivatives on points belonging to
+      // this type.
+      if (type == SAT_FUNC_GARDNER) {
+        PetscReal n = sat->parameters[type][3*i1];
+        PetscReal m = sat->parameters[type][3*i1+1];
+        PetscReal alpha = sat->parameters[type][3*i1+2];
+        PressureSaturation_Gardner(n, m, alpha, Sr[i1], Pc[i1],
+                                   &(S[i1]), &(dSdP[i1]), &(d2SdP2[i1]));
+      } else if (type == SAT_FUNC_VAN_GENUCHTEN) {
+        PetscReal m = sat->parameters[type][2*i1];
+        PetscReal alpha = sat->parameters[type][2*i1+1];
+        PressureSaturation_VanGenuchten(m, alpha, Sr[i1], Pc[i1],
+                                        &(S[i1]), &(dSdP[i1]), &(d2SdP2[i1]));
       }
     }
   }
@@ -267,13 +274,11 @@ PetscErrorCode RelativePermeabilitySetType(RelativePermeability *rel_perm,
             "Invalid relative permeability model type!");
   }
 
-  // Delete all point sets, which can be invalidated by this operation.
-  PetscInt num_types = (PetscInt)(sizeof(rel_perm->points)/sizeof(rel_perm->points[0]));
-  for (PetscInt t = 0; t < num_types; ++t) {
-    if (rel_perm->point_sets[t]) {
-      kh_destroy(CharacteristicCurvesPointSet, rel_perm->point_sets[t]);
-      rel_perm->point_sets[t] = NULL;
-    }
+  // Delete the point map, which is invalidated by this operation.
+  if (rel_perm->point_map) {
+    khash_t(CharacteristicCurvesPointMap) *point_map = rel_perm->point_map;
+    kh_destroy(CharacteristicCurvesPointMap, point_map);
+    rel_perm->point_map = NULL;
   }
 
   // If we're changing the number of points for this type, free storage.
@@ -327,18 +332,21 @@ PetscErrorCode RelativePermeabilityCompute(RelativePermeability *rel_perm,
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode RelativePermeabilityBuildPointSets(RelativePermeability *rel_perm) {
+static PetscErrorCode RelativePermeabilityBuildPointMap(RelativePermeability *rel_perm) {
   PetscFunctionBegin;
+  khash_t(CharacteristicCurvesPointMap) *point_map =
+    kh_init(CharacteristicCurvesPointMap);
   PetscInt num_types = (PetscInt)(sizeof(rel_perm->points)/sizeof(rel_perm->points[0]));
   for (PetscInt type = 0; type < num_types; ++type) {
-    rel_perm->point_sets[type] = kh_init(CharacteristicCurvesPointSet);
     PetscInt num_points = rel_perm->num_points[type];
     for (PetscInt i = 0; i < num_points; ++i) {
       int ret;
-      kh_put(CharacteristicCurvesPointSet, rel_perm->point_sets[type],
-             rel_perm->points[type][i], &ret);
+      khiter_t iter = kh_put(CharacteristicCurvesPointMap, point_map,
+                             rel_perm->points[type][i], &ret);
+      kh_value(point_map, iter) = type;
     }
   }
+  rel_perm->point_map = point_map;
   PetscFunctionReturn(0);
 }
 
@@ -359,32 +367,33 @@ PetscErrorCode RelativePermeabilityComputeOnPoints(RelativePermeability *rel_per
   PetscFunctionBegin;
 
   // If we haven't built our point sets yet, do so now.
-  if (!rel_perm->point_sets[0]) {
-    ierr = RelativePermeabilityBuildPointSets(rel_perm); CHKERRQ(ierr);
+  if (!rel_perm->point_map) {
+    ierr = RelativePermeabilityBuildPointMap(rel_perm); CHKERRQ(ierr);
+  }
+  khash_t(CharacteristicCurvesPointMap) *point_map = rel_perm->point_map;
+  if (kh_size(point_map) == 0) {
+    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER,
+            "No points were set in RelativePermeability model! Call RelativePermeabilitySetType.");
+    PetscFunctionReturn(-1);
   }
 
-  // Loop over available model types.
-  PetscInt num_types = (PetscInt)(sizeof(rel_perm->points)/sizeof(rel_perm->points[0]));
-  for (PetscInt type = 0; type < num_types; ++type) {
-
-    if (kh_size(rel_perm->point_sets[type]) == 0) continue;
-
-    // Compute the relative permeability and its derivative on points belonging
-    // to this type.
-    for (PetscInt i = 0; i < n; ++i) {
-      PetscInt i1 = points[i];
-      khiter_t iter = kh_get(CharacteristicCurvesPointSet, rel_perm->point_sets[type], i1);
-      if (kh_exist(rel_perm->point_sets[type], iter)) {
-        if (type == REL_PERM_FUNC_IRMAY) {
-          PetscReal m = rel_perm->parameters[type][i1];
-          RelativePermeability_Irmay(m, Se[i1], &(Kr[i1]), &(dKrdSe[i1]));
-        } else if (type == REL_PERM_FUNC_MUALEM) {
-          PetscReal m = rel_perm->parameters[type][6*i1];
-          PetscReal poly_low = rel_perm->parameters[type][6*i1+1]; // cubic interp cutoff
-          PetscReal *poly_coeffs = &(rel_perm->parameters[type][6*i1+2]); // interp coeffs
-          RelativePermeability_Mualem(m, poly_low, poly_coeffs, Se[i1],
-                                      &(Kr[i1]), &(dKrdSe[i1]));
-        }
+  // Loop over the points.
+  for (PetscInt i = 0; i < n; ++i) {
+    PetscInt i1 = points[i];
+    khiter_t iter = kh_get(CharacteristicCurvesPointMap, point_map, i1);
+    if (kh_exist(point_map, iter)) {
+      int type = kh_value(point_map, iter);
+      // Compute the relative permeability and its derivative on points belonging
+      // to this type.
+      if (type == REL_PERM_FUNC_IRMAY) {
+        PetscReal m = rel_perm->parameters[type][i1];
+        RelativePermeability_Irmay(m, Se[i1], &(Kr[i1]), &(dKrdSe[i1]));
+      } else if (type == REL_PERM_FUNC_MUALEM) {
+        PetscReal m = rel_perm->parameters[type][6*i1];
+        PetscReal poly_low = rel_perm->parameters[type][6*i1+1]; // cubic interp cutoff
+        PetscReal *poly_coeffs = &(rel_perm->parameters[type][6*i1+2]); // interp coeffs
+        RelativePermeability_Mualem(m, poly_low, poly_coeffs, Se[i1],
+                                    &(Kr[i1]), &(dKrdSe[i1]));
       }
     }
   }

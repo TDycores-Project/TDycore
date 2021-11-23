@@ -38,7 +38,7 @@ module tdycore
   character(len=32), dimension(:), allocatable :: spatial_func_names_
 
   ! The ID of the most recently added spatial function
-  integer(c_int) :: last_spatial_func_id
+  integer(c_int) :: last_spatial_func_id_
 
   interface
      subroutine TDyFinalize(ierr)
@@ -316,7 +316,7 @@ module tdycore
     if (.not. allocated(spatial_funcs_)) then
       allocate(spatial_funcs_(32))
       allocate(spatial_func_names_(32))
-      last_spatial_func_id = 1
+      last_spatial_func_id_ = 1
       id = 1
     else
       do id = 1, size(spatial_funcs_)
@@ -328,7 +328,7 @@ module tdycore
 
     if (.not. associated(spatial_funcs_(id)%f, func)) then
       ! We didn't find the function, so we must append it.
-      if (last_spatial_func_id > size(spatial_funcs_)) then ! need more room
+      if (last_spatial_func_id_ > size(spatial_funcs_)) then ! need more room
         old_size = size(spatial_funcs_)
         allocate(new_funcs_array(2*old_size))
         allocate(new_names_array(2*old_size))
@@ -338,9 +338,9 @@ module tdycore
         call move_alloc(new_names_array, spatial_func_names_)
       end if
       elem%f => func
-      spatial_funcs_(last_spatial_func_id) = elem
-      id = last_spatial_func_id
-      last_spatial_func_id = last_spatial_func_id + 1
+      spatial_funcs_(last_spatial_func_id_) = elem
+      id = last_spatial_func_id_
+      last_spatial_func_id_ = last_spatial_func_id_ + 1
     end if
   end function
 
@@ -348,8 +348,7 @@ module tdycore
     character(len=*), intent(in)           :: name
     procedure(TDySpatialFunction), pointer :: func
 
-    integer :: i, id
-    logical :: found
+    integer :: id
 
     ! Assign an ID to the function and set its name.
     id = FindOrAppendSpatialFunction(func)

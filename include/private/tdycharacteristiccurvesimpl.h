@@ -2,12 +2,6 @@
 #define TDYCHARACTERISTICCURVESIMPL_H
 
 #include <petsc.h>
-#include <petsc/private/khash/khash.h>
-
-/// This type defines a set of integers that can be queried for membership.
-/// We use it to ask whether a point with a given index belongs to a set of
-/// points for a given saturation or relative permeability model.
-KHASH_SET_INIT_INT(CharacteristicCurvesPointSet)
 
 /// This type enumerates the different parameterizations for saturation.
 typedef enum {
@@ -28,9 +22,9 @@ typedef struct Saturation {
   /// 2. The Van Genuchten model associates 2 parameters (m, alpha) with each point.
   PetscReal *parameters[2];
 
-  /// Sets of point indices belonging to the given model types. This allows
-  /// updates of specific sets of points using SaturationComputeOnPoints.
-  khash_t(CharacteristicCurvesPointSet) *point_sets[2];
+  /// Mapping from point indices to model types. This allows updates of specific
+  /// sets of points using SaturationComputeOnPoints.
+  void *point_map;
 } Saturation;
 
 /// This type enumerates the different parameterizations for relative
@@ -56,9 +50,9 @@ typedef struct RelativePermeability {
   ///    of the cubic polynomial.
   PetscReal *parameters[2];
 
-  /// Sets of point indices belonging to the given model types. This allows
-  /// updates of specific sets of points using RelativePermeabilityComputeOnPoints.
-  khash_t(CharacteristicCurvesPointSet) *point_sets[2];
+  /// Mapping from point indices to model types. This allows updates of specific
+  /// sets of points using RelativePermeabilityComputeOnPoints.
+  void *point_map;
 } RelativePermeability;
 
 /// This type collects parameterized functions that describe the saturation
