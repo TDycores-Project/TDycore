@@ -22,9 +22,9 @@ typedef struct Saturation {
   /// 2. The Van Genuchten model associates 2 parameters (m, alpha) with each point.
   PetscReal *parameters[2];
 
-  /// Mapping from point indices to model types. This allows updates of specific
-  /// sets of points using SaturationComputeOnPoints.
-  void *point_map;
+  /// Mappings from point indices to their offsets in each model type. This
+  /// allows updates of specific sets of points using SaturationComputeOnPoints.
+  void *point_maps[2];
 } Saturation;
 
 /// This type enumerates the different parameterizations for relative
@@ -50,9 +50,10 @@ typedef struct RelativePermeability {
   ///    of the cubic polynomial.
   PetscReal *parameters[2];
 
-  /// Mapping from point indices to model types. This allows updates of specific
-  /// sets of points using RelativePermeabilityComputeOnPoints.
-  void *point_map;
+  /// Mappings from point indices to their offsets in each model type. This
+  /// allows updates of specific sets of points using
+  /// RelativePermeabilityComputeOnPoints.
+  void *point_maps[2];
 } RelativePermeability;
 
 /// This type collects parameterized functions that describe the saturation
