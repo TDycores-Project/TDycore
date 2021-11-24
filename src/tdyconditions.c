@@ -158,7 +158,7 @@ PetscErrorCode ConditionsComputeBoundaryVelocity(Conditions *conditions,
                                                  PetscInt n, PetscReal *x,
                                                  PetscReal *v) {
   return conditions->compute_boundary_velocity(conditions->boundary_velocity_context,
-                                                  n, x, v);
+                                               n, x, v);
 }
 
 static PetscErrorCode ConstantBoundaryFn(void *context,

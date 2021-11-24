@@ -225,7 +225,7 @@ PetscErrorCode MaterialPropComputeThermalConductivity(MaterialProp *matprop,
   PetscErrorCode ierr;
   PetscFunctionBegin;
   if (matprop->compute_thermal_conductivity) {
-    ierr = matprop->compute_thermal_conductivity(matprop->soil_density_context,
+    ierr = matprop->compute_thermal_conductivity(matprop->thermal_conductivity_context,
                                                  n, x, conductivity); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -236,14 +236,14 @@ PetscErrorCode MaterialPropComputeThermalConductivity(MaterialProp *matprop,
 /// @param [in] matprop A MaterialProp instance
 /// @param [in] n The number of points
 /// @param [in] x The coordinates of the n points
-/// @param [out] saturation The values of the saturation at each point
+/// @param [out] saturation The values of the residual saturation at each point
 PetscErrorCode MaterialPropComputeResidualSaturation(MaterialProp *matprop,
                                                      PetscInt n, PetscReal *x,
                                                      PetscReal *saturation) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   if (matprop->compute_residual_saturation) {
-    ierr = matprop->compute_residual_saturation(matprop->soil_density_context,
+    ierr = matprop->compute_residual_saturation(matprop->residual_saturation_context,
                                                 n, x, saturation); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);

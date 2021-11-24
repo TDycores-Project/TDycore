@@ -1391,7 +1391,6 @@ static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
   free(CupDBCxIn_1d);
   free(CdnDBCxIn_1d);
 
-
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 

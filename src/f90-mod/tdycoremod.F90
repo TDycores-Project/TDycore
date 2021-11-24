@@ -671,7 +671,7 @@ module tdycore
         use, intrinsic :: iso_c_binding
         implicit none
         type(c_ptr), value    :: tdy
-        real(c_double)        :: val
+        real(c_double), value :: val
         integer(c_int)        :: ierr
       end function
     end interface

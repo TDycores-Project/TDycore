@@ -615,11 +615,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     TDySetDiscretization(tdy, discretization);
   }
 
-  // Set the EOS from options.
-  tdy->eos.density_type = tdy->options.rho_type;
-  tdy->eos.viscosity_type = tdy->options.mu_type;
-  tdy->eos.enthalpy_type = tdy->options.enthalpy_type;
-
   // Now that we know the discretization, we can create our implementation-
   // specific context.
   ierr = tdy->ops->create(&tdy->context); CHKERRQ(ierr);
@@ -716,6 +711,11 @@ PetscErrorCode TDySetup(TDy tdy) {
     SETERRQ(comm,PETSC_ERR_USER,"You must call TDySetFromOptions before TDySetup()");
   }
   TDyEnterProfilingStage("TDycore Setup");
+
+  // Set the EOS from options.
+  tdy->eos.density_type = tdy->options.rho_type;
+  tdy->eos.viscosity_type = tdy->options.mu_type;
+  tdy->eos.enthalpy_type = tdy->options.enthalpy_type;
 
   // Perform implementation-specific setup.
   ierr = tdy->ops->setup(tdy->context, tdy->dm, &tdy->eos, tdy->matprop,
