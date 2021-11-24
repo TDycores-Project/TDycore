@@ -533,7 +533,7 @@ static PetscErrorCode CubicPolynomialEvaluate(PetscReal *coeffs, PetscReal x,
 /// @param [in] m         Mualem parameter
 /// @param [in] poly_low  Value of Se above which polynomial smoothing should be done
 /// @param [out] *coeffs   Coefficents of cubic polynomial
-PetscErrorCode RelativePermeability_Mualem_SetSmoothingCoeffs(PetscReal m,
+PetscErrorCode RelativePermeability_Mualem_GetSmoothingCoeffs(PetscReal m,
                                                               PetscReal poly_low,
                                                               PetscReal *coeffs) {
   PetscErrorCode ierr;

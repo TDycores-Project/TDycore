@@ -652,9 +652,7 @@ static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
   ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->du_dT)); CHKERRQ(ierr);
   ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dvis_dT)); CHKERRQ(ierr);
 
-  // Initialize characteristic curve parameters on cells.
-  // By default, we use the Van Genuchten saturation and the Mualem relative
-  // permeability models.
+  // Initialize characteristic curve parameters on all cells.
   PetscInt points[nc];
   for (PetscInt c = 0; c < nc; ++c) {
     points[c] = cStart + c;
@@ -682,7 +680,8 @@ static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
 
       // Set up cubic polynomial coefficients for the cell.
       PetscReal coeffs[4];
-      RelativePermeability_Mualem_SetSmoothingCoeffs(m, poly_low, coeffs);
+      ierr = RelativePermeability_Mualem_GetSmoothingCoeffs(m, poly_low, coeffs);
+      CHKERRQ(ierr);
       parameters[6*c+2] = coeffs[0];
       parameters[6*c+3] = coeffs[1];
       parameters[6*c+4] = coeffs[2];

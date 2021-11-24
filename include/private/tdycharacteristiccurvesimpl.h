@@ -80,7 +80,7 @@ PETSC_INTERN PetscErrorCode RelativePermeabilitySetType(RelativePermeability*,Re
 PETSC_INTERN PetscErrorCode RelativePermeabilityCompute(RelativePermeability*,PetscReal*,PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode RelativePermeabilityComputeOnPoints(RelativePermeability*,PetscInt,PetscInt*,PetscReal*,PetscReal*,PetscReal*);
 
-PETSC_INTERN PetscErrorCode RelativePermeability_Mualem_SetSmoothingCoeffs(PetscReal,PetscReal,PetscReal*);
+PETSC_INTERN PetscErrorCode RelativePermeability_Mualem_GetSmoothingCoeffs(PetscReal,PetscReal,PetscReal*);
 PETSC_INTERN void RelativePermeability_Mualem(PetscReal,PetscReal,PetscReal*,PetscReal,PetscReal*,PetscReal*);
 PETSC_INTERN void RelativePermeability_Irmay(PetscReal,PetscReal,PetscReal*,PetscReal*);
 

@@ -457,7 +457,7 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
 
       // Set up cubic polynomial coefficients for the cell.
       PetscReal coeffs[4];
-      RelativePermeability_Mualem_SetSmoothingCoeffs(m, poly_low, coeffs);
+      RelativePermeability_Mualem_GetSmoothingCoeffs(m, poly_low, coeffs);
       parameters[6*c+2] = coeffs[0];
       parameters[6*c+3] = coeffs[1];
       parameters[6*c+4] = coeffs[2];
