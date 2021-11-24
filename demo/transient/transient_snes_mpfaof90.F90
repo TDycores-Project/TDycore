@@ -112,10 +112,10 @@ contains
     PetscInt :: i
     PetscReal :: x1, x2, x3
 
-    do i = 1, n
-      x1 = x(3*i)
-      x2 = x(3*i+1)
-      x3 = x(3*i+2)
+    do i = 0, n-1
+      x1 = x(3*i+1)
+      x2 = x(3*i+2)
+      x3 = x(3*i+3)
       if (x1 > 0.d0 .and. x1 < 1.d0 .and. x2 > 0.d0 .and. x2 < 1.d0 .and. x3 > 0.99d0) then
         pressure = 110000.d0
       else
