@@ -664,15 +664,9 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
-  // Create material properties and set functions.
+  // Create an empty material properties object. Each function must be set
+  // explicitly by the driver program.
   ierr = MaterialPropCreate(dim, &tdy->matprop); CHKERRQ(ierr);
-  // TODO: only constants right now! Implement named functions using registry stuff.
-  ierr = MaterialPropSetConstantPorosity(tdy->matprop, tdy->options.porosity); CHKERRQ(ierr);
-  ierr = MaterialPropSetConstantIsotropicPermeability(tdy->matprop, tdy->options.permeability);
-  ierr = MaterialPropSetConstantIsotropicThermalConductivity(tdy->matprop, tdy->options.thermal_conductivity);
-  ierr = MaterialPropSetConstantResidualSaturation(tdy->matprop, tdy->options.residual_saturation);
-  ierr = MaterialPropSetConstantSoilDensity(tdy->matprop, tdy->options.soil_density);
-  ierr = MaterialPropSetConstantSoilSpecificHeat(tdy->matprop, tdy->options.soil_specific_heat);
 
   // Create characteristic curves.
   ierr = CharacteristicCurvesCreate(&tdy->cc); CHKERRQ(ierr);

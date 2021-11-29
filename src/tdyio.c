@@ -36,6 +36,7 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   io->permeability_dataset[0] = '\0';
   io->porosity_dataset[0] = '\0';
   io->ic_dataset[0] = '\0';
+  io->anisotropic_permeability = PETSC_FALSE;
 
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
                            CHKERRQ(ierr);
@@ -142,9 +143,9 @@ static PetscErrorCode AssignDiagonalTensors(void *context, PetscInt n,
 
 static void DiagonalTensorsDestroy(void *context) {
   DiagonalTensors *diag_tensors = context;
-  if (diag_tensors->Tx) PetscFree(diag_tensors->Tx);
-  if (diag_tensors->Ty) PetscFree(diag_tensors->Ty);
-  if (diag_tensors->Tz) PetscFree(diag_tensors->Tz);
+  if (diag_tensors->Tx) free(diag_tensors->Tx);
+  if (diag_tensors->Ty) free(diag_tensors->Ty);
+  if (diag_tensors->Tz) free(diag_tensors->Tz);
   PetscFree(diag_tensors);
 }
 
@@ -213,7 +214,7 @@ static PetscErrorCode AssignScalars(void *context, PetscInt n, PetscReal *x,
   PetscFunctionReturn(0);
 }
 static void ScalarsDestroy(void* context) {
-  PetscFree(context);
+  free(context);
 }
 
 /* -------------------------------------------------------------------------- */
