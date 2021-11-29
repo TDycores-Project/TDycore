@@ -581,18 +581,12 @@ static PetscErrorCode CreateMesh(TDyMPFAO *mpfao, DM dm) {
   }
 
   ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
-  ierr = TDyAllocate_RealArray_3D(&mpfao->Trans, mpfao->mesh->num_vertices, mpfao->nfv, mpfao->nfv + mpfao->ncv); CHKERRQ(ierr);
   ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscReal),
                      &(mpfao->vel )); CHKERRQ(ierr);
   ierr = TDyInitialize_RealArray_1D(mpfao->vel, mpfao->mesh->num_faces, 0.0); CHKERRQ(ierr);
   ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscInt),
                      &(mpfao->vel_count)); CHKERRQ(ierr);
   ierr = TDyInitialize_IntegerArray_1D(mpfao->vel_count, mpfao->mesh->num_faces, 0); CHKERRQ(ierr);
-  PetscInt nsubcells = 8;
-  PetscInt nrow = 3;
-  PetscInt ncol = 3;
-  ierr = TDyAllocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
-                                  nsubcells, nrow, ncol); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -2084,12 +2078,17 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
     nrow = 4*nFaces;
     ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
     nz   = mpfao->nfv;
+    ierr = TDyAllocate_RealArray_3D(&mpfao->Trans, mpfao->mesh->num_vertices,
+                                    mpfao->nfv, mpfao->nfv + mpfao->ncv); CHKERRQ(ierr);
     ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&mpfao->Trans_mat); CHKERRQ(ierr);
     ierr = MatSetOption(mpfao->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
     ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&mpfao->P_vec);
     ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->TtimesP_vec);
     ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->GravDisVec);
     ierr = VecZeroEntries(mpfao->GravDisVec);
+    PetscInt nsubcells = 8;
+    ierr = TDyAllocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
+                                    nsubcells, 3, 3); CHKERRQ(ierr);
   }
 
   // Set up data structures for the discretization.
@@ -2135,12 +2134,17 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
     nrow = 4*nFaces;
     ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
     nz   = mpfao->nfv;
+    ierr = TDyAllocate_RealArray_3D(&mpfao->Trans, mpfao->mesh->num_vertices,
+                                    mpfao->nfv, mpfao->nfv + mpfao->ncv); CHKERRQ(ierr);
     ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&mpfao->Trans_mat); CHKERRQ(ierr);
     ierr = MatSetOption(mpfao->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
     ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&mpfao->P_vec);
     ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->TtimesP_vec);
     ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->GravDisVec);
     ierr = VecZeroEntries(mpfao->GravDisVec);
+    PetscInt nsubcells = 8;
+    ierr = TDyAllocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
+                                    nsubcells, 3, 3); CHKERRQ(ierr);
   }
 
   // Set up data structures for the discretization.
@@ -2197,6 +2201,8 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
     nrow = 4*nFaces;
     ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
     nz   = mpfao->nfv;
+    ierr = TDyAllocate_RealArray_3D(&mpfao->Trans, mpfao->mesh->num_vertices,
+                                    mpfao->nfv, mpfao->nfv + mpfao->ncv); CHKERRQ(ierr);
     ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&mpfao->Trans_mat); CHKERRQ(ierr);
     ierr = MatSetOption(mpfao->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
     ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&mpfao->P_vec);
@@ -2204,10 +2210,18 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
     ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->GravDisVec);
     ierr = VecZeroEntries(mpfao->GravDisVec);
 
+    ierr = TDyAllocate_RealArray_3D(&mpfao->Temp_Trans, mpfao->mesh->num_vertices,
+                                    mpfao->nfv, mpfao->nfv); CHKERRQ(ierr);
     ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&mpfao->Temp_Trans_mat); CHKERRQ(ierr);
     ierr = MatSetOption(mpfao->Temp_Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
     ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&mpfao->Temp_P_vec);
     ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->Temp_TtimesP_vec);
+
+    PetscInt nsubcells = 8;
+    ierr = TDyAllocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
+                                    nsubcells, 3, 3); CHKERRQ(ierr);
+    ierr = TDyAllocate_RealArray_4D(&mpfao->Temp_subc_Gmatrix, mpfao->mesh->num_cells,
+                                    nsubcells, 3, 3); CHKERRQ(ierr);
   }
 
   // Compute matrices for our discretization.
@@ -2511,3 +2525,4 @@ PetscErrorCode TDyGetSaturation_MPFAO(void* context, PetscReal* S) {
   }
   PetscFunctionReturn(0);
 }
+

@@ -825,6 +825,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
       tdy->ops->setup = TDySetup_TH_MPFAO;
       tdy->ops->update_state = TDyUpdateState_TH_MPFAO;
+      tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
     } else {
       SETERRQ(comm,PETSC_ERR_USER,
         "The TH mode does not support the selected discretization!");
