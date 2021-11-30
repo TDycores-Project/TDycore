@@ -4898,8 +4898,8 @@ PetscErrorCode TDyMeshReadGeometry(TDyMesh *mesh, const char* filename) {
 
     // col 5: number of neighbors
     if ( num_faces != values[offset + col]) {
-      printf("ReadMeshGeometricAttributes: Number of faces do not match = num_faces%d values[%d] = %f; rank = %d\n",num_faces, offset + col, values[offset + col],rank);
-      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "ReadMeshGeometricAttributes: Number of faces do not match");
+      printf("TDyMeshReadGeometry: Number of faces do not match = num_faces%d values[%d] = %f; rank = %d\n",num_faces, offset + col, values[offset + col],rank);
+      SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "TDyMeshReadGeometry: Number of faces do not match");
     }
     col++;
 
@@ -4938,7 +4938,7 @@ PetscErrorCode TDyMeshReadGeometry(TDyMesh *mesh, const char* filename) {
         }
       } else {
 
-        // This face/neigbhor is internal.
+        // This face/neighbor is internal.
         // Loop over all the faces of the cell to find the face index of
         // the current cell whose neighbor's natural id is neighbor_id_in_data
 
@@ -4960,7 +4960,7 @@ PetscErrorCode TDyMeshReadGeometry(TDyMesh *mesh, const char* filename) {
       if (!face_found && cells->is_local[icell]) {
         // Only stop if the cell is internal and a face is not found
         printf("Not found icell == %d; iface == %d; neighbor_id_in_data = %d; rank = %d\n",icell,iface,neighbor_id_in_data,rank);
-        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "ReadMeshGeometricAttributes: Face not found");
+        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB, "TDyMeshReadGeometry: Face not found");
       } else {
 
         // col 7: Save face area
