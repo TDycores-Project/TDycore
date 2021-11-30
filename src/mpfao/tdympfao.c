@@ -612,13 +612,15 @@ static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
   ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->K)); CHKERRQ(ierr);
   ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->K0)); CHKERRQ(ierr);
   ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->porosity)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->rho_soil)); CHKERRQ(ierr);
   if (MaterialPropHasThermalConductivity(matprop)) {
     ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->Kappa)); CHKERRQ(ierr);
     ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->Kappa0)); CHKERRQ(ierr);
   }
   if (MaterialPropHasSoilSpecificHeat(matprop)) {
     ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->c_soil)); CHKERRQ(ierr);
+  }
+  if (MaterialPropHasSoilDensity(matprop)) {
+    ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->rho_soil)); CHKERRQ(ierr);
   }
 
   // Characteristic curve values
@@ -689,7 +691,6 @@ static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
   ierr = MaterialPropComputePermeability(matprop, nc, mpfao->X, mpfao->K0); CHKERRQ(ierr);
   memcpy(mpfao->K, mpfao->K0, 9*nc*sizeof(PetscReal));
   ierr = MaterialPropComputePorosity(matprop, nc, mpfao->X, mpfao->porosity); CHKERRQ(ierr);
-  ierr = MaterialPropComputeSoilDensity(matprop, nc, mpfao->X, mpfao->rho_soil); CHKERRQ(ierr);
   ierr = MaterialPropComputeResidualSaturation(matprop, nc, mpfao->X, mpfao->Sr); CHKERRQ(ierr);
   if (MaterialPropHasThermalConductivity(matprop)) {
     ierr = MaterialPropComputeThermalConductivity(matprop, nc, mpfao->X, mpfao->Kappa); CHKERRQ(ierr);
@@ -697,6 +698,9 @@ static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
   }
   if (MaterialPropHasSoilSpecificHeat(matprop)) {
     ierr = MaterialPropComputeSoilSpecificHeat(matprop, nc, mpfao->X, mpfao->c_soil); CHKERRQ(ierr);
+  }
+  if (MaterialPropHasSoilDensity(matprop)) {
+    ierr = MaterialPropComputeSoilDensity(matprop, nc, mpfao->X, mpfao->rho_soil); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
@@ -2383,9 +2387,8 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
 
   PetscReal *t_vec_ptr;
   ierr = VecGetArray(mpfao->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
-  for (PetscInt c=cStart; c<cEnd; c++) {
-    PetscInt i = c-cStart;
-    t_vec_ptr[i] = temp[i];
+  for (PetscInt c=0; c<nc; c++) {
+    t_vec_ptr[c] = temp[c];
   }
   ierr = VecRestoreArray(mpfao->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
   PetscFunctionReturn(0);

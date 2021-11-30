@@ -690,30 +690,31 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
   TDyMesh *mesh = mpfao->mesh;
   TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
-  PetscInt dim, ncells;
+  PetscInt dim;
   PetscInt p_bnd_idx, cell_id, iface;
-  PetscReal *p, *p_vec_ptr, *u_p;
+  PetscReal *p_vec_ptr, *u_p;
   PetscInt c, cStart, cEnd;
   Conditions *conditions = tdy->conditions;
 
   PetscFunctionBegin;
 
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&p);CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = VecGetArray(mpfao->P_vec,&p_vec_ptr); CHKERRQ(ierr);
 
+  PetscInt ncells = mesh->num_cells;
+  PetscReal p[ncells];
   if (mpfao->Temp_subc_Gmatrix) { // TH
-    for (c=0;c<cEnd-cStart;c++) {
+    for (c=0;c<ncells;c++) {
       p[c] = u_p[c*2];
     }
   }
   else {
-    for (c=0;c<cEnd-cStart;c++) p[c] = u_p[c];
+    for (c=0;c<ncells;c++)
+      p[c] = u_p[c];
   }
 
-  ncells = mesh->num_cells;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
@@ -755,25 +756,24 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
   TDyMesh *mesh = mpfao->mesh;
   TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
-  PetscInt dim, ncells;
+  PetscInt dim;
   PetscInt t_bnd_idx, cell_id, iface;
-  PetscReal *t, *t_vec_ptr, *u_p;
+  PetscReal *t_vec_ptr, *u_p;
   PetscInt c, cStart, cEnd;
   Conditions *conditions = tdy->conditions;
 
   PetscFunctionBegin;
 
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&t);CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = VecGetArray(mpfao->Temp_P_vec,&t_vec_ptr); CHKERRQ(ierr);
 
-  for (c=0;c<cEnd-cStart;c++) {
+  PetscInt ncells = mesh->num_cells;
+  PetscReal t[ncells];
+  for (c=0;c<ncells;c++) {
     t[c] = u_p[c*2+1];
   }
-
-  ncells = mesh->num_cells;
 
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
 
