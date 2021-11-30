@@ -61,6 +61,12 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     }
   }
 
+  if (!MaterialPropHasResidualSaturation(tdy->matprop)) {
+    ierr = MaterialPropSetConstantResidualSaturation(tdy->matprop,
+                                                     tdy->options.residual_saturation);
+    CHKERRQ(ierr);
+  }
+
   if (tdy->options.mode == TH) {
 
     if (!MaterialPropHasThermalConductivity(tdy->matprop)) {
