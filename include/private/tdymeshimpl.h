@@ -198,8 +198,9 @@ typedef struct TDyMesh {
 PETSC_INTERN PetscErrorCode TDyMeshCreate(DM,PetscReal*,PetscReal*,PetscReal*,TDyMesh**);
 PETSC_INTERN PetscErrorCode TDyMeshDestroy(TDyMesh*);
 
-PETSC_INTERN PetscErrorCode TDyMeshReadGeometry(TDyMesh*,const char*);
-PETSC_INTERN PetscErrorCode TDyMeshWriteGeometry(TDyMesh*,const char*);
+// These don't work, and we'll likely get rid of them.
+//PETSC_INTERN PetscErrorCode TDyMeshReadGeometry(TDyMesh*,const char*);
+//PETSC_INTERN PetscErrorCode TDyMeshWriteGeometry(TDyMesh*,const char*);
 
 PETSC_INTERN PetscErrorCode TDyMeshGetNumLocalCells(TDyMesh*,PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetLocalCellNaturalIDs(TDyMesh*,PetscInt*,PetscInt[]);

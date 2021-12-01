@@ -14,9 +14,10 @@ typedef struct TDyMPFAO {
   PetscInt gmatrix_method;
   PetscInt bc_type;
   PetscReal vangenuchten_m, vangenuchten_alpha, mualem_poly_low;
-  PetscBool output_geom_attributes;
-  PetscBool read_geom_attributes;
-  char geom_attributes_file[PETSC_MAX_PATH_LEN];
+  // TODO: Remove these when we're ready.
+  // PetscBool output_geom_attributes;
+  // PetscBool read_geom_attributes;
+  // char geom_attributes_file[PETSC_MAX_PATH_LEN];
 
   // Mesh information
   TDyMesh *mesh;

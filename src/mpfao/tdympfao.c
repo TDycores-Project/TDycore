@@ -480,6 +480,7 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
   if (flag && (bctype != mpfao->bc_type)) {
     mpfao->bc_type = bctype;
   }
+  /* TODO: geometric attribute reading/writing is broken
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_output_geo_attributes",
       mpfao->geom_attributes_file,sizeof(mpfao->geom_attributes_file),
       &mpfao->output_geom_attributes); CHKERRQ(ierr);
@@ -489,6 +490,7 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
   if (mpfao->output_geom_attributes && mpfao->read_geom_attributes){
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Only one of -tdy_output_geom_attributes and -tdy_read_geom_attributes can be specified");
   }
+  */
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Set characteristic curve data.
@@ -569,6 +571,8 @@ static PetscErrorCode CreateMesh(TDyMPFAO *mpfao, DM dm) {
   // Create the mesh.
   ierr = TDyMeshCreate(dm, mpfao->V, mpfao->X, mpfao->N, &mpfao->mesh);
 
+/* TODO: this stuff doesn't work with the new mesh construction process, and
+ * TODO: I'm not sure we still need it. -JNJ
   // Read/write connectivity and geometry data if requested.
   if (mpfao->read_geom_attributes) {
     ierr = TDyMeshReadGeometry(mpfao->mesh, mpfao->geom_attributes_file); CHKERRQ(ierr);
@@ -579,6 +583,7 @@ static PetscErrorCode CreateMesh(TDyMPFAO *mpfao, DM dm) {
     ierr = TDyMeshWriteGeometry(mpfao->mesh, mpfao->geom_attributes_file); CHKERRQ(ierr);
     mpfao->output_geom_attributes = 0;
   }
+*/
 
   ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
   ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscReal),

@@ -4794,6 +4794,7 @@ PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh *mesh,
   return 0;
 }
 
+#if 0
 /// Reads a geometric attribute file. Currently only PETSc binary file format
 /// is supported
 ///
@@ -4980,7 +4981,6 @@ PetscErrorCode TDyMeshReadGeometry(TDyMesh *mesh, const char* filename) {
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
 /// Outputs geometric attribues of mesh to a file. Currently only PETSc binary
 /// file format is supported.
 ///
@@ -5121,4 +5121,5 @@ PetscErrorCode TDyMeshWriteGeometry(TDyMesh *mesh, const char* filename) {
 
   PetscFunctionReturn(0);
 }
+#endif
 
