@@ -738,21 +738,22 @@ static PetscErrorCode SetFields(DM dm, PetscInt num_fields,
     total_num_dof += num_field_dof[f];
   }
 
-  PetscInt pStart, pEnd;
-  ierr = DMPlexGetHeightStratum(dm,0,&pStart,&pEnd); CHKERRQ(ierr);
-  ierr = PetscSectionSetChart(sec,pStart,pEnd); CHKERRQ(ierr);
+  // Create a chart on cells.
+  PetscInt cStart, cEnd;
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscSectionSetChart(sec,cStart,cEnd); CHKERRQ(ierr);
 
-  // Assign degrees of freedom to each field and mesh point.
-  for(PetscInt p=pStart; p<pEnd; p++) {
+  // Assign degrees of freedom to each field on each cell.
+  for(PetscInt c=cStart; c<cEnd; c++) {
     for (PetscInt f = 0; f < num_fields; ++f) {
-      ierr = PetscSectionSetFieldDof(sec,p,f, num_field_dof[f]); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldDof(sec, c, f, num_field_dof[f]); CHKERRQ(ierr);
     }
-    ierr = PetscSectionSetDof(sec, p, total_num_dof); CHKERRQ(ierr);
+    ierr = PetscSectionSetDof(sec, c, total_num_dof); CHKERRQ(ierr);
   }
 
   // Assign the section to the DM.
   ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
-  ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
+  ierr = DMSetLocalSection(dm,sec); CHKERRQ(ierr);
   ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view"); CHKERRQ(ierr);
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
 
@@ -2422,8 +2423,7 @@ PetscErrorCode TDyComputeErrorNorms_MPFAO(void *context, DM dm, Conditions *cond
   if (p_norm) {
 
     ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
-    ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
-    ierr = DMGlobalToLocalEnd(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+    ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
     ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
 
     PetscReal norm_sum = 0.0;

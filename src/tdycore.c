@@ -671,15 +671,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   // Create characteristic curves.
   ierr = CharacteristicCurvesCreate(&tdy->cc); CHKERRQ(ierr);
 
-  // If we have been instructed to initialize the solution from a file, do so.
-  if (options->init_from_file) {
-    ierr = TDyCreateVectors(tdy); CHKERRQ(ierr);
-    PetscViewer viewer;
-    ierr = PetscViewerBinaryOpen(comm, options->init_file, FILE_MODE_READ,
-                                 &viewer); CHKERRQ(ierr);
-    ierr = VecLoad(tdy->solution, viewer); CHKERRQ(ierr);
-    ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  }
   PetscFunctionReturn(0);
 }
 
@@ -1570,7 +1561,7 @@ PetscErrorCode TDyCreateVectors(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   if (tdy->solution == NULL) {
-    ierr = TDyCreateGlobalVector(tdy,&tdy->solution); CHKERRQ(ierr);
+    ierr = DMCreateGlobalVector(tdy->dm,&tdy->solution); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->solution,&tdy->residual); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->solution,&tdy->accumulation_prev); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->solution,&tdy->soln_prev); CHKERRQ(ierr);

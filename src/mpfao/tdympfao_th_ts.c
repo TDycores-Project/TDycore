@@ -172,13 +172,19 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
 #endif
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
+//  printf("Ulocal = ");
+//  for (PetscInt c = 0; c < mpfao->mesh->num_cells; ++c) {
+//    printf("%g %g ", u_p[2*c], u_p[2*c+1]);
+//  }
+//  printf("\n");
   ierr = TDyUpdateState(tdy,u_p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyMPFAO_SetBoundaryTemperature(tdy,Ul); CHKERRQ(ierr);
@@ -215,6 +221,7 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&p);CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
 
+  ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   for (c=0;c<cEnd-cStart;c++) {
     dp_dt[c]    = du_dt[c*2];
     p[c]        = u_p[c*2];
@@ -855,8 +862,8 @@ PetscErrorCode TDyMPFAOIJacobian_TH(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal sh
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm,&Udotl); CHKERRQ(ierr);
 
-  ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U_t,Udotl); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dm,U_t,INSERT_VALUES,Udotl); CHKERRQ(ierr);
 
   ierr = TDyMPFAOIJacobian_Vertices_TH(Ul,B,ctx);
   ierr = TDyMPFAOIJacobian_Accumulation_TH(Ul,Udotl,shift,B,ctx);

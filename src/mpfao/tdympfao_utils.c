@@ -133,7 +133,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDy tdy, Vec U, PetscRea
 
   // TODO: Save localU
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U,localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
 
   Conditions *conditions = tdy->conditions;
@@ -251,7 +251,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
   // TODO: Save localU
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U,localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
 
   Conditions* conditions = tdy->conditions;
@@ -564,7 +564,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
 
   // TODO: Save localU
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U,localU); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
