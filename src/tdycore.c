@@ -203,7 +203,7 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   options->enthalpy_type = WATER_ENTHALPY_CONSTANT;
 
   options->mpfao_gmatrix_method = MPFAO_GMATRIX_DEFAULT;
-  options->mpfao_bc_type = MPFAO_DIRICHLET_BC;
+  options->mpfao_bc_type = MPFAO_NEUMANN_BC; //MPFAO_DIRICHLET_BC;
   options->tpf_allow_all_meshes = PETSC_FALSE;
 
   options->qtype = FULL;
@@ -212,9 +212,9 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   options->permeability=1.e-12;
   options->soil_density=2650.;
   options->soil_specific_heat=1000.0;
-  options->thermal_conductivity=1.0;
+  options->thermal_conductivity=1.e-4;
   options->molecular_weight = 58.44;
-  options->diffusion = 1.e-8;
+  options->diffusion = 1.e-6;
 
   options->residual_saturation=0.15;
   options->gardner_n=0.5;
@@ -1228,6 +1228,8 @@ ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"P_veca4.vec",&viewer); CHKERRQ(ier
         psi_vec_ptr[i] = Psi[i];
       }
       ierr = VecRestoreArray(tdy->Psi_vec, &psi_vec_ptr); CHKERRQ(ierr);
+      break;
+    case RICHARDS: ;
       break;
     }
   }
