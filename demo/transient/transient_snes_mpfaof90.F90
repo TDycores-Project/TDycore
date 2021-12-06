@@ -14,16 +14,16 @@ contains
      integer                :: dummy(*)
      PetscErrorCode :: ierr
 
-     theta = 0.115d0
+     theta = 0.25d0
      ierr = 0
    end subroutine PorosityFunction
 
    subroutine Permeability(K)
      implicit none
      PetscReal, intent(out) :: K(9)
-      K(1) = 1.0d-10; K(2) = 0.0    ; K(3) = 0.0    ;
-      K(4) = 0.0    ; K(5) = 1.0d-10; K(6) = 0.0    ;
-      K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 1.0d-10;
+      K(1) = 1.0d-12; K(2) = 0.0    ; K(3) = 0.0    ;
+      K(4) = 0.0    ; K(5) = 1.0d-12; K(6) = 0.0    ;
+      K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 1.0d-13;
    end subroutine
 
    subroutine PermeabilityFunction(tdy,x,K,dummy,ierr)
@@ -54,7 +54,7 @@ contains
     integer                :: dummy(*)
     PetscErrorCode :: ierr
 
-    theta = 0.3d0
+    theta = 0.25d0
     ierr  = 0
   end subroutine PorosityFunctionPFLOTRAN
 
@@ -82,19 +82,19 @@ contains
   subroutine MaterialPropAlpha_PFLOTRAN(alpha)
     implicit none
     PetscReal, intent(out) :: alpha
-    alpha = 1.d-4
+    alpha = 1.9401d-4
   end subroutine MaterialPropAlpha_PFLOTRAN
 
   subroutine MaterialPropM_PFLOTRAN(m)
     implicit none
     PetscReal, intent(out) :: m
-    m = 0.3d0
+    m = 0.286d0
   end subroutine MaterialPropM_PFLOTRAN
 
   subroutine ResidualSat_PFLOTRAN(resSat)
     implicit none
     PetscReal resSat
-    resSat = 0.1d0
+    resSat = 0.115d0
   end subroutine ResidualSat_PFLOTRAN
 
   subroutine PressureFunction(tdy,x,pressure,dummy,ierr)
@@ -427,10 +427,10 @@ implicit none
           call PetscError(PETSC_COMM_WORLD, 0, PETSC_ERR_USER, "SNES did not converge");
        endif
 
-       call TDyPostSolve(tdy,U,ierr);
-       CHKERRA(ierr);
     endif
 
+    call TDyPostSolve(tdy,U,ierr);
+    CHKERRA(ierr);
 
     call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)
     CHKERRA(ierr);
