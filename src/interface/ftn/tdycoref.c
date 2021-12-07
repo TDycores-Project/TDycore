@@ -30,7 +30,6 @@
 #define tdycreatejacobian_                             TDYCREATEJACOBIAN
 #define tdysetdtimeforsnessolver_                      TDYSETDTIMEFORSNESSOLVER
 #define tdysetinitialcondition_                        TDYSETINITIALCONDITION
-#define tdysetprevioussolutionforsnessolver_           TDYSETPREVIOUSSOLUTIONFORSNESSOLVER
 #define tdypresolvesnessolver_                         TDYSETPRESOLVESNESSOLVER
 #define _                        TDYSETPOSTSOLVESNESSOLVER
 #define tdycomputesystem_                              TDYCOMPUTESYSTEM
@@ -92,7 +91,6 @@
 #define tdycreatejacobian_                             tdycreatejacobian
 #define tdysetdtimeforsnessolver_                      tdysetdtimeforsnessolver
 #define tdysetinitialcondition_                        tdysetinitialcondition
-#define tdysetprevioussolutionforsnessolver_           tdysetprevioussolutionforsnessolver
 #define tdypresolvesnessolver_                         tdypresolvesnessolver
 #define tdypostsolve_                                  tdypostsolve
 #define tdycomputesystem_                              tdycomputesystem
@@ -355,18 +353,6 @@ extern "C" {
 #endif
 PETSC_EXTERN void  tdysetinitialcondition_(TDy tdy, Vec solution, int *__ierr){
 *__ierr = TDySetInitialCondition(
-  (TDy)PetscToPointer(tdy),
-  (Vec)PetscToPointer(solution));
-}
-#if defined(__cplusplus)
-}
-#endif
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-PETSC_EXTERN void  tdysetprevioussolutionforsnessolver_(TDy tdy, Vec solution, int *__ierr){
-*__ierr = TDySetPreviousSolutionForSNESSolver(
   (TDy)PetscToPointer(tdy),
   (Vec)PetscToPointer(solution));
 }

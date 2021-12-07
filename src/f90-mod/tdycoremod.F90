@@ -413,16 +413,6 @@ module tdycore
   end interface
 
   interface
-     subroutine TDySetPreviousSolutionForSNESSolver(a,b,z)
-       use tdycoredef
-       use petscvec
-       TDy a
-       Vec b
-       integer z
-     end subroutine TDySetPreviousSolutionForSNESSolver
-  end interface
-
-  interface
      subroutine TDyPreSolveSNESSolver(a,z)
        use tdycoredef
        TDy a
