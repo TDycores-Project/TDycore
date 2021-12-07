@@ -726,15 +726,11 @@ static PetscErrorCode SetFields(DM dm, PetscInt num_fields,
   PetscSection sec;
   ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
   ierr = PetscSectionSetNumFields(sec, num_fields); CHKERRQ(ierr);
+  PetscInt total_num_dof = 0; // total number of field dofs/components per point
   for (PetscInt f = 0; f < num_fields; ++f) {
     ierr = PetscSectionSetFieldName(sec, f, field_names[f]); CHKERRQ(ierr);
     // TODO: should we distinguish between field components and dof?
     ierr = PetscSectionSetFieldComponents(sec, f, num_field_dof[f]); CHKERRQ(ierr);
-  }
-
-  // Find the total number of degrees of freedom (per point) across all fields.
-  PetscInt total_num_dof = 0;
-  for (PetscInt f = 0; f < num_fields; ++f) {
     total_num_dof += num_field_dof[f];
   }
 

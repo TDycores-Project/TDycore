@@ -8,7 +8,7 @@
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdydiscretization.h>
 
-//#define DEBUG
+#define DEBUG
 #if defined(DEBUG)
 PetscInt icount_f = 0;
 PetscInt icount_j = 0;
@@ -173,16 +173,22 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
+#if defined(DEBUG)
+  sprintf(word,"Ul%d.vec",icount_f);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
+  ierr = VecView(Ul,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
 
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
-//  printf("Ulocal = ");
-//  for (PetscInt c = 0; c < mpfao->mesh->num_cells; ++c) {
-//    printf("%g %g ", u_p[2*c], u_p[2*c+1]);
-//  }
-//  printf("\n");
+  printf("Ulocal = ");
+  for (PetscInt c = 0; c < mpfao->mesh->num_cells; ++c) {
+    printf("%g %g ", u_p[2*c], u_p[2*c+1]);
+  }
+  printf("\n");
   ierr = TDyUpdateState(tdy,u_p); CHKERRQ(ierr);
   ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
 
