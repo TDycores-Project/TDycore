@@ -167,8 +167,30 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   char word[32];
   sprintf(word,"U%d.vec",icount_f);
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
-  ierr = VecView(U,viewer);
+  ierr = VecView(U,viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscSection sec;
+  sprintf(word,"glob_sec%d.vec",icount_f);
+  ierr = DMGetGlobalSection(dm, &sec); CHKERRQ(ierr);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
+  ierr = PetscSectionView(sec, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  sprintf(word,"loc_sec%d.vec",icount_f);
+  ierr = DMGetLocalSection(dm, &sec); CHKERRQ(ierr);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
+  ierr = PetscSectionView(sec, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscSF sf;
+  sprintf(word,"sec_sf%d.vec",icount_f);
+  ierr = DMGetSectionSF(dm, &sf); CHKERRQ(ierr);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
+  ierr = PetscSFView(sf, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  ierr = DMGetLocalSection(dm, &sec); CHKERRQ(ierr);
 #endif
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);

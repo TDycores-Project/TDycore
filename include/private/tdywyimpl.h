@@ -50,6 +50,7 @@ typedef struct TDyWY {
 PETSC_INTERN PetscErrorCode TDyCreate_WY(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_WY(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_WY(void*, TDyOptions*);
+PETSC_INTERN PetscErrorCode TDySetDMFields_WY(void*,DM);
 PETSC_INTERN PetscErrorCode TDySetup_WY(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,Conditions*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_WY(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,PetscReal*);
 PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_WY(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);

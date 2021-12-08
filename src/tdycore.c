@@ -443,34 +443,12 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
-  if (!viewer) {ierr = PetscViewerASCIIGetStdout(((PetscObject)tdy)->comm,&viewer); CHKERRQ(ierr);}
+  if (!viewer) {
+    ierr = PetscViewerASCIIGetStdout(((PetscObject)tdy)->comm,&viewer);
+    CHKERRQ(ierr);
+  }
   PetscValidHeaderSpecific(viewer,PETSC_VIEWER_CLASSID,2);
   PetscCheckSameComm(tdy,1,viewer,2);
-  PetscFunctionReturn(0);
-}
-
-static PetscErrorCode DistributeDM(DM *dm) {
-  DM dmDist;
-  PetscErrorCode ierr;
-
-  /* Define 1 DOF on cell center of each cell */
-  PetscInt dim;
-  PetscFE fe;
-  ierr = DMGetDimension(*dm, &dim); CHKERRQ(ierr);
-  ierr = PetscFECreateDefault(PETSC_COMM_SELF, dim, 1, PETSC_FALSE, "p_", -1, &fe); CHKERRQ(ierr);
-  ierr = PetscObjectSetName((PetscObject) fe, "p");CHKERRQ(ierr);
-  ierr = DMSetField(*dm, 0, NULL, (PetscObject)fe); CHKERRQ(ierr);
-  ierr = DMCreateDS(*dm); CHKERRQ(ierr);
-  ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
-  ierr = DMSetUseNatural(*dm, PETSC_TRUE); CHKERRQ(ierr);
-
-  ierr = DMPlexDistribute(*dm, 1, NULL, &dmDist); CHKERRQ(ierr);
-  if (dmDist) {
-    DMDestroy(dm); CHKERRQ(ierr);
-    *dm = dmDist;
-  }
-  ierr = DMSetFromOptions(*dm); CHKERRQ(ierr);
-  ierr = DMViewFromOptions(*dm, NULL, "-dm_view"); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -648,8 +626,22 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
       // Here we lean on PETSc's DM* options for overrides.
       ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
     }
+
+    // Set up fields on the DM.
+    ierr = tdy->ops->set_dm_fields(tdy->context, dm); CHKERRQ(ierr);
+
+    // Set up a natural -> global ordering on the DM.
+    ierr = DMSetUseNatural(dm, PETSC_TRUE); CHKERRQ(ierr);
+
     // Distribute the mesh, however we got it.
-    ierr = DistributeDM(&dm); CHKERRQ(ierr);
+    DM dm_dist;
+    ierr = DMPlexDistribute(dm, 1, NULL, &dm_dist); CHKERRQ(ierr);
+    if (dm_dist) {
+      DMDestroy(&dm); CHKERRQ(ierr);
+      dm = dm_dist;
+    }
+    ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
+    ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
     tdy->dm = dm;
   }
 
@@ -766,6 +758,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
+      tdy->ops->set_dm_fields = TDySetDMFields_Richards_MPFAO;
       tdy->ops->setup = TDySetup_Richards_MPFAO;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
@@ -774,6 +767,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
+      tdy->ops->set_dm_fields = TDySetDMFields_Richards_MPFAO_DAE;
       tdy->ops->setup = TDySetup_Richards_MPFAO_DAE;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
@@ -782,7 +776,8 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
-      tdy->ops->setup = TDySetup_Richards_MPFAO_TRANSIENTVAR;
+      tdy->ops->set_dm_fields = TDySetDMFields_Richards_MPFAO;
+      tdy->ops->setup = TDySetup_Richards_MPFAO;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
       tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
@@ -791,12 +786,14 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->destroy = TDyDestroy_BDM;
       tdy->ops->set_from_options = TDySetFromOptions_BDM;
       tdy->ops->setup = TDySetup_BDM;
+      tdy->ops->set_dm_fields = TDySetDMFields_BDM;
       tdy->ops->update_state = NULL; // FIXME: ???
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_BDM;
     } else if (discretization == WY) {
       tdy->ops->create = TDyCreate_WY;
       tdy->ops->destroy = TDyDestroy_WY;
       tdy->ops->set_from_options = TDySetFromOptions_WY;
+      tdy->ops->set_dm_fields = TDySetDMFields_WY;
       tdy->ops->setup = TDySetup_WY;
       tdy->ops->update_state = TDyUpdateState_WY;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_WY;
@@ -808,6 +805,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
+      tdy->ops->set_dm_fields = TDySetDMFields_TH_MPFAO;
       tdy->ops->setup = TDySetup_TH_MPFAO;
       tdy->ops->update_state = TDyUpdateState_TH_MPFAO;
       tdy->ops->get_saturation = TDyGetSaturation_MPFAO;

@@ -759,6 +759,34 @@ static PetscErrorCode SetFields(DM dm, PetscInt num_fields,
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetDMFields_Richards_MPFAO(void *context, DM dm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  // Set up the section, 1 dof per cell
+  ierr = SetFields(dm, 1, (const char*[1]){"LiquidPressure"}, (PetscInt[1]){1});
+  CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDMFields_Richards_MPFAO_DAE(void *context, DM dm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  // Set up the section, 2 dofs per cell.
+  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "LiquidMass"},
+                   (PetscInt[2]){1, 1}); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDMFields_TH_MPFAO(void *context, DM dm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  // Set up the section, 2 dofs per cell.
+  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "LiquidTemperature"},
+                   (PetscInt[2]){1, 1}); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 static PetscErrorCode ExtractSubMatrix(PetscReal **M, PetscInt rStart, PetscInt rEnd,
                                        PetscInt cStart, PetscInt cEnd, PetscReal **Msub){
 
@@ -2067,10 +2095,6 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 
-  // Set up the section, 1 dof per cell
-  ierr = SetFields(dm, 1, (const char*[1]){"LiquidPressure"}, (PetscInt[1]){1});
-  CHKERRQ(ierr);
-
   // Gather mesh data.
   {
     PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
@@ -2123,10 +2147,6 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 
-  // Set up the section, 2 dofs per cell.
-  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "LiquidMass"},
-                   (PetscInt[2]){1, 1}); CHKERRQ(ierr);
-
   // Gather mesh data.
   {
     PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
@@ -2162,20 +2182,6 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
   ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
 }
 
-// Setup function for Richards + MPFA_O_TRANSIENTVAR
-PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void *context, DM dm,
-                                                    EOS *eos,
-                                                    MaterialProp *matprop,
-                                                    CharacteristicCurves *cc,
-                                                    Conditions* conditions) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  // This is essentially the same as the Richards one.
-  ierr = TDySetup_Richards_MPFAO(context, dm, eos, matprop, cc, conditions);
-  PetscFunctionReturn(0);
-}
-
 // Setup function for TH + MPFA-O
 PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
                                  MaterialProp *matprop,
@@ -2189,10 +2195,6 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
   ierr = ComputeGeometry(mpfao, dm); CHKERRQ(ierr);
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
-
-  // Set up the section, 2 dofs per cell.
-  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "LiquidTemperature"},
-                   (PetscInt[2]){1, 1}); CHKERRQ(ierr);
 
   // Gather mesh data.
   {

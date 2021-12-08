@@ -46,7 +46,14 @@ struct _TDyOps {
   // command-line arguments (and possibly already-parsed options.
   PetscErrorCode (*set_from_options)(void*, TDyOptions*);
 
-  // Called by TDySetup -- configures the DM for solvers.
+  // Sets up fields on the given DM. This process can involve a PetscFE object
+  // or a PetscSection, for example. This is called by TDySetFromOptions just
+  // before the DM is distributed across processes.
+  PetscErrorCode (*set_dm_fields)(void*, DM);
+
+  // Called by TDySetup -- configures the DM for solvers. By the time this
+  // function is called, the DM has its field layout defined and has been
+  // distributed across processes.
   PetscErrorCode (*setup)(void*, DM, EOS*, MaterialProp*,
                           CharacteristicCurves*, Conditions*);
 

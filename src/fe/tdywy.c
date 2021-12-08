@@ -293,6 +293,23 @@ PetscErrorCode TDySetFromOptions_WY(void *context, TDyOptions *options) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetDMFields_WY(void *context, DM dm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  // Define 1 DOF on cell center of each cell
+  PetscInt dim;
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  PetscFE fe;
+  ierr = PetscFECreateDefault(PETSC_COMM_SELF, dim, 1, PETSC_FALSE, "p_", -1, &fe); CHKERRQ(ierr);
+  ierr = PetscObjectSetName((PetscObject) fe, "p");CHKERRQ(ierr);
+  ierr = DMSetField(dm, 0, NULL, (PetscObject)fe); CHKERRQ(ierr);
+  ierr = DMCreateDS(dm); CHKERRQ(ierr);
+  ierr = PetscFEDestroy(&fe); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
                            MaterialProp *matprop, CharacteristicCurves *cc,
                            Conditions* conditions) {
