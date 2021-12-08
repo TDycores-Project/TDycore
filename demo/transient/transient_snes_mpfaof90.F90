@@ -63,7 +63,7 @@ contains
     PetscReal, intent(out) :: K(9)
     K(1) = 1.0d-12; K(2) = 0.0    ; K(3) = 0.0    ;
     K(4) = 0.0    ; K(5) = 1.0d-12; K(6) = 0.0    ;
-    K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 5.0d-13;
+    K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 1.0d-13;
   end subroutine Permeability_PFLOTRAN
 
   subroutine PermeabilityFunctionPFLOTRAN(tdy,x,K,dummy,ierr)
@@ -177,6 +177,7 @@ implicit none
   successful_exit_code= 0
   max_steps = 2
   dtime = 1800.d0
+  dtime = 1.d-7
   ic_value = 102325.d0
   pflotran_consistent = PETSC_FALSE
   bc_type = MPFAO_NEUMANN_BC
@@ -414,7 +415,7 @@ implicit none
        call TDyTimeIntegratorSetTimeStep(tdy,1800.d0, ierr);
        CHKERRA(ierr);
 
-       call TDyTimeIntegratorRunToTime(tdy,1800.d0 * step, ierr);
+       call TDyTimeIntegratorRunToTime(tdy,dtime * step, ierr);
        CHKERRA(ierr);
 
     else
