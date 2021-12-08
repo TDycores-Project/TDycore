@@ -8,7 +8,7 @@
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdydiscretization.h>
 
-#define DEBUG
+//#define DEBUG
 #if defined(DEBUG)
 PetscInt icount_f = 0;
 PetscInt icount_j = 0;
@@ -169,28 +169,6 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-  PetscSection sec;
-  sprintf(word,"glob_sec%d.vec",icount_f);
-  ierr = DMGetGlobalSection(dm, &sec); CHKERRQ(ierr);
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
-  ierr = PetscSectionView(sec, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-  sprintf(word,"loc_sec%d.vec",icount_f);
-  ierr = DMGetLocalSection(dm, &sec); CHKERRQ(ierr);
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
-  ierr = PetscSectionView(sec, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-  PetscSF sf;
-  sprintf(word,"sec_sf%d.vec",icount_f);
-  ierr = DMGetSectionSF(dm, &sf); CHKERRQ(ierr);
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
-  ierr = PetscSFView(sf, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-  ierr = DMGetLocalSection(dm, &sec); CHKERRQ(ierr);
 #endif
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
@@ -206,11 +184,6 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
 
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
-  printf("Ulocal = ");
-  for (PetscInt c = 0; c < mpfao->mesh->num_cells; ++c) {
-    printf("%g %g ", u_p[2*c], u_p[2*c+1]);
-  }
-  printf("\n");
   ierr = TDyUpdateState(tdy,u_p); CHKERRQ(ierr);
   ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
 
