@@ -890,7 +890,7 @@ PetscErrorCode ComputeUpAndDownDist(TDy tdy, PetscInt face_id, PetscReal *dist_u
 /// @param [in] face_id ID of the face
 /// @param [out] *Kface_value Permeability value at the face
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode ComputeFacePeremabilityValue_TPF(TDy tdy, PetscInt dim, PetscInt face_id, PetscReal *Kface_value) {
+PetscErrorCode ComputeFacePeremabilityValueTPF(TDy tdy, PetscInt dim, PetscInt face_id, PetscReal *Kface_value) {
 
   PetscFunctionBegin;
 
@@ -1011,7 +1011,7 @@ PetscErrorCode TDyComputeGMatrixTPF(TDy tdy) {
             ierr = TDyDotProduct(normal,normal_up2dn,&dot_prod); CHKERRQ(ierr);
 
             PetscReal Kface;
-            ierr = ComputeFacePeremabilityValue_TPF(tdy, dim, face_id, &Kface); CHKERRQ(ierr);
+            ierr = ComputeFacePeremabilityValueTPF(tdy, dim, face_id, &Kface); CHKERRQ(ierr);
 
             tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * Kface/(dist);
           }
@@ -2212,10 +2212,17 @@ PetscErrorCode TDyComputeGravityDiscretization(TDy tdy) {
           break;
 
       case MPFAO_GMATRIX_TPF:
-        ierr = ComputeFacePeremabilityValueMPFAO(tdy, dim, face_id, &k_face_value); CHKERRQ(ierr);
+        ierr = ComputeFacePeremabilityValueTPF(tdy, dim, face_id, &k_face_value); CHKERRQ(ierr);
+
+        PetscReal n_face[dim], dot_prod;
+        ierr = TDyFace_GetNormal(faces, face_id, dim, &n_face[0]); CHKERRQ(ierr);
+
+        // dot product between face normal and unit vector along up-down cell
+        ierr = TDyDotProduct(n_face, u_up2dn, &dot_prod); CHKERRQ(ierr);
+
+        area *= dot_prod;
         break;
       }
-
 
       // dot(g, u_up2dn)
       PetscReal dot_prod_2;
