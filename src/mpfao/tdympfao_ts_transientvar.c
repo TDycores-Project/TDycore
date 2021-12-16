@@ -1,10 +1,10 @@
 #include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
+#include <private/tdympfaoimpl.h>
 #include <private/tdyutils.h>
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
-#include <private/tdympfaoutilsimpl.h>
 #include <private/tdydiscretization.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfaotsimpl.h>
@@ -13,7 +13,8 @@
 PetscErrorCode TDyMPFAOTransientVariable(TS ts, Vec U, Vec C, void *ctx) {
 
   TDy            tdy = (TDy)ctx;
-  TDyMesh       *mesh = tdy->mesh;
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
   DM             dm;
   Vec            Ul;
@@ -23,9 +24,6 @@ PetscErrorCode TDyMPFAOTransientVariable(TS ts, Vec U, Vec C, void *ctx) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-
-    CharacteristicCurve *cc = tdy->cc;
-  MaterialProp *matprop = tdy->matprop;
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
@@ -38,7 +36,7 @@ PetscErrorCode TDyMPFAOTransientVariable(TS ts, Vec U, Vec C, void *ctx) {
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
-  ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
+  ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
 
   ierr = VecGetArray(C,&c); CHKERRQ(ierr);
 
@@ -46,7 +44,7 @@ PetscErrorCode TDyMPFAOTransientVariable(TS ts, Vec U, Vec C, void *ctx) {
 
     if (!cells->is_local[icell]) continue;
 
-    c[icell] = tdy->rho[icell] * matprop->porosity[icell] * cc->S[icell]* cells->volume[icell];
+    c[icell] = mpfao->rho[icell] * mpfao->porosity[icell] * mpfao->S[icell]* cells->volume[icell];
   }
 
   ierr = VecRestoreArray(C,&c); CHKERRQ(ierr);
@@ -59,7 +57,8 @@ PetscErrorCode TDyMPFAOTransientVariable(TS ts, Vec U, Vec C, void *ctx) {
 PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS ts,PetscReal t,Vec U,Vec M_t,Vec R,void *ctx) {
 
   TDy            tdy = (TDy)ctx;
-  TDyMesh        *mesh = tdy->mesh;
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh        *mesh = mpfao->mesh;
   TDyCell        *cells = &mesh->cells;
   DM             dm;
   Vec            Ul;
@@ -69,7 +68,6 @@ PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS ts,PetscReal t,Vec U,Vec M
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
@@ -84,8 +82,8 @@ PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS ts,PetscReal t,Vec U,Vec M
   ierr = VecRestoreArray(Ul,&p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
-  ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
-  ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
+  ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
+  ierr = MatMult(mpfao->Trans_mat, mpfao->P_vec, mpfao->TtimesP_vec);
 
   ierr = TDyMPFAOIFunction_Vertices(Ul,R,ctx); CHKERRQ(ierr);
 
@@ -98,7 +96,7 @@ PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS ts,PetscReal t,Vec U,Vec M
 
     // d(m)/dt * Vol
     r[icell] += dm_dt[icell] * cells->volume[icell];
-    r[icell] -= tdy->source_sink[icell] * cells->volume[icell];
+    r[icell] -= mpfao->source_sink[icell] * cells->volume[icell];
   }
 
   /* Cleanup */

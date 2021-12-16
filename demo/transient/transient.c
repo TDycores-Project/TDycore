@@ -1,23 +1,30 @@
 #include "tdycore.h"
+#include "private/tdyoptions.h"
+#include "private/tdywyimpl.h"
 
-void Porosity(PetscReal *x,PetscReal *theta) {
-  (*theta) = 0.5;
+void Porosity(PetscInt n,PetscReal *x,PetscReal *theta) {
+  for (PetscInt i = 0; i < n; ++i) {
+    theta[i] = 0.5;
+  }
 }
 
-void Permeability(PetscReal *x,PetscReal *K) {
-  (*K) = 1e-10;
+void Permeability(PetscInt n,PetscReal *x,PetscReal *K) {
+  for (PetscInt i = 0; i < n; ++i) {
+    K[i] = 1e-10;
+  }
 }
 
-PetscErrorCode Pressure(TDy tdy,PetscReal *x,PetscReal *p,void *ctx) {
-  (*p) = 91325;
-  PetscFunctionReturn(0);
+void Pressure(PetscInt n,PetscReal *x,PetscReal *p) {
+  for (PetscInt i = 0; i < n; ++i) {
+    p[i] = 91325;
+  }
 }
 
-PetscErrorCode Forcing(TDy tdy,PetscReal *x,PetscReal *f,void *ctx) {
-  (*f) = 0;
-  PetscFunctionReturn(0);
+void Forcing(PetscInt n,PetscReal *x,PetscReal *f) {
+  for (PetscInt i = 0; i < n; ++i) {
+    (*f) = 0;
+  }
 }
-
 
 PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
   PetscErrorCode ierr;
@@ -28,8 +35,8 @@ PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
   PetscScalar *coords;
   PetscInt     v,vStart,vEnd,offset,value,dim;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  /* this is the 'marker' label which marks boundary entities */
-  ierr = DMGetLabelByNum(dm,2,&label); CHKERRQ(ierr);
+  /* this is the 'boundary' label which marks boundary entities */
+  ierr = DMGetLabel(dm,"boundary",&label); CHKERRQ(ierr);
   ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
   ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
@@ -46,10 +53,10 @@ PetscErrorCode PerturbInteriorVertices(DM dm,PetscReal h) {
         coords[offset+1] += r*PetscSinReal(t);
       }
     } else {
-      /* this is because 'marker' is broken in 3D */
+      /* this is because 'boundary' is broken in 3D */ // TODO: maybe not true anymore
       if(coords[offset] > -0.5 && coords[offset] < 0.5 &&
-	 coords[offset+1] > -0.5 && coords[offset+1] < 0.5 &&
-	 coords[offset+2] > -0.5 && coords[offset+2] < 0.5) {
+          coords[offset+1] > -0.5 && coords[offset+1] < 0.5 &&
+          coords[offset+2] > -0.5 && coords[offset+2] < 0.5) {
         coords[offset+2] += (((PetscReal)rand())/((PetscReal)RAND_MAX)-0.5)*h*0.8;
       }
     }
@@ -69,7 +76,8 @@ typedef struct DMOptions {
 // This function creates a DM specifically for this demo. Overrides are applied
 // to the resulting DM with TDySetFromOptions.
 PetscErrorCode CreateDM(MPI_Comm comm, void* context, DM* dm) {
-  int ierr;
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
   DMOptions* options = context;
 
   PetscInt N = options->N;
@@ -82,8 +90,8 @@ PetscErrorCode CreateDM(MPI_Comm comm, void* context, DM* dm) {
     const PetscReal upper[3] = {+0.5,+0.5,+0.5};
     ierr = DMPlexCreateBoxMesh(PETSC_COMM_WORLD,options->dim,PETSC_FALSE,
       faces,lower,upper,NULL,PETSC_TRUE,dm); CHKERRQ(ierr);
-    ierr = PerturbInteriorVertices(*dm,1./N); CHKERRQ(ierr);
   }
+  PetscFunctionReturn(0);
 }
 
 int main(int argc, char **argv) {
@@ -119,16 +127,17 @@ int main(int argc, char **argv) {
   // Apply overrides.
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
-  // View the configured DM.
+  // Perturb the interior mesh points and viѕualize them.
   DM dm;
   TDyGetDM(tdy, &dm);
+  ierr = PerturbInteriorVertices(dm,1./N); CHKERRQ(ierr);
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
   /* Setup problem parameters */
-  ierr = TDySetPorosity(tdy,Porosity); CHKERRQ(ierr);
-  ierr = TDySetPermeabilityScalar(tdy,Permeability); CHKERRQ(ierr);
-  ierr = TDySetForcingFunction(tdy,Forcing,NULL); CHKERRQ(ierr);
-  ierr = TDySetBoundaryPressureFn(tdy,Pressure,NULL); CHKERRQ(ierr);
+  ierr = TDySetPorosityFunction(tdy,Porosity); CHKERRQ(ierr);
+  ierr = TDySetIsotropicPermeabilityFunction(tdy,Permeability); CHKERRQ(ierr);
+  ierr = TDySetForcingFunction(tdy,Forcing); CHKERRQ(ierr);
+  ierr = TDySetBoundaryPressureFunction(tdy,Pressure); CHKERRQ(ierr);
 
   ierr = TDySetup(tdy); CHKERRQ(ierr);
 

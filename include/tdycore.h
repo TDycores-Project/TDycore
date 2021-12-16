@@ -51,13 +51,6 @@ typedef enum {
 PETSC_EXTERN const char *const TDyMPFAOBoundaryConditionTypes[];
 
 typedef enum {
-  LUMPED=0,
-  FULL
-} TDyQuadratureType;
-
-PETSC_EXTERN const char *const TDyQuadratureTypes[];
-
-typedef enum {
   TDySNES=0,
   TDyTS
 } TDyTimeIntegrationMethod;
@@ -71,7 +64,31 @@ typedef enum {
   TDySetupFinished=0x1<<4,
 } TDySetupFlags;
 
-typedef void (*SpatialFunction)(PetscReal *x,PetscReal *f); /* returns f(x) */
+/// A TDyScalarSpatialFunction computes the value of a scalar quantity f at n
+/// points x. Use this type to explicitly indicate that f is a scalar.
+/// Functions of this type accept an integer n for the number of points, an
+/// array x of length dim*n containing the coordinates of the points, and an
+/// array f of length n that stores the resulting n scalar values.
+typedef void (*TDyScalarSpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+
+/// A TDyVectorSpatialFunction computes the value of a vector quantity (or perhaps
+/// a diagonal anisotropic tensor) f at n points x. Use this type to explicitly
+/// indicate that f is a vector. Functions of this type accept an integer n for
+/// the number of points, an array x of length dim*n containing the coordinates
+/// of the points, and an array f of length dim*n that stores the resulting n
+/// vector values.
+typedef void (*TDyVectorSpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+
+/// A TDyTensorSpatialFunction computes the value of a rank-2 tensor quantity f at
+/// n points x. Use this type to explicitly indicate that f is a full tensor.
+/// Functions of this type accept an integer n for the number of points, an
+/// array x of length dim*n containing the coordinates of the points, and an
+/// array f of length dim*dim*n that stores the resulting n tensor values.
+typedef void (*TDyTensorSpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+
+/// A TDySpatialFunction has the same type as the above functions, but can be
+/// used to store any one of them.
+typedef void (*TDySpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
 
 typedef struct _p_TDy *TDy;
 
@@ -86,12 +103,17 @@ PETSC_EXTERN PetscClassId TDY_CLASSID;
 
 PETSC_EXTERN PetscLogEvent TDy_ComputeSystem;
 
-/* ---------------------------------------------------------------- */
+// Process initialization
 PETSC_EXTERN PetscErrorCode TDyInit(int, char*[]);
 PETSC_EXTERN PetscErrorCode TDyInitNoArguments(void);
 PETSC_EXTERN PetscErrorCode TDyOnFinalize(void (*)(void));
 PETSC_EXTERN PetscErrorCode TDyFinalize(void);
 
+// Registry of named functions
+PetscErrorCode TDyRegisterFunction(const char*, TDySpatialFunction);
+PetscErrorCode TDyGetFunction(const char*, TDySpatialFunction*);
+
+// Dycore creation and lifecycle
 PETSC_EXTERN PetscErrorCode TDyCreate(MPI_Comm, TDy*);
 PETSC_EXTERN PetscErrorCode TDySetMode(TDy,TDyMode);
 PETSC_EXTERN PetscErrorCode TDySetDiscretization(TDy,TDyDiscretization);
@@ -102,79 +124,55 @@ PETSC_EXTERN PetscErrorCode TDyDestroy(TDy*);
 PETSC_EXTERN PetscErrorCode TDyView(TDy,PetscViewer);
 
 PETSC_EXTERN PetscErrorCode TDyGetDimension(TDy,PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyGetDiscretization(TDy,TDyDiscretization*);
 PETSC_EXTERN PetscErrorCode TDyGetDM(TDy,DM*);
 PETSC_EXTERN PetscErrorCode TDyGetBoundaryFaces(TDy,PetscInt*, const PetscInt**);
 PETSC_EXTERN PetscErrorCode TDyRestoreBoundaryFaces(TDy,PetscInt*, const PetscInt**);
-PETSC_EXTERN PetscErrorCode TDyGetCentroidArray(TDy,PetscReal**);
-
-PETSC_EXTERN PetscErrorCode TDySetGravityVector(TDy,PetscReal*);
 
 // Set material properties: via PETSc operations
-PETSC_EXTERN PetscErrorCode TDySetPorosityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySetThermalConductivityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySetResidualSaturationFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySetSoilDensityFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeatFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
+PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
+PETSC_EXTERN PetscErrorCode TDySetConstantPorosity(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDySetPorosityFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetConstantIsotropicPermeability(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDySetIsotropicPermeabilityFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetConstantDiagonalPermeability(TDy,PetscReal[]);
+PETSC_EXTERN PetscErrorCode TDySetDiagonalPermeabilityFunction(TDy,TDyVectorSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetConstantTensorPermeability(TDy,PetscReal[]);
+PETSC_EXTERN PetscErrorCode TDySetTensorPermeabilityFunction(TDy,TDyTensorSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetConstantIsotropicThermalConductivity(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDySetIsotropicThermalConductivityFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetConstantDiagonalThermalConductivity(TDy,PetscReal[]);
+PETSC_EXTERN PetscErrorCode TDySetDiagonalThermalConductivityFunction(TDy,TDyVectorSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetConstantTensorThermalConductivity(TDy,PetscReal[]);
+PETSC_EXTERN PetscErrorCode TDySetTensorThermalConductivityFunction(TDy,TDyTensorSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetConstantResidualSaturation(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDySetResidualSaturationFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetConstantSoilDensity(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDySetSoilDensityFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetConstantSoilSpecificHeat(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeatFunction(TDy,TDyScalarSpatialFunction);
 
 // Set boundary and source-sink: via PETSc operations
-PetscErrorCode TDyRegisterFunction(const char*, PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*));
-PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySetEnergyForcingFunction(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryPressureFn(TDy,const char*,void*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryTemperatureFn(TDy,const char*,void*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFn(TDy,const char*,void*);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureFn(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryTemperatureFn(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryVelocityFn(TDy,PetscErrorCode(*)(TDy,PetscReal*,PetscReal*,void*),void*);
+PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetEnergyForcingFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetBoundaryTemperatureFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetBoundaryVelocityFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySelectForcingFunction(TDy,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectEnergyForcingFunction(TDy,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectBoundaryPressureFunction(TDy,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFunction(TDy,const char*);
 
-// Set material properties: via spatial function
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityScalar  (TDy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityDiagonal(TDy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetPermeabilityTensor  (TDy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetCellPermeability(TDy,PetscInt,PetscReal*);
-PETSC_EXTERN PetscErrorCode TDySetPorosity            (TDy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeat    (TDy,SpatialFunction f);
-PETSC_EXTERN PetscErrorCode TDySetSoilDensity         (TDy,SpatialFunction f);
+PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*);
+PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
 
-// Set material properties: For each cell
-PETSC_EXTERN PetscErrorCode TDySetPorosityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetResidualSaturationValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveMualemValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveNValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetCharacteristicCurveVanGenuchtenValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[],const PetscScalar[]);
-
-// Set condition: for each cell
-PETSC_EXTERN PetscErrorCode TDySetSourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDySetEnergySourceSinkValuesLocal(TDy,PetscInt,const PetscInt[],const PetscScalar[]);
-
-// Get material value: for each cell
-PETSC_EXTERN PetscErrorCode TDyGetSaturationValuesLocal(TDy,PetscInt*,PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDyGetLiquidMassValuesLocal(TDy,PetscInt*,PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDyGetCharacteristicCurveMValuesLocal(TDy,PetscInt*,PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDyGetCharacteristicCurveAlphaValuesLocal(TDy,PetscInt*,PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDyGetPorosityValuesLocal(TDy,PetscInt*,PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDyGetBlockPermeabilityValuesLocal(TDy,PetscInt*,PetscScalar[]);
-PETSC_EXTERN PetscErrorCode TDyGetNumCellsLocal(TDy,PetscInt*);
-PETSC_EXTERN PetscErrorCode TDyGetCellNaturalIDsLocal(TDy,PetscInt*,PetscInt[]);
-PETSC_EXTERN PetscErrorCode TDyGetCellIsLocal(TDy,PetscInt*,PetscInt[]);
-
-PETSC_EXTERN PetscErrorCode TDyResetDiscretization(TDy);
-
-PETSC_EXTERN PetscErrorCode TDySetQuadratureType(TDy,TDyQuadratureType);
-PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
-PETSC_EXTERN PetscErrorCode TDySetMPFAOGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
-PETSC_EXTERN PetscErrorCode TDySetMPFAOBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
-
-// We will probably remove the following functions.
-PETSC_EXTERN PetscErrorCode TDyComputeSystem(TDy,Mat,Vec);
+// We will remove the following functions in favor of setting function pointers
+// that a given solver uses to extract info from a DM.
 PETSC_EXTERN PetscErrorCode TDySetIFunction(TS,TDy);
 PETSC_EXTERN PetscErrorCode TDySetIJacobian(TS,TDy);
 PETSC_EXTERN PetscErrorCode TDySetSNESFunction(SNES,TDy);
 PETSC_EXTERN PetscErrorCode TDySetSNESJacobian(SNES,TDy);
-
-PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
 
 PETSC_EXTERN PetscErrorCode TDySetDtimeForSNESSolver(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetInitialCondition(TDy,Vec);
@@ -184,37 +182,11 @@ PETSC_EXTERN PetscErrorCode TDyPostSolveSNESSolver(TDy,Vec);
 
 PETSC_EXTERN PetscErrorCode TDyOutputRegression(TDy,Vec);
 
-PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy,Mat,Vec);
-
-PETSC_EXTERN PetscErrorCode TDyBDMComputeSystem(TDy,Mat,Vec);
-PETSC_EXTERN PetscReal TDyBDMPressureNorm(TDy,Vec);
-PETSC_EXTERN PetscReal TDyBDMVelocityNorm(TDy,Vec);
-
-PETSC_EXTERN PetscErrorCode TDyWYRecoverVelocity(TDy,Vec);
-PETSC_EXTERN PetscReal TDyWYPressureNorm(TDy,Vec);
-PETSC_EXTERN PetscReal TDyWYVelocityNorm(TDy);
-PETSC_EXTERN PetscErrorCode TDyWYResidual(TS,PetscReal,Vec,Vec,Vec,void *ctx);
-
-PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*);
-
-PETSC_EXTERN PetscErrorCode Pullback(PetscScalar*,PetscScalar*,PetscScalar*,PetscScalar,PetscInt);
 PETSC_EXTERN PetscInt TDyGetNumberOfCellVertices(DM);
 PETSC_EXTERN PetscInt TDyGetNumberOfFaceVertices(DM);
 PETSC_EXTERN PetscReal TDyL1norm(PetscReal*,PetscReal*,PetscInt);
 PETSC_EXTERN PetscReal TDyADotBMinusC(PetscReal*,PetscReal*,PetscReal*,PetscInt);
 PETSC_EXTERN PetscReal TDyADotB(PetscReal*,PetscReal*,PetscInt);
-PETSC_EXTERN PetscErrorCode TDyCreateCellVertexMap(TDy,PetscInt**);
-PETSC_EXTERN PetscErrorCode TDyCreateCellVertexDirFaceMap(TDy,PetscInt**);
-PETSC_EXTERN PetscErrorCode TDyQuadrature(PetscQuadrature,PetscInt);
-
-PETSC_EXTERN void HdivBasisQuad(const PetscReal*,PetscReal*,PetscReal*,PetscReal);
-PETSC_EXTERN void HdivBasisHex(const PetscReal*,PetscReal*,PetscReal*,PetscReal);
-PETSC_EXTERN PetscErrorCode IntegrateOnFace(TDy,PetscInt,PetscInt,PetscReal*);
-
-PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
-PETSC_EXTERN PetscErrorCode TDyMPFAORecoverVelocity(TDy,Vec);
-PETSC_EXTERN PetscReal TDyMPFAOVelocityNorm(TDy);
-PETSC_EXTERN PetscReal TDyMPFAOPressureNorm(TDy,Vec);
 
 /* ---------------------------------------------------------------- */
 
@@ -231,61 +203,29 @@ PETSC_EXTERN PetscErrorCode TDyTimeIntegratorOutputRegression(TDy);
 
 PETSC_EXTERN PetscErrorCode TDyDriverInitializeTDy(TDy);
 
-/* ---------------------------------------------------------------- */
+//-------------------------------------------------
+// Multi-point Flux Approximation (MPFA-O) methods
+//-------------------------------------------------
 
-typedef struct TDyMesh TDyMesh;
+PETSC_EXTERN PetscErrorCode TDyMPFAOSetGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
+PETSC_EXTERN PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
+PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
 
-typedef struct {
-  PetscReal X[3];
-} TDyCoordinate;
+//------------------------
+// Finite element methods
+//------------------------
 
-typedef struct {
-  PetscReal V[3];
-} TDyVector;
+typedef enum {
+  LUMPED=0,
+  FULL
+} TDyQuadratureType;
 
-PETSC_EXTERN PetscErrorCode TDyMeshCreateFromDM(DM, TDyMesh*);
-PETSC_EXTERN PetscErrorCode TDyMeshDestroy(TDyMesh*);
+PETSC_EXTERN const char *const TDyQuadratureTypes[];
 
-PETSC_INTERN PetscErrorCode TDyMeshGetCellVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellEdges(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellNeighbors(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellCentroid(TDyMesh*, PetscInt, TDyCoordinate*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellVolume(TDyMesh*, PetscInt, PetscReal*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellNumVertices(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellNumVertices(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellNumFaces(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetCellNumNeighbors(TDyMesh*, PetscInt, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyWYSetQuadrature(TDy,TDyQuadratureType);
+PETSC_EXTERN PetscErrorCode TDyWYComputeSystem(TDy,Mat,Vec);
 
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexInternalCells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexSubcells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexSubfaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexBoundaryFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexNumInternalCells(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexNumSubcells(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexNumFaces(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetVertexNumBoundaryFaces(TDyMesh*, PetscInt, PetscInt*);
-
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceCells(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceCentroid(TDyMesh*, PetscInt, TDyCoordinate*);
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceNormal(TDyMesh*, PetscInt, TDyVector*);
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceArea(TDyMesh*, PetscInt, PetscReal*);
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceNumCells(TDyMesh*, PetscInt, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetFaceNumVertices(TDyMesh*, PetscInt, PetscInt*);
-
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaces(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellIsFaceUp(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceUnknownIdxs(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceFluxIdxs(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceAreas(TDyMesh*, PetscInt, PetscReal**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVertices(TDyMesh*, PetscInt, PetscInt**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNuVectors(TDyMesh*, PetscInt, TDyVector**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNuStarVectors(TDyMesh*, PetscInt, TDyVector**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVariableContinutiyCoordinates(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceCentroids(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
-PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNumFaces(TDyMesh*, PetscInt, PetscInt*);
+PETSC_EXTERN PetscErrorCode TDyBDMSetQuadrature(TDy,TDyQuadratureType);
+PETSC_EXTERN PetscErrorCode TDyBDMComputeSystem(TDy,Mat,Vec);
 
 #endif

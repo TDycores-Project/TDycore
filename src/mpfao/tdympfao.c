@@ -1,792 +1,18 @@
 #include <tdytimers.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymeshimpl.h>
-#include <private/tdymeshutilsimpl.h>
+#include <private/tdyoptions.h>
 #include <private/tdyutils.h>
 #include <private/tdymemoryimpl.h>
-#include <private/tdympfaoutilsimpl.h>
 #include <private/tdympfaoimpl.h>
-#include <private/tdympfaoutilsimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdydiscretization.h>
 #include <petscblaslapack.h>
 
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode SetPermeabilityFromFunction(TDy tdy) {
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  PetscInt dim;
-  PetscErrorCode ierr;
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-
-  if (tdy->ops->computepermeability) {
-
-    PetscReal *localK;
-    PetscInt icell, ii, jj;
-    TDyMesh *mesh = tdy->mesh;
-
-    MaterialProp *matprop = tdy->matprop;
-
-    // If permeability function is set, use it instead.
-    // Will need to consolidate this code with code in tdypermeability.c
-    ierr = PetscMalloc(9*sizeof(PetscReal),&localK); CHKERRQ(ierr);
-    for (icell=0; icell<mesh->num_cells; icell++) {
-      ierr = (*tdy->ops->computepermeability)(tdy, &(tdy->X[icell*dim]), localK, tdy->permeabilityctx);CHKERRQ(ierr);
-
-      PetscInt count = 0;
-      for (ii=0; ii<dim; ii++) {
-        for (jj=0; jj<dim; jj++) {
-          matprop->K[icell*dim*dim + ii*dim + jj] = localK[count];
-          matprop->K0[icell*dim*dim + ii*dim + jj] = localK[count];
-          count++;
-        }
-      }
-    }
-    ierr = PetscFree(localK); CHKERRQ(ierr);
-  }
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode SetPorosityFromFunction(TDy tdy) {
-
-  PetscInt dim;
-  PetscInt c,cStart,cEnd;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-  MaterialProp *matprop = tdy->matprop;
-
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(matprop->porosity,sizeof(PetscReal)*(cEnd-cStart));CHKERRQ(ierr);
-
-  for(c=cStart; c<cEnd; c++) {
-    ierr = (*tdy->ops->computeporosity)(tdy, &(tdy->X[c*dim]), &(matprop->porosity[c]), tdy->porosityctx);CHKERRQ(ierr);
-  }
-
-  /*
-  if (tdy->ops->computepermeability) {
-
-    PetscReal *localK;
-    PetscInt icell, ii, jj;
-    TDyMesh *mesh = tdy->mesh;
-
-
-    // If peremeability function is set, use it instead.
-    // Will need to consolidate this code with code in tdypermeability.c
-    ierr = PetscMalloc(9*sizeof(PetscReal),&localK); CHKERRQ(ierr);
-    for (icell=0; icell<mesh->num_cells; icell++) {
-      ierr = (*tdy->ops->computepermeability)(tdy, &(tdy->X[icell*dim]), localK, tdy->permeabilityctx);CHKERRQ(ierr);
-
-      PetscInt count = 0;
-      for (ii=0; ii<dim; ii++) {
-        for (jj=0; jj<dim; jj++) {
-          matprop->K[icell*dim*dim + ii*dim + jj] = localK[count];
-          matprop->K0[icell*dim*dim + ii*dim + jj] = localK[count];
-          count++;
-        }
-      }
-    }
-    ierr = PetscFree(localK); CHKERRQ(ierr);
-  }
-  */
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode SetThermalConductivityFromFunction(TDy tdy) {
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  PetscInt dim;
-  PetscErrorCode ierr;
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-
-  if (tdy->ops->computethermalconductivity) {
-
-    PetscReal *localKappa;
-    PetscInt icell, ii, jj;
-    TDyMesh *mesh = tdy->mesh;
-    MaterialProp *matprop = tdy->matprop;
-
-
-    ierr = PetscMalloc(9*sizeof(PetscReal),&localKappa); CHKERRQ(ierr);
-    for (icell=0; icell<mesh->num_cells; icell++) {
-      ierr = (*tdy->ops->computethermalconductivity)(tdy, &(tdy->X[icell*dim]), localKappa, tdy->thermalconductivityctx);CHKERRQ(ierr);
-
-      PetscInt count = 0;
-      for (ii=0; ii<dim; ii++) {
-        for (jj=0; jj<dim; jj++) {
-          matprop->Kappa[icell*dim*dim + ii*dim + jj] = localKappa[count];
-          matprop->Kappa0[icell*dim*dim + ii*dim + jj] = localKappa[count];
-          count++;
-        }
-      }
-    }
-    ierr = PetscFree(localKappa); CHKERRQ(ierr);
-  }
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode SetSoilDensityFromFunction(TDy tdy) {
-
-  PetscInt dim;
-  PetscInt c,cStart,cEnd;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-  MaterialProp *matprop = tdy->matprop;
-
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(matprop->rhosoil,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
-
-  for(c=cStart; c<cEnd; c++) {
-    ierr = (*tdy->ops->computesoildensity)(tdy, &(tdy->X[c*dim]), &(matprop->rhosoil[c]), tdy->soildensityctx);CHKERRQ(ierr);
-  }
-
-  PetscFunctionReturn(0);
-
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode SetSoilSpecificHeatFromFunction(TDy tdy) {
-
-  PetscInt dim;
-  PetscInt c,cStart,cEnd;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-  MaterialProp *matprop = tdy->matprop;
-
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMemzero(matprop->Cr,sizeof(PetscReal)*(cEnd-cStart)); CHKERRQ(ierr);
-
-  for(c=cStart; c<cEnd; c++) {
-    ierr = (*tdy->ops->computesoilspecificheat)(tdy, &(tdy->X[c*dim]), &(matprop->Cr[c]), tdy->soilspecificheatctx);CHKERRQ(ierr);
-  }
-
-  PetscFunctionReturn(0);
-
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyComputeGMatrix(TDy tdy) {
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  PetscErrorCode ierr;
-
-  switch (tdy->options.mpfao_gmatrix_method) {
-    case MPFAO_GMATRIX_DEFAULT:
-      ierr = TDyComputeGMatrixMPFAO(tdy); CHKERRQ(ierr);
-      break;
-
-    case MPFAO_GMATRIX_TPF:
-      ierr = TDyComputeGMatrixTPF(tdy); CHKERRQ(ierr);
-      break;
-  }
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
-
-  TDyMesh *mesh = tdy->mesh;
-  PetscInt nbnd_faces;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  nbnd_faces = mesh->num_boundary_faces;
-
-  ierr = CharacteristicCurveCreate(nbnd_faces, &tdy->cc_bnd); CHKERRQ(ierr);
-
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->P_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->rho_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->vis_BND)); CHKERRQ(ierr);
-
-  PetscInt i;
-  PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
-  for (i=0;i<nbnd_faces;i++) {
-    ierr = ComputeWaterDensity(tdy->Pref, tdy->options.rho_type, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
-    ierr = ComputeWaterViscosity(tdy->Pref, tdy->options.mu_type, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
-  }
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(TDy tdy) {
-
-  TDyMesh *mesh = tdy->mesh;
-  PetscInt nbnd_faces;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  nbnd_faces = mesh->num_boundary_faces;
-
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->T_BND)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->h_BND)); CHKERRQ(ierr);
-
-  PetscInt i;
-  PetscReal dh_dP, dh_dT;
-  for (i=0;i<nbnd_faces;i++) {
-    ierr = ComputeWaterEnthalpy(tdy->Tref, tdy->Pref,tdy->options.enthalpy_type,
-                                &(tdy->h_BND[i]), &dh_dP, &dh_dT); CHKERRQ(ierr);
-  }
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAO_AllocateMemoryForSourceSinkValues(TDy tdy) {
-
-  TDyMesh *mesh = tdy->mesh;
-  PetscInt ncells;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  ncells = mesh->num_cells;
-
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(tdy->source_sink)); CHKERRQ(ierr);
-
-  PetscInt i;
-  for (i=0;i<ncells;i++) tdy->source_sink[i] = 0.0;
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(TDy tdy) {
-
-  TDyMesh *mesh = tdy->mesh;
-  PetscInt ncells;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  ncells = mesh->num_cells;
-
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(tdy->energy_source_sink)); CHKERRQ(ierr);
-
-  PetscInt i;
-  for (i=0;i<ncells;i++) tdy->energy_source_sink[i] = 0.0;
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-/* -------------------------------------------------------------------------- */
-
-//-----------------
-// Setup functions
-//-----------------
-
-// There's a lot of duplicated code here for the moment. We'll factor out the
-// repeated stuff when we move the data out of the TDy struct and into
-// discretization-specific types.
-
-// Setup function for Richards + MPFA_O
-PetscErrorCode TDyRichards_MPFA_O_Setup(TDy tdy, DM dm) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  if (dim == 2) {
-    SETERRQ(comm,PETSC_ERR_USER,"MPFA-O method supports only 3D calculations.");
-  }
-
-  // Allocate mesh data.
-  tdy->mesh = (TDyMesh *) malloc(sizeof(TDyMesh));
-  ierr = TDyAllocateMemoryForMesh(tdy); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, tdy->nfv, tdy->nfv + tdy->ncv); CHKERRQ(ierr);
-  ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
-                     &(tdy->vel )); CHKERRQ(ierr);
-  ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
-  ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscInt),
-                     &(tdy->vel_count)); CHKERRQ(ierr);
-  ierr = TDyInitialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_faces, 0); CHKERRQ(ierr);
-  PetscInt nsubcells = 8;
-  PetscInt nrow = 3;
-  PetscInt ncol = 3;
-  ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
-                                  nsubcells, nrow, ncol); CHKERRQ(ierr);
-
-  // Set up the section, 1 dof per cell
-  PetscSection sec;
-  PetscInt p, pStart, pEnd;
-  ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
-  ierr = PetscSectionSetNumFields(sec, 1); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
-
-  ierr = DMPlexGetHeightStratum(dm,0,&pStart,&pEnd); CHKERRQ(ierr);
-  ierr = PetscSectionSetChart(sec,pStart,pEnd); CHKERRQ(ierr);
-  for(p=pStart; p<pEnd; p++) {
-    ierr = PetscSectionSetFieldDof(sec,p,0,1); CHKERRQ(ierr);
-    ierr = PetscSectionSetDof(sec,p,1); CHKERRQ(ierr);
-  }
-  ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
-  ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
-  ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view"); CHKERRQ(ierr);
-  ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
-  ierr = DMSetBasicAdjacency(dm,PETSC_TRUE,PETSC_TRUE); CHKERRQ(ierr);
-
-  // Build the mesh.
-  ierr = TDyBuildMesh(tdy); CHKERRQ(ierr);
-  {
-    PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
-    PetscInt nrow, ncol, nz;
-
-    nFaces = tdy->mesh->num_faces;
-    nLocalCells = TDyMeshGetNumberOfLocalCells(tdy->mesh);
-    nNonLocalFaces = TDyMeshGetNumberOfNonLocalFacess(tdy->mesh);
-    nNonInternalFaces = TDyMeshGetNumberOfNonInternalFacess(tdy->mesh);
-
-    nrow = 4*nFaces;
-    ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
-    nz   = tdy->nfv;
-    ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&tdy->Trans_mat); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
-    ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&tdy->P_vec);
-    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->TtimesP_vec);
-    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->GravDisVec);
-    ierr = VecZeroEntries(tdy->GravDisVec);
-  }
-
-  // Set up material models.
-  if (tdy->ops->computeporosity) { ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr); }
-  if (tdy->ops->computepermeability) {ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
-
-  // why must these be placed after SetPermeabilityFromFunction()?
-  ierr = TDyComputeGMatrix(tdy); CHKERRQ(ierr);
-  ierr = TDyComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
-  ierr = TDyComputeGravityDiscretization(tdy); CHKERRQ(ierr);
-
-  ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
-  ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(tdy); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
-// Setup function for Richards + MPFA_O_DAE
-PetscErrorCode TDyRichards_MPFA_O_DAE_Setup(TDy tdy, DM dm) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  PetscFunctionReturn(0);
-
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  if (dim == 2) {
-    SETERRQ(comm,PETSC_ERR_USER,"MPFA-O method supports only 3D calculations.");
-  }
-
-  // Allocate mesh data.
-  tdy->mesh = (TDyMesh *) malloc(sizeof(TDyMesh));
-  ierr = TDyAllocateMemoryForMesh(tdy); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, tdy->nfv, tdy->nfv + tdy->ncv); CHKERRQ(ierr);
-  ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
-                     &(tdy->vel )); CHKERRQ(ierr);
-  ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
-  ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscInt),
-                     &(tdy->vel_count)); CHKERRQ(ierr);
-  ierr = TDyInitialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_faces, 0); CHKERRQ(ierr);
-  PetscInt nsubcells = 8;
-  PetscInt nrow = 3;
-  PetscInt ncol = 3;
-  ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
-                                  nsubcells, nrow, ncol); CHKERRQ(ierr);
-
-  // Set up the section, 1 dof per cell
-  PetscSection sec;
-  PetscInt p, pStart, pEnd;
-  ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
-  ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldName(sec, 1, "LiquidMass"); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldComponents(sec, 1, 1); CHKERRQ(ierr);
-
-  ierr = DMPlexGetHeightStratum(dm,0,&pStart,&pEnd); CHKERRQ(ierr);
-  ierr = PetscSectionSetChart(sec,pStart,pEnd); CHKERRQ(ierr);
-  for(p=pStart; p<pEnd; p++) {
-    ierr = PetscSectionSetFieldDof(sec,p,0,1); CHKERRQ(ierr);
-    ierr = PetscSectionSetDof(sec,p,1); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldDof(sec,p,1,1); CHKERRQ(ierr);
-    ierr = PetscSectionSetDof(sec,p,2); CHKERRQ(ierr);
-  }
-  ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
-  ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
-  ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view"); CHKERRQ(ierr);
-  ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
-  ierr = DMSetBasicAdjacency(dm,PETSC_TRUE,PETSC_TRUE); CHKERRQ(ierr);
-
-  // Build the mesh.
-  ierr = TDyBuildMesh(tdy); CHKERRQ(ierr);
-  {
-    PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
-    PetscInt nrow, ncol, nz;
-
-    nFaces = tdy->mesh->num_faces;
-    nLocalCells = TDyMeshGetNumberOfLocalCells(tdy->mesh);
-    nNonLocalFaces = TDyMeshGetNumberOfNonLocalFacess(tdy->mesh);
-    nNonInternalFaces = TDyMeshGetNumberOfNonInternalFacess(tdy->mesh);
-
-    nrow = 4*nFaces;
-    ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
-    nz   = tdy->nfv;
-    ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&tdy->Trans_mat); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
-    ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&tdy->P_vec);
-    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->TtimesP_vec);
-    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->GravDisVec);
-    ierr = VecZeroEntries(tdy->GravDisVec);
-  }
-
-  // Set up material models.
-  if (tdy->ops->computeporosity) { ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr); }
-  if (tdy->ops->computepermeability) {ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
-
-  // why must these be placed after SetPermeabilityFromFunction()?
-  ierr = TDyComputeGMatrix(tdy); CHKERRQ(ierr);
-  ierr = TDyComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
-  ierr = TDyComputeGravityDiscretization(tdy); CHKERRQ(ierr);
-
-  ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
-  ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(tdy); CHKERRQ(ierr);
-
-}
-
-// Setup function for Richards + MPFA_O_TRANSIENTVAR
-PetscErrorCode TDyRichards_MPFA_O_TRANSIENTVAR_Setup(TDy tdy, DM dm) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  // This is essentially the same as the MPFA-O one.
-  ierr = TDyRichards_MPFA_O_Setup(tdy, dm);
-  PetscFunctionReturn(0);
-}
-
-// Setup function for TH + MPFA-O
-PetscErrorCode TDyTH_MPFA_O_Setup(TDy tdy, DM dm) {
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  if (dim == 2) {
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"MPFA-O method supports only 3D calculations.");
-  }
-
-  MPI_Comm       comm;
-  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-
-  // Allocate mesh data.
-  tdy->mesh = (TDyMesh *) malloc(sizeof(TDyMesh));
-  ierr = TDyAllocateMemoryForMesh(tdy); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_3D(&tdy->Trans, tdy->mesh->num_vertices, tdy->nfv, tdy->nfv + tdy->ncv); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_3D(&tdy->Temp_Trans, tdy->mesh->num_vertices,
-                                  tdy->nfv, tdy->nfv); CHKERRQ(ierr);
-  ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscReal),
-                     &(tdy->vel )); CHKERRQ(ierr);
-  ierr = TDyInitialize_RealArray_1D(tdy->vel, tdy->mesh->num_faces, 0.0); CHKERRQ(ierr);
-  ierr = PetscMalloc(tdy->mesh->num_faces*sizeof(PetscInt),
-                     &(tdy->vel_count)); CHKERRQ(ierr);
-  ierr = TDyInitialize_IntegerArray_1D(tdy->vel_count, tdy->mesh->num_faces, 0); CHKERRQ(ierr);
-
-  PetscInt nsubcells = 8;
-  PetscInt nrow = 3;
-  PetscInt ncol = 3;
-
-  ierr = TDyAllocate_RealArray_4D(&tdy->subc_Gmatrix, tdy->mesh->num_cells,
-                                  nsubcells, nrow, ncol); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_4D(&tdy->Temp_subc_Gmatrix, tdy->mesh->num_cells,
-                                  nsubcells, nrow, ncol); CHKERRQ(ierr);
-
-  // Set up the section, 1 dof per cell
-  PetscSection sec;
-  PetscInt p, pStart, pEnd;
-  ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
-  ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldName(sec, 1, "LiquidTemperature"); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldComponents(sec, 1, 1); CHKERRQ(ierr);
-
-  ierr = DMPlexGetHeightStratum(dm,0,&pStart,&pEnd); CHKERRQ(ierr);
-  ierr = PetscSectionSetChart(sec,pStart,pEnd); CHKERRQ(ierr);
-  for(p=pStart; p<pEnd; p++) {
-    ierr = PetscSectionSetFieldDof(sec,p,0,1); CHKERRQ(ierr);
-    ierr = PetscSectionSetDof(sec,p,1); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldDof(sec,p,1,1); CHKERRQ(ierr);
-    ierr = PetscSectionSetDof(sec,p,2); CHKERRQ(ierr);
-  }
-  ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
-  ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
-  ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view"); CHKERRQ(ierr);
-  ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
-  ierr = DMSetBasicAdjacency(dm,PETSC_TRUE,PETSC_TRUE); CHKERRQ(ierr);
-
-  // Build the mesh.
-  ierr = TDyBuildMesh(tdy); CHKERRQ(ierr);
-  {
-    PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
-    PetscInt nrow, ncol, nz;
-
-    nFaces = tdy->mesh->num_faces;
-    nLocalCells = TDyMeshGetNumberOfLocalCells(tdy->mesh);
-    nNonLocalFaces = TDyMeshGetNumberOfNonLocalFacess(tdy->mesh);
-    nNonInternalFaces = TDyMeshGetNumberOfNonInternalFacess(tdy->mesh);
-
-    nrow = 4*nFaces;
-    ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
-    nz   = tdy->nfv;
-    ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&tdy->Trans_mat); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
-    ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&tdy->P_vec);
-    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->TtimesP_vec);
-    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->GravDisVec);
-    ierr = VecZeroEntries(tdy->GravDisVec);
-
-    ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&tdy->Temp_Trans_mat); CHKERRQ(ierr);
-    ierr = MatSetOption(tdy->Temp_Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
-    ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&tdy->Temp_P_vec);
-    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&tdy->Temp_TtimesP_vec);
-  }
-
-  // Set up material models.
-  if (tdy->ops->computeporosity) { ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr); }
-  if (tdy->ops->computepermeability) {ierr = SetPermeabilityFromFunction(tdy); CHKERRQ(ierr);}
-  if (tdy->ops->computethermalconductivity) {ierr = SetThermalConductivityFromFunction(tdy); CHKERRQ(ierr);}
-  if (tdy->ops->computesoildensity) {
-    ierr = SetSoilDensityFromFunction(tdy); CHKERRQ(ierr);
-  }
-  if (tdy->ops->computesoilspecificheat) {
-    printf("SetSoilSpecificHeatFromFunction\n");
-    ierr = SetSoilSpecificHeatFromFunction(tdy); CHKERRQ(ierr);
-  }
-
-  // why must these be placed after SetPermeabilityFromFunction()?
-  ierr = TDyComputeGMatrix(tdy); CHKERRQ(ierr);
-  ierr = TDyComputeTransmissibilityMatrix(tdy); CHKERRQ(ierr);
-  ierr = TDyComputeGravityDiscretization(tdy); CHKERRQ(ierr);
-
-  ierr = TDyMPFAO_AllocateMemoryForBoundaryValues(tdy); CHKERRQ(ierr);
-  ierr = TDyMPFAO_AllocateMemoryForSourceSinkValues(tdy); CHKERRQ(ierr);
-  if (tdy->options.mode == TH) {
-    ierr = TDyMPFAO_AllocateMemoryForEnergyBoundaryValues(tdy); CHKERRQ(ierr);
-    ierr = TDyMPFAO_AllocateMemoryForEnergySourceSinkValues(tdy); CHKERRQ(ierr);
-  }
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAO_SetFromOptions(TDy tdy) {
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  PetscErrorCode ierr;
-
-  if (tdy->ops->computeporosity) {
-    ierr = SetPorosityFromFunction(tdy); CHKERRQ(ierr);
-  }
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
-
-  TDyMesh       *mesh = tdy->mesh;
-  TDyCell       *cells = &mesh->cells;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-
-  ierr = MatZeroEntries(K);
-  ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-  ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-
-  ierr = TDyMPFAOComputeSystem_InternalVertices(tdy,K,F); CHKERRQ(ierr);
-  ierr = TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices(tdy,K,F); CHKERRQ(ierr);
-  ierr = TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices(tdy,K,F); CHKERRQ(ierr);
-
-  PetscInt dim = 3;
-
-  if (tdy->ops->computeforcing) {
-    for (PetscInt icell=0; icell<tdy->mesh->num_cells; icell++) {
-      if (cells->is_local[icell]) {
-        PetscReal f;
-        ierr = (*tdy->ops->computeforcing)(tdy, &(tdy->X[icell*dim]), &f, tdy->forcingctx);CHKERRQ(ierr);
-        PetscReal value = f * cells->volume[icell];
-        PetscInt row = cells->global_id[icell];
-        ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
-      }
-    }
-  }
-
-  ierr = VecAssemblyBegin(F); CHKERRQ(ierr);
-  ierr = VecAssemblyEnd  (F); CHKERRQ(ierr);
-  ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-  ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-
-}
-
-/* -------------------------------------------------------------------------- */
-PetscReal TDyMPFAOPressureNorm(TDy tdy, Vec U) {
-
-  DM             dm = tdy->dm;
-  TDyMesh       *mesh = tdy->mesh;
-  TDyCell       *cells = &mesh->cells;
-  PetscScalar    *u;
-  Vec            localU;
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  cells = &mesh->cells;
-
-  if (! tdy->ops->compute_boundary_pressure) {
-    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
-            "Must set the boundary pressure function with TDySetBoundaryPressureFn");
-  }
-
-  PetscInt dim = 3;
-
-  ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U,localU); CHKERRQ(ierr);
-  ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
-
-  PetscReal norm_sum = 0.0;
-  PetscReal norm = 0.0;
-
-  for (PetscInt icell=0; icell<mesh->num_cells; icell++) {
-
-    if (!cells->is_local[icell]) continue;
-
-    PetscReal pressure;
-    ierr = (*tdy->ops->compute_boundary_pressure)(tdy, &(tdy->X[icell*dim]), &pressure, tdy->boundary_pressure_ctx);CHKERRQ(ierr);
-    norm += (PetscSqr(pressure - u[icell])) * cells->volume[icell];
-  }
-
-  ierr = VecRestoreArray(localU, &u); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm,&localU); CHKERRQ(ierr);
-
-  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
-                       PetscObjectComm((PetscObject)U)); CHKERRQ(ierr);
-
-  norm_sum = PetscSqrtReal(norm_sum);
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(norm_sum);
-}
-
-
-/* -------------------------------------------------------------------------- */
-PetscReal TDyMPFAOVelocityNorm(TDy tdy) {
-
-  DM             dm = tdy->dm;
-  TDyMesh       *mesh = tdy->mesh;
-  TDyFace       *faces = &mesh->faces;
-  TDyCell       *cells = &mesh->cells;
-  PetscInt       dim;
-  PetscInt       icell, iface, face_id;
-  PetscInt       fStart, fEnd;
-  PetscReal      norm, norm_sum, vel_normal;
-  PetscReal      vel[3];
-  PetscErrorCode ierr;
-
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  cells = &mesh->cells;
-
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
-
-  norm_sum = 0.0;
-  norm     = 0.0;
-
-  for (icell=0; icell<mesh->num_cells; icell++) {
-
-    if (!cells->is_local[icell]) continue;
-
-    for (iface=0; iface<cells->num_faces[icell]; iface++) {
-      PetscInt faceStart = cells->face_offset[icell];
-      face_id = cells->face_ids[faceStart + iface];
-      //face    = &(faces[face_id]);
-
-      ierr = (*tdy->ops->compute_boundary_velocity)(tdy, &(tdy->X[(face_id + fStart)*dim]), vel, tdy->boundary_velocity_ctx);CHKERRQ(ierr);
-      vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim);
-      if (tdy->vel_count[face_id] != faces->num_vertices[face_id]) {
-        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->vel_count != faces->num_vertices[face_id]");
-      }
-
-      norm += PetscSqr((vel_normal - tdy->vel[face_id]))*cells->volume[icell];
-    }
-  }
-
-  ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
-                       PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
-  norm_sum = PetscSqrtReal(norm_sum);
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(norm_sum);
-}
-
-/* ---------------------------------------------------------------- */
-PetscErrorCode TDyComputeEntryOfGMatrix(PetscReal area, PetscReal n[3],
-                                        PetscReal K[3][3], PetscReal v[3],
-                                        PetscReal T, PetscInt dim, PetscReal *g) {
+static PetscErrorCode ComputeEntryOfGMatrix(PetscReal area, PetscReal n[3],
+                                            PetscReal K[3][3], PetscReal v[3],
+                                            PetscReal T, PetscInt dim, PetscReal *g) {
 
   PetscFunctionBegin;
 
@@ -810,8 +36,8 @@ PetscErrorCode TDyComputeEntryOfGMatrix(PetscReal area, PetscReal n[3],
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyComputeGMatrixMPFAO(TDy tdy) {
+static PetscErrorCode ComputeGMatrix_MPFAO(TDyMPFAO* mpfao, DM dm,
+                                           MaterialProp* matprop) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
@@ -819,14 +45,12 @@ PetscErrorCode TDyComputeGMatrixMPFAO(TDy tdy) {
   PetscInt dim,icell;
   PetscErrorCode ierr;
 
-  TDyMesh *mesh = tdy->mesh;
+  TDyMesh *mesh = mpfao->mesh;
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   TDySubcell *subcells = &mesh->subcells;
 
-    MaterialProp *matprop = tdy->matprop;
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   for (icell=0; icell<mesh->num_cells; icell++) {
 
@@ -835,20 +59,19 @@ PetscErrorCode TDyComputeGMatrixMPFAO(TDy tdy) {
 
     for (PetscInt ii=0; ii<dim; ii++) {
       for (PetscInt jj=0; jj<dim; jj++) {
-        K[ii][jj] = matprop->K0[icell*dim*dim + ii*dim + jj];
+        K[ii][jj] = mpfao->K0[icell*dim*dim + ii*dim + jj];
       }
     }
 
     // extract thermal conductivity tensor
     PetscReal Kappa[3][3];
-
-    if (tdy->options.mode == TH) {
+    if (mpfao->Temp_subc_Gmatrix) { // TH
       for (PetscInt ii=0; ii<dim; ii++) {
         for (PetscInt jj=0; jj<dim; jj++) {
-          Kappa[ii][jj] = matprop->Kappa0[icell*dim*dim + ii*dim + jj];
+          Kappa[ii][jj] = mpfao->Kappa0[icell*dim*dim + ii*dim + jj];
         }
       }
-    }
+    } // TH
 
     for (PetscInt isubcell=0; isubcell<cells->num_subcells[icell]; isubcell++) {
 
@@ -872,15 +95,15 @@ PetscErrorCode TDyComputeGMatrixMPFAO(TDy tdy) {
 
           ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
 
-          ierr = TDyComputeEntryOfGMatrix(area, normal, K, nu, subcells->T[subcell_id], dim,
-                                          &(tdy->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+          ierr = ComputeEntryOfGMatrix(area, normal, K, nu, subcells->T[subcell_id], dim,
+                                       &(mpfao->subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
 
-          if (tdy->options.mode == TH) {
-               ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+          if (mpfao->Temp_subc_Gmatrix) { // TH
+            ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
 
-              ierr = TDyComputeEntryOfGMatrix(area, normal, Kappa,
-                                  nu, subcells->T[subcell_id], dim,
-                                  &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+            ierr = ComputeEntryOfGMatrix(area, normal, Kappa,
+              nu, subcells->T[subcell_id], dim,
+              &(mpfao->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
           } // TH
         } // jj-subcell-faces
       } // ii-isubcell faces
@@ -891,8 +114,8 @@ PetscErrorCode TDyComputeGMatrixMPFAO(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyComputeGMatrixTPF(TDy tdy) {
+static PetscErrorCode ComputeGMatrix_TPF(TDyMPFAO *mpfao, DM dm,
+                                         MaterialProp *matprop) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
@@ -900,14 +123,12 @@ PetscErrorCode TDyComputeGMatrixTPF(TDy tdy) {
   PetscInt dim,icell;
   PetscErrorCode ierr;
 
-  TDyMesh *mesh = tdy->mesh;
+  TDyMesh *mesh = mpfao->mesh;
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   TDySubcell *subcells = &mesh->subcells;
 
-    MaterialProp *matprop = tdy->matprop;
-
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   for (icell=0; icell<mesh->num_cells; icell++) {
 
@@ -917,20 +138,19 @@ PetscErrorCode TDyComputeGMatrixTPF(TDy tdy) {
 
     for (ii=0; ii<dim; ii++) {
       for (jj=0; jj<dim; jj++) {
-        K[ii][jj] = matprop->K0[icell*dim*dim + ii*dim + jj];
+        K[ii][jj] = mpfao->K0[icell*dim*dim + ii*dim + jj];
       }
     }
 
     // extract thermal conductivity tensor
     PetscReal Kappa[3][3];
-
-    if (tdy->options.mode == TH) {
+    if (mpfao->Temp_subc_Gmatrix) { // TH
       for (ii=0; ii<dim; ii++) {
         for (jj=0; jj<dim; jj++) {
-          Kappa[ii][jj] = matprop->Kappa0[icell*dim*dim + ii*dim + jj];
+          Kappa[ii][jj] = mpfao->Kappa0[icell*dim*dim + ii*dim + jj];
         }
       }
-    }
+    } // TH
 
     PetscInt isubcell;
 
@@ -959,7 +179,7 @@ PetscErrorCode TDyComputeGMatrixTPF(TDy tdy) {
 
           if (ii != jj) {
 
-            tdy->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
+            mpfao->subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
 
           } else {
 
@@ -986,7 +206,7 @@ PetscErrorCode TDyComputeGMatrixTPF(TDy tdy) {
 
               for (kk=0; kk<dim; kk++) {
                 for (mm=0; mm<dim; mm++) {
-                  K_neighbor[kk][mm] = matprop->K0[neighbor_cell_id*dim*dim + kk*dim + mm];
+                  K_neighbor[kk][mm] = mpfao->K0[neighbor_cell_id*dim*dim + kk*dim + mm];
                 }
               }
             } else {
@@ -994,7 +214,7 @@ PetscErrorCode TDyComputeGMatrixTPF(TDy tdy) {
               ierr = TDyComputeLength(neighbor_cell_cen, cell_cen, dim, &dist); CHKERRQ(ierr);
               for (kk=0; kk<dim; kk++) {
                 for (mm=0; mm<dim; mm++) {
-                  K_neighbor[kk][mm] = matprop->K0[icell*dim*dim + kk*dim + mm];
+                  K_neighbor[kk][mm] = mpfao->K0[icell*dim*dim + kk*dim + mm];
                 }
               }
             }
@@ -1013,18 +233,18 @@ PetscErrorCode TDyComputeGMatrixTPF(TDy tdy) {
             K_value          = 1.0/K_value;
             K_aveg = 0.5*K_value + 0.5*K_neighbor_value;
 
-            tdy->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist);
+            mpfao->subc_Gmatrix[icell][isubcell][ii][jj] = area * (dot_prod) * K_aveg/(dist);
           }
 
-          if (tdy->options.mode == TH) {
-              if (ii == jj) {
+          if (mpfao->Temp_subc_Gmatrix) { // TH
+            if (ii == jj) {
               ierr = TDySubCell_GetIthNuStarVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
 
-              ierr = TDyComputeEntryOfGMatrix(area, normal, Kappa, nu, subcells->T[subcell_id], dim,
-                                              &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
-              } else {
-                tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
-              }
+              ierr = ComputeEntryOfGMatrix(area, normal, Kappa, nu, subcells->T[subcell_id], dim,
+                                           &(mpfao->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+            } else {
+              mpfao->Temp_subc_Gmatrix[icell][isubcell][ii][jj] = 0.0;
+            }
           } // TH
 
         } // jj-subcell-faces
@@ -1036,184 +256,539 @@ PetscErrorCode TDyComputeGMatrixTPF(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeAinvB(PetscInt A_nrow, PetscReal *A,
-    PetscInt B_ncol, PetscReal *B, PetscReal *AinvB) {
+static PetscErrorCode ComputeGMatrix(TDyMPFAO* mpfao, DM dm,
+                                     MaterialProp *matprop) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-
-  PetscInt m, n;
-  PetscBLASInt info, *pivots;
   PetscErrorCode ierr;
 
-  m = A_nrow; n = A_nrow;
-  ierr = PetscMalloc((n+1)*sizeof(PetscBLASInt), &pivots); CHKERRQ(ierr);
+  switch (mpfao->gmatrix_method) {
+    case MPFAO_GMATRIX_DEFAULT:
+      ierr = ComputeGMatrix_MPFAO(mpfao, dm, matprop); CHKERRQ(ierr);
+      break;
 
-  LAPACKgetrf_(&m, &n, A, &m, pivots, &info);
-  if (info<0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB,
-                        "Bad argument to LU factorization");
-  if (info>0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_MAT_LU_ZRPVT,
-                        "Bad LU factorization");
-
-  ierr = PetscMemcpy(AinvB,B,sizeof(PetscReal)*(A_nrow*B_ncol));
-  CHKERRQ(ierr); // AinvB in col major
-
-  // Solve AinvB = (A^-1 * B) by back-substitution
-  m = A_nrow; n = B_ncol;
-  LAPACKgetrs_("N", &m, &n, A, &m, pivots, AinvB, &m, &info);
-  if (info) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"GETRS - Bad solve");
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-
-}
-
-/* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeCtimesAinvB(PetscInt C_nrow, PetscInt AinvB_ncol, PetscInt C_ncol,
-    PetscReal *C, PetscReal *AinvB, PetscReal *CtimesAinvB) {
-
-  PetscFunctionBegin;
-
-  PetscInt m, n, k;
-  PetscScalar zero = 0.0, one = 1.0;
-
-  // Compute (C * AinvB)
-  m = C_nrow; n = AinvB_ncol; k = C_ncol;
-  BLASgemm_("N","N", &m, &n, &k, &one, C, &m, AinvB, &k, &zero,
-            CtimesAinvB, &m);
-
-  PetscFunctionReturn(0);
-
-}
-
- /* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeCandFmatrix(TDy tdy, PetscInt ivertex, PetscInt varID,
-  PetscReal **Cup, PetscReal **Cdn, PetscReal **Fup, PetscReal **Fdn) {
-
-  TDY_START_FUNCTION_TIMER()
-  PetscErrorCode ierr;
-
-  TDyMesh *mesh = tdy->mesh;
-  TDyCell *cells = &mesh->cells;
-  TDyVertex *vertices = &mesh->vertices;
-
-  PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
-  PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
-
-  PetscInt npcen = vertices->num_internal_cells[ivertex];
-  PetscReal **Gmatrix;
-  PetscInt i, ndim;
-
-  ierr = DMGetDimension(tdy->dm, &ndim); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_2D(&Gmatrix, ndim   , ndim   ); CHKERRQ(ierr);
-
-  for (i=0; i<npcen; i++) {
-    PetscInt icell    = vertices->internal_cell_ids[vOffsetCell + i];
-    PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
-
-    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-
-    PetscInt *face_unknown_idx, *is_face_up, *face_flux_idx, subcell_num_faces;
-    ierr = TDyMeshGetSubcellFaceUnknownIdxs(mesh, subcell_id, &face_unknown_idx, &subcell_num_faces); CHKERRQ(ierr);
-    ierr = TDyMeshGetSubcellIsFaceUp(mesh, subcell_id, &is_face_up, &subcell_num_faces); CHKERRQ(ierr);
-    ierr = TDyMeshGetSubcellFaceFluxIdxs(mesh, subcell_id, &face_flux_idx, &subcell_num_faces); CHKERRQ(ierr);
-
-    if (varID == VAR_PRESSURE) {
-      ierr = ExtractSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
-    } else if (varID == VAR_TEMPERATURE){
-      ierr = ExtractTempSubGmatrix(tdy, icell, isubcell, ndim, Gmatrix);
-    }
-
-    PetscInt idx_interface_p0, idx_interface_p1, idx_interface_p2;
-
-    idx_interface_p0 = face_unknown_idx[0];
-    idx_interface_p1 = face_unknown_idx[1];
-    idx_interface_p2 = face_unknown_idx[2];
-
-    PetscInt idx_flux, iface;
-    for (iface=0; iface<subcell_num_faces; iface++) {
-
-      PetscBool upwind_entries = (is_face_up[iface] == 1);
-
-      if (upwind_entries) {
-        idx_flux = face_flux_idx[iface];
-
-        Cup[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
-        Cup[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
-        Cup[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
-
-        Fup[idx_flux][i] = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-
-      } else {
-        idx_flux = face_flux_idx[iface];
-
-        Cdn[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
-        Cdn[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
-        Cdn[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
-
-        Fdn[idx_flux][i] = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
-
-      }
-    }
-
+    case MPFAO_GMATRIX_TPF:
+      ierr = ComputeGMatrix_TPF(mpfao, dm, matprop); CHKERRQ(ierr);
+      break;
   }
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDy tdy, PetscInt ivertex, PetscInt *nflux_bc_up, PetscInt *nflux_bc_dn) {
+static PetscErrorCode AllocateMemoryForBoundaryValues(TDyMPFAO *mpfao,
+                                                      EOS *eos) {
+
+  TDyMesh *mesh = mpfao->mesh;
+  PetscInt nbnd_faces;
+  PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  TDyMesh *mesh = tdy->mesh;
-  TDyCell *cells = &mesh->cells;
-  TDyVertex *vertices = &mesh->vertices;
-  TDyFace *faces = &mesh->faces;
+  nbnd_faces = mesh->num_boundary_faces;
 
-  PetscInt npcen = vertices->num_internal_cells[ivertex];
-  PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
-  PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->Kr_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->dKr_dS_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->S_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->dS_dP_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->d2S_dP2_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->P_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->rho_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->vis_bnd)); CHKERRQ(ierr);
 
-  PetscErrorCode ierr;
-
-  *nflux_bc_up = 0;
-  *nflux_bc_dn = 0;
-
-  for (PetscInt i=0; i<npcen; i++) {
-    PetscInt icell    = vertices->internal_cell_ids[vOffsetCell + i];
-    PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
-
-    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
-
-    PetscInt *face_ids, *is_face_up, num_faces;
-    ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &face_ids, &num_faces); CHKERRQ(ierr);
-    ierr = TDyMeshGetSubcellIsFaceUp(mesh, subcell_id, &is_face_up, &num_faces); CHKERRQ(ierr);
-
-    for (PetscInt iface=0; iface<num_faces; iface++) {
-
-      PetscInt faceID = face_ids[iface];
-      if (faces->is_internal[faceID]) continue;
-
-      if (is_face_up[iface]==1) {
-        (*nflux_bc_up)++;
-      } else {
-        (*nflux_bc_dn)++;
-      }
-    }
-
+  PetscInt i;
+  PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
+  for (i=0;i<nbnd_faces;i++) {
+    ierr = EOSComputeWaterDensity(eos, mpfao->Pref, &(mpfao->rho_bnd[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
+    ierr = EOSComputeWaterViscosity(eos, mpfao->Pref, &(mpfao->vis_bnd[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
   }
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode ExtractSubMatrix(PetscReal **M, PetscInt rStart, PetscInt rEnd,
-                                PetscInt cStart, PetscInt cEnd, PetscReal **Msub){
+static PetscErrorCode AllocateMemoryForEnergyBoundaryValues(TDyMPFAO *mpfao,
+                                                            EOS *eos) {
+
+  TDyMesh *mesh = mpfao->mesh;
+  PetscInt nbnd_faces;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  nbnd_faces = mesh->num_boundary_faces;
+
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->T_bnd)); CHKERRQ(ierr);
+  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->h_bnd)); CHKERRQ(ierr);
+
+  PetscInt i;
+  PetscReal dh_dP, dh_dT;
+  for (i=0;i<nbnd_faces;i++) {
+    ierr = EOSComputeWaterEnthalpy(eos, mpfao->Tref, mpfao->Pref,
+                                   &(mpfao->h_bnd[i]), &dh_dP, &dh_dT); CHKERRQ(ierr);
+  }
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode AllocateMemoryForSourceSinkValues(TDyMPFAO *mpfao) {
+
+  TDyMesh *mesh = mpfao->mesh;
+  PetscInt ncells;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  ncells = mesh->num_cells;
+
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(mpfao->source_sink)); CHKERRQ(ierr);
+
+  PetscInt i;
+  for (i=0;i<ncells;i++) mpfao->source_sink[i] = 0.0;
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode AllocateMemoryForEnergySourceSinkValues(TDyMPFAO *mpfao) {
+
+  TDyMesh *mesh = mpfao->mesh;
+  PetscInt ncells;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  ncells = mesh->num_cells;
+
+  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(mpfao->energy_source_sink)); CHKERRQ(ierr);
+
+  PetscInt i;
+  for (i=0;i<ncells;i++) mpfao->energy_source_sink[i] = 0.0;
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyMPFAOSetGmatrixMethod(TDy tdy,
+                                        TDyMPFAOGmatrixMethod method) {
+  PetscFunctionBegin;
+
+  PetscValidPointer(tdy,1);
+  TDyMPFAO *mpfao = tdy->context;
+  mpfao->gmatrix_method = method;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDy tdy,
+                                                TDyMPFAOBoundaryConditionType bctype) {
+  PetscFunctionBegin;
+
+  PetscValidPointer(tdy,1);
+  TDyMPFAO *mpfao = tdy->context;
+  mpfao->bc_type = bctype;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyCreate_MPFAO(void **context) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  // Allocate a new context for the MPFA-O method.
+  TDyMPFAO* mpfao;
+  ierr = PetscCalloc(sizeof(TDyMPFAO), &mpfao); CHKERRQ(ierr);
+  *context = mpfao;
+
+  // Initialize defaults and data.
+  mpfao->gmatrix_method = MPFAO_GMATRIX_DEFAULT;
+  mpfao->bc_type = MPFAO_DIRICHLET_BC;
+  mpfao->Pref = 101325;
+  mpfao->Tref = 25;
+  mpfao->gravity[0] = 0; mpfao->gravity[1] = 0; mpfao->gravity[2] = 0;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyDestroy_MPFAO(void *context) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDyMPFAO* mpfao = context;
+
+  if (mpfao->vel   ) { ierr = PetscFree(mpfao->vel); CHKERRQ(ierr); }
+
+  ierr = PetscFree(mpfao->V); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->X); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->N); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->rho); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->d2rho_dP2); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->vis); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dvis_dP); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->d2vis_dP2); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->h); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dh_dP); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dh_dT); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dvis_dT); CHKERRQ(ierr);
+
+  // if (mpfao->subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
+  //                                   nsubcells, nrow, ncol); CHKERRQ(ierr); }
+  // if (mpfao->Trans       ) { ierr = TDyDeallocate_RealArray_3D(&mpfao->Trans,
+  //                                   mpfao->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
+  // if (mpfao->Trans_mat   ) { ierr = MatDestroy(&mpfao->Trans_mat  ); CHKERRQ(ierr); }
+  if (mpfao->P_vec       ) { ierr = VecDestroy(&mpfao->P_vec      ); CHKERRQ(ierr); }
+  if (mpfao->TtimesP_vec ) { ierr = VecDestroy(&mpfao->TtimesP_vec); CHKERRQ(ierr); }
+  // if (mpfao->Temp_subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&mpfao->Temp_subc_Gmatrix,
+  //                                        mpfao->mesh->num_cells,
+  //                                        nsubcells, nrow, ncol); CHKERRQ(ierr); }
+  // if (mpfao->Temp_Trans       ) { ierr = TDyDeallocate_RealArray_3D(&mpfao->Temp_Trans,
+  //                                        mpfao->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
+  if (mpfao->Temp_Trans_mat   ) { ierr = MatDestroy(&mpfao->Temp_Trans_mat  ); CHKERRQ(ierr); }
+  if (mpfao->Temp_P_vec       ) { ierr = VecDestroy(&mpfao->Temp_P_vec      ); CHKERRQ(ierr); }
+  if (mpfao->Temp_TtimesP_vec ) { ierr = VecDestroy(&mpfao->Temp_TtimesP_vec); CHKERRQ(ierr); }
+
+  // TODO: Need to destroy the mesh.
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+  PetscErrorCode ierr;
+
+  TDyMPFAO* mpfao = context;
+
+  // Set MPFA-O options.
+  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: MPFA-O options",""); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_mpfao_gmatrix_method","MPFA-O gmatrix method",
+    "TDySetMPFAOGmatrixMethod",TDyMPFAOGmatrixMethods,
+    (PetscEnum)mpfao->gmatrix_method,(PetscEnum *)&mpfao->gmatrix_method,NULL);
+    CHKERRQ(ierr);
+  TDyMPFAOBoundaryConditionType bctype = MPFAO_DIRICHLET_BC;
+  PetscBool flag;
+  ierr = PetscOptionsEnum("-tdy_mpfao_boundary_condition_type",
+      "MPFA-O boundary condition type", "TDyMPFAOSetBoundaryConditionType",
+      TDyMPFAOBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype,
+      &flag); CHKERRQ(ierr);
+  if (flag && (bctype != mpfao->bc_type)) {
+    mpfao->bc_type = bctype;
+  }
+  /* TODO: geometric attribute reading/writing is broken
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_output_geo_attributes",
+      mpfao->geom_attributes_file,sizeof(mpfao->geom_attributes_file),
+      &mpfao->output_geom_attributes); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_geo_attributes",
+      mpfao->geom_attributes_file,sizeof(mpfao->geom_attributes_file),
+      &mpfao->read_geom_attributes); CHKERRQ(ierr);
+  if (mpfao->output_geom_attributes && mpfao->read_geom_attributes){
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Only one of -tdy_output_geom_attributes and -tdy_read_geom_attributes can be specified");
+  }
+  */
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // Set characteristic curve data.
+  mpfao->vangenuchten_m = options->vangenuchten_m;
+  mpfao->vangenuchten_alpha = options->vangenuchten_alpha;
+  mpfao->mualem_poly_low = options->mualem_poly_low;
+
+  // Copy g into place.
+  mpfao->gravity[2] = options->gravity_constant;
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+//-----------------
+// Setup functions
+//-----------------
+
+// Computes mesh geometry.
+static PetscErrorCode ComputeGeometry(TDyMPFAO *mpfao, DM dm) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+
+  PetscInt dim;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  if (dim == 2) {
+    SETERRQ(comm,PETSC_ERR_USER,"MPFA-O method supports only 3D calculations.");
+  }
+
+  // Compute/store plex geometry.
+  PetscInt pStart, pEnd, vStart, vEnd, eStart, eEnd;
+  ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(mpfao->V));
+  CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(mpfao->X));
+  CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(mpfao->N));
+  CHKERRQ(ierr);
+
+  PetscSection coordSection;
+  Vec coordinates;
+  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal (dm, &coordinates); CHKERRQ(ierr);
+  PetscReal *coords;
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  for(PetscInt p=pStart; p<pEnd; p++) {
+    if((p >= vStart) && (p < vEnd)) {
+      PetscInt offset;
+      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
+      for(PetscInt d=0; d<dim; d++) mpfao->X[p*dim+d] = coords[offset+d];
+    } else {
+      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
+      PetscLogEvent t11 = TDyGetTimer("DMPlexComputeCellGeometryFVM");
+      TDyStartTimer(t11);
+      ierr = DMPlexComputeCellGeometryFVM(dm,p,&(mpfao->V[p]),
+                                          &(mpfao->X[p*dim]),
+                                          &(mpfao->N[p*dim])); CHKERRQ(ierr);
+      TDyStopTimer(t11);
+    }
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+// Creates a TDyMesh object to be used by the MPFA-O method.
+static PetscErrorCode CreateMesh(TDyMPFAO *mpfao, DM dm) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  // Create the mesh.
+  ierr = TDyMeshCreate(dm, mpfao->V, mpfao->X, mpfao->N, &mpfao->mesh);
+
+/* TODO: this stuff doesn't work with the new mesh construction process, and
+ * TODO: I'm not sure we still need it. -JNJ
+  // Read/write connectivity and geometry data if requested.
+  if (mpfao->read_geom_attributes) {
+    ierr = TDyMeshReadGeometry(mpfao->mesh, mpfao->geom_attributes_file); CHKERRQ(ierr);
+    mpfao->read_geom_attributes = 0;
+  }
+
+  if (mpfao->output_geom_attributes) {
+    ierr = TDyMeshWriteGeometry(mpfao->mesh, mpfao->geom_attributes_file); CHKERRQ(ierr);
+    mpfao->output_geom_attributes = 0;
+  }
+*/
+
+  ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
+  ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscReal),
+                     &(mpfao->vel )); CHKERRQ(ierr);
+  ierr = TDyInitialize_RealArray_1D(mpfao->vel, mpfao->mesh->num_faces, 0.0); CHKERRQ(ierr);
+  ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscInt),
+                     &(mpfao->vel_count)); CHKERRQ(ierr);
+  ierr = TDyInitialize_IntegerArray_1D(mpfao->vel_count, mpfao->mesh->num_faces, 0); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+// Initializes material properties and characteristic curve data.
+static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
+                                    DM dm,
+                                    MaterialProp *matprop,
+                                    CharacteristicCurves *cc) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+
+  // Allocate storage for material data and characteristic curves, and set to
+  // zero using PetscCalloc instead of PetscMalloc.
+  PetscInt cStart, cEnd;
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  PetscInt nc = cEnd-cStart;
+
+  // Material properties
+  ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->K)); CHKERRQ(ierr);
+  ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->K0)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->porosity)); CHKERRQ(ierr);
+  if (MaterialPropHasThermalConductivity(matprop)) {
+    ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->Kappa)); CHKERRQ(ierr);
+    ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->Kappa0)); CHKERRQ(ierr);
+  }
+  if (MaterialPropHasSoilSpecificHeat(matprop)) {
+    ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->c_soil)); CHKERRQ(ierr);
+  }
+  if (MaterialPropHasSoilDensity(matprop)) {
+    ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->rho_soil)); CHKERRQ(ierr);
+  }
+
+  // Characteristic curve values
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->Kr)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dKr_dS)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->S)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dS_dP)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->d2S_dP2)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dS_dT)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->Sr)); CHKERRQ(ierr);
+
+  // Water properties
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->rho)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->drho_dP)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->d2rho_dP2)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->vis)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dvis_dP)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->d2vis_dP2)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->h)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dh_dT)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dh_dP)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->drho_dT)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->u)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->du_dP)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->du_dT)); CHKERRQ(ierr);
+  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dvis_dT)); CHKERRQ(ierr);
+
+  // Initialize characteristic curve parameters on all cells.
+  PetscInt points[nc];
+  for (PetscInt c = 0; c < nc; ++c) {
+    points[c] = cStart + c;
+  }
+
+  // By default, we use the Van Genuchten saturation model.
+  {
+    PetscReal parameters[2*nc];
+    for (PetscInt c = 0; c < nc; ++c) {
+      parameters[2*c]   = mpfao->vangenuchten_m;
+      parameters[2*c+1] = mpfao->vangenuchten_alpha;
+    }
+    ierr = SaturationSetType(cc->saturation, SAT_FUNC_VAN_GENUCHTEN, nc, points,
+                             parameters); CHKERRQ(ierr);
+  }
+
+  // By default, we use the the Mualem relative permeability model.
+  {
+    PetscReal parameters[6*nc];
+    for (PetscInt c = 0; c < nc; ++c) {
+      PetscReal m = mpfao->vangenuchten_m,
+                poly_low = mpfao->mualem_poly_low;
+      parameters[6*c]   = m;
+      parameters[6*c+1] = poly_low;
+
+      // Set up cubic polynomial coefficients for the cell.
+      PetscReal coeffs[4];
+      ierr = RelativePermeability_Mualem_GetSmoothingCoeffs(m, poly_low, coeffs);
+      CHKERRQ(ierr);
+      parameters[6*c+2] = coeffs[0];
+      parameters[6*c+3] = coeffs[1];
+      parameters[6*c+4] = coeffs[2];
+      parameters[6*c+5] = coeffs[3];
+    }
+    ierr = RelativePermeabilitySetType(cc->rel_perm, REL_PERM_FUNC_MUALEM, nc,
+                                       points, parameters); CHKERRQ(ierr);
+  }
+
+  // Compute material properties.
+  ierr = MaterialPropComputePermeability(matprop, nc, mpfao->X, mpfao->K0); CHKERRQ(ierr);
+  memcpy(mpfao->K, mpfao->K0, 9*nc*sizeof(PetscReal));
+  ierr = MaterialPropComputePorosity(matprop, nc, mpfao->X, mpfao->porosity); CHKERRQ(ierr);
+  ierr = MaterialPropComputeResidualSaturation(matprop, nc, mpfao->X, mpfao->Sr); CHKERRQ(ierr);
+  if (MaterialPropHasThermalConductivity(matprop)) {
+    ierr = MaterialPropComputeThermalConductivity(matprop, nc, mpfao->X, mpfao->Kappa); CHKERRQ(ierr);
+    memcpy(mpfao->Kappa0, mpfao->Kappa, 9*nc*sizeof(PetscReal));
+  }
+  if (MaterialPropHasSoilSpecificHeat(matprop)) {
+    ierr = MaterialPropComputeSoilSpecificHeat(matprop, nc, mpfao->X, mpfao->c_soil); CHKERRQ(ierr);
+  }
+  if (MaterialPropHasSoilDensity(matprop)) {
+    ierr = MaterialPropComputeSoilDensity(matprop, nc, mpfao->X, mpfao->rho_soil); CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+}
+
+// Create a section containing a given number of fields with given names and
+// numbers of degrees of freedom, and attach it to the given DM.
+static PetscErrorCode SetFields(DM dm, PetscInt num_fields,
+                                const char* field_names[num_fields],
+                                PetscInt num_field_dof[num_fields]) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+
+  // Create the section and register fields and components.
+  PetscSection sec;
+  ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
+  ierr = PetscSectionSetNumFields(sec, num_fields); CHKERRQ(ierr);
+  PetscInt total_num_dof = 0; // total number of field dofs/components per point
+  for (PetscInt f = 0; f < num_fields; ++f) {
+    ierr = PetscSectionSetFieldName(sec, f, field_names[f]); CHKERRQ(ierr);
+    // TODO: should we distinguish between field components and dof?
+    ierr = PetscSectionSetFieldComponents(sec, f, num_field_dof[f]); CHKERRQ(ierr);
+    total_num_dof += num_field_dof[f];
+  }
+
+  // Create a chart on cells.
+  PetscInt cStart, cEnd;
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscSectionSetChart(sec,cStart,cEnd); CHKERRQ(ierr);
+
+  // Assign degrees of freedom to each field on each cell.
+  for(PetscInt c=cStart; c<cEnd; c++) {
+    for (PetscInt f = 0; f < num_fields; ++f) {
+      ierr = PetscSectionSetFieldDof(sec, c, f, num_field_dof[f]); CHKERRQ(ierr);
+    }
+    ierr = PetscSectionSetDof(sec, c, total_num_dof); CHKERRQ(ierr);
+  }
+
+  // Assign the section to the DM.
+  ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
+  ierr = DMSetLocalSection(dm,sec); CHKERRQ(ierr);
+  ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view"); CHKERRQ(ierr);
+  ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
+
+  // TODO: Does this really belong here, or can we move it elsewhere?
+  ierr = DMSetBasicAdjacency(dm,PETSC_TRUE,PETSC_TRUE); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDMFields_Richards_MPFAO(void *context, DM dm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  // Set up the section, 1 dof per cell
+  ierr = SetFields(dm, 1, (const char*[1]){"LiquidPressure"}, (PetscInt[1]){1});
+  CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDMFields_Richards_MPFAO_DAE(void *context, DM dm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  // Set up the section, 2 dofs per cell.
+  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "LiquidMass"},
+                   (PetscInt[2]){1, 1}); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDMFields_TH_MPFAO(void *context, DM dm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  // Set up the section, 2 dofs per cell.
+  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "LiquidTemperature"},
+                   (PetscInt[2]){1, 1}); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode ExtractSubMatrix(PetscReal **M, PetscInt rStart, PetscInt rEnd,
+                                       PetscInt cStart, PetscInt cEnd, PetscReal **Msub){
 
   PetscFunctionBegin;
 
@@ -1228,8 +803,7 @@ PetscErrorCode ExtractSubMatrix(PetscReal **M, PetscInt rStart, PetscInt rEnd,
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode ExtractsubCMatrices(PetscInt nrow, PetscInt ncol, PetscReal **C,
+static PetscErrorCode ExtractsubCMatrices(PetscInt nrow, PetscInt ncol, PetscReal **C,
   PetscInt nrow_1, PetscInt nrow_2, PetscInt nrow_3,
   PetscInt ncol_1, PetscInt ncol_2, PetscInt ncol_3,
   PetscReal ***C_11, PetscReal ***C_12, PetscReal ***C_13,
@@ -1269,9 +843,11 @@ PetscErrorCode ExtractsubCMatrices(PetscInt nrow, PetscInt ncol, PetscReal **C,
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode ExtractsubFMatrices(PetscReal **F, PetscInt nrow, PetscInt ncol, PetscInt nrow_1, PetscInt nrow_2, PetscInt nrow_3,
-PetscReal ***F_1, PetscReal ***F_2, PetscReal ***F_3){
+static PetscErrorCode ExtractsubFMatrices(PetscReal **F,
+                                          PetscInt nrow, PetscInt ncol,
+                                          PetscInt nrow_1, PetscInt nrow_2,
+                                          PetscInt nrow_3, PetscReal ***F_1,
+                                          PetscReal ***F_2, PetscReal ***F_3) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
@@ -1290,11 +866,182 @@ PetscReal ***F_1, PetscReal ***F_2, PetscReal ***F_3){
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
-    PetscInt ivertex, TDyCell *cells, PetscInt varID) {
+static PetscErrorCode DetermineNumberOfUpAndDownBoundaryFaces(TDyMPFAO *mpfao,
+    PetscInt ivertex, PetscInt *nflux_bc_up, PetscInt *nflux_bc_dn) {
 
-  TDyMesh *mesh = tdy->mesh;
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyVertex *vertices = &mesh->vertices;
+  TDyFace *faces = &mesh->faces;
+
+  PetscInt npcen = vertices->num_internal_cells[ivertex];
+  PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
+  PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
+
+  PetscErrorCode ierr;
+
+  *nflux_bc_up = 0;
+  *nflux_bc_dn = 0;
+
+  for (PetscInt i=0; i<npcen; i++) {
+    PetscInt icell    = vertices->internal_cell_ids[vOffsetCell + i];
+    PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
+
+    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
+
+    PetscInt *face_ids, *is_face_up, num_faces;
+    ierr = TDyMeshGetSubcellFaces(mesh, subcell_id, &face_ids, &num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellIsFaceUp(mesh, subcell_id, &is_face_up, &num_faces); CHKERRQ(ierr);
+
+    for (PetscInt iface=0; iface<num_faces; iface++) {
+
+      PetscInt faceID = face_ids[iface];
+      if (faces->is_internal[faceID]) continue;
+
+      if (is_face_up[iface]==1) {
+        (*nflux_bc_up)++;
+      } else {
+        (*nflux_bc_dn)++;
+      }
+    }
+  }
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode ComputeCandFmatrix(TDyMPFAO *mpfao, PetscInt ivertex,
+  PetscInt varID, PetscReal **Cup, PetscReal **Cdn, PetscReal **Fup,
+  PetscReal **Fdn) {
+
+  TDY_START_FUNCTION_TIMER()
+  PetscErrorCode ierr;
+
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
+  TDyVertex *vertices = &mesh->vertices;
+
+  PetscInt vOffsetCell    = vertices->internal_cell_offset[ivertex];
+  PetscInt vOffsetSubcell = vertices->subcell_offset[ivertex];
+
+  PetscInt npcen = vertices->num_internal_cells[ivertex];
+  PetscReal **Gmatrix;
+  PetscInt ndim = 3;
+
+  ierr = TDyAllocate_RealArray_2D(&Gmatrix, ndim   , ndim   ); CHKERRQ(ierr);
+
+  for (PetscInt i=0; i<npcen; i++) {
+    PetscInt icell    = vertices->internal_cell_ids[vOffsetCell + i];
+    PetscInt isubcell = vertices->subcell_ids[vOffsetSubcell + i];
+
+    PetscInt subcell_id = icell*cells->num_subcells[icell]+isubcell;
+
+    PetscInt *face_unknown_idx, *is_face_up, *face_flux_idx, subcell_num_faces;
+    ierr = TDyMeshGetSubcellFaceUnknownIdxs(mesh, subcell_id, &face_unknown_idx, &subcell_num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellIsFaceUp(mesh, subcell_id, &is_face_up, &subcell_num_faces); CHKERRQ(ierr);
+    ierr = TDyMeshGetSubcellFaceFluxIdxs(mesh, subcell_id, &face_flux_idx, &subcell_num_faces); CHKERRQ(ierr);
+
+    if (varID == VAR_PRESSURE) {
+      ierr = ExtractSubGmatrix(mpfao, icell, isubcell, ndim, Gmatrix);
+    } else if (varID == VAR_TEMPERATURE){
+      ierr = ExtractTempSubGmatrix(mpfao, icell, isubcell, ndim, Gmatrix);
+    }
+
+    PetscInt idx_interface_p0, idx_interface_p1, idx_interface_p2;
+
+    idx_interface_p0 = face_unknown_idx[0];
+    idx_interface_p1 = face_unknown_idx[1];
+    idx_interface_p2 = face_unknown_idx[2];
+
+    PetscInt idx_flux, iface;
+    for (iface=0; iface<subcell_num_faces; iface++) {
+
+      PetscBool upwind_entries = (is_face_up[iface] == 1);
+
+      if (upwind_entries) {
+        idx_flux = face_flux_idx[iface];
+
+        Cup[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
+        Cup[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
+        Cup[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
+
+        Fup[idx_flux][i] = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+
+      } else {
+        idx_flux = face_flux_idx[iface];
+
+        Cdn[idx_flux][idx_interface_p0] = -Gmatrix[iface][0];
+        Cdn[idx_flux][idx_interface_p1] = -Gmatrix[iface][1];
+        Cdn[idx_flux][idx_interface_p2] = -Gmatrix[iface][2];
+
+        Fdn[idx_flux][i] = -Gmatrix[iface][0] - Gmatrix[iface][1] - Gmatrix[iface][2];
+
+      }
+    }
+  }
+
+  ierr = TDyDeallocate_RealArray_2D(Gmatrix, ndim); CHKERRQ(ierr);
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode ComputeAinvB(PetscInt A_nrow, PetscReal *A,
+    PetscInt B_ncol, PetscReal *B, PetscReal *AinvB) {
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  PetscInt m, n;
+  PetscBLASInt info, *pivots;
+  PetscErrorCode ierr;
+
+  m = A_nrow; n = A_nrow;
+  ierr = PetscMalloc((n+1)*sizeof(PetscBLASInt), &pivots); CHKERRQ(ierr);
+
+  LAPACKgetrf_(&m, &n, A, &m, pivots, &info);
+  if (info<0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB,
+                        "Bad argument to LU factorization");
+  if (info>0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_MAT_LU_ZRPVT,
+                        "Bad LU factorization");
+
+  ierr = PetscMemcpy(AinvB,B,sizeof(PetscReal)*(A_nrow*B_ncol));
+  CHKERRQ(ierr); // AinvB in col major
+
+  // Solve AinvB = (A^-1 * B) by back-substitution
+  m = A_nrow; n = B_ncol;
+  LAPACKgetrs_("N", &m, &n, A, &m, pivots, AinvB, &m, &info);
+  if (info) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"GETRS - Bad solve");
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+
+}
+
+static PetscErrorCode ComputeCtimesAinvB(PetscInt C_nrow, PetscInt AinvB_ncol, PetscInt C_ncol,
+    PetscReal *C, PetscReal *AinvB, PetscReal *CtimesAinvB) {
+
+  PetscFunctionBegin;
+
+  PetscInt m, n, k;
+  PetscScalar zero = 0.0, one = 1.0;
+
+  // Compute (C * AinvB)
+  m = C_nrow; n = AinvB_ncol; k = C_ncol;
+  BLASgemm_("N","N", &m, &n, &k, &one, C, &m, AinvB, &k, &zero,
+            CtimesAinvB, &m);
+
+  PetscFunctionReturn(0);
+
+}
+
+static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
+    TDyMPFAO *mpfao, PetscInt ivertex, TDyCell *cells, PetscInt varID) {
+
+  TDyMesh *mesh = mpfao->mesh;
   TDyVertex *vertices = &mesh->vertices;
   TDyFace *faces = &mesh->faces;
   PetscInt icell;
@@ -1305,7 +1052,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   PetscReal *CupINBCxINBC_1d, *CupDBCxIn_1d, *CdnDBCxIn_1d;
   PetscReal *CupInxIntimesAinvB_1d, *CupBCxIntimesAinvB_1d, *CdnBCxIntimesAinvB_1d;
   PetscInt idx, vertex_id;
-  PetscInt ndim;
+  PetscInt ndim = 3;
   PetscInt i,j;
   PetscReal ****Trans;
   Mat *Trans_mat;
@@ -1324,20 +1071,18 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
 
   vertex_id = ivertex;
 
-  ierr = DMGetDimension(tdy->dm, &ndim); CHKERRQ(ierr);
-
   PetscInt npcen        = vertices->num_internal_cells[ivertex];
   PetscInt npitf_bc_all = vertices->num_boundary_faces[ivertex];
 
   PetscInt nflux_all_bc_up, nflux_all_bc_dn;
   PetscInt nflux_dir_bc_up, nflux_dir_bc_dn;
   PetscInt nflux_neu_bc_up, nflux_neu_bc_dn;
-  ierr = DetermineNumberOfUpAndDownBoundaryFaces(tdy, ivertex, &nflux_all_bc_up, &nflux_all_bc_dn);
+  ierr = DetermineNumberOfUpAndDownBoundaryFaces(mpfao, ivertex, &nflux_all_bc_up, &nflux_all_bc_dn);
 
   PetscInt npitf_dir_bc_all, npitf_neu_bc_all;
 
-  if (tdy->options.mpfao_bc_type == MPFAO_DIRICHLET_BC ||
-      tdy->options.mpfao_bc_type == MPFAO_SEEPAGE_BC) {
+  if (mpfao->bc_type == MPFAO_DIRICHLET_BC ||
+      mpfao->bc_type == MPFAO_SEEPAGE_BC) {
     nflux_dir_bc_up = nflux_all_bc_up;
     nflux_dir_bc_dn = nflux_all_bc_dn;
     npitf_dir_bc_all= npitf_bc_all;
@@ -1361,7 +1106,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   PetscInt nptif_neu_bc = nflux_neu_bc_up + nflux_neu_bc_dn;
 
   // Determine:
-  //  (1) number of internal and boudnary fluxes,
+  //  (1) number of internal and boundary fluxes,
   //  (2) number of internal unknown pressure values and known boundary pressure values
 
   PetscInt nflux_in = vertices->num_faces[ivertex] - nptif_dir_bc - nptif_neu_bc;
@@ -1391,8 +1136,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   ierr = TDyAllocate_RealArray_1D(&CupBCxIntimesAinvB_1d, nflux_dir_bc_up              *(npcen + npitf_dir_bc_all) );
   ierr = TDyAllocate_RealArray_1D(&CdnBCxIntimesAinvB_1d, nflux_dir_bc_dn              *(npcen + npitf_dir_bc_all) );
 
-
-  ierr = ComputeCandFmatrix(tdy, ivertex, varID, Cup_all, Cdn_all, Fup_all, Fdn_all); CHKERRQ(ierr);
+  ierr = ComputeCandFmatrix(mpfao, ivertex, varID, Cup_all, Cdn_all, Fup_all, Fdn_all); CHKERRQ(ierr);
 
   PetscReal **Fup_in, **Fup_dir_bc, **Fup_neu_bc;
   PetscReal **Fdn_in, **Fdn_dir_bc, **Fdn_neu_bc;
@@ -1490,7 +1234,6 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
     }
   }
 
-
   idx = 0;
   for (j=0; j<npitf_in; j++) {
     for (i=0; i<nflux_dir_bc_up; i++) {
@@ -1534,11 +1277,11 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
     }
 
   if (varID == VAR_PRESSURE) {
-    Trans = &tdy->Trans;
-    Trans_mat = &tdy->Trans_mat;
+    Trans = &mpfao->Trans;
+    Trans_mat = &mpfao->Trans_mat;
   } else if (varID == VAR_TEMPERATURE) {
-    Trans = &tdy->Temp_Trans;
-    Trans_mat = &tdy->Temp_Trans_mat;
+    Trans = &mpfao->Temp_Trans;
+    Trans_mat = &mpfao->Temp_Trans_mat;
   }
 
   // Save transmissiblity matrix for internal fluxes including contribution from unknown P @ cell centers
@@ -1629,7 +1372,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
     }
 
     for (j=0; j<npitf_dir_bc_all; j++) {
-      col = idxBnd[j] + tdy->mesh->num_cells;
+      col = idxBnd[j] + mpfao->mesh->num_cells;
       ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[vertex_id][i][j+npcen],ADD_VALUES); CHKERRQ(ierr);
     }
   }
@@ -1647,25 +1390,43 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(TDy tdy,
   ierr = TDyDeallocate_RealArray_2D(Fdn_dir_bc, nflux_dir_bc_dn); CHKERRQ(ierr);
   ierr = TDyDeallocate_RealArray_2D(Fdn_neu_bc, nflux_neu_bc_dn); CHKERRQ(ierr);
 
+  ierr = TDyDeallocate_RealArray_2D(Cup_11, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_12, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_13, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_21, nflux_dir_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_22, nflux_dir_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_23, nflux_dir_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_31, nflux_neu_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_32, nflux_neu_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cup_33, nflux_neu_bc_up); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_11, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_12, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_13, nflux_in); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_21, nflux_dir_bc_dn); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_22, nflux_dir_bc_dn); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_23, nflux_dir_bc_dn); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_31, nflux_neu_bc_dn); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_32, nflux_neu_bc_dn); CHKERRQ(ierr);
+  ierr = TDyDeallocate_RealArray_2D(Cdn_33, nflux_neu_bc_dn); CHKERRQ(ierr);
+
   free(AinvB_1d);
   free(CupInxIntimesAinvB_1d);
   free(CupBCxIntimesAinvB_1d);
   free(CdnBCxIntimesAinvB_1d);
-  free(AINBCxINBC_1d             );
-  free(CupINBCxINBC_1d           );
-  free(CupDBCxIn_1d           );
-  free(CdnDBCxIn_1d           );
+  free(AINBCxINBC_1d);
+  free(BINBCxCDBC_1d);
+  free(CupINBCxINBC_1d);
+  free(CupDBCxIn_1d);
+  free(CdnDBCxIn_1d);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(TDy tdy,
-    PetscInt ivertex, TDyCell *cells, PetscInt varID) {
-  DM             dm = tdy->dm;
-  TDyMesh *mesh = tdy->mesh;
+static PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(
+    TDyMPFAO *mpfao, DM dm, PetscInt ivertex, TDyCell *cells, PetscInt varID) {
+  TDyMesh *mesh = mpfao->mesh;
   TDyVertex *vertices = &mesh->vertices;
   TDySubcell    *subcells = &mesh->subcells;
   TDyFace       *faces = &mesh->faces;
@@ -1705,13 +1466,13 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
   subcell_id = icell*cells->num_subcells[icell]+isubcell;
 
   if (varID == VAR_PRESSURE) {
-    Trans = &tdy->Trans;
-    Trans_mat = &tdy->Trans_mat;
-    ierr = ExtractSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
+    Trans = &mpfao->Trans;
+    Trans_mat = &mpfao->Trans_mat;
+    ierr = ExtractSubGmatrix(mpfao, icell, isubcell, dim, Gmatrix);
   } else if (varID == VAR_TEMPERATURE) {
-    ierr = ExtractTempSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
-    Trans = &tdy->Temp_Trans;
-    Trans_mat = &tdy->Temp_Trans_mat;
+    ierr = ExtractTempSubGmatrix(mpfao, icell, isubcell, dim, Gmatrix);
+    Trans = &mpfao->Temp_Trans;
+    Trans_mat = &mpfao->Temp_Trans_mat;
   }
 
   for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {
@@ -1782,7 +1543,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     row = face_id * 4 + subface_id;
 
     for (j=0; j<numBnd; j++) {
-      col = idxBnd[j] + tdy->mesh->num_cells;
+      col = idxBnd[j] + mpfao->mesh->num_cells;
       ierr = MatSetValues(*Trans_mat,1,&row,1,&col,&(*Trans)[ivertex][i][j],ADD_VALUES); CHKERRQ(ierr);
     }
 
@@ -1840,6 +1601,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     T_1[iface][dim] = 0.0;
     for (j=0; j<dim; j++) T_1[iface][dim] += (Gmatrix[row][j]);
   }
+  ierr = TDyDeallocate_RealArray_2D(Gmatrix, dim); CHKERRQ(ierr);
 
   // Swap columns
   PetscReal Told[subcells->num_faces[subcell_id]][dim];
@@ -1901,10 +1663,9 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
 
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
+static PetscErrorCode UpdateTransmissibilityMatrix(TDyMPFAO *mpfao) {
 
-  TDyMesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = mpfao->mesh;
   TDyRegion     *region = &mesh->region_connected;
   PetscInt       iface, isubface;
   PetscInt       num_subfaces = 4;
@@ -1916,7 +1677,7 @@ PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
   // If a face is shared by two cells that belong to different
   // regions, zero the rows in the transmissiblity matrix
 
-  for (iface=0; iface<tdy->mesh->num_faces; iface++) {
+  for (iface=0; iface<mesh->num_faces; iface++) {
 
     PetscInt *face_cell_ids, num_cell_ids;
     ierr = TDyMeshGetFaceCells(mesh, iface, &face_cell_ids, &num_cell_ids); CHKERRQ(ierr);
@@ -1928,9 +1689,9 @@ PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
         for (isubface=0; isubface<4; isubface++) {
           PetscInt row[1];
           row[0] = iface*num_subfaces + isubface;
-          ierr = MatZeroRows(tdy->Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
-          if (tdy->options.mode == TH) {
-            ierr = MatZeroRows(tdy->Temp_Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
+          ierr = MatZeroRows(mpfao->Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
+          if (mpfao->Temp_subc_Gmatrix) { // TH
+            ierr = MatZeroRows(mpfao->Temp_Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
           }
         }
       }
@@ -1942,10 +1703,9 @@ PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy tdy) {
 
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyComputeTransmissibilityMatrix(TDy tdy) {
+static PetscErrorCode ComputeTransmissibilityMatrix(TDyMPFAO *mpfao, DM dm) {
 
-  TDyMesh       *mesh = tdy->mesh;
+  TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
   TDyVertex     *vertices = &mesh->vertices;
   PetscInt       ivertex;
@@ -1954,41 +1714,40 @@ PetscErrorCode TDyComputeTransmissibilityMatrix(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
     if (!vertices->is_local[ivertex]) continue;
 
     if (vertices->num_boundary_faces[ivertex] == 0 || vertices->num_internal_cells[ivertex] > 1) {
-      ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(tdy, ivertex, cells, 0); CHKERRQ(ierr);
-      if (tdy->options.mode == TH) {
-        ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(tdy, ivertex, cells, 1); CHKERRQ(ierr);
+      ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(mpfao, ivertex, cells, 0); CHKERRQ(ierr);
+      if (mpfao->Temp_subc_Gmatrix) { // TH
+        ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(mpfao, ivertex, cells, 1); CHKERRQ(ierr);
       }
     } else {
       // It is assumed that neumann boundary condition is a zero-flux boundary condition.
       // Thus, compute transmissiblity entries only for dirichlet boundary condition.
-      if (tdy->options.mpfao_bc_type == MPFAO_DIRICHLET_BC ||
-          tdy->options.mpfao_bc_type == MPFAO_SEEPAGE_BC) {
-        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 0); CHKERRQ(ierr);
-        if (tdy->options.mode == TH) {
-          ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(tdy, ivertex, cells, 1); CHKERRQ(ierr);
+      if (mpfao->bc_type == MPFAO_DIRICHLET_BC ||
+          mpfao->bc_type == MPFAO_SEEPAGE_BC) {
+        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(mpfao, dm, ivertex, cells, 0); CHKERRQ(ierr);
+        if (mpfao->Temp_subc_Gmatrix) { // TH
+          ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(mpfao, dm, ivertex, cells, 1); CHKERRQ(ierr);
         }
       }
     }
   }
 
-  ierr = MatAssemblyBegin(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(tdy->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  ierr = MatAssemblyBegin(mpfao->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(mpfao->Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
 
-  if (tdy->options.mode == TH) {
-    ierr = MatAssemblyBegin(tdy->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
-    ierr = MatAssemblyEnd(tdy->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  if (mpfao->Temp_subc_Gmatrix) { // TH
+    ierr = MatAssemblyBegin(mpfao->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(mpfao->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
 
   TDyRegion *region = &mesh->region_connected;
   if (region->num_cells > 0){
-    if (tdy->options.mpfao_gmatrix_method == MPFAO_GMATRIX_TPF ) {
-      ierr = TDyUpdateTransmissibilityMatrix(tdy); CHKERRQ(ierr);
+    if (mpfao->gmatrix_method == MPFAO_GMATRIX_TPF ) {
+      ierr = UpdateTransmissibilityMatrix(mpfao); CHKERRQ(ierr);
     } else {
       PetscPrintf(PETSC_COMM_WORLD,"WARNING -- Connected region option is only supported with MPFA-O TPF\n");
     }
@@ -1996,10 +1755,8 @@ PetscErrorCode TDyComputeTransmissibilityMatrix(TDy tdy) {
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
-
 }
 
-/* -------------------------------------------------------------------------- */
 /// Computes unit vector joining upwind and downwind cells that share a face.
 /// The unit vector points from upwind to downwind cell.
 ///
@@ -2007,11 +1764,11 @@ PetscErrorCode TDyComputeTransmissibilityMatrix(TDy tdy) {
 /// @param [in] face_id ID of the face
 /// @param [out] up2dn_uvec Unit vector from upwind to downwind cell
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode ComputeUpDownUnitVector(TDy tdy, PetscInt face_id, PetscReal up2dn_uvec[3]) {
+PetscErrorCode ComputeUpDownUnitVector(TDyMPFAO *mpfao, PetscInt face_id, PetscReal up2dn_uvec[3]) {
 
   PetscFunctionBegin;
 
-  TDyMesh *mesh = tdy->mesh;
+  TDyMesh *mesh = mpfao->mesh;
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
@@ -2048,7 +1805,6 @@ PetscErrorCode ComputeUpDownUnitVector(TDy tdy, PetscInt face_id, PetscReal up2d
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
 /// Computes upwind and downwind distance of cells sharing a face. If the face is a
 /// boundary face, one of the distance is zero
 ///
@@ -2057,11 +1813,11 @@ PetscErrorCode ComputeUpDownUnitVector(TDy tdy, PetscInt face_id, PetscReal up2d
 /// @param [out] dist_up Distance between the upwind cell centroid and face centroid
 /// @param [out] dist_dn Distance between the downwind cell centroid and face centroid
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode ComputeUpAndDownDist(TDy tdy, PetscInt face_id, PetscReal *dist_up, PetscReal *dist_dn) {
+static PetscErrorCode ComputeUpAndDownDist(TDyMPFAO *mpfao, PetscInt face_id, PetscReal *dist_up, PetscReal *dist_dn) {
 
   PetscFunctionBegin;
 
-  TDyMesh *mesh = tdy->mesh;
+  TDyMesh *mesh = mpfao->mesh;
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
@@ -2099,7 +1855,6 @@ PetscErrorCode ComputeUpAndDownDist(TDy tdy, PetscInt face_id, PetscReal *dist_u
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
 /// Computes face permeability tensor as a harmonically distance-weighted
 //  permeability of upwind and downwind permeability tensors
 ///
@@ -2107,12 +1862,13 @@ PetscErrorCode ComputeUpAndDownDist(TDy tdy, PetscInt face_id, PetscReal *dist_u
 /// @param [in] face_id ID of the face
 /// @param [out] Kup components of the upwind permeability tensor in a row-major order
 /// @param [out] Kdn components of the downwind permeability tensor in a row-major order
-PetscErrorCode ExtractUpAndDownPermeabilityTensors(TDy tdy, PetscInt face_id, PetscInt dim, PetscReal Kup[dim*dim], PetscReal Kdn[dim*dim]) {
+PetscErrorCode ExtractUpAndDownPermeabilityTensors(TDyMPFAO *mpfao,
+    MaterialProp *matprop, PetscInt face_id, PetscInt dim,
+    PetscReal Kup[dim*dim], PetscReal Kdn[dim*dim]) {
 
   PetscFunctionBegin;
 
-  TDyMesh *mesh = tdy->mesh;
-  MaterialProp *matprop = tdy->matprop;
+  TDyMesh *mesh = mpfao->mesh;
   PetscErrorCode ierr;
 
   PetscInt *face_cell_ids, num_cell_ids;
@@ -2128,18 +1884,17 @@ PetscErrorCode ExtractUpAndDownPermeabilityTensors(TDy tdy, PetscInt face_id, Pe
   {
     for (PetscInt mm = 0; mm < dim; mm++)
     {
-      if (cell_id_up >= 0) Kup[mm * dim + kk] = matprop->K0[cell_id_up * dim * dim + kk * dim + mm];
-      else                 Kup[mm * dim + kk] = matprop->K0[cell_id_dn * dim * dim + kk * dim + mm];
+      if (cell_id_up >= 0) Kup[mm * dim + kk] = mpfao->K0[cell_id_up * dim * dim + kk * dim + mm];
+      else                 Kup[mm * dim + kk] = mpfao->K0[cell_id_dn * dim * dim + kk * dim + mm];
 
-      if (cell_id_dn >= 0) Kdn[mm * dim + kk] = matprop->K0[cell_id_dn * dim * dim + kk * dim + mm];
-      else                 Kdn[mm * dim + kk] = matprop->K0[cell_id_up * dim * dim + kk * dim + mm];
+      if (cell_id_dn >= 0) Kdn[mm * dim + kk] = mpfao->K0[cell_id_dn * dim * dim + kk * dim + mm];
+      else                 Kdn[mm * dim + kk] = mpfao->K0[cell_id_up * dim * dim + kk * dim + mm];
     }
   }
 
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
 /// Computes face permeability tensor as a harmonically distance-weighted
 //  permeability of upwind and downwind permeability tensors
 ///
@@ -2148,21 +1903,22 @@ PetscErrorCode ExtractUpAndDownPermeabilityTensors(TDy tdy, PetscInt face_id, Pe
 /// @param [in] tdy A TDy struct
 /// @param [in] face_id ID of the face
 /// @param [out] Kface components of face permeability tensor in row-major order
-PetscErrorCode ComputeFacePermeabilityTensor(TDy tdy, PetscInt face_id, PetscReal Kface[9]){
+static PetscErrorCode ComputeFacePermeabilityTensor(TDyMPFAO *mpfao,
+    MaterialProp *matprop, PetscInt face_id, PetscReal Kface[9]){
 
   PetscFunctionBegin;
 
   PetscErrorCode ierr;
   PetscReal dist_up, dist_dn;
 
-  ierr = ComputeUpAndDownDist(tdy, face_id, &dist_up, &dist_dn); CHKERRQ(ierr);
+  ierr = ComputeUpAndDownDist(mpfao, face_id, &dist_up, &dist_dn); CHKERRQ(ierr);
 
   PetscInt dim = 3;
 
   PetscReal Kup[dim*dim], Kdn[dim*dim];
   PetscReal KupInv[dim*dim], KdnInv[dim*dim];
 
-  ierr = ExtractUpAndDownPermeabilityTensors(tdy, face_id, dim, Kup, Kdn); CHKERRQ(ierr);
+  ierr = ExtractUpAndDownPermeabilityTensors(mpfao, matprop, face_id, dim, Kup, Kdn); CHKERRQ(ierr);
 
   ierr = ComputeInverseOf3by3Matrix(Kup, KupInv); CHKERRQ(ierr);
   ierr = ComputeInverseOf3by3Matrix(Kdn, KdnInv); CHKERRQ(ierr);
@@ -2194,7 +1950,6 @@ PetscErrorCode ComputeFacePermeabilityTensor(TDy tdy, PetscInt face_id, PetscRea
  PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
 /// Computes the two-point flux discretization of the gravity term in Richards equation
 ///
 /// Flux associated with the gravity term is given as
@@ -2219,14 +1974,14 @@ PetscErrorCode ComputeFacePermeabilityTensor(TDy tdy, PetscInt face_id, PetscRea
 ///
 /// @param [in] tdy A TDy struct
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyComputeGravityDiscretization(TDy tdy) {
+static PetscErrorCode ComputeGravityDiscretization(TDyMPFAO *mpfao, DM dm,
+                                                   MaterialProp *matprop) {
 
   PetscFunctionBegin;
 
   TDY_START_FUNCTION_TIMER()
 
-  DM dm = tdy->dm;
-  TDyMesh *mesh = tdy->mesh;
+  TDyMesh *mesh = mpfao->mesh;
   TDyFace *faces = &mesh->faces;
   TDyVertex *vertices = &mesh->vertices;
   TDySubcell *subcells = &mesh->subcells;
@@ -2236,7 +1991,7 @@ PetscErrorCode TDyComputeGravityDiscretization(TDy tdy) {
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   PetscScalar *gradDisPtr;
-  ierr = VecGetArray(tdy->GravDisVec, &gradDisPtr); CHKERRQ(ierr);
+  ierr = VecGetArray(mpfao->GravDisVec, &gradDisPtr); CHKERRQ(ierr);
 
   // Loop over all vertices
   for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++){
@@ -2267,7 +2022,7 @@ PetscErrorCode TDyComputeGravityDiscretization(TDy tdy) {
 
       // Currently, only zero-flux neumann boundary condition is implemented.
       // If the boundary condition is neumann, then gravity discretization term is zero
-      if (tdy->options.mpfao_bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
+      if (mpfao->bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
 
       PetscInt cell_id;
       if (cell_id_up < 0) {
@@ -2277,16 +2032,17 @@ PetscErrorCode TDyComputeGravityDiscretization(TDy tdy) {
       }
 
       PetscInt subcell_id;
-      ierr = TDyGetSubcellIDGivenCellIdVertexIdFaceId(tdy, cell_id, ivertex, face_id, &subcell_id); CHKERRQ(ierr);
+      ierr = TDyMeshGetSubcellIDGivenCellIdVertexIdFaceId(mesh, cell_id,
+        ivertex, face_id, &subcell_id); CHKERRQ(ierr);
 
       // area of subface
       PetscReal area = subcells->face_area[subcell_id];
 
       PetscReal u_up2dn[dim];
-      ierr = ComputeUpDownUnitVector(tdy, face_id, u_up2dn); CHKERRQ(ierr);
+      ierr = ComputeUpDownUnitVector(mpfao, face_id, u_up2dn); CHKERRQ(ierr);
 
       PetscReal K_face[dim*dim];
-      ierr = ComputeFacePermeabilityTensor(tdy, face_id, K_face);
+      ierr = ComputeFacePermeabilityTensor(mpfao, matprop, face_id, K_face);
 
       // Ku = K_face x u_up2dn
       PetscReal Ku[dim];
@@ -2306,7 +2062,7 @@ PetscErrorCode TDyComputeGravityDiscretization(TDy tdy) {
 
       // dot(g, u_up2dn)
       PetscReal dot_prod_2;
-      ierr = ComputeGtimesZ(tdy->gravity,u_up2dn, dim, &dot_prod_2); CHKERRQ(ierr);
+      ierr = ComputeGtimesZ(mpfao->gravity,u_up2dn, dim, &dot_prod_2); CHKERRQ(ierr);
 
       // GravDis = A_face * dot (n_face, K_face x u_up2dn) * dot(g, u_up2dn)
       PetscReal GravDis = area * dot_prod_1 * dot_prod_2;
@@ -2319,8 +2075,460 @@ PetscErrorCode TDyComputeGravityDiscretization(TDy tdy) {
     }
   }
 
-  ierr = VecRestoreArray(tdy->GravDisVec, &gradDisPtr); CHKERRQ(ierr);
+  ierr = VecRestoreArray(mpfao->GravDisVec, &gradDisPtr); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
+
+// Setup function for Richards + MPFA_O
+PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
+                                       MaterialProp *matprop,
+                                       CharacteristicCurves *cc,
+                                       Conditions *conditions) {
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+  TDyMPFAO *mpfao = context;
+
+  ierr = ComputeGeometry(mpfao, dm); CHKERRQ(ierr);
+  ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
+  ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
+
+  // Gather mesh data.
+  {
+    PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
+    PetscInt nrow, ncol, nz;
+
+    nFaces = mpfao->mesh->num_faces;
+    nLocalCells = TDyMeshGetNumberOfLocalCells(mpfao->mesh);
+    nNonLocalFaces = TDyMeshGetNumberOfNonLocalFaces(mpfao->mesh);
+    nNonInternalFaces = TDyMeshGetNumberOfNonInternalFaces(mpfao->mesh);
+
+    nrow = 4*nFaces;
+    ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
+    nz   = mpfao->nfv;
+    ierr = TDyAllocate_RealArray_3D(&mpfao->Trans, mpfao->mesh->num_vertices,
+                                    mpfao->nfv, mpfao->nfv + mpfao->ncv); CHKERRQ(ierr);
+    ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&mpfao->Trans_mat); CHKERRQ(ierr);
+    ierr = MatSetOption(mpfao->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&mpfao->P_vec);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->TtimesP_vec);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->GravDisVec);
+    ierr = VecZeroEntries(mpfao->GravDisVec);
+    PetscInt nsubcells = 8;
+    ierr = TDyAllocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
+                                    nsubcells, 3, 3); CHKERRQ(ierr);
+  }
+
+  // Set up data structures for the discretization.
+  ierr = ComputeGMatrix(mpfao, dm, matprop); CHKERRQ(ierr);
+  ierr = ComputeTransmissibilityMatrix(mpfao, dm); CHKERRQ(ierr);
+  ierr = ComputeGravityDiscretization(mpfao, dm, matprop); CHKERRQ(ierr);
+
+  ierr = AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
+  ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+// Setup function for Richards + MPFAO_DAE
+PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
+                                           MaterialProp *matprop,
+                                           CharacteristicCurves *cc,
+                                           Conditions* conditions) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  PetscFunctionReturn(0);
+
+  TDyMPFAO *mpfao = context;
+
+  ierr = ComputeGeometry(mpfao, dm); CHKERRQ(ierr);
+  ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
+  ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
+
+  // Gather mesh data.
+  {
+    PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
+    PetscInt nrow, ncol, nz;
+
+    nFaces = mpfao->mesh->num_faces;
+    nLocalCells = TDyMeshGetNumberOfLocalCells(mpfao->mesh);
+    nNonLocalFaces = TDyMeshGetNumberOfNonLocalFaces(mpfao->mesh);
+    nNonInternalFaces = TDyMeshGetNumberOfNonInternalFaces(mpfao->mesh);
+
+    nrow = 4*nFaces;
+    ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
+    nz   = mpfao->nfv;
+    ierr = TDyAllocate_RealArray_3D(&mpfao->Trans, mpfao->mesh->num_vertices,
+                                    mpfao->nfv, mpfao->nfv + mpfao->ncv); CHKERRQ(ierr);
+    ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&mpfao->Trans_mat); CHKERRQ(ierr);
+    ierr = MatSetOption(mpfao->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&mpfao->P_vec);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->TtimesP_vec);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->GravDisVec);
+    ierr = VecZeroEntries(mpfao->GravDisVec);
+    PetscInt nsubcells = 8;
+    ierr = TDyAllocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
+                                    nsubcells, 3, 3); CHKERRQ(ierr);
+  }
+
+  // Set up data structures for the discretization.
+  ierr = ComputeGMatrix(mpfao, dm, matprop); CHKERRQ(ierr);
+  ierr = ComputeTransmissibilityMatrix(mpfao, dm); CHKERRQ(ierr);
+  ierr = ComputeGravityDiscretization(mpfao, dm, matprop); CHKERRQ(ierr);
+
+  ierr = AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
+  ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
+}
+
+// Setup function for TH + MPFA-O
+PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
+                                 MaterialProp *matprop,
+                                 CharacteristicCurves *cc,
+                                 Conditions* conditions) {
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+  TDyMPFAO* mpfao = context;
+
+  ierr = ComputeGeometry(mpfao, dm); CHKERRQ(ierr);
+  ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
+  ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
+
+  // Gather mesh data.
+  {
+    PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
+    PetscInt nrow, ncol, nz;
+
+    nFaces = mpfao->mesh->num_faces;
+    nLocalCells = TDyMeshGetNumberOfLocalCells(mpfao->mesh);
+    nNonLocalFaces = TDyMeshGetNumberOfNonLocalFaces(mpfao->mesh);
+    nNonInternalFaces = TDyMeshGetNumberOfNonInternalFaces(mpfao->mesh);
+
+    nrow = 4*nFaces;
+    ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
+    nz   = mpfao->nfv;
+    ierr = TDyAllocate_RealArray_3D(&mpfao->Trans, mpfao->mesh->num_vertices,
+                                    mpfao->nfv, mpfao->nfv + mpfao->ncv); CHKERRQ(ierr);
+    ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&mpfao->Trans_mat); CHKERRQ(ierr);
+    ierr = MatSetOption(mpfao->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&mpfao->P_vec);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->TtimesP_vec);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->GravDisVec);
+    ierr = VecZeroEntries(mpfao->GravDisVec);
+
+    ierr = TDyAllocate_RealArray_3D(&mpfao->Temp_Trans, mpfao->mesh->num_vertices,
+                                    mpfao->nfv, mpfao->nfv); CHKERRQ(ierr);
+    ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&mpfao->Temp_Trans_mat); CHKERRQ(ierr);
+    ierr = MatSetOption(mpfao->Temp_Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&mpfao->Temp_P_vec);
+    ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->Temp_TtimesP_vec);
+
+    PetscInt nsubcells = 8;
+    ierr = TDyAllocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
+                                    nsubcells, 3, 3); CHKERRQ(ierr);
+    ierr = TDyAllocate_RealArray_4D(&mpfao->Temp_subc_Gmatrix, mpfao->mesh->num_cells,
+                                    nsubcells, 3, 3); CHKERRQ(ierr);
+  }
+
+  // Compute matrices for our discretization.
+  ierr = ComputeGMatrix(mpfao, dm, matprop); CHKERRQ(ierr);
+  ierr = ComputeTransmissibilityMatrix(mpfao, dm); CHKERRQ(ierr);
+  ierr = ComputeGravityDiscretization(mpfao, dm, matprop); CHKERRQ(ierr);
+
+  ierr = AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
+  ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
+  ierr = AllocateMemoryForEnergyBoundaryValues(mpfao, eos); CHKERRQ(ierr);
+  ierr = AllocateMemoryForEnergySourceSinkValues(mpfao); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+//-----------------------
+// UpdateState functions
+//-----------------------
+
+PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
+                                             EOS *eos,
+                                             MaterialProp *matprop,
+                                             CharacteristicCurves *cc,
+                                             PetscReal *U) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDyMPFAO *mpfao = context;
+
+  PetscInt dim = 3;
+  PetscInt dim2 = dim*dim;
+  PetscInt cStart, cEnd;
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  PetscInt nc = cEnd - cStart;
+
+  // Compute the capillary pressure on all cells.
+  PetscReal Pc[nc];
+  for (PetscInt c=0;c<cEnd-cStart;c++) {
+    Pc[c] = mpfao->Pref - U[c];
+  }
+
+  // Compute the saturation and its derivatives.
+  ierr = SaturationCompute(cc->saturation, mpfao->Sr, Pc, mpfao->S, mpfao->dS_dP,
+                           mpfao->d2S_dP2);
+
+  // Compute the effective saturation on cells.
+  PetscReal Se[nc];
+  for (PetscInt c=0;c<nc;c++) {
+    Se[c] = (mpfao->S[c] - mpfao->Sr[c])/(1.0 - mpfao->Sr[c]);
+  }
+
+  // Compute the relative permeability and its derivative (w.r.t. Se).
+  ierr = RelativePermeabilityCompute(cc->rel_perm, Se, mpfao->Kr, mpfao->dKr_dS);
+
+  // Correct dKr/dS using the chain rule, and update the permeability.
+  for (PetscInt c=0;c<nc;c++) {
+    PetscReal dSe_dS = 1.0/(1.0 - mpfao->Sr[c]);
+    mpfao->dKr_dS[c] *= dSe_dS; // correct dKr/dS
+
+    for(PetscInt j=0; j<dim2; j++) {
+      mpfao->K[c*dim2+j] = mpfao->K0[c*dim2+j] * mpfao->Kr[c];
+    }
+
+    // Also update water properties.
+    PetscReal P = mpfao->Pref - Pc[c]; // pressure
+    ierr = EOSComputeWaterDensity(eos, P, &(mpfao->rho[c]),
+                                  &(mpfao->drho_dP[c]),
+                                  &(mpfao->d2rho_dP2[c])); CHKERRQ(ierr);
+    ierr = EOSComputeWaterViscosity(eos, P, &(mpfao->vis[c]),
+                                    &(mpfao->dvis_dP[c]),
+                                    &(mpfao->d2vis_dP2[c])); CHKERRQ(ierr);
+  }
+
+  PetscReal *p_vec_ptr, gz;
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
+
+  ierr = VecGetArray(mpfao->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+  for (PetscInt c=0; c<nc; ++c) {
+    ierr = ComputeGtimesZ(mpfao->gravity,cells->centroid[c].X,dim,&gz);
+    PetscReal P = mpfao->Pref - Pc[c]; // pressure
+    p_vec_ptr[c] = P;
+  }
+  ierr = VecRestoreArray(mpfao->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
+                                       EOS *eos, MaterialProp *matprop,
+                                       CharacteristicCurves *cc, PetscReal *U) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  TDyMPFAO *mpfao = context;
+
+  PetscInt dim = 3;
+  PetscInt dim2 = dim*dim;
+  PetscInt cStart, cEnd;
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  PetscInt nc = cEnd - cStart;
+
+  // Obtain the capillary pressure and the temperature on all cells.
+  PetscReal Pc[nc], temp[nc];
+  for (PetscInt c=0;c<cEnd-cStart;c++) {
+    Pc[c] = mpfao->Pref - U[2*c];
+    temp[c] = U[2*c+1];
+  }
+
+  // Compute the saturation and its derivatives.
+  ierr = SaturationCompute(cc->saturation, mpfao->Sr, Pc, mpfao->S, mpfao->dS_dP,
+                           mpfao->d2S_dP2);
+
+  // Compute the effective saturation on cells.
+  PetscReal Se[nc];
+  for (PetscInt c=0;c<nc;c++) {
+    Se[c] = (mpfao->S[c] - mpfao->Sr[c])/(1.0 - mpfao->Sr[c]);
+  }
+
+  // Compute the relative permeability and its derivative (w.r.t. Se).
+  ierr = RelativePermeabilityCompute(cc->rel_perm, Se, mpfao->Kr, mpfao->dKr_dS);
+
+  // Correct dKr/dS using the chain rule, and update the permeability.
+  for (PetscInt c=0;c<nc;c++) {
+    PetscReal dSe_dS = 1.0/(1.0 - mpfao->Sr[c]);
+    mpfao->dKr_dS[c] *= dSe_dS; // correct dKr/dS
+
+    for(PetscInt j=0; j<dim2; j++) {
+      mpfao->K[c*dim2+j] = mpfao->K0[c*dim2+j] * mpfao->Kr[c];
+    }
+
+    // Also update water properties.
+    PetscReal P = mpfao->Pref - Pc[c]; // pressure
+    ierr = EOSComputeWaterDensity(eos, P, &(mpfao->rho[c]),
+                                  &(mpfao->drho_dP[c]),
+                                  &(mpfao->d2rho_dP2[c])); CHKERRQ(ierr);
+    ierr = EOSComputeWaterViscosity(eos, P, &(mpfao->vis[c]),
+                                    &(mpfao->dvis_dP[c]),
+                                    &(mpfao->d2vis_dP2[c])); CHKERRQ(ierr);
+
+    // Update the thermal conductivity based on Kersten number, etc.
+    for(PetscInt j=0; j<dim2; ++j)
+      mpfao->Kappa[c*dim2+j] = mpfao->Kappa0[c*dim2+j];
+    ierr = EOSComputeWaterEnthalpy(eos, temp[c], P, &(mpfao->h[c]),
+                                   &(mpfao->dh_dP[c]),
+                                   &(mpfao->dh_dT[c])); CHKERRQ(ierr);
+    mpfao->u[c] = mpfao->h[c] - P/mpfao->rho[c];
+  }
+
+  PetscReal *p_vec_ptr, gz;
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
+
+  ierr = VecGetArray(mpfao->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+  for (PetscInt c=0; c<nc; c++) {
+    ierr = ComputeGtimesZ(mpfao->gravity,cells->centroid[c].X,dim,&gz);
+    PetscReal P = mpfao->Pref - Pc[c]; // pressure
+    p_vec_ptr[c] = P;
+  }
+  ierr = VecRestoreArray(mpfao->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+
+  PetscReal *t_vec_ptr;
+  ierr = VecGetArray(mpfao->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
+  for (PetscInt c=0; c<nc; c++) {
+    t_vec_ptr[c] = temp[c];
+  }
+  ierr = VecRestoreArray(mpfao->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyComputeErrorNorms_MPFAO(void *context, DM dm, Conditions *conditions,
+                                          Vec U, PetscReal *p_norm, PetscReal *v_norm) {
+  TDyMPFAO *mpfao = context;
+  TDyMesh  *mesh = mpfao->mesh;
+  TDyCell  *cells = &mesh->cells;
+  TDyFace  *faces = &mesh->faces;
+  PetscScalar *u;
+  Vec localU;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  if (!ConditionsHasBoundaryPressure(conditions)) {
+    SETERRQ(((PetscObject)dm)->comm,PETSC_ERR_USER,
+            "Must set the boundary pressure function with TDySetBoundaryPressureFunction");
+  }
+
+  PetscInt dim = 3;
+
+  if (p_norm) {
+
+    ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
+    ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+    ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
+
+    PetscReal norm_sum = 0.0;
+    PetscReal norm = 0.0;
+
+    for (PetscInt icell=0; icell<mesh->num_cells; icell++) {
+
+      if (!cells->is_local[icell]) continue;
+
+      PetscReal pressure;
+      ierr = ConditionsComputeBoundaryPressure(conditions, 1, &(mpfao->X[icell*dim]), &pressure);CHKERRQ(ierr);
+      norm += (PetscSqr(pressure - u[icell])) * cells->volume[icell];
+    }
+
+    ierr = VecRestoreArray(localU, &u); CHKERRQ(ierr);
+    ierr = DMRestoreLocalVector(dm,&localU); CHKERRQ(ierr);
+
+    ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
+                         PetscObjectComm((PetscObject)U)); CHKERRQ(ierr);
+
+    *p_norm = PetscSqrtReal(norm_sum);
+  }
+
+  if (v_norm) {
+    PetscInt fStart, fEnd;
+    ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
+
+    PetscReal norm_sum = 0.0;
+    PetscReal norm     = 0.0;
+
+    for (PetscInt icell=0; icell<mesh->num_cells; icell++) {
+
+      if (!cells->is_local[icell]) continue;
+
+      for (PetscInt iface=0; iface<cells->num_faces[icell]; iface++) {
+        PetscInt faceStart = cells->face_offset[icell];
+        PetscInt face_id = cells->face_ids[faceStart + iface];
+
+        PetscReal vel[3];
+        ierr = ConditionsComputeBoundaryVelocity(conditions, 1, &(mpfao->X[(face_id + fStart)*dim]), vel);CHKERRQ(ierr);
+        PetscReal vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim);
+        if (mpfao->vel_count[face_id] != faces->num_vertices[face_id]) {
+          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"tdy->vel_count != faces->num_vertices[face_id]");
+        }
+
+        norm += PetscSqr((vel_normal - mpfao->vel[face_id]))*cells->volume[icell];
+      }
+    }
+
+    ierr = MPI_Allreduce(&norm,&norm_sum,1,MPIU_REAL,MPI_SUM,
+                         PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
+    *v_norm = PetscSqrtReal(norm_sum);
+  }
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
+
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+
+  ierr = MatZeroEntries(K);
+  ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+  ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+
+  ierr = TDyMPFAOComputeSystem_InternalVertices(tdy,K,F); CHKERRQ(ierr);
+  ierr = TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices(tdy,K,F); CHKERRQ(ierr);
+  ierr = TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices(tdy,K,F); CHKERRQ(ierr);
+
+  PetscInt dim = 3;
+
+  Conditions *conditions = tdy->conditions;
+  if (ConditionsHasForcing(conditions)) {
+    for (PetscInt icell=0; icell<mesh->num_cells; icell++) {
+      if (cells->is_local[icell]) {
+        PetscReal f;
+        ierr = ConditionsComputeForcing(conditions, 1, &(mpfao->X[icell*dim]), &f);CHKERRQ(ierr);
+        PetscReal value = f * cells->volume[icell];
+        PetscInt row = cells->global_id[icell];
+        ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);
+      }
+    }
+  }
+
+  ierr = VecAssemblyBegin(F); CHKERRQ(ierr);
+  ierr = VecAssemblyEnd  (F); CHKERRQ(ierr);
+  ierr = MatAssemblyBegin(K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+  ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyGetSaturation_MPFAO(void* context, PetscReal* S) {
+  PetscFunctionBegin;
+  TDyMPFAO *mpfao = context;
+  for (PetscInt c = 0; c < mpfao->mesh->num_cells; ++c) {
+    S[c] = mpfao->S[c];
+  }
+  PetscFunctionReturn(0);
+}
+

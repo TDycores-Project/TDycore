@@ -237,7 +237,7 @@ PetscInt TDyMaxNumberOfFacesSharingAVertex(DM dm, PetscInt *closureSize, PetscIn
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyComputeLength(PetscReal v1[3], PetscReal v2[3], PetscInt dim,
-                             PetscReal *length) {
+                                PetscReal *length) {
 
   PetscFunctionBegin;
   PetscInt d;
