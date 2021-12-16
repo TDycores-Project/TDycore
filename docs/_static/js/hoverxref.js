@@ -82,7 +82,7 @@ function reLoadSphinxTabs() {
 function getEmbedURL(url) {
     var params = {
         'doctool': 'sphinx',
-        'doctoolversion': '4.2.0',
+        'doctoolversion': '4.3.1',
         'url': url,
     }
     console.debug('Data: ' + JSON.stringify(params));
@@ -93,6 +93,13 @@ function getEmbedURL(url) {
 
 
 $(document).ready(function() {
+    // Define a custom HTTP header to send the requests to the server
+    $.ajaxSetup({
+        beforeSend: function(request) {
+            request.setRequestHeader('X-HoverXRef-Version', '1.0.0');
+        }
+    });
+
     // Remove ``title=`` attribute for intersphinx nodes that have hoverxref enabled.
     // It doesn't make sense the browser shows the default tooltip (browser's built-in)
     // and immediately after that our tooltip was shown.
