@@ -726,39 +726,64 @@ static PetscErrorCode SetFields(DM dm, PetscInt num_fields,
   PetscSection sec;
   ierr = PetscSectionCreate(comm, &sec); CHKERRQ(ierr);
   ierr = PetscSectionSetNumFields(sec, num_fields); CHKERRQ(ierr);
+  PetscInt total_num_dof = 0; // total number of field dofs/components per point
   for (PetscInt f = 0; f < num_fields; ++f) {
     ierr = PetscSectionSetFieldName(sec, f, field_names[f]); CHKERRQ(ierr);
     // TODO: should we distinguish between field components and dof?
     ierr = PetscSectionSetFieldComponents(sec, f, num_field_dof[f]); CHKERRQ(ierr);
-  }
-
-  // Find the total number of degrees of freedom (per point) across all fields.
-  PetscInt total_num_dof = 0;
-  for (PetscInt f = 0; f < num_fields; ++f) {
     total_num_dof += num_field_dof[f];
   }
 
-  PetscInt pStart, pEnd;
-  ierr = DMPlexGetHeightStratum(dm,0,&pStart,&pEnd); CHKERRQ(ierr);
-  ierr = PetscSectionSetChart(sec,pStart,pEnd); CHKERRQ(ierr);
+  // Create a chart on cells.
+  PetscInt cStart, cEnd;
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = PetscSectionSetChart(sec,cStart,cEnd); CHKERRQ(ierr);
 
-  // Assign degrees of freedom to each field and mesh point.
-  for(PetscInt p=pStart; p<pEnd; p++) {
+  // Assign degrees of freedom to each field on each cell.
+  for(PetscInt c=cStart; c<cEnd; c++) {
     for (PetscInt f = 0; f < num_fields; ++f) {
-      ierr = PetscSectionSetFieldDof(sec,p,f, num_field_dof[f]); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldDof(sec, c, f, num_field_dof[f]); CHKERRQ(ierr);
     }
-    ierr = PetscSectionSetDof(sec, p, total_num_dof); CHKERRQ(ierr);
+    ierr = PetscSectionSetDof(sec, c, total_num_dof); CHKERRQ(ierr);
   }
 
   // Assign the section to the DM.
   ierr = PetscSectionSetUp(sec); CHKERRQ(ierr);
-  ierr = DMSetSection(dm,sec); CHKERRQ(ierr);
+  ierr = DMSetLocalSection(dm,sec); CHKERRQ(ierr);
   ierr = PetscSectionViewFromOptions(sec, NULL, "-layout_view"); CHKERRQ(ierr);
   ierr = PetscSectionDestroy(&sec); CHKERRQ(ierr);
 
   // TODO: Does this really belong here, or can we move it elsewhere?
   ierr = DMSetBasicAdjacency(dm,PETSC_TRUE,PETSC_TRUE); CHKERRQ(ierr);
 
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDMFields_Richards_MPFAO(void *context, DM dm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  // Set up the section, 1 dof per cell
+  ierr = SetFields(dm, 1, (const char*[1]){"LiquidPressure"}, (PetscInt[1]){1});
+  CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDMFields_Richards_MPFAO_DAE(void *context, DM dm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  // Set up the section, 2 dofs per cell.
+  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "LiquidMass"},
+                   (PetscInt[2]){1, 1}); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDMFields_TH_MPFAO(void *context, DM dm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  // Set up the section, 2 dofs per cell.
+  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "LiquidTemperature"},
+                   (PetscInt[2]){1, 1}); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -2070,10 +2095,6 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 
-  // Set up the section, 1 dof per cell
-  ierr = SetFields(dm, 1, (const char*[1]){"LiquidPressure"}, (PetscInt[1]){1});
-  CHKERRQ(ierr);
-
   // Gather mesh data.
   {
     PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
@@ -2126,10 +2147,6 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 
-  // Set up the section, 2 dofs per cell.
-  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "LiquidMass"},
-                   (PetscInt[2]){1, 1}); CHKERRQ(ierr);
-
   // Gather mesh data.
   {
     PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
@@ -2165,20 +2182,6 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
   ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
 }
 
-// Setup function for Richards + MPFA_O_TRANSIENTVAR
-PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void *context, DM dm,
-                                                    EOS *eos,
-                                                    MaterialProp *matprop,
-                                                    CharacteristicCurves *cc,
-                                                    Conditions* conditions) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  // This is essentially the same as the Richards one.
-  ierr = TDySetup_Richards_MPFAO(context, dm, eos, matprop, cc, conditions);
-  PetscFunctionReturn(0);
-}
-
 // Setup function for TH + MPFA-O
 PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
                                  MaterialProp *matprop,
@@ -2192,10 +2195,6 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
   ierr = ComputeGeometry(mpfao, dm); CHKERRQ(ierr);
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
-
-  // Set up the section, 2 dofs per cell.
-  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "LiquidTemperature"},
-                   (PetscInt[2]){1, 1}); CHKERRQ(ierr);
 
   // Gather mesh data.
   {
@@ -2422,8 +2421,7 @@ PetscErrorCode TDyComputeErrorNorms_MPFAO(void *context, DM dm, Conditions *cond
   if (p_norm) {
 
     ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
-    ierr = DMGlobalToLocalBegin(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
-    ierr = DMGlobalToLocalEnd(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
+    ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,localU); CHKERRQ(ierr);
     ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
 
     PetscReal norm_sum = 0.0;

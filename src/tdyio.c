@@ -324,7 +324,7 @@ PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, Pe
 
   ierr = PetscViewerDestroy(&viewer);CHKERRQ(ierr);
 
-  ierr = VecRestoreArray(u,&ptr);CHKERRQ(ierr);
+  ierr = VecRestoreArray(u_local,&ptr);CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

@@ -5,7 +5,7 @@
 int main(int argc, char **argv) {
   /* Initialize */
   PetscErrorCode ierr;
-  PetscInt successful_exit_code;
+  PetscInt successful_exit_code = 0;
   PetscMPIInt rank, size;
   TDy tdy = PETSC_NULL;
   TDyIOFormat format = PetscViewerASCIIFormat;

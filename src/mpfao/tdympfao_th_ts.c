@@ -167,18 +167,25 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   char word[32];
   sprintf(word,"U%d.vec",icount_f);
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
-  ierr = VecView(U,viewer);
+  ierr = VecView(U,viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
+#if defined(DEBUG)
+  sprintf(word,"Ul%d.vec",icount_f);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
+  ierr = VecView(Ul,viewer);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
 
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = TDyUpdateState(tdy,u_p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyMPFAO_SetBoundaryTemperature(tdy,Ul); CHKERRQ(ierr);
@@ -215,6 +222,7 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&p);CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
 
+  ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   for (c=0;c<cEnd-cStart;c++) {
     dp_dt[c]    = du_dt[c*2];
     p[c]        = u_p[c*2];
@@ -855,8 +863,8 @@ PetscErrorCode TDyMPFAOIJacobian_TH(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal sh
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm,&Udotl); CHKERRQ(ierr);
 
-  ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U_t,Udotl); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
+  ierr = DMGlobalToLocal(dm,U_t,INSERT_VALUES,Udotl); CHKERRQ(ierr);
 
   ierr = TDyMPFAOIJacobian_Vertices_TH(Ul,B,ctx);
   ierr = TDyMPFAOIJacobian_Accumulation_TH(Ul,Udotl,shift,B,ctx);

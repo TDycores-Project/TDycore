@@ -86,9 +86,11 @@ typedef struct TDyMPFAO {
 PETSC_INTERN PetscErrorCode TDyCreate_MPFAO(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_MPFAO(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_MPFAO(void*, TDyOptions*);
+PETSC_INTERN PetscErrorCode TDySetDMFields_Richards_MPFAO(void*, DM);
+PETSC_INTERN PetscErrorCode TDySetDMFields_Richards_MPFAO_DAE(void*, DM);
+PETSC_INTERN PetscErrorCode TDySetDMFields_TH_MPFAO(void*, DM);
 PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
 PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_TRANSIENTVAR(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
 PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscReal*);
