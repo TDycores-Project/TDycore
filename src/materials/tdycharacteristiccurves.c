@@ -147,6 +147,9 @@ PetscErrorCode SaturationCompute(Saturation *sat,
         PressureSaturation_VanGenuchten(m, alpha, Sr[j], Pc[j], &(S[j]), &(dSdP[j]),
                                         &(d2SdP2[j]));
       }
+    } else {
+      SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER,
+              "Invalid saturation model type!");
     }
   }
   PetscFunctionReturn(0);
@@ -219,6 +222,9 @@ PetscErrorCode SaturationComputeOnPoints(Saturation *sat,
             PetscReal alpha = sat->parameters[type][2*j+1];
             PressureSaturation_VanGenuchten(m, alpha, Sr[i], Pc[i],
                                             &(S[i]), &(dSdP[i]), &(d2SdP2[i]));
+          } else {
+            SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER,
+                    "Invalid saturation model type!");
           }
           break;
         }
@@ -335,6 +341,9 @@ PetscErrorCode RelativePermeabilityCompute(RelativePermeability *rel_perm,
         RelativePermeability_Mualem(m, poly_low, poly_coeffs, Se[i], &(Kr[i]),
                                     &(dKrdSe[i]));
       }
+    } else {
+      SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER,
+              "Invalid relative permeability model type!");
     }
   }
   PetscFunctionReturn(0);
@@ -401,6 +410,9 @@ PetscErrorCode RelativePermeabilityComputeOnPoints(RelativePermeability *rel_per
             PetscReal *poly_coeffs = &(rel_perm->parameters[type][6*j+2]); // interp coeffs
             RelativePermeability_Mualem(m, poly_low, poly_coeffs, Se[i],
                                         &(Kr[i]), &(dKrdSe[i]));
+          } else {
+            SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER,
+                    "Invalid relative permeability model type!");
           }
           break;
         }
