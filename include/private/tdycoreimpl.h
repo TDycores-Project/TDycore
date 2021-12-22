@@ -31,6 +31,7 @@ struct _TDyOps {
   PetscErrorCode (*computeforcing)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computeenergyforcing)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*compute_boundary_pressure)(TDy,PetscReal*,PetscReal*,void*);
+  PetscErrorCode (*compute_boundary_concentration)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*compute_boundary_temperature)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*compute_boundary_velocity)(TDy,PetscReal*,PetscReal*,void*);
   PetscErrorCode (*computesoildensity)(TDy,PetscReal*,PetscReal*,void*);
@@ -61,7 +62,7 @@ struct _p_TDy {
   PetscReal  *h, *dh_dP, *dh_dT;               /* enthalpy of water */
   PetscReal  *u, *du_dP, *du_dT;               /* internal energy of water */
   PetscReal  *drho_dT, *dvis_dT;
-   PetscReal  *drho_dPsi, *dvis_dPsi;
+  PetscReal  *drho_dPsi, *dvis_dPsi;
 
   /* problem constants */
   PetscReal  gravity[3]; /* vector of gravity [m s-2] */
@@ -98,6 +99,7 @@ struct _p_TDy {
   void *energyforcingctx;
   void *boundary_pressure_ctx;
   void *boundary_temperature_ctx;
+  void *boundary_concentration_ctx;
   void *boundary_velocity_ctx;
   void *soildensityctx;
   void *soilspecificheatctx;

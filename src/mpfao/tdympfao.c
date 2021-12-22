@@ -159,7 +159,6 @@ PetscErrorCode SetPordiffFromFunction(TDy tdy) {
     TDyMesh *mesh = tdy->mesh;
     MaterialProp *matprop = tdy->matprop;
 
-
     ierr = PetscMalloc(9*sizeof(PetscReal),&localPordiff); CHKERRQ(ierr);
     for (icell=0; icell<mesh->num_cells; icell++) {
       ierr = (*tdy->ops->computepordiff)(tdy, &(tdy->X[icell*dim]), localPordiff, tdy->pordiffctx);CHKERRQ(ierr);
@@ -460,12 +459,12 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Salinity unsupported with MPFA_O_DAE");
       break;
     case RICHARDS:
-    ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldName(sec, 1, "LiquidMass"); CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldComponents(sec, 1, 1); CHKERRQ(ierr);
-    break;
+      ierr = PetscSectionSetNumFields(sec, 2); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldName(sec, 0, "LiquidPressure"); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldComponents(sec, 0, 1); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldName(sec, 1, "LiquidMass"); CHKERRQ(ierr);
+      ierr = PetscSectionSetFieldComponents(sec, 1, 1); CHKERRQ(ierr);
+      break;
     }
   }
 
@@ -548,7 +547,6 @@ PetscErrorCode TDyMPFAOInitialize(TDy tdy) {
   else if (tdy->options.mode == SALINITY) {
      if (tdy->ops->computepordiff) {ierr = SetPordiffFromFunction(tdy); CHKERRQ(ierr);}
   }
-  //TODO: update here
 
   // why must these be placed after SetPermeabilityFromFunction()?
   ierr = TDyComputeGMatrix(tdy); CHKERRQ(ierr);
@@ -796,13 +794,12 @@ PetscErrorCode TDyComputeGMatrixMPFAO(TDy tdy) {
           Kappa[ii][jj] = matprop->Kappa0[icell*dim*dim + ii*dim + jj];
         }
       }
-    }
-    else if (tdy->options.mode == SALINITY) {
-         for (PetscInt ii=0; ii<dim; ii++) {
+    } else if (tdy->options.mode == SALINITY) {
+        for (PetscInt ii=0; ii<dim; ii++) {
           for (PetscInt jj=0; jj<dim; jj++) {
             Kappa[ii][jj] = matprop->pordiff[icell*dim*dim + ii*dim + jj];
-           }
-         }
+          }
+        }
     }
     for (PetscInt isubcell=0; isubcell<cells->num_subcells[icell]; isubcell++) {
 
@@ -835,14 +832,12 @@ PetscErrorCode TDyComputeGMatrixMPFAO(TDy tdy) {
               ierr = TDyComputeEntryOfGMatrix(area, normal, Kappa,
                                   nu, subcells->T[subcell_id], dim,
                                   &(tdy->Temp_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
-          }
-	  else if (tdy->options.mode == SALINITY) { 
-	    	    ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
-	    	    ierr = TDyComputeEntryOfGMatrix(area, normal, Kappa,
-	                                    nu, subcells->T[subcell_id], dim,
-	                                   &(tdy->Psi_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
-	     }
-	    // TH
+          } else if (tdy->options.mode == SALINITY) { 
+	      ierr = TDySubCell_GetIthNuVector(subcells, subcell_id, jj, dim, &nu[0]); CHKERRQ(ierr);
+	      ierr = TDyComputeEntryOfGMatrix(area, normal, Kappa,
+	                                      nu, subcells->T[subcell_id], dim,
+	                                      &(tdy->Psi_subc_Gmatrix[icell][isubcell][ii][jj])); CHKERRQ(ierr);
+	  } // Salinity/TH
         } // jj-subcell-faces
       } // ii-isubcell faces
     } // isubcell
@@ -1680,7 +1675,7 @@ PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInte
     Trans_mat = &tdy->Temp_Trans_mat;
   }
   else if (varID == VAR_CONCENTRATION) {
-     ierr = ExtractPsiSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
+    ierr = ExtractPsiSubGmatrix(tdy, icell, isubcell, dim, Gmatrix);
     Trans = &tdy->Psi_Trans;
     Trans_mat = &tdy->Psi_Trans_mat;
   }

@@ -83,6 +83,15 @@ PetscErrorCode TDySelectBoundaryTemperatureFn(TDy tdy, const char* name, void* c
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySelectBoundaryConcentrationFn(TDy tdy, const char* name, void* ctx) {
+  PetscFunctionBegin;
+  int ierr;
+  Function f;
+  ierr = TDyGetFunction(name, &f); CHKERRQ(ierr);
+  ierr = TDySetBoundaryConcentrationFn(tdy, f, ctx); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySelectBoundaryVelocityFn(TDy tdy, const char* name, void* ctx) {
   PetscFunctionBegin;
   int ierr;
@@ -96,6 +105,13 @@ PetscErrorCode TDySetBoundaryTemperatureFn(TDy tdy, PetscErrorCode(*f)(TDy,Petsc
   PetscFunctionBegin;
   if (f) tdy->ops->compute_boundary_temperature = f;
   if (ctx) tdy->boundary_temperature_ctx = ctx;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetBoundaryConcentrationFn(TDy tdy, PetscErrorCode(*f)(TDy,PetscReal*,PetscReal*,void*),void *ctx) {
+  PetscFunctionBegin;
+  if (f) tdy->ops->compute_boundary_concentration = f;
+  if (ctx) tdy->boundary_concentration_ctx = ctx;
   PetscFunctionReturn(0);
 }
 

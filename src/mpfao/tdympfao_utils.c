@@ -850,11 +850,11 @@ PetscErrorCode TDyMPFAO_SetBoundaryConcentration(TDy tdy, Vec Ul) {
       psi_bnd_idx = -cell_ids[0] - 1;
     }
 
-    //   if (tdy->ops->compute_boundary_temperature) {
-    //   ierr = (*tdy->ops->compute_boundary_temperature)(tdy, (faces->centroid[iface].X), &(tdy->T_BND[t_bnd_idx]), tdy->boundary_temperature_ctx);CHKERRQ(ierr);
-    //   } else {
+    if (tdy->ops->compute_boundary_concentration) {
+      ierr = (*tdy->ops->compute_boundary_concentration)(tdy, (faces->centroid[iface].X), &(tdy->Psi_BND[psi_bnd_idx]), tdy->boundary_concentration_ctx);CHKERRQ(ierr);
+    } else {
       tdy->Psi_BND[psi_bnd_idx] = psi[cell_id];
-      // }
+    }
 
     psi_vec_ptr[psi_bnd_idx + ncells] = tdy->Psi_BND[psi_bnd_idx];
   }

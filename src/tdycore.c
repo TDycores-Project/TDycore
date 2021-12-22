@@ -203,7 +203,7 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   options->enthalpy_type = WATER_ENTHALPY_CONSTANT;
 
   options->mpfao_gmatrix_method = MPFAO_GMATRIX_DEFAULT;
-  options->mpfao_bc_type = MPFAO_NEUMANN_BC; //MPFAO_DIRICHLET_BC;
+  options->mpfao_bc_type = MPFAO_NEUMANN_BC;
   options->tpf_allow_all_meshes = PETSC_FALSE;
 
   options->qtype = FULL;
@@ -1123,8 +1123,6 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
     for (PetscInt c=0;c<cEnd-cStart;c++) {
       P[c] = U[c*2];
       Psi[c] = U[c*2+1];
-      //    printf("p %f\n",P[c]);
-      //	printf("psi %f\n",Psi[c]);
     }
     break;
   }
@@ -1179,7 +1177,7 @@ PetscViewer viewer;
     if (tdy->options.mode == SALINITY) {
       ierr = ComputeSalinityFraction(Psi[i],*(matprop->molecular_weight),tdy->rho[i],&(tdy->m_nacl[i]),&(tdy->dm_nacl[i]),&(tdy->d2m_nacl[i]));
     }
-    ierr = ComputeWaterDensity(P[i], tdy->Tref,*tdy->m_nacl,*tdy->dm_nacl,*tdy->d2m_nacl,tdy->options.rho_type,&(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i]), &(tdy->drho_dPsi[i])); CHKERRQ(ierr);
+    ierr = ComputeWaterDensity(P[i], tdy->Tref,tdy->m_nacl[i],tdy->dm_nacl[i],*tdy->d2m_nacl,tdy->options.rho_type,&(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i]), &(tdy->drho_dPsi[i])); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity(P[i], tdy->Tref,*tdy->m_nacl,tdy->options.mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i]),&(tdy->dvis_dPsi[i])); CHKERRQ(ierr);
     if (tdy->options.mode ==  TH) {
       for(PetscInt j=0; j<dim2; j++)
@@ -1196,10 +1194,7 @@ PetscViewer viewer;
     PetscReal *p_vec_ptr, gz;
     TDyMesh *mesh = tdy->mesh;
     TDyCell *cells = &mesh->cells;
-    PetscViewer viewer;
-ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"P_vecb4.vec",&viewer); CHKERRQ(ierr);
-  ierr = VecView(tdy->P_vec,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
     ierr = VecGetArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
     for (PetscInt c=cStart; c<cEnd; c++) {
       PetscInt i = c-cStart;
@@ -1207,9 +1202,6 @@ ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"P_vecb4.vec",&viewer); CHKERRQ(ier
       p_vec_ptr[i] = P[i];
     }
     ierr = VecRestoreArray(tdy->P_vec,&p_vec_ptr); CHKERRQ(ierr);
-ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"P_veca4.vec",&viewer); CHKERRQ(ierr);
-  ierr = VecView(tdy->P_vec,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
     switch (tdy->options.mode) {
     case TH: ;
       PetscReal *t_vec_ptr;

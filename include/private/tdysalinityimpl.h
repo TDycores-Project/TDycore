@@ -7,10 +7,10 @@
 PETSC_INTERN PetscErrorCode TDySalinityInitialize(TDy);
 PETSC_INTERN PetscErrorCode TDySalinityTSPostStep(TS);
 PETSC_INTERN PetscErrorCode TDySalinitySNESPostCheck(SNESLineSearch,Vec,Vec,Vec,
-                                               PetscBool*,PetscBool*,
-                                               void*);
+                                                     PetscBool*,PetscBool*,
+                                                     void*);
 PETSC_INTERN PetscErrorCode TDySalinityConvergenceTest(SNES,PetscInt,PetscReal,
-                                                 PetscReal,PetscReal,
-                                                 SNESConvergedReason*,void*);
+                                                       PetscReal,PetscReal,
+                                                       SNESConvergedReason*,void*);
 
 #endif
