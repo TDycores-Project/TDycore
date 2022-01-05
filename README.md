@@ -1,5 +1,6 @@
 [![Build Status](https://github.com/TDycores-Project/TDycore/workflows/auto_pr_test/badge.svg)](https://github.com/TDycores-Project/TDycore/actions)
 [![Code Coverage](https://codecov.io/gh/TDycores-Project/TDycore/branch/master/graph/badge.svg)](https://codecov.io/gh/TDycores-Project/TDycore)
+[![BSD-2-Clause](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 
 # The Terrestrial Dynamical Core (TDycore)
 
