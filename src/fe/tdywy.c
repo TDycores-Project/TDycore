@@ -823,7 +823,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
   ierr = TDyGlobalToLocal(tdy,U,localU); CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
-  ierr = DMGetSection(dm, &section); CHKERRQ(ierr);
+  ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
   nq   = wy->ncv;
   nv   = wy->nfv;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);

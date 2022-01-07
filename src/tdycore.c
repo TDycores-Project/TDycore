@@ -1333,11 +1333,76 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
 ///                     and temperature values for each grid cell.
 /// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
-
   PetscErrorCode ierr;
-
   PetscFunctionBegin;
   ierr = TDyNaturalToGlobal(tdy,initial,tdy->solution); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+
+//-------------------------------
+// Diagnostics-related functions
+//-------------------------------
+
+/// Creates a DM with fields defined for all diagnostic variables made available
+/// by the dynamical core.
+/// @param [in] tdy A TDy object
+/// @param [out] diags_dm A DM with the same topology as the dycore's DM that
+///                       has all diagnostic fields defined on it.
+PetscErrorCode TDyCreateDiagnostics(TDy tdy, DM *diags_dm) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  if ((tdy->setup_flags & TDySetupFinished) == 0) {
+    SETERRQ(comm,PETSC_ERR_USER,"You must call TDyCreateDiagnostics after TDySetup()");
+  } else if (!tdy->ops->set_diagnostics_section) {
+    SETERRQ(comm,PETSC_ERR_USER,"TDyCreateDiagnostics is not supported by this implementation.");
+  }
+
+  // Clone our own DM (which copies the mesh topology but not its fields).
+  ierr = DMClone(tdy->dm, diags_dm); CHKERRQ(ierr);
+
+  // Create a section that holds the layout of the diagnostic fields, and set
+  // it up according to the implementation.
+  PetscSection diags_section;
+  ierr = PetscSectionCreate(comm, &diags_section); CHKERRQ(ierr);
+  ierr = tdy->ops->set_diagnostics_section(tdy->context, tdy->options,
+                                           diags_section); CHKERRQ(ierr);
+  ierr = PetscSectionSetUp(diags_section); CHKERRQ(ierr);
+  ierr = DMSetLocalSection(*diags_dm, diags_section); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/// Given a diagnostics DM created by TDyCreateDiagnostics and a Vec created
+/// by DMCreateGlobalVector for the diagnostics DM, populates the vector with
+/// all available diagnostic fields.
+/// @param [in] tdy A TDy object
+/// @param [in] diags_dm A DM created by a call to TDyCreateDiagnostics.
+/// @param [inout] diags A Vec created by a call to DMCreateGlobalVector, using
+///                      diags_dm as the Vec's DM. The diagnostic fields can be
+///                      accessed in this Vec using the layout information in
+///                      diags_dm.
+PetscErrorCode TDyComputeDiagnostics(TDy tdy, DM diags_dm, Vec diags) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  if ((tdy->setup_flags & TDySetupFinished) == 0) {
+    SETERRQ(comm,PETSC_ERR_USER,"You must call TDyComputeDiagnostics after TDySetup()");
+  } else if (!tdy->ops->compute_diagnostics) {
+    SETERRQ(comm,PETSC_ERR_USER,"TDyComputeDiagnostics is not supported by this implementation.");
+  }
+
+  // Compute the diagnostic fields.
+  ierr = tdy->ops->compute_diagnostics(tdy->context, diags_dm, diags);
+  CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -1359,7 +1424,7 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
-  ierr = DMGetSection(tdy->dm, &sec);
+  ierr = DMGetLocalSection(tdy->dm, &sec);
   PetscInt num_fields;
   ierr = PetscSectionGetNumFields(sec, &num_fields);
   ierr = TSGetDM(ts,&dm);CHKERRQ(ierr);

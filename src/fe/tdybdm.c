@@ -569,7 +569,7 @@ PetscErrorCode TDyComputeErrorNorms_BDM(void *context, DM dm, Conditions *condit
     }
     ierr = VecGetArray(U,&u); CHKERRQ(ierr);
     ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-    ierr = DMGetSection(dm,&sec); CHKERRQ(ierr);
+    ierr = DMGetLocalSection(dm,&sec); CHKERRQ(ierr);
     ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
     norm = 0; norm_sum = 0;
     for(c=cStart; c<cEnd; c++) {

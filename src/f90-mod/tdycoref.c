@@ -21,6 +21,8 @@
 #define tdydtimeintegratoroutputregression_            TDYTIMEINTEGRATOROUTPUTREGRESSION
 #define tdysetup_                                      TDYSETUP
 #define tdygetdm_                                      TDYGETDM
+#define tdycreatediagnostics_                          TDYCREATEDIAGNOSTICS
+#define tdycomputediagnostics_                         TDYCOMPUTEDIAGNOSTICS
 #define tdysetwaterdensitytype_                        TDYSETWATERDENSITYTYPE
 #define tdympfaosetgmatrixmethod_                      TDYMPFAOSETGMATRIXMETHOD
 #define tdympfaosetboundaryconditiontype_              TDYMPFAOSETBOUNDARYCONDITIONTYPE
@@ -52,6 +54,8 @@
 #define tdydtimeintegratoroutputregression_            tdydtimeintegratoroutputregression
 #define tdysetup_                                      tdysetup
 #define tdygetdm_                                      tdygetdm
+#define tdycreatediagnostics_                          tdycreatediagnostics
+#define tdycomputediagnostics_                         tdycomputediagnostics
 #define tdysetwaterdensitytype_                        tdysetwaterdensitytype
 #define tdympfaosetgmatrixmethod_                      tdympfaosetgmatrixmethod
 #define tdympfaosetboundaryconditiontype_              tdympfaosetboundaryconditiontype
@@ -118,6 +122,14 @@ PETSC_EXTERN void  tdysetup_(TDy _tdy, int *__ierr){
 
 PETSC_EXTERN void  tdygetdm_(TDy _tdy, DM *dm, int *__ierr){
 *__ierr = TDyGetDM((TDy)PetscToPointer((_tdy)), dm);
+}
+
+PETSC_EXTERN void  tdycreatediagnostics_(TDy _tdy, DM *dm, int *__ierr){
+*__ierr = TDyCreateDiagnostics((TDy)PetscToPointer((_tdy)), dm);
+}
+
+PETSC_EXTERN void  tdycomputediagnostics_(TDy _tdy, DM dm, Vec v, int *__ierr){
+*__ierr = TDyComputeDiagnostics((TDy)PetscToPointer((_tdy)), dm, v);
 }
 
 PETSC_EXTERN void  tdysetwaterdensitytype_(TDy tdy, PetscInt *method, int *__ierr){

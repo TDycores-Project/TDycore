@@ -480,7 +480,7 @@ PetscErrorCode TDyIOWriteHDF5Var(char *ofilename,DM dm,Vec U,char *VariableName,
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,ofilename,FILE_MODE_APPEND,&viewer);CHKERRQ(ierr);
 
   ierr = PetscObjectSetName((PetscObject) U,word);CHKERRQ(ierr);
-  ierr = DMGetSection(dm, &sec);
+  ierr = DMGetLocalSection(dm, &sec);
   //Change to field name
   ierr = PetscSectionSetFieldName(sec, 0, VariableName); CHKERRQ(ierr);
   ierr = VecView(U,viewer);CHKERRQ(ierr);

@@ -180,8 +180,11 @@ program main
 implicit none
 
   TDy                 :: tdy
-  DM                  :: dm
-  Vec                 :: U
+  DM                  :: dm, diags_dm
+  Vec                 :: U, diags
+  PetscSection        :: diags_section
+  PetscInt            :: n_diags, i_diag, i_liquid_mass
+  character (len=256) :: diag_name
   !TS                 :: ts
   SNES                :: snes
   PetscInt            :: rank, successful_exit_code
@@ -376,6 +379,24 @@ implicit none
   call TDySetInitialCondition(tdy,U,ierr);
   CHKERRA(ierr);
 
+  ! Initialize the diagnostics DM and Vec, fetch the section that holds the
+  ! layout, and determine which diagnostic index corresponds to the liquid
+  ! mass (to check mass conservation).
+  call TDyCreateDiagnostics(tdy, diags_dm, ierr)
+  CHKERRA(ierr)
+  call DMCreateGlobalVector(diags_dm, diags, ierr)
+  CHKERRA(ierr)
+  call DMGetLocalSection(diags_dm, diags_section, ierr)
+  CHKERRA(ierr)
+  call PetscSectionGetNumFields(diags_section, n_diags, ierr)
+  do i_diag = 1,n_diags
+    call PetscSectionGetFieldName(diags_section, i_diag, diag_name, ierr)
+    if (diag_name == "liquid_mass") then
+      i_liquid_mass = i_diag
+    end if
+  end do
+
+  ! Set up the SNES solver.
   call TDySetPreviousSolutionForSNESSolver(tdy, U, ierr)
   CHKERRA(ierr);
 
@@ -399,7 +420,12 @@ implicit none
     call TDyPreSolveSNESSolver(tdy,ierr);
     CHKERRA(ierr);
 
-    ! TODO: Mass conservation diagnostic output is disabled for the moment.
+    ! Check the total liquid mass before the step. Because the liquid mass is
+    ! nonnegative, the sum over all cells is the same as the 1-norm.
+    call TDyComputeDiagnostics(tdy, diags_dm, diags, ierr)
+    CHKERRA(ierr)
+    call VecStrideNorm(diags, i_liquid_mass, NORM_1, mass_pre, ierr)
+    CHKERRA(ierr)
     !call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)
     !CHKERRA(ierr);
     !mass_pre = 0.d0
@@ -428,14 +454,19 @@ implicit none
     call TDyPostSolveSNESSolver(tdy,U,ierr);
     CHKERRA(ierr);
 
-    ! TODO: Mass conservation diagnostic output is disabled for the moment.
+    ! Check the total liquid mass after the step. Because the liquid mass is
+    ! nonnegative, the sum over all cells is the same as the 1-norm.
+    call TDyComputeDiagnostics(tdy, diags_dm, diags, ierr)
+    CHKERRA(ierr)
+    call VecStrideNorm(diags, i_liquid_mass, NORM_1, mass_post, ierr)
+    CHKERRA(ierr)
     !call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)
     !CHKERRA(ierr);
     !mass_post = 0.d0
     !do g = 1,nvalues
     !mass_post = mass_post + liquid_mass(g)
     !enddo
-    !write(*,*)'Liquid mass pre,post,diff ',step,mass_pre,mass_post,mass_pre-mass_post
+    write(*,*)'Liquid mass pre,post,diff ',step,mass_pre,mass_post,mass_pre-mass_post
 
     step_mod = mod(step,48);
     write(string,*) step
@@ -462,6 +493,12 @@ implicit none
      call TDyOutputRegression(tdy,U,ierr);
      CHKERRA(ierr);
   end if
+
+  ! Clean up diagnostic stuff
+  call VecDestroy(diags, ierr)
+  CHKERRA(ierr)
+  call DMDestroy(diags_dm, ierr)
+  CHKERRA(ierr)
 
   call TDyDestroy(tdy,ierr);
   CHKERRA(ierr);

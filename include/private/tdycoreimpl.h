@@ -69,6 +69,13 @@ struct _TDyOps {
   // Called by TDyIOWriteVec to retrieve the saturation values -- can we figure
   // out a better way to do this?
   PetscErrorCode (*get_saturation)(void*, PetscReal*);
+
+  // Sets up diagnostic fields in the section for a given auxiliary DM. This
+  // function is not expected to create the section or to call PetscSectionSetUp.
+  PetscErrorCode (*set_diagnostics_section)(void*, TDyOptions, PetscSection);
+
+  // Computes diagnostic fields given an auxiliary DM.
+  PetscErrorCode (*compute_diagnostics)(void*, DM, Vec);
 };
 
 // This type represents the dycore and all of its settings.
