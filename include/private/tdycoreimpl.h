@@ -70,9 +70,9 @@ struct _TDyOps {
   // out a better way to do this?
   PetscErrorCode (*get_saturation)(void*, PetscReal*);
 
-  // Sets up diagnostic fields in the section for a given auxiliary DM. This
-  // function is not expected to create the section or to call PetscSectionSetUp.
-  PetscErrorCode (*set_diagnostics_section)(void*, TDyOptions, PetscSection);
+  // Sets up diagnostic fields for a given auxiliary DM, in the same way as
+  // dm_set_fields.
+  PetscErrorCode (*set_diagnostic_fields)(void*, TDyOptions, DM);
 
   // Computes diagnostic fields given an auxiliary DM.
   PetscErrorCode (*compute_diagnostics)(void*, DM, Vec);

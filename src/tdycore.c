@@ -1358,21 +1358,16 @@ PetscErrorCode TDyCreateDiagnostics(TDy tdy, DM *diags_dm) {
 
   if ((tdy->setup_flags & TDySetupFinished) == 0) {
     SETERRQ(comm,PETSC_ERR_USER,"You must call TDyCreateDiagnostics after TDySetup()");
-  } else if (!tdy->ops->set_diagnostics_section) {
+  } else if (!tdy->ops->set_diagnostic_fields) {
     SETERRQ(comm,PETSC_ERR_USER,"TDyCreateDiagnostics is not supported by this implementation.");
   }
 
   // Clone our own DM (which copies the mesh topology but not its fields).
   ierr = DMClone(tdy->dm, diags_dm); CHKERRQ(ierr);
 
-  // Create a section that holds the layout of the diagnostic fields, and set
-  // it up according to the implementation.
-  PetscSection diags_section;
-  ierr = PetscSectionCreate(comm, &diags_section); CHKERRQ(ierr);
-  ierr = tdy->ops->set_diagnostics_section(tdy->context, tdy->options,
-                                           diags_section); CHKERRQ(ierr);
-  ierr = PetscSectionSetUp(diags_section); CHKERRQ(ierr);
-  ierr = DMSetLocalSection(*diags_dm, diags_section); CHKERRQ(ierr);
+  // Set the layout of the diagnostic fields according to the implementation.
+  ierr = tdy->ops->set_diagnostic_fields(tdy->context, tdy->options,
+                                         *diags_dm); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
