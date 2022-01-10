@@ -396,8 +396,6 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
 PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscErrorCode ierr;
   PetscBool useNatural;
-  Vec s;
-  PetscReal *s_vec_ptr;
   Vec p = tdy->solution;
   DM dm = tdy->dm;
   PetscReal time = tdy->ti->time;
@@ -408,10 +406,25 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     zonalVarNames[i] =  tdy->io->zonalVarNames[i];
   }
 
+  // Create a diagnostics DM that stores computed diagnostics fields for the
+  // dycore.
+  DM diags_dm;
+  ierr = TDyCreateDiagnostics(tdy, &diags_dm); CHKERRQ(ierr);
+
+  // Create a diagnostics vector and compute the diagnostic fields.
+  Vec diags_vec;
+  ierr = DMCreateGlobalVector(diags_dm, &diags_vec); CHKERRQ(ierr);
+  ierr = TDyComputeDiagnostics(tdy, diags_dm, diags_vec); CHKERRQ(ierr);
+
+  // Extract the saturation from the diagnostics vector.
+  Vec s;
   ierr = TDyCreateGlobalVector(tdy, &s); CHKERRQ(ierr);
-  ierr = VecGetArray(s,&s_vec_ptr); CHKERRQ(ierr);
-  ierr = TDyGetSaturation(tdy, s_vec_ptr); CHKERRQ(ierr);
-  ierr = VecRestoreArray(s,&s_vec_ptr);CHKERRQ(ierr);
+  ierr = VecStrideGather(diags_vec, DIAG_SATURATION, s, INSERT_VALUES);
+  CHKERRQ(ierr);
+
+  // Clean up.
+  ierr = VecDestroy(&diags_vec);
+  ierr = DMDestroy(&diags_dm);
 
   if (tdy->io->format == PetscViewerASCIIFormat) {
     ierr = TDyIOWriteAsciiViewer(p,time,zonalVarNames[0]);CHKERRQ(ierr);

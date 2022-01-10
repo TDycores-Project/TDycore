@@ -762,7 +762,8 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->setup = TDySetup_Richards_MPFAO;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
-      tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
+      tdy->ops->set_diagnostic_fields = TDySetDiagnosticFields_MPFAO;
+      tdy->ops->compute_diagnostics = TDyComputeDiagnostics_MPFAO;
     } else if (discretization == MPFA_O_DAE) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
@@ -771,7 +772,8 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->setup = TDySetup_Richards_MPFAO_DAE;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
-      tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
+      tdy->ops->set_diagnostic_fields = TDySetDiagnosticFields_MPFAO;
+      tdy->ops->compute_diagnostics = TDyComputeDiagnostics_MPFAO;
     } else if (discretization == MPFA_O_TRANSIENTVAR) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
@@ -780,7 +782,8 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->setup = TDySetup_Richards_MPFAO;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
-      tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
+      tdy->ops->set_diagnostic_fields = TDySetDiagnosticFields_MPFAO;
+      tdy->ops->compute_diagnostics = TDyComputeDiagnostics_MPFAO;
     } else if (discretization == BDM) {
       tdy->ops->create = TDyCreate_BDM;
       tdy->ops->destroy = TDyDestroy_BDM;
@@ -789,6 +792,8 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->set_dm_fields = TDySetDMFields_BDM;
       tdy->ops->update_state = NULL; // FIXME: ???
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_BDM;
+      tdy->ops->set_diagnostic_fields = NULL; // FIXME
+      tdy->ops->compute_diagnostics = NULL; // FIXME
     } else if (discretization == WY) {
       tdy->ops->create = TDyCreate_WY;
       tdy->ops->destroy = TDyDestroy_WY;
@@ -797,6 +802,8 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->setup = TDySetup_WY;
       tdy->ops->update_state = TDyUpdateState_WY;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_WY;
+      tdy->ops->set_diagnostic_fields = NULL; // FIXME
+      tdy->ops->compute_diagnostics = NULL; // FIXME
     } else {
       SETERRQ(comm,PETSC_ERR_USER, "Invalid discretization given!");
     }
@@ -808,7 +815,8 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->set_dm_fields = TDySetDMFields_TH_MPFAO;
       tdy->ops->setup = TDySetup_TH_MPFAO;
       tdy->ops->update_state = TDyUpdateState_TH_MPFAO;
-      tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
+      tdy->ops->set_diagnostic_fields = TDySetDiagnosticFields_MPFAO;
+      tdy->ops->compute_diagnostics = TDyComputeDiagnostics_MPFAO;
     } else {
       SETERRQ(comm,PETSC_ERR_USER,
         "The TH mode does not support the selected discretization!");
@@ -1366,8 +1374,8 @@ PetscErrorCode TDyCreateDiagnostics(TDy tdy, DM *diags_dm) {
   ierr = DMClone(tdy->dm, diags_dm); CHKERRQ(ierr);
 
   // Set the layout of the diagnostic fields according to the implementation.
-  ierr = tdy->ops->set_diagnostic_fields(tdy->context, tdy->options,
-                                         *diags_dm); CHKERRQ(ierr);
+  ierr = tdy->ops->set_diagnostic_fields(tdy->context, *diags_dm);
+  CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

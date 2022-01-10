@@ -2480,6 +2480,55 @@ PetscErrorCode TDyComputeErrorNorms_MPFAO(void *context, DM dm, Conditions *cond
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetDiagnosticFields_MPFAO(void *context, DM diags_dm) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)diags_dm, &comm); CHKERRQ(ierr);
+
+  // We define two scalar fields: saturation and liquid mass
+  PetscInt num_fields = 2;
+  ierr = DMSetNumFields(diags_dm, num_fields); CHKERRQ(ierr);
+  PetscInt num_comp[2] = {1, 1};
+
+  // All scalar fields take their values on cells.
+  PetscInt dim = 3;
+  PetscInt num_dof[num_fields*(dim+1)];
+  memset(num_dof, 0, sizeof(PetscInt)*num_fields*(dim+1));
+  num_dof[0*(dim+1)+dim] = 1;
+  num_dof[1*(dim+1)+dim] = 1;
+  PetscSection section;
+  ierr = DMPlexCreateSection(diags_dm, NULL, num_comp, num_dof, 0, NULL, NULL,
+                             NULL, NULL, &section); CHKERRQ(ierr);
+  ierr = PetscSectionSetFieldName(section, DIAG_SATURATION, "Saturation");
+  CHKERRQ(ierr);
+  ierr = PetscSectionSetFieldName(section, DIAG_LIQUID_MASS, "LiquidMass");
+  CHKERRQ(ierr);
+  ierr = DMSetLocalSection(diags_dm, section); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyComputeDiagnostics_MPFAO(void *context,
+                                           DM diags_dm,
+                                           Vec diags_vec) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+  TDyMPFAO *mpfao = context;
+  PetscInt c_start, c_end;
+  ierr = DMPlexGetHeightStratum(diags_dm,0,&c_start,&c_end); CHKERRQ(ierr);
+  PetscReal *v;
+  VecGetArray(diags_vec, &v);
+  for (PetscInt c = c_start; c < c_end; ++c) {
+    v[2*c+DIAG_SATURATION] = mpfao->S[c];
+    v[2*c+DIAG_LIQUID_MASS] = mpfao->rho[c] * mpfao->V[c];
+  }
+  VecRestoreArray(diags_vec, &v);
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 
   TDyMPFAO *mpfao = tdy->context;
@@ -2520,15 +2569,6 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyGetSaturation_MPFAO(void* context, PetscReal* S) {
-  PetscFunctionBegin;
-  TDyMPFAO *mpfao = context;
-  for (PetscInt c = 0; c < mpfao->mesh->num_cells; ++c) {
-    S[c] = mpfao->S[c];
-  }
   PetscFunctionReturn(0);
 }
 

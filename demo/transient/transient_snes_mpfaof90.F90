@@ -1,6 +1,7 @@
 module snes_mpfaof90mod
 
   use tdycore
+  use petscdm
 #include <petsc/finclude/petsc.h>
 #include <finclude/tdycore.h>
 
@@ -182,9 +183,6 @@ implicit none
   TDy                 :: tdy
   DM                  :: dm, diags_dm
   Vec                 :: U, diags
-  PetscSection        :: diags_section
-  PetscInt            :: n_diags, i_diag, i_liquid_mass
-  character (len=256) :: diag_name
   !TS                 :: ts
   SNES                :: snes
   PetscInt            :: rank, successful_exit_code
@@ -195,7 +193,7 @@ implicit none
   PetscReal , pointer :: liquid_sat(:), liquid_mass(:)
   PetscReal , pointer :: alpha(:), m(:)
   PetscReal           :: perm(9), resSat
-  PetscInt            :: c, cStart, cEnd, j, nvalues,g, max_steps, step
+  PetscInt            :: cStart, cEnd, max_steps, step
   PetscReal           :: dtime, mass_pre, mass_post, ic_value
   character (len=256) :: ic_filename
   character(len=256)  :: string, bc_type_name
@@ -386,15 +384,6 @@ implicit none
   CHKERRA(ierr)
   call DMCreateGlobalVector(diags_dm, diags, ierr)
   CHKERRA(ierr)
-  call DMGetLocalSection(diags_dm, diags_section, ierr)
-  CHKERRA(ierr)
-  call PetscSectionGetNumFields(diags_section, n_diags, ierr)
-  do i_diag = 1,n_diags
-    call PetscSectionGetFieldName(diags_section, i_diag, diag_name, ierr)
-    if (diag_name == "liquid_mass") then
-      i_liquid_mass = i_diag
-    end if
-  end do
 
   ! Set up the SNES solver.
   call TDySetPreviousSolutionForSNESSolver(tdy, U, ierr)
@@ -424,7 +413,7 @@ implicit none
     ! nonnegative, the sum over all cells is the same as the 1-norm.
     call TDyComputeDiagnostics(tdy, diags_dm, diags, ierr)
     CHKERRA(ierr)
-    call VecStrideNorm(diags, i_liquid_mass, NORM_1, mass_pre, ierr)
+    call VecStrideNorm(diags, DIAG_LIQUID_MASS, NORM_1, mass_pre, ierr)
     CHKERRA(ierr)
     !call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)
     !CHKERRA(ierr);
@@ -458,7 +447,7 @@ implicit none
     ! nonnegative, the sum over all cells is the same as the 1-norm.
     call TDyComputeDiagnostics(tdy, diags_dm, diags, ierr)
     CHKERRA(ierr)
-    call VecStrideNorm(diags, i_liquid_mass, NORM_1, mass_post, ierr)
+    call VecStrideNorm(diags, DIAG_LIQUID_MASS, NORM_1, mass_post, ierr)
     CHKERRA(ierr)
     !call TDyGetLiquidMassValuesLocal(tdy,nvalues,liquid_mass,ierr)
     !CHKERRA(ierr);

@@ -72,7 +72,7 @@ struct _TDyOps {
 
   // Sets up diagnostic fields for a given auxiliary DM, in the same way as
   // dm_set_fields.
-  PetscErrorCode (*set_diagnostic_fields)(void*, TDyOptions, DM);
+  PetscErrorCode (*set_diagnostic_fields)(void*, DM);
 
   // Computes diagnostic fields given an auxiliary DM.
   PetscErrorCode (*compute_diagnostics)(void*, DM, Vec);
