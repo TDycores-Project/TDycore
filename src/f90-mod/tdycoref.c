@@ -129,7 +129,9 @@ PETSC_EXTERN void  tdycreatediagnostics_(TDy _tdy, DM *dm, int *__ierr){
 }
 
 PETSC_EXTERN void  tdycomputediagnostics_(TDy _tdy, DM dm, Vec v, int *__ierr){
-*__ierr = TDyComputeDiagnostics((TDy)PetscToPointer((_tdy)), dm, v);
+*__ierr = TDyComputeDiagnostics((TDy)PetscToPointer((_tdy)),
+                                (DM)PetscToPointer(dm),
+                                (Vec)PetscToPointer(v));
 }
 
 PETSC_EXTERN void  tdysetwaterdensitytype_(TDy tdy, PetscInt *method, int *__ierr){
