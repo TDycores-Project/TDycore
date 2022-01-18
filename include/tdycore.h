@@ -167,18 +167,11 @@ PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
 
-//--------------------------------
 // Access to diagnostic variables
-//--------------------------------
-
-// This type can be used to index fields in a diagnostic vector populated by
-// TDyComputeDiagnostics.
-typedef enum {
-  DIAG_SATURATION = 0, // liquid saturation
-  DIAG_LIQUID_MASS,    // liquid mass
-} TDyDiag;
-PETSC_EXTERN PetscErrorCode TDyCreateDiagnostics(TDy,DM*);
-PETSC_EXTERN PetscErrorCode TDyComputeDiagnostics(TDy,DM,Vec);
+PETSC_EXTERN PetscErrorCode TDyUpdateDiagnostics(TDy);
+PETSC_EXTERN PetscErrorCode TDyCreateDiagnosticVector(TDy,Vec*);
+PETSC_EXTERN PetscErrorCode TDyGetSaturation(TDy,Vec);
+PETSC_EXTERN PetscErrorCode TDyGetLiquidMass(TDy,Vec);
 
 // We will remove the following functions in favor of setting function pointers
 // that a given solver uses to extract info from a DM.

@@ -66,16 +66,10 @@ struct _TDyOps {
   // vector.
   PetscErrorCode (*compute_error_norms)(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 
-  // Called by TDyIOWriteVec to retrieve the saturation values -- can we figure
-  // out a better way to do this?
-  PetscErrorCode (*get_saturation)(void*, PetscReal*);
-
-  // Sets up diagnostic fields for a given auxiliary DM, in the same way as
-  // dm_set_fields.
-  PetscErrorCode (*set_diagnostic_fields)(void*, DM);
-
-  // Computes diagnostic fields given an auxiliary DM.
-  PetscErrorCode (*compute_diagnostics)(void*, DM, Vec);
+  // Updates diagnostic fields given an appropriate DM defining their layout,
+  // and a multi-component diagnostics Vec created from that DM with
+  // DMCreateLocalVector.
+  PetscErrorCode (*update_diagnostics)(void*, DM, Vec);
 };
 
 // This type represents the dycore and all of its settings.
@@ -116,6 +110,20 @@ struct _p_TDy {
   // regression testing data
   TDyRegression *regression;
 
+  //-----------------------------
+  // Diagnostic field management
+  //-----------------------------
+
+  // DM that holds layout for diagnostic fields (saturation, liquid mass, etc)
+  DM diag_dm;
+
+  // Vec that stores diagnostic fields
+  Vec diag_vec;
+
+  // DM that defines the layout for a single scalar cell-centered field,
+  // appropriate for extracting individual diagnostic fields.
+  DM diag_sub_dm;
+
   //------------------------------------------------------
   // Solver-specific information (should be factored out)
   //------------------------------------------------------
@@ -131,9 +139,5 @@ struct _p_TDy {
   Vec residual;
 
 };
-
-// TODO: This is a temporary way for the I/O system to get the saturation
-// TODO: values.
-PETSC_INTERN PetscErrorCode TDyGetSaturation(TDy, PetscReal*);
 
 #endif

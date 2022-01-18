@@ -2480,38 +2480,9 @@ PetscErrorCode TDyComputeErrorNorms_MPFAO(void *context, DM dm, Conditions *cond
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetDiagnosticFields_MPFAO(void *context, DM diags_dm) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)diags_dm, &comm); CHKERRQ(ierr);
-
-  // We define two scalar fields: saturation and liquid mass
-  PetscInt num_fields = 2;
-  ierr = DMSetNumFields(diags_dm, num_fields); CHKERRQ(ierr);
-  PetscInt num_comp[2] = {1, 1};
-
-  // All scalar fields take their values on cells.
-  PetscInt dim = 3;
-  PetscInt num_dof[num_fields*(dim+1)];
-  memset(num_dof, 0, sizeof(PetscInt)*num_fields*(dim+1));
-  num_dof[0*(dim+1)+dim] = 1;
-  num_dof[1*(dim+1)+dim] = 1;
-  PetscSection section;
-  ierr = DMPlexCreateSection(diags_dm, NULL, num_comp, num_dof, 0, NULL, NULL,
-                             NULL, NULL, &section); CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldName(section, DIAG_SATURATION, "Saturation");
-  CHKERRQ(ierr);
-  ierr = PetscSectionSetFieldName(section, DIAG_LIQUID_MASS, "LiquidMass");
-  CHKERRQ(ierr);
-  ierr = DMSetLocalSection(diags_dm, section); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyComputeDiagnostics_MPFAO(void *context,
-                                           DM diags_dm,
-                                           Vec diags_vec) {
+PetscErrorCode TDyUpdateDiagnostics_MPFAO(void *context,
+                                          DM diags_dm,
+                                          Vec diags_vec) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
