@@ -2492,8 +2492,8 @@ PetscErrorCode TDyUpdateDiagnostics_MPFAO(void *context,
   PetscReal *v;
   VecGetArray(diags_vec, &v);
   for (PetscInt c = c_start; c < c_end; ++c) {
-    v[2*c+DIAG_SATURATION] = mpfao->S[c];
-    v[2*c+DIAG_LIQUID_MASS] = mpfao->rho[c] * mpfao->V[c];
+    v[2*c+0] = mpfao->S[c];
+    v[2*c+1] = mpfao->rho[c] * mpfao->V[c];
   }
   VecRestoreArray(diags_vec, &v);
   TDY_STOP_FUNCTION_TIMER()

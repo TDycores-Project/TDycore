@@ -129,7 +129,7 @@ PETSC_EXTERN void  tdygetdm_(TDy _tdy, DM *dm, int *__ierr){
 }
 
 PETSC_EXTERN void  tdycreatediagnosticvector_(TDy _tdy, Vec *v, int *__ierr){
-*__ierr = TDyCreateDiagnosticVector((TDy)PetscToPointer((_tdy)), (Vec)PetscToPointer(v));
+*__ierr = TDyCreateDiagnosticVector((TDy)PetscToPointer((_tdy)), v);
 }
 
 PETSC_EXTERN void  tdyupdatediagnostics_(TDy _tdy, int *__ierr){

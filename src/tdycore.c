@@ -1424,8 +1424,10 @@ PetscErrorCode TDyCreateDiagnosticVector(TDy tdy, Vec *diag_vec) {
     SETERRQ(comm,PETSC_ERR_USER,"Diagnostic fields are not supported by this implementation.");
   }
 
-  ierr = DMCreateGlobalVector(
-  CHKERRQ(ierr);
+  // Create a cell-centered scalar field vector.
+  PetscInt c_start, c_end;
+  ierr = DMPlexGetHeightStratum(tdy->diag_dm, 0, &c_start, &c_end); CHKERRQ(ierr);
+  ierr = VecCreateMPI(comm, c_end - c_start, PETSC_DECIDE, diag_vec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1444,7 +1446,7 @@ static PetscErrorCode ExtractDiagnosticField(TDy tdy, PetscInt index, Vec vec) {
   }
 
   // Extract the field.
-  ierr = VecStrideGather(tdy->diag_vec, index, sat_vec, INSERT_VALUES);
+  ierr = VecStrideGather(tdy->diag_vec, index, vec, INSERT_VALUES);
   CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -1711,20 +1713,5 @@ PetscErrorCode TDyCreateJacobian(TDy tdy) {
     ierr = TDyCreateJacobianMatrix(tdy,&tdy->Jpre); CHKERRQ(ierr);
   }
   TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-// TODO: Temporary method to retrieve saturation values. We need a better I/O
-// TODO: strategy.
-PetscErrorCode TDyGetSaturation(TDy tdy, PetscReal* saturation) {
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  if (tdy->ops->get_saturation) {
-    ierr = tdy->ops->get_saturation(tdy->context, saturation); CHKERRQ(ierr);
-  } else {
-    ierr = -1;
-    SETERRQ(PETSC_COMM_WORLD, ierr,
-      "This implementation does not allow the retrieval of saturation values!");
-  }
   PetscFunctionReturn(0);
 }
