@@ -41,12 +41,3 @@
       ! the C code (i.e. include/tdycore.h)
       parameter (WATER_DENSITY_CONSTANT=0,WATER_DENSITY_EXPONENTIAL=1)
 
-!
-!  TDy diagnostic variables
-!
-      PetscEnum DIAG_SATURATION
-      PetscEnum DIAG_LIQUID_MASS
-
-      ! The parameters values need to match those defined in
-      ! the C code (i.e. include/tdycore.h)
-      parameter (DIAG_SATURATION=0,DIAG_LIQUID_MASS=1)
