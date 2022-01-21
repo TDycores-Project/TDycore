@@ -120,10 +120,6 @@ struct _p_TDy {
   // Vec that stores diagnostic fields
   Vec diag_vec;
 
-  // DM that defines the layout for a single scalar cell-centered field,
-  // appropriate for extracting individual diagnostic fields.
-  DM diag_sub_dm;
-
   //------------------------------------------------------
   // Solver-specific information (should be factored out)
   //------------------------------------------------------
