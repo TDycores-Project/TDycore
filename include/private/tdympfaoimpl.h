@@ -95,7 +95,7 @@ PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM, EOS*, MaterialProp*, Ch
 PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_MPFAO(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
-PETSC_INTERN PetscErrorCode TDyGetSaturation_MPFAO(void*,PetscReal*);
+PETSC_INTERN PetscErrorCode TDyUpdateDiagnostics_MPFAO(void*,DM,Vec);
 
 PETSC_INTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeTransmissibilityMatrix(TDy);

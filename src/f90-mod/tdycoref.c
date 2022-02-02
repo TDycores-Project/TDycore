@@ -21,6 +21,10 @@
 #define tdydtimeintegratoroutputregression_            TDYTIMEINTEGRATOROUTPUTREGRESSION
 #define tdysetup_                                      TDYSETUP
 #define tdygetdm_                                      TDYGETDM
+#define tdyupdatediagnostics_                          TDYUPDATEDIAGNOSTICS
+#define tdycreatediagnosticvector_                     TDYCREATEDIAGNOSTICVECTOR
+#define tdygetliquidsaturation_                        TDYGETLIQUIDSATURATION
+#define tdygetliquidmass_                              TDYGETLIQUIDMASS
 #define tdysetwaterdensitytype_                        TDYSETWATERDENSITYTYPE
 #define tdympfaosetgmatrixmethod_                      TDYMPFAOSETGMATRIXMETHOD
 #define tdympfaosetboundaryconditiontype_              TDYMPFAOSETBOUNDARYCONDITIONTYPE
@@ -52,6 +56,10 @@
 #define tdydtimeintegratoroutputregression_            tdydtimeintegratoroutputregression
 #define tdysetup_                                      tdysetup
 #define tdygetdm_                                      tdygetdm
+#define tdyupdatediagnostics_                          tdyupdatediagnostics
+#define tdycreatediagnosticvector_                     tdycreatediagnosticvector
+#define tdygetliquidsaturation_                        tdygetliquidsaturation
+#define tdygetliquidmass_                              tdygetliquidmass
 #define tdysetwaterdensitytype_                        tdysetwaterdensitytype
 #define tdympfaosetgmatrixmethod_                      tdympfaosetgmatrixmethod
 #define tdympfaosetboundaryconditiontype_              tdympfaosetboundaryconditiontype
@@ -118,6 +126,22 @@ PETSC_EXTERN void  tdysetup_(TDy _tdy, int *__ierr){
 
 PETSC_EXTERN void  tdygetdm_(TDy _tdy, DM *dm, int *__ierr){
 *__ierr = TDyGetDM((TDy)PetscToPointer((_tdy)), dm);
+}
+
+PETSC_EXTERN void  tdycreatediagnosticvector_(TDy _tdy, Vec *v, int *__ierr){
+*__ierr = TDyCreateDiagnosticVector((TDy)PetscToPointer((_tdy)), v);
+}
+
+PETSC_EXTERN void  tdyupdatediagnostics_(TDy _tdy, int *__ierr){
+*__ierr = TDyUpdateDiagnostics((TDy)PetscToPointer((_tdy)));
+}
+
+PETSC_EXTERN void  tdygetliquidsaturation_(TDy _tdy, Vec v, int *__ierr){
+*__ierr = TDyGetLiquidSaturation((TDy)PetscToPointer((_tdy)), (Vec)PetscToPointer(v));
+}
+
+PETSC_EXTERN void  tdygetliquidmass_(TDy _tdy, Vec v, int *__ierr){
+*__ierr = TDyGetLiquidMass((TDy)PetscToPointer((_tdy)), (Vec)PetscToPointer(v));
 }
 
 PETSC_EXTERN void  tdysetwaterdensitytype_(TDy tdy, PetscInt *method, int *__ierr){

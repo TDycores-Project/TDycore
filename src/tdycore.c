@@ -358,6 +358,12 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
     tdy->ops->destroy(tdy->context);
   }
 
+  // Clean up diagnostics.
+  if (tdy->ops->update_diagnostics && (tdy->setup_flags & TDySetupFinished)) {
+    VecDestroy(&tdy->diag_vec);
+    DMDestroy(&tdy->diag_dm);
+  }
+
   ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
@@ -698,6 +704,36 @@ PetscErrorCode TDySetup(TDy tdy) {
   ierr = tdy->ops->setup(tdy->context, tdy->dm, &tdy->eos, tdy->matprop,
                          tdy->cc, tdy->conditions); CHKERRQ(ierr);
 
+  // If we support diagnostics, set up the DMs and the diagnostic vector.
+  if (tdy->ops->update_diagnostics) {
+    // Create a DM for diagnostic fields, and set its layout.
+    ierr = DMClone(tdy->dm, &tdy->diag_dm); CHKERRQ(ierr);
+
+    // We define two cell-centered scalar fields: saturation and liquid mass
+    PetscInt num_fields = 2;
+    ierr = DMSetNumFields(tdy->diag_dm, num_fields); CHKERRQ(ierr);
+    PetscInt num_comp[2] = {1, 1};
+    // Assign a single DOF to cells for each field.
+    PetscInt dim = 3;
+    PetscInt num_dof[num_fields*(dim+1)];
+    memset(num_dof, 0, sizeof(PetscInt)*num_fields*(dim+1));
+    num_dof[0*(dim+1)+dim] = 1;
+    num_dof[1*(dim+1)+dim] = 1;
+    PetscSection section;
+    ierr = DMPlexCreateSection(tdy->diag_dm, NULL, num_comp, num_dof, 0, NULL, NULL,
+                               NULL, NULL, &section); CHKERRQ(ierr);
+
+    // Add names to the fields.
+    ierr = PetscSectionSetFieldName(section, DIAG_LIQUID_SATURATION, "LiquidSaturation");
+    CHKERRQ(ierr);
+    ierr = PetscSectionSetFieldName(section, DIAG_LIQUID_MASS, "LiquidMass");
+    CHKERRQ(ierr);
+    ierr = DMSetLocalSection(tdy->diag_dm, section); CHKERRQ(ierr);
+
+    // Create a Vec that can store the diagnostic fields.
+    ierr = DMCreateGlobalVector(tdy->diag_dm, &tdy->diag_vec); CHKERRQ(ierr);
+  }
+
   // Record metadata for scaling studies.
   TDySetTimingMetadata(tdy);
 
@@ -762,7 +798,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->setup = TDySetup_Richards_MPFAO;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
-      tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
+      tdy->ops->update_diagnostics = TDyUpdateDiagnostics_MPFAO;
     } else if (discretization == MPFA_O_DAE) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
@@ -771,7 +807,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->setup = TDySetup_Richards_MPFAO_DAE;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
-      tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
+      tdy->ops->update_diagnostics = TDyUpdateDiagnostics_MPFAO;
     } else if (discretization == MPFA_O_TRANSIENTVAR) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
@@ -780,7 +816,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->setup = TDySetup_Richards_MPFAO;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
-      tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
+      tdy->ops->update_diagnostics = TDyUpdateDiagnostics_MPFAO;
     } else if (discretization == BDM) {
       tdy->ops->create = TDyCreate_BDM;
       tdy->ops->destroy = TDyDestroy_BDM;
@@ -789,6 +825,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->set_dm_fields = TDySetDMFields_BDM;
       tdy->ops->update_state = NULL; // FIXME: ???
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_BDM;
+      tdy->ops->update_diagnostics = NULL; // FIXME
     } else if (discretization == WY) {
       tdy->ops->create = TDyCreate_WY;
       tdy->ops->destroy = TDyDestroy_WY;
@@ -797,6 +834,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->setup = TDySetup_WY;
       tdy->ops->update_state = TDyUpdateState_WY;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_WY;
+      tdy->ops->update_diagnostics = NULL; // FIXME
     } else {
       SETERRQ(comm,PETSC_ERR_USER, "Invalid discretization given!");
     }
@@ -808,7 +846,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->set_dm_fields = TDySetDMFields_TH_MPFAO;
       tdy->ops->setup = TDySetup_TH_MPFAO;
       tdy->ops->update_state = TDyUpdateState_TH_MPFAO;
-      tdy->ops->get_saturation = TDyGetSaturation_MPFAO;
+      tdy->ops->update_diagnostics = TDyUpdateDiagnostics_MPFAO;
     } else {
       SETERRQ(comm,PETSC_ERR_USER,
         "The TH mode does not support the selected discretization!");
@@ -1333,11 +1371,107 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
 ///                     and temperature values for each grid cell.
 /// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
-
   PetscErrorCode ierr;
-
   PetscFunctionBegin;
   ierr = TDyNaturalToGlobal(tdy,initial,tdy->solution); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+
+//-------------------------------
+// Diagnostics-related functions
+//-------------------------------
+
+/// This function updates all diagnostic fields for the model. These diagnostic
+/// fields (e.g. liquid mass, saturation) can be extracted by creating
+/// individual diagnostic vectors with TDyCreateDiagnosticVector and calling
+/// e.g. TDyGetSaturation to store the saturation field in such a vector.
+/// @param [in] tdy A TDy object
+PetscErrorCode TDyUpdateDiagnostics(TDy tdy) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  if ((tdy->setup_flags & TDySetupFinished) == 0) {
+    SETERRQ(comm,PETSC_ERR_USER,"You must call TDyUpdateDiagnostics after TDySetup()");
+  } else if (!tdy->ops->update_diagnostics) {
+    SETERRQ(comm,PETSC_ERR_USER,"TDyUpdateDiagnostics is not supported by this implementation.");
+  }
+
+  // Update the diagnostic fields.
+  ierr = tdy->ops->update_diagnostics(tdy->context, tdy->diag_dm, tdy->diag_vec);
+  CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/// Creates a Vec that can store a cell-centered scalar diagnostic field such as
+/// the saturation or liquid mass.
+/// @param [in] tdy A TDy object
+/// @param [out] diag_vec A Vec that can store a diagnostic field.
+PetscErrorCode TDyCreateDiagnosticVector(TDy tdy, Vec *diag_vec) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  if ((tdy->setup_flags & TDySetupFinished) == 0) {
+    SETERRQ(comm,PETSC_ERR_USER,"You must call TDyCreateDiagnosticVector after TDySetup()");
+  } else if (!tdy->ops->update_diagnostics) {
+    SETERRQ(comm,PETSC_ERR_USER,"Diagnostic fields are not supported by this implementation.");
+  }
+
+  // Create a cell-centered scalar field vector.
+  PetscInt c_start, c_end;
+  ierr = DMPlexGetHeightStratum(tdy->diag_dm, 0, &c_start, &c_end); CHKERRQ(ierr);
+  ierr = VecCreateMPI(comm, c_end - c_start, PETSC_DECIDE, diag_vec); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode ExtractDiagnosticField(TDy tdy, PetscInt index, Vec vec) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  if ((tdy->setup_flags & TDySetupFinished) == 0) {
+    SETERRQ(comm,PETSC_ERR_USER,"Diagnostic fields cannot be extracted before TDySetup()");
+  } else if (!tdy->ops->update_diagnostics) {
+    SETERRQ(comm,PETSC_ERR_USER,"Diagnostic fields are not supported by this implementation.");
+  }
+
+  // Extract the field.
+  ierr = VecStrideGather(tdy->diag_vec, index, vec, INSERT_VALUES);
+  CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/// Given a Vec created with TDyCreateDiagnosticVector, populates that vector
+/// with the saturation values for each cell in the grid.
+/// @param [in] tdy A TDy object
+/// @param [out] sat_vec The Vec that stores the cell-centered saturation field
+PetscErrorCode TDyGetLiquidSaturation(TDy tdy, Vec sat_vec) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_SATURATION, sat_vec);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Given a Vec created with TDyCreateDiagnosticVector, populates that vector
+/// with the liquid mass values for each cell in the grid.
+/// @param [in] tdy A TDy object
+/// @param [out] mass_vec The Vec that stores the cell-centered liquid mass field
+PetscErrorCode TDyGetLiquidMass(TDy tdy, Vec mass_vec) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_MASS, mass_vec); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1359,7 +1493,7 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
 
-  ierr = DMGetSection(tdy->dm, &sec);
+  ierr = DMGetLocalSection(tdy->dm, &sec);
   PetscInt num_fields;
   ierr = PetscSectionGetNumFields(sec, &num_fields);
   ierr = TSGetDM(ts,&dm);CHKERRQ(ierr);
@@ -1580,20 +1714,5 @@ PetscErrorCode TDyCreateJacobian(TDy tdy) {
     ierr = TDyCreateJacobianMatrix(tdy,&tdy->Jpre); CHKERRQ(ierr);
   }
   TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-// TODO: Temporary method to retrieve saturation values. We need a better I/O
-// TODO: strategy.
-PetscErrorCode TDyGetSaturation(TDy tdy, PetscReal* saturation) {
-  PetscFunctionBegin;
-  PetscErrorCode ierr;
-  if (tdy->ops->get_saturation) {
-    ierr = tdy->ops->get_saturation(tdy->context, saturation); CHKERRQ(ierr);
-  } else {
-    ierr = -1;
-    SETERRQ(PETSC_COMM_WORLD, ierr,
-      "This implementation does not allow the retrieval of saturation values!");
-  }
   PetscFunctionReturn(0);
 }

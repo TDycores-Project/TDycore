@@ -23,7 +23,7 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   io->enable_checkpoint = PETSC_FALSE;
   io->num_vars = 2;
   strcpy(io->zonalVarNames[0], "LiquidPressure");
-  strcpy(io->zonalVarNames[1], "Saturation");
+  strcpy(io->zonalVarNames[1], "LiquidSaturation");
   io->format = NullFormat;
   io->num_times = 0;
   io->checkpoint_timestep_interval = 1;
@@ -396,8 +396,6 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
 PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscErrorCode ierr;
   PetscBool useNatural;
-  Vec s;
-  PetscReal *s_vec_ptr;
   Vec p = tdy->solution;
   DM dm = tdy->dm;
   PetscReal time = tdy->ti->time;
@@ -408,10 +406,14 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     zonalVarNames[i] =  tdy->io->zonalVarNames[i];
   }
 
-  ierr = TDyCreateGlobalVector(tdy, &s); CHKERRQ(ierr);
-  ierr = VecGetArray(s,&s_vec_ptr); CHKERRQ(ierr);
-  ierr = TDyGetSaturation(tdy, s_vec_ptr); CHKERRQ(ierr);
-  ierr = VecRestoreArray(s,&s_vec_ptr);CHKERRQ(ierr);
+  // Make sure the diagnostics are up to date.
+  ierr = TDyUpdateDiagnostics(tdy); CHKERRQ(ierr);
+
+  // Extract the liquid saturation.
+  Vec s;
+  ierr = TDyCreateDiagnosticVector(tdy, &s); CHKERRQ(ierr);
+  ierr = TDyGetLiquidSaturation(tdy, s);
+  CHKERRQ(ierr);
 
   if (tdy->io->format == PetscViewerASCIIFormat) {
     ierr = TDyIOWriteAsciiViewer(p,time,zonalVarNames[0]);CHKERRQ(ierr);
@@ -448,6 +450,10 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   else{
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unrecognized IO format, must call TDyIOSetMode");
   }
+
+  // Clean up.
+  VecDestroy(&s);
+
   PetscFunctionReturn(0);
 }
 
@@ -480,7 +486,7 @@ PetscErrorCode TDyIOWriteHDF5Var(char *ofilename,DM dm,Vec U,char *VariableName,
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,ofilename,FILE_MODE_APPEND,&viewer);CHKERRQ(ierr);
 
   ierr = PetscObjectSetName((PetscObject) U,word);CHKERRQ(ierr);
-  ierr = DMGetSection(dm, &sec);
+  ierr = DMGetLocalSection(dm, &sec);
   //Change to field name
   ierr = PetscSectionSetFieldName(sec, 0, VariableName); CHKERRQ(ierr);
   ierr = VecView(U,viewer);CHKERRQ(ierr);

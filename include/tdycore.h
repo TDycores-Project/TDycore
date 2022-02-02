@@ -152,7 +152,7 @@ PETSC_EXTERN PetscErrorCode TDySetSoilDensityFunction(TDy,TDyScalarSpatialFuncti
 PETSC_EXTERN PetscErrorCode TDySetConstantSoilSpecificHeat(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeatFunction(TDy,TDyScalarSpatialFunction);
 
-// Set boundary and source-sink: via PETSc operations
+// Set boundary conditions and sources/sinks
 PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetEnergyForcingFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureFunction(TDy,TDyScalarSpatialFunction);
@@ -166,6 +166,12 @@ PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFunction(TDy,const char*);
 
 PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
+
+// Access to diagnostic variables
+PETSC_EXTERN PetscErrorCode TDyUpdateDiagnostics(TDy);
+PETSC_EXTERN PetscErrorCode TDyCreateDiagnosticVector(TDy,Vec*);
+PETSC_EXTERN PetscErrorCode TDyGetLiquidSaturation(TDy,Vec);
+PETSC_EXTERN PetscErrorCode TDyGetLiquidMass(TDy,Vec);
 
 // We will remove the following functions in favor of setting function pointers
 // that a given solver uses to extract info from a DM.

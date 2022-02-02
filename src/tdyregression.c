@@ -165,7 +165,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
 
   PetscSection sec;
   PetscInt num_fields;
-  ierr = DMGetSection(dm,&sec); CHKERRQ(ierr);
+  ierr = DMGetLocalSection(dm,&sec); CHKERRQ(ierr);
   ierr = PetscSectionGetNumFields(sec,&num_fields); CHKERRQ(ierr);
 
   PetscReal *temp_p, *pres_p, *u_p;

@@ -17,6 +17,10 @@
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
 
+// Diagnostic field names
+#define DIAG_LIQUID_SATURATION 0
+#define DIAG_LIQUID_MASS 1
+
 // This type serves as a "virtual table" containing function pointers that
 // define the behavior of the dycore.
 typedef struct _TDyOps *TDyOps;
@@ -66,9 +70,10 @@ struct _TDyOps {
   // vector.
   PetscErrorCode (*compute_error_norms)(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 
-  // Called by TDyIOWriteVec to retrieve the saturation values -- can we figure
-  // out a better way to do this?
-  PetscErrorCode (*get_saturation)(void*, PetscReal*);
+  // Updates diagnostic fields given an appropriate DM defining their layout,
+  // and a multi-component diagnostics Vec created from that DM with
+  // DMCreateLocalVector.
+  PetscErrorCode (*update_diagnostics)(void*, DM, Vec);
 };
 
 // This type represents the dycore and all of its settings.
@@ -109,6 +114,16 @@ struct _p_TDy {
   // regression testing data
   TDyRegression *regression;
 
+  //-----------------------------
+  // Diagnostic field management
+  //-----------------------------
+
+  // DM that holds layout for diagnostic fields (saturation, liquid mass, etc)
+  DM diag_dm;
+
+  // Vec that stores diagnostic fields
+  Vec diag_vec;
+
   //------------------------------------------------------
   // Solver-specific information (should be factored out)
   //------------------------------------------------------
@@ -124,9 +139,5 @@ struct _p_TDy {
   Vec residual;
 
 };
-
-// TODO: This is a temporary way for the I/O system to get the saturation
-// TODO: values.
-PETSC_INTERN PetscErrorCode TDyGetSaturation(TDy, PetscReal*);
 
 #endif

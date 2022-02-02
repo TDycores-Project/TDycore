@@ -2480,6 +2480,26 @@ PetscErrorCode TDyComputeErrorNorms_MPFAO(void *context, DM dm, Conditions *cond
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyUpdateDiagnostics_MPFAO(void *context,
+                                          DM diags_dm,
+                                          Vec diags_vec) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+  TDyMPFAO *mpfao = context;
+  PetscInt c_start, c_end;
+  ierr = DMPlexGetHeightStratum(diags_dm,0,&c_start,&c_end); CHKERRQ(ierr);
+  PetscReal *v;
+  VecGetArray(diags_vec, &v);
+  for (PetscInt c = c_start; c < c_end; ++c) {
+    v[2*c+DIAG_LIQUID_SATURATION] = mpfao->S[c];
+    v[2*c+DIAG_LIQUID_MASS] = mpfao->rho[c] * mpfao->V[c];
+  }
+  VecRestoreArray(diags_vec, &v);
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
 
   TDyMPFAO *mpfao = tdy->context;
@@ -2520,15 +2540,6 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
   ierr = MatAssemblyEnd  (K,MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDyGetSaturation_MPFAO(void* context, PetscReal* S) {
-  PetscFunctionBegin;
-  TDyMPFAO *mpfao = context;
-  for (PetscInt c = 0; c < mpfao->mesh->num_cells; ++c) {
-    S[c] = mpfao->S[c];
-  }
   PetscFunctionReturn(0);
 }
 
