@@ -82,7 +82,7 @@ function reLoadSphinxTabs() {
 function getEmbedURL(url) {
     var params = {
         'doctool': 'sphinx',
-        'doctoolversion': '4.3.2',
+        'doctoolversion': '4.4.0',
         'url': url,
     }
     console.debug('Data: ' + JSON.stringify(params));
@@ -93,13 +93,6 @@ function getEmbedURL(url) {
 
 
 $(document).ready(function() {
-    // Define a custom HTTP header to send the requests to the server
-    $.ajaxSetup({
-        beforeSend: function(request) {
-            request.setRequestHeader('X-HoverXRef-Version', '1.0.0');
-        }
-    });
-
     // Remove ``title=`` attribute for intersphinx nodes that have hoverxref enabled.
     // It doesn't make sense the browser shows the default tooltip (browser's built-in)
     // and immediately after that our tooltip was shown.
@@ -122,14 +115,19 @@ $(document).ready(function() {
             // we set a variable so the data is only loaded once via Ajax, not every time the tooltip opens
             if ($origin.data('loaded') !== true) {
                 var url = getEmbedURL(href);
-                $.get(url, function(data) {
-                    // call the 'content' method to update the content of our tooltip with the returned data.
-                    // note: this content update will trigger an update animation (see the updateAnimation option)
-                    instance.content(data['content']);
+                $.ajax({
+                    url: url,
+                    headers: {'X-HoverXRef-Version': '1.0.1'},
+                }).done(
+                    function (data) {
+                        // call the 'content' method to update the content of our tooltip with the returned data.
+                        // note: this content update will trigger an update animation (see the updateAnimation option)
+                        instance.content(data['content']);
 
-                    // to remember that the data has been loaded
-                    $origin.data('loaded', true);
-                });
+                        // to remember that the data has been loaded
+                        $origin.data('loaded', true);
+                    }
+                );
             }
         },
 
@@ -187,48 +185,53 @@ $(document).ready(function() {
     function showModal(element) {
         var href = element.prop('href');
         var url = getEmbedURL(href);
-        $.get(url, function(data) {
-            var content = $('<div></div>');
-            content.html(data['content']);
+        $.ajax({
+            url: url,
+            headers: {'X-HoverXRef-Version': '1.0.1'},
+        }).done(
+            function (data) {
+                var content = $('<div></div>');
+                content.html(data['content']);
 
-            var h1 = $('h1:first', content);
-            var title = h1.text()
-            if (title) {
-                var link = $('a', h1).attr('href') || '#';
+                var h1 = $('h1:first', content);
+                var title = h1.text()
+                if (title) {
+                    var link = $('a', h1).attr('href') || '#';
 
-                // Remove permalink icon from the title
-                var title = title.replace('¶', '').replace('', '');
+                    // Remove permalink icon from the title
+                    var title = title.replace('¶', '').replace('', '');
 
-                var a = $('<a></a>').attr('href', link).text('📝 ' + title);
-            }
-            else {
-                var a = '📝 Note';
-            }
-            h1.replaceWith('');
+                    var a = $('<a></a>').attr('href', link).text('📝 ' + title);
+                }
+                else {
+                    var a = '📝 Note';
+                }
+                h1.replaceWith('');
 
-            $('#micromodal-title').html(a);
-            $('#micromodal-content').html(content);
-            MicroModal.show('micromodal', {
-                
-                onShow: onShow,
-                
-                openClass: 'is-open',
-                disableScroll: false,
-                disableFocus: true,
-                awaitOpenAnimation: false,
-                awaitCloseAnimation: false,
-                debugMode: false
-            });
-            $('#micromodal .modal__container').scrollTop(0);
-            reLoadSphinxTabs();
-            if (mathjax) {
-                if (typeof MathJax !== 'undefined') {
-                    reLoadMathJax('micromodal');
-                } else {
-                    console.debug('Not triggering MathJax because it is not defined');
+                $('#micromodal-title').html(a);
+                $('#micromodal-content').html(content);
+                MicroModal.show('micromodal', {
+                    
+                    onShow: onShow,
+                    
+                    openClass: 'is-open',
+                    disableScroll: false,
+                    disableFocus: true,
+                    awaitOpenAnimation: false,
+                    awaitCloseAnimation: false,
+                    debugMode: false
+                });
+                $('#micromodal .modal__container').scrollTop(0);
+                reLoadSphinxTabs();
+                if (mathjax) {
+                    if (typeof MathJax !== 'undefined') {
+                        reLoadMathJax('micromodal');
+                    } else {
+                        console.debug('Not triggering MathJax because it is not defined');
+                    };
                 };
-            };
-        });
+            }
+        );
     };
 
     var delay = 350, setTimeoutConst;
