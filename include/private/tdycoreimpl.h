@@ -17,6 +17,10 @@
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
 
+// Diagnostic field names
+#define DIAG_LIQUID_SATURATION 0
+#define DIAG_LIQUID_MASS 1
+
 // This type serves as a "virtual table" containing function pointers that
 // define the behavior of the dycore.
 typedef struct _TDyOps *TDyOps;

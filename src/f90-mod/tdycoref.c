@@ -23,7 +23,7 @@
 #define tdygetdm_                                      TDYGETDM
 #define tdyupdatediagnostics_                          TDYUPDATEDIAGNOSTICS
 #define tdycreatediagnosticvector_                     TDYCREATEDIAGNOSTICVECTOR
-#define tdygetsaturation_                              TDYGETSATURATION
+#define tdygetliquidsaturation_                        TDYGETLIQUIDSATURATION
 #define tdygetliquidmass_                              TDYGETLIQUIDMASS
 #define tdysetwaterdensitytype_                        TDYSETWATERDENSITYTYPE
 #define tdympfaosetgmatrixmethod_                      TDYMPFAOSETGMATRIXMETHOD
@@ -58,7 +58,7 @@
 #define tdygetdm_                                      tdygetdm
 #define tdyupdatediagnostics_                          tdyupdatediagnostics
 #define tdycreatediagnosticvector_                     tdycreatediagnosticvector
-#define tdygetsaturation_                              tdygetsaturation
+#define tdygetliquidsaturation_                        tdygetliquidsaturation
 #define tdygetliquidmass_                              tdygetliquidmass
 #define tdysetwaterdensitytype_                        tdysetwaterdensitytype
 #define tdympfaosetgmatrixmethod_                      tdympfaosetgmatrixmethod
@@ -136,8 +136,8 @@ PETSC_EXTERN void  tdyupdatediagnostics_(TDy _tdy, int *__ierr){
 *__ierr = TDyUpdateDiagnostics((TDy)PetscToPointer((_tdy)));
 }
 
-PETSC_EXTERN void  tdygetsaturation_(TDy _tdy, Vec v, int *__ierr){
-*__ierr = TDyGetSaturation((TDy)PetscToPointer((_tdy)), (Vec)PetscToPointer(v));
+PETSC_EXTERN void  tdygetliquidsaturation_(TDy _tdy, Vec v, int *__ierr){
+*__ierr = TDyGetLiquidSaturation((TDy)PetscToPointer((_tdy)), (Vec)PetscToPointer(v));
 }
 
 PETSC_EXTERN void  tdygetliquidmass_(TDy _tdy, Vec v, int *__ierr){

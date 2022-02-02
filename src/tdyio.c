@@ -23,7 +23,7 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   io->enable_checkpoint = PETSC_FALSE;
   io->num_vars = 2;
   strcpy(io->zonalVarNames[0], "LiquidPressure");
-  strcpy(io->zonalVarNames[1], "Saturation");
+  strcpy(io->zonalVarNames[1], "LiquidSaturation");
   io->format = NullFormat;
   io->num_times = 0;
   io->checkpoint_timestep_interval = 1;
@@ -409,10 +409,10 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   // Make sure the diagnostics are up to date.
   ierr = TDyUpdateDiagnostics(tdy); CHKERRQ(ierr);
 
-  // Extract the saturation.
+  // Extract the liquid saturation.
   Vec s;
   ierr = TDyCreateDiagnosticVector(tdy, &s); CHKERRQ(ierr);
-  ierr = TDyGetSaturation(tdy, s);
+  ierr = TDyGetLiquidSaturation(tdy, s);
   CHKERRQ(ierr);
 
   if (tdy->io->format == PetscViewerASCIIFormat) {

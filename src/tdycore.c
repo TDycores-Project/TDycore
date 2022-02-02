@@ -724,9 +724,9 @@ PetscErrorCode TDySetup(TDy tdy) {
                                NULL, NULL, &section); CHKERRQ(ierr);
 
     // Add names to the fields.
-    ierr = PetscSectionSetFieldName(section, 0, "Saturation");
+    ierr = PetscSectionSetFieldName(section, DIAG_LIQUID_SATURATION, "LiquidSaturation");
     CHKERRQ(ierr);
-    ierr = PetscSectionSetFieldName(section, 1, "LiquidMass");
+    ierr = PetscSectionSetFieldName(section, DIAG_LIQUID_MASS, "LiquidMass");
     CHKERRQ(ierr);
     ierr = DMSetLocalSection(tdy->diag_dm, section); CHKERRQ(ierr);
 
@@ -1456,10 +1456,11 @@ static PetscErrorCode ExtractDiagnosticField(TDy tdy, PetscInt index, Vec vec) {
 /// with the saturation values for each cell in the grid.
 /// @param [in] tdy A TDy object
 /// @param [out] sat_vec The Vec that stores the cell-centered saturation field
-PetscErrorCode TDyGetSaturation(TDy tdy, Vec sat_vec) {
+PetscErrorCode TDyGetLiquidSaturation(TDy tdy, Vec sat_vec) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ierr = ExtractDiagnosticField(tdy, 0, sat_vec); CHKERRQ(ierr);
+  ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_SATURATION, sat_vec);
+  CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1467,10 +1468,10 @@ PetscErrorCode TDyGetSaturation(TDy tdy, Vec sat_vec) {
 /// with the liquid mass values for each cell in the grid.
 /// @param [in] tdy A TDy object
 /// @param [out] mass_vec The Vec that stores the cell-centered liquid mass field
-PetscErrorCode TDyGetLiquidMass(TDy tdy, Vec sat_vec) {
+PetscErrorCode TDyGetLiquidMass(TDy tdy, Vec mass_vec) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ierr = ExtractDiagnosticField(tdy, 1, sat_vec); CHKERRQ(ierr);
+  ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_MASS, mass_vec); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

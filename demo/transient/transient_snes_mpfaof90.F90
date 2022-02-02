@@ -463,7 +463,7 @@ implicit none
   end do
 
   ! Get the liquid saturation (diagnostic) values.
-  call TDyGetSaturation(tdy, liq_sat, ierr)
+  call TDyGetLiquidSaturation(tdy, liq_sat, ierr)
   CHKERRA(ierr)
 
   if (use_tdydriver) then
