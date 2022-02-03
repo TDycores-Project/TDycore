@@ -64,7 +64,7 @@ struct _TDyOps {
   // Called by TDyUpdateState -- updates the state maintained by the
   // implementation with provided solution data.
   PetscErrorCode (*update_state)(void*, DM, EOS*, MaterialProp*,
-                                 CharacteristicCurves*, PetscInt, PetscReal*);
+                                 CharacteristicCurves*, Vec);
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.

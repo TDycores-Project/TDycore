@@ -225,9 +225,9 @@ PETSC_EXTERN void  tdydestroy_(TDy *_tdy, int *__ierr){
 *__ierr = TDyDestroy(_tdy);
 }
 
-PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int ncells, int *ierr )
+PETSC_EXTERN void tdyupdatestate_(TDy *tdy, Vec U, int *ierr )
 {
-  *ierr = TDyUpdateState(*tdy,y,ncells);
+  *ierr = TDyUpdateState(*tdy,U);
 }
 
 //------------------------------------------------------------------------

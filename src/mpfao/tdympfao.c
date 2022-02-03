@@ -2343,30 +2343,33 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
                                              EOS *eos,
                                              MaterialProp *matprop,
                                              CharacteristicCurves *cc,
-                                             PetscInt num_cells,
-                                             PetscReal *U) {
+                                             Vec U) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyMPFAO *mpfao = context;
 
   PetscInt dim = 3;
   PetscInt dim2 = dim*dim;
-  PetscInt cStart = 0, cEnd = num_cells;
-  PetscInt nc = cEnd - cStart;
+
+  PetscInt num_cells;
+  ierr = VecGetLocalSize(U, &num_cells); CHKERRQ(ierr);
 
   // Compute the capillary pressure on all cells.
-  PetscReal Pc[nc];
-  for (PetscInt c=0;c<cEnd-cStart;c++) {
-    Pc[c] = mpfao->Pref - U[c];
+  PetscReal *u_ptr;
+  ierr = VecGetArray(U, &u_ptr); CHKERRQ(ierr);
+  PetscReal Pc[num_cells];
+  for (PetscInt c=0; c<num_cells; c++) {
+    Pc[c] = mpfao->Pref - u_ptr[c];
   }
+  ierr = VecRestoreArray(U, &u_ptr); CHKERRQ(ierr);
 
   // Compute the saturation and its derivatives.
   ierr = SaturationCompute(cc->saturation, mpfao->Sr, Pc, mpfao->S, mpfao->dS_dP,
                            mpfao->d2S_dP2);
 
   // Compute the effective saturation on cells.
-  PetscReal Se[nc];
-  for (PetscInt c=0;c<nc;c++) {
+  PetscReal Se[num_cells];
+  for (PetscInt c=0;c<num_cells;c++) {
     Se[c] = (mpfao->S[c] - mpfao->Sr[c])/(1.0 - mpfao->Sr[c]);
   }
 
@@ -2374,7 +2377,7 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
   ierr = RelativePermeabilityCompute(cc->rel_perm, Se, mpfao->Kr, mpfao->dKr_dS);
 
   // Correct dKr/dS using the chain rule, and update the permeability.
-  for (PetscInt c=0;c<nc;c++) {
+  for (PetscInt c=0;c<num_cells;c++) {
     PetscReal dSe_dS = 1.0/(1.0 - mpfao->Sr[c]);
     mpfao->dKr_dS[c] *= dSe_dS; // correct dKr/dS
 
@@ -2397,7 +2400,7 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
   TDyCell *cells = &mesh->cells;
 
   ierr = VecGetArray(mpfao->P_vec,&p_vec_ptr); CHKERRQ(ierr);
-  for (PetscInt c=0; c<nc; ++c) {
+  for (PetscInt c=0; c<num_cells; ++c) {
     ierr = ComputeGtimesZ(mpfao->gravity,cells->centroid[c].X,dim,&gz);
     PetscReal P = mpfao->Pref - Pc[c]; // pressure
     p_vec_ptr[c] = P;
@@ -2409,7 +2412,7 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
 PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
                                        EOS *eos, MaterialProp *matprop,
                                        CharacteristicCurves *cc,
-                                       PetscInt num_cells, PetscReal *U) {
+                                       Vec U) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -2417,23 +2420,28 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
 
   PetscInt dim = 3;
   PetscInt dim2 = dim*dim;
-  PetscInt cStart = 0, cEnd = num_cells;
-  PetscInt nc = cEnd - cStart;
+
+  PetscInt num_cells;
+  ierr = VecGetLocalSize(U, &num_cells); CHKERRQ(ierr);
+  num_cells /= 2; // Divide by the number of DOFs to get num of grid cells
 
   // Obtain the capillary pressure and the temperature on all cells.
-  PetscReal Pc[nc], temp[nc];
-  for (PetscInt c=0;c<cEnd-cStart;c++) {
-    Pc[c] = mpfao->Pref - U[2*c];
-    temp[c] = U[2*c+1];
+  PetscReal *u_ptr;
+  ierr = VecGetArray(U, &u_ptr); CHKERRQ(ierr);
+  PetscReal Pc[num_cells], temp[num_cells];
+  for (PetscInt c=0;c<num_cells;c++) {
+    Pc[c] = mpfao->Pref - u_ptr[2*c];
+    temp[c] = u_ptr[2*c+1];
   }
+  ierr = VecRestoreArray(U, &u_ptr); CHKERRQ(ierr);
 
   // Compute the saturation and its derivatives.
   ierr = SaturationCompute(cc->saturation, mpfao->Sr, Pc, mpfao->S, mpfao->dS_dP,
                            mpfao->d2S_dP2);
 
   // Compute the effective saturation on cells.
-  PetscReal Se[nc];
-  for (PetscInt c=0;c<nc;c++) {
+  PetscReal Se[num_cells];
+  for (PetscInt c=0;c<num_cells;c++) {
     Se[c] = (mpfao->S[c] - mpfao->Sr[c])/(1.0 - mpfao->Sr[c]);
   }
 
@@ -2441,7 +2449,7 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
   ierr = RelativePermeabilityCompute(cc->rel_perm, Se, mpfao->Kr, mpfao->dKr_dS);
 
   // Correct dKr/dS using the chain rule, and update the permeability.
-  for (PetscInt c=0;c<nc;c++) {
+  for (PetscInt c=0;c<num_cells;c++) {
     PetscReal dSe_dS = 1.0/(1.0 - mpfao->Sr[c]);
     mpfao->dKr_dS[c] *= dSe_dS; // correct dKr/dS
 
@@ -2472,7 +2480,7 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
   TDyCell *cells = &mesh->cells;
 
   ierr = VecGetArray(mpfao->P_vec,&p_vec_ptr); CHKERRQ(ierr);
-  for (PetscInt c=0; c<nc; c++) {
+  for (PetscInt c=0; c<num_cells; c++) {
     ierr = ComputeGtimesZ(mpfao->gravity,cells->centroid[c].X,dim,&gz);
     PetscReal P = mpfao->Pref - Pc[c]; // pressure
     p_vec_ptr[c] = P;
@@ -2481,7 +2489,7 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
 
   PetscReal *t_vec_ptr;
   ierr = VecGetArray(mpfao->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
-  for (PetscInt c=0; c<nc; c++) {
+  for (PetscInt c=0; c<num_cells; c++) {
     t_vec_ptr[c] = temp[c];
   }
   ierr = VecRestoreArray(mpfao->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);

@@ -34,7 +34,7 @@ PetscErrorCode TDyMPFAOSNESPreSolve(TDy tdy) {
   TDyMPFAO *mpfao = tdy->context;
   TDyMesh *mesh = mpfao->mesh;
   TDyCell *cells = &mesh->cells;
-  PetscReal *p, *accum_prev;
+  PetscReal *accum_prev;
   PetscInt icell;
   PetscErrorCode ierr;
 
@@ -42,9 +42,7 @@ PetscErrorCode TDyMPFAOSNESPreSolve(TDy tdy) {
 
 
   // Update the auxillary variables
-  ierr = VecGetArray(tdy->soln_prev,&p); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy, p, mesh->num_cells_local); CHKERRQ(ierr);
-  ierr = VecRestoreArray(tdy->soln_prev,&p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, tdy->soln_prev); CHKERRQ(ierr);
 
   ierr = VecGetArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
 
@@ -70,7 +68,7 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   TDyMPFAO *mpfao = tdy->context;
   TDyMesh  *mesh = mpfao->mesh;
   TDyCell  *cells = &mesh->cells;
-  PetscReal *p,*r;
+  PetscReal *r;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -91,9 +89,7 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
-  ierr = VecGetArray(tdy->soln_loc,&p); CHKERRQ(ierr);
-ierr = TDyUpdateState(tdy, p, mesh->num_cells); CHKERRQ(ierr);
-  ierr = VecRestoreArray(tdy->soln_loc,&p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, tdy->soln_loc); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,tdy->soln_loc); CHKERRQ(ierr);
   ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);

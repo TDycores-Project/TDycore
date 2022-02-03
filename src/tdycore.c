@@ -1224,7 +1224,7 @@ PetscErrorCode TDySelectBoundaryVelocityFunction(TDy tdy,
 /// Updates the secondary state of the system using the solution data.
 /// @param [inout] tdy a dycore object
 /// @param [in] U an array of solution data
-PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U, PetscInt num_cells) {
+PetscErrorCode TDyUpdateState(TDy tdy,Vec U) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyEnterProfilingStage("TDycore Setup");
@@ -1232,7 +1232,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U, PetscInt num_cells) {
 
   // Call the implementation-specific state update.
   ierr = tdy->ops->update_state(tdy->context, tdy->dm, &tdy->eos, tdy->matprop,
-                                tdy->cc, num_cells, U); CHKERRQ(ierr);
+                                tdy->cc, U); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   TDyExitProfilingStage("TDycore Setup");

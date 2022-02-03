@@ -164,7 +164,7 @@ PETSC_EXTERN PetscErrorCode TDySelectBoundaryPressureFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFunction(TDy,const char*);
 
-PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*,PetscInt);
+PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
 
 // Access to diagnostic variables

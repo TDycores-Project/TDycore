@@ -236,16 +236,8 @@ PetscErrorCode TDyIOReadPorosity(TDy tdy){
     strcpy(VariableName, tdy->io->porosity_dataset);
   }
 
-  PetscInt cStart,cEnd;
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
-  PetscInt ncell = (cEnd-cStart);
-
   PetscReal *Porosity;
   ierr = TDyIOReadVariable(tdy,VariableName,filename,&Porosity);
-  PetscInt index[ncell];
-  for (PetscInt c = 0;c<=ncell;++c){
-     index[c] = c;
-  }
 
   ierr = MaterialPropSetPorosity(tdy->matprop, Porosity, AssignScalars,
                                  ScalarsDestroy);

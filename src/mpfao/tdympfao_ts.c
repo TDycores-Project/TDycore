@@ -156,7 +156,7 @@ PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx
   TDyMPFAO *mpfao = tdy->context;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
-  PetscReal *p,*dp_dt,*r;
+  PetscReal *dp_dt,*r;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -175,10 +175,8 @@ PetscErrorCode TDyMPFAOIFunction(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
-  ierr = VecGetArray(tdy->soln_loc,&p); CHKERRQ(ierr);
-ierr = TDyUpdateState(tdy, p, mesh->num_cells); CHKERRQ(ierr);
-  ierr = VecRestoreArray(tdy->soln_loc,&p); CHKERRQ(ierr);
-
+  ierr = TDyUpdateState(tdy, tdy->soln_loc); CHKERRQ(ierr); 
+ 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,tdy->soln_loc); CHKERRQ(ierr);
   ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(mpfao->Trans_mat, mpfao->P_vec, mpfao->TtimesP_vec);

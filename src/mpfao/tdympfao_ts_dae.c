@@ -18,7 +18,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void 
   TDyCell *cells = &mesh->cells;
   DM       dm;
   Vec      P,M,R_P,R_M;
-  PetscReal *p,*u_t,*r,*r_p,*m;
+  PetscReal *u_t,*r,*r_p,*m;
   PetscInt m_idx, p_idx;
   PetscInt icell;
   PetscErrorCode ierr;
@@ -39,9 +39,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void 
   ierr = ExtractSubVectors(R,1,&R_M);
 
   // Update the auxillary variables based on the current iterate
-  ierr = VecGetArray(P,&p); CHKERRQ(ierr);
-ierr = TDyUpdateState(tdy, p, mesh->num_cells); CHKERRQ(ierr);
-  ierr = VecRestoreArray(P,&p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, P); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,P); CHKERRQ(ierr);
   ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);

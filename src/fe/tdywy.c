@@ -232,7 +232,7 @@ PetscErrorCode TDyCreate_WY(void **context) {
   PetscFunctionBegin;
   // Allocate a new context for the WY method.
   TDyWY *wy;
-  ierr = PetscCalloc(sizeof(TDyWY), &wy);
+  ierr = PetscCalloc(sizeof(TDyWY), &wy); CHKERRQ(ierr);
   *context = wy;
   PetscFunctionReturn(0);
 }
@@ -1073,27 +1073,31 @@ PetscErrorCode TDyComputeErrorNorms_WY(void *context, DM dm, Conditions *conditi
 PetscErrorCode TDyUpdateState_WY(void *context, DM dm,
                                  EOS *eos, MaterialProp *matprop,
                                  CharacteristicCurves *cc,
-                                 PetscInt num_cells, PetscReal *U) {
+                                 Vec U) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyWY *wy = context;
 
-  PetscInt cStart = 0, cEnd = num_cells;
-  PetscInt nc = cEnd - cStart;
+  PetscInt num_cells;
+  ierr = VecGetLocalSize(U, &num_cells); CHKERRQ(ierr);
 
   // Compute the capillary pressure on all cells.
-  PetscReal Pc[nc];
-  for (PetscInt c=0;c<nc;c++) {
-    Pc[c] = wy->Pref - U[c];
+  PetscReal *u_ptr;
+  ierr = VecGetArray(U, &u_ptr); CHKERRQ(ierr);
+
+  PetscReal Pc[num_cells];
+  for (PetscInt c=0;c<num_cells;c++) {
+    Pc[c] = wy->Pref - u_ptr[c];
   }
+  ierr = VecRestoreArray(U, &u_ptr); CHKERRQ(ierr);
 
   // Compute the saturation and its derivatives.
   ierr = SaturationCompute(cc->saturation, wy->Sr, Pc, wy->S, wy->dS_dP,
                            wy->d2S_dP2); CHKERRQ(ierr);
 
   // Compute the effective saturation on cells.
-  PetscReal Se[nc];
-  for (PetscInt c=0;c<nc;c++) {
+  PetscReal Se[num_cells];
+  for (PetscInt c=0;c<num_cells;c++) {
     Se[c] = (wy->S[c] - wy->Sr[c])/(1.0 - wy->Sr[c]);
   }
 
@@ -1103,7 +1107,7 @@ PetscErrorCode TDyUpdateState_WY(void *context, DM dm,
 
   // Correct dKr/dS using the chain rule, and update the permeability.
   PetscInt dim2 = wy->dim*wy->dim;
-  for (PetscInt c=0;c<nc;c++) {
+  for (PetscInt c=0;c<num_cells;c++) {
     PetscReal dSe_dS = 1.0/(1.0 - wy->Sr[c]);
     wy->dKr_dS[c] *= dSe_dS; // correct dKr/dS
 
@@ -1133,12 +1137,10 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   wgt  = 1/((PetscReal)nv);
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
-  ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy,p,cEnd-cStart); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyWYLocalElementCompute(tdy); CHKERRQ(ierr);
-  ierr = TDyWYRecoverVelocity(tdy,Ul); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   for(c=cStart; c<cEnd; c++) {
