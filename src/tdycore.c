@@ -346,7 +346,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   if (!tdy) PetscFunctionReturn(0);
 
   if (tdy->regression) {
-    free(tdy->regression);
+    ierr = TDyRegressionDestroy(tdy);
   }
 
   // Destroy Jacobian data.
@@ -643,7 +643,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     DM dm_dist;
     ierr = DMPlexDistribute(dm, 1, NULL, &dm_dist); CHKERRQ(ierr);
     if (dm_dist) {
-      DMDestroy(&dm); CHKERRQ(ierr);
+      ierr = DMDestroy(&dm); CHKERRQ(ierr);
       dm = dm_dist;
     }
     ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
@@ -729,6 +729,7 @@ PetscErrorCode TDySetup(TDy tdy) {
     ierr = PetscSectionSetFieldName(section, DIAG_LIQUID_MASS, "LiquidMass");
     CHKERRQ(ierr);
     ierr = DMSetLocalSection(tdy->diag_dm, section); CHKERRQ(ierr);
+    ierr = PetscSectionDestroy(&section);
 
     // Create a Vec that can store the diagnostic fields.
     ierr = DMCreateGlobalVector(tdy->diag_dm, &tdy->diag_vec); CHKERRQ(ierr);

@@ -18,6 +18,7 @@ PetscErrorCode ConditionsDestroy(Conditions* conditions) {
   ConditionsSetBoundaryPressure(conditions, NULL, NULL, NULL);
   ConditionsSetBoundaryTemperature(conditions, NULL, NULL, NULL);
   ConditionsSetBoundaryVelocity(conditions, NULL, NULL, NULL);
+  PetscFree(conditions);
   PetscFunctionReturn(0);
 }
 

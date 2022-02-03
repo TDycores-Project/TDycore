@@ -4216,7 +4216,104 @@ PetscErrorCode TDyMeshCreate(DM dm, PetscReal *volumes, PetscReal *coords,
 /// Destroy a mesh, freeing any resources it uses.
 /// @param [inout] mesh A mesh instance to be destroyed
 PetscErrorCode TDyMeshDestroy(TDyMesh *mesh) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
+
+  free(mesh->cells.id);
+  free(mesh->cells.global_id);
+  free(mesh->cells.natural_id);
+  free(mesh->cells.is_local);
+  free(mesh->cells.num_vertices);
+  free(mesh->cells.num_edges);
+  free(mesh->cells.num_faces);
+  free(mesh->cells.num_neighbors);
+  free(mesh->cells.num_subcells);
+  free(mesh->cells.vertex_offset);
+  free(mesh->cells.edge_offset);
+  free(mesh->cells.face_offset);
+  free(mesh->cells.neighbor_offset);
+  free(mesh->cells.vertex_ids);
+  free(mesh->cells.edge_ids);
+  free(mesh->cells.neighbor_ids);
+  free(mesh->cells.face_ids);
+  free(mesh->cells.centroid);
+  free(mesh->cells.volume);
+
+  free(mesh->subcells.nu_vector);
+  free(mesh->subcells.nu_star_vector);
+  free(mesh->subcells.variable_continuity_coordinates);
+  free(mesh->subcells.face_centroid);
+  free(mesh->subcells.vertices_coordinates);
+  free(mesh->subcells.id);
+  free(mesh->subcells.num_nu_vectors);
+  free(mesh->subcells.num_vertices);
+  free(mesh->subcells.num_faces);
+  free(mesh->subcells.type);
+  free(mesh->subcells.nu_vector_offset);
+  free(mesh->subcells.vertex_offset);
+  free(mesh->subcells.face_offset);
+  free(mesh->subcells.face_ids);
+  free(mesh->subcells.is_face_up);
+  free(mesh->subcells.face_unknown_idx);
+  free(mesh->subcells.face_flux_idx);
+  free(mesh->subcells.face_area);
+  free(mesh->subcells.vertex_ids);
+  free(mesh->subcells.T);
+
+  free(mesh->vertices.id);
+  free(mesh->vertices.global_id);
+  free(mesh->vertices.num_internal_cells);
+  free(mesh->vertices.num_edges);
+  free(mesh->vertices.num_faces);
+  free(mesh->vertices.num_boundary_faces);
+  free(mesh->vertices.is_local);
+  free(mesh->vertices.coordinate);
+  free(mesh->vertices.edge_offset);
+  free(mesh->vertices.face_offset);
+  free(mesh->vertices.internal_cell_offset);
+  free(mesh->vertices.subcell_offset);
+  free(mesh->vertices.boundary_face_offset);
+  free(mesh->vertices.edge_ids);
+  free(mesh->vertices.face_ids);
+  free(mesh->vertices.subface_ids);
+  free(mesh->vertices.internal_cell_ids);
+  free(mesh->vertices.subcell_ids);
+  free(mesh->vertices.boundary_face_ids);
+
+  free(mesh->edges.id);
+  free(mesh->edges.global_id);
+  free(mesh->edges.num_cells);
+  free(mesh->edges.vertex_ids);
+  free(mesh->edges.is_local);
+  free(mesh->edges.is_internal);
+  free(mesh->edges.cell_offset);
+  free(mesh->edges.cell_ids);
+  free(mesh->edges.centroid);
+  free(mesh->edges.normal);
+  free(mesh->edges.length);
+
+  free(mesh->faces.id);
+  free(mesh->faces.num_vertices);
+  free(mesh->faces.num_edges);
+  free(mesh->faces.num_cells);
+  free(mesh->faces.is_local);
+  free(mesh->faces.is_internal);
+  free(mesh->faces.vertex_offset);
+  free(mesh->faces.cell_offset);
+  free(mesh->faces.edge_offset);
+  free(mesh->faces.cell_ids);
+  free(mesh->faces.edge_ids);
+  free(mesh->faces.vertex_ids);
+  free(mesh->faces.area);
+  free(mesh->faces.centroid);
+  free(mesh->faces.normal);
+
+  free(mesh->closureSize);
+  ierr = TDyDeallocate_IntegerArray_2D(mesh->closure,
+            mesh->num_cells+mesh->num_faces+mesh->num_edges+mesh->num_vertices);
+  CHKERRQ(ierr);
+
+  free(mesh);
   PetscFunctionReturn(0);
 }
 

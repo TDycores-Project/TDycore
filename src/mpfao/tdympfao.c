@@ -421,12 +421,27 @@ PetscErrorCode TDyDestroy_MPFAO(void *context) {
   PetscFunctionBegin;
   TDyMPFAO* mpfao = context;
 
-  if (mpfao->vel   ) { ierr = PetscFree(mpfao->vel); CHKERRQ(ierr); }
+  if (mpfao->vel) { ierr = PetscFree(mpfao->vel); CHKERRQ(ierr); }
+  if (mpfao->vel_count) { ierr = PetscFree(mpfao->vel_count); CHKERRQ(ierr); }
+
+  if (mpfao->source_sink) { ierr = PetscFree(mpfao->source_sink); CHKERRQ(ierr); }
+  if (mpfao->energy_source_sink) {
+    ierr = PetscFree(mpfao->energy_source_sink); CHKERRQ(ierr);
+  }
 
   ierr = PetscFree(mpfao->V); CHKERRQ(ierr);
   ierr = PetscFree(mpfao->X); CHKERRQ(ierr);
   ierr = PetscFree(mpfao->N); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->Kr); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dKr_dS); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->S); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dS_dP); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->d2S_dP2); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dS_dT); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->Sr); CHKERRQ(ierr);
+
   ierr = PetscFree(mpfao->rho); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->drho_dP); CHKERRQ(ierr);
   ierr = PetscFree(mpfao->d2rho_dP2); CHKERRQ(ierr);
   ierr = PetscFree(mpfao->vis); CHKERRQ(ierr);
   ierr = PetscFree(mpfao->dvis_dP); CHKERRQ(ierr);
@@ -434,25 +449,73 @@ PetscErrorCode TDyDestroy_MPFAO(void *context) {
   ierr = PetscFree(mpfao->h); CHKERRQ(ierr);
   ierr = PetscFree(mpfao->dh_dP); CHKERRQ(ierr);
   ierr = PetscFree(mpfao->dh_dT); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->drho_dT); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->u); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->du_dP); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->du_dT); CHKERRQ(ierr);
   ierr = PetscFree(mpfao->dvis_dT); CHKERRQ(ierr);
+
+  ierr = PetscFree(mpfao->Kr_bnd); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dKr_dS_bnd); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->S_bnd); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->dS_dP_bnd); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->d2S_dP2_bnd); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->P_bnd); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->rho_bnd); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->vis_bnd); CHKERRQ(ierr);
+
+  if (mpfao->T_bnd) { ierr = PetscFree(mpfao->T_bnd); CHKERRQ(ierr); }
+  if (mpfao->h_bnd) { ierr = PetscFree(mpfao->h_bnd); CHKERRQ(ierr); }
 
   // if (mpfao->subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
   //                                   nsubcells, nrow, ncol); CHKERRQ(ierr); }
-  // if (mpfao->Trans       ) { ierr = TDyDeallocate_RealArray_3D(&mpfao->Trans,
-  //                                   mpfao->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
-  // if (mpfao->Trans_mat   ) { ierr = MatDestroy(&mpfao->Trans_mat  ); CHKERRQ(ierr); }
+  if (mpfao->Trans) {
+    ierr = TDyDeallocate_RealArray_3D(mpfao->Trans, mpfao->mesh->num_vertices,
+                                      mpfao->nfv);
+    CHKERRQ(ierr);
+  }
+  if (mpfao->Trans_mat) { ierr = MatDestroy(&mpfao->Trans_mat  ); CHKERRQ(ierr); }
+
   if (mpfao->P_vec       ) { ierr = VecDestroy(&mpfao->P_vec      ); CHKERRQ(ierr); }
   if (mpfao->TtimesP_vec ) { ierr = VecDestroy(&mpfao->TtimesP_vec); CHKERRQ(ierr); }
-  // if (mpfao->Temp_subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&mpfao->Temp_subc_Gmatrix,
-  //                                        mpfao->mesh->num_cells,
-  //                                        nsubcells, nrow, ncol); CHKERRQ(ierr); }
-  // if (mpfao->Temp_Trans       ) { ierr = TDyDeallocate_RealArray_3D(&mpfao->Temp_Trans,
-  //                                        mpfao->mesh->num_vertices, 12, 12); CHKERRQ(ierr); }
+  if (mpfao->GravDisVec  ) { ierr = VecDestroy(&mpfao->GravDisVec); CHKERRQ(ierr); }
+
+  if (mpfao->subc_Gmatrix) {
+    ierr = TDyDeallocate_RealArray_4D(mpfao->subc_Gmatrix,
+                                      mpfao->mesh->num_cells, 8, 3);
+    CHKERRQ(ierr);
+  }
+  if (mpfao->Temp_subc_Gmatrix) {
+    ierr = TDyDeallocate_RealArray_4D(mpfao->Temp_subc_Gmatrix,
+                                      mpfao->mesh->num_cells, 8, 3);
+    CHKERRQ(ierr);
+  }
+  if (mpfao->Temp_Trans) {
+    ierr = TDyDeallocate_RealArray_3D(mpfao->Temp_Trans, mpfao->mesh->num_vertices,
+                                      mpfao->nfv);
+    CHKERRQ(ierr);
+  }
   if (mpfao->Temp_Trans_mat   ) { ierr = MatDestroy(&mpfao->Temp_Trans_mat  ); CHKERRQ(ierr); }
   if (mpfao->Temp_P_vec       ) { ierr = VecDestroy(&mpfao->Temp_P_vec      ); CHKERRQ(ierr); }
   if (mpfao->Temp_TtimesP_vec ) { ierr = VecDestroy(&mpfao->Temp_TtimesP_vec); CHKERRQ(ierr); }
 
-  // TODO: Need to destroy the mesh.
+  ierr = PetscFree(mpfao->K); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->K0); CHKERRQ(ierr);
+  ierr = PetscFree(mpfao->porosity); CHKERRQ(ierr);
+  if (mpfao->Kappa) {
+    ierr = PetscFree(mpfao->Kappa); CHKERRQ(ierr);
+    ierr = PetscFree(mpfao->Kappa0); CHKERRQ(ierr);
+  }
+  if (mpfao->c_soil) {
+    ierr = PetscFree(mpfao->c_soil); CHKERRQ(ierr);
+  }
+  if (mpfao->rho_soil) {
+    ierr = PetscFree(mpfao->rho_soil); CHKERRQ(ierr);
+  }
+
+  ierr = TDyMeshDestroy(mpfao->mesh);
+
+  PetscFree(mpfao);
 
   PetscFunctionReturn(0);
 }
@@ -996,12 +1059,11 @@ static PetscErrorCode ComputeAinvB(PetscInt A_nrow, PetscReal *A,
   TDY_START_FUNCTION_TIMER()
 
   PetscInt m, n;
-  PetscBLASInt info, *pivots;
   PetscErrorCode ierr;
 
   m = A_nrow; n = A_nrow;
-  ierr = PetscMalloc((n+1)*sizeof(PetscBLASInt), &pivots); CHKERRQ(ierr);
 
+  PetscBLASInt info, pivots[n+1];
   LAPACKgetrf_(&m, &n, A, &m, pivots, &info);
   if (info<0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB,
                         "Bad argument to LU factorization");

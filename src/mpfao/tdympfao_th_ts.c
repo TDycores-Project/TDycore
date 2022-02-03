@@ -153,7 +153,7 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   TDyCell       *cells = &mesh->cells;
   DM       dm;
   Vec      Ul;
-  PetscReal *p,*du_dt,*r,*temp,*u_p,*dp_dt,*dtemp_dt;
+  PetscReal *du_dt,*r,*u_p;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -217,11 +217,9 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
 
   PetscInt c,cStart,cEnd;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&dp_dt);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&dtemp_dt);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&p);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
 
+  PetscReal p[cEnd-cStart], dp_dt[cEnd-cStart],
+            temp[cEnd-cStart], dtemp_dt[cEnd-cStart];
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   for (c=0;c<cEnd-cStart;c++) {
     dp_dt[c]    = du_dt[c*2];
@@ -587,7 +585,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_TH(Vec Ul,Vec Udotl,PetscReal shif
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
   PetscInt icell;
-  PetscReal *dp_dt, *dT_dt, *du_dt, *temp, *u_p;
+  PetscReal *du_dt, *u_p;
   PetscErrorCode ierr;
 
   PetscReal porosity, dporosity_dP, dporosity_dT;
@@ -616,10 +614,8 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_TH(Vec Ul,Vec Udotl,PetscReal shif
 
   PetscInt c,cStart,cEnd;
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&dp_dt);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&dT_dt);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&temp);CHKERRQ(ierr);
 
+  PetscReal dp_dt[cEnd-cStart], dT_dt[cEnd-cStart], temp[cEnd-cStart];
   for (c=0;c<cEnd-cStart;c++) {
     dp_dt[c] = du_dt[c*2];
     dT_dt[c] = du_dt[c*2+1];
