@@ -834,7 +834,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->set_from_options = TDySetFromOptions_WY;
       tdy->ops->set_dm_fields = TDySetDMFields_WY;
       tdy->ops->setup = TDySetup_WY;
-      tdy->ops->update_state = TDyUpdateState_WY;
+      //tdy->ops->update_state = TDyUpdateState_WY;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_WY;
       tdy->ops->update_diagnostics = NULL; // FIXME
     } else {
