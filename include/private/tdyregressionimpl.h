@@ -14,5 +14,6 @@ typedef struct {
 
 PETSC_INTERN PetscErrorCode TDyRegressionInitialize(TDy);
 PETSC_INTERN PetscErrorCode TDyRegressionOutput(TDy,Vec);
+PETSC_INTERN PetscErrorCode TDyRegressionDestroy(TDy);
 
 #endif

@@ -29,7 +29,7 @@ PetscErrorCode MaterialPropDestroy(MaterialProp *matprop) {
   MaterialPropSetResidualSaturation(matprop, NULL, NULL, NULL);
   MaterialPropSetSoilDensity(matprop, NULL, NULL, NULL);
   MaterialPropSetSoilSpecificHeat(matprop, NULL, NULL, NULL);
-
+  PetscFree(matprop);
   PetscFunctionReturn(0);
 }
 

@@ -269,3 +269,17 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode TDyRegressionDestroy(TDy tdy) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  ierr = VecScatterDestroy(&tdy->regression->scatter_cells_per_process_gtos); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->regression->cells_per_process_vec); CHKERRQ(ierr);
+  int myrank;
+  MPI_Comm_rank(PetscObjectComm((PetscObject)tdy->dm),&myrank);
+  if (myrank == 0) {
+    ierr = PetscFree(tdy->regression->cells_per_process_natural_ids); CHKERRQ(ierr);
+  }
+  free(tdy->regression);
+  PetscFunctionReturn(0);
+}
