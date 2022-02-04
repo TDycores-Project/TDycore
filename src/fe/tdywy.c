@@ -232,7 +232,7 @@ PetscErrorCode TDyCreate_WY(void **context) {
   PetscFunctionBegin;
   // Allocate a new context for the WY method.
   TDyWY *wy;
-  ierr = PetscCalloc(sizeof(TDyWY), &wy);
+  ierr = PetscCalloc(sizeof(TDyWY), &wy); CHKERRQ(ierr);
   *context = wy;
   PetscFunctionReturn(0);
 }
