@@ -154,11 +154,11 @@ module tdycore
 !  end interface TDyGetCellIsLocal
 
   Interface TDyUpdateState
-     !subroutine TDyUpdateState(a,b,z)
-     subroutine TDyUpdateState(a,z)
+     subroutine TDyUpdateState(a,b,z)
        use tdycoredef
+       use petscvec
        TDy a ! tdy
-       !Vec b
+       Vec b
        integer z
      end subroutine TDyUpdateState
   end interface TDyUpdateState
