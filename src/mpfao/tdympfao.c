@@ -268,10 +268,10 @@ PetscErrorCode TDyMPFAO_AllocateMemoryForBoundaryValues(TDy tdy) {
     ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(tdy->Psi_BND)); CHKERRQ(ierr);
   }
   PetscInt i;
-  PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2, dden_dPsi,dmu_dPsi;
+  PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
   for (i=0;i<nbnd_faces;i++) {
-    ierr = ComputeWaterDensity(tdy->Pref,tdy->Tref,*tdy->m_nacl,*tdy->dm_nacl,*tdy->d2m_nacl,tdy->options.rho_type, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2, &dden_dPsi); CHKERRQ(ierr);
-    ierr = ComputeWaterViscosity(tdy->Pref,tdy->Tref,*tdy->m_nacl, tdy->options.mu_type, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2, &dmu_dPsi); CHKERRQ(ierr);
+    ierr = ComputeWaterDensity(tdy->Pref,tdy->Tref,*tdy->m_nacl,tdy->options.rho_type, &(tdy->rho_BND[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
+    ierr = ComputeWaterViscosity(tdy->Pref,tdy->Tref,*tdy->m_nacl, tdy->options.mu_type, &(tdy->vis_BND[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
   }
 
   TDY_STOP_FUNCTION_TIMER()

@@ -312,15 +312,11 @@ PetscErrorCode TDyMalloc(TDy tdy) {
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dh_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dT)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->drho_dPsi)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->u)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dP)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->du_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dT)); CHKERRQ(ierr);
   ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->m_nacl)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dm_nacl)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->d2m_nacl)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nc*sizeof(PetscReal),&(tdy->dvis_dPsi)); CHKERRQ(ierr);
   TDyStopTimer(t2);
 
   ierr = CharacteristicCurveCreate(nc, &tdy->cc); CHKERRQ(ierr);
@@ -349,10 +345,8 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     cc->dS_dP[c] = 0.0;
     tdy->rho[c] = 0.0;
     tdy->drho_dP[c] = 0.0;
-    tdy->drho_dPsi[c] = 0.0;
     tdy->vis[c] = 0.0;
     tdy->dvis_dP[c] = 0.0;
-    tdy->dvis_dPsi[c] = 0.0;
     tdy->d2vis_dP2[c] = 0.0;
     tdy->h[c] = 0.0;
     tdy->dh_dT[c] = 0.0;
@@ -364,8 +358,6 @@ PetscErrorCode TDyMalloc(TDy tdy) {
     tdy->du_dT[c] = 0.0;
     tdy->dvis_dT[c] = 0.0;
     tdy->m_nacl[c] = 0.0;
-    tdy->dm_nacl[c] = 0.0;
-    tdy->d2m_nacl[c] = 0.0;
   }
   ierr = RelativePermeability_Mualem_SetupSmooth(tdy->cc, nc);
 
@@ -483,8 +475,6 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = PetscFree(tdy->dh_dT); CHKERRQ(ierr);
   ierr = PetscFree(tdy->dvis_dT); CHKERRQ(ierr);
   ierr = PetscFree(tdy->m_nacl); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->dm_nacl); CHKERRQ(ierr);
-  ierr = PetscFree(tdy->d2m_nacl); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
@@ -922,7 +912,7 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
       ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_TH,tdy); CHKERRQ(ierr);
       break;
     case SALINITY:
-      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_Salinity,tdy); CHKERRQ(ierr);
+      SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for Salinity");
       break;
     }
     break;
@@ -1007,7 +997,18 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for TPF");
     break;
   case MPFA_O:
-    ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction,tdy); CHKERRQ(ierr);
+    switch (tdy->options.mode) {
+      case RICHARDS:
+        ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction,tdy); CHKERRQ(ierr);
+        break;
+      case TH:
+        ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction,tdy); CHKERRQ(ierr);
+        break;
+      case SALINITY:
+        ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction_Salinity,tdy); CHKERRQ(ierr);
+      break;
+    }
+    
     break;
   case MPFA_O_DAE:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for MPFA_O_DAE");
@@ -1175,10 +1176,10 @@ PetscViewer viewer;
     }
 
     if (tdy->options.mode == SALINITY) {
-      ierr = ComputeSalinityFraction(Psi[i],*(matprop->molecular_weight),tdy->rho[i],&(tdy->m_nacl[i]),&(tdy->dm_nacl[i]),&(tdy->d2m_nacl[i]));
+      ierr = ComputeSalinityFraction(Psi[i],*(matprop->molecular_weight),tdy->rho[i],&(tdy->m_nacl[i]));
     }
-    ierr = ComputeWaterDensity(P[i], tdy->Tref,tdy->m_nacl[i],tdy->dm_nacl[i],*tdy->d2m_nacl,tdy->options.rho_type,&(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i]), &(tdy->drho_dPsi[i])); CHKERRQ(ierr);
-    ierr = ComputeWaterViscosity(P[i], tdy->Tref,*tdy->m_nacl,tdy->options.mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i]),&(tdy->dvis_dPsi[i])); CHKERRQ(ierr);
+    ierr = ComputeWaterDensity(P[i], tdy->Tref,tdy->m_nacl[i],tdy->options.rho_type,&(tdy->rho[i]), &(tdy->drho_dP[i]), &(tdy->d2rho_dP2[i])); CHKERRQ(ierr);
+    ierr = ComputeWaterViscosity(P[i], tdy->Tref,*tdy->m_nacl,tdy->options.mu_type, &(tdy->vis[i]), &(tdy->dvis_dP[i]), &(tdy->d2vis_dP2[i])); CHKERRQ(ierr);
     if (tdy->options.mode ==  TH) {
       for(PetscInt j=0; j<dim2; j++)
         matprop->Kappa[i*dim2+j] = matprop->Kappa0[i*dim2+j]; // update this based on Kersten number, etc.
@@ -1571,6 +1572,7 @@ PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
 
   PetscFunctionBegin;
   ierr = TDyNaturalToGlobal(tdy,initial,tdy->solution); CHKERRQ(ierr);
+  ierr = VecCopy(initial,tdy->soln_prev); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1599,7 +1601,17 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for TPF");
     break;
   case MPFA_O:
-    ierr = TDyMPFAOSNESPreSolve(tdy); CHKERRQ(ierr);
+    switch (tdy->options.mode) {
+      case TH: ;
+        SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for TH");
+        break;
+      case SALINITY: 
+        ierr = TDyMPFAOSNESPreSolve_Salinity(tdy); CHKERRQ(ierr);
+        break;
+      case RICHARDS:
+	ierr = TDyMPFAOSNESPreSolve(tdy); CHKERRQ(ierr);
+        break;
+      }
     break;
   case MPFA_O_DAE:
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for MPFA_O_DAE");

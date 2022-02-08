@@ -62,7 +62,6 @@ struct _p_TDy {
   PetscReal  *h, *dh_dP, *dh_dT;               /* enthalpy of water */
   PetscReal  *u, *du_dP, *du_dT;               /* internal energy of water */
   PetscReal  *drho_dT, *dvis_dT;
-  PetscReal  *drho_dPsi, *dvis_dPsi;
 
   /* problem constants */
   PetscReal  gravity[3]; /* vector of gravity [m s-2] */
@@ -138,8 +137,6 @@ struct _p_TDy {
   Mat Psi_Trans_mat;
   Vec Psi_vec, TtimesPsi_vec;
   PetscReal *m_nacl;
-  PetscReal *dm_nacl;
-  PetscReal *d2m_nacl;
 
   Mat J, Jpre;
 

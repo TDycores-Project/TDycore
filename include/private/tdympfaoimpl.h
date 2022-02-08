@@ -15,14 +15,15 @@ PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWith
 PETSC_INTERN PetscErrorCode TDyMPFAOIFunction(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOIJacobian_TH(TS,PetscReal,Vec,Vec,PetscReal,Mat,Mat,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOIFunction_TH(TS,PetscReal,Vec,Vec,Vec,void*);
-PETSC_INTERN PetscErrorCode TDyMPFAOIFunction_Salinity(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOIJacobian(TS,PetscReal,Vec,Vec,PetscReal,Mat,Mat,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOIFunction_DAE(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOTransientVariable(TS,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESFunction(SNES,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESJacobian(SNES,Vec,Mat,Mat,void*);
+PETSC_INTERN PetscErrorCode TDyMPFAOSNESFunction_Salinity(SNES,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOSetFromOptions(TDy);
 PETSC_INTERN PetscErrorCode TDyMPFAOSNESPreSolve(TDy);
+PETSC_INTERN PetscErrorCode TDyMPFAOSNESPreSolve_Salinity(TDy);
 
 #endif

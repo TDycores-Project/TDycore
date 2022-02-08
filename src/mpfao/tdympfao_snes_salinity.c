@@ -6,6 +6,7 @@
 #include <petscblaslapack.h>
 #include <private/tdympfaoutilsimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
+#include <private/tdympfaotsimpl.h>
 #include <private/tdydiscretization.h>
 
 //#define DEBUG
@@ -16,6 +17,77 @@ PetscInt max_count = 5;
 #endif
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAOSNESAccumulationMass(TDy tdy, PetscInt icell, PetscReal *accum) {
+
+  PetscFunctionBegin;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  CharacteristicCurve *cc = tdy->cc;
+  MaterialProp *matprop = tdy->matprop;
+
+  *accum = tdy->rho[icell] * matprop->porosity[icell] * cc->S[icell] * cells->volume[icell] / tdy->dtime;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyMPFAOSNESAccumulationTransport(TDy tdy, PetscInt icell, PetscReal Psi, PetscReal *accum) {
+
+  PetscFunctionBegin;
+
+  TDyMesh *mesh = tdy->mesh;
+  TDyCell *cells = &mesh->cells;
+  CharacteristicCurve *cc = tdy->cc;
+  MaterialProp *matprop = tdy->matprop;
+
+  *accum = tdy->rho[icell] * matprop->porosity[icell] * cc->S[icell] * Psi * cells->volume[icell] / tdy->dtime;
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAOSNESPreSolve_Salinity(TDy tdy) {
+
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  PetscReal *U, *accum_prev;
+  PetscInt icell;
+  PetscErrorCode ierr;
+
+  TDY_START_FUNCTION_TIMER()
+
+
+  // Update the auxillary variables
+  ierr = VecGetArray(tdy->soln_prev,&U); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, U); CHKERRQ(ierr);
+  
+  ierr = VecGetArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
+
+  for (icell=0;icell<mesh->num_cells;icell++){
+
+    if (!cells->is_local[icell]) continue;
+
+    // d(rho*phi*s)/dt * Vol
+    //  = [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
+    //  = accum_current - accum_prev
+    ierr = TDyMPFAOSNESAccumulationMass(tdy,icell,&accum_prev[icell*2]); CHKERRQ(ierr);
+    // d(rho*phi*s*psi)/dt * Vol
+    //  = [(rho*phi*s*psi)^{t+1} - (rho*phi*s*psi)^t]/dt * Vol
+    //  = accum_current - accum_prev
+
+    ierr = TDyMPFAOSNESAccumulationTransport(tdy,icell,U[icell*2+1],&accum_prev[icell*2+1]); CHKERRQ(ierr);
+  }
+  ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->soln_prev,&U); CHKERRQ(ierr);
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------- */
+
 PetscErrorCode TDyMPFAOIFunction_Vertices_Salinity(Vec Ul, Vec R, void *ctx) {
 
   TDy tdy = (TDy)ctx;
@@ -42,7 +114,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_Salinity(Vec Ul, Vec R, void *ctx) {
 
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
-  ierr = VecGetArray(tdy->TtimesPsi_vec,&TtimesPsi_vec_ptr); CHKERRQ(ierr); //CHANGE
+  ierr = VecGetArray(tdy->TtimesPsi_vec,&TtimesPsi_vec_ptr); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
   
    CharacteristicCurve *cc = tdy->cc;
@@ -145,139 +217,98 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_Salinity(Vec Ul, Vec R, void *ctx) {
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOIFunction_Salinity(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
+PetscErrorCode TDyMPFAOSNESFunction_Salinity(SNES snes,Vec U,Vec R,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  TDyMesh  *mesh = tdy->mesh;
-  TDyCell  *cells = &mesh->cells;
-  DM       dm;
+  TDyMesh       *mesh = tdy->mesh;
+  TDyCell       *cells = &mesh->cells;
+  DM       dm = tdy->dm;
   Vec      Ul;
-  PetscReal *p,*du_dt,*r,*Psi,*u_p,*dp_dt,*dPsi_dt;
+  PetscReal *soln,*r,*Psi;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
-  #if defined(DEBUG)
+#if defined(DEBUG)
   PetscViewer viewer;
   char word[32];
   sprintf(word,"U%d.vec",icount_f);
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  #endif
+#endif
+
+  //ierr = SNESGetDM(snes,&dm); CHKERRQ(ierr);
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
-  
+
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
-  ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy,u_p); CHKERRQ(ierr);
+  ierr = VecGetArray(Ul,&soln); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, soln); CHKERRQ(ierr);
   
+
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
-  ierr = TDyMPFAO_SetBoundaryConcentration(tdy,Ul); CHKERRQ(ierr); 
+  ierr = TDyMPFAO_SetBoundaryConcentration(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyUpdateBoundaryState(tdy); CHKERRQ(ierr);
-  ierr = MatMult(tdy->Trans_mat,tdy->P_vec,tdy->TtimesP_vec);
-  ierr = MatMult(tdy->Psi_Trans_mat,tdy->Psi_vec,tdy->TtimesPsi_vec); 
+  ierr = MatMult(tdy->Trans_mat, tdy->P_vec, tdy->TtimesP_vec);
+  ierr = MatMult(tdy->Psi_Trans_mat,tdy->Psi_vec,tdy->TtimesPsi_vec);
 
-  #if 0
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Psi_Trans_mat.mat",&viewer); CHKERRQ(ierr);
-  ierr = MatView(tdy->Psi_Trans_mat,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Psi_TtimesP_vec.vec",&viewer); CHKERRQ(ierr);
-  ierr = VecView(tdy->TtimesPsi_vec,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  PetscReal *accum_prev;
 
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Psi_vec.vec",&viewer); CHKERRQ(ierr);
-  ierr = VecView(tdy->Psi_vec,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"P_vec.vec",&viewer); CHKERRQ(ierr);
-  ierr = VecView(tdy->P_vec,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  #endif
-  
-  
-  // Fluxes
   ierr = TDyMPFAOIFunction_Vertices_Salinity(Ul,R,ctx); CHKERRQ(ierr);
 
-  ierr = VecGetArray(U_t,&du_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
 
-  PetscInt c,cStart,cEnd;
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&dp_dt);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&dPsi_dt);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&p);CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&Psi);CHKERRQ(ierr);
-
-  for (c=0;c<cEnd-cStart;c++) {
-    dp_dt[c]    = du_dt[c*2];
-    p[c]        = u_p[c*2];
-    dPsi_dt[c] = du_dt[c*2+1];
-    Psi[c]     = u_p[c*2+1];
-  }
-
-  CharacteristicCurve *cc = tdy->cc;
-  MaterialProp *matprop = tdy->matprop;
-
-  PetscReal dporosity_dP = 0.0;
-  PetscReal dporosity_dPsi = 0.0;
-  PetscReal dS_dPsi = 0.0;
-  PetscReal dPsi_dP = 0.0;
-  PetscReal dmass_dP,dmass_dPsi;
+  PetscReal accum_current_mass,accum_current_transport;
   PetscInt icell;
 
-  // Accumulation and source/sink contributions
   for (icell=0;icell<mesh->num_cells;icell++){
 
-    if (!cells->is_local[icell]) break;
+    if (!cells->is_local[icell]) continue;
+    // d(rho*phi*s)/dt * Vol
+    //  = [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
+    //  = accum_current - accum_prev
+    ierr = TDyMPFAOSNESAccumulationMass(tdy,icell,&accum_current_mass); CHKERRQ(ierr);
+    
+    // d(rho*phi*s*psi)/dt * Vol
+    //  = [(rho*phi*s*psi)^{t+1} - (rho*phi*s*psi)^t]/dt * Vol
+    //  = accum_current - accum_prev
+    ierr = TDyMPFAOSNESAccumulationTransport(tdy,icell,soln[icell*2+1],&accum_current_transport); CHKERRQ(ierr);
 
-    dmass_dP = tdy->rho[icell]     * dporosity_dP         * cc->S[icell] +
-           tdy->drho_dP[icell] * matprop->porosity[icell] * cc->S[icell] +
-           tdy->rho[icell]     * matprop->porosity[icell] * cc->dS_dP[icell];
-    dmass_dPsi = tdy->rho[icell]     * dporosity_dPsi         * cc->S[icell] +
-           tdy->drho_dPsi[icell] * matprop->porosity[icell] * cc->S[icell] +
-           tdy->rho[icell]     * matprop->porosity[icell] * dS_dPsi;
-
-    PetscReal dtrans_dP, dtrans_dPsi;
-
-    dtrans_dP = tdy->drho_dP[icell] * matprop->porosity[icell] * cc->S[icell]     * Psi[icell]     +
-            tdy->rho[icell]     * dporosity_dP         * cc->S[icell]     * Psi[icell]     +
-            tdy->rho[icell]     * matprop->porosity[icell] * cc->dS_dP[icell] * Psi[icell]     +
-            tdy->rho[icell]     * matprop->porosity[icell] * cc->S[icell]     * dPsi_dP;
-    dtrans_dPsi = tdy->drho_dPsi[icell] * matprop->porosity[icell] * cc->S[icell]     * Psi[icell]     +
-            tdy->rho[icell]     * dporosity_dPsi         * cc->S[icell]     * Psi[icell]     +
-            tdy->rho[icell]     * matprop->porosity[icell] * dS_dPsi * Psi[icell]     +
-            tdy->rho[icell]     * matprop->porosity[icell] * cc->S[icell];
-
-    r[icell*2]   += dmass_dP * dp_dt[icell] * cells->volume[icell] + dmass_dPsi * dPsi_dt[icell] * cells->volume[icell];
-    r[icell*2+1] += dtrans_dP * dp_dt[icell] * cells->volume[icell] + dtrans_dPsi * dPsi_dt[icell] * cells->volume[icell];
-    r[icell*2]   -= tdy->source_sink[icell] * cells->volume[icell];
-    r[icell*2+1] -= tdy->salinity_source_sink[icell] * cells->volume[icell];
+    r[icell*2] += accum_current_mass - accum_prev[icell*2];
+    r[icell*2] -= tdy->source_sink[icell];
+    r[icell*2+1] += accum_current_transport - accum_prev[icell*2+1];
+    r[icell*2+1] -= tdy->salinity_source_sink[icell];
   }
 
   /* Cleanup */
-  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr); 
-  ierr = VecRestoreArray(U_t,&du_dt); CHKERRQ(ierr); 
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
+  ierr = VecRestoreArray(Ul,&soln); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
-
- #if defined(DEBUG)
-  sprintf(word,"Function%d.vec");
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Function.vec",&viewer); CHKERRQ(ierr);
+  
+#if defined(DEBUG)
+  sprintf(word,"Function%d.vec",icount_f);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
   ierr = VecView(R,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   icount_f++;
- #endif
+#endif
 
   TDY_STOP_FUNCTION_TIMER()
+
   PetscFunctionReturn(0);
 }
+
+
+
+  
+
 
