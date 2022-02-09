@@ -102,11 +102,19 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
           SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SNES not supported for TH mode.");
           break;
 	case SALINITY:
-          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SNES not supported for SALINITY mode.");
           break;
       }
       break;
     case TDyTS:
+      switch (tdy->options.mode) {
+        case RICHARDS:
+          break;
+        case TH:
+          break;
+	case SALINITY:
+	  SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"SNES not supported for SALINITY mode.");
+          break;
+      }
       break;
     default:
         SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unrecognized time integration method.");
