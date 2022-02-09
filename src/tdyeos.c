@@ -78,6 +78,8 @@ PetscErrorCode ComputeWaterDensity(PetscReal p, PetscReal T, PetscReal S, PetscR
     ierr = ComputeWaterDensity_Exponential(p,den,dden_dP,d2den_dP2); CHKERRQ(ierr);
     break;
   case WATER_DENSITY_BATZLE_AND_WANG :
+    //    ierr = ComputeWaterDensity_Constant(p,den,dden_dP,d2den_dP2); CHKERRQ(ierr);
+    //    *dden_dPsi = 0.0;
     ierr = ComputeWaterDensity_BatzleWang(p,T,S,dS,d2S,den,dden_dP,dden_dPsi,d2den_dP2); CHKERRQ(ierr);
     break;
   default:
@@ -101,14 +103,14 @@ PetscErrorCode ComputeWaterViscosity_Constant(PetscReal p, PetscReal *vis, Petsc
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode ComputeWaterViscosity_BatzleWang(PetscReal p, PetscReal T, PetscReal S, PetscReal dS, PetscReal *vis, PetscReal *dvis_dP, PetscReal *dvis_dPsi) {
+PetscErrorCode ComputeWaterViscosity_BatzleWang(PetscReal p, PetscReal T, PetscReal S, PetscReal *vis, PetscReal *dvis_dP, PetscReal *dvis_dPsi) {
 
   PetscFunctionBegin;
 
   *vis = 0.1 + 0.333 * S + (1.65 + 91.9 *pow(S,3))*exp((-0.42*pow((pow(S,0.8)-0.17),2)+0.45)*pow(T,0.8));
   *vis = *vis * 1e-3;
   *dvis_dP = 0.0;
-  *dvis_dPsi = 0.0
+  *dvis_dPsi = 0.0;
 
 
   PetscFunctionReturn(0);
@@ -126,6 +128,7 @@ PetscErrorCode ComputeWaterViscosity(PetscReal p, PetscReal T, PetscReal S,Petsc
     ierr = ComputeWaterViscosity_Constant(p,vis,dvis_dP,d2vis_dP2); CHKERRQ(ierr);
     break;
   case WATER_VISCOSITY_BATZLE_AND_WANG :
+    //    ierr = ComputeWaterViscosity_Constant(p,vis,dvis_dP,d2vis_dP2); CHKERRQ(ierr);
     ierr = ComputeWaterViscosity_BatzleWang(p,T,S,vis,dvis_dP,dvis_dPsi); CHKERRQ(ierr);
     break;
   default:
