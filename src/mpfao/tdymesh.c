@@ -4783,6 +4783,57 @@ PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh *mesh,
   return 0;
 }
 
+// Computes mesh geometry.
+PetscErrorCode TDyMeshComputeGeometry(PetscReal *X, PetscReal *V, PetscReal *N, DM dm) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+
+  PetscInt dim;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  if (dim == 2) {
+    SETERRQ(comm,PETSC_ERR_USER,"MPFA-O method supports only 3D calculations.");
+  }
+
+  // Compute/store plex geometry.
+  PetscInt pStart, pEnd, vStart, vEnd, eStart, eEnd;
+  ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc((pEnd-pStart)*sizeof(PetscReal),V); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),X); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),N); CHKERRQ(ierr);
+
+  PetscSection coordSection;
+  Vec coordinates;
+  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal (dm, &coordinates); CHKERRQ(ierr);
+  PetscReal *coords;
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  for(PetscInt p=pStart; p<pEnd; p++) {
+    if((p >= vStart) && (p < vEnd)) {
+      PetscInt offset;
+      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
+      for(PetscInt d=0; d<dim; d++) X[p*dim+d] = coords[offset+d];
+    } else {
+      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
+      PetscLogEvent t11 = TDyGetTimer("DMPlexComputeCellGeometryFVM");
+      TDyStartTimer(t11);
+      ierr = DMPlexComputeCellGeometryFVM(dm,p,&(V[p]),
+                                          &(X[p*dim]),
+                                          &(N[p*dim])); CHKERRQ(ierr);
+      TDyStopTimer(t11);
+    }
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
 #if 0
 /// Reads a geometric attribute file. Currently only PETSc binary file format
 /// is supported

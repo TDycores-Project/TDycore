@@ -30,7 +30,9 @@ typedef enum {
   BDM,
   /// finite element using P0,BDM1 spaces, vertex quadrature, statically
   /// condensed
-  WY
+  WY,
+  /// finite volume two-point approximation
+  FV_TPF
 } TDyDiscretization;
 
 PETSC_EXTERN const char *const TDyDiscretizations[];
@@ -49,6 +51,14 @@ typedef enum {
 } TDyMPFAOBoundaryConditionType;
 
 PETSC_EXTERN const char *const TDyMPFAOBoundaryConditionTypes[];
+
+typedef enum {
+  FVTPF_DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
+  FVTPF_NEUMANN_BC,       /* Neumann zero-flux boundary condition */
+  FVTPF_SEEPAGE_BC       /* Seepage boundary condition */
+} TDyFVTPFBoundaryConditionType;
+
+PETSC_EXTERN const char *const TDyFVTPFBoundaryConditionTypes[];
 
 typedef enum {
   TDySNES=0,

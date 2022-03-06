@@ -250,6 +250,8 @@ PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh*, Petsc
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNumFaces(TDyMesh*, PetscInt, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellIDGivenCellIdVertexIdFaceId(TDyMesh*,PetscInt,PetscInt,PetscInt,PetscInt*);
 
+PETSC_INTERN PetscErrorCode TDyMeshComputeGeometry(PetscReal*, PetscReal*, PetscReal*, DM);
+
 PETSC_INTERN TDyCellType GetCellType(PetscInt);
 PETSC_INTERN PetscInt GetNumVerticesForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumOfCellsSharingAVertexForCellType(TDyCellType);

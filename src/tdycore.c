@@ -13,6 +13,7 @@ static char help[] = "TDycore \n\
 #include <private/tdythimpl.h>
 #include <private/tdybdmimpl.h>
 #include <private/tdywyimpl.h>
+#include <private/tdyfvtpfimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdytiimpl.h>
 #include <tdytimers.h>
@@ -27,6 +28,7 @@ const char *const TDyDiscretizations[] = {
   "MPFA_O_TRANSIENTVAR",
   "BDM",
   "WY",
+  "FV_TPF",
   /* */
   "TDyDiscretization","TDY_DISCRETIZATION_",NULL
 };
@@ -44,6 +46,14 @@ const char *const TDyMPFAOBoundaryConditionTypes[] = {
   "MPFAO_SEEPAGE_BC",
   /* */
   "TDyMPFAOBoundaryConditionType","TDY_MPFAO_BC_TYPE_",NULL
+};
+
+const char *const TDyFVTPFBoundaryConditionTypes[] = {
+  "FVTPF_DIRICHLET_BC",
+  "FVTPF_NEUMANN_BC",
+  "FVTPF_SEEPAGE_BC",
+  /* */
+  "TDyFVTPFBoundaryConditionType","TDY_FVTPF_BC_TYPE_",NULL
 };
 
 const char *const TDyModes[] = {
@@ -840,6 +850,15 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->update_state = TDyUpdateState_WY;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_WY;
       tdy->ops->update_diagnostics = NULL; // FIXME
+    } else if (discretization == FV_TPF) {
+      tdy->ops->create = TDyCreate_FVTPF;
+      tdy->ops->destroy = TDyDestroy_FVTPF;
+      tdy->ops->set_from_options = TDySetFromOptions_FVTPF;
+      tdy->ops->set_dm_fields = TDySetDMFields_Richards_FVTPF;
+      tdy->ops->setup = TDySetup_Richards_FVTPF;
+      tdy->ops->update_state = TDyUpdateState_Richards_FVTPF;
+      tdy->ops->compute_error_norms = TDyComputeErrorNorms_FVTPF;
+      tdy->ops->update_diagnostics = TDyUpdateDiagnostics_FVTPF;
     } else {
       SETERRQ(comm,PETSC_ERR_USER, "Invalid discretization given!");
     }
@@ -1529,6 +1548,9 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   case WY:
     ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy); CHKERRQ(ierr);
     break;
+  case FV_TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for FV_TPF");
+    break;
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -1569,6 +1591,9 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for WY");
     break;
+  case FV_TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for FV_TPF");
+    break;
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -1603,6 +1628,9 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for WY");
     break;
+  case FV_TPF:
+    //ierr = SNESSetFunction(snes,tdy->residual,TDyFVTPFSNESFunction,tdy); CHKERRQ(ierr);
+    break;
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -1636,6 +1664,9 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
     break;
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for WY");
+    break;
+  case FV_TPF:
+    //ierr = SNESSetJacobian(snes,tdy->J,tdy->J,TDyFVTPFSNESJacobian,tdy); CHKERRQ(ierr);
     break;
   }
   TDY_STOP_FUNCTION_TIMER()
@@ -1686,6 +1717,9 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
     break;
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for WY");
+    break;
+  case FV_TPF:
+    //ierr = TDyFVTPFSNESPreSolve(tdy); CHKERRQ(ierr);
     break;
   }
 
