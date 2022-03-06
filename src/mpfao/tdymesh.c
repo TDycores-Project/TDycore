@@ -4803,9 +4803,9 @@ PetscErrorCode TDyMeshComputeGeometry(PetscReal *X, PetscReal *V, PetscReal *N, 
   ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((pEnd-pStart)*sizeof(PetscReal),V); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),X); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),N); CHKERRQ(ierr);
+  ierr = PetscMalloc((pEnd-pStart)*sizeof(PetscReal),&V); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&X); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&N); CHKERRQ(ierr);
 
   PetscSection coordSection;
   Vec coordinates;

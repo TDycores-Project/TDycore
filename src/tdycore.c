@@ -1629,7 +1629,7 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for WY");
     break;
   case FV_TPF:
-    //ierr = SNESSetFunction(snes,tdy->residual,TDyFVTPFSNESFunction,tdy); CHKERRQ(ierr);
+    ierr = SNESSetFunction(snes,tdy->residual,TDyFVTPFSNESFunction,tdy); CHKERRQ(ierr);
     break;
   }
   TDY_STOP_FUNCTION_TIMER()
