@@ -146,7 +146,7 @@ PETSC_EXTERN void  tdysetwaterdensitytype_(TDy tdy, PetscInt *method, int *__ier
 *__ierr = TDySetWaterDensityType((TDy)PetscToPointer((tdy)), *method);
 }
 
-PETSC_EXTERN void  tdympfaosetgmatrixmthod_(TDy tdy, PetscInt *method, int *__ierr){
+PETSC_EXTERN void  tdympfaosetgmatrixmethod_(TDy tdy, PetscInt *method, int *__ierr){
 *__ierr = TDyMPFAOSetGmatrixMethod((TDy)PetscToPointer((tdy)), *method);
 }
 
