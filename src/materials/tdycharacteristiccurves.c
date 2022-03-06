@@ -511,10 +511,10 @@ static PetscErrorCode CubicPolynomialSetup(PetscReal x0, PetscReal x1, PetscReal
 
   PetscReal xt1 = (x1-x0)/dx, xt2 = (x2-x0)/dx;
 
-  PetscReal xt1_p2 = PetscPowReal(xt1,2.0);
-  PetscReal xt2_p2 = PetscPowReal(xt2,2.0);
-  PetscReal xt1_p3 = PetscPowReal(xt1,3.0);
-  PetscReal xt2_p3 = PetscPowReal(xt2,3.0);
+  PetscReal xt1_p2 = PetscPowRealInt(xt1,2);
+  PetscReal xt2_p2 = PetscPowRealInt(xt2,2);
+  PetscReal xt1_p3 = PetscPowRealInt(xt1,3);
+  PetscReal xt2_p3 = PetscPowRealInt(xt2,3);
 
   PetscReal A[16];
   A[ 0] = 1.0   ;  A[ 1] = 1.0   ; A[ 2] = 0.0          ; A[ 3] = 0.0;
@@ -556,8 +556,8 @@ static PetscErrorCode CubicPolynomialEvaluate(PetscReal *coeffs, PetscReal x, Pe
 
   PetscReal xt = (x-x0)/dx;
 
-  *f = coeffs[0] + coeffs[1]*xt + coeffs[2]*PetscPowReal(xt,2.0) + coeffs[3]*PetscPowReal(xt,3.0);
-  *df_dx = coeffs[1]/dx + 2.0*coeffs[2]*xt/dx + 3.0*coeffs[3]*PetscPowReal(xt,2.0)/dx;
+  *f = coeffs[0] + xt * (coeffs[1] + xt * (coeffs[2] + xt * coeffs[3]));
+  *df_dx = (coeffs[1] + xt * (2.0 * coeffs[2] + xt * 3.0 * coeffs[3]))/dx;
 
   PetscFunctionReturn(0);
 }
