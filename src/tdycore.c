@@ -1719,7 +1719,7 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for WY");
     break;
   case FV_TPF:
-    //ierr = TDyFVTPFSNESPreSolve(tdy); CHKERRQ(ierr);
+    ierr = TDyFVTPFSNESPreSolve(tdy); CHKERRQ(ierr);
     break;
   }
 

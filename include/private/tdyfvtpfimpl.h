@@ -33,6 +33,7 @@ typedef struct TDyFVTPF {
   PetscInt ncv, nfv; // number of {cell|face} vertices
 
   Vec P_vec;
+  PetscReal *pressure;
 
   // [face,local_vertex] --> velocity normal to face at vertex
   PetscReal *vel;
@@ -94,6 +95,10 @@ PETSC_INTERN PetscErrorCode TDyFVTPFSNESPreSolve(TDy);
 
 // Utils
 PETSC_INTERN PetscErrorCode TDyFVTPFUpdateBoundaryState(TDy);
-PETSC_INTERN PetscErrorCode TDyFVTPF_SetBoundaryPressure(TDy,Vec);
+PETSC_INTERN PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy,Vec);
+
+PETSC_INTERN PetscErrorCode FVTPFComputeFacePeremabilityValueTPF(TDyFVTPF*, MaterialProp*, PetscInt, PetscInt, PetscReal*, PetscReal*);
+PETSC_INTERN PetscErrorCode FVTPFCalculateDistances(TDyFVTPF*, PetscInt, PetscInt, PetscReal*, PetscReal*);
+PETSC_INTERN PetscErrorCode FVTPFComputeProjectedArea(TDyFVTPF*, PetscInt, PetscInt, PetscReal*);
 
 #endif
