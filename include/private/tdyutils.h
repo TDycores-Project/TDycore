@@ -28,4 +28,6 @@ PETSC_INTERN PetscErrorCode ExtractSubVectors(Vec,PetscInt,Vec *);
 PETSC_INTERN PetscErrorCode ComputeTheta(PetscReal, PetscReal, PetscReal *);
 PETSC_INTERN PetscErrorCode ComputeDeterminantOf3by3Matrix(PetscReal [9], PetscReal *);
 PETSC_INTERN PetscErrorCode ComputeInverseOf3by3Matrix(PetscReal[9], PetscReal[9]);
+PETSC_INTERN PetscErrorCode ComputePlaneGeometry (PetscReal[3], PetscReal[3], PetscReal[3], PetscReal[4]);
+PETSC_INTERN PetscErrorCode GeometryGetPlaneIntercept (PetscReal[4], PetscReal[3], PetscReal[3], PetscReal[4]);
 #endif

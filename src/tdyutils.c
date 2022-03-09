@@ -626,3 +626,53 @@ PetscErrorCode ComputeInverseOf3by3Matrix(PetscReal a[9], PetscReal inv_a[9]) {
 
   PetscFunctionReturn(0);
 }
+
+PetscErrorCode ComputePlaneGeometry (PetscReal point1[3], PetscReal point2[3], PetscReal point3[3], PetscReal plane[4]) {
+
+  PetscFunctionBegin;
+
+  PetscReal x1 = point1[0];
+  PetscReal y1 = point1[1];
+  PetscReal z1 = point1[2];
+
+  PetscReal x2 = point2[0];
+  PetscReal y2 = point2[1];
+  PetscReal z2 = point2[2];
+
+  PetscReal x3 = point3[0];
+  PetscReal y3 = point3[1];
+  PetscReal z3 = point3[2];
+
+  PetscReal x12 = x2-x1;
+  PetscReal y12 = y2-y1;
+  PetscReal z12 = z2-z1;
+  PetscReal x13 = x3-x1;
+  PetscReal y13 = y3-y1;
+  PetscReal z13 = z3-z1;
+
+  plane[0] = y12*z13-z12*y13;
+  plane[1] = z12*x13-x12*z13;
+  plane[2] = x12*y13-y12*x13;
+  plane[3] = -1.0*(plane[0]*x1 + plane[1]*y1 + plane[2]*z1);
+
+
+  PetscFunctionReturn(0);
+
+}
+
+PetscErrorCode GeometryGetPlaneIntercept (PetscReal plane[4], PetscReal point1[3], PetscReal point2[3], PetscReal intercept[4]) {
+
+  PetscFunctionBegin;
+
+  PetscReal u;
+
+  u = (plane[0]*point1[0] + plane[1]*point1[1] + plane[2]*point1[2] + plane[3]) / 
+        (plane[0]*(point1[0]-point2[0]) + plane[1]*(point1[1]-point2[1]) + plane[2]*(point1[2]-point2[2]));
+
+  intercept[0] = point1[0] + u*(point2[0]-point1[0]);
+  intercept[1] = point1[1] + u*(point2[1]-point1[1]);
+  intercept[2] = point1[2] + u*(point2[2]-point1[2]);
+
+  PetscFunctionReturn(0);
+
+}
