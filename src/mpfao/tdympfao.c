@@ -1974,7 +1974,7 @@ static PetscErrorCode ComputeFacePermeabilityTensor(TDyMPFAO *mpfao,
 /// @param [in] face_id ID of the face
 /// @param [out] *Kface_value Permeability value at the face
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode ComputeFacePeremabilityValueTPF(TDyMPFAO *mpfao, MaterialProp *matprop, PetscInt dim, PetscInt face_id, PetscReal *Kface_value) {
+PetscErrorCode ComputeFacePermeabilityValueTPF(TDyMPFAO *mpfao, MaterialProp *matprop, PetscInt dim, PetscInt face_id, PetscReal *Kface_value) {
 
   PetscFunctionBegin;
 
@@ -2020,7 +2020,7 @@ PetscErrorCode ComputeFacePeremabilityValueTPF(TDyMPFAO *mpfao, MaterialProp *ma
 /// @param [in] face_id ID of the face
 /// @param [out] *k_face_value Permeability value at the face
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode ComputeFacePeremabilityValueMPFAO(TDyMPFAO *mpfao, MaterialProp *matprop, PetscInt dim, PetscInt face_id, PetscReal *Kface_value) {
+PetscErrorCode ComputeFacePermeabilityValueMPFAO(TDyMPFAO *mpfao, MaterialProp *matprop, PetscInt dim, PetscInt face_id, PetscReal *Kface_value) {
 
   PetscFunctionBegin;
 
@@ -2146,11 +2146,11 @@ static PetscErrorCode ComputeGravityDiscretization(TDyMPFAO *mpfao, DM dm,
       PetscReal k_face_value;
       switch (mpfao->gmatrix_method) {
         case MPFAO_GMATRIX_DEFAULT:
-          ierr = ComputeFacePeremabilityValueMPFAO(mpfao, matprop, dim, face_id, &k_face_value);
+          ierr = ComputeFacePermeabilityValueMPFAO(mpfao, matprop, dim, face_id, &k_face_value);
           break;
 
       case MPFAO_GMATRIX_TPF:
-        ierr = ComputeFacePeremabilityValueTPF(mpfao, matprop, dim, face_id, &k_face_value); CHKERRQ(ierr);
+        ierr = ComputeFacePermeabilityValueTPF(mpfao, matprop, dim, face_id, &k_face_value); CHKERRQ(ierr);
 
         PetscReal n_face[dim], dot_prod;
         ierr = TDyFace_GetNormal(faces, face_id, dim, &n_face[0]); CHKERRQ(ierr);
