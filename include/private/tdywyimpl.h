@@ -11,7 +11,11 @@
 // This struct stores Wheeler-Yotov specific data for the dycore.
 typedef struct TDyWY {
   // Options
-  PetscReal vangenuchten_m, vangenuchten_alpha, mualem_poly_low;
+  PetscReal vangenuchten_m, vangenuchten_alpha;
+  PetscReal mualem_poly_x0;
+  PetscReal mualem_poly_x1;
+  PetscReal mualem_poly_x2;
+  PetscReal mualem_poly_dx;
 
   // Reference pressure.
   PetscReal Pref;
@@ -52,7 +56,7 @@ PETSC_INTERN PetscErrorCode TDyDestroy_WY(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_WY(void*, TDyOptions*);
 PETSC_INTERN PetscErrorCode TDySetDMFields_WY(void*,DM);
 PETSC_INTERN PetscErrorCode TDySetup_WY(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,Conditions*);
-PETSC_INTERN PetscErrorCode TDyUpdateState_WY(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,PetscReal*);
+PETSC_INTERN PetscErrorCode TDyUpdateState_WY(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,PetscInt,PetscReal*);
 PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_WY(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 
 PETSC_INTERN PetscErrorCode TDyWYRecoverVelocity(TDy,Vec);

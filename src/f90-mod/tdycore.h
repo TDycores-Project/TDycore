@@ -41,3 +41,12 @@
       ! the C code (i.e. include/tdycore.h)
       parameter (WATER_DENSITY_CONSTANT=0,WATER_DENSITY_EXPONENTIAL=1)
 
+!
+!  Types of TDy MPFAO GMatrix
+!
+      PetscEnum MPFAO_GMATRIX_DEFAULT
+      PetscEnum MPFAO_GMATRIX_TPF
+
+      ! The parameters values need to match those defined in
+      ! the C code (i.e. include/tdycore.h)
+      parameter (MPFAO_GMATRIX_DEFAULT=0,MPFAO_GMATRIX_TPF=1)

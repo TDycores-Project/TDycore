@@ -64,7 +64,7 @@ struct _TDyOps {
   // Called by TDyUpdateState -- updates the state maintained by the
   // implementation with provided solution data.
   PetscErrorCode (*update_state)(void*, DM, EOS*, MaterialProp*,
-                                 CharacteristicCurves*, PetscReal*);
+                                 CharacteristicCurves*, PetscInt, PetscReal*);
 
   // Called by TDyComputeErrorNorms -- computes error norms given a solution
   // vector.
@@ -133,7 +133,8 @@ struct _p_TDy {
 
   /* For SNES based timestepping */
   PetscReal dtime;
-  Vec solution;
+  Vec soln;
+  Vec soln_loc;
   Vec soln_prev;
   Vec accumulation_prev;
   Vec residual;

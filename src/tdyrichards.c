@@ -12,15 +12,16 @@ PetscErrorCode TDyRichardsInitialize(TDy tdy) {
     PetscRandom rand;
     ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
     ierr = PetscRandomSetInterval(rand,1.e4,1.e6); CHKERRQ(ierr);
-    ierr = VecSetRandom(tdy->solution,rand); CHKERRQ(ierr);
+    ierr = VecSetRandom(tdy->soln,rand); CHKERRQ(ierr);
     ierr = PetscRandomDestroy(&rand); CHKERRQ(ierr);
   }  else if (tdy->options.init_from_file) {
     PetscViewer viewer;
     ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD,tdy->options.init_file,FILE_MODE_READ,&viewer); CHKERRQ(ierr);
-    ierr = VecLoad(tdy->solution,viewer); CHKERRQ(ierr);
+    ierr = VecLoad(tdy->soln,viewer); CHKERRQ(ierr);
+    ierr = VecCopy(tdy->soln, tdy->soln_prev); CHKERRQ(ierr);
     ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   } else {
-    ierr = VecSet(tdy->solution,101325.); CHKERRQ(ierr);
+    ierr = VecSet(tdy->soln,101325.); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);

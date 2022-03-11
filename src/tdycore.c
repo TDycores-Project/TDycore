@@ -257,7 +257,10 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   options->gardner_n=0.5;
   options->vangenuchten_m=0.8;
   options->vangenuchten_alpha=1.e-4;
-  options->mualem_poly_low=0.99;
+  options->mualem_poly_x0=0.995;
+  options->mualem_poly_x1=0.99;
+  options->mualem_poly_x2=1.00;
+  options->mualem_poly_dx=0.005;
 
   options->boundary_pressure = 0.0;
   options->boundary_temperature = 273.0;
@@ -290,7 +293,7 @@ PetscErrorCode TDyCreate(MPI_Comm comm, TDy *_tdy) {
 
   // initialize flags/parameters
   tdy->dm = NULL;
-  tdy->solution = NULL;
+  tdy->soln = NULL;
   tdy->J = NULL;
 
   tdy->setup_flags |= TDyParametersInitialized;
@@ -366,8 +369,10 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
 
   ierr = VecDestroy(&tdy->residual); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_prev); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->soln); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->soln_loc); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
-  ierr = VecDestroy(&tdy->solution); CHKERRQ(ierr);
+  ierr = VecDestroy(&tdy->soln); CHKERRQ(ierr);
   ierr = TDyIODestroy(&tdy->io); CHKERRQ(ierr);
   ierr = TDyTimeIntegratorDestroy(&tdy->ti); CHKERRQ(ierr);
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
@@ -1223,7 +1228,7 @@ PetscErrorCode TDySelectBoundaryVelocityFunction(TDy tdy,
 /// Updates the secondary state of the system using the solution data.
 /// @param [inout] tdy a dycore object
 /// @param [in] U an array of solution data
-PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
+PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U, PetscInt num_cells) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDyEnterProfilingStage("TDycore Setup");
@@ -1231,7 +1236,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U) {
 
   // Call the implementation-specific state update.
   ierr = tdy->ops->update_state(tdy->context, tdy->dm, &tdy->eos, tdy->matprop,
-                                tdy->cc, U); CHKERRQ(ierr);
+                                tdy->cc, num_cells, U); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   TDyExitProfilingStage("TDycore Setup");
@@ -1374,7 +1379,9 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
 PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ierr = TDyNaturalToGlobal(tdy,initial,tdy->solution); CHKERRQ(ierr);
+  ierr = TDyNaturalToGlobal(tdy,initial,tdy->soln); CHKERRQ(ierr);
+  ierr = TDyNaturalToGlobal(tdy,initial,tdy->soln_prev); CHKERRQ(ierr);
+  ierr = TDyNaturaltoLocal(tdy,initial,&(tdy->soln_loc)); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1636,7 +1643,7 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyPostSolveSNESSolver(TDy tdy,Vec U) {
+PetscErrorCode TDyPostSolve(TDy tdy,Vec U) {
 
   PetscErrorCode ierr;
 
@@ -1693,11 +1700,13 @@ PetscErrorCode TDyCreateVectors(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-  if (tdy->solution == NULL) {
-    ierr = DMCreateGlobalVector(tdy->dm,&tdy->solution); CHKERRQ(ierr);
-    ierr = VecDuplicate(tdy->solution,&tdy->residual); CHKERRQ(ierr);
-    ierr = VecDuplicate(tdy->solution,&tdy->accumulation_prev); CHKERRQ(ierr);
-    ierr = VecDuplicate(tdy->solution,&tdy->soln_prev); CHKERRQ(ierr);
+  if (tdy->soln == NULL) {
+    ierr = DMCreateGlobalVector(tdy->dm,&tdy->soln); CHKERRQ(ierr);
+    ierr = VecDuplicate(tdy->soln,&tdy->residual); CHKERRQ(ierr);
+    ierr = VecDuplicate(tdy->soln,&tdy->accumulation_prev); CHKERRQ(ierr);
+    ierr = VecDuplicate(tdy->soln,&tdy->soln_prev); CHKERRQ(ierr);
+
+    ierr = TDyCreateLocalVector(tdy,&tdy->soln_loc); CHKERRQ(ierr);
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);

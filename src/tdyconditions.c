@@ -180,7 +180,7 @@ PetscErrorCode ConditionsSetConstantBoundaryPressure(Conditions *conditions,
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = p0;
   ierr = ConditionsSetBoundaryPressure(conditions, val, ConstantBoundaryFn,
-                                       free);
+                                       free); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -191,7 +191,7 @@ PetscErrorCode ConditionsSetConstantBoundaryTemperature(Conditions *conditions,
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = T0;
   ierr = ConditionsSetBoundaryTemperature(conditions, val, ConstantBoundaryFn,
-                                          free);
+                                          free); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -202,6 +202,6 @@ PetscErrorCode ConditionsSetConstantBoundaryVelocity(Conditions *conditions,
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = v0;
   ierr = ConditionsSetBoundaryVelocity(conditions, val, ConstantBoundaryFn,
-                                       free);
+                                       free); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

@@ -236,16 +236,8 @@ PetscErrorCode TDyIOReadPorosity(TDy tdy){
     strcpy(VariableName, tdy->io->porosity_dataset);
   }
 
-  PetscInt cStart,cEnd;
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
-  PetscInt ncell = (cEnd-cStart);
-
   PetscReal *Porosity;
   ierr = TDyIOReadVariable(tdy,VariableName,filename,&Porosity);
-  PetscInt index[ncell];
-  for (PetscInt c = 0;c<=ncell;++c){
-     index[c] = c;
-  }
 
   ierr = MaterialPropSetPorosity(tdy->matprop, Porosity, AssignScalars,
                                  ScalarsDestroy);
@@ -338,7 +330,7 @@ PetscErrorCode TDyIOOutputCheckpoint(TDy tdy){
   PetscFunctionBegin;
   PetscErrorCode ierr;
   PetscViewer viewer;
-  Vec p = tdy->solution;
+  Vec p = tdy->soln_prev;
   Vec p_natural;
   PetscReal time = tdy->ti->time;
   char filename[PETSC_MAX_PATH_LEN];
@@ -384,7 +376,7 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
     ierr = DMGetDimension(dm,&dim);CHKERRQ(ierr);
     ierr = DMPlexGetHeightStratum(dm,3,&istart,&iend);CHKERRQ(ierr);
     numVert = iend-istart;
-    ierr = VecGetSize(tdy->solution, &numCell);CHKERRQ(ierr);
+    ierr = VecGetSize(tdy->soln_prev, &numCell);CHKERRQ(ierr);
 
     ierr = TDyIOInitializeHDF5(ofilename,dm);CHKERRQ(ierr);
     ierr = TDyIOWriteXMFHeader(numCell,dim,numVert,numCorner);CHKERRQ(ierr);
@@ -396,7 +388,7 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
 PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscErrorCode ierr;
   PetscBool useNatural;
-  Vec p = tdy->solution;
+  Vec p = tdy->soln_prev;
   DM dm = tdy->dm;
   PetscReal time = tdy->ti->time;
   int num_vars = tdy->io->num_vars;

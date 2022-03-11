@@ -482,6 +482,11 @@ PetscInt TDyReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value) {
 }
 
 /* -------------------------------------------------------------------------- */
+/// Outputs a PETSc Vec as binary
+///
+/// @param [in] vec A PETSc Vec
+/// @param [in] filename Name of the file
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDySavePetscVecAsBinary(Vec vec, const char filename[]) {
 
   PetscViewer viewer;
@@ -489,7 +494,10 @@ PetscErrorCode TDySavePetscVecAsBinary(Vec vec, const char filename[]) {
 
   PetscFunctionBegin;
 
-  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE,
+  MPI_Comm comm;
+  PetscObjectGetComm((PetscObject)vec,&comm);
+
+  ierr = PetscViewerBinaryOpen(comm, filename, FILE_MODE_WRITE,
                                &viewer); CHKERRQ(ierr);
   ierr = VecView(vec, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -498,19 +506,19 @@ PetscErrorCode TDySavePetscVecAsBinary(Vec vec, const char filename[]) {
 }
 
 /* -------------------------------------------------------------------------- */
-/// Outputs a PETSc Vec as binary
+/// Reads a PETSc Vec as binary
 ///
 /// @param [in] vec A PETSc Vec
 /// @param [in] filename Name of the file
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyReadBinaryPetscVec(Vec vec, const char filename[]) {
+PetscErrorCode TDyReadBinaryPetscVec(Vec vec, MPI_Comm comm, const char filename[]) {
 
   PetscViewer viewer;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
 
-  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_READ, &viewer); CHKERRQ(ierr);
+  ierr = PetscViewerBinaryOpen(comm, filename, FILE_MODE_READ, &viewer); CHKERRQ(ierr);
   ierr = VecLoad(vec, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
@@ -525,7 +533,10 @@ PetscErrorCode TDySavePetscMatAsBinary(Mat M, const char filename[]) {
 
   PetscFunctionBegin;
 
-  ierr = PetscViewerBinaryOpen(PETSC_COMM_WORLD, filename, FILE_MODE_WRITE,
+  MPI_Comm comm;
+  PetscObjectGetComm((PetscObject)M,&comm);
+
+  ierr = PetscViewerBinaryOpen(comm, filename, FILE_MODE_WRITE,
                                &viewer); CHKERRQ(ierr);
   ierr = MatView(M, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -615,4 +626,3 @@ PetscErrorCode ComputeInverseOf3by3Matrix(PetscReal a[9], PetscReal inv_a[9]) {
 
   PetscFunctionReturn(0);
 }
-

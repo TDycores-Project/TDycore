@@ -20,7 +20,7 @@ PetscErrorCode TDyCreate_BDM(void **context) {
 
   // Allocate a new context for the WY method.
   TDyBDM *bdm;
-  ierr = PetscMalloc(sizeof(TDyBDM), &bdm);
+  ierr = PetscMalloc(sizeof(TDyBDM), &bdm); CHKERRQ(ierr);
   *context = bdm;
 
   // initialize data

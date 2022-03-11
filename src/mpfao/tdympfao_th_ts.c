@@ -151,16 +151,11 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   TDyMPFAO *mpfao = tdy->context;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
-  DM       dm;
-  Vec      Ul;
   PetscReal *du_dt,*r,*u_p;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-
-
-  ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
 #if defined(DEBUG)
   PetscViewer viewer;
@@ -171,8 +166,6 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
 
-  ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
-  ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
 #if defined(DEBUG)
   sprintf(word,"Ul%d.vec",icount_f);
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
@@ -180,15 +173,17 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
 
+  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
+
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
-  ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy,u_p); CHKERRQ(ierr);
-  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->soln_loc,&u_p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy,u_p,mesh->num_cells); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->soln_loc,&u_p); CHKERRQ(ierr);
 
-  ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
-  ierr = TDyMPFAO_SetBoundaryTemperature(tdy,Ul); CHKERRQ(ierr);
+  ierr = TDyMPFAO_SetBoundaryPressure(tdy,tdy->soln_loc); CHKERRQ(ierr);
+  ierr = TDyMPFAO_SetBoundaryTemperature(tdy,tdy->soln_loc); CHKERRQ(ierr);
   ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(mpfao->Trans_mat,mpfao->P_vec,mpfao->TtimesP_vec);
   ierr = MatMult(mpfao->Temp_Trans_mat,mpfao->Temp_P_vec,mpfao->Temp_TtimesP_vec);
@@ -209,7 +204,7 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
 #endif
 
   // Fluxes
-  ierr = TDyMPFAOIFunction_Vertices_TH(Ul,R,ctx); CHKERRQ(ierr);
+  ierr = TDyMPFAOIFunction_Vertices_TH(tdy->soln_loc,R,ctx); CHKERRQ(ierr);
 
 
   ierr = VecGetArray(U_t,&du_dt); CHKERRQ(ierr);
@@ -220,7 +215,7 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
 
   PetscReal p[cEnd-cStart], dp_dt[cEnd-cStart],
             temp[cEnd-cStart], dtemp_dt[cEnd-cStart];
-  ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->soln_loc,&u_p); CHKERRQ(ierr);
   for (c=0;c<cEnd-cStart;c++) {
     dp_dt[c]    = du_dt[c*2];
     p[c]        = u_p[c*2];
@@ -284,10 +279,9 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   }
 
   /* Cleanup */
-  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->soln_loc,&u_p); CHKERRQ(ierr);
   ierr = VecRestoreArray(U_t,&du_dt); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
-  ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
 
 #if defined(DEBUG)
   sprintf(word,"Function%d.vec",icount_f);
@@ -847,7 +841,7 @@ PetscErrorCode TDyMPFAOIJacobian_TH(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal sh
 
   TDy      tdy = (TDy)ctx;
   DM             dm = tdy->dm;
-  Vec Ul, Udotl;
+  Vec Udotl;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
@@ -856,21 +850,19 @@ PetscErrorCode TDyMPFAOIJacobian_TH(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal sh
 
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 
-  ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMGetLocalVector(dm,&Udotl); CHKERRQ(ierr);
 
-  ierr = DMGlobalToLocal(dm,U,INSERT_VALUES,Ul); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(dm,U_t,INSERT_VALUES,Udotl); CHKERRQ(ierr);
 
-  ierr = TDyMPFAOIJacobian_Vertices_TH(Ul,B,ctx);
-  ierr = TDyMPFAOIJacobian_Accumulation_TH(Ul,Udotl,shift,B,ctx);
+  ierr = TDyMPFAOIJacobian_Vertices_TH(tdy->soln_loc,B,ctx);
+  ierr = TDyMPFAOIJacobian_Accumulation_TH(tdy->soln_loc,Udotl,shift,B,ctx);
 
   if (A !=B ) {
     ierr = MatAssemblyBegin(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(A,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
 
-  ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Udotl); CHKERRQ(ierr);
 
 #if defined(DEBUG)
