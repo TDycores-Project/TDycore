@@ -48,8 +48,6 @@ PetscErrorCode TDyDestroy_FVTPF(void *context) {
   ierr = PetscFree(fvtpf->dh_dT); CHKERRQ(ierr);
   ierr = PetscFree(fvtpf->dvis_dT); CHKERRQ(ierr);
 
-  if (fvtpf->P_vec) { ierr = VecDestroy(&fvtpf->P_vec); CHKERRQ(ierr); }
-
   PetscFunctionReturn(0);
 }
 
@@ -483,13 +481,6 @@ PetscErrorCode TDyUpdateState_Richards_FVTPF(void *context, DM dm,
                                     &(fvtpf->d2vis_dP2[c])); CHKERRQ(ierr);
   }
 
-  PetscReal *p_vec_ptr;
-
-  ierr = VecGetArray(fvtpf->P_vec,&p_vec_ptr); CHKERRQ(ierr);
-  for (PetscInt c=0; c<nc; ++c) {
-    p_vec_ptr[c] = fvtpf->Pref - Pc[c]; // pressure
-  }
-  ierr = VecRestoreArray(fvtpf->P_vec,&p_vec_ptr); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -593,14 +584,6 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, DM dm, EOS *eos,
   ierr = CreateMesh(fvtpf, dm); CHKERRQ(ierr);
   ierr = InitMaterials(fvtpf, dm, matprop, cc); CHKERRQ(ierr);
 
-  // Gather mesh data.
-  PetscInt nLocalCells = fvtpf->mesh->num_cells_local;
-  PetscInt nNonLocalFaces = TDyMeshGetNumberOfNonLocalFaces(fvtpf->mesh);
-  PetscInt nNonInternalFaces = TDyMeshGetNumberOfNonInternalFaces(fvtpf->mesh);
-  PetscInt ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
-
-  ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&fvtpf->P_vec);
-
   ierr = AllocateMemoryForBoundaryValues(fvtpf, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(fvtpf); CHKERRQ(ierr);
 
@@ -692,7 +675,7 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
   PetscErrorCode ierr;
   PetscInt dim;
   PetscInt p_bnd_idx, cell_id, iface;
-  PetscReal *p_vec_ptr, *u_p;
+  PetscReal *u_p;
   PetscInt c, cStart, cEnd;
   Conditions *conditions = tdy->conditions;
 
@@ -701,7 +684,6 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
   ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
-  ierr = VecGetArray(fvtpf->P_vec,&p_vec_ptr); CHKERRQ(ierr);
 
   PetscInt ncells = mesh->num_cells;
   PetscReal p[ncells];
@@ -733,11 +715,10 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
       fvtpf->P_bnd[p_bnd_idx] = p[cell_id];
     }
 
-    p_vec_ptr[p_bnd_idx + ncells] = fvtpf->P_bnd[p_bnd_idx];
+    //p_vec_ptr[p_bnd_idx + ncells] = fvtpf->P_bnd[p_bnd_idx];
   }
 
   ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
-  ierr = VecRestoreArray(fvtpf->P_vec,&p_vec_ptr); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

@@ -32,7 +32,6 @@ typedef struct TDyFVTPF {
   PetscReal *N; // face normals
   PetscInt ncv, nfv; // number of {cell|face} vertices
 
-  Vec P_vec;
   PetscReal *pressure;
 
   // [face,local_vertex] --> velocity normal to face at vertex
