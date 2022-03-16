@@ -239,6 +239,16 @@ module tdycore
   end interface
 
   interface
+     subroutine TDyGetInitialCondition(a,b,z)
+       use tdycoredef
+       use petscvec
+       TDy a
+       Vec b
+       integer z
+     end subroutine TDyGetInitialCondition
+  end interface
+
+  interface
      subroutine TDyPreSolveSNESSolver(a,z)
        use tdycoredef
        TDy a

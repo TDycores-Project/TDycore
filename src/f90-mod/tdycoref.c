@@ -36,6 +36,7 @@
 #define tdycreatejacobian_                             TDYCREATEJACOBIAN
 #define tdysetdtimeforsnessolver_                      TDYSETDTIMEFORSNESSOLVER
 #define tdysetinitialcondition_                        TDYSETINITIALCONDITION
+#define tdygetinitialcondition_                        TDYGETINITIALCONDITION
 #define tdypresolvesnessolver_                         TDYSETPRESOLVESNESSOLVER
 #define tdypostsolve_                                  TDYSETPOSTSOLVE
 #define tdycomputeerrornorms_                          TDYCOMPUTEERRORNORMS
@@ -70,6 +71,7 @@
 #define tdycreatejacobian_                             tdycreatejacobian
 #define tdysetdtimeforsnessolver_                      tdysetdtimeforsnessolver
 #define tdysetinitialcondition_                        tdysetinitialcondition
+#define tdygetinitialcondition_                        tdygetinitialcondition
 #define tdypresolvesnessolver_                         tdypresolvesnessolver
 #define tdypostsolve_                                  tdypostsolve
 #define tdycomputeerrornorms_                          tdycomputeerrornorms
@@ -184,6 +186,12 @@ PETSC_EXTERN void  tdysetdtimeforsnessolver_(TDy tdy, PetscReal *dtime, int *__i
 
 PETSC_EXTERN void  tdysetinitialcondition_(TDy tdy, Vec solution, int *__ierr){
 *__ierr = TDySetInitialCondition(
+  (TDy)PetscToPointer(tdy),
+  (Vec)PetscToPointer(solution));
+}
+
+PETSC_EXTERN void  tdygetinitialcondition_(TDy tdy, Vec solution, int *__ierr){
+*__ierr = TDyGetInitialCondition(
   (TDy)PetscToPointer(tdy),
   (Vec)PetscToPointer(solution));
 }

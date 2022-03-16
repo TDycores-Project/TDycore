@@ -1403,6 +1403,25 @@ PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+/// Gets initial condition for the TDy solver
+///
+/// @param [in] tdy A TDy struct
+/// @param [out] initial A copies initial condition into a PETSc vector.
+///                     For RICHARDS mode, the vector contains unknown
+///                     pressure values for each grid cell.
+///                     For TH mode, the vector contains unknown pressure
+///                     and temperature values for each grid cell.
+///                     The initial condition returned is in PETSc's global
+///                     numbering order.
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyGetInitialCondition(TDy tdy, Vec initial) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = VecCopy(tdy->soln,initial); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 
 //-------------------------------
 // Diagnostics-related functions
