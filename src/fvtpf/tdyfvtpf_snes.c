@@ -111,6 +111,61 @@ PetscErrorCode RichardsResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode RichardsBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, PetscInt face_id, PetscReal *Res) {
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  PetscInt dim;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  PetscInt *cell_ids, num_face_cells;
+  ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
+  PetscInt cell_id_up = -cell_ids[0] + 1; // cell up is a boundary cell with negative ids, determine the id to use from *_bnd variables
+  PetscInt cell_id_dn = cell_ids[1];      // cell dn is an internal cell
+
+  PetscReal dist_gravity, upweight;
+  ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
+
+  PetscReal perm_face, Dq;
+  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+
+  PetscReal kr_eps = 1.d-8;
+  PetscReal sat_eps = 1.d-8;
+  if (fvtpf->Kr_bnd[cell_id_up] > kr_eps || fvtpf->Kr[cell_id_dn] > kr_eps) {
+    if (fvtpf->S_bnd[cell_id_up] < sat_eps) {
+      upweight = 0.0;
+    } else if (fvtpf->S[cell_id_dn] < sat_eps) {
+      upweight = 1.0;
+    }
+
+    PetscReal den_up = fvtpf->rho_bnd[cell_id_up];
+    PetscReal den_dn = fvtpf->rho[cell_id_dn];
+    PetscReal den_aveg = upweight * den_up + (1.0 - upweight) * den_dn;
+
+    PetscReal gravity_term = den_aveg * dist_gravity;
+    PetscReal dphi = fvtpf->P_bnd[cell_id_up] - fvtpf->pressure[cell_id_dn] - gravity_term;
+
+    PetscReal ukvr;
+    if (dphi >= 0.0) {
+      ukvr = fvtpf->Kr_bnd[cell_id_up]/fvtpf->vis_bnd[cell_id_up];
+    } else {
+      ukvr = fvtpf->Kr[cell_id_dn]/fvtpf->vis[cell_id_dn];
+    }
+
+    PetscReal v_darcy = Dq * ukvr * dphi;
+
+    PetscReal projected_area;
+    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+
+    PetscReal q = v_darcy * projected_area;
+    *Res = q * den_aveg;
+
+  }
+
+  PetscFunctionReturn(0);
+}
+
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 
@@ -143,8 +198,10 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = VecGetArray(R, &r_ptr); CHKERRQ(ierr);
   ierr = VecGetArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
 
+  // Compute contribution to residual for boundary faces
   for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
 
+    if (!faces->is_local[iface]) continue; // skip non-local face
     if (!faces->is_internal[iface]) continue; // skip boundary faces
 
     PetscInt *cell_ids, num_face_cells;
@@ -163,6 +220,24 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
       r_ptr[cell_id_dn] -= Res;
     }
 
+  }
+
+  // Compute contribution to residual for boundary faces
+  if (!(fvtpf->bc_type == FVTPF_NEUMANN_BC)) {
+    for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
+
+      if (!faces->is_local[iface]) continue; // skip non-local face
+      if (!faces->is_internal[iface]) continue; // skip internal faces
+
+      PetscInt *cell_ids, num_face_cells;
+      ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
+
+      PetscReal Res;
+      ierr = RichardsBCResidual(fvtpf, tdy->dm, tdy->matprop, iface, &Res);
+
+      PetscInt cell_id_dn = cell_ids[1];
+      r_ptr[cell_id_dn] -= Res;
+    }
   }
 
   PetscReal accum_current;
