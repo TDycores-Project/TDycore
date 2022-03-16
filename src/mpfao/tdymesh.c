@@ -3808,6 +3808,41 @@ PetscErrorCode UpdateCellOrientationAroundAFace(DM dm, TDyMesh *mesh) {
       faces->cell_ids[fOffsetCell + 0] = faces->cell_ids[fOffsetCell + 1];
       faces->cell_ids[fOffsetCell + 1] = tmp;
     }
+
+    // If a face is on a boundary, flip cells such that
+    //  faces->cell_ids[fOffset + 0] == Boundary cell
+    //  faces->cell_ids[fOffset + 1] == Internal cell
+    PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
+    PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+
+    if (cell_id_dn < 0) { // cell_id_dn is boundary cell, so flip cells
+      faces->cell_ids[fOffsetCell + 0] = cell_id_dn;
+      faces->cell_ids[fOffsetCell + 1] = cell_id_up;
+
+      for (PetscInt d=0; d<dim; d++){
+        faces->normal[iface].V[d] = -faces->normal[iface].V[d];
+      }
+      if (faces->num_vertices[iface] == 3) {
+        PetscInt vert_1 = faces->vertex_ids[fOffsetVertex + 0];
+        PetscInt vert_2 = faces->vertex_ids[fOffsetVertex + 1];
+        PetscInt vert_3 = faces->vertex_ids[fOffsetVertex + 2];
+
+        faces->vertex_ids[fOffsetVertex + 0] = vert_3;
+        faces->vertex_ids[fOffsetVertex + 1] = vert_2;
+        faces->vertex_ids[fOffsetVertex + 2] = vert_1;
+
+      } else if (faces->num_vertices[iface] == 4) {
+        PetscInt vert_1 = faces->vertex_ids[fOffsetVertex + 0];
+        PetscInt vert_2 = faces->vertex_ids[fOffsetVertex + 1];
+        PetscInt vert_3 = faces->vertex_ids[fOffsetVertex + 2];
+        PetscInt vert_4 = faces->vertex_ids[fOffsetVertex + 3];
+
+        faces->vertex_ids[fOffsetVertex + 0] = vert_4;
+        faces->vertex_ids[fOffsetVertex + 1] = vert_3;
+        faces->vertex_ids[fOffsetVertex + 2] = vert_2;
+        faces->vertex_ids[fOffsetVertex + 3] = vert_1;
+      }
+    }
   }
 
   PetscFunctionReturn(0);
