@@ -21,6 +21,7 @@ PetscErrorCode TDyCreate_FVTPF(void **context) {
 
   // Initialize defaults and data.
   fvtpf->bc_type = FVTPF_DIRICHLET_BC;
+  fvtpf->bc_type = FVTPF_NEUMANN_BC;
   fvtpf->Pref = 101325.0;
   fvtpf->Tref = 25.0;
   fvtpf->gravity[0] = 0.0; fvtpf->gravity[1] = 0.0; fvtpf->gravity[2] = 0.0;
