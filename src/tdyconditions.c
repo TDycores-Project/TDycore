@@ -7,6 +7,7 @@ PetscErrorCode ConditionsCreate(Conditions** conditions) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   ierr = PetscCalloc(sizeof(Conditions), conditions); CHKERRQ(ierr);
+  (*conditions)->bcs = kh_init(TDY_BC);
   PetscFunctionReturn(0);
 }
 
@@ -15,9 +16,19 @@ PetscErrorCode ConditionsDestroy(Conditions* conditions) {
   PetscFunctionBegin;
   ConditionsSetForcing(conditions, NULL, NULL, NULL);
   ConditionsSetEnergyForcing(conditions, NULL, NULL, NULL);
-  ConditionsSetBoundaryPressure(conditions, NULL, NULL, NULL);
-  ConditionsSetBoundaryTemperature(conditions, NULL, NULL, NULL);
-  ConditionsSetBoundaryVelocity(conditions, NULL, NULL, NULL);
+
+  // Clean up boundary conditions.
+  for (khiter_t iter = kh_begin(conditions->bcs);
+                iter != kh_end(conditions->bc);
+              ++iter) {
+    if (!kh_exist(conditions->bcs, iter)) continue;
+    BoundaryCondition bc = kh_value(conditions->bcs, iter);
+    if (bc.context && bc.dtor) {
+      bc.dtor(bc.context);
+    }
+  }
+  kh_destroy(TDY_BC, conditions->bcs);
+
   PetscFree(conditions);
   PetscFunctionReturn(0);
 }
@@ -58,18 +69,23 @@ PetscErrorCode ConditionsSetEnergyForcing(Conditions *conditions, void *context,
 
 /// Sets the function used to compute the boundary pressure.
 /// @param [in] conditions A Conditions instance
-/// @param [in] context A context pointer to be passed to f
-/// @param [in] f A function that computes the boundary pressure forcing at a given number of points
-/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
-PetscErrorCode ConditionsSetBoundaryPressure(Conditions *conditions, void *context,
-                                             PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                             void (*dtor)(void*)) {
+/// @param [in] face_set The index of a face set identifying the surface on
+///                      which to specify the boundary pressure
+/// @param [in] bc A BoundaryCondition struct that can compute the boundary
+///                pressure
+PetscErrorCode ConditionsSetBoundaryPressure(Conditions *conditions,
+                                             PetscInt face_set,
+                                             BoundaryCondition bc) {
   PetscFunctionBegin;
-  if (conditions->boundary_pressure_context && conditions->boundary_pressure_dtor)
-    conditions->boundary_pressure_dtor(conditions->boundary_pressure_context);
-  conditions->boundary_pressure_context = context;
-  conditions->compute_boundary_pressure = f;
-  conditions->boundary_pressure_dtor = dtor;
+  khiter_t iter = kh_get(conditions->bcs, face_set);
+  if (iter != kh_end(conditions->bcs)) { // we've already assigned a BC
+    // Destroy the previous BC.
+    BoundaryCondition prev_bc = kh_value(conditions->bcs, iter);
+    if (prev_bc.context && prev_bc.dtor) {
+      prev_bc.dtor(prev_bc.context);
+    }
+  }
+  kh_value(conditions->bcs, iter) = bc;
   PetscFunctionReturn(0);
 }
 
