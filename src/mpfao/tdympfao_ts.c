@@ -117,9 +117,9 @@ PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
           PetscReal vis = mpfao->vis_bnd[-cell_id_dn-1];
 
           ukvr = Kr/vis;
-	  if (mpfao->bc_type == SEEPAGE_BC && mpfao->P_bnd[-cell_id_dn-1] <= mpfao->Pref) {
+	        if (mpfao->bc_type == SEEPAGE_BC && mpfao->P_bnd[-cell_id_dn-1] <= mpfao->Pref) {
             set_flow_to_zero = PETSC_TRUE;
-	  }
+          }
         }
       }
 
