@@ -461,7 +461,7 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 
   // Compute contribution to Jacobian for internal faces
-  for (PetscInt iface=3; iface<mesh->num_faces; iface++) {
+  for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
 
     if (!faces->is_local[iface]) continue; // skip non-local face
     if (!faces->is_internal[iface]) continue; // skip boundary faces
@@ -476,16 +476,16 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
 
     if (cell_id_up >= 0 && cells->is_local[cell_id_up]) {
       //r_ptr[cell_id_up] += Res;
-      ierr = MatSetValuesLocal(A,1,&cell_id_up,1,&cell_id_up,&Jup,ADD_VALUES);CHKERRQ(ierr);
-      ierr = MatSetValuesLocal(A,1,&cell_id_up,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
+      ierr = MatSetValuesLocal(B,1,&cell_id_up,1,&cell_id_up,&Jup,ADD_VALUES);CHKERRQ(ierr);
+      ierr = MatSetValuesLocal(B,1,&cell_id_up,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
     }
 
     if (cell_id_dn >= 0 && cells->is_local[cell_id_dn]) {
       //r_ptr[cell_id_dn] -= Res;
       Jup *= -1.0;
       Jdn *= -1.0;
-      ierr = MatSetValuesLocal(A,1,&cell_id_dn,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
-      ierr = MatSetValuesLocal(A,1,&cell_id_up,1,&cell_id_up,&Jup,ADD_VALUES);CHKERRQ(ierr);
+      ierr = MatSetValuesLocal(B,1,&cell_id_dn,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
+      ierr = MatSetValuesLocal(B,1,&cell_id_dn,1,&cell_id_up,&Jup,ADD_VALUES);CHKERRQ(ierr);
     }
   }
 
@@ -506,7 +506,7 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
       if (cell_id_dn >= 0 && cells->is_local[cell_id_dn]) {
         //r_ptr[cell_id_dn] -= Res;
         Jdn *= -1.0;
-        ierr = MatSetValuesLocal(A,1,&cell_id_dn,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
+        ierr = MatSetValuesLocal(B,1,&cell_id_dn,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
       }
 
     }
@@ -519,7 +519,7 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
     PetscReal J;
     ierr = TDyFVTPFSNESJacobianAccumulation(tdy, icell, &J); CHKERRQ(ierr);
 
-    ierr = MatSetValuesLocal(A,1,&icell,1,&icell,&J,ADD_VALUES);CHKERRQ(ierr);
+    ierr = MatSetValuesLocal(B,1,&icell,1,&icell,&J,ADD_VALUES);CHKERRQ(ierr);
 
   }
 
