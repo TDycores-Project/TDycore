@@ -58,6 +58,12 @@ test-transient-mpfaof90 :
 		--config-files ../demo/transient/transient_mpfaof90.cfg \
 		--logfile_prefix transient_mpfaof90
 
+test-fv-tpff90 :
+	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/fv_tpff90 $(TEST_OPTIONS) \
+		$(SUITES) \
+		--config-files ../demo/transient/fv_tpff90.cfg \
+		--logfile_prefix fv_tpff90
+
 test-transient-snes-mpfaof90 :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/transient/transient_snes_mpfaof90 $(TEST_OPTIONS) \
                 $(SUITES) \
