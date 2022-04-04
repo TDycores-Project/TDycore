@@ -407,7 +407,7 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   }
 
   // Compute contribution to residual for boundary faces
-  if (!(fvtpf->bc_type == FVTPF_NEUMANN_BC)) {
+  if (!(fvtpf->bc_type == NEUMANN_BC)) {
     for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
 
       if (!faces->is_local[iface]) continue; // skip non-local face
@@ -490,7 +490,7 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
   }
 
   // Compute contribution to Jacobian for boundary faces
-  if (!(fvtpf->bc_type == FVTPF_NEUMANN_BC)) {
+  if (!(fvtpf->bc_type == NEUMANN_BC)) {
     for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
 
       if (!faces->is_local[iface]) continue; // skip non-local face

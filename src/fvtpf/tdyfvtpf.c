@@ -20,8 +20,7 @@ PetscErrorCode TDyCreate_FVTPF(void **context) {
   *context = fvtpf;
 
   // Initialize defaults and data.
-  fvtpf->bc_type = FVTPF_DIRICHLET_BC;
-  fvtpf->bc_type = FVTPF_NEUMANN_BC;
+  fvtpf->bc_type = NEUMANN_BC;
   fvtpf->Pref = 101325.0;
   fvtpf->Tref = 25.0;
   fvtpf->gravity[0] = 0.0; fvtpf->gravity[1] = 0.0; fvtpf->gravity[2] = 0.0;
@@ -67,7 +66,7 @@ PetscErrorCode TDySetFromOptions_FVTPF(void *context, TDyOptions *options) {
   PetscBool flag;
   ierr = PetscOptionsEnum("-tdy_fvtpf_boundary_condition_type",
       "FV-TPF boundary condition type", "TDyFVTPFSetBoundaryConditionType",
-      TDyFVTPFBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype,
+      TDyBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype,
       &flag); CHKERRQ(ierr);
   if (flag && (bctype != fvtpf->bc_type)) {
     fvtpf->bc_type = bctype;

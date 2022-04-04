@@ -387,7 +387,7 @@ PetscErrorCode TDyMPFAOSetGmatrixMethod(TDy tdy,
 }
 
 PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDy tdy,
-                                                TDyMPFAOBoundaryConditionType bctype) {
+                                                TDyBoundaryConditionType bctype) {
   PetscFunctionBegin;
 
   PetscValidPointer(tdy,1);
@@ -408,7 +408,7 @@ PetscErrorCode TDyCreate_MPFAO(void **context) {
 
   // Initialize defaults and data.
   mpfao->gmatrix_method = MPFAO_GMATRIX_DEFAULT;
-  mpfao->bc_type = MPFAO_DIRICHLET_BC;
+  mpfao->bc_type = DIRICHLET_BC;
   mpfao->Pref = 101325;
   mpfao->Tref = 25;
   mpfao->gravity[0] = 0; mpfao->gravity[1] = 0; mpfao->gravity[2] = 0;
@@ -471,11 +471,11 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
     "TDySetMPFAOGmatrixMethod",TDyMPFAOGmatrixMethods,
     (PetscEnum)mpfao->gmatrix_method,(PetscEnum *)&mpfao->gmatrix_method,NULL);
     CHKERRQ(ierr);
-  TDyMPFAOBoundaryConditionType bctype = MPFAO_DIRICHLET_BC;
+  TDyBoundaryConditionType bctype = DIRICHLET_BC;
   PetscBool flag;
   ierr = PetscOptionsEnum("-tdy_mpfao_boundary_condition_type",
       "MPFA-O boundary condition type", "TDyMPFAOSetBoundaryConditionType",
-      TDyMPFAOBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype,
+      TDyBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype,
       &flag); CHKERRQ(ierr);
   if (flag && (bctype != mpfao->bc_type)) {
     mpfao->bc_type = bctype;
@@ -1093,8 +1093,8 @@ static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
 
   PetscInt npitf_dir_bc_all, npitf_neu_bc_all;
 
-  if (mpfao->bc_type == MPFAO_DIRICHLET_BC ||
-      mpfao->bc_type == MPFAO_SEEPAGE_BC) {
+  if (mpfao->bc_type == DIRICHLET_BC ||
+      mpfao->bc_type == SEEPAGE_BC) {
     nflux_dir_bc_up = nflux_all_bc_up;
     nflux_dir_bc_dn = nflux_all_bc_dn;
     npitf_dir_bc_all= npitf_bc_all;
@@ -1738,8 +1738,8 @@ static PetscErrorCode ComputeTransmissibilityMatrix(TDyMPFAO *mpfao, DM dm) {
     } else {
       // It is assumed that neumann boundary condition is a zero-flux boundary condition.
       // Thus, compute transmissiblity entries only for dirichlet boundary condition.
-      if (mpfao->bc_type == MPFAO_DIRICHLET_BC ||
-          mpfao->bc_type == MPFAO_SEEPAGE_BC) {
+      if (mpfao->bc_type == DIRICHLET_BC ||
+          mpfao->bc_type == SEEPAGE_BC) {
         ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(mpfao, dm, ivertex, cells, 0); CHKERRQ(ierr);
         if (mpfao->Temp_subc_Gmatrix) { // TH
           ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(mpfao, dm, ivertex, cells, 1); CHKERRQ(ierr);
@@ -2124,7 +2124,7 @@ static PetscErrorCode ComputeGravityDiscretization(TDyMPFAO *mpfao, DM dm,
 
       // Currently, only zero-flux neumann boundary condition is implemented.
       // If the boundary condition is neumann, then gravity discretization term is zero
-      if (mpfao->bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
+      if (mpfao->bc_type == NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
 
       PetscInt cell_id;
       if (cell_id_up < 0) {

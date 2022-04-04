@@ -40,20 +40,12 @@ const char *const TDyMPFAOGmatrixMethods[] = {
   "TDyMPFAOGmatrixMethod","TDY_MPFAO_GMATRIX_METHOD_",NULL
 };
 
-const char *const TDyMPFAOBoundaryConditionTypes[] = {
-  "MPFAO_DIRICHLET_BC",
-  "MPFAO_NEUMANN_BC",
-  "MPFAO_SEEPAGE_BC",
+const char *const TDyBoundaryConditionTypes[] = {
+  "DIRICHLET_BC",
+  "NEUMANN_BC",
+  "SEEPAGE_BC",
   /* */
-  "TDyMPFAOBoundaryConditionType","TDY_MPFAO_BC_TYPE_",NULL
-};
-
-const char *const TDyFVTPFBoundaryConditionTypes[] = {
-  "FVTPF_DIRICHLET_BC",
-  "FVTPF_NEUMANN_BC",
-  "FVTPF_SEEPAGE_BC",
-  /* */
-  "TDyFVTPFBoundaryConditionType","TDY_FVTPF_BC_TYPE_",NULL
+  "TDyBoundaryConditionType","TDY_BC_TYPE_",NULL
 };
 
 const char *const TDyModes[] = {

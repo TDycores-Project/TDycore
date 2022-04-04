@@ -4,9 +4,9 @@
 #define TDy type(tTDy)
 #define TDyDiscretization PetscEnum
 
-#define MPFAO_DIRICHLET_BC 0
-#define MPFAO_NEUMANN_BC   1
-#define MPFAO_SEEPAGE_BC   2
+#define DIRICHLET_BC 0
+#define NEUMANN_BC   1
+#define SEEPAGE_BC   2
 
 #endif
 

@@ -1,4 +1,4 @@
-TARGETS = transient transient_mpfaof90 transient_snes_mpfaof90 scidac_demof90
+TARGETS = transient transient_mpfaof90 transient_snes_mpfaof90 fv_tpff90 
 
 ifdef codecov
   MYFLAGS += -fprofile-arcs -ftest-coverage

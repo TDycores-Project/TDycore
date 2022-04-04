@@ -45,12 +45,12 @@ typedef enum {
 PETSC_EXTERN const char *const TDyMPFAOGmatrixMethods[];
 
 typedef enum {
-  MPFAO_DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
-  MPFAO_NEUMANN_BC,       /* Neumann zero-flux boundary condition */
-  MPFAO_SEEPAGE_BC       /* Seepage boundary condition */
-} TDyMPFAOBoundaryConditionType;
+  DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
+  NEUMANN_BC,       /* Neumann zero-flux boundary condition */
+  SEEPAGE_BC       /* Seepage boundary condition */
+} TDyBoundaryConditionType;
 
-PETSC_EXTERN const char *const TDyMPFAOBoundaryConditionTypes[];
+PETSC_EXTERN const char *const TDyBoundaryConditionTypes[];
 
 typedef enum {
   FVTPF_DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
@@ -224,7 +224,7 @@ PETSC_EXTERN PetscErrorCode TDyDriverInitializeTDy(TDy);
 //-------------------------------------------------
 
 PETSC_EXTERN PetscErrorCode TDyMPFAOSetGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
-PETSC_EXTERN PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
+PETSC_EXTERN PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDy,TDyBoundaryConditionType);
 PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
 
 //------------------------
