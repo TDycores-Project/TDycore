@@ -10,3 +10,5 @@ transient_th_mpfao
 *.regression
 *.stdout*
 *.regression.old
+fv_tpff90
+*.sh
