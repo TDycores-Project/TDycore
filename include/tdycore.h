@@ -53,14 +53,6 @@ typedef enum {
 PETSC_EXTERN const char *const TDyBoundaryConditionTypes[];
 
 typedef enum {
-  FVTPF_DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
-  FVTPF_NEUMANN_BC,       /* Neumann zero-flux boundary condition */
-  FVTPF_SEEPAGE_BC       /* Seepage boundary condition */
-} TDyFVTPFBoundaryConditionType;
-
-PETSC_EXTERN const char *const TDyFVTPFBoundaryConditionTypes[];
-
-typedef enum {
   TDySNES=0,
   TDyTS
 } TDyTimeIntegrationMethod;
@@ -99,6 +91,8 @@ typedef void (*TDyTensorSpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f)
 /// A TDySpatialFunction has the same type as the above functions, but can be
 /// used to store any one of them.
 typedef void (*TDySpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+
+typedef void (*TDyScalarSpatialIntegerFunction)(PetscInt n, PetscReal *x, PetscInt *f);
 
 typedef struct _p_TDy *TDy;
 

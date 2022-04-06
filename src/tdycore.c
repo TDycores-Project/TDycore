@@ -1123,9 +1123,20 @@ typedef struct WrapperStruct {
   TDySpatialFunction func;
 } WrapperStruct;
 
+typedef struct WrapperIntegerStruct {
+  TDyScalarSpatialIntegerFunction func;
+} WrapperIntegerStruct;
+
 // This function calls an underlying Function with a NULL context.
 static PetscErrorCode WrapperFunction(void *context, PetscInt n, PetscReal *x, PetscReal *v) {
   WrapperStruct *wrapper = context;
+  wrapper->func(n, x, v);
+  PetscFunctionReturn(0);
+}
+
+// This function calls an underlying Function with a NULL context.
+static PetscErrorCode WrapperIntegerFunction(void *context, PetscInt n, PetscReal *x, PetscInt *v) {
+  WrapperIntegerStruct *wrapper = context;
   wrapper->func(n, x, v);
   PetscFunctionReturn(0);
 }
@@ -1160,6 +1171,17 @@ PetscErrorCode TDySetBoundaryPressureFunction(TDy tdy,
   wrapper->func = f;
   ierr = ConditionsSetBoundaryPressure(tdy->conditions, wrapper,
                                        WrapperFunction, free); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetBoundaryPressureTypeFunction(TDy tdy,
+                                              TDyScalarSpatialIntegerFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  WrapperIntegerStruct *wrapper = malloc(sizeof(WrapperIntegerStruct));
+  wrapper->func = f;
+  ierr = ConditionsSetBoundaryPressureType(tdy->conditions, wrapper,
+                                       WrapperIntegerFunction, free); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

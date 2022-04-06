@@ -61,7 +61,7 @@ PetscErrorCode TDySetFromOptions_FVTPF(void *context, TDyOptions *options) {
 
   // Set FV-TPF options.
   ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: FV-TPF options",""); CHKERRQ(ierr);
-  TDyFVTPFBoundaryConditionType bctype = FVTPF_DIRICHLET_BC;
+  TDyBoundaryConditionType bctype = DIRICHLET_BC;
 
   PetscBool flag;
   ierr = PetscOptionsEnum("-tdy_fvtpf_boundary_condition_type",
@@ -322,6 +322,17 @@ static PetscErrorCode AllocateMemoryForSourceSinkValues(TDyFVTPF *fvtpf) {
   for (i=0;i<ncells;i++) fvtpf->source_sink[i] = 0.0;
 
   TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode SetFaceBoundaryConditionType(TDyFVTPF *fvtpf) {
+
+  TDyMesh *mesh = fvtpf->mesh;
+  PetscErrorCode ierr;
+
+  TDyFace *faces = &mesh->faces;
+
+
   PetscFunctionReturn(0);
 }
 
@@ -586,6 +597,7 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, DM dm, EOS *eos,
 
   ierr = AllocateMemoryForBoundaryValues(fvtpf, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(fvtpf); CHKERRQ(ierr);
+  ierr = SetFaceBoundaryConditionType(fvtpf); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

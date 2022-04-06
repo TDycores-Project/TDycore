@@ -72,6 +72,23 @@ PetscErrorCode ConditionsSetBoundaryPressure(Conditions *conditions, void *conte
   PetscFunctionReturn(0);
 }
 
+/// Sets the function used to set the boundary pressure type
+/// @param [in] conditions A Conditions instance
+/// @param [in] context A context pointer to be passed to f
+/// @param [in] f A function that sets the boundary pressure type
+/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
+PetscErrorCode ConditionsSetBoundaryPressureType(Conditions *conditions, void *context,
+                                             PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscInt*),
+                                             void (*dtor)(void*)) {
+  PetscFunctionBegin;
+  if (conditions->boundary_pressure_type_context && conditions->boundary_pressure_type_dtor)
+    conditions->boundary_pressure_type_dtor(conditions->boundary_pressure_type_context);
+  conditions->boundary_pressure_type_context = context;
+  conditions->set_boundary_pressure_type = f;
+  conditions->boundary_pressure_type_dtor = dtor;
+  PetscFunctionReturn(0);
+}
+
 /// Sets the function used to compute the boundary temperature.
 /// @param [in] conditions A Conditions instance
 /// @param [in] context A context pointer to be passed to f

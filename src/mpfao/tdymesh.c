@@ -249,6 +249,8 @@ static PetscErrorCode AllocateFaces(
   ierr = TDyAllocate_IntegerArray_1D(&faces->edge_ids,num_faces*num_edges); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&faces->vertex_ids,num_faces*num_vertices); CHKERRQ(ierr);
 
+  ierr = TDyAllocate_IntegerArray_1D(&faces->bc_type,num_faces); CHKERRQ(ierr);
+
   ierr = TDyAllocate_RealArray_1D(&faces->area,num_faces); CHKERRQ(ierr);
   ierr = TDyAllocate_TDyCoordinate_1D(num_faces, &faces->centroid); CHKERRQ(ierr);
   ierr = TDyAllocate_TDyVector_1D(num_faces, &faces->normal); CHKERRQ(ierr);
