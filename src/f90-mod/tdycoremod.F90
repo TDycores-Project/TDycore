@@ -53,6 +53,7 @@ module tdycore
   type(SpatialFunctionWrapper), dimension(:), allocatable :: spatial_funcs_
   type(IntegerSpatialFunctionWrapper), dimension(:), allocatable :: integer_spatial_funcs_
   character(len=32), dimension(:), allocatable :: spatial_func_names_
+  character(len=32), dimension(:), allocatable :: integer_spatial_func_names_
 
   ! The ID of the most recently added spatial function
   integer(c_int) :: last_spatial_func_id_
@@ -381,6 +382,46 @@ end subroutine
     end if
   end function
 
+  function FindOrAppendIntegerSpatialFunction(func) result(id)
+    implicit none
+    procedure(TDyIntegerSpatialFunction) :: func
+    type(IntegerSpatialFunctionWrapper)  :: elem
+    integer :: id
+    type(IntegerSpatialFunctionWrapper), dimension(:), allocatable :: new_funcs_array
+    character(len=32), dimension(:), allocatable :: new_names_array
+    integer :: old_size
+
+    if (.not. allocated(integer_spatial_funcs_)) then
+      allocate(integer_spatial_funcs_(32))
+      allocate(integer_spatial_func_names_(32))
+      last_spatial_func_id_ = 1
+      id = 1
+    else
+      do id = 1, size(integer_spatial_funcs_)
+        if (associated(integer_spatial_funcs_(id)%f, func)) then
+          exit
+        end if
+      end do
+    end if
+
+    if (.not. associated(integer_spatial_funcs_(id)%f, func)) then
+      ! We didn't find the function, so we must append it.
+      if (last_spatial_func_id_ > size(integer_spatial_funcs_)) then ! need more room
+        old_size = size(integer_spatial_funcs_)
+        allocate(new_funcs_array(2*old_size))
+        allocate(new_names_array(2*old_size))
+        new_funcs_array(1:old_size) = integer_spatial_funcs_(1:old_size)
+        new_names_array(1:old_size) = integer_spatial_func_names_(1:old_size)
+        call move_alloc(new_funcs_array, integer_spatial_funcs_)
+        call move_alloc(new_names_array, integer_spatial_func_names_)
+      end if
+      elem%f => func
+      integer_spatial_funcs_(last_spatial_func_id_) = elem
+      id = last_spatial_func_id_
+      last_spatial_func_id_ = last_spatial_func_id_ + 1
+    end if
+  end function
+
   subroutine RegisterSpatialFunction(name, func)
     character(len=*), intent(in)           :: name
     procedure(TDySpatialFunction), pointer :: func
@@ -593,6 +634,32 @@ end subroutine
 
     p_tdy = transfer(tdy%v, p_tdy)
     id = FindOrAppendSpatialFunction(f)
+    ierr = Func(p_tdy, id)
+  end subroutine
+
+  subroutine TDySetBoundaryPressureTypeFunction(tdy, f, ierr)
+    use, intrinsic :: iso_c_binding
+    use tdycoredef
+    implicit none
+    TDy                           :: tdy
+    procedure(TDyIntegerSpatialFunction) :: f
+    PetscErrorCode                :: ierr
+
+    type(c_ptr)    :: p_tdy
+    integer(c_int) :: id
+
+    interface
+      function Func(tdy, id) bind(c, name="TDySetBoundaryPressureTypeFunctionF90") result(ierr)
+        use, intrinsic :: iso_c_binding
+        implicit none
+        type(c_ptr),    value, intent(in) :: tdy
+        integer(c_int), value, intent(in) :: id
+        integer(c_int) :: ierr
+      end function
+    end interface
+
+    p_tdy = transfer(tdy%v, p_tdy)
+    id = FindOrAppendIntegerSpatialFunction(f)
     ierr = Func(p_tdy, id)
   end subroutine
 
