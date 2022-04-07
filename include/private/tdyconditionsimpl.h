@@ -5,19 +5,57 @@
 
 #include <petsc/private/khash/khash.h>
 
-/// This type represents a boundary condition implemented by a function, a
-/// context, and a destructor.
-typedef struct BoundaryCondition {
+/// Types of mechanical boundary conditions
+typedef enum {
+  TDY_NO_MECHANICAL_BC = 0,
+  TDY_PRESSURE_BC,
+  TDY_VELOCITY_BC,
+  TDY_SEEPAGE_BC
+} MechanicalBCType;
+
+/// This type represents a mechanical boundary condition defined by a function,
+/// a context, and a destructor.
+typedef struct MechanicalBC {
+  /// type of boundary condition
+  MechanicalBCType type;
   /// context pointer
   void *context;
   /// vectorized function for computing boundary values
   PetscErrorCode (*compute)(void*,PetscInt,PetscReal*,PetscReal*);
   /// destructor
   void (*dtor)(void*);
-} BoundaryCondition;
+} MechanicalBC;
 
-// This maps a sparse set of face set indices to boundary conditions.
-KHASH_MAP_INIT_INT(TDY_BC, BoundaryCondition)
+/// Types of thermal boundary conditions
+typedef enum {
+  TDY_NO_THERMAL_BC = 0,
+  TDY_TEMPERATURE_BC,
+  TDY_HEAT_FLUX_BC,
+} ThermalBCType;
+
+/// This type represents a thermal boundary condition defined by a function, a
+/// context, and a destructor.
+typedef struct ThermalBC {
+  /// type of boundary condition
+  ThermalBCType type;
+  /// context pointer
+  void *context;
+  /// vectorized function for computing boundary values
+  PetscErrorCode (*compute)(void*,PetscInt,PetscReal*,PetscReal*);
+  /// destructor
+  void (*dtor)(void*);
+} ThermalBC;
+
+/// This type holds a mechanical and a thermal boundary condition that can be
+/// associated with a face set via the hash map below.
+typedef struct BoundaryConditions {
+  MechanicalBC mechanical_bc;
+  ThermalBC    thermal_bc;
+} BoundaryConditions;
+
+// This maps a sparse set of face set indices to mechanical and thermal
+// boundary conditions.
+KHASH_MAP_INIT_INT(TDY_BC, BoundaryConditions)
 
 /// This type gathers settings related to boundary and source/sink conditions.
 typedef struct Conditions {
@@ -58,26 +96,20 @@ PETSC_INTERN PetscBool ConditionsHasEnergyForcing(Conditions*);
 PETSC_EXTERN PetscErrorCode ConditionsComputeForcing(Conditions*,PetscInt,PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode ConditionsComputeEnergyForcing(Conditions*,PetscInt,PetscReal*,PetscReal*);
 
-// boundary condition setup functions
-PETSC_INTERN PetscErrorCode ConditionsSetBoundaryPressure(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetBoundaryTemperature(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*) , void (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetBoundaryVelocity(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
-
-// boundary condition query functions
-PETSC_INTERN PetscBool ConditionsHasBoundaryPressure(Conditions*);
-PETSC_INTERN PetscBool ConditionsHasBoundaryTemperature(Conditions*);
-PETSC_INTERN PetscBool ConditionsHasBoundaryVelocity(Conditions*);
-
-// boundary condition computation functions
-// TODO: Change to PETSC_INTERN when we fix demo/steady steady.c
-PETSC_EXTERN PetscErrorCode ConditionsComputeBoundaryPressure(Conditions*,PetscInt,PetscInt,PetscReal*,PetscReal*);
-PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryTemperature(Conditions*,PetscInt,PetscInt,PetscReal*,PetscReal*);
-PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryVelocity(Conditions*,PetscInt,PetscInt,PetscReal*,PetscReal*);
+// boundary condition setup and query functions
+PETSC_INTERN PetscErrorCode ConditionsSetBCs(Conditions*, PetscInt, BoundaryConditions);
+PETSC_INTERN PetscErrorCode ConditionsGetBCs(Conditions*, PetscInt, BoundaryConditions*);
 
 // boundary condition convenience functions
-PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundaryPressure(Conditions*,PetscInt,PetscReal);
-PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundaryTemperature(Conditions*,PetscInt,PetscReal);
-PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundaryVelocity(Conditions*,PetscInt,PetscReal);
+PETSC_INTERN PetscErrorCode CreateConstantPressureBC(MechanicalBC*,PetscReal);
+PETSC_INTERN PetscErrorCode CreateConstantVelocityBC(MechanicalBC*,PetscReal);
+PETSC_INTERN PetscErrorCode CreateSeepageBC(MechanicalBC*);
+PETSC_INTERN PetscErrorCode CreateConstantTemperatureBC(ThermalBC*,PetscReal);
+PETSC_INTERN PetscErrorCode CreateConstantHeatFluxBC(ThermalBC*,PetscReal);
+
+// boundary condition calls
+PETSC_INTERN PetscErrorCode MechanicalBCCompute(MechanicalBC*, PetscInt, PetscReal*, PetscReal*);
+PETSC_INTERN PetscErrorCode ThermalBCCompute(MechanicalBC*, PetscInt, PetscReal*, PetscReal*);
 
 #endif
 

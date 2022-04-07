@@ -67,82 +67,12 @@ PetscErrorCode ConditionsSetEnergyForcing(Conditions *conditions, void *context,
   PetscFunctionReturn(0);
 }
 
-/// Sets the function used to compute the boundary pressure.
-/// @param [in] conditions A Conditions instance
-/// @param [in] face_set The index of a face set identifying the surface on
-///                      which to specify the boundary pressure
-/// @param [in] bc A BoundaryCondition struct that can compute the boundary
-///                pressure
-PetscErrorCode ConditionsSetBoundaryPressure(Conditions *conditions,
-                                             PetscInt face_set,
-                                             BoundaryCondition bc) {
-  PetscFunctionBegin;
-  khiter_t iter = kh_get(conditions->bcs, face_set);
-  if (iter != kh_end(conditions->bcs)) { // we've already assigned a BC
-    // Destroy the previous BC.
-    BoundaryCondition prev_bc = kh_value(conditions->bcs, iter);
-    if (prev_bc.context && prev_bc.dtor) {
-      prev_bc.dtor(prev_bc.context);
-    }
-  }
-  kh_value(conditions->bcs, iter) = bc;
-  PetscFunctionReturn(0);
-}
-
-/// Sets the function used to compute the boundary temperature.
-/// @param [in] conditions A Conditions instance
-/// @param [in] context A context pointer to be passed to f
-/// @param [in] f A function that computes the boundary temperature forcing at a given number of points
-/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
-PetscErrorCode ConditionsSetBoundaryTemperature(Conditions *conditions,
-                                                void *context,
-                                                PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                                void (*dtor)(void*)) {
-  PetscFunctionBegin;
-  if (conditions->boundary_temperature_context && conditions->boundary_temperature_dtor)
-    conditions->boundary_temperature_dtor(conditions->boundary_temperature_context);
-  conditions->boundary_temperature_context = context;
-  conditions->compute_boundary_temperature = f;
-  conditions->boundary_temperature_dtor = dtor;
-  PetscFunctionReturn(0);
-}
-
-/// Sets the function used to compute the (normal) boundary velocity.
-/// @param [in] conditions A Conditions instance
-/// @param [in] context A context pointer to be passed to f
-/// @param [in] f A function that computes the boundary temperature forcing at a given number of points
-/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
-PetscErrorCode ConditionsSetBoundaryVelocity(Conditions *conditions,
-                                             void *context,
-                                             PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                             void (*dtor)(void*)) {
-  PetscFunctionBegin;
-  if (conditions->boundary_velocity_context && conditions->boundary_velocity_dtor)
-    conditions->boundary_velocity_dtor(conditions->boundary_velocity_context);
-  conditions->boundary_velocity_context = context;
-  conditions->compute_boundary_velocity = f;
-  conditions->boundary_velocity_dtor = dtor;
-  PetscFunctionReturn(0);
-}
-
 PetscBool ConditionsHasForcing(Conditions *conditions) {
   return (conditions->compute_forcing != NULL);
 }
 
 PetscBool ConditionsHasEnergyForcing(Conditions *conditions) {
   return (conditions->compute_energy_forcing != NULL);
-}
-
-PetscBool ConditionsHasBoundaryPressure(Conditions *conditions) {
-  return (conditions->compute_boundary_pressure != NULL);
-}
-
-PetscBool ConditionsHasBoundaryTemperature(Conditions *conditions) {
-  return (conditions->compute_boundary_temperature != NULL);
-}
-
-PetscBool ConditionsHasBoundaryVelocity(Conditions *conditions) {
-  return (conditions->compute_boundary_velocity != NULL);
 }
 
 PetscErrorCode ConditionsComputeForcing(Conditions *conditions, PetscInt n,
@@ -157,25 +87,53 @@ PetscErrorCode ConditionsComputeEnergyForcing(Conditions *conditions,
                                             n, x, E);
 }
 
-PetscErrorCode ConditionsComputeBoundaryPressure(Conditions *conditions,
-                                                 PetscInt n, PetscReal *x,
-                                                 PetscReal *p) {
-  return conditions->compute_boundary_pressure(conditions->boundary_pressure_context,
-                                               n, x, p);
+/// Sets mechanical and thermal boundary conditions on the face set with the
+/// given index.
+/// @param [in] conditions A Conditions instance
+/// @param [in] face_set The index of a face set identifying the surface on
+///                      which to specify the boundary pressure
+/// @param [in] bcs A BoundaryConditions struct holding the desired mechanical
+///                 and thermal boundary conditions
+PetscErrorCode ConditionsSetBCs(Conditions *conditions,
+                                PetscInt face_set,
+                                BoundaryConditions bcs) {
+  PetscFunctionBegin;
+  khiter_t iter = kh_get(conditions->bcs, face_set);
+  if (iter != kh_end(conditions->bcs)) { // we've already assigned a BC
+    // Destroy the previous BC.
+    BoundaryConditions prev_bcs = kh_value(conditions->bcs, iter);
+    if (prev_bcs.mechanical_bc.context && prev_bcs.mechanical_bc.dtor) {
+      prev_bcs.mechanical_bc.dtor(prev_bcs.mechanical_bc.context);
+    }
+    if (prev_bcs.thermal_bc.context && prev_bcs.thermal_bc.dtor) {
+      prev_bcs.thermal_bc.dtor(prev_bcs.thermal_bc.context);
+    }
+  } else {
+    int ret;
+    iter = kh_put(TDY_BCS, conditions->bcs, face_set, &ret);
+  }
+  kh_value(conditions->bcs, iter) = bcs;
+  PetscFunctionReturn(0);
 }
 
-PetscErrorCode ConditionsComputeBoundaryTemperature(Conditions *conditions,
-                                                    PetscInt n, PetscReal *x,
-                                                    PetscReal *T) {
-  return conditions->compute_boundary_temperature(conditions->boundary_temperature_context,
-                                                  n, x, T);
-}
-
-PetscErrorCode ConditionsComputeBoundaryVelocity(Conditions *conditions,
-                                                 PetscInt n, PetscReal *x,
-                                                 PetscReal *v) {
-  return conditions->compute_boundary_velocity(conditions->boundary_velocity_context,
-                                               n, x, v);
+/// Retrieves mechanical and thermal boundary conditions on the face set with
+/// the given index.
+/// @param [in] conditions A Conditions instance
+/// @param [in] face_set The index of a face set identifying the surface on
+///                      which to specify the boundary pressure
+/// @param [in] bcs Storage for the retrieved boundary conditions. If no
+///                 boundary conditions exist on the given face set, *bcs is
+///                 zero-initialized (indicating no boundary conditions).
+PetscErrorCode ConditionsGetBCs(Conditions *conditions,
+                                PetscInt face_set,
+                                BoundaryConditions *bcs) {
+  PetscFunctionBegin;
+  *bcs = (BoundaryConditions){0};
+  khiter_t iter = kh_get(TDY_BCS, conditions->bcs, face_set);
+  if (iter != kh_end(conditions->bcs)) {
+    *bcs = kh_val(conditions->bcs, iter);
+  }
+  PetscFunctionReturn(0);
 }
 
 static PetscErrorCode ConstantBoundaryFn(void *context,
@@ -189,35 +147,58 @@ static PetscErrorCode ConstantBoundaryFn(void *context,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode ConditionsSetConstantBoundaryPressure(Conditions *conditions,
-                                                     PetscReal p0) {
+PetscErrorCode CreateConstantPressureBC(MechanicalBC *bc, PetscReal p0) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = p0;
-  ierr = ConditionsSetBoundaryPressure(conditions, val, ConstantBoundaryFn,
-                                       free); CHKERRQ(ierr);
+  bc->type = TDY_PRESSURE_BC;
+  bc->context = val;
+  bc->compute = ConstantBoundaryFn;
+  bc->dtor = free;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode ConditionsSetConstantBoundaryTemperature(Conditions *conditions,
-                                                        PetscReal T0) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  PetscReal *val = malloc(sizeof(PetscReal));
-  *val = T0;
-  ierr = ConditionsSetBoundaryTemperature(conditions, val, ConstantBoundaryFn,
-                                          free); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode ConditionsSetConstantBoundaryVelocity(Conditions *conditions,
-                                                     PetscReal v0) {
+PetscErrorCode CreateConstantVelocityBC(MechanicalBC *bc, PetscReal v0) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = v0;
-  ierr = ConditionsSetBoundaryVelocity(conditions, val, ConstantBoundaryFn,
-                                       free); CHKERRQ(ierr);
+  bc->type = TDY_VELOCITY_BC;
+  bc->context = val;
+  bc->compute = ConstantBoundaryFn;
+  bc->dtor = free;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode CreateSeepageBC(MechanicalBC *bc) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  *bc = (MechanicalBC){0};
+  bc->type = TDY_SEEPAGE_BC;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode CreateConstantTemperatureBC(ThermalBC *bc, PetscReal T0) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  PetscReal *val = malloc(sizeof(PetscReal));
+  *val = T0;
+  bc->type = TDY_TEMPERATURE_BC;
+  bc->context = val;
+  bc->compute = ConstantBoundaryFn;
+  bc->dtor = free;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode CreateConstantHeatFluxBC(ThermalBC *bc, PetscReal Q0) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  PetscReal *val = malloc(sizeof(PetscReal));
+  *val = Q0;
+  bc->type = TDY_HEAT_FLUX_BC;
+  bc->context = val;
+  bc->compute = ConstantBoundaryFn;
+  bc->dtor = free;
   PetscFunctionReturn(0);
 }
