@@ -24,7 +24,7 @@ typedef struct Conditions {
   PetscErrorCode (*compute_boundary_pressure)(void*,PetscInt,PetscReal*,PetscReal*);
 
   /// Set the pressure at a set of given points on the boundary.
-  PetscErrorCode (*set_boundary_pressure_type)(void*,PetscInt,PetscReal*,PetscInt*);
+  PetscErrorCode (*assign_boundary_pressure_type)(void*,PetscInt,PetscReal*,PetscInt*);
 
   /// Compute the temperature at a set of given points on the boundary.
   PetscErrorCode (*compute_boundary_temperature)(void*,PetscInt,PetscReal*,PetscReal*);
@@ -58,6 +58,7 @@ PETSC_INTERN PetscErrorCode ConditionsSetBoundaryVelocity(Conditions*, void*, Pe
 PETSC_INTERN PetscBool ConditionsHasForcing(Conditions*);
 PETSC_INTERN PetscBool ConditionsHasEnergyForcing(Conditions*);
 PETSC_INTERN PetscBool ConditionsHasBoundaryPressure(Conditions*);
+PETSC_INTERN PetscBool ConditionsHasBoundaryPressureType(Conditions*);
 PETSC_INTERN PetscBool ConditionsHasBoundaryTemperature(Conditions*);
 PETSC_INTERN PetscBool ConditionsHasBoundaryVelocity(Conditions*);
 
@@ -67,6 +68,7 @@ PETSC_EXTERN PetscErrorCode ConditionsComputeForcing(Conditions*,PetscInt,PetscR
 PETSC_INTERN PetscErrorCode ConditionsComputeEnergyForcing(Conditions*,PetscInt,PetscReal*,PetscReal*);
 // TODO: Change to PETSC_INTERN when we fix demo/steady steady.c
 PETSC_EXTERN PetscErrorCode ConditionsComputeBoundaryPressure(Conditions*,PetscInt,PetscReal*,PetscReal*);
+PETSC_EXTERN PetscErrorCode ConditionsAssignBoundaryPressureType(Conditions*,PetscInt,PetscReal*,PetscInt*);
 PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryTemperature(Conditions*,PetscInt,PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryVelocity(Conditions*,PetscInt,PetscReal*,PetscReal*);
 

@@ -84,7 +84,7 @@ PetscErrorCode ConditionsSetBoundaryPressureType(Conditions *conditions, void *c
   if (conditions->boundary_pressure_type_context && conditions->boundary_pressure_type_dtor)
     conditions->boundary_pressure_type_dtor(conditions->boundary_pressure_type_context);
   conditions->boundary_pressure_type_context = context;
-  conditions->set_boundary_pressure_type = f;
+  conditions->assign_boundary_pressure_type = f;
   conditions->boundary_pressure_type_dtor = dtor;
   PetscFunctionReturn(0);
 }
@@ -137,6 +137,10 @@ PetscBool ConditionsHasBoundaryPressure(Conditions *conditions) {
   return (conditions->compute_boundary_pressure != NULL);
 }
 
+PetscBool ConditionsHasBoundaryPressureType(Conditions *conditions) {
+  return (conditions->assign_boundary_pressure_type != NULL);
+}
+
 PetscBool ConditionsHasBoundaryTemperature(Conditions *conditions) {
   return (conditions->compute_boundary_temperature != NULL);
 }
@@ -162,6 +166,12 @@ PetscErrorCode ConditionsComputeBoundaryPressure(Conditions *conditions,
                                                  PetscReal *p) {
   return conditions->compute_boundary_pressure(conditions->boundary_pressure_context,
                                                n, x, p);
+}
+PetscErrorCode ConditionsAssignBoundaryPressureType(Conditions *conditions,
+                                                 PetscInt n, PetscReal *x,
+                                                 PetscInt *btype) {
+  return conditions->assign_boundary_pressure_type(conditions->boundary_pressure_type_context,
+                                               n, x, btype);
 }
 
 PetscErrorCode ConditionsComputeBoundaryTemperature(Conditions *conditions,

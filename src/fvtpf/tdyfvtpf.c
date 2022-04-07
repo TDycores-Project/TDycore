@@ -325,13 +325,25 @@ static PetscErrorCode AllocateMemoryForSourceSinkValues(TDyFVTPF *fvtpf) {
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode SetFaceBoundaryConditionType(TDyFVTPF *fvtpf) {
+static PetscErrorCode SetFaceBoundaryConditionType(TDyFVTPF *fvtpf, Conditions *condition) {
 
-  TDyMesh *mesh = fvtpf->mesh;
-  PetscErrorCode ierr;
+  if (ConditionsHasBoundaryPressureType(condition)) {
+    TDyMesh  *mesh = fvtpf->mesh;
+    PetscErrorCode ierr;
 
-  TDyFace *faces = &mesh->faces;
+    PetscInt boundary_type;
+    for (PetscInt iface=0; iface<mesh->num_faces; iface++){
+      TDyCoordinate face_centroid;
 
+      ierr = TDyMeshGetFaceCentroid(mesh, iface, &face_centroid); CHKERRQ(ierr);
+      ierr = ConditionsAssignBoundaryPressureType(condition, 1, &(face_centroid.X[0]), &boundary_type); CHKERRQ(ierr);
+      if (boundary_type < DIRICHLET_BC || boundary_type > SEEPAGE_BC) {
+        char error_msg[100];
+        sprintf(error_msg,"The boundary pressure type is %d that is outside the allowable range of [%d %d]\n",boundary_type,DIRICHLET_BC,SEEPAGE_BC);
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,error_msg);
+      }
+    }
+  }
 
   PetscFunctionReturn(0);
 }
@@ -597,7 +609,7 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, DM dm, EOS *eos,
 
   ierr = AllocateMemoryForBoundaryValues(fvtpf, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(fvtpf); CHKERRQ(ierr);
-  ierr = SetFaceBoundaryConditionType(fvtpf); CHKERRQ(ierr);
+  ierr = SetFaceBoundaryConditionType(fvtpf, conditions); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
