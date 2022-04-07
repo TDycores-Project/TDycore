@@ -14,7 +14,7 @@ module tdycore
   public
 
   private :: spatial_funcs_, spatial_func_names_, last_spatial_func_id_, &
-             SpatialFunctionWrapper, FindOrAppendSpatialFunction, &
+             SpatialFunctionWrapper, IntegerSpatialFunctionWrapper, FindOrAppendSpatialFunction, &
              RegisterSpatialFunction, GetSpatialFunction
 
   !> A TDySpatialFunction is a function that computes values f on n points x,
@@ -28,13 +28,30 @@ module tdycore
     end subroutine
   end interface
 
+  !> A TDyIntegerSpatialFunction is a function that computes values f on n points x,
+  !> indicating any (non-zero) error status in err.
+  abstract interface
+    subroutine TDyIntegerSpatialFunction(n, x, f, ierr)
+      PetscInt,                intent(in)  :: n
+      PetscReal, dimension(:), intent(in)  :: x
+      PetscInt, dimension(:), intent(out) :: f
+      PetscErrorCode,          intent(out) :: ierr
+    end subroutine
+  end interface
+
   ! Derived type that wraps TDySpatialFunctions.
   type :: SpatialFunctionWrapper
     procedure(TDySpatialFunction), pointer, nopass :: f => null()
   end type
 
+  ! Derived type that wraps TDyIntegerSpatialFunction.
+  type :: IntegerSpatialFunctionWrapper
+    procedure(TDyIntegerSpatialFunction), pointer, nopass :: f => null()
+  end type
+
   ! An array of Fortran TDySpatialFunctions and any associated names
   type(SpatialFunctionWrapper), dimension(:), allocatable :: spatial_funcs_
+  type(IntegerSpatialFunctionWrapper), dimension(:), allocatable :: integer_spatial_funcs_
   character(len=32), dimension(:), allocatable :: spatial_func_names_
 
   ! The ID of the most recently added spatial function
@@ -303,7 +320,26 @@ module tdycore
     call f_func(n, f_x, f_f, ierr)
   end subroutine
 
-  ! This function finds the ID of the given spatial function, or appends it to
+  subroutine TDyCallF90IntegerSpatialFunction(id, n, c_x, c_f, ierr) &
+    bind(c, name="TDyCallF90IntegerSpatialFunction")
+  use, intrinsic :: iso_c_binding
+  implicit none
+  integer(c_int), value, intent(in) :: id
+  integer(c_int), value, intent(in) :: n
+  type(c_ptr),    value, intent(in) :: c_x, c_f
+  integer(c_int),       intent(out) :: ierr
+
+  procedure(TDyIntegerSpatialFunction), pointer :: f_func
+  real(c_double), dimension(:), pointer  :: f_x
+  integer(c_int), dimension(:), pointer ::  f_f
+
+  f_func => integer_spatial_funcs_(id)%f
+  call c_f_pointer(c_x, f_x, [n])
+  call c_f_pointer(c_f, f_f, [n])
+  call f_func(n, f_x, f_f, ierr)
+end subroutine
+
+! This function finds the ID of the given spatial function, or appends it to
   ! the list if it's not found. In either case, the resulting ID is returned.
   function FindOrAppendSpatialFunction(func) result(id)
     implicit none

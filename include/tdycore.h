@@ -160,6 +160,7 @@ PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeatFunction(TDy,TDyScalarSpatialF
 PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetEnergyForcingFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureTypeFunction(TDy,TDyScalarSpatialIntegerFunction);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryTemperatureFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryVelocityFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySelectForcingFunction(TDy,const char*);

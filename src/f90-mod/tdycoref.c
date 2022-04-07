@@ -248,10 +248,17 @@ typedef struct F90SpatialFunctionWrapper {
   PetscInt dim, id;
 } F90SpatialFunctionWrapper;
 
+typedef struct F90IntegerSpatialFunctionWrapper {
+  PetscInt dim, id;
+} F90IntegerSpatialFunctionWrapper;
+
 // This subroutine is defined on the Fortran side and calls the Fortran-defined
 // spatial function with the given ID.
 extern void TDyCallF90SpatialFunction(PetscInt, PetscInt, PetscReal*,
                                       PetscReal*, PetscErrorCode*);
+
+extern void TDyCallF90IntegerSpatialFunction(PetscInt, PetscInt, PetscReal*,
+                                      PetscInt*, PetscErrorCode*);
 
 // This creates a wrapped F90 function context.
 static PetscErrorCode CreateF90SpatialFunctionContext(PetscInt dim,
@@ -267,6 +274,20 @@ static PetscErrorCode CreateF90SpatialFunctionContext(PetscInt dim,
   PetscFunctionReturn(0);
 }
 
+// This creates a wrapped F90 function context.
+static PetscErrorCode CreateF90IntegerSpatialFunctionContext(PetscInt dim,
+                                                      PetscInt id,
+                                                      void **context) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  F90IntegerSpatialFunctionWrapper *wrapper;
+  ierr = PetscMalloc(sizeof(F90IntegerSpatialFunctionWrapper), &wrapper); CHKERRQ(ierr);
+  wrapper->dim = dim;
+  wrapper->id = id;
+  *context = wrapper;
+  PetscFunctionReturn(0);
+}
+
 // This calls the F90 function embedded within its context.
 static PetscErrorCode WrappedF90SpatialFunction(void *context, PetscInt n,
                                                 PetscReal *x, PetscReal *f) {
@@ -274,6 +295,15 @@ static PetscErrorCode WrappedF90SpatialFunction(void *context, PetscInt n,
   PetscFunctionBegin;
   F90SpatialFunctionWrapper *wrapper = context;
   TDyCallF90SpatialFunction(wrapper->id, n, x, f, &ierr); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode WrappedF90IntegerSpatialFunction(void *context, PetscInt n,
+                                                PetscReal *x, PetscInt *f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  F90SpatialFunctionWrapper *wrapper = context;
+  TDyCallF90IntegerSpatialFunction(wrapper->id, n, x, f, &ierr); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -369,9 +399,23 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   PetscFunctionReturn(0); \
 } \
 
+#define WRAP_CONDITION_INTEGER(f90_fn, condition_fn, wrapper_fn) \
+PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
+  PetscErrorCode ierr; \
+  PetscFunctionBegin; \
+  PetscInt dim; \
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr); \
+  void *context; \
+  ierr = CreateF90IntegerSpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
+  ierr = condition_fn(tdy->conditions, context, wrapper_fn, DestroyContext); \
+  CHKERRQ(ierr); \
+  PetscFunctionReturn(0); \
+} \
+
 WRAP_CONDITION(TDySetForcingFunctionF90, ConditionsSetForcing, WrappedF90SpatialFunction)
 WRAP_CONDITION(TDySetEnergyForcingFunctionF90, ConditionsSetEnergyForcing, WrappedF90SpatialFunction)
 WRAP_CONDITION(TDySetBoundaryPressureFunctionF90, ConditionsSetBoundaryPressure, WrappedF90SpatialFunction)
+WRAP_CONDITION_INTEGER(TDySetBoundaryPressureTypeFunctionF90, ConditionsSetBoundaryPressureType, WrappedF90IntegerSpatialFunction)
 WRAP_CONDITION(TDySetBoundaryTemperatureFunctionF90, ConditionsSetBoundaryTemperature, WrappedF90SpatialFunction)
 WRAP_CONDITION(TDySetBoundaryVelocityFunctionF90, ConditionsSetBoundaryVelocity, WrappedF90SpatialFunction)
 
