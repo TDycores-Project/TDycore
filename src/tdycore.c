@@ -462,6 +462,326 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
   PetscFunctionReturn(0);
 }
 
+// Fetches a pointer to the boundary condition within bcs corresponding to
+// the boundary with the given name.
+static PetscErrorCode GetBoundaryCondition(MPI_Comm comm,
+                                           PetscInt num_boundaries,
+                                           char *boundary_names[num_boundaries],
+                                           const char *boundary,
+                                           BoundaryConditions *bcs,
+                                           BoundaryConditions **bc) {
+  PetscFunctionBegin;
+
+  // Find this boundary in our master list.
+  PetscInt b;
+  for (b = 0; b < num_boundaries; ++b) {
+    if (!strcmp(boundary, boundary_names[b])) {
+      break;
+    }
+  }
+  if (b == num_boundaries) { // not found
+    SETERRQ(comm, PETSC_ERR_USER,
+            "A boundary condition was assigned to an unknown "
+            "boundary. Please make sure to assign boundary conditions to "
+            "existing boundaries or face sets.");
+  }
+  *bc = &bcs[b];
+  PetscFunctionReturn(0);
+}
+
+// This struct is stored in a context and used to call a spatial function with a
+// NULL context.
+typedef struct WrapperStruct {
+  TDySpatialFunction func;
+} WrapperStruct;
+
+// This function calls an underlying Function with a NULL context.
+static PetscErrorCode WrapperFunction(void *context, PetscInt n, PetscReal *x, PetscReal *v) {
+  WrapperStruct *wrapper = context;
+  wrapper->func(n, x, v);
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode GetBCsForBoundaries(TDy tdy,
+                                          PetscInt num_boundaries,
+                                          char *boundary_names[num_boundaries],
+                                          BoundaryConditions *bcs) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  char *spec_boundaries[num_boundaries];
+  PetscInt num_spec_boundaries = num_boundaries;
+  PetscBool bc_defined;
+
+  // Zero out boundary conditions so they're undefined.
+  memset(bcs, 0, sizeof(BoundaryConditions) * num_boundaries);
+
+  // Look for pressure boundary conditions.
+  ierr = PetscOptionsGetStringArray(NULL, NULL, "-tdy_bc_pressure",
+                                    spec_boundaries, &num_spec_boundaries,
+                                    &bc_defined); CHKERRQ(ierr);
+  if (bc_defined) {
+    for (PetscInt i = 0; i < num_spec_boundaries; ++i) {
+      const char *boundary = (const char*)spec_boundaries[i];
+
+      // Fetch the specific boundary condition for this boundary.
+      BoundaryConditions *bc_i;
+      ierr = GetBoundaryCondition(comm, num_boundaries, boundary_names,
+                                  boundary, bcs, &bc_i);
+      CHKERRQ(ierr);
+
+      // Are we given a pressure value?
+      char option_name[256];
+      snprintf(option_name, 255, "-tdy_bc_pressure_%s_value", boundary);
+      PetscReal p0;
+      PetscBool value_defined;
+      ierr = PetscOptionsGetReal(NULL, NULL, option_name, &p0, &value_defined);
+      if (value_defined) {
+        CreateConstantPressureBC(&bc_i->flow_bc, p0);
+      } else {
+        // No value defined. Is there a function assigned?
+        snprintf(option_name, 128, "-tdy_bc_pressure_%s_function", boundary);
+        char func_name[64];
+        ierr = PetscOptionsGetString(NULL, NULL, option_name, func_name, 64,
+                                     &value_defined); CHKERRQ(ierr);
+        if (value_defined) {
+          // Fetch the registered function.
+          WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+          ierr = TDyGetFunction((const char*)func_name, &wrapper->func);
+          CHKERRQ(ierr);
+          bc_i->flow_bc = (FlowBC){
+            .type = TDY_PRESSURE_BC,
+            .context = wrapper,
+            .compute = WrapperFunction,
+            .dtor = free
+          };
+        } else {
+          SETERRQ(comm, PETSC_ERR_USER,
+                  "A pressure boundary condition was assigned to a boundary, "
+                  "but the boundary condition was not defined on that "
+                  "boundary. Please specify a pressure value or the name of a "
+                  "pressure function for each relevant boundary/face set.");
+        }
+      }
+
+      PetscFree(spec_boundaries[i]);
+    }
+  }
+
+  // Look for no-flow boundary conditions.
+  ierr = PetscOptionsGetStringArray(NULL, NULL, "-tdy_bc_noflow",
+                                    spec_boundaries, &num_spec_boundaries,
+                                    &bc_defined); CHKERRQ(ierr); CHKERRQ(ierr);
+  if (bc_defined) {
+    for (PetscInt i = 0; i < num_spec_boundaries; ++i) {
+      const char *boundary = (const char*)spec_boundaries[i];
+
+      // Fetch the specific boundary condition for this boundary.
+      BoundaryConditions *bc_i;
+      ierr = GetBoundaryCondition(comm, num_boundaries, boundary_names,
+                                  boundary, bcs, &bc_i);
+      CHKERRQ(ierr);
+
+      if (bc_i->flow_bc.type != TDY_UNDEFINED_FLOW_BC) {
+        SETERRQ(comm, PETSC_ERR_USER,
+                "A noflow boundary condition was assigned to a boundary "
+                "previously assigned to a pressure boundary condition. Please "
+                "check that each boundary is assigned only one flow BC.");
+      }
+      CreateConstantVelocityBC(&bc_i->flow_bc, 0.0);
+
+      PetscFree(spec_boundaries[i]);
+    }
+  }
+
+  // Look for seepage boundary conditions.
+  ierr = PetscOptionsGetStringArray(NULL, NULL, "-tdy_bc_seepage",
+                                    spec_boundaries, &num_spec_boundaries,
+                                    &bc_defined); CHKERRQ(ierr);
+  if (bc_defined) {
+    for (PetscInt i = 0; i < num_spec_boundaries; ++i) {
+      const char *boundary = (const char*)spec_boundaries[i];
+
+      // Fetch the specific boundary condition for this boundary.
+      BoundaryConditions *bc_i;
+      ierr = GetBoundaryCondition(comm, num_boundaries, boundary_names,
+                                  boundary, bcs, &bc_i);
+      CHKERRQ(ierr);
+
+      if (bc_i->flow_bc.type != TDY_UNDEFINED_FLOW_BC) {
+        SETERRQ(comm, PETSC_ERR_USER,
+                "A seepage boundary condition was assigned to a boundary "
+                "previously assigned to a pressure boundary condition. Please "
+                "check that each boundary is assigned only one flow BC.");
+      }
+      CreateSeepageBC(&bc_i->flow_bc);
+
+      PetscFree(spec_boundaries[i]);
+    }
+  }
+
+  // Look for temperature boundary conditions.
+  ierr = PetscOptionsGetStringArray(NULL, NULL, "-tdy_bc_temperature",
+                                    spec_boundaries, &num_spec_boundaries,
+                                    &bc_defined); CHKERRQ(ierr);
+  if (bc_defined) {
+    for (PetscInt i = 0; i < num_spec_boundaries; ++i) {
+      const char *boundary = (const char*)spec_boundaries[i];
+
+      // Fetch the specific boundary condition for this boundary.
+      BoundaryConditions *bc_i;
+      ierr = GetBoundaryCondition(comm, num_boundaries, boundary_names,
+                                  boundary, bcs, &bc_i);
+      CHKERRQ(ierr);
+
+      // Are we given a temperature value?
+      char option_name[256];
+      snprintf(option_name, 255, "-tdy_bc_temperature_%s_value", boundary);
+      PetscReal T0;
+      PetscBool value_defined;
+      ierr = PetscOptionsGetReal(NULL, NULL, option_name, &T0, &value_defined);
+      if (value_defined) {
+        CreateConstantTemperatureBC(&bc_i->thermal_bc, T0);
+      } else {
+        // No value defined. Is there a function assigned?
+        snprintf(option_name, 128, "-tdy_bc_temperature_%s_function", boundary);
+        char func_name[64];
+        ierr = PetscOptionsGetString(NULL, NULL, option_name, func_name, 64,
+                                     &value_defined); CHKERRQ(ierr);
+        if (value_defined) {
+          // Fetch the registered function.
+          WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+          ierr = TDyGetFunction((const char*)func_name, &wrapper->func);
+          CHKERRQ(ierr);
+          bc_i->thermal_bc = (ThermalBC){
+            .type = TDY_TEMPERATURE_BC,
+            .context = wrapper,
+            .compute = WrapperFunction,
+            .dtor = free
+          };
+        } else {
+          SETERRQ(comm, PETSC_ERR_USER,
+                  "A temperature boundary condition was assigned to a boundary, "
+                  "but the boundary condition was not defined on that "
+                  "boundary. Please specify a pressure value or the name of a "
+                  "pressure function for each relevant boundary/face set.");
+        }
+      }
+
+      PetscFree(spec_boundaries[i]);
+    }
+  }
+
+  // Look for thermally insulated boundary conditions.
+  ierr = PetscOptionsGetStringArray(NULL, NULL, "-tdy_bc_insulated",
+                                    spec_boundaries, &num_spec_boundaries,
+                                    &bc_defined); CHKERRQ(ierr);
+  if (bc_defined) {
+    for (PetscInt i = 0; i < num_spec_boundaries; ++i) {
+      const char *boundary = (const char*)spec_boundaries[i];
+
+      // Fetch the specific boundary condition for this boundary.
+      BoundaryConditions *bc_i;
+      ierr = GetBoundaryCondition(comm, num_boundaries, boundary_names,
+                                  boundary, bcs, &bc_i);
+      CHKERRQ(ierr);
+      if (bc_i->thermal_bc.type != TDY_UNDEFINED_THERMAL_BC) {
+        SETERRQ(comm, PETSC_ERR_USER,
+                "An insulated boundary condition was assigned to a boundary "
+                "previously assigned to a temperature boundary condition. "
+                "Please check that each boundary is assigned only one thermal "
+                "BC.");
+      }
+      CreateConstantHeatFluxBC(&bc_i->thermal_bc, 0.0);
+
+      PetscFree(spec_boundaries[i]);
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+#define MAX_BOUNDARIES 32
+#define MAX_FACE_SETS 32
+#define MAX_FACE_SETS_PER_BOUNDARY 32
+static PetscErrorCode ProcessBCOptions(TDy tdy) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  // Create source/sink/boundary conditions.
+  ierr = ConditionsCreate(&tdy->conditions); CHKERRQ(ierr);
+
+  // Are we provided with names (strings) for numbered face sets?
+  char *boundary_names[MAX_BOUNDARIES];
+  PetscInt num_boundaries = MAX_BOUNDARIES;
+  PetscBool have_boundary_names;
+  ierr = PetscOptionsGetStringArray(NULL, NULL, "-tdy_bc_sets", boundary_names,
+                                    &num_boundaries, &have_boundary_names);
+  if (have_boundary_names && (num_boundaries > 0)) {
+    // Look for boundary conditions assigned to these named boundaries.
+    BoundaryConditions bcs[num_boundaries];
+    for (PetscInt i = 0; i < num_boundaries; ++i) {
+      ierr = GetBCsForBoundaries(tdy, num_boundaries, boundary_names, bcs);
+      CHKERRQ(ierr);
+    }
+
+    // Look for options (in the form "-tdy_bc_BOUNDARY_NAME b1, b2, ..., bn")
+    // that define a named boundary (BOUNDARY_NAME) in terms of face set
+    // indices (b1, b2, ..., bn).
+    for (PetscInt i = 0; i < num_boundaries; ++i) {
+      size_t name_len = strlen(boundary_names[i]);
+      char option_name[8 + name_len + 1];
+      snprintf(option_name, 8 + name_len, "-tdy_bc_%s", boundary_names[i]);
+      PetscInt num_face_sets = MAX_FACE_SETS_PER_BOUNDARY;
+      PetscInt face_sets[MAX_FACE_SETS_PER_BOUNDARY];
+      PetscBool boundary_defined;
+      ierr = PetscOptionsGetIntArray(NULL, NULL, option_name, face_sets,
+                                     &num_face_sets, &boundary_defined);
+      if (boundary_defined) {
+        // Assign BCs to the face sets on this boundary.
+        for (PetscInt j = 0; j < num_face_sets; ++j) {
+          ierr = ConditionsSetBCs(tdy->conditions, j, bcs[i]);
+          CHKERRQ(ierr);
+        }
+      } else {
+        SETERRQ(comm, PETSC_ERR_USER,
+                "A boundary is declared but not defined. Please specify the "
+                "face sets for each boundary with -tdy_bc_BOUNDARY_NAME.");
+      }
+    }
+  } else { // no named boundaries -- face set indices only
+    // Look for boundary conditions assigned to these face sets.
+    BoundaryConditions bcs[MAX_FACE_SETS];
+    char *face_set_names[MAX_FACE_SETS];
+    for (PetscInt i = 0; i < MAX_FACE_SETS; ++i) {
+      face_set_names[i] = malloc(sizeof(char) * 33);
+      snprintf(face_set_names[i], 32, "%d", i);
+    }
+    ierr = GetBCsForBoundaries(tdy, MAX_FACE_SETS, face_set_names, bcs);
+    CHKERRQ(ierr);
+    for (PetscInt i = 0; i < MAX_FACE_SETS; ++i) {
+      free(face_set_names[i]);
+    }
+
+    // Assign BCs that are actually defined on face sets.
+    for (PetscInt i = 0; i < MAX_FACE_SETS; ++i) {
+      // Flow BCs are always required, so we check their type to see whether
+      // this face set has a BC assigned.
+      if (bcs[i].flow_bc.type != TDY_UNDEFINED_FLOW_BC) {
+        ierr = ConditionsSetBCs(tdy->conditions, i, bcs[i]);
+      }
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
 /// Sets options for the dycore based on command line arguments supplied by a
 /// user. TDySetFromOptions must be called before TDySetup,
 /// since the latter uses options specified by the former.
@@ -486,7 +806,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   ierr = PetscObjectOptionsBegin((PetscObject)tdy); CHKERRQ(ierr);
-  PetscBool flag;
 
   // Material property options
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Material property options",""); CHKERRQ(ierr);
@@ -519,54 +838,8 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
                           (PetscEnum)options->rho_type,
                           (PetscEnum *)&options->rho_type, NULL); CHKERRQ(ierr);
 
-  // Create source/sink/boundary conditions.
-  ierr = ConditionsCreate(&tdy->conditions); CHKERRQ(ierr);
+  ierr = ProcessBCOptions(tdy);
 
-  char func_name[PETSC_MAX_PATH_LEN];
-  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_pressure_bc_func", func_name,
-                               sizeof(func_name), &flag); CHKERRQ(ierr);
-  if (flag) {
-    ierr = TDySelectBoundaryPressureFunction(tdy, func_name);
-  } else {
-    ierr = PetscOptionsReal("-tdy_pressure_bc_value", "Constant boundary pressure",
-                            NULL, options->boundary_pressure,
-                            &options->boundary_pressure,&flag); CHKERRQ(ierr);
-    if (flag) {
-      ierr = ConditionsSetConstantBoundaryPressure(tdy->conditions,
-                                                   options->boundary_pressure); CHKERRQ(ierr);
-    } else { // TODO: what goes here??
-    }
-  }
-
-  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_velocity_bc_func", func_name,
-                               sizeof(func_name), &flag); CHKERRQ(ierr);
-  if (flag) {
-    ierr = TDySelectBoundaryVelocityFunction(tdy, func_name);
-  } else {
-    ierr = PetscOptionsReal("-tdy_velocity_bc_value", "Constant normal boundary velocity",
-                            NULL, options->boundary_velocity,
-                            &options->boundary_velocity,&flag); CHKERRQ(ierr);
-    if (flag) {
-      ierr = ConditionsSetConstantBoundaryVelocity(tdy->conditions,
-                                                   options->boundary_velocity);
-    } else { // TODO: what goes here??
-    }
-  }
-
-  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_temperature_bc_func", func_name,
-                               sizeof(func_name), &flag); CHKERRQ(ierr);
-  if (flag) {
-    ierr = TDySelectBoundaryTemperatureFunction(tdy, func_name); CHKERRQ(ierr);
-  } else {
-    ierr = PetscOptionsReal("-tdy_temperature_bc_value", "Constant boundary temperature",
-                            NULL, options->boundary_temperature,
-                            &options->boundary_temperature,&flag); CHKERRQ(ierr);
-    if (flag) {
-      ierr = ConditionsSetConstantBoundaryTemperature(tdy->conditions,
-                                                      options->boundary_temperature);
-    } else { // TODO: what goes here??
-    }
-  }
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Numerics options
@@ -1106,19 +1379,6 @@ PetscErrorCode TDySetSoilSpecificHeatFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
-// This struct is stored in a context and used to call a spatial function with a
-// NULL context.
-typedef struct WrapperStruct {
-  TDySpatialFunction func;
-} WrapperStruct;
-
-// This function calls an underlying Function with a NULL context.
-static PetscErrorCode WrapperFunction(void *context, PetscInt n, PetscReal *x, PetscReal *v) {
-  WrapperStruct *wrapper = context;
-  wrapper->func(n, x, v);
-  PetscFunctionReturn(0);
-}
-
 PetscErrorCode TDySetForcingFunction(TDy tdy,
                                      TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
@@ -1141,39 +1401,6 @@ PetscErrorCode TDySetEnergyForcingFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetBoundaryPressureFunction(TDy tdy,
-                                              TDyScalarSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
-  wrapper->func = f;
-  ierr = ConditionsSetBoundaryPressure(tdy->conditions, wrapper,
-                                       WrapperFunction, free); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetBoundaryTemperatureFunction(TDy tdy,
-                                                 TDyScalarSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
-  wrapper->func = f;
-  ierr = ConditionsSetBoundaryTemperature(tdy->conditions, wrapper,
-                                          WrapperFunction, free); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySetBoundaryVelocityFunction(TDy tdy,
-                                              TDyVectorSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
-  wrapper->func = f;
-  ierr = ConditionsSetBoundaryVelocity(tdy->conditions, wrapper,
-                                       WrapperFunction, free); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
 PetscErrorCode TDySelectForcingFunction(TDy tdy,
                                         const char *func_name) {
   PetscErrorCode ierr;
@@ -1191,36 +1418,6 @@ PetscErrorCode TDySelectEnergyForcingFunction(TDy tdy,
   TDySpatialFunction f;
   ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
   ierr = TDySetEnergyForcingFunction(tdy, f); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySelectBoundaryPressureFunction(TDy tdy,
-                                                 const char *func_name) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  TDySpatialFunction f;
-  ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
-  ierr = TDySetBoundaryPressureFunction(tdy, f); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy tdy,
-                                                    const char *func_name) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  TDySpatialFunction f;
-  ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
-  ierr = TDySetBoundaryTemperatureFunction(tdy, f); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-PetscErrorCode TDySelectBoundaryVelocityFunction(TDy tdy,
-                                                 const char *func_name) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  TDySpatialFunction f;
-  ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
-  ierr = TDySetBoundaryVelocityFunction(tdy, f); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
