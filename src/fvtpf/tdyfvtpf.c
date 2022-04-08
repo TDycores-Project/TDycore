@@ -329,6 +329,7 @@ static PetscErrorCode SetFaceBoundaryConditionType(TDyFVTPF *fvtpf, Conditions *
 
   if (ConditionsHasBoundaryPressureType(condition)) {
     TDyMesh  *mesh = fvtpf->mesh;
+    TDyFace  *faces = &mesh->faces;
     PetscErrorCode ierr;
 
     PetscInt boundary_type;
@@ -342,6 +343,7 @@ static PetscErrorCode SetFaceBoundaryConditionType(TDyFVTPF *fvtpf, Conditions *
         sprintf(error_msg,"The boundary pressure type is %d that is outside the allowable range of [%d %d]\n",boundary_type,DIRICHLET_BC,SEEPAGE_BC);
         SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,error_msg);
       }
+      faces->bc_type[iface] = boundary_type;
     }
   }
 
