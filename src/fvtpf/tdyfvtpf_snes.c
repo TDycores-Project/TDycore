@@ -411,7 +411,7 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 
     if (!faces->is_local[iface]) continue; // skip non-local face
     if (!faces->is_internal[iface]) continue; // skip internal faces
-    if (!(faces->bc_type[iface] == NEUMANN_BC)) continue; // skip non-flux faces
+    if (faces->bc_type[iface] == NEUMANN_BC) continue; // skip non-flux faces
 
     PetscInt *cell_ids, num_face_cells;
     ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
@@ -493,7 +493,7 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
 
     if (!faces->is_local[iface]) continue; // skip non-local face
     if (!faces->is_internal[iface]) continue; // skip internal faces
-    if (!(faces->bc_type[iface] == NEUMANN_BC)) continue; // skip non-flux faces
+    if (faces->bc_type[iface] == NEUMANN_BC) continue; // skip non-flux faces
 
     PetscInt *cell_ids, num_face_cells;
     ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
