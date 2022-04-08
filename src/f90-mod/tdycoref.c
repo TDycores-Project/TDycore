@@ -347,8 +347,8 @@ WRAP_MATPROP(TDySetSoilDensityFunctionF90, MaterialPropSetSoilDensity, WrappedF9
 WRAP_MATPROP(TDySetSoilSpecificHeat, MaterialPropSetSoilSpecificHeat, WrappedF90SpatialFunction)
 
 // This macro can be used to expose a Fortran 90 subroutine that assigns a
-// spatial function to a boundary condition/source/sink.
-#define WRAP_CONDITION(f90_fn, condition_fn, wrapper_fn) \
+// spatial function to a source/sink.
+#define WRAP_SOURCE(f90_fn, set_source_fn, wrapper_fn) \
 PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   PetscErrorCode ierr; \
   PetscFunctionBegin; \
@@ -356,14 +356,44 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr); \
   void *context; \
   ierr = CreateF90SpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
-  ierr = condition_fn(tdy->conditions, context, wrapper_fn, DestroyContext); \
+  ierr = set_source_fn(tdy->conditions, context, wrapper_fn, DestroyContext); \
   CHKERRQ(ierr); \
   PetscFunctionReturn(0); \
 } \
 
-WRAP_CONDITION(TDySetForcingFunctionF90, ConditionsSetForcing, WrappedF90SpatialFunction)
-WRAP_CONDITION(TDySetEnergyForcingFunctionF90, ConditionsSetEnergyForcing, WrappedF90SpatialFunction)
-WRAP_CONDITION(TDySetBoundaryPressureFunctionF90, ConditionsSetBoundaryPressure, WrappedF90SpatialFunction)
-WRAP_CONDITION(TDySetBoundaryTemperatureFunctionF90, ConditionsSetBoundaryTemperature, WrappedF90SpatialFunction)
-WRAP_CONDITION(TDySetBoundaryVelocityFunctionF90, ConditionsSetBoundaryVelocity, WrappedF90SpatialFunction)
+WRAP_SOURCE(TDySetForcingFunctionF90, ConditionsSetForcing, WrappedF90SpatialFunction)
+WRAP_SOURCE(TDySetEnergyForcingFunctionF90, ConditionsSetEnergyForcing, WrappedF90SpatialFunction)
+
+// This function assigns ids associated with mechanical and thermal
+// boundary conditions to the face set with the given index.
+PETSC_EXTERN PetscErrorCode TDyConditionsSetBCsF90(TDy tdy,
+                                                   PetscInt face_set,
+                                                   MechanicalBCType mech_bc_type,
+                                                   PetscInt mech_bc_id,
+                                                   ThermalBCType thermal_bc_type,
+                                                   PetscInt thermal_bc_id) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  void *mech_context, *thermal_context;
+  ierr = CreateF90SpatialFunctionContext(dim, mech_bc_id, &mech_context); CHKERRQ(ierr);
+  ierr = CreateF90SpatialFunctionContext(dim, thermal_bc_id, &thermal_context); CHKERRQ(ierr);
+  BoundaryConditions bcs = {
+    .mechanical_bc = (MechanicalBC){
+      .type    = mech_bc_type,
+      .context = mech_context,
+      .compute = WrappedF90SpatialFunction,
+      .dtor    = DestroyContext
+    },
+    .thermal_bc = (ThermalBC){
+      .type    = thermal_bc_type,
+      .context = thermal_context,
+      .compute = WrappedF90SpatialFunction,
+      .dtor    = DestroyContext
+    }
+  };
+  ierr = ConditionsSetBCs(tdy->conditions, face_set, bcs); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
 

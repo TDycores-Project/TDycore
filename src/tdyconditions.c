@@ -19,12 +19,15 @@ PetscErrorCode ConditionsDestroy(Conditions* conditions) {
 
   // Clean up boundary conditions.
   for (khiter_t iter = kh_begin(conditions->bcs);
-                iter != kh_end(conditions->bc);
+                iter != kh_end(conditions->bcs);
               ++iter) {
     if (!kh_exist(conditions->bcs, iter)) continue;
-    BoundaryCondition bc = kh_value(conditions->bcs, iter);
-    if (bc.context && bc.dtor) {
-      bc.dtor(bc.context);
+    BoundaryConditions bcs = kh_value(conditions->bcs, iter);
+    if (bcs.mechanical_bc.context && bcs.mechanical_bc.dtor) {
+      bcs.mechanical_bc.dtor(bcs.mechanical_bc.context);
+    }
+    if (bcs.thermal_bc.context && bcs.thermal_bc.dtor) {
+      bcs.thermal_bc.dtor(bcs.thermal_bc.context);
     }
   }
   kh_destroy(TDY_BC, conditions->bcs);
@@ -98,7 +101,7 @@ PetscErrorCode ConditionsSetBCs(Conditions *conditions,
                                 PetscInt face_set,
                                 BoundaryConditions bcs) {
   PetscFunctionBegin;
-  khiter_t iter = kh_get(conditions->bcs, face_set);
+  khiter_t iter = kh_get(TDY_BC, conditions->bcs, face_set);
   if (iter != kh_end(conditions->bcs)) { // we've already assigned a BC
     // Destroy the previous BC.
     BoundaryConditions prev_bcs = kh_value(conditions->bcs, iter);
@@ -110,7 +113,7 @@ PetscErrorCode ConditionsSetBCs(Conditions *conditions,
     }
   } else {
     int ret;
-    iter = kh_put(TDY_BCS, conditions->bcs, face_set, &ret);
+    iter = kh_put(TDY_BC, conditions->bcs, face_set, &ret);
   }
   kh_value(conditions->bcs, iter) = bcs;
   PetscFunctionReturn(0);
@@ -129,7 +132,7 @@ PetscErrorCode ConditionsGetBCs(Conditions *conditions,
                                 BoundaryConditions *bcs) {
   PetscFunctionBegin;
   *bcs = (BoundaryConditions){0};
-  khiter_t iter = kh_get(TDY_BCS, conditions->bcs, face_set);
+  khiter_t iter = kh_get(TDY_BC, conditions->bcs, face_set);
   if (iter != kh_end(conditions->bcs)) {
     *bcs = kh_val(conditions->bcs, iter);
   }
@@ -148,7 +151,6 @@ static PetscErrorCode ConstantBoundaryFn(void *context,
 }
 
 PetscErrorCode CreateConstantPressureBC(MechanicalBC *bc, PetscReal p0) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = p0;
@@ -160,7 +162,6 @@ PetscErrorCode CreateConstantPressureBC(MechanicalBC *bc, PetscReal p0) {
 }
 
 PetscErrorCode CreateConstantVelocityBC(MechanicalBC *bc, PetscReal v0) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = v0;
@@ -172,7 +173,6 @@ PetscErrorCode CreateConstantVelocityBC(MechanicalBC *bc, PetscReal v0) {
 }
 
 PetscErrorCode CreateSeepageBC(MechanicalBC *bc) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   *bc = (MechanicalBC){0};
   bc->type = TDY_SEEPAGE_BC;
@@ -180,7 +180,6 @@ PetscErrorCode CreateSeepageBC(MechanicalBC *bc) {
 }
 
 PetscErrorCode CreateConstantTemperatureBC(ThermalBC *bc, PetscReal T0) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = T0;
@@ -192,7 +191,6 @@ PetscErrorCode CreateConstantTemperatureBC(ThermalBC *bc, PetscReal T0) {
 }
 
 PetscErrorCode CreateConstantHeatFluxBC(ThermalBC *bc, PetscReal Q0) {
-  PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = Q0;
