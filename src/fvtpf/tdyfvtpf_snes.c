@@ -407,21 +407,20 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   }
 
   // Compute contribution to residual for boundary faces
-  if (!(fvtpf->bc_type == NEUMANN_BC)) {
-    for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
+  for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
 
-      if (!faces->is_local[iface]) continue; // skip non-local face
-      if (!faces->is_internal[iface]) continue; // skip internal faces
+    if (!faces->is_local[iface]) continue; // skip non-local face
+    if (!faces->is_internal[iface]) continue; // skip internal faces
+    if (!(faces->bc_type[iface] == NEUMANN_BC)) continue; // skip non-flux faces
 
-      PetscInt *cell_ids, num_face_cells;
-      ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
+    PetscInt *cell_ids, num_face_cells;
+    ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
 
-      PetscReal Res;
-      ierr = RichardsBCResidual(fvtpf, tdy->dm, tdy->matprop, iface, &Res);
+    PetscReal Res;
+    ierr = RichardsBCResidual(fvtpf, tdy->dm, tdy->matprop, iface, &Res);
 
-      PetscInt cell_id_dn = cell_ids[1];
-      r_ptr[cell_id_dn] -= Res;
-    }
+    PetscInt cell_id_dn = cell_ids[1];
+    r_ptr[cell_id_dn] -= Res;
   }
 
   PetscReal accum_current;
@@ -490,26 +489,25 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
   }
 
   // Compute contribution to Jacobian for boundary faces
-  if (!(fvtpf->bc_type == NEUMANN_BC)) {
-    for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
+  for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
 
-      if (!faces->is_local[iface]) continue; // skip non-local face
-      if (!faces->is_internal[iface]) continue; // skip internal faces
+    if (!faces->is_local[iface]) continue; // skip non-local face
+    if (!faces->is_internal[iface]) continue; // skip internal faces
+    if (!(faces->bc_type[iface] == NEUMANN_BC)) continue; // skip non-flux faces
 
-      PetscInt *cell_ids, num_face_cells;
-      ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
+    PetscInt *cell_ids, num_face_cells;
+    ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
 
-      PetscInt cell_id_dn = cell_ids[1];
-      PetscReal Jdn;
-      ierr = RichardsBCJacobian(fvtpf, tdy->dm, tdy->matprop, iface, &Jdn);
+    PetscInt cell_id_dn = cell_ids[1];
+    PetscReal Jdn;
+    ierr = RichardsBCJacobian(fvtpf, tdy->dm, tdy->matprop, iface, &Jdn);
 
-      if (cell_id_dn >= 0 && cells->is_local[cell_id_dn]) {
-        //r_ptr[cell_id_dn] -= Res;
-        Jdn *= -1.0;
-        ierr = MatSetValuesLocal(B,1,&cell_id_dn,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
-      }
-
+    if (cell_id_dn >= 0 && cells->is_local[cell_id_dn]) {
+      //r_ptr[cell_id_dn] -= Res;
+      Jdn *= -1.0;
+      ierr = MatSetValuesLocal(B,1,&cell_id_dn,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
     }
+
   }
 
   for (PetscInt icell = 0; icell<mesh->num_cells; icell++) {
