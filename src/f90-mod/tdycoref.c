@@ -364,25 +364,25 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
 WRAP_SOURCE(TDySetForcingFunctionF90, ConditionsSetForcing, WrappedF90SpatialFunction)
 WRAP_SOURCE(TDySetEnergyForcingFunctionF90, ConditionsSetEnergyForcing, WrappedF90SpatialFunction)
 
-// This function assigns ids associated with mechanical and thermal
+// This function assigns ids associated with flow and thermal
 // boundary conditions to the face set with the given index.
 PETSC_EXTERN PetscErrorCode TDyConditionsSetBCsF90(TDy tdy,
                                                    PetscInt face_set,
-                                                   MechanicalBCType mech_bc_type,
-                                                   PetscInt mech_bc_id,
+                                                   FlowBCType flow_bc_type,
+                                                   PetscInt flow_bc_id,
                                                    ThermalBCType thermal_bc_type,
                                                    PetscInt thermal_bc_id) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscInt dim;
   ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
-  void *mech_context, *thermal_context;
-  ierr = CreateF90SpatialFunctionContext(dim, mech_bc_id, &mech_context); CHKERRQ(ierr);
+  void *flow_context, *thermal_context;
+  ierr = CreateF90SpatialFunctionContext(dim, flow_bc_id, &flow_context); CHKERRQ(ierr);
   ierr = CreateF90SpatialFunctionContext(dim, thermal_bc_id, &thermal_context); CHKERRQ(ierr);
   BoundaryConditions bcs = {
-    .mechanical_bc = (MechanicalBC){
-      .type    = mech_bc_type,
-      .context = mech_context,
+    .flow_bc = (FlowBC){
+      .type    = flow_bc_type,
+      .context = flow_context,
       .compute = WrappedF90SpatialFunction,
       .dtor    = DestroyContext
     },

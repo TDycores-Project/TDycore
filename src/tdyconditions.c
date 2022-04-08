@@ -23,8 +23,8 @@ PetscErrorCode ConditionsDestroy(Conditions* conditions) {
               ++iter) {
     if (!kh_exist(conditions->bcs, iter)) continue;
     BoundaryConditions bcs = kh_value(conditions->bcs, iter);
-    if (bcs.mechanical_bc.context && bcs.mechanical_bc.dtor) {
-      bcs.mechanical_bc.dtor(bcs.mechanical_bc.context);
+    if (bcs.flow_bc.context && bcs.flow_bc.dtor) {
+      bcs.flow_bc.dtor(bcs.flow_bc.context);
     }
     if (bcs.thermal_bc.context && bcs.thermal_bc.dtor) {
       bcs.thermal_bc.dtor(bcs.thermal_bc.context);
@@ -90,12 +90,12 @@ PetscErrorCode ConditionsComputeEnergyForcing(Conditions *conditions,
                                             n, x, E);
 }
 
-/// Sets mechanical and thermal boundary conditions on the face set with the
+/// Sets flow and thermal boundary conditions on the face set with the
 /// given index.
 /// @param [in] conditions A Conditions instance
 /// @param [in] face_set The index of a face set identifying the surface on
 ///                      which to specify the boundary pressure
-/// @param [in] bcs A BoundaryConditions struct holding the desired mechanical
+/// @param [in] bcs A BoundaryConditions struct holding the desired flow
 ///                 and thermal boundary conditions
 PetscErrorCode ConditionsSetBCs(Conditions *conditions,
                                 PetscInt face_set,
@@ -105,8 +105,8 @@ PetscErrorCode ConditionsSetBCs(Conditions *conditions,
   if (iter != kh_end(conditions->bcs)) { // we've already assigned a BC
     // Destroy the previous BC.
     BoundaryConditions prev_bcs = kh_value(conditions->bcs, iter);
-    if (prev_bcs.mechanical_bc.context && prev_bcs.mechanical_bc.dtor) {
-      prev_bcs.mechanical_bc.dtor(prev_bcs.mechanical_bc.context);
+    if (prev_bcs.flow_bc.context && prev_bcs.flow_bc.dtor) {
+      prev_bcs.flow_bc.dtor(prev_bcs.flow_bc.context);
     }
     if (prev_bcs.thermal_bc.context && prev_bcs.thermal_bc.dtor) {
       prev_bcs.thermal_bc.dtor(prev_bcs.thermal_bc.context);
@@ -119,7 +119,7 @@ PetscErrorCode ConditionsSetBCs(Conditions *conditions,
   PetscFunctionReturn(0);
 }
 
-/// Retrieves mechanical and thermal boundary conditions on the face set with
+/// Retrieves flow and thermal boundary conditions on the face set with
 /// the given index.
 /// @param [in] conditions A Conditions instance
 /// @param [in] face_set The index of a face set identifying the surface on
@@ -150,7 +150,7 @@ static PetscErrorCode ConstantBoundaryFn(void *context,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode CreateConstantPressureBC(MechanicalBC *bc, PetscReal p0) {
+PetscErrorCode CreateConstantPressureBC(FlowBC *bc, PetscReal p0) {
   PetscFunctionBegin;
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = p0;
@@ -161,7 +161,7 @@ PetscErrorCode CreateConstantPressureBC(MechanicalBC *bc, PetscReal p0) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode CreateConstantVelocityBC(MechanicalBC *bc, PetscReal v0) {
+PetscErrorCode CreateConstantVelocityBC(FlowBC *bc, PetscReal v0) {
   PetscFunctionBegin;
   PetscReal *val = malloc(sizeof(PetscReal));
   *val = v0;
@@ -172,9 +172,9 @@ PetscErrorCode CreateConstantVelocityBC(MechanicalBC *bc, PetscReal v0) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode CreateSeepageBC(MechanicalBC *bc) {
+PetscErrorCode CreateSeepageBC(FlowBC *bc) {
   PetscFunctionBegin;
-  *bc = (MechanicalBC){0};
+  *bc = (FlowBC){0};
   bc->type = TDY_SEEPAGE_BC;
   PetscFunctionReturn(0);
 }
@@ -198,5 +198,19 @@ PetscErrorCode CreateConstantHeatFluxBC(ThermalBC *bc, PetscReal Q0) {
   bc->context = val;
   bc->compute = ConstantBoundaryFn;
   bc->dtor = free;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode FlowBCEnforce(FlowBC* bc, PetscInt n, PetscReal *points,
+                             PetscReal *values) {
+  PetscFunctionBegin;
+  bc->compute(bc->context, n, points, values);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode ThermalBCEnforce(ThermalBC* bc, PetscInt n, PetscReal* points,
+                                PetscReal *values) {
+  PetscFunctionBegin;
+  bc->compute(bc->context, n, points, values);
   PetscFunctionReturn(0);
 }

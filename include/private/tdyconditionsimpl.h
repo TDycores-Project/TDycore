@@ -7,28 +7,28 @@
 
 /// Types of mechanical boundary conditions
 typedef enum {
-  TDY_NO_MECHANICAL_BC = 0,
+  TDY_UNDEFINED_FLOW_BC = 0,
   TDY_PRESSURE_BC,
   TDY_VELOCITY_BC,
   TDY_SEEPAGE_BC
-} MechanicalBCType;
+} FlowBCType;
 
-/// This type represents a mechanical boundary condition defined by a function,
-/// a context, and a destructor.
-typedef struct MechanicalBC {
+/// This type represents a flow (pressure/velocity/head) boundary condition
+/// defined by a function, a context, and a destructor.
+typedef struct FlowBC {
   /// type of boundary condition
-  MechanicalBCType type;
+  FlowBCType type;
   /// context pointer
   void *context;
   /// vectorized function for computing boundary values
   PetscErrorCode (*compute)(void*,PetscInt,PetscReal*,PetscReal*);
   /// destructor
   void (*dtor)(void*);
-} MechanicalBC;
+} FlowBC;
 
 /// Types of thermal boundary conditions
 typedef enum {
-  TDY_NO_THERMAL_BC = 0,
+  TDY_UNDEFINED_THERMAL_BC = 0,
   TDY_TEMPERATURE_BC,
   TDY_HEAT_FLUX_BC,
 } ThermalBCType;
@@ -46,15 +46,15 @@ typedef struct ThermalBC {
   void (*dtor)(void*);
 } ThermalBC;
 
-/// This type holds a mechanical and a thermal boundary condition that can be
+/// This type holds flow and thermal boundary conditions that can be
 /// associated with a face set via the hash map below.
 typedef struct BoundaryConditions {
-  MechanicalBC mechanical_bc;
-  ThermalBC    thermal_bc;
+  FlowBC    flow_bc;
+  ThermalBC thermal_bc;
 } BoundaryConditions;
 
-// This maps a sparse set of face set indices to mechanical and thermal
-// boundary conditions.
+// This maps a sparse set of face set indices to flow and thermal boundary
+// conditions.
 KHASH_MAP_INIT_INT(TDY_BC, BoundaryConditions)
 
 /// This type gathers settings related to boundary and source/sink conditions.
@@ -101,15 +101,15 @@ PETSC_INTERN PetscErrorCode ConditionsSetBCs(Conditions*, PetscInt, BoundaryCond
 PETSC_INTERN PetscErrorCode ConditionsGetBCs(Conditions*, PetscInt, BoundaryConditions*);
 
 // boundary condition convenience functions
-PETSC_INTERN PetscErrorCode CreateConstantPressureBC(MechanicalBC*,PetscReal);
-PETSC_INTERN PetscErrorCode CreateConstantVelocityBC(MechanicalBC*,PetscReal);
-PETSC_INTERN PetscErrorCode CreateSeepageBC(MechanicalBC*);
+PETSC_INTERN PetscErrorCode CreateConstantPressureBC(FlowBC*,PetscReal);
+PETSC_INTERN PetscErrorCode CreateConstantVelocityBC(FlowBC*,PetscReal);
+PETSC_INTERN PetscErrorCode CreateSeepageBC(FlowBC*);
 PETSC_INTERN PetscErrorCode CreateConstantTemperatureBC(ThermalBC*,PetscReal);
 PETSC_INTERN PetscErrorCode CreateConstantHeatFluxBC(ThermalBC*,PetscReal);
 
-// boundary condition calls
-PETSC_INTERN PetscErrorCode MechanicalBCCompute(MechanicalBC*, PetscInt, PetscReal*, PetscReal*);
-PETSC_INTERN PetscErrorCode ThermalBCCompute(MechanicalBC*, PetscInt, PetscReal*, PetscReal*);
+// vectorized functions that enforce boundary conditions
+PETSC_INTERN PetscErrorCode FlowBCEnforce(FlowBC*, PetscInt, PetscReal*, PetscReal*);
+PETSC_INTERN PetscErrorCode ThermalBCEnforce(ThermalBC*, PetscInt, PetscReal*, PetscReal*);
 
 #endif
 
