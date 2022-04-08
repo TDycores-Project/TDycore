@@ -264,9 +264,9 @@ static PetscErrorCode AllocateFaces(
 
     faces->num_cells[iface] = 0;
     faces->num_vertices[iface] = 0;
-  }
 
-  for (PetscInt iface=0; iface<=num_faces; iface++) {
+    faces->bc_type[iface] = NEUMANN_BC;
+
     faces->cell_offset[iface] = iface*num_cells;
     faces->edge_offset[iface] = iface*num_edges;
     faces->vertex_offset[iface] = iface*num_vertices;
