@@ -334,6 +334,10 @@ static PetscErrorCode SetFaceBoundaryConditionType(TDyFVTPF *fvtpf, Conditions *
 
     PetscInt boundary_type;
     for (PetscInt iface=0; iface<mesh->num_faces; iface++){
+
+      // skip non-locan and internal faces
+      if (!faces->is_local[iface] || faces->is_internal[iface]) continue;
+
       TDyCoordinate face_centroid;
 
       ierr = TDyMeshGetFaceCentroid(mesh, iface, &face_centroid); CHKERRQ(ierr);
