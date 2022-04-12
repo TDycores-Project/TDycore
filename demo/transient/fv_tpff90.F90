@@ -81,13 +81,49 @@ contains
           !write(*,*)'x: at side   ',x1,x2, x3
           pressure = 100000.d0
        end if
-       !pressure = 100000.d0
+       pressure = 70000.d0
        !pressure = ieee_value(1.d0, ieee_quiet_nan)
     end do
 
     ierr = 0
 
   end subroutine PressureFunction
+
+  subroutine PressureBCTypeFunction(n, x, bc_type, ierr)
+    use, intrinsic :: ieee_arithmetic, only : ieee_value, ieee_quiet_nan
+    implicit none
+    PetscInt,                intent(in)  :: n
+    PetscReal, dimension(:), intent(in)  :: x
+    PetscInt, dimension(:), intent(out) :: bc_type
+    PetscErrorCode,          intent(out) :: ierr
+
+    PetscInt             :: i
+    PetscReal            :: x1, x2, x3
+    PetscReal, parameter :: water_height       = 8.d0
+    PetscReal, parameter :: pressure_reference = 101325.d0
+    PetscReal, parameter :: gravity            = 9.81d0
+    PetscReal, parameter :: rho                = 1000.d0
+    PetscReal, parameter :: zero = 0.d0
+
+    bc_type = 1
+
+    do i = 0, n-1
+       x1 = x(3*i+1)
+       x2 = x(3*i+2)
+       x3 = x(3*i+3)
+
+       if (mod(x1,1.d0) > 0.d0 .and. mod(x2,1.d0) > 0.d0 .and. x3 > 0.d0) then
+       else
+       end if
+       if (x2 == 1.d0) then
+          bc_type = 0
+       end if
+       write(*,*)x1,x2,x3,bc_type
+    end do
+
+    ierr = 0
+
+  end subroutine PressureBCTypeFunction
 
   subroutine CreateDM(comm, dm, ierr)
     use petscdm
@@ -207,6 +243,7 @@ program main
 
   call TDySetPorosityFunction(tdy,PorosityFunction,ierr); CHKERRA(ierr)
   call TDySetBoundaryPressureFunction(tdy,PressureFunction,ierr); CHKERRA(ierr)
+  !call TDySetBoundaryPressureTypeFunction(tdy,PressureBCTypeFunction, ierr); CHKERRA(ierr);
 
   call TDyMPFAOSetGMatrixMethod(tdy, MPFAO_GMATRIX_TPF, ierr);
   call TDySetup(tdy,ierr); CHKERRA(ierr)
