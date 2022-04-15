@@ -5,19 +5,11 @@
 
 #include <petsc/private/khash/khash.h>
 
-/// Types of mechanical boundary conditions
-typedef enum {
-  TDY_UNDEFINED_FLOW_BC = 0,
-  TDY_PRESSURE_BC,
-  TDY_VELOCITY_BC,
-  TDY_SEEPAGE_BC
-} FlowBCType;
-
 /// This type represents a flow (pressure/velocity/head) boundary condition
 /// defined by a function, a context, and a destructor.
 typedef struct FlowBC {
   /// type of boundary condition
-  FlowBCType type;
+  TDyFlowBCType type;
   /// context pointer
   void *context;
   /// vectorized function for computing boundary values
@@ -26,18 +18,11 @@ typedef struct FlowBC {
   void (*dtor)(void*);
 } FlowBC;
 
-/// Types of thermal boundary conditions
-typedef enum {
-  TDY_UNDEFINED_THERMAL_BC = 0,
-  TDY_TEMPERATURE_BC,
-  TDY_HEAT_FLUX_BC,
-} ThermalBCType;
-
 /// This type represents a thermal boundary condition defined by a function, a
 /// context, and a destructor.
 typedef struct ThermalBC {
   /// type of boundary condition
-  ThermalBCType type;
+  TDyThermalBCType type;
   /// context pointer
   void *context;
   /// vectorized function for computing boundary values
@@ -108,8 +93,8 @@ PETSC_INTERN PetscErrorCode CreateConstantTemperatureBC(ThermalBC*,PetscReal);
 PETSC_INTERN PetscErrorCode CreateConstantHeatFluxBC(ThermalBC*,PetscReal);
 
 // vectorized functions that enforce boundary conditions
-PETSC_INTERN PetscErrorCode FlowBCEnforce(FlowBC*, PetscInt, PetscReal*, PetscReal*);
-PETSC_INTERN PetscErrorCode ThermalBCEnforce(ThermalBC*, PetscInt, PetscReal*, PetscReal*);
+PETSC_INTERN PetscErrorCode EnforceFlowBC(FlowBC*, PetscInt, PetscReal*, PetscReal*);
+PETSC_INTERN PetscErrorCode EnforceThermalBC(ThermalBC*, PetscInt, PetscReal*, PetscReal*);
 
 #endif
 

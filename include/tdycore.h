@@ -35,20 +35,27 @@ typedef enum {
 
 PETSC_EXTERN const char *const TDyDiscretizations[];
 
+/// Types of flow boundary conditions
+typedef enum {
+  TDY_UNDEFINED_FLOW_BC = 0,
+  TDY_PRESSURE_BC,
+  TDY_VELOCITY_BC,
+  TDY_SEEPAGE_BC
+} TDyFlowBCType;
+
+/// Types of thermal boundary conditions
+typedef enum {
+  TDY_UNDEFINED_THERMAL_BC = 0,
+  TDY_TEMPERATURE_BC,
+  TDY_HEAT_FLUX_BC,
+} TDyThermalBCType;
+
 typedef enum {
   MPFAO_GMATRIX_DEFAULT=0, /* default method to compute gmatrix for MPFA-O method        */
   MPFAO_GMATRIX_TPF        /* two-point flux method to compute gmatrix for MPFA-O method */
 } TDyMPFAOGmatrixMethod;
 
 PETSC_EXTERN const char *const TDyMPFAOGmatrixMethods[];
-
-typedef enum {
-  MPFAO_DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
-  MPFAO_NEUMANN_BC,       /* Neumann zero-flux boundary condition */
-  MPFAO_SEEPAGE_BC       /* Seepage boundary condition */
-} TDyMPFAOBoundaryConditionType;
-
-PETSC_EXTERN const char *const TDyMPFAOBoundaryConditionTypes[];
 
 typedef enum {
   TDySNES=0,
@@ -152,17 +159,15 @@ PETSC_EXTERN PetscErrorCode TDySetSoilDensityFunction(TDy,TDyScalarSpatialFuncti
 PETSC_EXTERN PetscErrorCode TDySetConstantSoilSpecificHeat(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeatFunction(TDy,TDyScalarSpatialFunction);
 
-// Set boundary conditions and sources/sinks
+// Set sources/sink functions
 PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetEnergyForcingFunction(TDy,TDyScalarSpatialFunction);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureFunction(TDy,TDyScalarSpatialFunction);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryTemperatureFunction(TDy,TDyScalarSpatialFunction);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryVelocityFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySelectForcingFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectEnergyForcingFunction(TDy,const char*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryPressureFunction(TDy,const char*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy,const char*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFunction(TDy,const char*);
+PETSC_EXTERN PetscErrorCode TDySetFlowBCFunction(TDy,TDyFlowBCType,PetscInt,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetThermalBCFunction(TDy,TDyThermalBCType,PetscInt,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySelectFlowBCFunction(TDy,TDyFlowBCType,PetscInt,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectThermalBCFunction(TDy,TDyThermalBCType,PetscInt,const char*);
 
 PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*,PetscInt);
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
@@ -213,7 +218,6 @@ PETSC_EXTERN PetscErrorCode TDyDriverInitializeTDy(TDy);
 //-------------------------------------------------
 
 PETSC_EXTERN PetscErrorCode TDyMPFAOSetGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
-PETSC_EXTERN PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
 PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
 
 //------------------------

@@ -1,6 +1,4 @@
 static char help[] = "TDycore \n\
-  -tdy_pressure_bc_func <string>                : select one of the registered pressure boundary function \n\
-  -tdy_velocity_bc_func <string>                : select one of the registered velocity boundary function \n\
   -tdy_init_file <input_file>                   : file for reading the initial conditions\n\
   -tdy_read_mesh <input_file>                   : mesh file \n\
   -tdy_output_cell_geom_attributes <output_file> : file to output cell geometric attributes\n\
@@ -36,14 +34,6 @@ const char *const TDyMPFAOGmatrixMethods[] = {
   "MPFAO_GMATRIX_TPF",
   /* */
   "TDyMPFAOGmatrixMethod","TDY_MPFAO_GMATRIX_METHOD_",NULL
-};
-
-const char *const TDyMPFAOBoundaryConditionTypes[] = {
-  "MPFAO_DIRICHLET_BC",
-  "MPFAO_NEUMANN_BC",
-  "MPFAO_SEEPAGE_BC",
-  /* */
-  "TDyMPFAOBoundaryConditionType","TDY_MPFAO_BC_TYPE_",NULL
 };
 
 const char *const TDyModes[] = {
@@ -1418,6 +1408,104 @@ PetscErrorCode TDySelectEnergyForcingFunction(TDy tdy,
   TDySpatialFunction f;
   ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
   ierr = TDySetEnergyForcingFunction(tdy, f); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets a flow boundary condition of the given type (implemented by the
+/// given scalar spatial function) on all faces belonging to the face set with
+/// the given index.
+/// @param [in] tdy the dycore instance
+/// @param [in] bc_type the type of the desired flow boundary condition
+/// @param [in] face_set the index of the face set identifying boundary faces
+/// @param [in] func the scalar spatial function implementing the condition
+PetscErrorCode TDySetFlowBCFunction(TDy tdy,
+                                    TDyFlowBCType bc_type,
+                                    PetscInt face_set,
+                                    TDyScalarSpatialFunction func) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  BoundaryConditions bcs;
+  ierr = ConditionsGetBCs(tdy->conditions, face_set, &bcs); CHKERRQ(ierr);
+  if (bcs.flow_bc.context && bcs.flow_bc.dtor) {
+    bcs.flow_bc.dtor(bcs.flow_bc.context);
+  }
+  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+  bcs.flow_bc = (FlowBC){
+    .type = bc_type,
+    .context = wrapper,
+    .compute = WrapperFunction,
+    .dtor = free
+  };
+  ierr = ConditionsSetBCs(tdy->conditions, face_set, bcs); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets a thermal boundary condition of the given type (implemented by the
+/// given scalar spatial function) on all faces belonging to the face set with
+/// the given index.
+/// @param [in] tdy the dycore instance
+/// @param [in] bc_type the type of the desired thermal boundary condition
+/// @param [in] face_set the index of the face set identifying boundary faces
+/// @param [in] func the scalar spatial function implementing the condition
+PetscErrorCode TDySetThermalBCFunction(TDy tdy,
+                                       TDyThermalBCType bc_type,
+                                       PetscInt face_set,
+                                       TDyScalarSpatialFunction func) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  BoundaryConditions bcs;
+  ierr = ConditionsGetBCs(tdy->conditions, face_set, &bcs); CHKERRQ(ierr);
+  if (bcs.thermal_bc.context && bcs.thermal_bc.dtor) {
+    bcs.thermal_bc.dtor(bcs.thermal_bc.context);
+  }
+  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+  bcs.thermal_bc = (ThermalBC){
+    .type = bc_type,
+    .context = wrapper,
+    .compute = WrapperFunction,
+    .dtor = free
+  };
+  ierr = ConditionsSetBCs(tdy->conditions, face_set, bcs); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Selects a flow boundary condition of the given type (implemented by the
+/// scalar spatial function registered with the given name) on all faces
+/// belonging to the face set with the given index.
+/// @param [in] tdy the dycore instance
+/// @param [in] bc_type the type of the desired flow boundary condition
+/// @param [in] face_set the index of the face set identifying boundary faces
+/// @param [in] func_name the registered name of a scalar spatial function
+///                       that implements the desired boundary condition
+PetscErrorCode TDySelectFlowBCFunction(TDy tdy,
+                                       TDyFlowBCType bc_type,
+                                       PetscInt face_set,
+                                       const char *func_name) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDySpatialFunction f;
+  ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
+  ierr = TDySetFlowBCFunction(tdy, bc_type, face_set, f); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Selects a thermal boundary condition of the given type (implemented by the
+/// scalar spatial function registered with the given name) on all faces
+/// belonging to the face set with the given index.
+/// @param [in] tdy the dycore instance
+/// @param [in] bc_type the type of the desired thermal boundary condition
+/// @param [in] face_set the index of the face set identifying boundary faces
+/// @param [in] func_name the registered name of a scalar spatial function
+///                       that implements the desired boundary condition
+PetscErrorCode TDySelectThermalBCFunction(TDy tdy,
+                                          TDyThermalBCType bc_type,
+                                          PetscInt face_set,
+                                          const char *func_name) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDySpatialFunction f;
+  ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
+  ierr = TDySetThermalBCFunction(tdy, bc_type, face_set, f); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

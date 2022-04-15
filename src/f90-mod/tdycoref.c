@@ -27,7 +27,6 @@
 #define tdygetliquidmass_                              TDYGETLIQUIDMASS
 #define tdysetwaterdensitytype_                        TDYSETWATERDENSITYTYPE
 #define tdympfaosetgmatrixmethod_                      TDYMPFAOSETGMATRIXMETHOD
-#define tdympfaosetboundaryconditiontype_              TDYMPFAOSETBOUNDARYCONDITIONTYPE
 #define tdysetifunction_                               TDYSETIFUNCTION
 #define tdysetijacobian_                               TDYSETIJACOBIAN
 #define tdysetsnesfunction_                            TDYSETSNESFUNCTION
@@ -61,7 +60,6 @@
 #define tdygetliquidmass_                              tdygetliquidmass
 #define tdysetwaterdensitytype_                        tdysetwaterdensitytype
 #define tdympfaosetgmatrixmethod_                      tdympfaosetgmatrixmethod
-#define tdympfaosetboundaryconditiontype_              tdympfaosetboundaryconditiontype
 #define tdysetifunction_                               tdysetifunction
 #define tdysetijacobian_                               tdysetijacobian
 #define tdysetsnesfunction_                            tdysetsnesfunction
@@ -148,10 +146,6 @@ PETSC_EXTERN void  tdysetwaterdensitytype_(TDy tdy, PetscInt *method, int *__ier
 
 PETSC_EXTERN void  tdympfaosetgmatrixmethod_(TDy tdy, PetscInt *method, int *__ierr){
 *__ierr = TDyMPFAOSetGmatrixMethod((TDy)PetscToPointer((tdy)), *method);
-}
-
-PETSC_EXTERN void  tdympfaosetboundaryconditiontype_(TDy tdy, PetscInt *bctype, int *__ierr){
-*__ierr = TDyMPFAOSetBoundaryConditionType((TDy)PetscToPointer((tdy)), *bctype);
 }
 
 PETSC_EXTERN void  tdysetifunction_(TS ts, TDy tdy, int *__ierr){
@@ -368,9 +362,9 @@ WRAP_SOURCE(TDySetEnergyForcingFunctionF90, ConditionsSetEnergyForcing, WrappedF
 // boundary conditions to the face set with the given index.
 PETSC_EXTERN PetscErrorCode TDyConditionsSetBCsF90(TDy tdy,
                                                    PetscInt face_set,
-                                                   FlowBCType flow_bc_type,
+                                                   TDyFlowBCType flow_bc_type,
                                                    PetscInt flow_bc_id,
-                                                   ThermalBCType thermal_bc_type,
+                                                   TDyThermalBCType thermal_bc_type,
                                                    PetscInt thermal_bc_id) {
   PetscErrorCode ierr;
   PetscFunctionBegin;

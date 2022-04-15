@@ -201,14 +201,14 @@ PetscErrorCode CreateConstantHeatFluxBC(ThermalBC *bc, PetscReal Q0) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode FlowBCEnforce(FlowBC* bc, PetscInt n, PetscReal *points,
+PetscErrorCode EnforceFlowBC(FlowBC* bc, PetscInt n, PetscReal *points,
                              PetscReal *values) {
   PetscFunctionBegin;
   bc->compute(bc->context, n, points, values);
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode ThermalBCEnforce(ThermalBC* bc, PetscInt n, PetscReal* points,
+PetscErrorCode EnforceThermalBC(ThermalBC* bc, PetscInt n, PetscReal* points,
                                 PetscReal *values) {
   PetscFunctionBegin;
   bc->compute(bc->context, n, points, values);
