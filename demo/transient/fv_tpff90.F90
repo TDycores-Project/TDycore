@@ -222,6 +222,7 @@ program main
   PetscErrorCode      :: ierr
   character (len=256) :: ic_filename
   character(len=256)  :: string
+  PetscBool           :: use_seepage_bc
 
   PetscInt, parameter :: successful_exit_code = 0
   PetscInt, parameter :: unsuccessful_exit_code = 0
@@ -238,6 +239,7 @@ program main
   ! command line settings
   call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-ic_filename", ic_filename, ic_file_flg,ierr); CHKERRA(ierr);
   call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-max_steps',max_steps,flg,ierr); CHKERRA(ierr);
+  call PetscOptionsGetBool(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-use_seepage_bc",use_seepage_bc,flg,ierr); CHKERRA(ierr);
 
   ! Set a constructor for a DM.
   call TDySetDMConstructor(tdy, CreateDM,ierr); CHKERRA(ierr)
@@ -264,7 +266,9 @@ program main
 
   call TDySetPorosityFunction(tdy,PorosityFunction,ierr); CHKERRA(ierr)
   call TDySetBoundaryPressureFunction(tdy,PressureFunction,ierr); CHKERRA(ierr)
-  !call TDySetBoundaryPressureTypeFunction(tdy,PressureBCTypeFunction, ierr); CHKERRA(ierr);
+  if (use_seepage_bc) then
+     call TDySetBoundaryPressureTypeFunction(tdy,PressureBCTypeFunction, ierr); CHKERRA(ierr);
+  end if
 
   call TDyMPFAOSetGMatrixMethod(tdy, MPFAO_GMATRIX_TPF, ierr);
   call TDySetup(tdy,ierr); CHKERRA(ierr)
