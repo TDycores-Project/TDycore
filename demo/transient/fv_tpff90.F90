@@ -53,9 +53,34 @@ contains
     resSat = 0.115d0
   end subroutine ResidualSaturation
 
-  subroutine PressureFunction(n, x, pressure,ierr)
-    use, intrinsic :: ieee_arithmetic, only : ieee_value, ieee_quiet_nan
+  subroutine is_coordinate_top(x1,x2,x3,is_top)
+
     implicit none
+
+    PetscReal, intent(in) :: x1,x2,x3
+    PetscBool, intent(out) :: is_top
+
+    PetscInt                :: ii
+    PetscReal, dimension(5) :: zz_top
+
+    zz_top(1) = 8.2500d0
+    zz_top(2) = 7.6250d0
+    zz_top(3) = 7.5000d0
+    zz_top(4) = 8.5000d0
+    zz_top(5) = 9.6250d0
+
+    is_top = PETSC_FALSE
+    do ii = 1,5
+       if (x1 /= 1.d0 .and. x1 /= 6.d0 .and. x2 /= 1.d0 .and. x2 /= 2.d0 .and. x3 == zz_top(ii)) then
+          is_top = PETSC_TRUE
+       end if
+    end do
+  end subroutine is_coordinate_top
+
+  subroutine PressureFunction(n, x, pressure, ierr)
+
+    implicit none
+
     PetscInt,                intent(in)  :: n
     PetscReal, dimension(:), intent(in)  :: x
     PetscReal, dimension(:), intent(out) :: pressure
@@ -68,21 +93,21 @@ contains
     PetscReal, parameter :: gravity            = 9.81d0
     PetscReal, parameter :: rho                = 1000.d0
     PetscReal, parameter :: zero = 0.d0
+    PetscReal, parameter :: seepage_pressure = 111325.d0
+    PetscReal, parameter :: dirichlet_pressure = 70000.d0
+    PetscBool :: is_top
 
     do i = 0, n-1
        x1 = x(3*i+1)
        x2 = x(3*i+2)
        x3 = x(3*i+3)
        
-       if (mod(x1,1.d0) > 0.d0 .and. mod(x2,1.d0) > 0.d0 .and. x3 > 0.d0) then
-          !write(*,*)'x: at top ',x1,x2, x3
-          pressure = (water_height - x3) * rho * gravity + pressure_reference
+       call is_coordinate_top(x1,x2,x3,is_top)
+       if (is_top) then
+          pressure = seepage_pressure
        else
-          !write(*,*)'x: at side   ',x1,x2, x3
-          pressure = 100000.d0
+          pressure = dirichlet_pressure
        end if
-       pressure = 70000.d0
-       !pressure = ieee_value(1.d0, ieee_quiet_nan)
     end do
 
     ierr = 0
@@ -90,7 +115,6 @@ contains
   end subroutine PressureFunction
 
   subroutine PressureBCTypeFunction(n, x, bc_type, ierr)
-    use, intrinsic :: ieee_arithmetic, only : ieee_value, ieee_quiet_nan
     implicit none
     PetscInt,                intent(in)  :: n
     PetscReal, dimension(:), intent(in)  :: x
@@ -99,26 +123,23 @@ contains
 
     PetscInt             :: i
     PetscReal            :: x1, x2, x3
-    PetscReal, parameter :: water_height       = 8.d0
-    PetscReal, parameter :: pressure_reference = 101325.d0
-    PetscReal, parameter :: gravity            = 9.81d0
-    PetscReal, parameter :: rho                = 1000.d0
-    PetscReal, parameter :: zero = 0.d0
+    PetscBool            :: is_top
 
-    bc_type = 1
+    bc_type = NEUMANN_BC
 
     do i = 0, n-1
        x1 = x(3*i+1)
        x2 = x(3*i+2)
        x3 = x(3*i+3)
 
-       if (mod(x1,1.d0) > 0.d0 .and. mod(x2,1.d0) > 0.d0 .and. x3 > 0.d0) then
+       call is_coordinate_top(x1,x2,x3,is_top)
+
+       if (is_top) then
+          bc_type = SEEPAGE_BC
        else
+          bc_type = NEUMANN_BC
        end if
-       if (x2 == 1.d0) then
-          bc_type = 0
-       end if
-       write(*,*)x1,x2,x3,bc_type
+       
     end do
 
     ierr = 0
