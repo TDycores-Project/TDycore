@@ -77,6 +77,7 @@ PetscErrorCode TDyFVTPFSNESPreSolve(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
 PetscErrorCode RichardsResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, PetscInt face_id, PetscReal *Res) {
 
   PetscFunctionBegin;
@@ -133,6 +134,7 @@ PetscErrorCode RichardsResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
 PetscErrorCode RichardsBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, PetscInt face_id, PetscReal *Res) {
 
   PetscFunctionBegin;
@@ -183,6 +185,77 @@ PetscErrorCode RichardsBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
     PetscReal q = v_darcy * projected_area;
     *Res = q * den_aveg;
 
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/// Computes residual for seepage boundary condition.
+/// - Flow into the domain is allowed if the pressure out of the domain
+///    is greater than reference pressure.
+/// - Flow out of the domain is not modified.
+///
+/// @param [in] fvtpf A TDy struct
+/// @param [in] dm A PETSc DM
+/// @param [in] matprop A material property struct
+/// @param [in] face_id ID of a face
+/// @param [out] Residual
+PetscErrorCode RichardsSeepageBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, PetscInt face_id, PetscReal *Res) {
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  PetscInt dim;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  PetscInt *cell_ids, num_face_cells;
+  ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
+  PetscInt cell_id_up = -cell_ids[0] - 1; // cell up is a boundary cell with negative ids, determine the id to use from *_bnd variables
+  PetscInt cell_id_dn = cell_ids[1];      // cell dn is an internal cell
+
+  PetscReal dist_gravity, upweight;
+  ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
+
+  PetscReal perm_face, Dq;
+  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+
+  PetscReal kr_eps = 1.d-8;
+  PetscReal sat_eps = 1.d-8;
+  if (fvtpf->Kr_bnd[cell_id_up] > kr_eps || fvtpf->Kr[cell_id_dn] > kr_eps) {
+    if (fvtpf->S_bnd[cell_id_up] < sat_eps) {
+      upweight = 0.0;
+    } else if (fvtpf->S[cell_id_dn] < sat_eps) {
+      upweight = 1.0;
+    }
+
+    PetscReal den_up = fvtpf->rho_bnd[cell_id_up];
+    PetscReal den_dn = fvtpf->rho[cell_id_dn];
+    PetscReal den_aveg = upweight * den_up + (1.0 - upweight) * den_dn;
+
+    PetscReal gravity_term = den_aveg * dist_gravity;
+    PetscReal dphi = fvtpf->P_bnd[cell_id_up] - fvtpf->pressure[cell_id_dn] - gravity_term;
+
+    // Only allow flow into the domain if the boundar pressure is larger than
+    // the reference pressure
+    PetscReal pressure_eps = 1.d-8;
+    if (dphi > 0.0 && (fvtpf->P_bnd[cell_id_up] - fvtpf->Pref < pressure_eps)) {
+      dphi = 0.0;
+    }
+
+    PetscReal ukvr;
+    if (dphi >= 0.0) {
+      ukvr = fvtpf->Kr_bnd[cell_id_up]/fvtpf->vis_bnd[cell_id_up];
+    } else {
+      ukvr = fvtpf->Kr[cell_id_dn]/fvtpf->vis[cell_id_dn];
+    }
+
+    PetscReal v_darcy = Dq * ukvr * dphi;
+
+    PetscReal projected_area;
+    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+
+    PetscReal q = v_darcy * projected_area;
+    *Res = q * den_aveg;
   }
 
   PetscFunctionReturn(0);
@@ -287,7 +360,7 @@ PetscErrorCode RichardsBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
 
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
-  PetscInt cell_id_up = -cell_ids[0] + 1;
+  PetscInt cell_id_up = -cell_ids[0] - 1;
   PetscInt cell_id_dn = cell_ids[1];
 
   PetscReal dist_gravity, upweight;
@@ -345,6 +418,96 @@ PetscErrorCode RichardsBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
     *Jdn = dq_dp_dn * den_aveg + q * dden_ave_dp_dn;
 
 
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/// Computes the jacobian for seepage boundary condition.
+/// - Flow into the domain is allowed if the pressure out of the domain
+///    is greater than reference pressure.
+/// - Flow out of the domain is not modified.
+///
+/// @param [in] fvtpf A TDy struct
+/// @param [in] dm A PETSc DM
+/// @param [in] matprop A material property struct
+/// @param [in] face_id ID of a face
+/// @param [out] Jdn Jacobian of the residual BC
+PetscErrorCode RichardsSeepageBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, PetscInt face_id, PetscReal *Jdn) {
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  PetscInt dim;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  PetscInt *cell_ids, num_face_cells;
+  ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
+  PetscInt cell_id_up = -cell_ids[0] - 1;
+  PetscInt cell_id_dn = cell_ids[1];
+
+  PetscReal dist_gravity, upweight;
+  ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
+
+  PetscReal perm_face, Dq;
+  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+
+  PetscReal kr_eps = 1.d-8;
+  PetscReal sat_eps = 1.d-8;
+  if (fvtpf->Kr_bnd[cell_id_up] > kr_eps || fvtpf->Kr[cell_id_dn] > kr_eps) {
+    if (fvtpf->S_bnd[cell_id_up] < sat_eps) {
+      upweight = 0.0;
+    } else if (fvtpf->S[cell_id_dn] < sat_eps) {
+      upweight = 1.0;
+    }
+
+    PetscReal den_up = fvtpf->rho_bnd[cell_id_up];
+    PetscReal den_dn = fvtpf->rho[cell_id_dn];
+    PetscReal den_aveg = upweight * den_up + (1.0 - upweight) * den_dn;
+    PetscReal dden_ave_dp_dn = (1.0 - upweight)*fvtpf->drho_dP[cell_id_dn];
+
+    PetscReal gravity_term = den_aveg * dist_gravity;
+    PetscReal dgravity_dden_dn = upweight * dist_gravity;
+
+    PetscReal dphi = fvtpf->P_bnd[cell_id_up] - fvtpf->pressure[cell_id_dn] - gravity_term;
+    PetscReal dphi_dp_dn = -1.0 - dgravity_dden_dn * dden_ave_dp_dn;
+
+    PetscReal ukvr;
+    PetscReal dukvr_dp_dn = 0.0;
+
+    if (dphi >= 0.0) {
+      // Only allow flow into the domain if the boundar pressure is larger than
+      // the reference pressure
+      PetscReal pressure_eps = 1.d-8;
+      ukvr = fvtpf->Kr_bnd[cell_id_up]/fvtpf->vis_bnd[cell_id_up];
+      if (fvtpf->P_bnd[cell_id_up] - fvtpf->Pref < pressure_eps) {
+        dphi = 0.0;
+        dphi_dp_dn = 0.0;
+      }
+    } else {
+      PetscReal Kr = fvtpf->Kr[cell_id_dn];
+      PetscReal vis = fvtpf->vis[cell_id_dn];
+      ukvr = Kr/vis;
+
+      PetscReal dKr_dS = fvtpf->dKr_dS[cell_id_dn];
+      PetscReal dS_dp = fvtpf->dS_dP[cell_id_dn];
+      PetscReal dvis_dp = fvtpf->dvis_dP[cell_id_dn];
+      PetscReal dukr_dp = dKr_dS * dS_dp / vis - Kr * dvis_dp/PetscPowReal(vis,2.0);
+
+      dukvr_dp_dn = dukr_dp;
+    }
+
+    PetscReal v_darcy = Dq * ukvr * dphi;
+
+    PetscReal projected_area;
+    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+
+    PetscReal q = v_darcy * projected_area;
+    PetscReal dq_dp_dn = Dq * (dukvr_dp_dn * dphi + ukvr * dphi_dp_dn)*projected_area;
+
+    //*Res = q * den_aveg;
+    *Jdn = dq_dp_dn * den_aveg + q * dden_ave_dp_dn;
   }
 
   PetscFunctionReturn(0);
@@ -410,14 +573,23 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
 
     if (!faces->is_local[iface]) continue; // skip non-local face
-    if (!faces->is_internal[iface]) continue; // skip internal faces
+    if (faces->is_internal[iface]) continue; // skip internal faces
     if (faces->bc_type[iface] == NEUMANN_BC) continue; // skip non-flux faces
 
     PetscInt *cell_ids, num_face_cells;
     ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
 
     PetscReal Res;
-    ierr = RichardsBCResidual(fvtpf, tdy->dm, tdy->matprop, iface, &Res);
+    switch (faces->bc_type[iface]) {
+    case NEUMANN_BC:
+      break;
+    case DIRICHLET_BC:
+      ierr = RichardsBCResidual(fvtpf, tdy->dm, tdy->matprop, iface, &Res);
+      break;
+    case SEEPAGE_BC:
+      ierr = RichardsSeepageBCResidual(fvtpf, tdy->dm, tdy->matprop, iface, &Res);
+      break;
+    }
 
     PetscInt cell_id_dn = cell_ids[1];
     r_ptr[cell_id_dn] -= Res;
@@ -492,7 +664,7 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
   for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
 
     if (!faces->is_local[iface]) continue; // skip non-local face
-    if (!faces->is_internal[iface]) continue; // skip internal faces
+    if (faces->is_internal[iface]) continue; // skip internal faces
     if (faces->bc_type[iface] == NEUMANN_BC) continue; // skip non-flux faces
 
     PetscInt *cell_ids, num_face_cells;
@@ -500,7 +672,16 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
 
     PetscInt cell_id_dn = cell_ids[1];
     PetscReal Jdn;
-    ierr = RichardsBCJacobian(fvtpf, tdy->dm, tdy->matprop, iface, &Jdn);
+    switch (faces->bc_type[iface]) {
+    case NEUMANN_BC:
+      break;
+    case DIRICHLET_BC:
+      ierr = RichardsBCJacobian(fvtpf, tdy->dm, tdy->matprop, iface, &Jdn);
+      break;
+    case SEEPAGE_BC:
+      ierr = RichardsSeepageBCJacobian(fvtpf, tdy->dm, tdy->matprop, iface, &Jdn);
+      break;
+    }
 
     if (cell_id_dn >= 0 && cells->is_local[cell_id_dn]) {
       //r_ptr[cell_id_dn] -= Res;
