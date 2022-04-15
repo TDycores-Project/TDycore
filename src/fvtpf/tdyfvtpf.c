@@ -753,54 +753,6 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
   PetscFunctionReturn(0);
 }
 
-/// Computes unit vector joining upwind and downwind cells that share a face.
-/// The unit vector points from upwind to downwind cell.
-///
-/// @param [in] tdy A TDy struct
-/// @param [in] face_id ID of the face
-/// @param [out] up2dn_uvec Unit vector from upwind to downwind cell
-/// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode FVTPFComputeUpDownUnitVector(TDyFVTPF *fvtpf, PetscInt face_id, PetscReal up2dn_uvec[3]) {
-
-  PetscFunctionBegin;
-
-  TDyMesh *mesh = fvtpf->mesh;
-  TDyCell *cells = &mesh->cells;
-  TDyFace *faces = &mesh->faces;
-  PetscErrorCode ierr;
-
-    PetscInt *face_cell_ids, num_cell_ids;
-    ierr = TDyMeshGetFaceCells(mesh, face_id, &face_cell_ids, &num_cell_ids); CHKERRQ(ierr);
-    PetscInt cell_id_up = face_cell_ids[0];
-    PetscInt cell_id_dn = face_cell_ids[1];
-
-  if (cell_id_up < 0 && cell_id_dn < 0) {
-    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Both cell IDs sharing a face are not valid");
-  }
-
-  PetscInt dim = 3;
-  PetscReal coord_up[dim], coord_dn[dim], coord_face[dim];
-
-  ierr = TDyFace_GetCentroid(faces, face_id, dim, &coord_face[0]);
-  CHKERRQ(ierr);
-
-  if (cell_id_up >= 0) {
-    ierr = TDyCell_GetCentroid2(cells, cell_id_up, dim, &coord_up[0]); CHKERRQ(ierr);
-  } else {
-    for (PetscInt d = 0; d < 3; d++) coord_up[d] = coord_face[d];
-  }
-
-  if (cell_id_dn >= 0) {
-    ierr = TDyCell_GetCentroid2(cells, cell_id_dn, dim, &coord_dn[0]); CHKERRQ(ierr);
-  } else {
-    for (PetscInt d = 0; d < 3; d++) coord_dn[d] = coord_face[d];
-  }
-
-  ierr = TDyUnitNormalVectorJoiningTwoVertices(coord_up, coord_dn, up2dn_uvec); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
 /// Computes upwind and downwind distance of cells sharing a face. If the face is a
 /// boundary face, one of the distance is zero
 ///
@@ -808,8 +760,9 @@ PetscErrorCode FVTPFComputeUpDownUnitVector(TDyFVTPF *fvtpf, PetscInt face_id, P
 /// @param [in] face_id ID of the face
 /// @param [out] dist_up Distance between the upwind cell centroid and face centroid
 /// @param [out] dist_dn Distance between the downwind cell centroid and face centroid
+/// @param [out] u_up2dn Unit vector from up to down cell
 /// @returns 0 on success, or a non-zero error code on failure
-static PetscErrorCode FVTPFComputeUpAndDownDist(TDyFVTPF *fvtpf, PetscInt face_id, PetscReal *dist_up, PetscReal *dist_dn) {
+static PetscErrorCode FVTPFComputeUpAndDownDist(TDyFVTPF *fvtpf, PetscInt face_id, PetscReal *dist_up, PetscReal *dist_dn, PetscReal *u_up2dn) {
 
   PetscFunctionBegin;
 
@@ -858,8 +811,17 @@ static PetscErrorCode FVTPFComputeUpAndDownDist(TDyFVTPF *fvtpf, PetscInt face_i
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Number of vertices of a face is not equal to 3 or 4");
     }
     PetscReal coord_up[3], coord_dn[3];
-    ierr = TDyCell_GetCentroid2(cells, cell_id_up, dim, &coord_up[0]); CHKERRQ(ierr);
-    ierr = TDyCell_GetCentroid2(cells, cell_id_dn, dim, &coord_dn[0]); CHKERRQ(ierr);
+    if (cell_id_up >= 0) {
+      ierr = TDyCell_GetCentroid2(cells, cell_id_up, dim, &coord_up[0]); CHKERRQ(ierr);
+    } else {
+      ierr = TDyFace_GetCentroid(faces, face_id, dim, &coord_up[0]); CHKERRQ(ierr);
+    }
+
+    if (cell_id_dn >= 0){
+      ierr = TDyCell_GetCentroid2(cells, cell_id_dn, dim, &coord_dn[0]); CHKERRQ(ierr);
+    } else {
+      ierr = TDyFace_GetCentroid(faces, face_id, dim, &coord_dn[0]); CHKERRQ(ierr);
+    }
 
     PetscInt dim = 3;
 
@@ -872,35 +834,70 @@ static PetscErrorCode FVTPFComputeUpAndDownDist(TDyFVTPF *fvtpf, PetscInt face_i
     ierr = ComputePlaneGeometry (point1, point2, point3, plane);
 
     PetscReal intercept[3];
-    ierr = GeometryGetPlaneIntercept(plane, coord_up, coord_dn, intercept);
+    PetscBool boundary_face = PETSC_FALSE;
 
-    if (num_vertices == 4) {
-      PetscReal plane2[4];
-
-      ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[3], dim, &point4[0]);
-
-      ierr = ComputePlaneGeometry (point2, point3, point4, plane2);
-
-      PetscReal intercept2[3];
-      ierr = GeometryGetPlaneIntercept(plane2, coord_up, coord_dn, intercept2); CHKERRQ(ierr);
-
-      intercept[0] = (intercept[0] + intercept2[0])/2.0;
-      intercept[1] = (intercept[1] + intercept2[1])/2.0;
-      intercept[2] = (intercept[2] + intercept2[2])/2.0;
+    if (cell_id_up >= 0 && cell_id_dn >=0 ) { 
+      ierr = GeometryGetPlaneIntercept(plane, coord_up, coord_dn, intercept);
+    } else {
+      boundary_face = PETSC_TRUE;
+      if (cell_id_up >= 0 ) {
+        ierr = GeometryProjectPointOnPlane(plane, coord_up, intercept);
+      } else {
+        ierr = GeometryProjectPointOnPlane(plane, coord_dn, intercept);
+      }
     }
 
-    PetscReal v1[dim], v2[dim];
+    if (!boundary_face) {
+      if (num_vertices == 4) {
+        PetscReal plane2[4];
 
-    for (PetscInt i=0; i<dim; i++) {
-      v1[i] = intercept[i] - coord_up[i];
-      v2[i] = coord_dn[i] - intercept[i];
+        ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[3], dim, &point4[0]);
+
+        ierr = ComputePlaneGeometry (point2, point3, point4, plane2);
+
+        PetscReal intercept2[3];
+        ierr = GeometryGetPlaneIntercept(plane2, coord_up, coord_dn, intercept2); CHKERRQ(ierr);
+
+        intercept[0] = (intercept[0] + intercept2[0])/2.0;
+        intercept[1] = (intercept[1] + intercept2[1])/2.0;
+        intercept[2] = (intercept[2] + intercept2[2])/2.0;
+      }
+
+      PetscReal v1[dim], v2[dim], v3[dim];
+
+      for (PetscInt i=0; i<dim; i++) {
+        v1[i] = intercept[i] - coord_up[i];
+        v2[i] = coord_dn[i] - intercept[i];
+        v3[i] = v1[i] + v2[i];
+      }
+
+      PetscReal d1,d2;
+      ierr = TDyDotProduct(v1,v1,&d1); CHKERRQ(ierr);
+      ierr = TDyDotProduct(v2,v2,&d2); CHKERRQ(ierr);
+      *dist_up = PetscPowReal(d1,0.5);
+      *dist_dn = PetscPowReal(d2,0.5);
+
+      PetscReal d3;
+      ierr = TDyDotProduct(v3,v3,&d3); CHKERRQ(ierr);
+      PetscReal dist3 = PetscPowReal(d3,0.5);
+      for (PetscInt i=0; i<dim; i++) {
+        u_up2dn[i] = v3[i]/dist3;
+      }
+
+
+    } else {
+      PetscReal v2[dim];
+      for (PetscInt i=0; i<dim; i++) {
+        v2[i] = coord_dn[i] - intercept[i];
+      }
+      PetscReal d2;
+      ierr = TDyDotProduct(v2,v2,&d2); CHKERRQ(ierr);
+      *dist_up = 0.0;
+      *dist_dn = PetscPowReal(d2,0.5);
+      for (PetscInt i=0; i<dim; i++) {
+        u_up2dn[i] = v2[i]/(*dist_dn);
+      }
     }
-
-    PetscReal d1,d2;
-    ierr = TDyDotProduct(v1,v1,&d1); CHKERRQ(ierr);
-    ierr = TDyDotProduct(v2,v2,&d2); CHKERRQ(ierr);
-    *dist_up = PetscPowReal(d1,0.5);
-    *dist_dn = PetscPowReal(d2,0.5);
 
   }
 
@@ -967,7 +964,8 @@ PetscErrorCode FVTPFComputeFacePeremabilityValueTPF(TDyFVTPF *fvtpf, MaterialPro
   PetscErrorCode ierr;
 
   PetscReal u_up2dn[dim];
-  ierr = FVTPFComputeUpDownUnitVector(fvtpf, face_id, u_up2dn); CHKERRQ(ierr);
+  PetscReal dist_up, dist_dn;
+  ierr = FVTPFComputeUpAndDownDist(fvtpf, face_id, &dist_up, &dist_dn, u_up2dn); CHKERRQ(ierr);
 
   PetscReal Kup[dim*dim], Kdn[dim*dim];
   ierr = FVTPFExtractUpAndDownPermeabilityTensors(fvtpf, matprop, face_id, dim, Kup, Kdn); CHKERRQ(ierr);
@@ -980,9 +978,6 @@ PetscErrorCode FVTPFComputeFacePeremabilityValueTPF(TDyFVTPF *fvtpf, MaterialPro
 
   Kup_value = 1.0/Kup_value;
   Kdn_value = 1.0/Kdn_value;
-
-  PetscReal dist_up, dist_dn;
-  ierr = FVTPFComputeUpAndDownDist(fvtpf, face_id, &dist_up, &dist_dn); CHKERRQ(ierr);
 
   PetscReal wt_up = dist_up / (dist_up + dist_dn);
 
@@ -999,10 +994,9 @@ PetscErrorCode FVTPFCalculateDistances(TDyFVTPF *fvtpf, PetscInt dim, PetscInt f
   PetscErrorCode ierr;
 
   PetscReal u_up2dn[dim];
-  ierr = FVTPFComputeUpDownUnitVector(fvtpf, face_id, u_up2dn); CHKERRQ(ierr);
-
   PetscReal dist_up, dist_dn;
-  ierr = FVTPFComputeUpAndDownDist(fvtpf, face_id, &dist_up, &dist_dn); CHKERRQ(ierr);
+  ierr = FVTPFComputeUpAndDownDist(fvtpf, face_id, &dist_up, &dist_dn, u_up2dn); CHKERRQ(ierr);
+
   *upweight = dist_up / (dist_up + dist_dn);
 
   ierr = TDyDotProduct(fvtpf->gravity, u_up2dn, dist_gravity); CHKERRQ(ierr);
@@ -1018,7 +1012,8 @@ PetscErrorCode FVTPFComputeProjectedArea(TDyFVTPF *fvtpf, PetscInt dim, PetscInt
   PetscErrorCode ierr;
 
   PetscReal u_up2dn[dim];
-  ierr = FVTPFComputeUpDownUnitVector(fvtpf, face_id, u_up2dn); CHKERRQ(ierr);
+  PetscReal dist_up, dist_dn;
+  ierr = FVTPFComputeUpAndDownDist(fvtpf, face_id, &dist_up, &dist_dn, u_up2dn); CHKERRQ(ierr);
 
   TDyMesh *mesh = fvtpf->mesh;
   PetscReal dot_prod;
