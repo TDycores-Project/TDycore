@@ -386,17 +386,6 @@ PetscErrorCode TDyMPFAOSetGmatrixMethod(TDy tdy,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDy tdy,
-                                                TDyMPFAOBoundaryConditionType bctype) {
-  PetscFunctionBegin;
-
-  PetscValidPointer(tdy,1);
-  TDyMPFAO *mpfao = tdy->context;
-  mpfao->bc_type = bctype;
-
-  PetscFunctionReturn(0);
-}
-
 PetscErrorCode TDyCreate_MPFAO(void **context) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -408,7 +397,6 @@ PetscErrorCode TDyCreate_MPFAO(void **context) {
 
   // Initialize defaults and data.
   mpfao->gmatrix_method = MPFAO_GMATRIX_DEFAULT;
-  mpfao->bc_type = MPFAO_DIRICHLET_BC;
   mpfao->Pref = 101325;
   mpfao->Tref = 25;
   mpfao->gravity[0] = 0; mpfao->gravity[1] = 0; mpfao->gravity[2] = 0;
@@ -534,15 +522,6 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
     "TDySetMPFAOGmatrixMethod",TDyMPFAOGmatrixMethods,
     (PetscEnum)mpfao->gmatrix_method,(PetscEnum *)&mpfao->gmatrix_method,NULL);
     CHKERRQ(ierr);
-  TDyMPFAOBoundaryConditionType bctype = MPFAO_DIRICHLET_BC;
-  PetscBool flag;
-  ierr = PetscOptionsEnum("-tdy_mpfao_boundary_condition_type",
-      "MPFA-O boundary condition type", "TDyMPFAOSetBoundaryConditionType",
-      TDyMPFAOBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype,
-      &flag); CHKERRQ(ierr);
-  if (flag && (bctype != mpfao->bc_type)) {
-    mpfao->bc_type = bctype;
-  }
   /* TODO: geometric attribute reading/writing is broken
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_output_geo_attributes",
       mpfao->geom_attributes_file,sizeof(mpfao->geom_attributes_file),
@@ -1113,7 +1092,8 @@ static PetscErrorCode ComputeCtimesAinvB(PetscInt C_nrow, PetscInt AinvB_ncol, P
 }
 
 static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
-    TDyMPFAO *mpfao, PetscInt ivertex, TDyCell *cells, PetscInt varID) {
+    TDyMPFAO *mpfao, DM dm, Conditions *conditions, PetscInt ivertex, TDyCell *cells,
+    PetscInt varID) {
 
   TDyMesh *mesh = mpfao->mesh;
   TDyVertex *vertices = &mesh->vertices;
@@ -1155,8 +1135,29 @@ static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
 
   PetscInt npitf_dir_bc_all, npitf_neu_bc_all;
 
-  if (mpfao->bc_type == MPFAO_DIRICHLET_BC ||
-      mpfao->bc_type == MPFAO_SEEPAGE_BC) {
+  // Currently, we support only one boundary condition for each vertex. This
+  // logic needs to be revisited in the case of vertices on edges with faces
+  // having different boundary conditions.
+  PetscBool is_dirichlet_or_seepage_bc = PETSC_FALSE;
+  for (PetscInt f = 0; f < num_faces; ++f) {
+    PetscInt face_id = face_ids[f];
+    PetscInt face_set; // >= 0 for face set, -1 for interior face
+    ierr = DMGetLabelValue(dm, "Face Sets", face_id, &face_set); CHKERRQ(ierr);
+    if (face_set >= 0) {
+      // Find the right boundary condition.
+      BoundaryConditions bcs;
+      ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
+      if (((varID == VAR_PRESSURE) &&
+           ((bcs.flow_bc.type == TDY_PRESSURE_BC) ||
+            (bcs.flow_bc.type == TDY_SEEPAGE_BC))) ||
+          ((varID == VAR_TEMPERATURE) &&
+           (bcs.thermal_bc.type == TDY_TEMPERATURE_BC))) {
+        is_dirichlet_or_seepage_bc = PETSC_TRUE;
+      }
+    }
+  }
+
+  if (is_dirichlet_or_seepage_bc) {
     nflux_dir_bc_up = nflux_all_bc_up;
     nflux_dir_bc_dn = nflux_all_bc_dn;
     npitf_dir_bc_all= npitf_bc_all;
@@ -1499,7 +1500,8 @@ static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
 }
 
 static PetscErrorCode ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(
-    TDyMPFAO *mpfao, DM dm, PetscInt ivertex, TDyCell *cells, PetscInt varID) {
+    TDyMPFAO *mpfao, DM dm, Conditions *conditions, PetscInt ivertex,
+    TDyCell *cells, PetscInt varID) {
   TDyMesh *mesh = mpfao->mesh;
   TDyVertex *vertices = &mesh->vertices;
   TDySubcell    *subcells = &mesh->subcells;
@@ -1777,7 +1779,8 @@ static PetscErrorCode UpdateTransmissibilityMatrix(TDyMPFAO *mpfao) {
 
 }
 
-static PetscErrorCode ComputeTransmissibilityMatrix(TDyMPFAO *mpfao, DM dm) {
+static PetscErrorCode ComputeTransmissibilityMatrix(TDyMPFAO *mpfao, DM dm,
+                                                    Conditions *conditions) {
 
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
@@ -1793,19 +1796,49 @@ static PetscErrorCode ComputeTransmissibilityMatrix(TDyMPFAO *mpfao, DM dm) {
     if (!vertices->is_local[ivertex]) continue;
 
     if (vertices->num_boundary_faces[ivertex] == 0 || vertices->num_internal_cells[ivertex] > 1) {
-      ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(mpfao, ivertex, cells, 0); CHKERRQ(ierr);
+      ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(mpfao, dm, conditions,
+                                                              ivertex, cells, 0);
+      CHKERRQ(ierr);
       if (mpfao->Temp_subc_Gmatrix) { // TH
-        ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(mpfao, ivertex, cells, 1); CHKERRQ(ierr);
+        ierr = ComputeTransmissibilityMatrix_ForNonCornerVertex(mpfao, dm, conditions,
+                                                                ivertex, cells, 1);
+        CHKERRQ(ierr);
       }
     } else {
       // It is assumed that neumann boundary condition is a zero-flux boundary condition.
       // Thus, compute transmissiblity entries only for dirichlet boundary condition.
-      if (mpfao->bc_type == MPFAO_DIRICHLET_BC ||
-          mpfao->bc_type == MPFAO_SEEPAGE_BC) {
-        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(mpfao, dm, ivertex, cells, 0); CHKERRQ(ierr);
-        if (mpfao->Temp_subc_Gmatrix) { // TH
-          ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(mpfao, dm, ivertex, cells, 1); CHKERRQ(ierr);
+      //
+      // Currently, we support only one boundary condition for each vertex. This
+      // logic needs to be revisited in the case of vertices on edges with faces
+      // having different boundary conditions.
+      PetscBool is_dirichlet_or_seepage_bc = PETSC_FALSE;
+      PetscBool is_temperature_bc = PETSC_FALSE;
+      PetscInt *face_ids, num_faces;
+      ierr = TDyMeshGetVertexFaces(mesh, ivertex, &face_ids, &num_faces); CHKERRQ(ierr);
+      for (PetscInt f = 0; f < num_faces; ++f) {
+        PetscInt face_id = face_ids[f];
+        PetscInt face_set; // >= 0 for face set, -1 for interior face
+        ierr = DMGetLabelValue(dm, "Face Sets", face_id, &face_set); CHKERRQ(ierr);
+        if (face_set >= 0) {
+          // Find the right boundary condition.
+          BoundaryConditions bcs;
+          ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
+          if (bcs.flow_bc.type == TDY_PRESSURE_BC) {
+            is_dirichlet_or_seepage_bc = PETSC_TRUE;
+          }
+          if (bcs.thermal_bc.type == TDY_TEMPERATURE_BC) {
+            is_temperature_bc = PETSC_TRUE;
+          }
         }
+      }
+
+      if (is_dirichlet_or_seepage_bc) {
+        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(
+          mpfao, dm, conditions, ivertex, cells, 0); CHKERRQ(ierr);
+      }
+      if (mpfao->Temp_subc_Gmatrix && is_temperature_bc) { // TH
+        ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(
+          mpfao, dm, conditions, ivertex, cells, 1); CHKERRQ(ierr);
       }
     }
   }
@@ -2139,7 +2172,8 @@ PetscErrorCode ComputeFacePermeabilityValueMPFAO(TDyMPFAO *mpfao, MaterialProp *
 /// @param [in] tdy A TDy struct
 /// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode ComputeGravityDiscretization(TDyMPFAO *mpfao, DM dm,
-                                                   MaterialProp *matprop) {
+                                                   MaterialProp *matprop,
+                                                   Conditions *conditions) {
 
   PetscFunctionBegin;
 
@@ -2186,7 +2220,14 @@ static PetscErrorCode ComputeGravityDiscretization(TDyMPFAO *mpfao, DM dm,
 
       // Currently, only zero-flux neumann boundary condition is implemented.
       // If the boundary condition is neumann, then gravity discretization term is zero
-      if (mpfao->bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
+      PetscInt face_set; // >= 0 for face set, -1 for interior face
+      ierr = DMGetLabelValue(dm, "Face Sets", face_id, &face_set); CHKERRQ(ierr);
+      if (face_set >= 0) {
+        BoundaryConditions bcs;
+        ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
+        if ((bcs.flow_bc.type == TDY_NOFLOW_BC) &&
+            (cell_id_up < 0 || cell_id_dn < 0)) continue;
+      }
 
       PetscInt cell_id;
       if (cell_id_up < 0) {
@@ -2287,8 +2328,8 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
 
   // Set up data structures for the discretization.
   ierr = ComputeGMatrix(mpfao, dm, matprop); CHKERRQ(ierr);
-  ierr = ComputeTransmissibilityMatrix(mpfao, dm); CHKERRQ(ierr);
-  ierr = ComputeGravityDiscretization(mpfao, dm, matprop); CHKERRQ(ierr);
+  ierr = ComputeTransmissibilityMatrix(mpfao, dm, conditions); CHKERRQ(ierr);
+  ierr = ComputeGravityDiscretization(mpfao, dm, matprop, conditions); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
@@ -2339,8 +2380,8 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
 
   // Set up data structures for the discretization.
   ierr = ComputeGMatrix(mpfao, dm, matprop); CHKERRQ(ierr);
-  ierr = ComputeTransmissibilityMatrix(mpfao, dm); CHKERRQ(ierr);
-  ierr = ComputeGravityDiscretization(mpfao, dm, matprop); CHKERRQ(ierr);
+  ierr = ComputeTransmissibilityMatrix(mpfao, dm, conditions); CHKERRQ(ierr);
+  ierr = ComputeGravityDiscretization(mpfao, dm, matprop, conditions); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
@@ -2398,8 +2439,8 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
 
   // Compute matrices for our discretization.
   ierr = ComputeGMatrix(mpfao, dm, matprop); CHKERRQ(ierr);
-  ierr = ComputeTransmissibilityMatrix(mpfao, dm); CHKERRQ(ierr);
-  ierr = ComputeGravityDiscretization(mpfao, dm, matprop); CHKERRQ(ierr);
+  ierr = ComputeTransmissibilityMatrix(mpfao, dm, conditions); CHKERRQ(ierr);
+  ierr = ComputeGravityDiscretization(mpfao, dm, matprop, conditions); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);

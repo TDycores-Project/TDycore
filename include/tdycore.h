@@ -39,7 +39,7 @@ PETSC_EXTERN const char *const TDyDiscretizations[];
 typedef enum {
   TDY_UNDEFINED_FLOW_BC = 0,
   TDY_PRESSURE_BC,
-  TDY_VELOCITY_BC,
+  TDY_NOFLOW_BC,
   TDY_SEEPAGE_BC
 } TDyFlowBCType;
 

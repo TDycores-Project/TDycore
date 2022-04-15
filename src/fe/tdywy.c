@@ -735,7 +735,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
         B[local_col*nA+local_row] += wgt*sign_row*wy->V[global_row];
 
         // Pressure boundary conditions
-        PetscInt face_set; // >= for face set, -1 for interior face
+        PetscInt face_set; // >= 0 for face set, -1 for interior face
         ierr = DMGetLabelValue(dm,"Face Sets",global_row,&face_set); CHKERRQ(ierr);
         if (face_set >= 0) {
           // Find the right (flow) boundary condition.
