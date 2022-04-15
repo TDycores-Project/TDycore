@@ -660,7 +660,7 @@ PetscErrorCode ComputePlaneGeometry (PetscReal point1[3], PetscReal point2[3], P
 
 }
 
-PetscErrorCode GeometryGetPlaneIntercept (PetscReal plane[4], PetscReal point1[3], PetscReal point2[3], PetscReal intercept[4]) {
+PetscErrorCode GeometryGetPlaneIntercept (PetscReal plane[4], PetscReal point1[3], PetscReal point2[3], PetscReal intercept[3]) {
 
   PetscFunctionBegin;
 
@@ -675,4 +675,19 @@ PetscErrorCode GeometryGetPlaneIntercept (PetscReal plane[4], PetscReal point1[3
 
   PetscFunctionReturn(0);
 
+}
+
+PetscErrorCode GeometryProjectPointOnPlane (PetscReal plane[4], PetscReal point[3], PetscReal intercept[3]) {
+
+  PetscFunctionBegin;
+
+  PetscReal a = plane[0], b = plane[1], c = plane[2], d = plane[3];
+  PetscReal x = point[0], y = point[1], z = point[2];
+
+  PetscReal scalar = (a*x + b*y + c*z + d)/(a*a + b*b + c*c);
+  intercept[0] = x - a*scalar;
+  intercept[1] = y - b*scalar;
+  intercept[2] = z - c*scalar;
+
+  PetscFunctionReturn(0);
 }
