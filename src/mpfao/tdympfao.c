@@ -2356,6 +2356,11 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
   PetscErrorCode ierr;
   TDyMPFAO* mpfao = context;
 
+  PetscInt ref_cnt;
+  PetscObjectGetReference((PetscObject)dm,&ref_cnt);
+  printf("*DM ref count: %d\n", ref_cnt);
+
+
   ierr = ComputeGeometry(mpfao, dm); CHKERRQ(ierr);
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
@@ -2489,6 +2494,10 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
 
   TDyMPFAO *mpfao = context;
 
+  PetscInt ref_cnt;
+  PetscObjectGetReference((PetscObject)dm,&ref_cnt);
+  printf("--DM ref count: %d\n", ref_cnt);
+
   PetscInt dim = 3;
   PetscInt dim2 = dim*dim;
   PetscInt cStart = 0, cEnd = num_cells;
@@ -2559,6 +2568,8 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
     t_vec_ptr[c] = temp[c];
   }
   ierr = VecRestoreArray(mpfao->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
+  PetscObjectGetReference((PetscObject)dm,&ref_cnt);
+  printf("**DM ref count: %d\n", ref_cnt);
   PetscFunctionReturn(0);
 }
 

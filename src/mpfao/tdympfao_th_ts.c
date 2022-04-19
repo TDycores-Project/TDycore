@@ -157,6 +157,10 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
+  PetscInt ref_cnt;
+  PetscObjectGetReference((PetscObject)tdy->dm,&ref_cnt);
+  printf("++DM ref count: %d\n", ref_cnt);
+
 #if defined(DEBUG)
   PetscViewer viewer;
   char word[32];
