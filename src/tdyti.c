@@ -186,7 +186,17 @@ PetscErrorCode TDyTimeIntegratorOutputRegression(TDy tdy) {
 
 PetscErrorCode TDyTimeIntegratorDestroy(TDyTimeIntegrator *ti) {
   PetscFunctionBegin;
-  free(*ti);
+  if (*ti) {
+    switch((*ti)->time_integration_method) {
+      case TDySNES:
+        SNESDestroy(&((*ti)->snes));
+        break;
+      case TDyTS:
+        TSDestroy(&((*ti)->ts));
+        break;
+    }
+    free(*ti);
+  }
   ti = PETSC_NULL;
   PetscFunctionReturn(0);
 }

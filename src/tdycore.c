@@ -372,10 +372,8 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   ierr = VecDestroy(&tdy->soln); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->soln_loc); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->accumulation_prev); CHKERRQ(ierr);
-  ierr = VecDestroy(&tdy->soln); CHKERRQ(ierr);
   ierr = TDyIODestroy(&tdy->io); CHKERRQ(ierr);
   ierr = TDyTimeIntegratorDestroy(&tdy->ti); CHKERRQ(ierr);
-  ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
 
   if (tdy->conditions) {
     ierr = ConditionsDestroy(tdy->conditions); CHKERRQ(ierr);
@@ -387,6 +385,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
     ierr = MaterialPropDestroy(tdy->matprop); CHKERRQ(ierr);
   }
 
+  ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
