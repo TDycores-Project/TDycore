@@ -385,10 +385,6 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
     ierr = MaterialPropDestroy(tdy->matprop); CHKERRQ(ierr);
   }
 
-  PetscInt ref_cnt;
-  PetscObjectGetReference((PetscObject)tdy->dm,&ref_cnt);
-  printf("DM ref count: %d\n", ref_cnt);
-
   ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
 
