@@ -78,7 +78,7 @@ typedef struct TDyFVTPF {
 
 } TDyFVTPF;
 
-// Functions specific to MPFA-O implementations.
+// Functions specific to FVTPF implementations.
 PETSC_INTERN PetscErrorCode TDyCreate_FVTPF(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_FVTPF(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_FVTPF(void*, TDyOptions*);
