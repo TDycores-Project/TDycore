@@ -4821,7 +4821,7 @@ PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh *mesh,
 }
 
 // Computes mesh geometry.
-PetscErrorCode TDyMeshComputeGeometry(PetscReal *X, PetscReal *V, PetscReal *N, DM dm) {
+PetscErrorCode TDyMeshComputeGeometry(PetscReal **X, PetscReal **V, PetscReal **N, DM dm) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
@@ -4832,7 +4832,7 @@ PetscErrorCode TDyMeshComputeGeometry(PetscReal *X, PetscReal *V, PetscReal *N, 
   PetscInt dim;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   if (dim == 2) {
-    SETERRQ(comm,PETSC_ERR_USER,"MPFA-O method supports only 3D calculations.");
+    SETERRQ(comm,PETSC_ERR_USER,"TDyMeshComputeGeometry only supports 3D calculations.");
   }
 
   // Compute/store plex geometry.
@@ -4840,9 +4840,9 @@ PetscErrorCode TDyMeshComputeGeometry(PetscReal *X, PetscReal *V, PetscReal *N, 
   ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((pEnd-pStart)*sizeof(PetscReal),&V); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&X); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&N); CHKERRQ(ierr);
+  ierr = PetscMalloc((pEnd-pStart)*sizeof(PetscReal),V); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),X); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),N); CHKERRQ(ierr);
 
   PetscSection coordSection;
   Vec coordinates;
@@ -4854,14 +4854,12 @@ PetscErrorCode TDyMeshComputeGeometry(PetscReal *X, PetscReal *V, PetscReal *N, 
     if((p >= vStart) && (p < vEnd)) {
       PetscInt offset;
       ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
-      for(PetscInt d=0; d<dim; d++) X[p*dim+d] = coords[offset+d];
+      for(PetscInt d=0; d<dim; d++) (*X)[p*dim+d] = coords[offset+d];
     } else {
       if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
       PetscLogEvent t11 = TDyGetTimer("DMPlexComputeCellGeometryFVM");
       TDyStartTimer(t11);
-      ierr = DMPlexComputeCellGeometryFVM(dm,p,&(V[p]),
-                                          &(X[p*dim]),
-                                          &(N[p*dim])); CHKERRQ(ierr);
+      ierr = DMPlexComputeCellGeometryFVM(dm,p,&(*V)[p], &(*X)[p*dim], &(*N)[p*dim]); CHKERRQ(ierr);
       TDyStopTimer(t11);
     }
   }
