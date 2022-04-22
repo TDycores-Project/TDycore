@@ -581,13 +581,14 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 
     PetscReal Res;
     switch (faces->bc_type[iface]) {
-    case NEUMANN_BC:
-      break;
     case DIRICHLET_BC:
       ierr = RichardsBCResidual(fvtpf, tdy->dm, tdy->matprop, iface, &Res);
       break;
     case SEEPAGE_BC:
       ierr = RichardsSeepageBCResidual(fvtpf, tdy->dm, tdy->matprop, iface, &Res);
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported bc type in the computation of the residual");
       break;
     }
 
@@ -673,13 +674,14 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
     PetscInt cell_id_dn = cell_ids[1];
     PetscReal Jdn;
     switch (faces->bc_type[iface]) {
-    case NEUMANN_BC:
-      break;
     case DIRICHLET_BC:
       ierr = RichardsBCJacobian(fvtpf, tdy->dm, tdy->matprop, iface, &Jdn);
       break;
     case SEEPAGE_BC:
       ierr = RichardsSeepageBCJacobian(fvtpf, tdy->dm, tdy->matprop, iface, &Jdn);
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported bc type in the computation of the jacobian");
       break;
     }
 
