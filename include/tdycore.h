@@ -30,7 +30,9 @@ typedef enum {
   BDM,
   /// finite element using P0,BDM1 spaces, vertex quadrature, statically
   /// condensed
-  WY
+  WY,
+  /// finite volume two-point approximation
+  FV_TPF
 } TDyDiscretization;
 
 PETSC_EXTERN const char *const TDyDiscretizations[];
@@ -43,12 +45,12 @@ typedef enum {
 PETSC_EXTERN const char *const TDyMPFAOGmatrixMethods[];
 
 typedef enum {
-  MPFAO_DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
-  MPFAO_NEUMANN_BC,       /* Neumann zero-flux boundary condition */
-  MPFAO_SEEPAGE_BC       /* Seepage boundary condition */
-} TDyMPFAOBoundaryConditionType;
+  DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
+  NEUMANN_BC,       /* Neumann zero-flux boundary condition */
+  SEEPAGE_BC       /* Seepage boundary condition */
+} TDyBoundaryConditionType;
 
-PETSC_EXTERN const char *const TDyMPFAOBoundaryConditionTypes[];
+PETSC_EXTERN const char *const TDyBoundaryConditionTypes[];
 
 typedef enum {
   TDySNES=0,
@@ -89,6 +91,8 @@ typedef void (*TDyTensorSpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f)
 /// A TDySpatialFunction has the same type as the above functions, but can be
 /// used to store any one of them.
 typedef void (*TDySpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+
+typedef void (*TDyScalarSpatialIntegerFunction)(PetscInt n, PetscReal *x, PetscInt *f);
 
 typedef struct _p_TDy *TDy;
 
@@ -156,6 +160,7 @@ PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeatFunction(TDy,TDyScalarSpatialF
 PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetEnergyForcingFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureTypeFunction(TDy,TDyScalarSpatialIntegerFunction);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryTemperatureFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryVelocityFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySelectForcingFunction(TDy,const char*);
@@ -182,6 +187,7 @@ PETSC_EXTERN PetscErrorCode TDySetSNESJacobian(SNES,TDy);
 
 PETSC_EXTERN PetscErrorCode TDySetDtimeForSNESSolver(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetInitialCondition(TDy,Vec);
+PETSC_EXTERN PetscErrorCode TDyGetInitialCondition(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDySetPreviousSolutionForSNESSolver(TDy,Vec);
 PETSC_INTERN PetscErrorCode TDyPreSolveSNESSolver(TDy);
 
@@ -213,7 +219,7 @@ PETSC_EXTERN PetscErrorCode TDyDriverInitializeTDy(TDy);
 //-------------------------------------------------
 
 PETSC_EXTERN PetscErrorCode TDyMPFAOSetGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
-PETSC_EXTERN PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDy,TDyMPFAOBoundaryConditionType);
+PETSC_EXTERN PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDy,TDyBoundaryConditionType);
 PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
 
 //------------------------

@@ -168,6 +168,12 @@ typedef struct {
   PetscInt *edge_ids;      /* id of edges that form the face */
   PetscInt *cell_ids;      /* id of cells that share the face */
 
+  PetscInt *bc_type;       /* Type of boundary condition applied on boundary faces */
+                           /* Supported BCs include */
+                           /* (0) dirichlet */
+                           /* (1) neumann */
+                           /* (2) seepage */
+
   TDyCoordinate *centroid; /* centroid of the face */
   TDyVector *normal;       /* unit normal to the face */
   PetscReal *area;          /* area of the face */
@@ -249,6 +255,8 @@ PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceCentroids(TDyMesh*, PetscInt, T
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNumFaces(TDyMesh*, PetscInt, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellIDGivenCellIdVertexIdFaceId(TDyMesh*,PetscInt,PetscInt,PetscInt,PetscInt*);
+
+PETSC_INTERN PetscErrorCode TDyMeshComputeGeometry(PetscReal**, PetscReal**, PetscReal**, DM);
 
 PETSC_INTERN TDyCellType GetCellType(PetscInt);
 PETSC_INTERN PetscInt GetNumVerticesForCellType(TDyCellType);

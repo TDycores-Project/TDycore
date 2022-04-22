@@ -387,7 +387,7 @@ PetscErrorCode TDyMPFAOSetGmatrixMethod(TDy tdy,
 }
 
 PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDy tdy,
-                                                TDyMPFAOBoundaryConditionType bctype) {
+                                                TDyBoundaryConditionType bctype) {
   PetscFunctionBegin;
 
   PetscValidPointer(tdy,1);
@@ -408,7 +408,7 @@ PetscErrorCode TDyCreate_MPFAO(void **context) {
 
   // Initialize defaults and data.
   mpfao->gmatrix_method = MPFAO_GMATRIX_DEFAULT;
-  mpfao->bc_type = MPFAO_DIRICHLET_BC;
+  mpfao->bc_type = DIRICHLET_BC;
   mpfao->Pref = 101325;
   mpfao->Tref = 25;
   mpfao->gravity[0] = 0; mpfao->gravity[1] = 0; mpfao->gravity[2] = 0;
@@ -534,11 +534,11 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
     "TDySetMPFAOGmatrixMethod",TDyMPFAOGmatrixMethods,
     (PetscEnum)mpfao->gmatrix_method,(PetscEnum *)&mpfao->gmatrix_method,NULL);
     CHKERRQ(ierr);
-  TDyMPFAOBoundaryConditionType bctype = MPFAO_DIRICHLET_BC;
+  TDyBoundaryConditionType bctype = DIRICHLET_BC;
   PetscBool flag;
   ierr = PetscOptionsEnum("-tdy_mpfao_boundary_condition_type",
       "MPFA-O boundary condition type", "TDyMPFAOSetBoundaryConditionType",
-      TDyMPFAOBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype,
+      TDyBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype,
       &flag); CHKERRQ(ierr);
   if (flag && (bctype != mpfao->bc_type)) {
     mpfao->bc_type = bctype;
@@ -574,60 +574,6 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
 //-----------------
 // Setup functions
 //-----------------
-
-// Computes mesh geometry.
-static PetscErrorCode ComputeGeometry(TDyMPFAO *mpfao, DM dm) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  if (dim == 2) {
-    SETERRQ(comm,PETSC_ERR_USER,"MPFA-O method supports only 3D calculations.");
-  }
-
-  // Compute/store plex geometry.
-  PetscInt pStart, pEnd, vStart, vEnd, eStart, eEnd;
-  ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(mpfao->V));
-  CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(mpfao->X));
-  CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(mpfao->N));
-  CHKERRQ(ierr);
-
-  PetscSection coordSection;
-  Vec coordinates;
-  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
-  ierr = DMGetCoordinatesLocal (dm, &coordinates); CHKERRQ(ierr);
-  PetscReal *coords;
-  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
-  for(PetscInt p=pStart; p<pEnd; p++) {
-    if((p >= vStart) && (p < vEnd)) {
-      PetscInt offset;
-      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
-      for(PetscInt d=0; d<dim; d++) mpfao->X[p*dim+d] = coords[offset+d];
-    } else {
-      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
-      PetscLogEvent t11 = TDyGetTimer("DMPlexComputeCellGeometryFVM");
-      TDyStartTimer(t11);
-      ierr = DMPlexComputeCellGeometryFVM(dm,p,&(mpfao->V[p]),
-                                          &(mpfao->X[p*dim]),
-                                          &(mpfao->N[p*dim])); CHKERRQ(ierr);
-      TDyStopTimer(t11);
-    }
-  }
-  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
 
 // Creates a TDyMesh object to be used by the MPFA-O method.
 static PetscErrorCode CreateMesh(TDyMPFAO *mpfao, DM dm) {
@@ -1155,8 +1101,8 @@ static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
 
   PetscInt npitf_dir_bc_all, npitf_neu_bc_all;
 
-  if (mpfao->bc_type == MPFAO_DIRICHLET_BC ||
-      mpfao->bc_type == MPFAO_SEEPAGE_BC) {
+  if (mpfao->bc_type == DIRICHLET_BC ||
+      mpfao->bc_type == SEEPAGE_BC) {
     nflux_dir_bc_up = nflux_all_bc_up;
     nflux_dir_bc_dn = nflux_all_bc_dn;
     npitf_dir_bc_all= npitf_bc_all;
@@ -1800,8 +1746,8 @@ static PetscErrorCode ComputeTransmissibilityMatrix(TDyMPFAO *mpfao, DM dm) {
     } else {
       // It is assumed that neumann boundary condition is a zero-flux boundary condition.
       // Thus, compute transmissiblity entries only for dirichlet boundary condition.
-      if (mpfao->bc_type == MPFAO_DIRICHLET_BC ||
-          mpfao->bc_type == MPFAO_SEEPAGE_BC) {
+      if (mpfao->bc_type == DIRICHLET_BC ||
+          mpfao->bc_type == SEEPAGE_BC) {
         ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(mpfao, dm, ivertex, cells, 0); CHKERRQ(ierr);
         if (mpfao->Temp_subc_Gmatrix) { // TH
           ierr = ComputeTransmissibilityMatrix_ForBoundaryVertex_NotSharedWithInternalVertices(mpfao, dm, ivertex, cells, 1); CHKERRQ(ierr);
@@ -2186,7 +2132,7 @@ static PetscErrorCode ComputeGravityDiscretization(TDyMPFAO *mpfao, DM dm,
 
       // Currently, only zero-flux neumann boundary condition is implemented.
       // If the boundary condition is neumann, then gravity discretization term is zero
-      if (mpfao->bc_type == MPFAO_NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
+      if (mpfao->bc_type == NEUMANN_BC && (cell_id_up < 0 || cell_id_dn < 0)) continue;
 
       PetscInt cell_id;
       if (cell_id_up < 0) {
@@ -2255,7 +2201,7 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
   PetscErrorCode ierr;
   TDyMPFAO *mpfao = context;
 
-  ierr = ComputeGeometry(mpfao, dm); CHKERRQ(ierr);
+  ierr = TDyMeshComputeGeometry(&mpfao->X, &mpfao->V, &mpfao->N, dm); CHKERRQ(ierr);
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 
@@ -2307,7 +2253,7 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
 
   TDyMPFAO *mpfao = context;
 
-  ierr = ComputeGeometry(mpfao, dm); CHKERRQ(ierr);
+  ierr = TDyMeshComputeGeometry(&mpfao->X, &mpfao->V, &mpfao->N, dm); CHKERRQ(ierr);
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 
@@ -2356,7 +2302,7 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
   PetscErrorCode ierr;
   TDyMPFAO* mpfao = context;
 
-  ierr = ComputeGeometry(mpfao, dm); CHKERRQ(ierr);
+  ierr = TDyMeshComputeGeometry(&mpfao->X, &mpfao->V, &mpfao->N, dm); CHKERRQ(ierr);
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 

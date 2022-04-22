@@ -249,6 +249,8 @@ static PetscErrorCode AllocateFaces(
   ierr = TDyAllocate_IntegerArray_1D(&faces->edge_ids,num_faces*num_edges); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&faces->vertex_ids,num_faces*num_vertices); CHKERRQ(ierr);
 
+  ierr = TDyAllocate_IntegerArray_1D(&faces->bc_type,num_faces); CHKERRQ(ierr);
+
   ierr = TDyAllocate_RealArray_1D(&faces->area,num_faces); CHKERRQ(ierr);
   ierr = TDyAllocate_TDyCoordinate_1D(num_faces, &faces->centroid); CHKERRQ(ierr);
   ierr = TDyAllocate_TDyVector_1D(num_faces, &faces->normal); CHKERRQ(ierr);
@@ -262,9 +264,9 @@ static PetscErrorCode AllocateFaces(
 
     faces->num_cells[iface] = 0;
     faces->num_vertices[iface] = 0;
-  }
 
-  for (PetscInt iface=0; iface<=num_faces; iface++) {
+    faces->bc_type[iface] = NEUMANN_BC;
+
     faces->cell_offset[iface] = iface*num_cells;
     faces->edge_offset[iface] = iface*num_edges;
     faces->vertex_offset[iface] = iface*num_vertices;
@@ -3808,6 +3810,41 @@ PetscErrorCode UpdateCellOrientationAroundAFace(DM dm, TDyMesh *mesh) {
       faces->cell_ids[fOffsetCell + 0] = faces->cell_ids[fOffsetCell + 1];
       faces->cell_ids[fOffsetCell + 1] = tmp;
     }
+
+    // If a face is on a boundary, flip cells such that
+    //  faces->cell_ids[fOffset + 0] == Boundary cell
+    //  faces->cell_ids[fOffset + 1] == Internal cell
+    PetscInt cell_id_up = faces->cell_ids[fOffsetCell + 0];
+    PetscInt cell_id_dn = faces->cell_ids[fOffsetCell + 1];
+
+    if (cell_id_dn < 0) { // cell_id_dn is boundary cell, so flip cells
+      faces->cell_ids[fOffsetCell + 0] = cell_id_dn;
+      faces->cell_ids[fOffsetCell + 1] = cell_id_up;
+
+      for (PetscInt d=0; d<dim; d++){
+        faces->normal[iface].V[d] = -faces->normal[iface].V[d];
+      }
+      if (faces->num_vertices[iface] == 3) {
+        PetscInt vert_1 = faces->vertex_ids[fOffsetVertex + 0];
+        PetscInt vert_2 = faces->vertex_ids[fOffsetVertex + 1];
+        PetscInt vert_3 = faces->vertex_ids[fOffsetVertex + 2];
+
+        faces->vertex_ids[fOffsetVertex + 0] = vert_3;
+        faces->vertex_ids[fOffsetVertex + 1] = vert_2;
+        faces->vertex_ids[fOffsetVertex + 2] = vert_1;
+
+      } else if (faces->num_vertices[iface] == 4) {
+        PetscInt vert_1 = faces->vertex_ids[fOffsetVertex + 0];
+        PetscInt vert_2 = faces->vertex_ids[fOffsetVertex + 1];
+        PetscInt vert_3 = faces->vertex_ids[fOffsetVertex + 2];
+        PetscInt vert_4 = faces->vertex_ids[fOffsetVertex + 3];
+
+        faces->vertex_ids[fOffsetVertex + 0] = vert_4;
+        faces->vertex_ids[fOffsetVertex + 1] = vert_3;
+        faces->vertex_ids[fOffsetVertex + 2] = vert_2;
+        faces->vertex_ids[fOffsetVertex + 3] = vert_1;
+      }
+    }
   }
 
   PetscFunctionReturn(0);
@@ -4878,6 +4915,55 @@ PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh *mesh,
   *vertices_coordinates = &mesh->subcells.vertices_coordinates[offset];
   *num_vertices_coordinates = mesh->subcells.nu_vector_offset[subcell+1] - offset;
   return 0;
+}
+
+// Computes mesh geometry.
+PetscErrorCode TDyMeshComputeGeometry(PetscReal **X, PetscReal **V, PetscReal **N, DM dm) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+
+  PetscInt dim;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  if (dim == 2) {
+    SETERRQ(comm,PETSC_ERR_USER,"TDyMeshComputeGeometry only supports 3D calculations.");
+  }
+
+  // Compute/store plex geometry.
+  PetscInt pStart, pEnd, vStart, vEnd, eStart, eEnd;
+  ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc((pEnd-pStart)*sizeof(PetscReal),V); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),X); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),N); CHKERRQ(ierr);
+
+  PetscSection coordSection;
+  Vec coordinates;
+  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal (dm, &coordinates); CHKERRQ(ierr);
+  PetscReal *coords;
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  for(PetscInt p=pStart; p<pEnd; p++) {
+    if((p >= vStart) && (p < vEnd)) {
+      PetscInt offset;
+      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
+      for(PetscInt d=0; d<dim; d++) (*X)[p*dim+d] = coords[offset+d];
+    } else {
+      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
+      PetscLogEvent t11 = TDyGetTimer("DMPlexComputeCellGeometryFVM");
+      TDyStartTimer(t11);
+      ierr = DMPlexComputeCellGeometryFVM(dm,p,&(*V)[p], &(*X)[p*dim], &(*N)[p*dim]); CHKERRQ(ierr);
+      TDyStopTimer(t11);
+    }
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
 }
 
 #if 0

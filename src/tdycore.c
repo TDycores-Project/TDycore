@@ -13,6 +13,7 @@ static char help[] = "TDycore \n\
 #include <private/tdythimpl.h>
 #include <private/tdybdmimpl.h>
 #include <private/tdywyimpl.h>
+#include <private/tdyfvtpfimpl.h>
 #include <private/tdyeosimpl.h>
 #include <private/tdytiimpl.h>
 #include <tdytimers.h>
@@ -27,6 +28,7 @@ const char *const TDyDiscretizations[] = {
   "MPFA_O_TRANSIENTVAR",
   "BDM",
   "WY",
+  "FV_TPF",
   /* */
   "TDyDiscretization","TDY_DISCRETIZATION_",NULL
 };
@@ -38,12 +40,12 @@ const char *const TDyMPFAOGmatrixMethods[] = {
   "TDyMPFAOGmatrixMethod","TDY_MPFAO_GMATRIX_METHOD_",NULL
 };
 
-const char *const TDyMPFAOBoundaryConditionTypes[] = {
-  "MPFAO_DIRICHLET_BC",
-  "MPFAO_NEUMANN_BC",
-  "MPFAO_SEEPAGE_BC",
+const char *const TDyBoundaryConditionTypes[] = {
+  "DIRICHLET_BC",
+  "NEUMANN_BC",
+  "SEEPAGE_BC",
   /* */
-  "TDyMPFAOBoundaryConditionType","TDY_MPFAO_BC_TYPE_",NULL
+  "TDyBoundaryConditionType","TDY_BC_TYPE_",NULL
 };
 
 const char *const TDyModes[] = {
@@ -840,6 +842,15 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->update_state = TDyUpdateState_WY;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_WY;
       tdy->ops->update_diagnostics = NULL; // FIXME
+    } else if (discretization == FV_TPF) {
+      tdy->ops->create = TDyCreate_FVTPF;
+      tdy->ops->destroy = TDyDestroy_FVTPF;
+      tdy->ops->set_from_options = TDySetFromOptions_FVTPF;
+      tdy->ops->set_dm_fields = TDySetDMFields_Richards_FVTPF;
+      tdy->ops->setup = TDySetup_Richards_FVTPF;
+      tdy->ops->update_state = TDyUpdateState_Richards_FVTPF;
+      tdy->ops->compute_error_norms = TDyComputeErrorNorms_FVTPF;
+      tdy->ops->update_diagnostics = TDyUpdateDiagnostics_FVTPF;
     } else {
       SETERRQ(comm,PETSC_ERR_USER, "Invalid discretization given!");
     }
@@ -1112,9 +1123,20 @@ typedef struct WrapperStruct {
   TDySpatialFunction func;
 } WrapperStruct;
 
+typedef struct WrapperIntegerStruct {
+  TDyScalarSpatialIntegerFunction func;
+} WrapperIntegerStruct;
+
 // This function calls an underlying Function with a NULL context.
 static PetscErrorCode WrapperFunction(void *context, PetscInt n, PetscReal *x, PetscReal *v) {
   WrapperStruct *wrapper = context;
+  wrapper->func(n, x, v);
+  PetscFunctionReturn(0);
+}
+
+// This function calls an underlying Function with a NULL context.
+static PetscErrorCode WrapperIntegerFunction(void *context, PetscInt n, PetscReal *x, PetscInt *v) {
+  WrapperIntegerStruct *wrapper = context;
   wrapper->func(n, x, v);
   PetscFunctionReturn(0);
 }
@@ -1149,6 +1171,17 @@ PetscErrorCode TDySetBoundaryPressureFunction(TDy tdy,
   wrapper->func = f;
   ierr = ConditionsSetBoundaryPressure(tdy->conditions, wrapper,
                                        WrapperFunction, free); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetBoundaryPressureTypeFunction(TDy tdy,
+                                              TDyScalarSpatialIntegerFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  WrapperIntegerStruct *wrapper = malloc(sizeof(WrapperIntegerStruct));
+  wrapper->func = f;
+  ierr = ConditionsSetBoundaryPressureType(tdy->conditions, wrapper,
+                                       WrapperIntegerFunction, free); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1384,6 +1417,25 @@ PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+/// Gets initial condition for the TDy solver
+///
+/// @param [in] tdy A TDy struct
+/// @param [out] initial A copies initial condition into a PETSc vector.
+///                     For RICHARDS mode, the vector contains unknown
+///                     pressure values for each grid cell.
+///                     For TH mode, the vector contains unknown pressure
+///                     and temperature values for each grid cell.
+///                     The initial condition returned is in PETSc's global
+///                     numbering order.
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyGetInitialCondition(TDy tdy, Vec initial) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = VecCopy(tdy->soln,initial); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 
 //-------------------------------
 // Diagnostics-related functions
@@ -1529,6 +1581,9 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   case WY:
     ierr = TSSetIFunction(ts,NULL,TDyWYResidual,tdy); CHKERRQ(ierr);
     break;
+  case FV_TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for FV_TPF");
+    break;
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -1569,6 +1624,9 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for WY");
     break;
+  case FV_TPF:
+    SETERRQ(comm,PETSC_ERR_SUP,"IJacobian not implemented for FV_TPF");
+    break;
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -1603,6 +1661,9 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for WY");
     break;
+  case FV_TPF:
+    ierr = SNESSetFunction(snes,tdy->residual,TDyFVTPFSNESFunction,tdy); CHKERRQ(ierr);
+    break;
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -1636,6 +1697,9 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
     break;
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"SNESJacobian not implemented for WY");
+    break;
+  case FV_TPF:
+    ierr = SNESSetJacobian(snes,tdy->J,tdy->J,TDyFVTPFSNESJacobian,tdy); CHKERRQ(ierr);
     break;
   }
   TDY_STOP_FUNCTION_TIMER()
@@ -1686,6 +1750,9 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
     break;
   case WY:
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for WY");
+    break;
+  case FV_TPF:
+    ierr = TDyFVTPFSNESPreSolve(tdy); CHKERRQ(ierr);
     break;
   }
 

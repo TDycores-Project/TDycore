@@ -32,10 +32,16 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     case MPFA_O:
       break;
     case MPFA_O_DAE:
+      break;
     case MPFA_O_TRANSIENTVAR:
+      break;
     case BDM:
+      break;
     case WY:
       SETERRQ(comm,PETSC_ERR_USER,"Driver not supported for specified discretization.");
+      break;
+    case FV_TPF:
+      SETERRQ(comm,PETSC_ERR_USER,"Driver not supported for FV_TPF.");
       break;
   }
 

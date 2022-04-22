@@ -224,7 +224,7 @@ implicit none
   dtime = 1800.d0
   ic_value = 102325.d0
   pflotran_consistent = PETSC_FALSE
-  bc_type = MPFAO_NEUMANN_BC
+  bc_type = NEUMANN_BC
   use_tdydriver = PETSC_FALSE
   dm_plex_extrude_layers=0
 
@@ -263,10 +263,10 @@ implicit none
 
   call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-tdy_mpfao_boundary_condition_type',bc_type_name,flg,ierr)
   CHKERRA(ierr)
-  if (trim(bc_type_name) == 'MPFAO_DIRICHLET_BC') then
-    bc_type = MPFAO_DIRICHLET_BC
-  else if (trim(bc_type_name) == 'MPFAO_SEEPAGE_BC') then
-    bc_type = MPFAO_SEEPAGE_BC
+  if (trim(bc_type_name) == 'DIRICHLET_BC') then
+    bc_type = DIRICHLET_BC
+  else if (trim(bc_type_name) == 'SEEPAGE_BC') then
+    bc_type = SEEPAGE_BC
   endif
 
   ! Set a constructor for a DM.
@@ -343,7 +343,7 @@ implicit none
      CHKERRA(ierr)
   end if
 
-  if (bc_type == MPFAO_DIRICHLET_BC .OR. bc_type == MPFAO_SEEPAGE_BC ) then
+  if (bc_type == DIRICHLET_BC .OR. bc_type == SEEPAGE_BC ) then
      call TDySetBoundaryPressureFunction(tdy,PressureFunction,ierr)
      CHKERRA(ierr)
   endif
