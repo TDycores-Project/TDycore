@@ -1515,11 +1515,18 @@ static PetscErrorCode ExtractDiagnosticField(TDy tdy, PetscInt index, Vec vec) {
 /// Given a Vec created with TDyCreateDiagnosticVector, populates that vector
 /// with the saturation values for each cell in the grid.
 /// @param [in] tdy A TDy object
-/// @param [out] sat_vec The Vec that stores the cell-centered saturation field
+/// @param [out] sat_vec The Vec that stores the cell-centered saturation field.
+///                      The values in the Vec are in natural-order.
 PetscErrorCode TDyGetLiquidSaturation(TDy tdy, Vec sat_vec) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_SATURATION, sat_vec);
+
+  Vec tmp_vec;
+  ierr = TDyCreateGlobalVector(tdy, &tmp_vec); CHKERRQ(ierr);
+  ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_SATURATION, tmp_vec); CHKERRQ(ierr);
+  ierr = TDyGlobalToNatural(tdy, tmp_vec, sat_vec);CHKERRQ(ierr); CHKERRQ(ierr);
+  ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
+
   CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -1527,11 +1534,18 @@ PetscErrorCode TDyGetLiquidSaturation(TDy tdy, Vec sat_vec) {
 /// Given a Vec created with TDyCreateDiagnosticVector, populates that vector
 /// with the liquid mass values for each cell in the grid.
 /// @param [in] tdy A TDy object
-/// @param [out] mass_vec The Vec that stores the cell-centered liquid mass field
+/// @param [out] mass_vec The Vec that stores the cell-centered liquid mass field.
+///                       The values in the Vec are in natural-order.
 PetscErrorCode TDyGetLiquidMass(TDy tdy, Vec mass_vec) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_MASS, mass_vec); CHKERRQ(ierr);
+
+  Vec tmp_vec;
+  ierr = TDyCreateGlobalVector(tdy, &tmp_vec); CHKERRQ(ierr);
+  ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_MASS, tmp_vec); CHKERRQ(ierr);
+  ierr = TDyGlobalToNatural(tdy, tmp_vec, mass_vec);CHKERRQ(ierr); CHKERRQ(ierr);
+  ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
