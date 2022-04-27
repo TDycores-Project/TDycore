@@ -1543,7 +1543,7 @@ PetscErrorCode TDyGetLiquidSaturation(TDy tdy, Vec sat_vec) {
   PetscFunctionBegin;
 
   Vec tmp_vec;
-  ierr = TDyCreateGlobalVector(tdy, &tmp_vec); CHKERRQ(ierr);
+  ierr = TDyCreateDiagnosticVector(tdy, &tmp_vec); CHKERRQ(ierr);
   ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_SATURATION, tmp_vec); CHKERRQ(ierr);
   ierr = TDyGlobalToNatural(tdy, tmp_vec, sat_vec);CHKERRQ(ierr); CHKERRQ(ierr);
   ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
@@ -1562,7 +1562,7 @@ PetscErrorCode TDyGetLiquidMass(TDy tdy, Vec mass_vec) {
   PetscFunctionBegin;
 
   Vec tmp_vec;
-  ierr = TDyCreateGlobalVector(tdy, &tmp_vec); CHKERRQ(ierr);
+  ierr = TDyCreateDiagnosticVector(tdy, &tmp_vec); CHKERRQ(ierr);
   ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_MASS, tmp_vec); CHKERRQ(ierr);
   ierr = TDyGlobalToNatural(tdy, tmp_vec, mass_vec);CHKERRQ(ierr); CHKERRQ(ierr);
   ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
