@@ -1492,6 +1492,27 @@ PetscErrorCode TDyCreateDiagnosticVector(TDy tdy, Vec *diag_vec) {
   PetscFunctionReturn(0);
 }
 
+/// Creates a Vec that can store a cell-centered scalar prognostic field such as
+/// the saturation or liquid mass.
+/// @param [in] tdy A TDy object
+/// @param [out] prog_vec A Vec that can store a prognostic field.
+PetscErrorCode TDyCreatePrognosticVector(TDy tdy, Vec *prog_vec) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  if ((tdy->setup_flags & TDySetupFinished) == 0) {
+    SETERRQ(comm,PETSC_ERR_USER,"You must call TDyCreatePrognosticVector after TDySetup()");
+  }
+
+  // Create a cell-centered scalar field vector.
+  ierr = DMCreateGlobalVector(tdy->dm, prog_vec); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 static PetscErrorCode ExtractDiagnosticField(TDy tdy, PetscInt index, Vec vec) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -1546,6 +1567,43 @@ PetscErrorCode TDyGetLiquidMass(TDy tdy, Vec mass_vec) {
   ierr = TDyGlobalToNatural(tdy, tmp_vec, mass_vec);CHKERRQ(ierr); CHKERRQ(ierr);
   ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
 
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode ExtractPrognosticField(TDy tdy, PetscInt index, Vec vec) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  if ((tdy->setup_flags & TDySetupFinished) == 0) {
+    SETERRQ(comm,PETSC_ERR_USER,"Prognostic fields cannot be extracted before TDySetup()");
+  }
+
+  // Extract the field.
+  ierr = VecStrideGather(tdy->soln_prev, index, vec, INSERT_VALUES);
+  CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/// Given a Vec created with TDyCreatePrognosticVector, populates that vector
+/// with the saturation values for each cell in the grid.
+/// @param [in] tdy A TDy object
+/// @param [out] liq_pres_vec The Vec that stores the cell-centered liquid pressure field.
+///                           The values in the Vec are in natural-order.
+PetscErrorCode TDyGetLiquidPressure(TDy tdy, Vec liq_press_vec) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  Vec tmp_vec;
+  ierr = TDyCreateGlobalVector(tdy, &tmp_vec); CHKERRQ(ierr);
+  ierr = ExtractPrognosticField(tdy, VAR_PRESSURE, tmp_vec); CHKERRQ(ierr);
+  ierr = TDyGlobalToNatural(tdy, tmp_vec, liq_press_vec);CHKERRQ(ierr); CHKERRQ(ierr);
+  ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
+
+  CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

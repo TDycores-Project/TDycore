@@ -182,7 +182,7 @@ implicit none
 
   TDy                 :: tdy
   DM                  :: dm
-  Vec                 :: U, liq_mass, liq_sat
+  Vec                 :: U, liq_mass, liq_sat, liq_pres
   !TS                 :: ts
   SNES                :: snes
   PetscInt            :: rank, successful_exit_code
@@ -397,6 +397,8 @@ implicit none
   CHKERRA(ierr)
   call TDyCreateDiagnosticVector(tdy, liq_mass, ierr)
   CHKERRA(ierr)
+  call TDyCreatePrognosticVector(tdy, liq_pres, ierr)
+  CHKERRA(ierr)
 
   do step = 1,max_steps
 
@@ -442,6 +444,7 @@ implicit none
     call VecNorm(liq_mass, NORM_1, mass_post, ierr)
     CHKERRA(ierr)
     write(*,*)'Liquid mass pre,post,diff ',step,mass_pre,mass_post,mass_pre-mass_post
+    call TDyGetLiquidPressure(tdy, liq_pres, ierr);
 
     step_mod = mod(step,48)
     write(string,*) step
