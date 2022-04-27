@@ -1484,9 +1484,10 @@ PetscErrorCode TDyCreateDiagnosticVector(TDy tdy, Vec *diag_vec) {
   }
 
   // Create a cell-centered scalar field vector.
-  PetscInt c_start, c_end;
-  ierr = DMPlexGetHeightStratum(tdy->diag_dm, 0, &c_start, &c_end); CHKERRQ(ierr);
-  ierr = VecCreateMPI(comm, c_end - c_start, PETSC_DECIDE, diag_vec); CHKERRQ(ierr);
+  PetscInt vecsize, blocksize;
+  ierr = VecGetLocalSize(tdy->diag_vec, &vecsize); CHKERRQ(ierr);
+  ierr = VecGetBlockSize(tdy->diag_vec, &blocksize); CHKERRQ(ierr);
+  ierr = VecCreateMPI(comm, (PetscInt)(vecsize/blocksize), PETSC_DECIDE, diag_vec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
