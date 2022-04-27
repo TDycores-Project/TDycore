@@ -268,7 +268,7 @@ program main
   PetscInt            :: bc_type
 
   max_steps = 1;
-  dtime = 1800.d0
+  dtime = 3600.d0
   ic_value = 102325.d0
   pflotran_consistent = PETSC_FALSE
   bc_type = NEUMANN_BC
@@ -288,6 +288,7 @@ program main
   call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-mesh_filename", mesh_filename, mesh_file_flg,ierr); CHKERRA(ierr)
   call PetscOptionsGetBool(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-pflotran_consistent",pflotran_consistent,flg,ierr); CHKERRA(ierr)
   call PetscOptionsGetBool(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-use_tdydriver",use_tdydriver,flg,ierr); CHKERRA(ierr)
+  call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dtime',dtime,flg,ierr); CHKERRA(ierr)
 
   ! Set a constructor for a DM.
   call TDySetDMConstructor(tdy, CreateDM,ierr); CHKERRA(ierr)
@@ -354,7 +355,6 @@ program main
   call TDySetSNESJacobian(snes, tdy, ierr); CHKERRA(ierr);
   call SNESSetFromOptions(snes, ierr); CHKERRA(ierr);
 
-  dtime = 3600.d0
   call TDySetDtimeForSNESSolver(tdy, dtime, ierr); CHKERRA(ierr);
 
   do step = 1, max_steps
