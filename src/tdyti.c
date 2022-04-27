@@ -134,27 +134,31 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
         ti->istep++;
         PetscInt nit, lit;
         ierr = SNESGetIterationNumber(ti->snes,&nit); CHKERRQ(ierr);
-        ierr = SNESGetLinearSolveIterations(ti->snes,&lit); 
-               CHKERRQ(ierr);
+        ierr = SNESGetLinearSolveIterations(ti->snes,&lit); CHKERRQ(ierr);
         ierr = SNESGetConvergedReason(ti->snes,&reason); CHKERRQ(ierr);
-        if (tdy->io->io_process)
+        if (reason < 0) {
+          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDyTimeIntegratorRunToTime failed to converge");
+        }
+
+        if (tdy->io->io_process) {
           printf("\nTime step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n\n",
-                 ti->istep,ti->time,ti->dt,nit,lit,
-                 SNESConvergedReasons[reason]);
-	if (tdy->io->output_timestep_interval > 0) {
-	  if ((tdy->ti->istep)%(tdy->io->output_timestep_interval) == 0) {
-	    ierr = TDyIOWriteVec(tdy);
-	  }
-	}
-	if (tdy->io->enable_checkpoint) {
-	  checkpoint = PETSC_TRUE;
-	  if ((tdy->ti->istep)%(tdy->io->checkpoint_timestep_interval) == 0 ){
-	    ierr = TDyIOOutputCheckpoint(tdy);CHKERRQ(ierr);
-	    checkpoint = PETSC_FALSE;
-	  }
-	}
+            ti->istep,ti->time,ti->dt,nit,lit, SNESConvergedReasons[reason]);
+          if (tdy->io->output_timestep_interval > 0) {
+            if ((tdy->ti->istep)%(tdy->io->output_timestep_interval) == 0) {
+              ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);
+            }
+          }
+        }
+        if (tdy->io->enable_checkpoint) {
+          checkpoint = PETSC_TRUE;
+          if ((tdy->ti->istep)%(tdy->io->checkpoint_timestep_interval) == 0 ){
+            ierr = TDyIOOutputCheckpoint(tdy);CHKERRQ(ierr);
+            checkpoint = PETSC_FALSE;
+          }
+        }
         ierr = TDyTimeIntegratorUpdateDT(ti,sync_time); CHKERRQ(ierr);
       }
+
       if (tdy->io->enable_checkpoint && checkpoint) {
         ierr = TDyIOOutputCheckpoint(tdy);CHKERRQ(ierr);
       }
