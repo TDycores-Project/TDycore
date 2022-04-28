@@ -243,7 +243,7 @@ program main
 
   TDy                 :: tdy
   DM                  :: dm
-  Vec                 :: U
+  Vec                 :: U, U_natural
   SNES                :: snes
   PetscFE             :: fe
   PetscViewer         :: viewer
@@ -336,6 +336,7 @@ program main
 
   ! Set initial condition
   call DMCreateGlobalVector(dm, U, ierr); CHKERRA(ierr);
+  call DMCreateGlobalVector(dm, U_natural, ierr); CHKERRA(ierr);
 
   ! initial pressure
   if (ic_file_flg) then
@@ -366,7 +367,8 @@ program main
         call TDyTimeIntegratorRunToTime(tdy,dtime * step, ierr)
         CHKERRA(ierr)
 
-        call TDyGetLiquidPressure(tdy, U, ierr);
+        call TDyGetLiquidPressure(tdy, U, ierr); CHKERRA(ierr)
+        call VecCopy(U, U_natural, ierr); CHKERRA(ierr)
 
      else
         call TDyPreSolveSNESSolver(tdy,ierr); CHKERRA(ierr);
@@ -376,6 +378,10 @@ program main
            call PetscError(PETSC_COMM_WORLD, 0, PETSC_ERR_USER, "SNES did not converge")
         endif
         call TDyPostSolve(tdy,U,ierr);CHKERRA(ierr);
+
+        call DMPlexGlobalToNaturalBegin(dm, U, U_natural, ierr); CHKERRA(ierr)
+        call DMPlexGlobalToNaturalEnd(dm, U, U_natural, ierr); CHKERRA(ierr)
+
      endif
 
 
@@ -391,7 +397,7 @@ program main
      endif
   end do
 
-  call TDyOutputRegression(tdy,U,ierr)
+  call TDyOutputRegression(tdy,U_natural,ierr)
   CHKERRA(ierr)
 
   call TDyFinalize(ierr); CHKERRA(ierr);
