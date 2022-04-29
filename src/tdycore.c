@@ -294,7 +294,8 @@ PetscErrorCode TDyCreate(MPI_Comm comm, TDy *_tdy) {
   ierr = TDyIOCreate(&tdy->io); CHKERRQ(ierr);
 
   // initialize flags/parameters
-  tdy->dm = NULL;
+  (&tdy->tdydm)->dm = NULL;
+
   tdy->soln = NULL;
   tdy->J = NULL;
 
@@ -387,7 +388,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
     ierr = MaterialPropDestroy(tdy->matprop); CHKERRQ(ierr);
   }
 
-  ierr = DMDestroy(&tdy->dm); CHKERRQ(ierr);
+  ierr = DMDestroy(&(&tdy->tdydm)->dm); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -397,7 +398,7 @@ PetscErrorCode TDyGetDimension(TDy tdy,PetscInt *dim) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
-  ierr = DMGetDimension(tdy->dm,dim); CHKERRQ(ierr);
+  ierr = DMGetDimension((&tdy->tdydm)->dm,dim); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -413,7 +414,7 @@ PetscErrorCode TDyGetDiscretization(TDy tdy, TDyDiscretization* disc) {
 PetscErrorCode TDyGetDM(TDy tdy,DM *dm) {
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
-  *dm = tdy->dm;
+  *dm = (&tdy->tdydm)->dm;
   PetscFunctionReturn(0);
 }
 
@@ -429,7 +430,7 @@ PetscErrorCode TDyGetBoundaryFaces(TDy tdy, PetscInt *num_faces,
   PetscErrorCode ierr;
   DMLabel label;
   IS is;
-  ierr = DMGetLabel(tdy->dm, "boundary", &label); CHKERRQ(ierr);
+  ierr = DMGetLabel((&tdy->tdydm)->dm, "boundary", &label); CHKERRQ(ierr);
   ierr = DMLabelGetStratumSize(label, 1, num_faces); CHKERRQ(ierr);
   ierr = DMLabelGetStratumIS(label, 1, &is); CHKERRQ(ierr);
   ierr = ISGetIndices(is, faces); CHKERRQ(ierr);
@@ -445,7 +446,7 @@ PetscErrorCode TDyRestoreBoundaryFaces(TDy tdy, PetscInt *num_faces,
   PetscErrorCode ierr;
   DMLabel label;
   IS is;
-  ierr = DMGetLabel(tdy->dm, "boundary", &label); CHKERRQ(ierr);
+  ierr = DMGetLabel((&tdy->tdydm)->dm, "boundary", &label); CHKERRQ(ierr);
   ierr = DMLabelGetStratumIS(label, 1, &is); CHKERRQ(ierr);
   ierr = ISRestoreIndices(is, faces); CHKERRQ(ierr);
   PetscFunctionReturn(0);
@@ -619,7 +620,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   tdy->setup_flags |= TDyOptionsSet;
 
   // Create our DM.
-  if (!tdy->dm) {
+  if (!(&tdy->tdydm)->dm) {
     DM dm;
     if (tdy->options.read_mesh) {
       ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
@@ -654,19 +655,19 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     }
     ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
     ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
-    tdy->dm = dm;
+    (&tdy->tdydm)->dm = dm;
   }
 
   // Mark the grid's boundary faces and their transitive closure. All are
   // stored at their appropriate strata within the label.
   DMLabel boundary_label;
-  ierr = DMCreateLabel(tdy->dm, "boundary"); CHKERRQ(ierr);
-  ierr = DMGetLabel(tdy->dm, "boundary", &boundary_label); CHKERRQ(ierr);
-  ierr = DMPlexMarkBoundaryFaces(tdy->dm, 1, boundary_label); CHKERRQ(ierr);
-  ierr = DMPlexLabelComplete(tdy->dm, boundary_label); CHKERRQ(ierr);
+  ierr = DMCreateLabel((&tdy->tdydm)->dm, "boundary"); CHKERRQ(ierr);
+  ierr = DMGetLabel((&tdy->tdydm)->dm, "boundary", &boundary_label); CHKERRQ(ierr);
+  ierr = DMPlexMarkBoundaryFaces((&tdy->tdydm)->dm, 1, boundary_label); CHKERRQ(ierr);
+  ierr = DMPlexLabelComplete((&tdy->tdydm)->dm, boundary_label); CHKERRQ(ierr);
 
   PetscInt dim;
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension((&tdy->tdydm)->dm, &dim); CHKERRQ(ierr);
 
   // Create an empty material properties object. Each function must be set
   // explicitly by the driver program.
@@ -707,13 +708,13 @@ PetscErrorCode TDySetup(TDy tdy) {
   tdy->eos.enthalpy_type = tdy->options.enthalpy_type;
 
   // Perform implementation-specific setup.
-  ierr = tdy->ops->setup(tdy->context, tdy->dm, &tdy->eos, tdy->matprop,
+  ierr = tdy->ops->setup(tdy->context, (&tdy->tdydm)->dm, &tdy->eos, tdy->matprop,
                          tdy->cc, tdy->conditions); CHKERRQ(ierr);
 
   // If we support diagnostics, set up the DMs and the diagnostic vector.
   if (tdy->ops->update_diagnostics) {
     // Create a DM for diagnostic fields, and set its layout.
-    ierr = DMClone(tdy->dm, &tdy->diag_dm); CHKERRQ(ierr);
+    ierr = DMClone((&tdy->tdydm)->dm, &tdy->diag_dm); CHKERRQ(ierr);
 
     // We define two cell-centered scalar fields: saturation and liquid mass
     PetscInt num_fields = 2;
@@ -1267,7 +1268,7 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U, PetscInt num_cells) {
   TDY_START_FUNCTION_TIMER()
 
   // Call the implementation-specific state update.
-  ierr = tdy->ops->update_state(tdy->context, tdy->dm, &tdy->eos, tdy->matprop,
+  ierr = tdy->ops->update_state(tdy->context, (&tdy->tdydm)->dm, &tdy->eos, tdy->matprop,
                                 tdy->cc, num_cells, U); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
@@ -1373,7 +1374,7 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy, Vec U,
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-  ierr = tdy->ops->compute_error_norms(tdy->context, tdy->dm, tdy->conditions,
+  ierr = tdy->ops->compute_error_norms(tdy->context, (&tdy->tdydm)->dm, tdy->conditions,
                                        U, pressure_norm, velocity_norm);
   CHKERRQ(ierr);
   TDY_STOP_FUNCTION_TIMER()
@@ -1508,7 +1509,7 @@ PetscErrorCode TDyCreatePrognosticVector(TDy tdy, Vec *prog_vec) {
   }
 
   // Create a cell-centered scalar field vector.
-  ierr = DMCreateGlobalVector(tdy->dm, prog_vec); CHKERRQ(ierr);
+  ierr = DMCreateGlobalVector((&tdy->tdydm)->dm, prog_vec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1548,7 +1549,7 @@ PetscErrorCode TDyCreateMatrix(TDy tdy, Mat *mat) {
   }
 
   // Create a cell-centered scalar field vector.
-  ierr = DMCreateMatrix(tdy->dm, mat); CHKERRQ(ierr);
+  ierr = DMCreateMatrix((&tdy->tdydm)->dm, mat); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1643,9 +1644,9 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
   PetscInt dim;
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetDimension((&tdy->tdydm)->dm,&dim); CHKERRQ(ierr);
 
-  ierr = DMGetLocalSection(tdy->dm, &sec);
+  ierr = DMGetLocalSection((&tdy->tdydm)->dm, &sec);
   PetscInt num_fields;
   ierr = PetscSectionGetNumFields(sec, &num_fields);
   ierr = TSGetDM(ts,&dm);CHKERRQ(ierr);
@@ -1736,7 +1737,7 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
   PetscInt dim;
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetDimension((&tdy->tdydm)->dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.discretization) {
   case MPFA_O:
@@ -1773,7 +1774,7 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
   PetscInt dim;
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetDimension((&tdy->tdydm)->dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.discretization) {
   case MPFA_O:
@@ -1825,8 +1826,8 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  ierr = PetscObjectGetComm((PetscObject)tdy->dm,&comm); CHKERRQ(ierr);
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  ierr = PetscObjectGetComm((PetscObject)(&tdy->tdydm)->dm,&comm); CHKERRQ(ierr);
+  ierr = DMGetDimension((&tdy->tdydm)->dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.discretization) {
   case MPFA_O:
@@ -1860,7 +1861,7 @@ PetscErrorCode TDyCreateVectors(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   if (tdy->soln == NULL) {
-    ierr = DMCreateGlobalVector(tdy->dm,&tdy->soln); CHKERRQ(ierr);
+    ierr = DMCreateGlobalVector((&tdy->tdydm)->dm,&tdy->soln); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->residual); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->accumulation_prev); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->soln_prev); CHKERRQ(ierr);

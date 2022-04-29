@@ -745,7 +745,7 @@ PetscErrorCode TDySetBlockPermeabilityValuesLocal(TDy tdy, PetscInt ni, const Pe
   PetscFunctionBegin;
   if (!ni) PetscFunctionReturn(0);
 
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetDimension((&tdy->tdydm)->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   MaterialProp *matprop = tdy->matprop;
 
@@ -767,8 +767,8 @@ PetscErrorCode TDySetCellPermeability(TDy tdy,PetscInt c,PetscReal *K) {
 
   matprop->permeability_is_set = 1;
 
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&i); CHKERRQ(ierr);
-  ierr = DMGetDimension(tdy->dm,&dim2); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum((&tdy->tdydm)->dm,0,&cStart,&i); CHKERRQ(ierr);
+  ierr = DMGetDimension((&tdy->tdydm)->dm,&dim2); CHKERRQ(ierr);
   dim2 *= dim2;
   for(i=0;i<dim2;i++) matprop->K[dim2*(c-cStart)+i] = K[i];
   PetscFunctionReturn(0);
@@ -807,15 +807,15 @@ PetscErrorCode TDyGetBlockPermeabilityValuesLocal(TDy tdy, PetscInt *ni, PetscSc
 
   PetscFunctionBegin;
 
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetDimension((&tdy->tdydm)->dm,&dim); CHKERRQ(ierr);
   dim2 = dim*dim;
   MaterialProp *matprop = tdy->matprop;
 
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum((&tdy->tdydm)->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   *ni = 0;
 
   for (c=cStart; c<cEnd; c++) {
-    ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
+    ierr = DMPlexGetPointGlobal((&tdy->tdydm)->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
       for(j=0; j<dim2; j++) {
         y[*ni] = matprop->K0[(c-cStart)*dim2 + j];
@@ -836,12 +836,12 @@ PetscErrorCode TDyGetPorosityValuesLocal(TDy tdy, PetscInt *ni, PetscScalar y[])
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum((&tdy->tdydm)->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   *ni = 0;
   MaterialProp *matprop = tdy->matprop;
 
   for (c=cStart; c<cEnd; c++) {
-    ierr = DMPlexGetPointGlobal(tdy->dm,c,&gref,&junkInt); CHKERRQ(ierr);
+    ierr = DMPlexGetPointGlobal((&tdy->tdydm)->dm,c,&gref,&junkInt); CHKERRQ(ierr);
     if (gref>=0) {
       y[*ni] = matprop->porosity[c-cStart];
       *ni += 1;

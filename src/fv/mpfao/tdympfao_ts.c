@@ -520,7 +520,7 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation(Vec Ul,Vec Udotl,PetscReal shift,M
 PetscErrorCode TDyMPFAOIJacobian(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal shift,Mat A,Mat B,void *ctx) {
 
   TDy tdy = (TDy)ctx;
-  DM dm = tdy->dm;
+  DM dm = (&tdy->tdydm)->dm;
   Vec Udotl;
   PetscErrorCode ierr;
 

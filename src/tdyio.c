@@ -171,9 +171,9 @@ PetscErrorCode TDyIOReadPermeability(TDy tdy){
     strcpy(VariableName, tdy->io->permeability_dataset);
   }
 
-  ierr = DMGetDimension(tdy->dm, &dim);
+  ierr = DMGetDimension((&tdy->tdydm)->dm, &dim);
   PetscInt cStart,cEnd;
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum((&tdy->tdydm)->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
 
   if (tdy->io->anisotropic_permeability) {
     // Set up a function/context that assigns a diagonal anisotropic
@@ -355,7 +355,7 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
 
   tdy->io->format = format;
   int num_vars = tdy->io->num_vars;
-  DM dm = tdy->dm;
+  DM dm = (&tdy->tdydm)->dm;
   char *zonalVarNames[num_vars];
 
   PetscInt dim,istart,iend,numCell,numVert,numCorner;
@@ -389,7 +389,7 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscErrorCode ierr;
   PetscBool useNatural;
   Vec p = tdy->soln_prev;
-  DM dm = tdy->dm;
+  DM dm = (&tdy->tdydm)->dm;
   PetscReal time = tdy->ti->time;
   int num_vars = tdy->io->num_vars;
   char *zonalVarNames[num_vars];

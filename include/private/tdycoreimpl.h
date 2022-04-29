@@ -13,6 +13,7 @@
 #include <private/tdyeosimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdyoptions.h>
+#include <private/tdydmimpl.h>
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
@@ -88,7 +89,7 @@ struct _p_TDy {
 
   // Grid and data management -- handed to a solver when the dycore is fully
   // configured
-  DM dm;
+  TDyDM tdydm;
 
   // Contextual information passed to create_dm (if given).
   void* create_dm_context;

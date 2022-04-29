@@ -12,7 +12,7 @@
 PetscErrorCode TDyCreateGlobalVector(TDy tdy, Vec *vector){
 
   PetscFunctionBegin;
-  DM dm = tdy->dm;
+  DM dm = (&tdy->tdydm)->dm;
   PetscErrorCode ierr;
 
   ierr = DMCreateGlobalVector(dm, vector); CHKERRQ(ierr);
@@ -31,7 +31,7 @@ PetscErrorCode TDyCreateGlobalVector(TDy tdy, Vec *vector){
 PetscErrorCode TDyCreateLocalVector(TDy tdy, Vec *vector){
 
   PetscFunctionBegin;
-  DM dm = tdy->dm;
+  DM dm = (&tdy->tdydm)->dm;
   PetscErrorCode ierr;
 
   ierr = DMCreateLocalVector(dm, vector); CHKERRQ(ierr);
@@ -65,7 +65,7 @@ PetscErrorCode TDyCreateNaturalVector(TDy tdy, Vec *vector){
 PetscErrorCode TDyCreateJacobianMatrix(TDy tdy, Mat *matrix){
 
   PetscFunctionBegin;
-  DM dm = tdy->dm;
+  DM dm = (&tdy->tdydm)->dm;
   PetscErrorCode ierr;
 
   ierr = DMCreateMatrix(dm, matrix); CHKERRQ(ierr);
@@ -87,7 +87,7 @@ PetscErrorCode TDyCreateJacobianMatrix(TDy tdy, Mat *matrix){
 PetscErrorCode TDyGlobalToNatural(TDy tdy, Vec global, Vec natural){
 
   PetscFunctionBegin;
-  DM dm = tdy->dm;
+  DM dm = (&tdy->tdydm)->dm;
   PetscBool useNatural;
   PetscErrorCode ierr;
 
@@ -113,7 +113,7 @@ PetscErrorCode TDyGlobalToNatural(TDy tdy, Vec global, Vec natural){
 PetscErrorCode TDyGlobalToLocal(TDy tdy, Vec global, Vec local){
 
   PetscFunctionBegin;
-  DM dm = tdy->dm;
+  DM dm = (&tdy->tdydm)->dm;
   PetscErrorCode ierr;
 
   ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, local);CHKERRQ(ierr);
@@ -131,7 +131,7 @@ PetscErrorCode TDyGlobalToLocal(TDy tdy, Vec global, Vec local){
 PetscErrorCode TDyNaturalToGlobal(TDy tdy, Vec natural, Vec global){
 
   PetscFunctionBegin;
-  DM dm = tdy->dm;
+  DM dm = (&tdy->tdydm)->dm;
   PetscBool useNatural;
   PetscErrorCode ierr;
 
