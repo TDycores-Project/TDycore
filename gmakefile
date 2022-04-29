@@ -12,7 +12,7 @@ libtdycore_static := $(LIBDIR)/libtdycore.$(AR_LIB_SUFFIX)
 libtdycore := $(if $(filter-out no,$(BUILDSHAREDLIB)),$(libtdycore_shared),$(libtdycore_static))
 
 pkgs := tdycore
-srcs-tdycore.c   := $(wildcard src/mpfao/*.c src/fvtpf/*.c src/fe/*.c src/materials/*.c src/*.c src/f90-mod/*.c)
+srcs-tdycore.c   := $(wildcard src/fv/share/*.c src/fv/mpfao/*.c src/fv/fvtpf/*.c src/fe/*.c src/materials/*.c src/*.c src/f90-mod/*.c)
 srcs-tdycore.cxx := $(wildcard src/*.cxx)
 srcs-tdycore.F90 := $(wildcard src/f90-mod/*.F90)
 
