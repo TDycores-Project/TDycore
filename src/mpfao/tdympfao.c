@@ -581,28 +581,9 @@ static PetscErrorCode CreateMesh(TDyMPFAO *mpfao, DM dm) {
   PetscFunctionBegin;
 
   // Create the mesh.
-  ierr = TDyMeshCreate(dm, mpfao->V, mpfao->X, mpfao->N, &mpfao->mesh);
-
-/* TODO: this stuff doesn't work with the new mesh construction process, and
- * TODO: I'm not sure we still need it. -JNJ
-  // Read/write connectivity and geometry data if requested.
-  if (mpfao->read_geom_attributes) {
-    ierr = TDyMeshReadGeometry(mpfao->mesh, mpfao->geom_attributes_file); CHKERRQ(ierr);
-    mpfao->read_geom_attributes = 0;
-  }
-
-  if (mpfao->output_geom_attributes) {
-    ierr = TDyMeshWriteGeometry(mpfao->mesh, mpfao->geom_attributes_file); CHKERRQ(ierr);
-    mpfao->output_geom_attributes = 0;
-  }
-*/
-
-  ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
-  ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscReal),
-                     &(mpfao->vel )); CHKERRQ(ierr);
+  ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscReal),&(mpfao->vel )); CHKERRQ(ierr);
   ierr = TDyInitialize_RealArray_1D(mpfao->vel, mpfao->mesh->num_faces, 0.0); CHKERRQ(ierr);
-  ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscInt),
-                     &(mpfao->vel_count)); CHKERRQ(ierr);
+  ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscInt),&(mpfao->vel_count)); CHKERRQ(ierr);
   ierr = TDyInitialize_IntegerArray_1D(mpfao->vel_count, mpfao->mesh->num_faces, 0); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -2201,7 +2182,8 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
   PetscErrorCode ierr;
   TDyMPFAO *mpfao = context;
 
-  ierr = TDyMeshComputeGeometry(&mpfao->X, &mpfao->V, &mpfao->N, dm); CHKERRQ(ierr);
+  ierr = TDyMeshCreate(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
+  ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 
@@ -2253,7 +2235,8 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
 
   TDyMPFAO *mpfao = context;
 
-  ierr = TDyMeshComputeGeometry(&mpfao->X, &mpfao->V, &mpfao->N, dm); CHKERRQ(ierr);
+  ierr = TDyMeshCreate(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
+  ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 
@@ -2302,7 +2285,8 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
   PetscErrorCode ierr;
   TDyMPFAO* mpfao = context;
 
-  ierr = TDyMeshComputeGeometry(&mpfao->X, &mpfao->V, &mpfao->N, dm); CHKERRQ(ierr);
+  ierr = TDyMeshCreate(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
+  ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
   ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 

@@ -528,24 +528,6 @@ static PetscErrorCode CreateMesh(TDyFVTPF *fvtpf, DM dm) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  // Create the mesh.
-  ierr = TDyMeshCreate(dm, fvtpf->V, fvtpf->X, fvtpf->N, &fvtpf->mesh);
-
-/* TODO: this stuff doesn't work with the new mesh construction process, and
- * TODO: I'm not sure we still need it. -JNJ
-  // Read/write connectivity and geometry data if requested.
-  if (fvtpf->read_geom_attributes) {
-    ierr = TDyMeshReadGeometry(fvtpf->mesh, fvtpf->geom_attributes_file); CHKERRQ(ierr);
-    fvtpf->read_geom_attributes = 0;
-  }
-
-  if (fvtpf->output_geom_attributes) {
-    ierr = TDyMeshWriteGeometry(fvtpf->mesh, fvtpf->geom_attributes_file); CHKERRQ(ierr);
-    fvtpf->output_geom_attributes = 0;
-  }
-*/
-
-  ierr = TDyMeshGetMaxVertexConnectivity(fvtpf->mesh, &fvtpf->ncv, &fvtpf->nfv);
   ierr = PetscMalloc(fvtpf->mesh->num_faces*sizeof(PetscReal),
                      &(fvtpf->vel )); CHKERRQ(ierr);
   ierr = TDyInitialize_RealArray_1D(fvtpf->vel, fvtpf->mesh->num_faces, 0.0); CHKERRQ(ierr);
@@ -566,7 +548,9 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, DM dm, EOS *eos,
   PetscErrorCode ierr;
   TDyFVTPF *fvtpf = context;
 
-  ierr = TDyMeshComputeGeometry(&fvtpf->X, &fvtpf->V, &fvtpf->N, dm); CHKERRQ(ierr);
+  ierr = TDyMeshCreate(dm, &fvtpf->V, &fvtpf->X, &fvtpf->N, &fvtpf->mesh);
+  ierr = TDyMeshGetMaxVertexConnectivity(fvtpf->mesh, &fvtpf->ncv, &fvtpf->nfv);
+
   ierr = CreateMesh(fvtpf, dm); CHKERRQ(ierr);
   ierr = InitMaterials(fvtpf, dm, matprop, cc); CHKERRQ(ierr);
 

@@ -4141,14 +4141,63 @@ static PetscErrorCode AssignGeometry(DM dm, PetscReal *volumes,
   PetscFunctionReturn(0);
 }
 
+// Computes mesh geometry.
+static PetscErrorCode TDyMeshComputeGeometryFromPlex(PetscReal **X, PetscReal **V, PetscReal **N, DM dm) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+
+  PetscInt dim;
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  if (dim == 2) {
+    SETERRQ(comm,PETSC_ERR_USER,"TDyMeshComputeGeometryFromPlex only supports 3D calculations.");
+  }
+
+  // Compute/store plex geometry.
+  PetscInt pStart, pEnd, vStart, vEnd, eStart, eEnd;
+  ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
+  ierr = PetscMalloc((pEnd-pStart)*sizeof(PetscReal),V); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),X); CHKERRQ(ierr);
+  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),N); CHKERRQ(ierr);
+
+  PetscSection coordSection;
+  Vec coordinates;
+  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
+  ierr = DMGetCoordinatesLocal (dm, &coordinates); CHKERRQ(ierr);
+  PetscReal *coords;
+  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
+  for(PetscInt p=pStart; p<pEnd; p++) {
+    if((p >= vStart) && (p < vEnd)) {
+      PetscInt offset;
+      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
+      for(PetscInt d=0; d<dim; d++) (*X)[p*dim+d] = coords[offset+d];
+    } else {
+      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
+      PetscLogEvent t11 = TDyGetTimer("DMPlexComputeCellGeometryFVM");
+      TDyStartTimer(t11);
+      ierr = DMPlexComputeCellGeometryFVM(dm,p,&(*V)[p], &(*X)[p*dim], &(*N)[p*dim]); CHKERRQ(ierr);
+      TDyStopTimer(t11);
+    }
+  }
+  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
 /// Constructs a mesh from a PETSc DM.
 /// @param [in] dm A PETSc DM from which the mesh is created
 /// @param [in] volumes An array assigning a volume to each mesh point
 /// @param [in] coords An array assigning a set of coordinates to each mesh point
 /// @param [in] normals An array assigning a normal vector to each mesh point
 /// @param [out] mesh the newly constructed mesh instance
-PetscErrorCode TDyMeshCreate(DM dm, PetscReal *volumes, PetscReal *coords,
-                             PetscReal *normals, TDyMesh **mesh) {
+PetscErrorCode TDyMeshCreate(DM dm, PetscReal **volumes, PetscReal **coords,
+                             PetscReal **normals, TDyMesh **mesh) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   TDY_START_FUNCTION_TIMER()
@@ -4215,7 +4264,9 @@ PetscErrorCode TDyMeshCreate(DM dm, PetscReal *volumes, PetscReal *coords,
   ierr = AllocateSubcells(num_cells, num_subcells, subcell_type,
                           &m->subcells); CHKERRQ(ierr);
 
-  ierr = AssignGeometry(dm, volumes, coords, normals, m); CHKERRQ(ierr);
+  ierr = TDyMeshComputeGeometryFromPlex(coords, volumes, normals, dm); CHKERRQ(ierr);
+
+  ierr = AssignGeometry(dm, *volumes, *coords, *normals, m); CHKERRQ(ierr);
   ierr = DetermineConnectivity(dm, m); CHKERRQ(ierr);
 
   ierr = TDyRegionCreate(&m->region_connected); CHKERRQ(ierr);
@@ -4915,55 +4966,6 @@ PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh *mesh,
   *vertices_coordinates = &mesh->subcells.vertices_coordinates[offset];
   *num_vertices_coordinates = mesh->subcells.nu_vector_offset[subcell+1] - offset;
   return 0;
-}
-
-// Computes mesh geometry.
-PetscErrorCode TDyMeshComputeGeometry(PetscReal **X, PetscReal **V, PetscReal **N, DM dm) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  if (dim == 2) {
-    SETERRQ(comm,PETSC_ERR_USER,"TDyMeshComputeGeometry only supports 3D calculations.");
-  }
-
-  // Compute/store plex geometry.
-  PetscInt pStart, pEnd, vStart, vEnd, eStart, eEnd;
-  ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
-  ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((pEnd-pStart)*sizeof(PetscReal),V); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),X); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),N); CHKERRQ(ierr);
-
-  PetscSection coordSection;
-  Vec coordinates;
-  ierr = DMGetCoordinateSection(dm, &coordSection); CHKERRQ(ierr);
-  ierr = DMGetCoordinatesLocal (dm, &coordinates); CHKERRQ(ierr);
-  PetscReal *coords;
-  ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
-  for(PetscInt p=pStart; p<pEnd; p++) {
-    if((p >= vStart) && (p < vEnd)) {
-      PetscInt offset;
-      ierr = PetscSectionGetOffset(coordSection,p,&offset); CHKERRQ(ierr);
-      for(PetscInt d=0; d<dim; d++) (*X)[p*dim+d] = coords[offset+d];
-    } else {
-      if((dim == 3) && (p >= eStart) && (p < eEnd)) continue;
-      PetscLogEvent t11 = TDyGetTimer("DMPlexComputeCellGeometryFVM");
-      TDyStartTimer(t11);
-      ierr = DMPlexComputeCellGeometryFVM(dm,p,&(*V)[p], &(*X)[p*dim], &(*N)[p*dim]); CHKERRQ(ierr);
-      TDyStopTimer(t11);
-    }
-  }
-  ierr = VecRestoreArray(coordinates,&coords); CHKERRQ(ierr);
-
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
 }
 
 #if 0

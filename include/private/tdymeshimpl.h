@@ -202,7 +202,7 @@ typedef struct TDyMesh {
   PetscInt *closureSize, **closure, maxClosureSize;
 } TDyMesh;
 
-PETSC_INTERN PetscErrorCode TDyMeshCreate(DM,PetscReal*,PetscReal*,PetscReal*,TDyMesh**);
+PETSC_INTERN PetscErrorCode TDyMeshCreate(DM,PetscReal**,PetscReal**,PetscReal**,TDyMesh**);
 PETSC_INTERN PetscErrorCode TDyMeshDestroy(TDyMesh*);
 
 // These don't work, and we'll likely get rid of them.
@@ -255,8 +255,6 @@ PETSC_INTERN PetscErrorCode TDyMeshGetSubcellFaceCentroids(TDyMesh*, PetscInt, T
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh*, PetscInt, TDyCoordinate**, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNumFaces(TDyMesh*, PetscInt, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellIDGivenCellIdVertexIdFaceId(TDyMesh*,PetscInt,PetscInt,PetscInt,PetscInt*);
-
-PETSC_INTERN PetscErrorCode TDyMeshComputeGeometry(PetscReal**, PetscReal**, PetscReal**, DM);
 
 PETSC_INTERN TDyCellType GetCellType(PetscInt);
 PETSC_INTERN PetscInt GetNumVerticesForCellType(TDyCellType);
