@@ -176,6 +176,7 @@ PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
 PETSC_EXTERN PetscErrorCode TDyUpdateDiagnostics(TDy);
 PETSC_EXTERN PetscErrorCode TDyCreateDiagnosticVector(TDy,Vec*);
 PETSC_EXTERN PetscErrorCode TDyCreatePrognosticVector(TDy,Vec*);
+PETSC_EXTERN PetscErrorCode TDyCreateMatrix(TDy,Mat*);
 PETSC_EXTERN PetscErrorCode TDyGetLiquidSaturation(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyGetLiquidMass(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyGetLiquidPressure(TDy,Vec);

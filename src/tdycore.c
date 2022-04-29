@@ -1533,6 +1533,26 @@ static PetscErrorCode ExtractDiagnosticField(TDy tdy, PetscInt index, Vec vec) {
   PetscFunctionReturn(0);
 }
 
+/// Creates a matrix
+/// @param [in] tdy A TDy object
+/// @param [out] mat A matrix
+PetscErrorCode TDyCreateMatrix(TDy tdy, Mat *mat) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  if ((tdy->setup_flags & TDySetupFinished) == 0) {
+    SETERRQ(comm,PETSC_ERR_USER,"You must call TDyCreateMatrix after TDySetup()");
+  }
+
+  // Create a cell-centered scalar field vector.
+  ierr = DMCreateMatrix(tdy->dm, mat); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 /// Given a Vec created with TDyCreateDiagnosticVector, populates that vector
 /// with the saturation values for each cell in the grid.
 /// @param [in] tdy A TDy object

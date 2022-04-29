@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
   Vec U,F;
   ierr = TDyCreatePrognosticVector(tdy,&U); CHKERRQ(ierr);
   ierr = TDyCreatePrognosticVector(tdy,&F); CHKERRQ(ierr);
-  ierr = DMCreateMatrix      (dm,&K); CHKERRQ(ierr);
+  ierr = TDyCreateMatrix          (tdy,&K); CHKERRQ(ierr);
   ierr = MatSetOption(K,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr);
   ierr = TDyWYComputeSystem(tdy,K,F); CHKERRQ(ierr);
 

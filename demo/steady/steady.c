@@ -890,7 +890,7 @@ int main(int argc, char **argv) {
   ierr = TDyCreatePrognosticVector(tdy,&U ); CHKERRQ(ierr);
   ierr = TDyCreatePrognosticVector(tdy,&Ue); CHKERRQ(ierr);
   ierr = TDyCreatePrognosticVector(tdy,&F ); CHKERRQ(ierr);
-  ierr = DMCreateMatrix      (dm,&K ); CHKERRQ(ierr);
+  ierr = TDyCreateMatrix          (tdy,&K); CHKERRQ(ierr);
   // TODO: This is obviously not great, but we're likely going to kick this
   // TODO: stuff out of the library interface soon.
   TDyDiscretization disc;

@@ -24,6 +24,7 @@
 #define tdyupdatediagnostics_                          TDYUPDATEDIAGNOSTICS
 #define tdycreatediagnosticvector_                     TDYCREATEDIAGNOSTICVECTOR
 #define tdycreateprognosticvector_                     TDYCREATEPROGGNOSTICVECTOR
+#define tdycreatepmatrix_                              TDYCREATEMATRIX
 #define tdygetliquidsaturation_                        TDYGETLIQUIDSATURATION
 #define tdygetliquidmass_                              TDYGETLIQUIDMASS
 #define tdygetliquidpressure_                          TDYGETLIQUIDPRESSURE
@@ -61,6 +62,7 @@
 #define tdyupdatediagnostics_                          tdyupdatediagnostics
 #define tdycreatediagnosticvector_                     tdycreatediagnosticvector
 #define tdycreateprognosticvector_                     tdycreatedprognosticvector
+#define tdycreatematrix_                               tdycreatematrix
 #define tdygetliquidsaturation_                        tdygetliquidsaturation
 #define tdygetliquidmass_                              tdygetliquidmass
 #define tdygetliquidpressure_                          tdygetliquidpressure
@@ -138,6 +140,10 @@ PETSC_EXTERN void  tdycreatediagnosticvector_(TDy _tdy, Vec *v, int *__ierr){
 
 PETSC_EXTERN void  tdycreateprognosticvector_(TDy _tdy, Vec *v, int *__ierr){
 *__ierr = TDyCreatePrognosticVector((TDy)PetscToPointer((_tdy)), v);
+}
+
+PETSC_EXTERN void  tdycreatematrix_(TDy _tdy, Mat *m, int *__ierr){
+*__ierr = TDyCreateMatrix((TDy)PetscToPointer((_tdy)), m);
 }
 
 PETSC_EXTERN void  tdyupdatediagnostics_(TDy _tdy, int *__ierr){

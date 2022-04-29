@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
   ierr = TDyCreatePrognosticVector(tdy,&U ); CHKERRQ(ierr);
   ierr = TDyCreatePrognosticVector(tdy,&Ue); CHKERRQ(ierr);
   ierr = TDyCreatePrognosticVector(tdy,&F ); CHKERRQ(ierr);
-  ierr = DMCreateMatrix      (dm,&K ); CHKERRQ(ierr);
+  ierr = TDyCreateMatrix          (tdy,&K ); CHKERRQ(ierr);
   ierr = TDyComputeSystem(tdy,K,F); CHKERRQ(ierr);
 
   /* Solve system */
