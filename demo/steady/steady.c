@@ -566,7 +566,7 @@ PetscErrorCode SaveTrueSolution(TDy tdy, char filename[256]){
   ierr = PetscViewerBinaryOpen(comm,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
 
   ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
-  ierr = DMCreateGlobalVector(dm,&pressure); CHKERRQ(ierr);
+  ierr = TDyCreatePrognosticVector(tdy,&pressure); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   ierr = DMGetCoordinatesLocal(dm, &coordinates); CHKERRQ(ierr);
   ierr = VecGetArray(coordinates,&coords); CHKERRQ(ierr);
@@ -603,7 +603,7 @@ PetscErrorCode SaveForcing(TDy tdy, char filename[256]){
   ierr = PetscViewerBinaryOpen(comm,filename,FILE_MODE_WRITE,&viewer); CHKERRQ(ierr);
 
   ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
-  ierr = DMCreateGlobalVector(dm,&forcing); CHKERRQ(ierr);
+  ierr = TDyCreatePrognosticVector(tdy,&forcing); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   ierr = VecGetArray(forcing,&f); CHKERRQ(ierr);
 
@@ -887,9 +887,9 @@ int main(int argc, char **argv) {
   /* Compute system */
   Mat K;
   Vec U,Ue,F;
-  ierr = DMCreateGlobalVector(dm,&U ); CHKERRQ(ierr);
-  ierr = DMCreateGlobalVector(dm,&Ue); CHKERRQ(ierr);
-  ierr = DMCreateGlobalVector(dm,&F ); CHKERRQ(ierr);
+  ierr = TDyCreatePrognosticVector(tdy,&U ); CHKERRQ(ierr);
+  ierr = TDyCreatePrognosticVector(tdy,&Ue); CHKERRQ(ierr);
+  ierr = TDyCreatePrognosticVector(tdy,&F ); CHKERRQ(ierr);
   ierr = DMCreateMatrix      (dm,&K ); CHKERRQ(ierr);
   // TODO: This is obviously not great, but we're likely going to kick this
   // TODO: stuff out of the library interface soon.

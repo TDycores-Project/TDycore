@@ -124,8 +124,7 @@ implicit none
   CHKERRA(ierr)
 
   ! Set initial condition
-  call DMCreateGlobalVector(dm,U,ierr);
-  CHKERRA(ierr);
+  call TDyCreatePrognosticVector(tdy,U,ierr);
   call VecSet(U,91325.d0,ierr);
   CHKERRA(ierr);
 

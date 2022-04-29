@@ -335,8 +335,8 @@ program main
   call TDyCreateJacobian(tdy, ierr); CHKERRA(ierr)
 
   ! Set initial condition
-  call DMCreateGlobalVector(dm, U, ierr); CHKERRA(ierr);
-  call DMCreateGlobalVector(dm, U_natural, ierr); CHKERRA(ierr);
+  call TDyCreatePrognosticVector(tdy, U, ierr); CHKERRA(ierr);
+  call TDyCreatePrognosticVector(tdy, U_natural, ierr); CHKERRA(ierr);
 
   ! initial pressure
   if (ic_file_flg) then

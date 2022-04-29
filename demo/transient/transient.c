@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
 
   /* Setup initial condition */
   Vec U;
-  ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
+  ierr = TDyCreatePrognosticVector(tdy,&U); CHKERRQ(ierr);
   ierr = VecSet(U,91325); CHKERRQ(ierr);
 
   /* Create time stepping and solve */

@@ -359,7 +359,7 @@ implicit none
   call TDyCreateJacobian(tdy,ierr); CHKERRA(ierr)
 
   ! Set initial condition
-  call DMCreateGlobalVector(dm,U,ierr)
+  call TDyCreatePrognosticVector(tdy,U,ierr)
   CHKERRA(ierr)
 
   if (ic_file_flg) then
