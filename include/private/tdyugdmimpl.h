@@ -4,6 +4,20 @@
 #include <petsc.h>
 
 typedef struct {
+
+  PetscInt num_cells_global;
+  PetscInt num_cells_local;
+  PetscInt max_verts_per_cells;
+
+  PetscInt num_verts_global;
+  PetscInt num_verts_local;
+
+  PetscInt **cell_vertices;
+  PetscReal **vertices;
+
+} TDyUGrid;
+
+typedef struct {
   IS IS_GhostedCells_in_LocalOrder;
   IS IS_GhostedCells_in_PetscOrder;
 

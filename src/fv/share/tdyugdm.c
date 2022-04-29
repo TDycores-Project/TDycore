@@ -26,12 +26,18 @@ PetscErrorCode TDyUGDMCreate(TDyUGDM *ugdm){
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, PetscInt ***cell_vertices, PetscReal ***vertices, PetscInt *num_cells_local, PetscInt *max_verts_per_cells, PetscInt *num_verts_local){
+static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugrid){
 
   PetscViewer viewer;
   Vec cells, verts;
   PetscScalar *v_p;
   PetscErrorCode ierr;
+
+  PetscInt ***cell_vertices = &ugrid->cell_vertices;
+  PetscReal ***vertices = &ugrid->vertices;
+  PetscInt *num_cells_local = &ugrid->num_cells_local;
+  PetscInt *max_verts_per_cells = &ugrid->max_verts_per_cells;
+  PetscInt *num_verts_local = &ugrid->num_verts_local;
 
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD, mesh_file, FILE_MODE_READ, &viewer);CHKERRQ(ierr);
 
@@ -56,6 +62,7 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, PetscInt ***ce
 
   // Save information about cells
   PetscInt vec_cells_size;
+  ierr = VecGetSize(cells, &ugrid->num_cells_global);
   ierr = VecGetLocalSize(cells, &vec_cells_size);
   ierr = VecGetBlockSize(cells, max_verts_per_cells);
   *num_cells_local = (PetscInt) (vec_cells_size/(*max_verts_per_cells));
@@ -74,6 +81,7 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, PetscInt ***ce
 
   // Save information about vertices
   PetscInt vert_dim, vec_verts_size;
+  ierr = VecGetSize(verts, &ugrid->num_verts_global);
   ierr = VecGetLocalSize(verts, &vec_verts_size);
   ierr = VecGetBlockSize(verts, &vert_dim);
   if (vert_dim!=3) {
@@ -101,12 +109,9 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, PetscInt ***ce
 PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_file) {
 
   PetscErrorCode ierr;
+  TDyUGrid ugrid;
 
-  PetscInt **cell_vertices;
-  PetscReal **vertices;
-  PetscInt num_cells_local, max_verts_per_cells, num_verts_local;
-
-  ierr = ReadPFLOTRANMeshFile(mesh_file, &cell_vertices, &vertices, &num_cells_local, &max_verts_per_cells, &num_verts_local); CHKERRQ(ierr);
+  ierr = ReadPFLOTRANMeshFile(mesh_file, &ugrid);
 
   PetscFunctionReturn(0);
 
