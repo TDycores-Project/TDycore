@@ -575,20 +575,6 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
 // Setup functions
 //-----------------
 
-// Creates a TDyMesh object to be used by the MPFA-O method.
-static PetscErrorCode CreateMesh(TDyMPFAO *mpfao, DM dm) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  // Create the mesh.
-  ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscReal),&(mpfao->vel )); CHKERRQ(ierr);
-  ierr = TDyInitialize_RealArray_1D(mpfao->vel, mpfao->mesh->num_faces, 0.0); CHKERRQ(ierr);
-  ierr = PetscMalloc(mpfao->mesh->num_faces*sizeof(PetscInt),&(mpfao->vel_count)); CHKERRQ(ierr);
-  ierr = TDyInitialize_IntegerArray_1D(mpfao->vel_count, mpfao->mesh->num_faces, 0); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
 // Initializes material properties and characteristic curve data.
 static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
                                     DM dm,
@@ -2184,7 +2170,10 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
 
   ierr = TDyMeshCreate(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
   ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
-  ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
+
+  ierr = TDyAllocate_RealArray_1D(&(mpfao->vel), mpfao->mesh->num_faces); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&(mpfao->vel_count), mpfao->mesh->num_faces); CHKERRQ(ierr);
+
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 
   // Gather mesh data.
@@ -2237,7 +2226,10 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
 
   ierr = TDyMeshCreate(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
   ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
-  ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
+
+  ierr = TDyAllocate_RealArray_1D(&(mpfao->vel), mpfao->mesh->num_faces); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&(mpfao->vel_count), mpfao->mesh->num_faces); CHKERRQ(ierr);
+
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 
   // Gather mesh data.
@@ -2287,7 +2279,10 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
 
   ierr = TDyMeshCreate(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
   ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
-  ierr = CreateMesh(mpfao, dm); CHKERRQ(ierr);
+
+  ierr = TDyAllocate_RealArray_1D(&(mpfao->vel), mpfao->mesh->num_faces); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&(mpfao->vel_count), mpfao->mesh->num_faces); CHKERRQ(ierr);
+
   ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
 
   // Gather mesh data.

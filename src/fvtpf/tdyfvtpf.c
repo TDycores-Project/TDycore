@@ -523,21 +523,6 @@ PetscErrorCode TDyUpdateState_Richards_FVTPF(void *context, DM dm,
   PetscFunctionReturn(0);
 }
 
-// Creates a TDyMesh object to be used by the MPFA-O method.
-static PetscErrorCode CreateMesh(TDyFVTPF *fvtpf, DM dm) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  ierr = PetscMalloc(fvtpf->mesh->num_faces*sizeof(PetscReal),
-                     &(fvtpf->vel )); CHKERRQ(ierr);
-  ierr = TDyInitialize_RealArray_1D(fvtpf->vel, fvtpf->mesh->num_faces, 0.0); CHKERRQ(ierr);
-  ierr = PetscMalloc(fvtpf->mesh->num_faces*sizeof(PetscInt),
-                     &(fvtpf->vel_count)); CHKERRQ(ierr);
-  ierr = TDyInitialize_IntegerArray_1D(fvtpf->vel_count, fvtpf->mesh->num_faces, 0); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
 // Setup function for Richards + FV-TPF
 PetscErrorCode TDySetup_Richards_FVTPF(void *context, DM dm, EOS *eos,
                                        MaterialProp *matprop,
@@ -551,7 +536,9 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, DM dm, EOS *eos,
   ierr = TDyMeshCreate(dm, &fvtpf->V, &fvtpf->X, &fvtpf->N, &fvtpf->mesh);
   ierr = TDyMeshGetMaxVertexConnectivity(fvtpf->mesh, &fvtpf->ncv, &fvtpf->nfv);
 
-  ierr = CreateMesh(fvtpf, dm); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&(fvtpf->vel), fvtpf->mesh->num_faces); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&(fvtpf->vel_count), fvtpf->mesh->num_faces); CHKERRQ(ierr);
+
   ierr = InitMaterials(fvtpf, dm, matprop, cc); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForBoundaryValues(fvtpf, eos); CHKERRQ(ierr);
