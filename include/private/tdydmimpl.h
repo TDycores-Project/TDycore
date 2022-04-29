@@ -31,4 +31,6 @@ typedef struct {
 
 } TDyDM;
 
+PETSC_INTERN PetscErrorCode TDyDMCreate(TDyDM*);
+
 #endif
