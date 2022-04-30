@@ -64,16 +64,32 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugri
   PetscInt vec_cells_size;
   ierr = VecGetSize(cells, &ugrid->num_cells_global);
   ierr = VecGetLocalSize(cells, &vec_cells_size);
-  ierr = VecGetBlockSize(cells, max_verts_per_cells);
-  *num_cells_local = (PetscInt) (vec_cells_size/(*max_verts_per_cells));
+  PetscInt blocksize;
+  ierr = VecGetBlockSize(cells, &blocksize);
+  *num_cells_local = (PetscInt) (vec_cells_size/blocksize);
 
+  *max_verts_per_cells = blocksize - 1;
   ierr = TDyAllocate_IntegerArray_2D(cell_vertices, *num_cells_local, *max_verts_per_cells); CHKERRQ(ierr);
 
   ierr = VecGetArray(cells, &v_p); CHKERRQ(ierr);
   PetscInt count=0;
+  MPI_Comm comm;
   for (PetscInt i=0; i<*num_cells_local; i++) {
-    for (PetscInt j=0; j<*max_verts_per_cells; j++) {
-      (*cell_vertices)[i][j] = (PetscInt) v_p[count++];
+    switch ( (PetscInt) v_p[count++]) {
+      case 4:
+        break;
+      case 5:
+        break;
+      case 6:
+        break;
+      case 8:
+        break;
+      default:
+        ierr = PetscObjectGetComm((PetscObject)cells, &comm); CHKERRQ(ierr);
+        SETERRQ(comm,PETSC_ERR_USER,"Unknown cell type");
+    }
+    for (PetscInt j=1; j<*max_verts_per_cells; j++) {
+      (*cell_vertices)[i][j-1] = (PetscInt) v_p[count++] - 1; // Converting PFLOTRAN's 1-based index to 0-based index
     }
   }
   ierr = VecRestoreArray(cells, &v_p); CHKERRQ(ierr);
@@ -111,7 +127,7 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
   PetscErrorCode ierr;
   TDyUGrid ugrid;
 
-  ierr = ReadPFLOTRANMeshFile(mesh_file, &ugrid);
+  ierr = ReadPFLOTRANMeshFile(mesh_file, &ugrid); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
