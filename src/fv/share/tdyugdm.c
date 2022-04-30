@@ -73,6 +73,7 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugri
 
   ierr = VecGetArray(cells, &v_p); CHKERRQ(ierr);
   PetscInt count=0;
+
   MPI_Comm comm;
   for (PetscInt i=0; i<*num_cells_local; i++) {
     switch ( (PetscInt) v_p[count++]) {
@@ -88,7 +89,7 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugri
         ierr = PetscObjectGetComm((PetscObject)cells, &comm); CHKERRQ(ierr);
         SETERRQ(comm,PETSC_ERR_USER,"Unknown cell type");
     }
-    for (PetscInt j=1; j<*max_verts_per_cells; j++) {
+    for (PetscInt j=1; j<*max_verts_per_cells+1; j++) {
       (*cell_vertices)[i][j-1] = (PetscInt) v_p[count++] - 1; // Converting PFLOTRAN's 1-based index to 0-based index
     }
   }
@@ -100,8 +101,7 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugri
   ierr = VecGetSize(verts, &ugrid->num_verts_global);
   ierr = VecGetLocalSize(verts, &vec_verts_size);
   ierr = VecGetBlockSize(verts, &vert_dim);
-  if (vert_dim!=3) {
-    MPI_Comm comm;
+  if (vert_dim != 3) {
     ierr = PetscObjectGetComm((PetscObject)verts, &comm); CHKERRQ(ierr);
     SETERRQ(comm,PETSC_ERR_USER,"Vertices in the the HDF5 is not 3D");
   }
