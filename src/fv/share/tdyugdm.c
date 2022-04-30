@@ -122,12 +122,66 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugri
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode UGridPrintCells(TDyUGrid *ugrid) {
+
+  PetscInt rank, commsize;
+
+  MPI_Comm_size(PETSC_COMM_WORLD, &commsize);
+  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+  PetscInt **cell_vertices = ugrid->cell_vertices;
+  if (rank == 0) printf("Cells:\n");
+  for (PetscInt irank=0; irank<commsize; irank++) {
+    if (rank == irank) {
+      printf("Rank = %d\n",rank);
+      for (PetscInt icell=0; icell<ugrid->num_cells_local; icell++) {
+        for (PetscInt ivertex=0; ivertex<ugrid->max_verts_per_cells; ivertex++) {
+          printf("%02d ",cell_vertices[icell][ivertex]);
+        }
+        printf("\n");
+      }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode UGridPrintVertices(TDyUGrid *ugrid) {
+
+  PetscInt rank, commsize;
+
+  MPI_Comm_size(PETSC_COMM_WORLD, &commsize);
+  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+  PetscReal **vertices = ugrid->vertices;
+  if (rank == 0) printf("Vertices:\n");
+  for (PetscInt irank=0; irank<commsize; irank++) {
+    if (rank == irank) {
+      printf("Rank = %d\n",rank);
+      PetscInt dim=3;
+      for (PetscInt ivertex=0; ivertex<ugrid->num_verts_local; ivertex++) {
+        for (PetscInt idim=0; idim<dim; idim++) {
+          printf("%e ",vertices[ivertex][idim]);
+        }
+        printf("\n");
+      }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+
+  PetscFunctionReturn(0);
+}
+
+
 PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_file) {
 
   PetscErrorCode ierr;
   TDyUGrid ugrid;
 
   ierr = ReadPFLOTRANMeshFile(mesh_file, &ugrid); CHKERRQ(ierr);
+  ierr = UGridPrintCells(&ugrid); CHKERRQ(ierr);
+  ierr = UGridPrintVertices(&ugrid); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
