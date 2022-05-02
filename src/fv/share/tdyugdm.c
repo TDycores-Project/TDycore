@@ -243,6 +243,38 @@ static PetscErrorCode CreateAdjacencyMatrix(TDyUGrid *ugrid, Mat *AdjMat) {
 }
 
 /* ---------------------------------------------------------------- */
+PetscErrorCode PartitionGrid(Mat DualMat, IS *NewCellRankIS, PetscInt *NewNumCellsLocal) {
+
+   PetscErrorCode ierr;
+
+  // Create partitioning object based on the dual matrix
+  MatPartitioning Part;
+  ierr = MatPartitioningCreate(PETSC_COMM_WORLD, &Part); CHKERRQ(ierr);
+  ierr = MatPartitioningSetAdjacency(Part, DualMat);CHKERRQ(ierr);
+  ierr = MatPartitioningSetFromOptions(Part);CHKERRQ(ierr);
+
+  // Now partition the mesh
+  ierr = MatPartitioningApply(Part, NewCellRankIS); CHKERRQ(ierr);
+  ierr = MatPartitioningDestroy(&Part); CHKERRQ(ierr);
+
+  // Compute the number of local grid cells on each processor
+  PetscInt commsize, myrank;
+  ierr = MPI_Comm_size(PETSC_COMM_WORLD, &commsize); CHKERRQ(ierr);
+  ierr = MPI_Comm_rank(PETSC_COMM_WORLD, &myrank); CHKERRQ(ierr);
+
+  PetscInt cell_counts[commsize];
+  ierr = ISPartitioningCount(*NewCellRankIS, commsize, cell_counts); CHKERRQ(ierr);
+  *NewNumCellsLocal = cell_counts[myrank];
+
+  PetscViewer viewer;
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"is.out",&viewer); CHKERRQ(ierr);
+  ierr = ISView(*NewCellRankIS, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_file) {
 
   PetscErrorCode ierr;
@@ -256,6 +288,21 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
 
   Mat AdjMat;
   ierr = CreateAdjacencyMatrix(&ugrid, &AdjMat); CHKERRQ(ierr);
+
+  // Create a dual matrix that represents the connectivity between cells.
+  // The dual matrix will be partitioning the mesh
+  Mat DualMat;
+  PetscInt ncommonnodes=3;
+  ierr = MatMeshToCellGraph(AdjMat, ncommonnodes, &DualMat); CHKERRQ(ierr);
+
+  PetscViewer viewer;
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Dual.out",&viewer); CHKERRQ(ierr);
+  ierr = MatView(DualMat, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  IS NewCellRankIS;
+  PetscInt NewNumCellsLocal;
+  ierr = PartitionGrid(DualMat, &NewCellRankIS, &NewNumCellsLocal); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
