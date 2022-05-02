@@ -7,7 +7,7 @@
 
 static PetscInt vertex_separator = -777;
 static PetscInt dual_separator = -888;
-static PetscInt cell_separator = -999;
+static PetscInt cell_separator = -999999;
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreate(TDyUGDM *ugdm){
@@ -356,12 +356,15 @@ static PetscErrorCode PackPrePartitionVector(TDyUGrid *ugrid, Mat DualMat, Vec *
   PetscInt rank;
   MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
+  PetscInt global_offset = 0;
+  ierr = MPI_Exscan(&ugrid->num_cells_local, &global_offset, 1, MPI_INTEGER, MPI_SUM, PETSC_COMM_WORLD); CHKERRQ(ierr);
+
   for (PetscInt icell=0; icell<ugrid->num_cells_local; icell++){
-    v_ptr[count++] = -icell;
+    v_ptr[count++] = -global_offset-icell-1;
     v_ptr[count++] = vertex_separator;
 
     for (PetscInt ivertex=0; ivertex<ugrid->max_verts_per_cell; ivertex++){
-      v_ptr[count++] = ugrid->cell_vertices[icell][ivertex];
+      v_ptr[count++] = ugrid->cell_vertices[icell][ivertex] + 1; // increment to 1-based ordering
     }
     v_ptr[count++] = dual_separator;
 
@@ -371,9 +374,9 @@ static PetscErrorCode PackPrePartitionVector(TDyUGrid *ugrid, Mat DualMat, Vec *
 
     for (PetscInt icol=0; icol<ugrid->max_ndual_per_cell; icol++) {
       if (icol < num_cols) {
-        v_ptr[count++] = ja_ptr[istart + icol];
+        v_ptr[count++] = ja_ptr[istart + icol] + 1; // increment to 1-based ordering
       } else {
-        v_ptr[count++] = -1;
+        v_ptr[count++] = 0;
       }
     }
 
@@ -385,6 +388,37 @@ static PetscErrorCode PackPrePartitionVector(TDyUGrid *ugrid, Mat DualMat, Vec *
 
   PetscFunctionReturn(0);
 }
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode PrePartNatOrder_To_PostPartNatOrder(PetscInt stride, PetscInt NewNumCellsLocal, IS *OldToNewIS, Vec *Pre, Vec *Post) {
+
+  PetscErrorCode ierr;
+
+  ierr = VecCreate(PETSC_COMM_WORLD, Post); CHKERRQ(ierr);
+  ierr = VecSetSizes(*Post, stride*NewNumCellsLocal, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(*Post); CHKERRQ(ierr);
+
+  VecScatter VecScatter;
+  ierr = VecScatterCreate(*Pre, PETSC_NULL, *Post, *OldToNewIS, &VecScatter); CHKERRQ(ierr);
+  ierr = VecScatterBegin(VecScatter, *Pre, *Post, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterEnd(VecScatter, *Pre, *Post, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterDestroy(&VecScatter); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+  PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *OldVec, IS *OldToNewIS, Vec *PetscOrderVec) {
+
+    PetscErrorCode ierr;
+
+    Vec PostPartNatOrderVec;
+    ierr = PrePartNatOrder_To_PostPartNatOrder(stride, NewNumCellsLocal, OldToNewIS, OldVec, &PostPartNatOrderVec); CHKERRQ(ierr);
+    ierr = TDySavePetscVecAsASCII(*OldVec,"elements_old.out");
+    ierr = TDySavePetscVecAsASCII(PostPartNatOrderVec,"elements_natural.out");
+
+    PetscFunctionReturn(0);
+  }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_file) {
@@ -424,6 +458,10 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
 
   ierr = PackPrePartitionVector(&ugrid, DualMat, &OldVec);
   ierr = MatDestroy(&DualMat); CHKERRQ(ierr);
+
+  Vec PetscOrderVec;
+  ierr = ScatterVecPrePartitionToPETScOrder(&ugrid, stride, dual_offset, NewNumCellsLocal, &OldVec, &OldToNewIS, &PetscOrderVec);
+  ierr = ISDestroy(&OldToNewIS); CHKERRQ(ierr);
 
   //ierr = MatDestroy(&AdjMat); CHKERRQ(ierr);
 
