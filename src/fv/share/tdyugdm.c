@@ -5,6 +5,10 @@
 #include <private/tdymemoryimpl.h>
 #include <private/tdyutils.h>
 
+static PetscInt vertex_separator = -777;
+static PetscInt dual_separator = -888;
+static PetscInt cell_separator = -999;
+
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreate(TDyUGDM *ugdm){
   ugdm = malloc(sizeof(TDyUGDM));
@@ -197,8 +201,8 @@ static PetscErrorCode DetermineMaxNumVerticesActivePerCell(TDyUGrid *ugrid) {
     }
   }
 
-  ierr = MPI_Allreduce(&nvert_active, &ugrid->max_verts_active_per_cell, 1, MPI_INTEGER, MPI_MAX, PETSC_COMM_WORLD); CHKERRQ(ierr);
-  printf("max_verts_active_per_cell = %d\n",ugrid->max_verts_active_per_cell);
+  ierr = MPI_Allreduce(&nvert_active, &ugrid->max_verts_per_cell, 1, MPI_INTEGER, MPI_MAX, PETSC_COMM_WORLD); CHKERRQ(ierr);
+  printf("max_verts_per_cell = %d\n",ugrid->max_verts_per_cell);
 
   PetscFunctionReturn(0);
 }
@@ -213,7 +217,7 @@ static PetscErrorCode CreateAdjacencyMatrix(TDyUGrid *ugrid, Mat *AdjMat) {
   //   - 	j: the column indices for each row (sorted for each row).
   PetscInt *i, *j;
   PetscInt nrow = ugrid->num_cells_local;
-  PetscInt ncol = ugrid->max_verts_active_per_cell;
+  PetscInt ncol = ugrid->max_verts_per_cell;
 
   ierr = TDyAllocate_IntegerArray_1D(&i, nrow + 1); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&j, nrow*ncol); CHKERRQ(ierr);
@@ -336,6 +340,53 @@ static PetscErrorCode CreatePrePartitionVector(TDyUGrid *ugrid, IS NewCellRankIS
 }
 
 /* ---------------------------------------------------------------- */
+static PetscErrorCode PackPrePartitionVector(TDyUGrid *ugrid, Mat DualMat, Vec *OldVec) {
+
+  PetscErrorCode ierr;
+
+  const PetscInt *ia_ptr, *ja_ptr;
+  PetscBool success;
+  PetscInt num_rows;
+  ierr = MatGetRowIJ(DualMat, 0, PETSC_FALSE, PETSC_FALSE, &num_rows, &ia_ptr, &ja_ptr, &success);CHKERRQ(ierr);
+
+  PetscScalar *v_ptr;
+  ierr = VecGetArray(*OldVec, &v_ptr); CHKERRQ(ierr);
+
+  PetscInt count=0, vertex_count=0;
+  PetscInt rank;
+  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+  for (PetscInt icell=0; icell<ugrid->num_cells_local; icell++){
+    v_ptr[count++] = -icell;
+    v_ptr[count++] = vertex_separator;
+
+    for (PetscInt ivertex=0; ivertex<ugrid->max_verts_per_cell; ivertex++){
+      v_ptr[count++] = ugrid->cell_vertices[icell][ivertex];
+    }
+    v_ptr[count++] = dual_separator;
+
+    PetscInt istart = ia_ptr[icell];
+    PetscInt iend = ia_ptr[icell+1];
+    PetscInt num_cols = iend - istart;
+
+    for (PetscInt icol=0; icol<ugrid->max_ndual_per_cell; icol++) {
+      if (icol < num_cols) {
+        v_ptr[count++] = ja_ptr[istart + icol];
+      } else {
+        v_ptr[count++] = -1;
+      }
+    }
+
+    v_ptr[count++] = cell_separator;
+  }
+
+  ierr = VecRestoreArray(*OldVec, &v_ptr); CHKERRQ(ierr);
+  ierr = MatRestoreRowIJ(DualMat, 0, PETSC_FALSE, PETSC_FALSE, &num_rows, &ia_ptr, &ja_ptr, &success);CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_file) {
 
   PetscErrorCode ierr;
@@ -366,15 +417,15 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
   PetscInt vertex_ids_offset = 1 + 1; // +1 for -777
   PetscInt dual_offset = vertex_ids_offset + ugrid.max_verts_per_cell + 1; // +1 for -888
   PetscInt stride = dual_offset + ugrid.max_ndual_per_cell + 1; // +1 for -999999
-  PetscInt natural_id_offset = 1;
 
   IS OldToNewIS;
   Vec OldVec;
   ierr = CreatePrePartitionVector(&ugrid, NewCellRankIS, stride, &OldToNewIS, &OldVec); CHKERRQ(ierr);
 
+  ierr = PackPrePartitionVector(&ugrid, DualMat, &OldVec);
+  ierr = MatDestroy(&DualMat); CHKERRQ(ierr);
 
   //ierr = MatDestroy(&AdjMat); CHKERRQ(ierr);
-  ierr = MatDestroy(&DualMat); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
