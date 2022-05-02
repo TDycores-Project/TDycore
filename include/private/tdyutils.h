@@ -24,6 +24,7 @@ PETSC_INTERN PetscInt TDyReturnIndexInList(PetscInt *list, PetscInt nlist, Petsc
 PETSC_INTERN PetscInt TDySavePetscVecAsBinary(Vec vec, const char filename[]);
 PETSC_INTERN PetscInt TDyReadBinaryPetscVec(Vec vec, MPI_Comm comm, const char filename[]);
 PETSC_INTERN PetscInt TDySavePetscMatAsBinary(Mat, const char []);
+PETSC_INTERN PetscInt TDySavePetscMatAsASCII(Mat, const char []);
 PETSC_INTERN PetscErrorCode ExtractSubVectors(Vec,PetscInt,Vec *);
 PETSC_INTERN PetscErrorCode ComputeTheta(PetscReal, PetscReal, PetscReal *);
 PETSC_INTERN PetscErrorCode ComputeDeterminantOf3by3Matrix(PetscReal [9], PetscReal *);

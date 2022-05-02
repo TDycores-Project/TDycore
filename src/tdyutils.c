@@ -545,6 +545,24 @@ PetscErrorCode TDySavePetscMatAsBinary(Mat M, const char filename[]) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDySavePetscMatAsASCII(Mat M, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  PetscObjectGetComm((PetscObject)M,&comm);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
+  ierr = MatView(M, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode ExtractSubVectors(Vec A, PetscInt stride, Vec *Asub) {
 
   PetscInt local_size, block_size;

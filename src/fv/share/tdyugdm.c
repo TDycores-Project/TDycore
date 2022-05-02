@@ -3,6 +3,7 @@
 #include <petscviewerhdf5.h>
 #include <private/tdyugdmimpl.h>
 #include <private/tdymemoryimpl.h>
+#include <private/tdyutils.h>
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreate(TDyUGDM *ugdm){
@@ -233,11 +234,7 @@ static PetscErrorCode CreateAdjacencyMatrix(TDyUGrid *ugrid, Mat *AdjMat) {
   ierr = MPI_Exscan(&nrow, &global_offset, 1, MPI_INTEGER, MPI_SUM, PETSC_COMM_WORLD); CHKERRQ(ierr);
 
   ierr = MatCreateMPIAdj(PETSC_COMM_WORLD, nrow, ugrid->num_verts_global, i, j, PETSC_NULL, AdjMat); CHKERRQ(ierr);
-
-  PetscViewer viewer;
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Adj.out",&viewer); CHKERRQ(ierr);
-  ierr = MatView(*AdjMat, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  ierr = TDySavePetscMatAsASCII(*AdjMat, "Adj.out"); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -294,15 +291,14 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
   Mat DualMat;
   PetscInt ncommonnodes=3;
   ierr = MatMeshToCellGraph(AdjMat, ncommonnodes, &DualMat); CHKERRQ(ierr);
-
-  PetscViewer viewer;
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Dual.out",&viewer); CHKERRQ(ierr);
-  ierr = MatView(DualMat, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  ierr = TDySavePetscMatAsASCII(DualMat, "Dual.out"); CHKERRQ(ierr);
 
   IS NewCellRankIS;
   PetscInt NewNumCellsLocal;
   ierr = PartitionGrid(DualMat, &NewCellRankIS, &NewNumCellsLocal); CHKERRQ(ierr);
+  
+  //ierr = MatDestroy(&AdjMat); CHKERRQ(ierr);
+  ierr = MatDestroy(&DualMat); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
