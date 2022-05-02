@@ -22,6 +22,7 @@ PETSC_INTERN PetscErrorCode TDyComputeVolumeOfTetrahedron(PetscReal node_1[3], P
 PETSC_INTERN PetscErrorCode TDyCreateVecJoiningTwoVertices(PetscReal vtx_from[3],PetscReal vtx_to[3], PetscReal vec[3]);
 PETSC_INTERN PetscInt TDyReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value);
 PETSC_INTERN PetscInt TDySavePetscVecAsBinary(Vec vec, const char filename[]);
+PETSC_INTERN PetscInt TDySavePetscVecAsASCII(Vec vec, const char filename[]);
 PETSC_INTERN PetscInt TDyReadBinaryPetscVec(Vec vec, MPI_Comm comm, const char filename[]);
 PETSC_INTERN PetscInt TDySavePetscMatAsBinary(Mat, const char []);
 PETSC_INTERN PetscInt TDySavePetscMatAsASCII(Mat, const char []);

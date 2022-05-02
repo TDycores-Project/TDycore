@@ -506,6 +506,24 @@ PetscErrorCode TDySavePetscVecAsBinary(Vec vec, const char filename[]) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDySavePetscVecAsASCII(Vec V, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  PetscObjectGetComm((PetscObject)V,&comm);
+
+  ierr = PetscViewerASCIIOpen(comm,filename,&viewer); CHKERRQ(ierr);
+  ierr = VecView(V, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 /// Reads a PETSc Vec as binary
 ///
 /// @param [in] vec A PETSc Vec
