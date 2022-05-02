@@ -4,6 +4,7 @@
 #include <private/tdyugdmimpl.h>
 #include <private/tdymemoryimpl.h>
 
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreate(TDyUGDM *ugdm){
   ugdm = malloc(sizeof(TDyUGDM));
 
@@ -26,6 +27,7 @@ PetscErrorCode TDyUGDMCreate(TDyUGDM *ugdm){
   PetscFunctionReturn(0);
 }
 
+/* ---------------------------------------------------------------- */
 static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugrid){
 
   PetscViewer viewer;
@@ -75,8 +77,10 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugri
   PetscInt count=0;
 
   MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)cells, &comm); CHKERRQ(ierr);
   for (PetscInt i=0; i<*num_cells_local; i++) {
-    switch ( (PetscInt) v_p[count++]) {
+    PetscInt nvertex = (PetscInt) v_p[count++];
+    switch (nvertex) {
       case 4:
         break;
       case 5:
@@ -86,7 +90,6 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugri
       case 8:
         break;
       default:
-        ierr = PetscObjectGetComm((PetscObject)cells, &comm); CHKERRQ(ierr);
         SETERRQ(comm,PETSC_ERR_USER,"Unknown cell type");
     }
     for (PetscInt j=1; j<*max_verts_per_cells+1; j++) {
@@ -122,6 +125,7 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugri
   PetscFunctionReturn(0);
 }
 
+/* ---------------------------------------------------------------- */
 PetscErrorCode UGridPrintCells(TDyUGrid *ugrid) {
 
   PetscInt rank, commsize;
@@ -147,6 +151,7 @@ PetscErrorCode UGridPrintCells(TDyUGrid *ugrid) {
   PetscFunctionReturn(0);
 }
 
+/* ---------------------------------------------------------------- */
 PetscErrorCode UGridPrintVertices(TDyUGrid *ugrid) {
 
   PetscInt rank, commsize;
@@ -173,7 +178,31 @@ PetscErrorCode UGridPrintVertices(TDyUGrid *ugrid) {
   PetscFunctionReturn(0);
 }
 
+/* ---------------------------------------------------------------- */
+static PetscErrorCode DetermineMaxNumVerticesActivePerCell(TDyUGrid *ugrid) {
 
+  PetscErrorCode ierr;
+
+  PetscInt nvert_active = 0;
+  for (PetscInt icell=0; icell<ugrid->num_cells_local; icell++) {
+    PetscInt tmp=0;
+    for (PetscInt ivertex=0; ivertex<ugrid->max_verts_per_cells; ivertex++) {
+      if (ugrid->cell_vertices[icell][ivertex] > 0) {
+        tmp++;
+      }
+    }
+    if (tmp > nvert_active){
+      nvert_active = tmp;
+    }
+  }
+
+  ierr = MPI_Allreduce(&nvert_active, &ugrid->max_nvert_active_per_cell, 1, MPI_INTEGER, MPI_MAX, PETSC_COMM_WORLD); CHKERRQ(ierr);
+  printf("max_nvert_active_per_cell = %d\n",ugrid->max_nvert_active_per_cell);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_file) {
 
   PetscErrorCode ierr;
@@ -182,6 +211,8 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
   ierr = ReadPFLOTRANMeshFile(mesh_file, &ugrid); CHKERRQ(ierr);
   ierr = UGridPrintCells(&ugrid); CHKERRQ(ierr);
   ierr = UGridPrintVertices(&ugrid); CHKERRQ(ierr);
+
+  ierr = DetermineMaxNumVerticesActivePerCell(&ugrid); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 

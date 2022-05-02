@@ -13,6 +13,8 @@ PetscErrorCode TDyDMCreate(TDyDM *tdydm) {
   PetscFunctionReturn(0);
 }
 
+/* ---------------------------------------------------------------- */
+
 PetscErrorCode TDyDMCreateFromPFLOTRANMesh(TDyDM *tdydm, const char *mesh_file) {
 
   PetscErrorCode ierr;
