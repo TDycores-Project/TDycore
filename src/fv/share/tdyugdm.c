@@ -203,6 +203,46 @@ static PetscErrorCode DetermineMaxNumVerticesActivePerCell(TDyUGrid *ugrid) {
 }
 
 /* ---------------------------------------------------------------- */
+static PetscErrorCode CreateAdjacencyMatrix(TDyUGrid *ugrid, Mat *AdjMat) {
+
+  PetscErrorCode ierr;
+
+  // Determine the i-th and j-th values for creating the adjacency matrix:
+  //   - 	i: the indices into j for the start of each row
+  //   - 	j: the column indices for each row (sorted for each row).
+  PetscInt *i, *j;
+  PetscInt nrow = ugrid->num_cells_local;
+  PetscInt ncol = ugrid->max_nvert_active_per_cell;
+
+  ierr = TDyAllocate_IntegerArray_1D(&i, nrow + 1); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&j, nrow*ncol); CHKERRQ(ierr);
+
+  i[0] = 0;
+  PetscInt count=0;
+  for (PetscInt icell=0; icell<nrow; icell++) {
+    for (PetscInt ivert=0; ivert<ncol; ivert++) {
+      if (ugrid->cell_vertices[icell][ivert] >= 0 ){
+      j[count++] = ugrid->cell_vertices[icell][ivert];
+      }
+    }
+    i[icell+1] = count;
+  }
+
+  // Determine the global offset for rows on each rank
+  PetscInt global_offset = 0;
+  ierr = MPI_Exscan(&nrow, &global_offset, 1, MPI_INTEGER, MPI_SUM, PETSC_COMM_WORLD); CHKERRQ(ierr);
+
+  ierr = MatCreateMPIAdj(PETSC_COMM_WORLD, nrow, ugrid->num_verts_global, i, j, PETSC_NULL, AdjMat); CHKERRQ(ierr);
+
+  PetscViewer viewer;
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Adj.out",&viewer); CHKERRQ(ierr);
+  ierr = MatView(*AdjMat, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_file) {
 
   PetscErrorCode ierr;
@@ -213,6 +253,9 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
   ierr = UGridPrintVertices(&ugrid); CHKERRQ(ierr);
 
   ierr = DetermineMaxNumVerticesActivePerCell(&ugrid); CHKERRQ(ierr);
+
+  Mat AdjMat;
+  ierr = CreateAdjacencyMatrix(&ugrid, &AdjMat); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
