@@ -9,6 +9,7 @@ typedef struct {
   PetscInt num_cells_local;
   PetscInt max_verts_per_cells;
   PetscInt max_nvert_active_per_cell;
+  PetscInt max_ndual_per_cells;
 
   PetscInt num_verts_global;
   PetscInt num_verts_local;

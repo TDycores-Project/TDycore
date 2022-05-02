@@ -272,6 +272,41 @@ PetscErrorCode PartitionGrid(Mat DualMat, IS *NewCellRankIS, PetscInt *NewNumCel
 }
 
 /* ---------------------------------------------------------------- */
+static PetscErrorCode DetermineMaxNumDualCells(TDyUGrid *ugrid, Mat DualMat) {
+
+  PetscErrorCode ierr;
+
+  const PetscInt *ia_ptr, *ja_ptr;
+  PetscBool success;
+  PetscInt num_rows;
+  ierr = MatGetRowIJ(DualMat, 0, PETSC_FALSE, PETSC_FALSE, &num_rows, &ia_ptr, &ja_ptr, &success);CHKERRQ(ierr);
+
+  if (!success) {
+    MPI_Comm comm;
+    ierr = PetscObjectGetComm((PetscObject)DualMat, &comm); CHKERRQ(ierr);
+    SETERRQ(comm, PETSC_ERR_USER, "Error get row and column indices from dual matrix");
+  }
+
+  ugrid->max_ndual_per_cells = 0;
+  for (PetscInt icell=0; icell<ugrid->num_cells_local; icell++) {
+    PetscInt istart = ia_ptr[icell];
+    PetscInt iend = ia_ptr[icell+1];
+    PetscInt num_cols = iend - istart;
+    if (num_cols > ugrid->max_ndual_per_cells) {
+      ugrid->max_ndual_per_cells = num_cols;
+    }
+  }
+
+  PetscInt tmp = ugrid->max_ndual_per_cells;
+  ierr = MPI_Allreduce(&tmp, &ugrid->max_ndual_per_cells, 1, MPI_INTEGER, MPI_MAX, PETSC_COMM_WORLD);
+
+  ierr = MatRestoreRowIJ(DualMat, 0, PETSC_FALSE, PETSC_FALSE, &num_rows, &ia_ptr, &ja_ptr, &success);CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_file) {
 
   PetscErrorCode ierr;
@@ -296,7 +331,9 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
   IS NewCellRankIS;
   PetscInt NewNumCellsLocal;
   ierr = PartitionGrid(DualMat, &NewCellRankIS, &NewNumCellsLocal); CHKERRQ(ierr);
-  
+
+  ierr = DetermineMaxNumDualCells(&ugrid, DualMat); CHKERRQ(ierr);
+
   //ierr = MatDestroy(&AdjMat); CHKERRQ(ierr);
   ierr = MatDestroy(&DualMat); CHKERRQ(ierr);
 
