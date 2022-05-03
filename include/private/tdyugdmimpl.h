@@ -17,6 +17,7 @@ typedef struct {
 
   PetscInt **cell_vertices;
   PetscInt *cell_ids_natural;
+  PetscInt *cell_ids_petsc;
   PetscReal **vertices;
 
   AO ao_natural_to_petsc;

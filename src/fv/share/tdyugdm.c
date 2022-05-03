@@ -202,7 +202,6 @@ static PetscErrorCode DetermineMaxNumVerticesActivePerCell(TDyUGrid *ugrid) {
   }
 
   ierr = MPI_Allreduce(&nvert_active, &ugrid->max_verts_per_cell, 1, MPI_INTEGER, MPI_MAX, PETSC_COMM_WORLD); CHKERRQ(ierr);
-  printf("max_verts_per_cell = %d\n",ugrid->max_verts_per_cell);
 
   PetscFunctionReturn(0);
 }
@@ -444,6 +443,62 @@ static PetscErrorCode CreateApplicationOrder(TDyUGrid *ugrid, PetscInt NewGlobal
 }
 
 /* ---------------------------------------------------------------- */
+static PetscErrorCode UpdateCellAndDualIDsToPETScOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *PostPartPetscOrderVec) {
+
+  PetscErrorCode ierr;
+
+  PetscInt max_ndual = ugrid->max_ndual_per_cell;
+  PetscInt size = NewNumCellsLocal * max_ndual;
+  PetscInt IDs[size];
+  PetscInt ndual = 0;
+
+  PetscScalar *v_ptr;
+
+  PetscInt rank;
+  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+  ierr = VecGetArray(*PostPartPetscOrderVec, &v_ptr); CHKERRQ(ierr);
+  for (PetscInt icell=0; icell<NewNumCellsLocal; icell++) {
+
+    IDs[ndual++] = ugrid->cell_ids_natural[icell]; // Are in 0-based index
+
+    for (PetscInt idual=0; idual<max_ndual; idual++) {
+      PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset];
+      if (dualID>0) {
+        IDs[ndual++] = dualID-1; // Changing from 1-based index to 0-based index
+      }
+    }
+  }
+  ierr = VecRestoreArray(*PostPartPetscOrderVec, &v_ptr); CHKERRQ(ierr);
+
+  ierr = AOApplicationToPetsc(ugrid->ao_natural_to_petsc, ndual, IDs); CHKERRQ(ierr);
+
+  ierr = VecGetArray(*PostPartPetscOrderVec, &v_ptr); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&ugrid->cell_ids_petsc, NewNumCellsLocal); CHKERRQ(ierr);
+  ndual = 0;
+
+  for (PetscInt icell=0; icell<NewNumCellsLocal; icell++) {
+
+    ugrid->cell_ids_petsc[icell] = IDs[ndual];
+    v_ptr[icell*stride] =  IDs[ndual] + 1; // Changing from 0-based to 1-based
+
+    for (PetscInt idual=0; idual<max_ndual; idual++) {
+      PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset];
+      if (dualID > 0) {
+        ndual++;
+        v_ptr[icell*stride + idual + dual_offset] = IDs[ndual] + 1; // Changing from 0-based to 1-based
+      }
+    }
+    ndual++;
+  }
+  ierr = VecRestoreArray(*PostPartPetscOrderVec, &v_ptr); CHKERRQ(ierr);
+  ierr = TDySavePetscVecAsASCII(*PostPartPetscOrderVec,"elements_petsc.out");
+
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *OldVec, IS *OldToNewIS, Vec *PetscOrderVec) {
 
   PetscErrorCode ierr;
@@ -469,6 +524,9 @@ PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stri
 
   // Create application order (AO) from natural-order to PETSc-order
   ierr = CreateApplicationOrder(ugrid, NewGlobalOffset, NewNumCellsLocal); CHKERRQ(ierr);
+
+  // Change cell and dual ids from natural-order to PETSc order
+  ierr = UpdateCellAndDualIDsToPETScOrder(ugrid, stride, dual_offset, NewNumCellsLocal, &PostPartPetscOrderVec);
 
   PetscFunctionReturn(0);
 }
