@@ -408,17 +408,70 @@ PetscErrorCode PrePartNatOrder_To_PostPartNatOrder(PetscInt stride, PetscInt New
 }
 
 /* ---------------------------------------------------------------- */
-  PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *OldVec, IS *OldToNewIS, Vec *PetscOrderVec) {
+static PetscErrorCode SaveNaturalCellIDs(TDyUGrid *ugrid, Vec PostPartNatOrderVec, PetscInt NewNumCellsLocal, PetscInt stride) {
 
-    PetscErrorCode ierr;
+  PetscErrorCode ierr;
 
-    Vec PostPartNatOrderVec;
-    ierr = PrePartNatOrder_To_PostPartNatOrder(stride, NewNumCellsLocal, OldToNewIS, OldVec, &PostPartNatOrderVec); CHKERRQ(ierr);
-    ierr = TDySavePetscVecAsASCII(*OldVec,"elements_old.out");
-    ierr = TDySavePetscVecAsASCII(PostPartNatOrderVec,"elements_natural.out");
+  ierr = TDyAllocate_IntegerArray_1D(&ugrid->cell_ids_natural, NewNumCellsLocal); CHKERRQ(ierr);
 
-    PetscFunctionReturn(0);
+  PetscScalar *v_ptr;
+  ierr = VecGetArray(PostPartNatOrderVec, &v_ptr); CHKERRQ(ierr);
+  for (PetscInt icell=0; icell<NewNumCellsLocal; icell++) {
+    ugrid->cell_ids_natural[icell] = -(PetscInt) v_ptr[icell*stride] - 1;
   }
+  ierr = VecRestoreArray(PostPartNatOrderVec, &v_ptr); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+static PetscErrorCode CreateApplicationOrder(TDyUGrid *ugrid, PetscInt NewGlobalOffset, PetscInt NewNumCellsLocal) {
+
+  PetscErrorCode ierr;
+
+  PetscInt int_array[NewNumCellsLocal];
+  for (PetscInt icell=0; icell<NewNumCellsLocal; icell++) {
+    int_array[icell] = icell + NewGlobalOffset;
+  }
+
+  ierr = AOCreateBasic(PETSC_COMM_WORLD, NewNumCellsLocal, ugrid->cell_ids_natural, int_array, &ugrid->ao_natural_to_petsc); CHKERRQ(ierr);
+  PetscViewer viewer;
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD, "ao.out", &viewer); CHKERRQ(ierr);
+  ierr = AOView(ugrid->ao_natural_to_petsc, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *OldVec, IS *OldToNewIS, Vec *PetscOrderVec) {
+
+  PetscErrorCode ierr;
+
+  // Determine:
+  //  - number of cells owned by each rank
+  //  - the cell ids (in natural order) owned by each rank after mesh partitioning
+  Vec PostPartNatOrderVec;
+  ierr = PrePartNatOrder_To_PostPartNatOrder(stride, NewNumCellsLocal, OldToNewIS, OldVec, &PostPartNatOrderVec); CHKERRQ(ierr);
+  ierr = TDySavePetscVecAsASCII(*OldVec,"elements_old.out");
+  ierr = TDySavePetscVecAsASCII(PostPartNatOrderVec,"elements_natural.out");
+
+  // Determine the global cell id offset for each rank after mesh partitioning
+  PetscInt NewGlobalOffset = 0;
+  ierr = MPI_Exscan(&NewNumCellsLocal, &NewGlobalOffset, 1, MPI_INTEGER, MPI_SUM, PETSC_COMM_WORLD); CHKERRQ(ierr);
+
+  Vec PostPartPetscOrderVec;
+  ierr = VecDuplicate(PostPartNatOrderVec, &PostPartPetscOrderVec); CHKERRQ(ierr);
+  ierr = VecCopy(PostPartNatOrderVec, PostPartPetscOrderVec); CHKERRQ(ierr);
+
+  // Save natural ids of local cells owned by each rank after mesh partitioning
+  ierr = SaveNaturalCellIDs(ugrid, PostPartNatOrderVec, NewNumCellsLocal, stride); CHKERRQ(ierr);
+
+  // Create application order (AO) from natural-order to PETSc-order
+  ierr = CreateApplicationOrder(ugrid, NewGlobalOffset, NewNumCellsLocal); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_file) {
@@ -427,8 +480,8 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
   TDyUGrid ugrid;
 
   ierr = ReadPFLOTRANMeshFile(mesh_file, &ugrid); CHKERRQ(ierr);
-  ierr = UGridPrintCells(&ugrid); CHKERRQ(ierr);
-  ierr = UGridPrintVertices(&ugrid); CHKERRQ(ierr);
+  //ierr = UGridPrintCells(&ugrid); CHKERRQ(ierr);
+  //ierr = UGridPrintVertices(&ugrid); CHKERRQ(ierr);
 
   ierr = DetermineMaxNumVerticesActivePerCell(&ugrid); CHKERRQ(ierr);
 

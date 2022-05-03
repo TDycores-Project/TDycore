@@ -13,8 +13,13 @@ typedef struct {
   PetscInt num_verts_global;
   PetscInt num_verts_local;
 
+  PetscInt global_offset;
+
   PetscInt **cell_vertices;
+  PetscInt *cell_ids_natural;
   PetscReal **vertices;
+
+  AO ao_natural_to_petsc;
 
 } TDyUGrid;
 
