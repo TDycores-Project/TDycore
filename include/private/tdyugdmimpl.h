@@ -21,6 +21,7 @@ typedef struct {
   PetscInt *cell_ids_natural;
   PetscInt *cell_ids_petsc;
   PetscInt *ghost_cell_ids_petsc;
+  PetscInt **cell_neighbors_ghosted;
 
   PetscReal **vertices;
 

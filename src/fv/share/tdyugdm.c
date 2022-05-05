@@ -657,6 +657,43 @@ static PetscErrorCode UpdateNaturalCellIDs(TDyUGrid *ugrid, PetscInt stride, Pet
   PetscFunctionReturn(0);
 }
 
+/* ---------------------------------------------------------------- */
+static PetscErrorCode DetermineNeigbhorsCellIDsInGhostedOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, Vec *PetscOrderVec) {
+
+  PetscErrorCode ierr;
+
+  PetscInt max_ndual = ugrid->max_ndual_per_cell;
+  PetscInt nlmax = ugrid->num_cells_local;
+
+  ierr = TDyAllocate_IntegerArray_2D(&ugrid->cell_neighbors_ghosted, nlmax, max_ndual+1); CHKERRQ(ierr);
+
+  PetscScalar *v_ptr;
+  ierr = VecGetArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);
+  for (PetscInt icell=0; icell<nlmax; icell++){
+
+    PetscInt count = 0;
+    ugrid->cell_neighbors_ghosted[icell][0] = count; // initialize the number of neighbors
+
+    for (PetscInt idual=0; idual<max_ndual; idual++){
+      PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset]; // 1-based index
+
+      if (dualID > 0) {
+        count++;
+
+        if (dualID > nlmax) {
+          dualID = -dualID+1; // Converting to 0-based index
+        } else {
+          dualID--; // Converting to 0-based index
+        }
+        ugrid->cell_neighbors_ghosted[icell][idual+1] = dualID;
+      }
+      ugrid->cell_neighbors_ghosted[icell][0] = count;
+    }
+  }
+  ierr = VecRestoreArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *OldVec, IS *OldToNewIS, Vec *PetscOrderVec) {
@@ -690,7 +727,10 @@ PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stri
   ierr = DualIDs_FromPETScOrder_To_LocalOrder(ugrid, stride, dual_offset, NewNumCellsLocal, NewGlobalOffset, &PostPartPetscOrderVec);
 
   // Update the array that saves the natural cell ids to include ghost cells
-  ierr = UpdateNaturalCellIDs(ugrid, stride, dual_offset, &PostPartNatOrderVec, &PostPartPetscOrderVec);
+  ierr = UpdateNaturalCellIDs(ugrid, stride, dual_offset, &PostPartNatOrderVec, &PostPartPetscOrderVec); CHKERRQ(ierr);
+
+  // Determine the ids of cell neigbhors (aka duals) in ghosted-index
+  ierr = DetermineNeigbhorsCellIDsInGhostedOrder(ugrid, stride, dual_offset, &PostPartPetscOrderVec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
