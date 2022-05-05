@@ -7,6 +7,8 @@ typedef struct {
 
   PetscInt num_cells_global;
   PetscInt num_cells_local;
+  PetscInt num_cells_ghost;
+
   PetscInt max_verts_per_cell;
   PetscInt max_ndual_per_cell;
 
@@ -18,6 +20,8 @@ typedef struct {
   PetscInt **cell_vertices;
   PetscInt *cell_ids_natural;
   PetscInt *cell_ids_petsc;
+  PetscInt *ghost_cell_ids_petsc;
+
   PetscReal **vertices;
 
   AO ao_natural_to_petsc;

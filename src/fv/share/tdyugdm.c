@@ -403,7 +403,10 @@ PetscErrorCode PrePartNatOrder_To_PostPartNatOrder(PetscInt stride, PetscInt New
   ierr = VecScatterEnd(VecScatter, *Pre, *Post, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
   ierr = VecScatterDestroy(&VecScatter); CHKERRQ(ierr);
 
-  PetscFunctionReturn(0);
+  ierr = TDySavePetscVecAsASCII(*Pre,"elements_old.out");
+  ierr = TDySavePetscVecAsASCII(*Post,"elements_natural.out");
+
+ PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
@@ -443,7 +446,7 @@ static PetscErrorCode CreateApplicationOrder(TDyUGrid *ugrid, PetscInt NewGlobal
 }
 
 /* ---------------------------------------------------------------- */
-static PetscErrorCode UpdateCellAndDualIDsToPETScOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *PostPartPetscOrderVec) {
+static PetscErrorCode CellAndDualIDs_FromNatOrder_To_PETScOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *PostPartPetscOrderVec) {
 
   PetscErrorCode ierr;
 
@@ -496,7 +499,7 @@ static PetscErrorCode UpdateCellAndDualIDsToPETScOrder(TDyUGrid *ugrid, PetscInt
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode UpdateDualIDsInLocalOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, PetscInt NewGlobalOffset, Vec *PostPartPetscOrderVec) {
+PetscErrorCode DualIDs_FromPETScOrder_To_LocalOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, PetscInt NewGlobalOffset, Vec *PostPartPetscOrderVec) {
 
   PetscErrorCode ierr;
 
@@ -512,7 +515,7 @@ PetscErrorCode UpdateDualIDsInLocalOrder(TDyUGrid *ugrid, PetscInt stride, Petsc
   //   - Locally-owned dual IDs are positive values
   //   - Ghost dual IDs are negative values
 
-  PetscInt NumGhostCells = 0;
+  PetscInt NumCellsGhost = 0;
   for (PetscInt icell=0; icell<NewNumCellsLocal; icell++){
     for (PetscInt idual=0; idual<max_ndual; idual++){
       PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset];
@@ -520,8 +523,8 @@ PetscErrorCode UpdateDualIDsInLocalOrder(TDyUGrid *ugrid, PetscInt stride, Petsc
       if (dualID > 0) {
         // Determine if the dual is a ghost based on the ID of the dual that is in PETSc-order
         if (dualID <= NewGlobalOffset || dualID > NewGlobalOffset + NewNumCellsLocal) {
-          IntArray1[NumGhostCells++] = dualID; // Save the dual ID in PETSc-order
-          v_ptr[icell*stride + idual + dual_offset] = -NumGhostCells;
+          IntArray1[NumCellsGhost++] = dualID; // Save the dual ID in PETSc-order
+          v_ptr[icell*stride + idual + dual_offset] = -NumCellsGhost;
         } else {
           v_ptr[icell*stride + idual + dual_offset] = dualID - NewGlobalOffset;
         }
@@ -531,6 +534,81 @@ PetscErrorCode UpdateDualIDsInLocalOrder(TDyUGrid *ugrid, PetscInt stride, Petsc
 
   ierr = VecRestoreArray(*PostPartPetscOrderVec, &v_ptr); CHKERRQ(ierr);
   ierr = TDySavePetscVecAsASCII(*PostPartPetscOrderVec,"elements_local_dual_unsorted.out");
+
+  // Sort any ghost cells that are present
+  if (NumCellsGhost >0) {
+
+    // Example of sorting of ghost dual cell IDs:
+    //
+    // Index  Dual_ID  IntArray1  Sorted_IntArray1  IntArray2  IntArray3  IntArray4  IntArray5
+    //   0      -1        11            09              1         09         0          2
+    //   1      -2        09            10              2         10         1          0
+    //   2      -3        10            11              0         11         2          1
+    //   3      -4        12            11              5         12         2          4
+    //   4      -5        13            12              3         13         3          5
+    //   5      -1        11            13              4         -          4          3
+    //
+    //
+    //  IntArray1  ---(IntArray2)---> Sorted_IntArray1  <--- IntArray4 --- IntArray3
+    //  IntArray1 <---(IntArray5)---  Sorted_IntArray1
+    //
+
+    PetscInt IntArray2[NumCellsGhost];
+    PetscInt IntArray3[NumCellsGhost];
+    PetscInt IntArray4[NumCellsGhost];
+    PetscInt IntArray5[NumCellsGhost];
+
+    for (PetscInt ighost=0; ighost<NumCellsGhost; ighost++) {
+      IntArray1[ighost] = IntArray1[ighost] - 1; // Converting to 0-based index
+      IntArray2[ighost] = ighost;
+      IntArray3[ighost] = -1;
+      IntArray4[ighost] = -1;
+      IntArray5[ighost] = -1;
+    }
+
+    ierr = PetscSortIntWithPermutation(NumCellsGhost, IntArray1, IntArray2); CHKERRQ(ierr);
+
+    PetscInt tmp_int=0;
+
+    PetscInt idx=IntArray2[tmp_int];
+    IntArray3[tmp_int] = IntArray1[idx];
+
+    for (PetscInt ighost=0; ighost<NumCellsGhost; ighost++) {
+
+      PetscInt idx=IntArray2[ighost];
+      if (IntArray3[tmp_int] < IntArray1[idx]) {
+        tmp_int++;
+        IntArray3[tmp_int] = IntArray1[idx];
+      }
+
+      IntArray4[ighost] = tmp_int;
+      IntArray5[IntArray2[ighost]] = ighost;
+    }
+
+    NumCellsGhost = tmp_int+1;
+    ierr = TDyAllocate_IntegerArray_1D(&ugrid->ghost_cell_ids_petsc, NumCellsGhost); CHKERRQ(ierr);
+    for (PetscInt ighost=0; ighost<NumCellsGhost; ighost++) {
+      ugrid->ghost_cell_ids_petsc[ighost] = IntArray3[ighost];
+    }
+
+    ierr = VecGetArray(*PostPartPetscOrderVec, &v_ptr); CHKERRQ(ierr);
+    for (PetscInt icell=0; icell<NewNumCellsLocal; icell++){
+      for (PetscInt idual=0; idual<max_ndual; idual++){
+        PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset];
+
+        if (dualID < 0) {
+          PetscInt idx = IntArray5[-dualID-1];
+          v_ptr[icell*stride + idual + dual_offset] =  IntArray4[idx] + NewNumCellsLocal + 1; // converting to 1-based
+        }
+      }
+    }
+    ierr = VecRestoreArray(*PostPartPetscOrderVec, &v_ptr); CHKERRQ(ierr);
+  }
+  ierr = TDySavePetscVecAsASCII(*PostPartPetscOrderVec,"elements_local_dual.out");
+
+  ugrid->num_cells_local = NewNumCellsLocal;
+  ugrid->num_cells_ghost = NumCellsGhost;
+  ugrid->num_cells_global = NewNumCellsLocal + NumCellsGhost;
 
   PetscFunctionReturn(0);
 }
@@ -546,8 +624,6 @@ PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stri
   //  - the cell ids (in natural order) owned by each rank after mesh partitioning
   Vec PostPartNatOrderVec;
   ierr = PrePartNatOrder_To_PostPartNatOrder(stride, NewNumCellsLocal, OldToNewIS, OldVec, &PostPartNatOrderVec); CHKERRQ(ierr);
-  ierr = TDySavePetscVecAsASCII(*OldVec,"elements_old.out");
-  ierr = TDySavePetscVecAsASCII(PostPartNatOrderVec,"elements_natural.out");
 
   // Determine the global cell id offset for each rank after mesh partitioning
   PetscInt NewGlobalOffset = 0;
@@ -564,10 +640,10 @@ PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stri
   ierr = CreateApplicationOrder(ugrid, NewGlobalOffset, NewNumCellsLocal); CHKERRQ(ierr);
 
   // Change cell and dual ids from natural-order to PETSc order
-  ierr = UpdateCellAndDualIDsToPETScOrder(ugrid, stride, dual_offset, NewNumCellsLocal, &PostPartPetscOrderVec);
+  ierr = CellAndDualIDs_FromNatOrder_To_PETScOrder(ugrid, stride, dual_offset, NewNumCellsLocal, &PostPartPetscOrderVec);
 
   // Change the dual ids from PETSc-order to local-order
-  ierr = UpdateDualIDsInLocalOrder(ugrid, stride, dual_offset, NewNumCellsLocal, NewGlobalOffset, &PostPartPetscOrderVec);
+  ierr = DualIDs_FromPETScOrder_To_LocalOrder(ugrid, stride, dual_offset, NewNumCellsLocal, NewGlobalOffset, &PostPartPetscOrderVec);
 
   PetscFunctionReturn(0);
 }
