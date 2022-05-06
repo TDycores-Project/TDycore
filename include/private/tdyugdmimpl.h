@@ -18,12 +18,14 @@ typedef struct {
   PetscInt global_offset;
 
   PetscInt **cell_vertices;
+  PetscInt *cell_num_vertices;
   PetscInt *cell_ids_natural;
   PetscInt *cell_ids_petsc;
   PetscInt *ghost_cell_ids_petsc;
   PetscInt **cell_neighbors_ghosted;
 
   PetscReal **vertices;
+  PetscInt *vertex_ids_natural;
 
   AO ao_natural_to_petsc;
 

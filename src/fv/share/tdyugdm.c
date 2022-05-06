@@ -814,6 +814,107 @@ PetscErrorCode ScatterVecPetscOrderToLocalOrder(TDyUGrid *ugrid, PetscInt stride
 
   PetscFunctionReturn(0);
 }
+/* ---------------------------------------------------------------- */
+PetscErrorCode ScatterVertexNatOrderToLocalOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt vertex_offset, Vec *LocalOrderVec) {
+
+  PetscErrorCode ierr;
+  PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+  PetscScalar *v_ptr;
+  ierr = VecGetArray(*LocalOrderVec, &v_ptr); CHKERRQ(ierr);
+
+  // Determine the number of vertices
+  PetscInt ngmax = ugrid->num_cells_global;
+  PetscInt max_nvert = ugrid->max_verts_per_cell;
+  PetscInt numVertices=0;
+
+  for (PetscInt icell=0; icell<ngmax; icell++) {
+    for (PetscInt ivertex=0; ivertex<max_nvert; ivertex++) {
+      PetscInt vertID = (PetscInt) v_ptr[icell*stride + vertex_offset + ivertex];
+      if (vertID > 0) {
+        numVertices++;
+      }
+    }
+  }
+
+  // Now save the vertex IDs
+  PetscInt IntArray1[numVertices];
+  numVertices = 0;
+  for (PetscInt icell=0; icell<ngmax; icell++) {
+    for (PetscInt ivertex=0; ivertex<max_nvert; ivertex++) {
+      PetscInt vertID = (PetscInt) v_ptr[icell*stride + vertex_offset + ivertex];
+      if (vertID > 0) {
+        IntArray1[numVertices++] = vertID;
+        v_ptr[icell*stride + vertex_offset + ivertex] = numVertices;
+      }
+    }
+  }
+  ierr = VecRestoreArray(*LocalOrderVec, &v_ptr); CHKERRQ(ierr);
+
+  PetscInt IntArray2[numVertices];
+  PetscInt IntArray3[numVertices];
+  PetscInt IntArray4[numVertices];
+  for (PetscInt ivertex=0; ivertex<numVertices; ivertex++) {
+    IntArray1[ivertex] = IntArray1[ivertex] - 1;
+    IntArray2[ivertex] = ivertex;
+    IntArray3[ivertex] = -1;
+    IntArray4[ivertex] = -1;
+  }
+
+  ierr = PetscSortIntWithPermutation(numVertices, IntArray1, IntArray2); CHKERRQ(ierr);
+
+  PetscInt count=0;
+  PetscInt idx=IntArray2[count];
+  IntArray3[0] = IntArray1[idx];
+  IntArray4[idx] = count;
+
+  for (PetscInt ivertex=0; ivertex<numVertices; ivertex++) {
+    PetscInt idx=IntArray2[ivertex];
+    PetscInt vertID = IntArray1[idx];
+    if (vertID > IntArray3[count]) {
+      count++;
+      IntArray3[count] = vertID;
+    }
+    IntArray4[IntArray2[ivertex]] = count;
+  }
+
+  numVertices = count+1;
+
+  ierr = TDyAllocate_IntegerArray_1D(&ugrid->vertex_ids_natural, numVertices); CHKERRQ(ierr);
+  for (PetscInt ivertex=0; ivertex<numVertices; ivertex++) {
+    ugrid->vertex_ids_natural[ivertex] = IntArray3[ivertex];
+  }
+
+  ierr = TDyAllocate_IntegerArray_1D(&ugrid->cell_num_vertices, ngmax); CHKERRQ(ierr);
+  ierr = VecGetArray(*LocalOrderVec, &v_ptr); CHKERRQ(ierr);
+
+  PetscInt nlmax = ugrid->num_cells_local;
+  ierr = TDyDeallocate_IntegerArray_2D(ugrid->cell_vertices, nlmax); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&ugrid->cell_vertices, ngmax, max_nvert); CHKERRQ(ierr);
+
+  for (PetscInt icell=0; icell<ngmax; icell++) {
+
+    PetscInt count=0;
+    ugrid->cell_num_vertices[icell] = count;
+
+    for (PetscInt ivertex=0; ivertex<max_nvert; ivertex++) {
+      PetscInt vertID = (PetscInt) v_ptr[icell*stride + vertex_offset + ivertex];
+      if (vertID > 0) {
+        ugrid->cell_vertices[icell][count++] = IntArray4[vertID-1];
+        ugrid->cell_num_vertices[icell] = count;
+        v_ptr[icell*stride + vertex_offset + ivertex] = IntArray4[vertID-1]+1;
+      }
+    }
+  }
+
+  ierr = VecRestoreArray(*LocalOrderVec, &v_ptr); CHKERRQ(ierr);
+
+  char filename[30];
+  sprintf(filename,"elements_vert_local%d.out",rank);
+  ierr = TDySavePetscVecAsASCII(*LocalOrderVec, filename); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_file) {
@@ -863,6 +964,7 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
    ierr = ScatterVecPetscOrderToLocalOrder(&ugrid, stride, &PetscOrderVec, &LocalOrderVec);
    ierr = VecDestroy(&PetscOrderVec); CHKERRQ(ierr);
 
+   ierr = ScatterVertexNatOrderToLocalOrder(&ugrid, stride, vertex_ids_offset, &LocalOrderVec);
   //ierr = MatDestroy(&AdjMat); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
