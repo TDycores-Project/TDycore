@@ -310,7 +310,7 @@ static PetscErrorCode DetermineMaxNumDualCells(TDyUGrid *ugrid, Mat DualMat) {
 }
 
 /* ---------------------------------------------------------------- */
-static PetscErrorCode CreatePrePartitionVector(TDyUGrid *ugrid, IS NewCellRankIS, PetscInt stride, IS *OldToNewIS, Vec *OldVec) {
+static PetscErrorCode CreateISPrePartitionToPETSCOrder(TDyUGrid *ugrid, IS NewCellRankIS, PetscInt stride, IS *OldToNewIS) {
 
   PetscErrorCode ierr;
 
@@ -326,14 +326,23 @@ static PetscErrorCode CreatePrePartitionVector(TDyUGrid *ugrid, IS NewCellRankIS
   ierr = ISRestoreIndices(NumberingIS, &is_ptr); CHKERRQ(ierr);
   ierr = ISDestroy(&NumberingIS); CHKERRQ(ierr);
 
-  ierr = VecCreate(PETSC_COMM_WORLD, OldVec); CHKERRQ(ierr);
-  ierr = VecSetSizes(*OldVec, stride*num_cells_local_old, PETSC_DECIDE); CHKERRQ(ierr);
-  ierr = VecSetFromOptions(*OldVec); CHKERRQ(ierr);
-
   PetscViewer viewer;
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"is_scatter_elem_old_to_new.out",&viewer); CHKERRQ(ierr);
   ierr = ISView(*OldToNewIS, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+static PetscErrorCode CreatePrePartitionVector(TDyUGrid *ugrid, IS NewCellRankIS, PetscInt stride, Vec *OldVec) {
+
+  PetscErrorCode ierr;
+
+  PetscInt num_cells_local_old = ugrid->num_cells_local;
+  ierr = VecCreate(PETSC_COMM_WORLD, OldVec); CHKERRQ(ierr);
+  ierr = VecSetSizes(*OldVec, stride*num_cells_local_old, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(*OldVec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -826,7 +835,8 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
 
   IS OldToNewIS;
   Vec OldVec;
-  ierr = CreatePrePartitionVector(&ugrid, NewCellRankIS, stride, &OldToNewIS, &OldVec); CHKERRQ(ierr);
+  ierr = CreateISPrePartitionToPETSCOrder(&ugrid, NewCellRankIS, stride, &OldToNewIS); CHKERRQ(ierr);
+  ierr = CreatePrePartitionVector(&ugrid, NewCellRankIS, stride, &OldVec); CHKERRQ(ierr);
 
   ierr = PackPrePartitionVector(&ugrid, DualMat, &OldVec);
   ierr = MatDestroy(&DualMat); CHKERRQ(ierr);
