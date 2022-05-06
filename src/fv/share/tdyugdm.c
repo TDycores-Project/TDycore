@@ -310,7 +310,7 @@ static PetscErrorCode DetermineMaxNumDualCells(TDyUGrid *ugrid, Mat DualMat) {
 }
 
 /* ---------------------------------------------------------------- */
-static PetscErrorCode CreateISPrePartitionToPetscOrder(TDyUGrid *ugrid, IS NewCellRankIS, PetscInt stride, IS *OldToNewIS) {
+static PetscErrorCode CreateISNatOrderToPetscOrder(TDyUGrid *ugrid, IS NewCellRankIS, PetscInt stride, IS *NatToPetscIS) {
 
   PetscErrorCode ierr;
 
@@ -321,28 +321,28 @@ static PetscErrorCode CreateISPrePartitionToPetscOrder(TDyUGrid *ugrid, IS NewCe
   ierr = ISGetIndices(NumberingIS, &is_ptr); CHKERRQ(ierr);
 
   PetscInt num_cells_local_old = ugrid->num_cells_local;
-  ierr = ISCreateBlock(PETSC_COMM_WORLD, stride, num_cells_local_old, is_ptr, PETSC_COPY_VALUES, OldToNewIS); CHKERRQ(ierr);
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, stride, num_cells_local_old, is_ptr, PETSC_COPY_VALUES, NatToPetscIS); CHKERRQ(ierr);
 
   ierr = ISRestoreIndices(NumberingIS, &is_ptr); CHKERRQ(ierr);
   ierr = ISDestroy(&NumberingIS); CHKERRQ(ierr);
 
   PetscViewer viewer;
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"is_scatter_elem_old_to_new.out",&viewer); CHKERRQ(ierr);
-  ierr = ISView(*OldToNewIS, viewer); CHKERRQ(ierr);
+  ierr = ISView(*NatToPetscIS, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
-static PetscErrorCode CreatePrePartitionVector(TDyUGrid *ugrid, IS NewCellRankIS, PetscInt stride, Vec *OldVec) {
+static PetscErrorCode CreateVectorNatOrder(TDyUGrid *ugrid, IS NewCellRankIS, PetscInt stride, Vec *NatOrderVec) {
 
   PetscErrorCode ierr;
 
   PetscInt num_cells_local_old = ugrid->num_cells_local;
-  ierr = VecCreate(PETSC_COMM_WORLD, OldVec); CHKERRQ(ierr);
-  ierr = VecSetSizes(*OldVec, stride*num_cells_local_old, PETSC_DECIDE); CHKERRQ(ierr);
-  ierr = VecSetFromOptions(*OldVec); CHKERRQ(ierr);
+  ierr = VecCreate(PETSC_COMM_WORLD, NatOrderVec); CHKERRQ(ierr);
+  ierr = VecSetSizes(*NatOrderVec, stride*num_cells_local_old, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(*NatOrderVec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -833,17 +833,17 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
   PetscInt dual_offset = vertex_ids_offset + ugrid.max_verts_per_cell + 1; // +1 for -888
   PetscInt stride = dual_offset + ugrid.max_ndual_per_cell + 1; // +1 for -999999
 
-  IS OldToNewIS;
-  Vec OldVec;
-  ierr = CreateISPrePartitionToPetscOrder(&ugrid, NewCellRankIS, stride, &OldToNewIS); CHKERRQ(ierr);
-  ierr = CreatePrePartitionVector(&ugrid, NewCellRankIS, stride, &OldVec); CHKERRQ(ierr);
+  IS NatToPetscIS;
+  Vec NatOrderVec;
+  ierr = CreateISNatOrderToPetscOrder(&ugrid, NewCellRankIS, stride, &NatToPetscIS); CHKERRQ(ierr);
+  ierr = CreateVectorNatOrder(&ugrid, NewCellRankIS, stride, &NatOrderVec); CHKERRQ(ierr);
 
-  ierr = PackPrePartitionVector(&ugrid, DualMat, &OldVec);
+  ierr = PackPrePartitionVector(&ugrid, DualMat, &NatOrderVec);
   ierr = MatDestroy(&DualMat); CHKERRQ(ierr);
 
   Vec PetscOrderVec;
-  ierr = ScatterVecPrePartitionToPetscOrder(&ugrid, stride, dual_offset, NewNumCellsLocal, &OldVec, &OldToNewIS, &PetscOrderVec);
-  ierr = ISDestroy(&OldToNewIS); CHKERRQ(ierr);
+  ierr = ScatterVecPrePartitionToPetscOrder(&ugrid, stride, dual_offset, NewNumCellsLocal, &NatOrderVec, &NatToPetscIS, &PetscOrderVec);
+  ierr = ISDestroy(&NatToPetscIS); CHKERRQ(ierr);
 
    Vec LocalOrderVec;
    ierr = ScatterVecPetscOrderToLocalOrder(&ugrid, stride, &PetscOrderVec, &LocalOrderVec);
