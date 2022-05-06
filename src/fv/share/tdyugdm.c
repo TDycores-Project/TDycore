@@ -513,18 +513,32 @@ PetscErrorCode DualIDs_FromPetscOrder_To_LocalOrder(TDyUGrid *ugrid, PetscInt st
   PetscErrorCode ierr;
 
   PetscInt max_ndual = ugrid->max_ndual_per_cell;
-  PetscInt size = NewNumCellsLocal * max_ndual;
-  PetscInt IntArray1[size];
+
   PetscScalar *v_ptr;
 
   ierr = VecGetArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);
+
+  // Determine the maximum number of ghost cells
+  PetscInt NumCellsGhost = 0;
+  for (PetscInt icell=0; icell<NewNumCellsLocal; icell++){
+    for (PetscInt idual=0; idual<max_ndual; idual++){
+      PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset];
+      if (dualID > 0) {
+        if (dualID <= NewGlobalOffset || dualID > NewGlobalOffset + NewNumCellsLocal) {
+          NumCellsGhost++;
+        }
+      }
+    }
+  }
+
+  PetscInt IntArray1[NumCellsGhost];
 
   // 1. Make a list of ghost cells IDs that in PETSc-order
   // 2. Change IDs of duals that are locally-owned and ghost cells in PetscOrderVec
   //   - Locally-owned dual IDs are positive values
   //   - Ghost dual IDs are negative values
 
-  PetscInt NumCellsGhost = 0;
+  NumCellsGhost = 0;
   for (PetscInt icell=0; icell<NewNumCellsLocal; icell++){
     for (PetscInt idual=0; idual<max_ndual; idual++){
       PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset];
