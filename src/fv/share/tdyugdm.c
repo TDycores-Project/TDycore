@@ -696,7 +696,7 @@ static PetscErrorCode DetermineNeigbhorsCellIDsInGhostedOrder(TDyUGrid *ugrid, P
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *OldVec, IS *OldToNewIS, Vec *PetscOrderVec) {
+PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *OldVec, IS *OldToNewIS, Vec *PostPartPetscOrderVec) {
 
   PetscErrorCode ierr;
 
@@ -710,9 +710,8 @@ PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stri
   PetscInt NewGlobalOffset = 0;
   ierr = MPI_Exscan(&NewNumCellsLocal, &NewGlobalOffset, 1, MPI_INTEGER, MPI_SUM, PETSC_COMM_WORLD); CHKERRQ(ierr);
 
-  Vec PostPartPetscOrderVec;
-  ierr = VecDuplicate(PostPartNatOrderVec, &PostPartPetscOrderVec); CHKERRQ(ierr);
-  ierr = VecCopy(PostPartNatOrderVec, PostPartPetscOrderVec); CHKERRQ(ierr);
+  ierr = VecDuplicate(PostPartNatOrderVec, PostPartPetscOrderVec); CHKERRQ(ierr);
+  ierr = VecCopy(PostPartNatOrderVec, *PostPartPetscOrderVec); CHKERRQ(ierr);
 
   // Save natural ids of local cells owned by each rank after mesh partitioning
   ierr = SaveNaturalCellIDs(ugrid, PostPartNatOrderVec, NewNumCellsLocal, stride); CHKERRQ(ierr);
@@ -721,16 +720,74 @@ PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stri
   ierr = CreateApplicationOrder(ugrid, NewGlobalOffset, NewNumCellsLocal); CHKERRQ(ierr);
 
   // Change cell and dual ids from natural-order to PETSc order
-  ierr = CellAndDualIDs_FromNatOrder_To_PETScOrder(ugrid, stride, dual_offset, NewNumCellsLocal, &PostPartPetscOrderVec);
+  ierr = CellAndDualIDs_FromNatOrder_To_PETScOrder(ugrid, stride, dual_offset, NewNumCellsLocal, PostPartPetscOrderVec);
 
   // Change the dual ids from PETSc-order to local-order
-  ierr = DualIDs_FromPETScOrder_To_LocalOrder(ugrid, stride, dual_offset, NewNumCellsLocal, NewGlobalOffset, &PostPartPetscOrderVec);
+  ierr = DualIDs_FromPETScOrder_To_LocalOrder(ugrid, stride, dual_offset, NewNumCellsLocal, NewGlobalOffset, PostPartPetscOrderVec);
 
   // Update the array that saves the natural cell ids to include ghost cells
-  ierr = UpdateNaturalCellIDs(ugrid, stride, dual_offset, &PostPartNatOrderVec, &PostPartPetscOrderVec); CHKERRQ(ierr);
+  ierr = UpdateNaturalCellIDs(ugrid, stride, dual_offset, &PostPartNatOrderVec, PostPartPetscOrderVec); CHKERRQ(ierr);
 
   // Determine the ids of cell neigbhors (aka duals) in ghosted-index
-  ierr = DetermineNeigbhorsCellIDsInGhostedOrder(ugrid, stride, dual_offset, &PostPartPetscOrderVec); CHKERRQ(ierr);
+  ierr = DetermineNeigbhorsCellIDsInGhostedOrder(ugrid, stride, dual_offset, PostPartPetscOrderVec); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode ScatterVecPetscOrderToLocalOrder(TDyUGrid *ugrid, PetscInt stride, Vec *PetscOrderVec, Vec *LocalOrderVec) {
+
+  PetscErrorCode ierr;
+
+  PetscInt nlmax = ugrid->num_cells_local;
+  PetscInt ngmax = ugrid->num_cells_global;
+  PetscInt size = ngmax*stride;
+
+  // 1. Create the vector
+  ierr = VecCreate(PETSC_COMM_SELF, LocalOrderVec); CHKERRQ(ierr);
+  ierr = VecSetSizes(*LocalOrderVec, size, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(*LocalOrderVec, stride); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(*LocalOrderVec); CHKERRQ(ierr);
+
+  // 2. Create index sets (ISs)
+  PetscInt idx[ngmax];
+
+  // 2.1 Index set to scatter data from a MPI Vec in PETSc-order
+  for (PetscInt icell=0; icell<nlmax; icell++) {
+    idx[icell] = ugrid->cell_ids_petsc[icell];
+  }
+  for (PetscInt icell=nlmax; icell<ngmax; icell++) {
+    idx[icell] = ugrid->ghost_cell_ids_petsc[icell-nlmax];
+  }
+
+  IS is_scatter;
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, stride, ngmax, idx, PETSC_COPY_VALUES, &is_scatter); CHKERRQ(ierr);
+
+  // 2.2 Index set to gather data in a Vec in Local-order
+  for (PetscInt icell=0; icell<ngmax; icell++) {
+    idx[icell] = icell;
+  }
+
+  IS is_gather;
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, stride, ngmax, idx, PETSC_COPY_VALUES, &is_gather); CHKERRQ(ierr);
+
+  // 3. Create VecScatter
+  VecScatter vec_scatter;
+  //VecView(*PetscOrderVec,PETSC_VIEWER_STDOUT_WORLD);
+  ierr = VecScatterCreate(*PetscOrderVec, is_scatter, *LocalOrderVec, is_gather, &vec_scatter); CHKERRQ(ierr);
+  ierr = ISDestroy(&is_scatter); CHKERRQ(ierr);
+  ierr = ISDestroy(&is_gather); CHKERRQ(ierr);
+
+  // 4. Scatter the data
+  ierr = VecScatterBegin(vec_scatter, *PetscOrderVec, *LocalOrderVec, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterEnd(vec_scatter, *PetscOrderVec, *LocalOrderVec, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterDestroy(&vec_scatter); CHKERRQ(ierr);
+
+  PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
+
+  char filename[20];
+  sprintf(filename,"elements_local%d.out",rank);
+  ierr = TDySavePetscVecAsASCII(*LocalOrderVec, filename); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -777,6 +834,10 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
   Vec PetscOrderVec;
   ierr = ScatterVecPrePartitionToPETScOrder(&ugrid, stride, dual_offset, NewNumCellsLocal, &OldVec, &OldToNewIS, &PetscOrderVec);
   ierr = ISDestroy(&OldToNewIS); CHKERRQ(ierr);
+
+   Vec LocalOrderVec;
+   ierr = ScatterVecPetscOrderToLocalOrder(&ugrid, stride, &PetscOrderVec, &LocalOrderVec);
+   ierr = VecDestroy(&PetscOrderVec); CHKERRQ(ierr);
 
   //ierr = MatDestroy(&AdjMat); CHKERRQ(ierr);
 
