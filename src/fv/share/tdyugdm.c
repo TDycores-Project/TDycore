@@ -310,7 +310,7 @@ static PetscErrorCode DetermineMaxNumDualCells(TDyUGrid *ugrid, Mat DualMat) {
 }
 
 /* ---------------------------------------------------------------- */
-static PetscErrorCode CreateISPrePartitionToPETSCOrder(TDyUGrid *ugrid, IS NewCellRankIS, PetscInt stride, IS *OldToNewIS) {
+static PetscErrorCode CreateISPrePartitionToPetscOrder(TDyUGrid *ugrid, IS NewCellRankIS, PetscInt stride, IS *OldToNewIS) {
 
   PetscErrorCode ierr;
 
@@ -455,7 +455,7 @@ static PetscErrorCode CreateApplicationOrder(TDyUGrid *ugrid, PetscInt NewGlobal
 }
 
 /* ---------------------------------------------------------------- */
-static PetscErrorCode CellAndDualIDs_FromNatOrder_To_PETScOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *PostPartPetscOrderVec) {
+static PetscErrorCode CellAndDualIDs_FromNatOrder_To_PetscOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *PostPartPetscOrderVec) {
 
   PetscErrorCode ierr;
 
@@ -508,7 +508,7 @@ static PetscErrorCode CellAndDualIDs_FromNatOrder_To_PETScOrder(TDyUGrid *ugrid,
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode DualIDs_FromPETScOrder_To_LocalOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, PetscInt NewGlobalOffset, Vec *PostPartPetscOrderVec) {
+PetscErrorCode DualIDs_FromPetscOrder_To_LocalOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, PetscInt NewGlobalOffset, Vec *PostPartPetscOrderVec) {
 
   PetscErrorCode ierr;
 
@@ -705,7 +705,7 @@ static PetscErrorCode DetermineNeigbhorsCellIDsInGhostedOrder(TDyUGrid *ugrid, P
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *OldVec, IS *OldToNewIS, Vec *PostPartPetscOrderVec) {
+PetscErrorCode ScatterVecPrePartitionToPetscOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *OldVec, IS *OldToNewIS, Vec *PostPartPetscOrderVec) {
 
   PetscErrorCode ierr;
 
@@ -729,10 +729,10 @@ PetscErrorCode ScatterVecPrePartitionToPETScOrder(TDyUGrid *ugrid, PetscInt stri
   ierr = CreateApplicationOrder(ugrid, NewGlobalOffset, NewNumCellsLocal); CHKERRQ(ierr);
 
   // Change cell and dual ids from natural-order to PETSc order
-  ierr = CellAndDualIDs_FromNatOrder_To_PETScOrder(ugrid, stride, dual_offset, NewNumCellsLocal, PostPartPetscOrderVec);
+  ierr = CellAndDualIDs_FromNatOrder_To_PetscOrder(ugrid, stride, dual_offset, NewNumCellsLocal, PostPartPetscOrderVec);
 
   // Change the dual ids from PETSc-order to local-order
-  ierr = DualIDs_FromPETScOrder_To_LocalOrder(ugrid, stride, dual_offset, NewNumCellsLocal, NewGlobalOffset, PostPartPetscOrderVec);
+  ierr = DualIDs_FromPetscOrder_To_LocalOrder(ugrid, stride, dual_offset, NewNumCellsLocal, NewGlobalOffset, PostPartPetscOrderVec);
 
   // Update the array that saves the natural cell ids to include ghost cells
   ierr = UpdateNaturalCellIDs(ugrid, stride, dual_offset, &PostPartNatOrderVec, PostPartPetscOrderVec); CHKERRQ(ierr);
@@ -835,14 +835,14 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
 
   IS OldToNewIS;
   Vec OldVec;
-  ierr = CreateISPrePartitionToPETSCOrder(&ugrid, NewCellRankIS, stride, &OldToNewIS); CHKERRQ(ierr);
+  ierr = CreateISPrePartitionToPetscOrder(&ugrid, NewCellRankIS, stride, &OldToNewIS); CHKERRQ(ierr);
   ierr = CreatePrePartitionVector(&ugrid, NewCellRankIS, stride, &OldVec); CHKERRQ(ierr);
 
   ierr = PackPrePartitionVector(&ugrid, DualMat, &OldVec);
   ierr = MatDestroy(&DualMat); CHKERRQ(ierr);
 
   Vec PetscOrderVec;
-  ierr = ScatterVecPrePartitionToPETScOrder(&ugrid, stride, dual_offset, NewNumCellsLocal, &OldVec, &OldToNewIS, &PetscOrderVec);
+  ierr = ScatterVecPrePartitionToPetscOrder(&ugrid, stride, dual_offset, NewNumCellsLocal, &OldVec, &OldToNewIS, &PetscOrderVec);
   ierr = ISDestroy(&OldToNewIS); CHKERRQ(ierr);
 
    Vec LocalOrderVec;
