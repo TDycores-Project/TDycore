@@ -688,14 +688,15 @@ static PetscErrorCode DetermineNeigbhorsCellIDsInGhostedOrder(TDyUGrid *ugrid, P
   PetscInt max_ndual = ugrid->max_ndual_per_cell;
   PetscInt nlmax = ugrid->num_cells_local;
 
-  ierr = TDyAllocate_IntegerArray_2D(&ugrid->cell_neighbors_ghosted, nlmax, max_ndual+1); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&ugrid->cell_neighbors_ghosted, nlmax, max_ndual); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&ugrid->cell_num_neighbors_ghosted, nlmax); CHKERRQ(ierr);
 
   PetscScalar *v_ptr;
   ierr = VecGetArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);
   for (PetscInt icell=0; icell<nlmax; icell++){
 
     PetscInt count = 0;
-    ugrid->cell_neighbors_ghosted[icell][0] = count; // initialize the number of neighbors
+    ugrid->cell_num_neighbors_ghosted[icell] = count; // initialize the number of neighbors
 
     for (PetscInt idual=0; idual<max_ndual; idual++){
       PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset]; // 1-based index
@@ -708,9 +709,9 @@ static PetscErrorCode DetermineNeigbhorsCellIDsInGhostedOrder(TDyUGrid *ugrid, P
         } else {
           dualID--; // Converting to 0-based index
         }
-        ugrid->cell_neighbors_ghosted[icell][idual+1] = dualID;
+        ugrid->cell_neighbors_ghosted[icell][idual] = dualID;
       }
-      ugrid->cell_neighbors_ghosted[icell][0] = count;
+      ugrid->cell_num_neighbors_ghosted[icell] = count;
     }
   }
   ierr = VecRestoreArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);
