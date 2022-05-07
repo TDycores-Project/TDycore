@@ -815,8 +815,9 @@ PetscErrorCode ScatterVecPetscOrderToLocalOrder(TDyUGrid *ugrid, PetscInt stride
 
   PetscFunctionReturn(0);
 }
+
 /* ---------------------------------------------------------------- */
-PetscErrorCode ScatterVertexNatOrderToLocalOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt vertex_offset, Vec *LocalOrderVec) {
+static PetscErrorCode ChangeVertexNatOrderToLocalOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt vertex_offset, PetscInt *NewNumVertices, Vec *LocalOrderVec) {
 
   PetscErrorCode ierr;
   PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
@@ -880,7 +881,9 @@ PetscErrorCode ScatterVertexNatOrderToLocalOrder(TDyUGrid *ugrid, PetscInt strid
   }
 
   numVertices = count+1;
+  *NewNumVertices = numVertices;
 
+  // Save vertex ids in natural-order
   ierr = TDyAllocate_IntegerArray_1D(&ugrid->vertex_ids_natural, numVertices); CHKERRQ(ierr);
   for (PetscInt ivertex=0; ivertex<numVertices; ivertex++) {
     ugrid->vertex_ids_natural[ivertex] = IntArray3[ivertex];
@@ -908,11 +911,107 @@ PetscErrorCode ScatterVertexNatOrderToLocalOrder(TDyUGrid *ugrid, PetscInt strid
     }
   }
 
-  ierr = VecRestoreArray(*LocalOrderVec, &v_ptr); CHKERRQ(ierr);
+  ierr = VecRestoreArray(*LocalOrderVec, &v_ptr); CHKERRQ(ierr); // Now vertex ids are in local-order
 
   char filename[30];
   sprintf(filename,"elements_vert_local%d.out",rank);
   ierr = TDySavePetscVecAsASCII(*LocalOrderVec, filename); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+static PetscErrorCode SaveLocalVertexCoordinates(TDyUGrid *ugrid, PetscInt stride, PetscInt vertex_offset, PetscInt NewNumVertices) {
+
+  PetscErrorCode ierr;
+
+  PetscInt dim=3;
+
+  // 1. Create the index set for gathering data in local-order
+  IS ISGather;
+  PetscInt idx[NewNumVertices];
+  for (PetscInt ivertex=0; ivertex<NewNumVertices; ivertex++) {
+    idx[ivertex] = ivertex;
+  }
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, dim, NewNumVertices, idx, PETSC_COPY_VALUES, &ISGather); CHKERRQ(ierr);
+  // 2. Create the index set for scattering data in natural-order
+  IS ISScatter;
+  for (PetscInt ivertex=0; ivertex<NewNumVertices; ivertex++) {
+    idx[ivertex] = ugrid->vertex_ids_natural[ivertex];
+  }
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, dim, NewNumVertices, idx, PETSC_COPY_VALUES, &ISScatter); CHKERRQ(ierr);
+
+  PetscViewer viewer;
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"is_scatter_vert_old_to_new.out",&viewer); CHKERRQ(ierr);
+  ierr = ISView(ISScatter, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"is_gather_vert_old_to_new.out",&viewer); CHKERRQ(ierr);
+  ierr = ISView(ISGather, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  // 3. Create vectors for data in natural-order and local-order
+  Vec NatOrderVec;
+  ierr = VecCreate(PETSC_COMM_WORLD, &NatOrderVec); CHKERRQ(ierr);
+  ierr = VecSetSizes(NatOrderVec, ugrid->num_verts_local*dim, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(NatOrderVec, dim); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(NatOrderVec); CHKERRQ(ierr);
+
+  Vec LocalOrderVec;
+  ierr = VecCreate(PETSC_COMM_SELF, &LocalOrderVec); CHKERRQ(ierr);
+  ierr = VecSetSizes(LocalOrderVec, NewNumVertices*dim, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(LocalOrderVec, dim); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(LocalOrderVec); CHKERRQ(ierr);
+
+  // 4. Pack data in natural-ordered vector
+  PetscScalar *v_ptr;
+  ierr = VecGetArray(NatOrderVec, &v_ptr); CHKERRQ(ierr);
+  for (PetscInt ivertex=0; ivertex<ugrid->num_verts_local; ivertex++) {
+    for (PetscInt idim=0; idim<dim; idim++) {
+      v_ptr[ivertex*dim + idim] = ugrid->vertices[ivertex][idim];
+    }
+  }
+  ierr = VecRestoreArray(NatOrderVec, &v_ptr); CHKERRQ(ierr);
+
+  // 5. Update the memory size for save vertex data in local-order
+  ierr = TDyDeallocate_RealArray_2D(ugrid->vertices, ugrid->num_verts_local); CHKERRQ(ierr);
+  ugrid->num_verts_natural = ugrid->num_verts_local;
+  ugrid->num_verts_local = NewNumVertices;
+  ierr = TDyAllocate_RealArray_2D(&ugrid->vertices, ugrid->num_verts_local, dim); CHKERRQ(ierr);
+
+  // 6. Scatter the data
+  VecScatter Scatter;
+  ierr = VecScatterCreate(NatOrderVec, ISScatter, LocalOrderVec, ISGather, &Scatter); CHKERRQ(ierr);
+  ierr = ISDestroy(&ISScatter); CHKERRQ(ierr);
+  ierr = ISDestroy(&ISGather); CHKERRQ(ierr);
+  ierr = VecScatterBegin(Scatter, NatOrderVec, LocalOrderVec, INSERT_VALUES ,SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterEnd(Scatter, NatOrderVec, LocalOrderVec, INSERT_VALUES ,SCATTER_FORWARD); CHKERRQ(ierr);
+  ierr = VecScatterDestroy(&Scatter); CHKERRQ(ierr);
+
+  // 7. Save the data in data structure
+  ierr = VecGetArray(LocalOrderVec, &v_ptr); CHKERRQ(ierr);
+  for (PetscInt ivertex=0; ivertex<ugrid->num_verts_local; ivertex++) {
+    for (PetscInt idim=0; idim<dim; idim++) {
+      ugrid->vertices[ivertex][idim] = v_ptr[ivertex*dim + idim];
+    }
+  }
+  ierr = VecRestoreArray(LocalOrderVec, &v_ptr); CHKERRQ(ierr);
+  ierr = VecDestroy(&NatOrderVec); CHKERRQ(ierr);
+  ierr = VecDestroy(&LocalOrderVec); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+
+/* ---------------------------------------------------------------- */
+static PetscErrorCode ScatterVertexNatOrderToLocalOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt vertex_offset, Vec *LocalOrderVec) {
+
+  PetscErrorCode ierr;
+
+  PetscInt NewNumVertices=0;
+  ierr = ChangeVertexNatOrderToLocalOrder(ugrid, stride, vertex_offset, &NewNumVertices, LocalOrderVec); CHKERRQ(ierr);
+
+  ierr = SaveLocalVertexCoordinates(ugrid, stride, vertex_offset, NewNumVertices); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -966,6 +1065,8 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
    ierr = VecDestroy(&PetscOrderVec); CHKERRQ(ierr);
 
    ierr = ScatterVertexNatOrderToLocalOrder(&ugrid, stride, vertex_ids_offset, &LocalOrderVec);
+   ierr = VecDestroy(&LocalOrderVec); CHKERRQ(ierr);
+
   //ierr = MatDestroy(&AdjMat); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);

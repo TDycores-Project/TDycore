@@ -14,6 +14,7 @@ typedef struct {
 
   PetscInt num_verts_global;
   PetscInt num_verts_local;
+  PetscInt num_verts_natural;
 
   PetscInt global_offset;
 
