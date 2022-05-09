@@ -83,6 +83,43 @@ static PetscErrorCode CreateLocalOrderIS(PetscInt ngmax, PetscInt nlmax, PetscIn
 }
 
 /* ---------------------------------------------------------------- */
+static PetscErrorCode CreatePetscOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *ugdm){
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  PetscInt nlmax=ugrid->num_cells_local;
+  PetscInt ngmax=ugrid->num_cells_global;
+  PetscInt nghost=ugrid->num_cells_ghost;
+
+  PetscInt idxL[nlmax];
+  for (PetscInt i=0; i<nlmax; i++) {
+    idxL[i] = i + ugrid->global_offset;
+  }
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nlmax, idxL, PETSC_COPY_VALUES, &ugdm->IS_LocalCells_in_PetscOrder); CHKERRQ(ierr);
+  ierr = TDySavePetscISAsASCII(ugdm->IS_LocalCells_in_LocalOrder,"is_local_petsc_1.out");
+
+  PetscInt idxG[ngmax];
+  for (PetscInt i=0; i<nlmax; i++) {
+    idxG[i] = i + ugrid->global_offset;
+  }
+  for (PetscInt i=0; i<nghost; i++) {
+    idxG[i+nlmax] = ugrid->ghost_cell_ids_petsc[i];
+  }
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, ngmax, idxG, PETSC_COPY_VALUES, &ugdm->IS_GhostedCells_in_PetscOrder); CHKERRQ(ierr);
+  ierr = TDySavePetscISAsASCII(ugdm->IS_GhostedCells_in_PetscOrder,"is_ghosted_petsc_1.out");
+
+  PetscInt idxGhost[nghost];
+  for (PetscInt i=0; i<nghost; i++) {
+    idxGhost[i] = ugrid->ghost_cell_ids_petsc[i];
+  }
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nghost, idxGhost, PETSC_COPY_VALUES, &ugdm->IS_GhostCells_in_PetscOrder); CHKERRQ(ierr);
+  ierr = TDySavePetscISAsASCII(ugdm->IS_GhostCells_in_PetscOrder,"is_ghosts_petsc_1.out");
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *ugdm){
 
   PetscFunctionBegin;
@@ -96,6 +133,9 @@ PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *u
 
   // Create three local-ordered ISs
   ierr = CreateLocalOrderIS(ugrid->num_cells_global, ugrid->num_cells_local, ugrid->num_cells_ghost, ndof, ugdm); CHKERRQ(ierr);
+
+  // Create three PETSc-ordered ISs
+  ierr = CreatePetscOrderIS(ndof, ugrid, ugdm); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
