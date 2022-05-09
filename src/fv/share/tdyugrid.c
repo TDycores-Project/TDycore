@@ -337,6 +337,7 @@ static PetscErrorCode PackNatOrderVector(TDyUGrid *ugrid, Mat DualMat, Vec *NatO
 
   PetscInt global_offset = 0;
   ierr = MPI_Exscan(&ugrid->num_cells_local, &global_offset, 1, MPI_INTEGER, MPI_SUM, PETSC_COMM_WORLD); CHKERRQ(ierr);
+  ugrid->global_offset = global_offset;
 
   for (PetscInt icell=0; icell<ugrid->num_cells_local; icell++){
     v_ptr[count++] = -global_offset-icell-1;
