@@ -243,10 +243,7 @@ PetscErrorCode PartitionGrid(Mat DualMat, IS *NewCellRankIS, PetscInt *NewNumCel
   ierr = ISPartitioningCount(*NewCellRankIS, commsize, cell_counts); CHKERRQ(ierr);
   *NewNumCellsLocal = cell_counts[myrank];
 
-  PetscViewer viewer;
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"is.out",&viewer); CHKERRQ(ierr);
-  ierr = ISView(*NewCellRankIS, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  ierr = TDySavePetscISAsASCII(*NewCellRankIS,"is.out");
 
   PetscFunctionReturn(0);
 }
@@ -303,10 +300,7 @@ static PetscErrorCode CreateISNatOrderToPetscOrder(TDyUGrid *ugrid, IS NewCellRa
   ierr = ISRestoreIndices(NumberingIS, &is_ptr); CHKERRQ(ierr);
   ierr = ISDestroy(&NumberingIS); CHKERRQ(ierr);
 
-  PetscViewer viewer;
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"is_scatter_elem_old_to_new.out",&viewer); CHKERRQ(ierr);
-  ierr = ISView(*NatToPetscIS, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  ierr = TDySavePetscISAsASCII(NewCellRankIS,"is_scatter_elem_old_to_new.out");
 
   PetscFunctionReturn(0);
 }
@@ -918,14 +912,8 @@ static PetscErrorCode SaveLocalVertexCoordinates(TDyUGrid *ugrid, PetscInt strid
   }
   ierr = ISCreateBlock(PETSC_COMM_WORLD, dim, NewNumVertices, idx, PETSC_COPY_VALUES, &ISScatter); CHKERRQ(ierr);
 
-  PetscViewer viewer;
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"is_scatter_vert_old_to_new.out",&viewer); CHKERRQ(ierr);
-  ierr = ISView(ISScatter, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"is_gather_vert_old_to_new.out",&viewer); CHKERRQ(ierr);
-  ierr = ISView(ISGather, viewer); CHKERRQ(ierr);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+  ierr = TDySavePetscISAsASCII(ISScatter,"is_scatter_vert_old_to_new.out");
+  ierr = TDySavePetscISAsASCII(ISGather,"is_gather_vert_old_to_new.out");
 
   // 3. Create vectors for data in natural-order and local-order
   Vec NatOrderVec;
