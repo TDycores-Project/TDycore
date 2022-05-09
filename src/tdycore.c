@@ -1515,7 +1515,7 @@ PetscErrorCode TDyCreatePrognosticVector(TDy tdy, Vec *prog_vec) {
   }
 
   // Create a cell-centered scalar field vector.
-  ierr = DMCreateGlobalVector((&tdy->tdydm)->dm, prog_vec); CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(tdy, prog_vec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1867,7 +1867,7 @@ PetscErrorCode TDyCreateVectors(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   if (tdy->soln == NULL) {
-    ierr = DMCreateGlobalVector((&tdy->tdydm)->dm,&tdy->soln); CHKERRQ(ierr);
+    ierr = TDyCreateGlobalVector(tdy, &tdy->soln); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->residual); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->accumulation_prev); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->soln_prev); CHKERRQ(ierr);
