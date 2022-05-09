@@ -120,6 +120,37 @@ static PetscErrorCode CreatePetscOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM
 }
 
 /* ---------------------------------------------------------------- */
+static PetscErrorCode CreateNaturalOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *ugdm){
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  PetscInt nlmax = ugrid->num_cells_local;
+  PetscInt idx[nlmax];
+  for (PetscInt i=0; i<nlmax; i++) {
+    idx[i] = i + ugrid->global_offset;
+  }
+
+  IS is_tmp;
+  ierr = ISCreateGeneral(PETSC_COMM_WORLD, nlmax, idx, PETSC_COPY_VALUES, &is_tmp); CHKERRQ(ierr);
+
+  ierr = AOPetscToApplicationIS(ugrid->ao_natural_to_petsc, is_tmp); CHKERRQ(ierr);
+
+  const PetscInt *int_ptr;
+  ierr = ISGetIndices(is_tmp, &int_ptr); CHKERRQ(ierr);
+  for (PetscInt i=0; i<nlmax; i++) {
+    idx[i] = int_ptr[i];
+  }
+  ierr = ISRestoreIndices(is_tmp, &int_ptr); CHKERRQ(ierr);
+  ierr = ISDestroy(&is_tmp); CHKERRQ(ierr);
+
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nlmax, idx, PETSC_COPY_VALUES, &ugdm->IS_LocalCells_to_NaturalCells); CHKERRQ(ierr);
+  ierr = TDySavePetscISAsASCII(ugdm->IS_LocalCells_to_NaturalCells,"is_local_natural_1.out");
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *ugdm){
 
   PetscFunctionBegin;
@@ -136,6 +167,9 @@ PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *u
 
   // Create three PETSc-ordered ISs
   ierr = CreatePetscOrderIS(ndof, ugrid, ugdm); CHKERRQ(ierr);
+
+  // Create natural-order IS
+  ierr = CreateNaturalOrderIS(ndof, ugrid, ugdm);
 
   PetscFunctionReturn(0);
 }
