@@ -840,7 +840,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   PetscScalar *u,pdirichlet,wgt;
   Vec localU;
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U,localU); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(&tdy->tdydm,U,localU); CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
   ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
   nq   = wy->ncv;
@@ -1151,7 +1151,7 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   nv   = wy->nfv;
   wgt  = 1/((PetscReal)nv);
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(&tdy->tdydm,U,Ul); CHKERRQ(ierr);
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);

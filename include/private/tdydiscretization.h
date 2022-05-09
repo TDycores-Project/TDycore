@@ -5,13 +5,13 @@
 #include <private/tdydmimpl.h>
 
 PETSC_INTERN PetscErrorCode TDyCreateGlobalVector(TDyDM*,Vec*);
-PETSC_INTERN PetscErrorCode TDyCreateLocalVector(TDy,Vec*);
-PETSC_INTERN PetscErrorCode TDyCreateNaturalVector(TDy,Vec*);
-PETSC_INTERN PetscErrorCode TDyCreateJacobianMatrix(TDy,Mat*);
-PETSC_INTERN PetscErrorCode TDyGlobalToNatural(TDy,Vec,Vec);
-PETSC_INTERN PetscErrorCode TDyGlobalToLocal(TDy,Vec,Vec);
-PETSC_INTERN PetscErrorCode TDyNaturalToGlobal(TDy,Vec,Vec);
-PETSC_INTERN PetscErrorCode TDyNaturaltoLocal(TDy,Vec,Vec*);
+PETSC_INTERN PetscErrorCode TDyCreateLocalVector(TDyDM*,Vec*);
+PETSC_INTERN PetscErrorCode TDyCreateNaturalVector(TDyDM*,Vec*);
+PETSC_INTERN PetscErrorCode TDyCreateJacobianMatrix(TDyDM*,Mat*);
+PETSC_INTERN PetscErrorCode TDyGlobalToNatural(TDyDM*,Vec,Vec);
+PETSC_INTERN PetscErrorCode TDyGlobalToLocal(TDyDM*,Vec,Vec);
+PETSC_INTERN PetscErrorCode TDyNaturalToGlobal(TDyDM*,Vec,Vec);
+PETSC_INTERN PetscErrorCode TDyNaturaltoLocal(TDyDM*,Vec,Vec*);
 
 #endif
 

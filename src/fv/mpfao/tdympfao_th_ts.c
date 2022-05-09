@@ -173,7 +173,7 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
 
-  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(&tdy->tdydm,U,tdy->soln_loc); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
@@ -852,7 +852,7 @@ PetscErrorCode TDyMPFAOIJacobian_TH(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal sh
 
   ierr = DMGetLocalVector(dm,&Udotl); CHKERRQ(ierr);
 
-  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(&tdy->tdydm,U,tdy->soln_loc); CHKERRQ(ierr);
   ierr = DMGlobalToLocal(dm,U_t,INSERT_VALUES,Udotl); CHKERRQ(ierr);
 
   ierr = TDyMPFAOIJacobian_Vertices_TH(tdy->soln_loc,B,ctx);

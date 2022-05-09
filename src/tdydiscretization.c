@@ -28,10 +28,10 @@ PetscErrorCode TDyCreateGlobalVector(TDyDM *tdydm, Vec *vector){
 /// @param [in] tdy     A TDy struct
 /// @param [out] vector A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyCreateLocalVector(TDy tdy, Vec *vector){
+PetscErrorCode TDyCreateLocalVector(TDyDM *tdydm, Vec *vector){
 
   PetscFunctionBegin;
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = tdydm->dm;
   PetscErrorCode ierr;
 
   ierr = DMCreateLocalVector(dm, vector); CHKERRQ(ierr);
@@ -46,12 +46,12 @@ PetscErrorCode TDyCreateLocalVector(TDy tdy, Vec *vector){
 /// @param [in] tdy     A TDy struct
 /// @param [out] vector A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyCreateNaturalVector(TDy tdy, Vec *vector){
+PetscErrorCode TDyCreateNaturalVector(TDyDM *tdydm, Vec *vector){
 
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  ierr = TDyCreateGlobalVector(&tdy->tdydm, vector); CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(tdydm, vector); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -62,10 +62,10 @@ PetscErrorCode TDyCreateNaturalVector(TDy tdy, Vec *vector){
 /// @param [in] tdy     A TDy struct
 /// @param [out] matrix A PETSc matrix
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyCreateJacobianMatrix(TDy tdy, Mat *matrix){
+PetscErrorCode TDyCreateJacobianMatrix(TDyDM *tdydm, Mat *matrix){
 
   PetscFunctionBegin;
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = tdydm->dm;
   PetscErrorCode ierr;
 
   ierr = DMCreateMatrix(dm, matrix); CHKERRQ(ierr);
@@ -80,14 +80,14 @@ PetscErrorCode TDyCreateJacobianMatrix(TDy tdy, Mat *matrix){
 /* -------------------------------------------------------------------------- */
 /// Performs scatter of a global vector to a natural vector
 ///
-/// @param [in] tdy      A TDy struct
+/// @param [in] tdydm    A TDyDM struct
 /// @param [in] global   A PETSc vector
 /// @param [out] natural A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyGlobalToNatural(TDy tdy, Vec global, Vec natural){
+PetscErrorCode TDyGlobalToNatural(TDyDM *tdydm, Vec global, Vec natural){
 
   PetscFunctionBegin;
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = tdydm->dm;
   PetscBool useNatural;
   PetscErrorCode ierr;
 
@@ -106,14 +106,14 @@ PetscErrorCode TDyGlobalToNatural(TDy tdy, Vec global, Vec natural){
 /* -------------------------------------------------------------------------- */
 /// Performs scatter of a global vector to a local vector
 ///
-/// @param [in] tdy    A TDy struct
+/// @param [in] tdydm  A TDyDM struct
 /// @param [in] global A PETSc vector
 /// @param [out] local A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyGlobalToLocal(TDy tdy, Vec global, Vec local){
+PetscErrorCode TDyGlobalToLocal(TDyDM *tdydm, Vec global, Vec local){
 
   PetscFunctionBegin;
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = tdydm->dm;
   PetscErrorCode ierr;
 
   ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, local);CHKERRQ(ierr);
@@ -128,10 +128,10 @@ PetscErrorCode TDyGlobalToLocal(TDy tdy, Vec global, Vec local){
 /// @param [in] global A PETSc vector
 /// @param [out] local A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyNaturalToGlobal(TDy tdy, Vec natural, Vec global){
+PetscErrorCode TDyNaturalToGlobal(TDyDM *tdydm, Vec natural, Vec global){
 
   PetscFunctionBegin;
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = tdydm->dm;
   PetscBool useNatural;
   PetscErrorCode ierr;
 
@@ -154,17 +154,17 @@ PetscErrorCode TDyNaturalToGlobal(TDy tdy, Vec natural, Vec global){
 /// @param [in] natural A PETSc vector
 /// @param [out] local   A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyNaturaltoLocal(TDy tdy,Vec natural, Vec *local) {
+PetscErrorCode TDyNaturaltoLocal(TDyDM *tdydm,Vec natural, Vec *local) {
 
   PetscFunctionBegin;
 
   PetscErrorCode ierr;
   Vec global;
   
-  ierr = TDyCreateGlobalVector(&tdy->tdydm, &global);CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(tdydm, &global);CHKERRQ(ierr);
 
-  ierr = TDyNaturalToGlobal(tdy, natural, global);CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdy, global, *local); CHKERRQ(ierr);
+  ierr = TDyNaturalToGlobal(tdydm, natural, global);CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdydm, global, *local); CHKERRQ(ierr);
 
   ierr = VecDestroy(&global); CHKERRQ(ierr);
 
