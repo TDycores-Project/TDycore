@@ -747,6 +747,24 @@ static PetscErrorCode SetFields(DM dm, PetscInt num_fields,
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyGetNumDMFields_Richards_MPFAO(void *context) {
+  PetscFunctionBegin;
+  PetscInt ndof = 1; // LiquidPressure
+  PetscFunctionReturn(ndof);
+}
+
+PetscErrorCode TDyGetNumDMFields_Richards_MPFAO_DAE(void *context) {
+  PetscFunctionBegin;
+  PetscInt ndof = 2; // LiquidPressure, LiquidMass
+  PetscFunctionReturn(ndof);
+}
+
+PetscErrorCode TDyGetNumDMFields_TH_MPFAO(void *context) {
+  PetscFunctionBegin;
+  PetscInt ndof = 2; // LiquidPressure, LiquidTemperature
+  PetscFunctionReturn(ndof);
+}
+
 PetscErrorCode TDySetDMFields_Richards_MPFAO(void *context, DM dm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;

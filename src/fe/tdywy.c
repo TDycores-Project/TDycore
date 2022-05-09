@@ -268,6 +268,12 @@ PetscErrorCode TDyDestroy_WY(void *context) {
   PetscFunctionReturn(0);
 }
 
+PetscInt TDyGetNumDMFields_WY(void *context) {
+  PetscFunctionBegin;
+  PetscInt ndof = 1; // Liquid pressure
+  PetscFunctionReturn(ndof);
+}
+
 PetscErrorCode TDySetFromOptions_WY(void *context, TDyOptions *options) {
   PetscErrorCode ierr;
   PetscFunctionBegin;

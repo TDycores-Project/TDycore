@@ -69,6 +69,12 @@ PetscErrorCode TDySetFromOptions_BDM(void *context, TDyOptions *options) {
   PetscFunctionReturn(0);
 }
 
+PetscInt TDyGetNumDMFields_BDM(void *context) {
+  PetscFunctionBegin;
+  PetscInt ndof = 1; // Liquid pressure
+  PetscFunctionReturn(ndof);
+}
+
 PetscErrorCode TDySetDMFields_BDM(void *context, DM dm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;

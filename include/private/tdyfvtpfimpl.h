@@ -82,6 +82,7 @@ typedef struct TDyFVTPF {
 PETSC_INTERN PetscErrorCode TDyCreate_FVTPF(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_FVTPF(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_FVTPF(void*, TDyOptions*);
+PETSC_INTERN PetscErrorCode TDyGetNumDMFields_Richards_FVTPF(void*);
 PETSC_INTERN PetscErrorCode TDySetDMFields_Richards_FVTPF(void*, DM);
 PETSC_INTERN PetscErrorCode TDySetup_Richards_FVTPF(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_FVTPF(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscInt, PetscReal*);

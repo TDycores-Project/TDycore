@@ -136,6 +136,12 @@ static PetscErrorCode SetFields(DM dm, PetscInt num_fields,
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyGetNumDMFields_Richards_FVTPF(void *context) {
+  PetscFunctionBegin;
+  PetscInt ndof = 1; // LiquidPressure
+  PetscFunctionReturn(ndof);
+}
+
 PetscErrorCode TDySetDMFields_Richards_FVTPF(void *context, DM dm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;

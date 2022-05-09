@@ -92,6 +92,8 @@ typedef struct TDyMPFAO {
 PETSC_INTERN PetscErrorCode TDyCreate_MPFAO(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_MPFAO(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_MPFAO(void*, TDyOptions*);
+PETSC_INTERN PetscErrorCode TDyGetNumDMFields_Richards_MPFAO(void*);
+PETSC_INTERN PetscErrorCode TDyGetNumDMFields_Richards_MPFAO_DAE(void*);
 PETSC_INTERN PetscErrorCode TDySetDMFields_Richards_MPFAO(void*, DM);
 PETSC_INTERN PetscErrorCode TDySetDMFields_Richards_MPFAO_DAE(void*, DM);
 PETSC_INTERN PetscErrorCode TDySetDMFields_TH_MPFAO(void*, DM);

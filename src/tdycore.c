@@ -803,6 +803,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
       tdy->ops->set_dm_fields = TDySetDMFields_Richards_MPFAO;
+      tdy->ops->get_num_dm_fields = TDyGetNumDMFields_Richards_MPFAO;
       tdy->ops->setup = TDySetup_Richards_MPFAO;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
@@ -812,6 +813,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
       tdy->ops->set_dm_fields = TDySetDMFields_Richards_MPFAO_DAE;
+      tdy->ops->get_num_dm_fields = TDyGetNumDMFields_Richards_MPFAO_DAE;
       tdy->ops->setup = TDySetup_Richards_MPFAO_DAE;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
@@ -821,6 +823,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->destroy = TDyDestroy_MPFAO;
       tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
       tdy->ops->set_dm_fields = TDySetDMFields_Richards_MPFAO;
+      tdy->ops->get_num_dm_fields = TDyGetNumDMFields_Richards_MPFAO;
       tdy->ops->setup = TDySetup_Richards_MPFAO;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
@@ -831,6 +834,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->set_from_options = TDySetFromOptions_BDM;
       tdy->ops->setup = TDySetup_BDM;
       tdy->ops->set_dm_fields = TDySetDMFields_BDM;
+      tdy->ops->get_num_dm_fields = TDyGetNumDMFields_BDM;
       tdy->ops->update_state = NULL; // FIXME: ???
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_BDM;
       tdy->ops->update_diagnostics = NULL; // FIXME
@@ -838,6 +842,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->create = TDyCreate_WY;
       tdy->ops->destroy = TDyDestroy_WY;
       tdy->ops->set_from_options = TDySetFromOptions_WY;
+      tdy->ops->get_num_dm_fields = TDyGetNumDMFields_BDM;
       tdy->ops->set_dm_fields = TDySetDMFields_WY;
       tdy->ops->setup = TDySetup_WY;
       tdy->ops->update_state = TDyUpdateState_WY;
@@ -848,6 +853,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->destroy = TDyDestroy_FVTPF;
       tdy->ops->set_from_options = TDySetFromOptions_FVTPF;
       tdy->ops->set_dm_fields = TDySetDMFields_Richards_FVTPF;
+      tdy->ops->get_num_dm_fields = TDyGetNumDMFields_Richards_FVTPF;
       tdy->ops->setup = TDySetup_Richards_FVTPF;
       tdy->ops->update_state = TDyUpdateState_Richards_FVTPF;
       tdy->ops->compute_error_norms = TDyComputeErrorNorms_FVTPF;
