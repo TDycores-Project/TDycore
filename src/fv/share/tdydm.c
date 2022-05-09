@@ -22,6 +22,21 @@ PetscErrorCode TDyDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyDM *tdydm
 
   ierr = TDyUGDMCreateFromUGrid(ndof, ugrid, &tdydm->ugdm); CHKERRQ(ierr);
 
+  ierr = DMShellCreate(PETSC_COMM_WORLD, &tdydm->dm); CHKERRQ(ierr);
+  ierr = DMShellSetGlobalToLocalVecScatter(tdydm->dm, (&tdydm->ugdm)->Scatter_GlobalCells_to_LocalCells); CHKERRQ(ierr);
+  ierr = DMShellSetLocalToGlobalVecScatter(tdydm->dm, (&tdydm->ugdm)->Scatter_LocalCells_to_GlobalCells); CHKERRQ(ierr);
+  ierr = DMShellSetLocalToLocalVecScatter(tdydm->dm, (&tdydm->ugdm)->Scatter_LocalCells_to_LocalCells); CHKERRQ(ierr);
+
+  Vec global_vec, local_vec;
+  ierr = TDyUGDMCreateGlobalVec(ndof, ugrid->num_cells_local, &tdydm->ugdm, &global_vec); CHKERRQ(ierr);
+  ierr = TDyUGDMCreateLocalVec(ndof, ugrid->num_cells_global, &tdydm->ugdm, &local_vec); CHKERRQ(ierr);
+
+  ierr = DMShellSetGlobalVector(tdydm->dm, global_vec); CHKERRQ(ierr);
+  ierr = DMShellSetLocalVector(tdydm->dm, local_vec); CHKERRQ(ierr);
+
+  ierr = VecDestroy(&global_vec); CHKERRQ(ierr);
+  ierr = VecDestroy(&local_vec); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 

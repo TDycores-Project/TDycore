@@ -234,3 +234,32 @@ PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *u
 
   PetscFunctionReturn(0);
 }
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDyUGDMCreateGlobalVec(PetscInt ndof, PetscInt nlmax, TDyUGDM *ugdm, Vec *global) {
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  ierr = VecCreate(PETSC_COMM_WORLD, global); CHKERRQ(ierr);
+  ierr = VecSetSizes(*global, nlmax*ndof, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetLocalToGlobalMapping(*global, ugdm->Mapping_LocalCells_to_GhostedCells); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(*global, ndof); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(*global); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDyUGDMCreateLocalVec(PetscInt ndof, PetscInt ngmax, TDyUGDM *ugdm, Vec *local) {
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  ierr = VecCreate(PETSC_COMM_WORLD, local); CHKERRQ(ierr);
+  ierr = VecSetSizes(*local, ngmax*ndof, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(*local, ndof); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(*local); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
