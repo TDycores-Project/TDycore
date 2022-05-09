@@ -599,6 +599,24 @@ PetscErrorCode TDySavePetscISAsASCII(IS is, const char filename[]) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDySavePetscVecScatterAsASCII(VecScatter scatter, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  PetscObjectGetComm((PetscObject)scatter,&comm);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
+  ierr = VecScatterView(scatter, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode ExtractSubVectors(Vec A, PetscInt stride, Vec *Asub) {
 
   PetscInt local_size, block_size;
