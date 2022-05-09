@@ -20,6 +20,8 @@ PetscErrorCode TDyDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyDM *tdydm
 
   PetscErrorCode ierr;
 
+  tdydm->dmtype = TDYCORE_DM_TYPE;
+
   ierr = TDyUGDMCreateFromUGrid(ndof, ugrid, &tdydm->ugdm); CHKERRQ(ierr);
 
   ierr = DMShellCreate(PETSC_COMM_WORLD, &tdydm->dm); CHKERRQ(ierr);
