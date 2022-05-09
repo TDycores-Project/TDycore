@@ -55,6 +55,6 @@ typedef struct {
 } TDyUGDM;
 
 PETSC_INTERN PetscErrorCode TDyUGDMCreate(TDyUGDM*);
-PETSC_INTERN PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM*,const char*);
+PETSC_INTERN PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGrid*,TDyUGDM*,const char*);
 
 #endif

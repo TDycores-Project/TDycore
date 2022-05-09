@@ -18,6 +18,6 @@ typedef struct {
 } TDyDM;
 
 PETSC_INTERN PetscErrorCode TDyDMCreate(TDyDM*);
-PETSC_INTERN PetscErrorCode TDyDMCreateFromPFLOTRANMesh(TDyDM*,const char*);
+PETSC_INTERN PetscErrorCode TDyDMCreateFromPFLOTRANMesh(TDyUGrid*,TDyDM*,const char*);
 
 #endif

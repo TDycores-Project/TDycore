@@ -1017,19 +1017,18 @@ static PetscErrorCode ScatterVertexNatOrderToLocalOrder(TDyUGrid *ugrid, PetscIn
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_file) {
+PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGrid *ugrid, TDyUGDM *ugdm, const char *mesh_file) {
 
   PetscErrorCode ierr;
-  TDyUGrid ugrid;
 
-  ierr = ReadPFLOTRANMeshFile(mesh_file, &ugrid); CHKERRQ(ierr);
-  //ierr = UGridPrintCells(&ugrid); CHKERRQ(ierr);
-  //ierr = UGridPrintVertices(&ugrid); CHKERRQ(ierr);
+  ierr = ReadPFLOTRANMeshFile(mesh_file, ugrid); CHKERRQ(ierr);
+  //ierr = UGridPrintCells(ugrid); CHKERRQ(ierr);
+  //ierr = UGridPrintVertices(ugrid); CHKERRQ(ierr);
 
-  ierr = DetermineMaxNumVerticesActivePerCell(&ugrid); CHKERRQ(ierr);
+  ierr = DetermineMaxNumVerticesActivePerCell(ugrid); CHKERRQ(ierr);
 
   Mat AdjMat;
-  ierr = CreateAdjacencyMatrix(&ugrid, &AdjMat); CHKERRQ(ierr);
+  ierr = CreateAdjacencyMatrix(ugrid, &AdjMat); CHKERRQ(ierr);
 
   // Create a dual matrix that represents the connectivity between cells.
   // The dual matrix will be partitioning the mesh
@@ -1042,29 +1041,29 @@ PetscErrorCode TDyUGDMCreateFromPFLOTRANMesh(TDyUGDM *ugdm, const char *mesh_fil
   PetscInt NewNumCellsLocal;
   ierr = PartitionGrid(DualMat, &NewCellRankIS, &NewNumCellsLocal); CHKERRQ(ierr);
 
-  ierr = DetermineMaxNumDualCells(&ugrid, DualMat); CHKERRQ(ierr);
+  ierr = DetermineMaxNumDualCells(ugrid, DualMat); CHKERRQ(ierr);
 
   PetscInt vertex_ids_offset = 1 + 1; // +1 for -777
-  PetscInt dual_offset = vertex_ids_offset + ugrid.max_verts_per_cell + 1; // +1 for -888
-  PetscInt stride = dual_offset + ugrid.max_ndual_per_cell + 1; // +1 for -999999
+  PetscInt dual_offset = vertex_ids_offset + ugrid->max_verts_per_cell + 1; // +1 for -888
+  PetscInt stride = dual_offset + ugrid->max_ndual_per_cell + 1; // +1 for -999999
 
   IS NatToPetscIS;
   Vec NatOrderVec;
-  ierr = CreateISNatOrderToPetscOrder(&ugrid, NewCellRankIS, stride, &NatToPetscIS); CHKERRQ(ierr);
-  ierr = CreateVectorNatOrder(&ugrid, NewCellRankIS, stride, &NatOrderVec); CHKERRQ(ierr);
+  ierr = CreateISNatOrderToPetscOrder(ugrid, NewCellRankIS, stride, &NatToPetscIS); CHKERRQ(ierr);
+  ierr = CreateVectorNatOrder(ugrid, NewCellRankIS, stride, &NatOrderVec); CHKERRQ(ierr);
 
-  ierr = PackNatOrderVector(&ugrid, DualMat, &NatOrderVec);
+  ierr = PackNatOrderVector(ugrid, DualMat, &NatOrderVec);
   ierr = MatDestroy(&DualMat); CHKERRQ(ierr);
 
   Vec PetscOrderVec;
-  ierr = ScatterVecNatOrderToPetscOrder(&ugrid, stride, dual_offset, NewNumCellsLocal, &NatOrderVec, &NatToPetscIS, &PetscOrderVec);
+  ierr = ScatterVecNatOrderToPetscOrder(ugrid, stride, dual_offset, NewNumCellsLocal, &NatOrderVec, &NatToPetscIS, &PetscOrderVec);
   ierr = ISDestroy(&NatToPetscIS); CHKERRQ(ierr);
 
    Vec LocalOrderVec;
-   ierr = ScatterVecPetscOrderToLocalOrder(&ugrid, stride, &PetscOrderVec, &LocalOrderVec);
+   ierr = ScatterVecPetscOrderToLocalOrder(ugrid, stride, &PetscOrderVec, &LocalOrderVec);
    ierr = VecDestroy(&PetscOrderVec); CHKERRQ(ierr);
 
-   ierr = ScatterVertexNatOrderToLocalOrder(&ugrid, stride, vertex_ids_offset, &LocalOrderVec);
+   ierr = ScatterVertexNatOrderToLocalOrder(ugrid, stride, vertex_ids_offset, &LocalOrderVec);
    ierr = VecDestroy(&LocalOrderVec); CHKERRQ(ierr);
 
   //ierr = MatDestroy(&AdjMat); CHKERRQ(ierr);

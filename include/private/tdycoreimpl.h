@@ -93,6 +93,10 @@ struct _p_TDy {
   // configured
   TDyDM tdydm;
 
+  // An alternate to DMPlex for managing unstructured grid.
+  // This is only support two-point FV method.
+  TDyUGrid ugrid;
+
   // Contextual information passed to create_dm (if given).
   void* create_dm_context;
 
