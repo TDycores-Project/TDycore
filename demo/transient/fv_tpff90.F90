@@ -77,7 +77,45 @@ contains
     end do
   end subroutine is_coordinate_top
 
-  subroutine PressureFunction(n, x, pressure, ierr)
+  subroutine PorosityFunctionPFLOTRAN(n,x,theta,ierr)
+   implicit none
+   PetscInt,                intent(in)  :: n
+   PetscReal, dimension(:), intent(in)  :: x
+   PetscReal, dimension(:), intent(out) :: theta
+   PetscErrorCode,          intent(out) :: ierr
+
+   theta(:) = 0.25d0
+   ierr  = 0
+ end subroutine PorosityFunctionPFLOTRAN
+
+ subroutine Permeability_PFLOTRAN(K)
+   implicit none
+   PetscReal, intent(out) :: K(9)
+   K(1) = 1.0d-12; K(2) = 0.0    ; K(3) = 0.0
+   K(4) = 0.0    ; K(5) = 1.0d-12; K(6) = 0.0
+   K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 1.0d-13
+ end subroutine Permeability_PFLOTRAN
+
+ subroutine PermeabilityFunctionPFLOTRAN(n,x,K,ierr)
+   implicit none
+   PetscInt,                intent(in)  :: n
+   PetscReal, dimension(:), intent(in)  :: x
+   PetscReal, dimension(:), intent(out) :: K
+   PetscErrorCode         :: ierr
+   PetscReal :: K0(9)
+
+   call Permeability_PFLOTRAN(K0)
+   K(:) = K0
+   ierr = 0
+ end subroutine PermeabilityFunctionPFLOTRAN
+
+ subroutine ResidualSaturation_PFLOTRAN(resSat)
+   implicit none
+   PetscReal resSat
+   resSat = 0.115d0
+ end subroutine ResidualSaturation_PFLOTRAN
+
+ subroutine PressureFunction(n, x, pressure, ierr)
 
     implicit none
 
@@ -205,7 +243,7 @@ program main
 
   TDy                 :: tdy
   DM                  :: dm
-  Vec                 :: U
+  Vec                 :: U, U_natural
   SNES                :: snes
   PetscFE             :: fe
   PetscViewer         :: viewer
@@ -225,9 +263,16 @@ program main
   PetscBool           :: use_seepage_bc
 
   PetscInt, parameter :: successful_exit_code = 0
-  PetscInt, parameter :: unsuccessful_exit_code = 0
+  PetscInt, parameter :: unsuccessful_exit_code = -1
+  PetscBool           :: pflotran_consistent, use_tdydriver
+  PetscInt            :: bc_type
 
   max_steps = 1;
+  dtime = 3600.d0
+  ic_value = 102325.d0
+  pflotran_consistent = PETSC_FALSE
+  bc_type = NEUMANN_BC
+  use_tdydriver = PETSC_FALSE
 
   call TDyInit(ierr); CHKERRA(ierr);
   call TDyCreate(tdy, ierr); CHKERRA(ierr);
@@ -240,6 +285,10 @@ program main
   call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-ic_filename", ic_filename, ic_file_flg,ierr); CHKERRA(ierr);
   call PetscOptionsGetInt(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-max_steps',max_steps,flg,ierr); CHKERRA(ierr);
   call PetscOptionsGetBool(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-use_seepage_bc",use_seepage_bc,flg,ierr); CHKERRA(ierr);
+  call PetscOptionsGetString(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-mesh_filename", mesh_filename, mesh_file_flg,ierr); CHKERRA(ierr)
+  call PetscOptionsGetBool(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-pflotran_consistent",pflotran_consistent,flg,ierr); CHKERRA(ierr)
+  call PetscOptionsGetBool(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,"-use_tdydriver",use_tdydriver,flg,ierr); CHKERRA(ierr)
+  call PetscOptionsGetReal(PETSC_NULL_OPTIONS,PETSC_NULL_CHARACTER,'-dtime',dtime,flg,ierr); CHKERRA(ierr)
 
   ! Set a constructor for a DM.
   call TDySetDMConstructor(tdy, CreateDM,ierr); CHKERRA(ierr)
@@ -256,8 +305,13 @@ program main
   call PetscFEDestroy(fe, ierr); CHKERRA(ierr)
   call DMSetUseNatural(dm, PETSC_TRUE, ierr); CHKERRA(ierr)
 
-  call Permeability(perm)
-  call ResidualSaturation(resSat)
+  if (pflotran_consistent) then
+     call Permeability_PFLOTRAN(perm)
+     call ResidualSaturation_PFLOTRAN(resSat) 
+  else
+     call Permeability(perm)
+     call ResidualSaturation(resSat)
+  endif
   call TDySetConstantTensorPermeability(tdy, perm, ierr); CHKERRA(ierr)
   call TDySetConstantResidualSaturation(tdy, resSat, ierr); CHKERRA(ierr)
 
@@ -271,13 +325,18 @@ program main
   end if
 
   call TDyMPFAOSetGMatrixMethod(tdy, MPFAO_GMATRIX_TPF, ierr);
-  call TDySetup(tdy,ierr); CHKERRA(ierr)
+  if (use_tdydriver) then
+     call TDyDriverInitializeTDy(tdy, ierr); CHKERRA(ierr);
+  else
+     call TDySetup(tdy,ierr); CHKERRA(ierr)
+  end if
 
   call TDyCreateVectors(tdy, ierr); CHKERRA(ierr)
   call TDyCreateJacobian(tdy, ierr); CHKERRA(ierr)
 
   ! Set initial condition
   call DMCreateGlobalVector(dm, U, ierr); CHKERRA(ierr);
+  call DMCreateGlobalVector(dm, U_natural, ierr); CHKERRA(ierr);
 
   ! initial pressure
   if (ic_file_flg) then
@@ -297,20 +356,34 @@ program main
   call TDySetSNESJacobian(snes, tdy, ierr); CHKERRA(ierr);
   call SNESSetFromOptions(snes, ierr); CHKERRA(ierr);
 
-  dtime = 3600.d0
   call TDySetDtimeForSNESSolver(tdy, dtime, ierr); CHKERRA(ierr);
 
   do step = 1, max_steps
-     call TDyPreSolveSNESSolver(tdy,ierr); CHKERRA(ierr);
 
-     call SNESSolve(snes, PETSC_NULL_VEC, U, ierr); CHKERRA(ierr)
-     call SNESGetConvergedReason(snes,reason,ierr); CHKERRA(ierr)
-     if (reason<0) then
-        call PetscError(PETSC_COMM_WORLD, 0, PETSC_ERR_USER, "SNES did not converge")
+     if (use_tdydriver) then
+        call TDyTimeIntegratorSetTimeStep(tdy,dtime, ierr)
+        CHKERRA(ierr)
+
+        call TDyTimeIntegratorRunToTime(tdy,dtime * step, ierr)
+        CHKERRA(ierr)
+
+        call TDyGetLiquidPressure(tdy, U, ierr); CHKERRA(ierr)
+        call VecCopy(U, U_natural, ierr); CHKERRA(ierr)
+
+     else
+        call TDyPreSolveSNESSolver(tdy,ierr); CHKERRA(ierr);
+        call SNESSolve(snes, PETSC_NULL_VEC, U, ierr); CHKERRA(ierr)
+        call SNESGetConvergedReason(snes,reason,ierr); CHKERRA(ierr)
+        if (reason<0) then
+           call PetscError(PETSC_COMM_WORLD, 0, PETSC_ERR_USER, "SNES did not converge")
+        endif
+        call TDyPostSolve(tdy,U,ierr);CHKERRA(ierr);
+
+        call DMPlexGlobalToNaturalBegin(dm, U, U_natural, ierr); CHKERRA(ierr)
+        call DMPlexGlobalToNaturalEnd(dm, U, U_natural, ierr); CHKERRA(ierr)
+
      endif
 
-     call TDyPostSolve(tdy,U,ierr);
-     CHKERRA(ierr);
 
      step_mod = mod(step,1)
      if (step_mod == 0) then
@@ -324,7 +397,7 @@ program main
      endif
   end do
 
-  call TDyOutputRegression(tdy,U,ierr)
+  call TDyOutputRegression(tdy,U_natural,ierr)
   CHKERRA(ierr)
 
   call TDyFinalize(ierr); CHKERRA(ierr);

@@ -1484,9 +1484,31 @@ PetscErrorCode TDyCreateDiagnosticVector(TDy tdy, Vec *diag_vec) {
   }
 
   // Create a cell-centered scalar field vector.
-  PetscInt c_start, c_end;
-  ierr = DMPlexGetHeightStratum(tdy->diag_dm, 0, &c_start, &c_end); CHKERRQ(ierr);
-  ierr = VecCreateMPI(comm, c_end - c_start, PETSC_DECIDE, diag_vec); CHKERRQ(ierr);
+  PetscInt vecsize, blocksize;
+  ierr = VecGetLocalSize(tdy->diag_vec, &vecsize); CHKERRQ(ierr);
+  ierr = VecGetBlockSize(tdy->diag_vec, &blocksize); CHKERRQ(ierr);
+  ierr = VecCreateMPI(comm, (PetscInt)(vecsize/blocksize), PETSC_DECIDE, diag_vec); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/// Creates a Vec that can store a cell-centered scalar prognostic field such as
+/// the saturation or liquid mass.
+/// @param [in] tdy A TDy object
+/// @param [out] prog_vec A Vec that can store a prognostic field.
+PetscErrorCode TDyCreatePrognosticVector(TDy tdy, Vec *prog_vec) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  if ((tdy->setup_flags & TDySetupFinished) == 0) {
+    SETERRQ(comm,PETSC_ERR_USER,"You must call TDyCreatePrognosticVector after TDySetup()");
+  }
+
+  // Create a cell-centered scalar field vector.
+  ierr = DMCreateGlobalVector(tdy->dm, prog_vec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1514,11 +1536,18 @@ static PetscErrorCode ExtractDiagnosticField(TDy tdy, PetscInt index, Vec vec) {
 /// Given a Vec created with TDyCreateDiagnosticVector, populates that vector
 /// with the saturation values for each cell in the grid.
 /// @param [in] tdy A TDy object
-/// @param [out] sat_vec The Vec that stores the cell-centered saturation field
+/// @param [out] sat_vec The Vec that stores the cell-centered saturation field.
+///                      The values in the Vec are in natural-order.
 PetscErrorCode TDyGetLiquidSaturation(TDy tdy, Vec sat_vec) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_SATURATION, sat_vec);
+
+  Vec tmp_vec;
+  ierr = TDyCreateDiagnosticVector(tdy, &tmp_vec); CHKERRQ(ierr);
+  ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_SATURATION, tmp_vec); CHKERRQ(ierr);
+  ierr = TDyGlobalToNatural(tdy, tmp_vec, sat_vec);CHKERRQ(ierr); CHKERRQ(ierr);
+  ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
+
   CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -1526,11 +1555,55 @@ PetscErrorCode TDyGetLiquidSaturation(TDy tdy, Vec sat_vec) {
 /// Given a Vec created with TDyCreateDiagnosticVector, populates that vector
 /// with the liquid mass values for each cell in the grid.
 /// @param [in] tdy A TDy object
-/// @param [out] mass_vec The Vec that stores the cell-centered liquid mass field
+/// @param [out] mass_vec The Vec that stores the cell-centered liquid mass field.
+///                       The values in the Vec are in natural-order.
 PetscErrorCode TDyGetLiquidMass(TDy tdy, Vec mass_vec) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_MASS, mass_vec); CHKERRQ(ierr);
+
+  Vec tmp_vec;
+  ierr = TDyCreateDiagnosticVector(tdy, &tmp_vec); CHKERRQ(ierr);
+  ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_MASS, tmp_vec); CHKERRQ(ierr);
+  ierr = TDyGlobalToNatural(tdy, tmp_vec, mass_vec);CHKERRQ(ierr); CHKERRQ(ierr);
+  ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+static PetscErrorCode ExtractPrognosticField(TDy tdy, PetscInt index, Vec vec) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  if ((tdy->setup_flags & TDySetupFinished) == 0) {
+    SETERRQ(comm,PETSC_ERR_USER,"Prognostic fields cannot be extracted before TDySetup()");
+  }
+
+  // Extract the field.
+  ierr = VecStrideGather(tdy->soln_prev, index, vec, INSERT_VALUES);
+  CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/// Given a Vec created with TDyCreatePrognosticVector, populates that vector
+/// with the saturation values for each cell in the grid.
+/// @param [in] tdy A TDy object
+/// @param [out] liq_pres_vec The Vec that stores the cell-centered liquid pressure field.
+///                           The values in the Vec are in natural-order.
+PetscErrorCode TDyGetLiquidPressure(TDy tdy, Vec liq_press_vec) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  Vec tmp_vec;
+  ierr = TDyCreateGlobalVector(tdy, &tmp_vec); CHKERRQ(ierr);
+  ierr = ExtractPrognosticField(tdy, VAR_PRESSURE, tmp_vec); CHKERRQ(ierr);
+  ierr = TDyGlobalToNatural(tdy, tmp_vec, liq_press_vec);CHKERRQ(ierr); CHKERRQ(ierr);
+  ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
+
+  CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

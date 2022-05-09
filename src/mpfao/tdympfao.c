@@ -2597,13 +2597,22 @@ PetscErrorCode TDyUpdateDiagnostics_MPFAO(void *context,
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   TDyMPFAO *mpfao = context;
+  TDyMesh  *mesh = mpfao->mesh;
+  TDyCell  *cells = &mesh->cells;
+
   PetscInt c_start, c_end;
   ierr = DMPlexGetHeightStratum(diags_dm,0,&c_start,&c_end); CHKERRQ(ierr);
   PetscReal *v;
   VecGetArray(diags_vec, &v);
+  PetscInt count = 0;
   for (PetscInt c = c_start; c < c_end; ++c) {
-    v[2*c+DIAG_LIQUID_SATURATION] = mpfao->S[c];
-    v[2*c+DIAG_LIQUID_MASS] = mpfao->rho[c] * mpfao->V[c];
+
+    if (!cells->is_local[c]) continue;
+
+    v[2*count + DIAG_LIQUID_SATURATION] = mpfao->S[c];
+    v[2*count + DIAG_LIQUID_MASS] = mpfao->rho[c] * mpfao->V[c];
+
+    count++;
   }
   VecRestoreArray(diags_vec, &v);
   TDY_STOP_FUNCTION_TIMER()

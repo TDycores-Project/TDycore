@@ -357,7 +357,7 @@ end subroutine
       last_spatial_func_id_ = 1
       id = 1
     else
-      do id = 1, size(spatial_funcs_)
+      do id = 1, last_spatial_func_id_
         if (associated(spatial_funcs_(id)%f, func)) then
           exit
         end if
@@ -397,7 +397,7 @@ end subroutine
       last_spatial_func_id_ = 1
       id = 1
     else
-      do id = 1, size(integer_spatial_funcs_)
+      do id = 1, last_spatial_func_id_
         if (associated(integer_spatial_funcs_(id)%f, func)) then
           exit
         end if

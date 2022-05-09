@@ -41,7 +41,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       SETERRQ(comm,PETSC_ERR_USER,"Driver not supported for specified discretization.");
       break;
     case FV_TPF:
-      SETERRQ(comm,PETSC_ERR_USER,"Driver not supported for FV_TPF.");
       break;
   }
 

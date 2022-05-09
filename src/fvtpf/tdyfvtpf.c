@@ -443,13 +443,23 @@ PetscErrorCode TDyUpdateDiagnostics_FVTPF(void *context,
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   TDyFVTPF *fvtpf = context;
+  TDyMesh  *mesh = fvtpf->mesh;
+  TDyCell  *cells = &mesh->cells;
+
   PetscInt c_start, c_end;
   ierr = DMPlexGetHeightStratum(diags_dm,0,&c_start,&c_end); CHKERRQ(ierr);
   PetscReal *v;
   VecGetArray(diags_vec, &v);
+
+  PetscInt count = 0;
   for (PetscInt c = c_start; c < c_end; ++c) {
-    v[2*c+DIAG_LIQUID_SATURATION] = fvtpf->S[c];
-    v[2*c+DIAG_LIQUID_MASS] = fvtpf->rho[c] * fvtpf->V[c];
+
+    if (!cells->is_local[c]) continue;
+
+    v[2*count + DIAG_LIQUID_SATURATION] = fvtpf->S[c];
+    v[2*count + DIAG_LIQUID_MASS] = fvtpf->rho[c] * fvtpf->V[c];
+
+    count++;
   }
   VecRestoreArray(diags_vec, &v);
   TDY_STOP_FUNCTION_TIMER()

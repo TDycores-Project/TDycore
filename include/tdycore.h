@@ -175,8 +175,10 @@ PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
 // Access to diagnostic variables
 PETSC_EXTERN PetscErrorCode TDyUpdateDiagnostics(TDy);
 PETSC_EXTERN PetscErrorCode TDyCreateDiagnosticVector(TDy,Vec*);
+PETSC_EXTERN PetscErrorCode TDyCreatePrognosticVector(TDy,Vec*);
 PETSC_EXTERN PetscErrorCode TDyGetLiquidSaturation(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyGetLiquidMass(TDy,Vec);
+PETSC_EXTERN PetscErrorCode TDyGetLiquidPressure(TDy,Vec);
 
 // We will remove the following functions in favor of setting function pointers
 // that a given solver uses to extract info from a DM.
