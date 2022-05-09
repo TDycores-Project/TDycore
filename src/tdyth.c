@@ -1,6 +1,6 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdythimpl.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 
 PetscErrorCode TDyTHInitialize(TDy tdy) {
   PetscErrorCode ierr;

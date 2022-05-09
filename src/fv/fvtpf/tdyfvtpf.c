@@ -7,7 +7,7 @@
 #include <private/tdyfvtpfimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdyeosimpl.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 #include <petscblaslapack.h>
 
 PetscErrorCode TDyCreate_FVTPF(void **context) {

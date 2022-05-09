@@ -1,4 +1,18 @@
 #include <private/tdycoreimpl.h>
+#include <private/tdydmimpl.h>
+#include <private/tdydiscretizationimpl.h>
+
+PetscErrorCode TDyDiscretizationCreate(TDyDiscretizationType *discretization) {
+
+  PetscErrorCode ierr;
+
+  discretization = malloc(sizeof(TDyDiscretization));
+
+  ierr = TDyDMCreate (&discretization->tdydm);
+
+  PetscFunctionReturn(0);
+
+}
 
 /* -------------------------------------------------------------------------- */
 /// Creates a PETSc global vector. A  global vector is parallel, and lays out
@@ -51,7 +65,16 @@ PetscErrorCode TDyCreateNaturalVector(TDyDM *tdydm, Vec *vector){
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  ierr = TDyCreateGlobalVector(tdydm, vector); CHKERRQ(ierr);
+  switch (tdydm->dmtype) {
+    case PLEX_TYPE:
+      ierr = TDyCreateGlobalVector(tdydm, vector); CHKERRQ(ierr);
+      break;
+    case TDYCORE_DM_TYPE:
+      //ierr = TDyUGDMCreateNaturalVec(tdydm->ugdm, vector); CHKERRQ(ierr);
+      break;
+    default:
+      break;
+  }
 
   PetscFunctionReturn(0);
 }

@@ -19,7 +19,7 @@ static char help[] = "TDycore \n\
 #include <tdytimers.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdyioimpl.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 #include <petscblaslapack.h>
 
 const char *const TDyDiscretizations[] = {

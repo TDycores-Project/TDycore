@@ -263,3 +263,17 @@ PetscErrorCode TDyUGDMCreateLocalVec(PetscInt ndof, PetscInt ngmax, TDyUGDM *ugd
 
   PetscFunctionReturn(0);
 }
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDyUGDMCreateNaturalVec(PetscInt ndof, PetscInt ngmax, TDyUGDM *ugdm, Vec *natural) {
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  ierr = VecCreate(PETSC_COMM_WORLD, natural); CHKERRQ(ierr);
+  ierr = VecSetSizes(*natural, ngmax*ndof, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(*natural, ndof); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(*natural); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}

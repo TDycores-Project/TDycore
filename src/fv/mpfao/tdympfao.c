@@ -7,7 +7,7 @@
 #include <private/tdympfaoimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdyeosimpl.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 #include <petscblaslapack.h>
 
 static PetscErrorCode ComputeEntryOfGMatrix(PetscReal area, PetscReal n[3],

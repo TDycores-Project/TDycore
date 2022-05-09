@@ -3,7 +3,7 @@
 #include <private/tdyutils.h>
 #include <private/tdywyimpl.h>
 #include <petscblaslapack.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 #include <tdytimers.h>
 
 #define MAX_LOCAL_SIZE 144

@@ -6,7 +6,7 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdycharacteristiccurvesimpl.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 
 PetscErrorCode TDyFVTPFSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accum) {
 

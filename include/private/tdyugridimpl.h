@@ -20,9 +20,11 @@ typedef struct {
 
   PetscInt **cell_vertices;
   PetscInt *cell_num_vertices;
+
   PetscInt *cell_ids_natural;
   PetscInt *cell_ids_petsc;
   PetscInt *ghost_cell_ids_petsc;
+
   PetscInt **cell_neighbors_ghosted;
   PetscInt *cell_num_neighbors_ghosted;
 
@@ -33,6 +35,7 @@ typedef struct {
 
 } TDyUGrid;
 
+PETSC_INTERN PetscErrorCode TDyUGridCreate(TDyUGrid*);
 PETSC_INTERN PetscErrorCode TDyUGridCreateFromPFLOTRANMesh(TDyUGrid*,const char*);
 
 #endif

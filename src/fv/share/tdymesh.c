@@ -5,7 +5,7 @@
 #include <private/tdymemoryimpl.h>
 #include <private/tdyutils.h>
 #include <private/tdyregionimpl.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 
 static PetscErrorCode AllocateCells(
   PetscInt    num_cells,

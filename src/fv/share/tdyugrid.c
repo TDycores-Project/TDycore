@@ -9,6 +9,42 @@ static PetscInt vertex_separator = -777;
 static PetscInt dual_separator = -888;
 static PetscInt cell_separator = -999999;
 
+
+PetscErrorCode TDyUGridCreate(TDyUGrid *ugrid) {
+
+  ugrid = malloc(sizeof(TDyUGrid));
+
+  ugrid->num_cells_global = 0;
+  ugrid->num_cells_local = 0;
+  ugrid->num_cells_ghost = 0;
+
+  ugrid->max_verts_per_cell = 0;
+  ugrid->max_ndual_per_cell = 0;
+
+  ugrid->num_verts_global = 0;
+  ugrid->num_verts_local = 0;
+  ugrid->num_verts_natural = 0;
+
+  ugrid->global_offset = 0;
+
+  ugrid->cell_vertices = NULL;
+  ugrid->cell_num_vertices = NULL;
+
+  ugrid->cell_ids_natural = NULL;
+  ugrid->cell_ids_petsc = NULL;
+  ugrid->ghost_cell_ids_petsc = NULL;
+
+  ugrid->cell_neighbors_ghosted = NULL;
+  ugrid->cell_num_neighbors_ghosted = NULL;
+
+  ugrid->vertices = NULL;
+  ugrid->vertex_ids_natural = NULL;
+
+  ugrid->ao_natural_to_petsc = NULL;
+
+  PetscFunctionReturn(0);
+}
+
 /* ---------------------------------------------------------------- */
 static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugrid){
 

@@ -2,7 +2,7 @@
 #include <private/tdyioimpl.h>
 #include <private/tdyutils.h>
 #include <tdyio.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 #if defined(PETSC_HAVE_EXODUSII)
 #include "exodusII.h"
 #endif

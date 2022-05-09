@@ -1,5 +1,5 @@
 #include <private/tdycoreimpl.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 #include <tdytimers.h>
 
 PetscErrorCode TDyRegressionInitialize(TDy tdy) {
