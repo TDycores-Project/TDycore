@@ -53,6 +53,36 @@ static PetscErrorCode CreateVectors(PetscInt ngmax, PetscInt nlmax, PetscInt ndo
 }
 
 /* ---------------------------------------------------------------- */
+static PetscErrorCode CreateLocalOrderIS(PetscInt ngmax, PetscInt nlmax, PetscInt nghost, PetscInt ndof, TDyUGDM *ugdm){
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  PetscInt idxL[nlmax];
+  for (PetscInt i=0; i<nlmax; i++) {
+    idxL[i] = i;
+  }
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nlmax, idxL, PETSC_COPY_VALUES, &ugdm->IS_LocalCells_in_LocalOrder); CHKERRQ(ierr);
+  ierr = TDySavePetscISAsASCII(ugdm->IS_LocalCells_in_LocalOrder,"is_local_local_1.out");
+
+  PetscInt idxG[ngmax];
+  for (PetscInt i=0; i<ngmax; i++) {
+    idxG[i] = i;
+  }
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, ngmax, idxG, PETSC_COPY_VALUES, &ugdm->IS_GhostedCells_in_LocalOrder); CHKERRQ(ierr);
+  ierr = TDySavePetscISAsASCII(ugdm->IS_GhostedCells_in_LocalOrder,"is_ghosted_local_1.out");
+
+  PetscInt idxGhost[nghost];
+  for (PetscInt i=0; i<nghost; i++) {
+    idxGhost[i] = nlmax+i;
+  }
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nghost, idxGhost, PETSC_COPY_VALUES, &ugdm->IS_GhostCells_in_LocalOrder); CHKERRQ(ierr);
+  ierr = TDySavePetscISAsASCII(ugdm->IS_GhostCells_in_LocalOrder,"is_ghosts_local_1.out");
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *ugdm){
 
   PetscFunctionBegin;
@@ -60,6 +90,12 @@ PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *u
 
   // Create vectors
   ierr = CreateVectors(ugrid->num_cells_global, ugrid->num_cells_local, ndof, ugdm); CHKERRQ(ierr);
+
+  // Create three local-ordered ISs
+  ierr = CreateLocalOrderIS(ugrid->num_cells_global, ugrid->num_cells_local, ugrid->num_cells_ghost, ndof, ugdm); CHKERRQ(ierr);
+
+  // Create three local-ordered ISs
+  ierr = CreateLocalOrderIS(ugrid->num_cells_global, ugrid->num_cells_local, ugrid->num_cells_ghost, ndof, ugdm); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
