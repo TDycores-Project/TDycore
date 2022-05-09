@@ -28,6 +28,7 @@ PETSC_INTERN PetscInt TDySavePetscMatAsBinary(Mat, const char []);
 PETSC_INTERN PetscInt TDySavePetscMatAsASCII(Mat, const char []);
 PETSC_INTERN PetscInt TDySavePetscISAsASCII(IS, const char []);
 PETSC_INTERN PetscInt TDySavePetscVecScatterAsASCII(VecScatter, const char []);
+PETSC_INTERN PetscInt TDySavePetscISLocalToGlobalMappingAsASCII(ISLocalToGlobalMapping, const char []);
 PETSC_INTERN PetscErrorCode ExtractSubVectors(Vec,PetscInt,Vec *);
 PETSC_INTERN PetscErrorCode ComputeTheta(PetscReal, PetscReal, PetscReal *);
 PETSC_INTERN PetscErrorCode ComputeDeterminantOf3by3Matrix(PetscReal [9], PetscReal *);

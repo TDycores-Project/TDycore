@@ -617,6 +617,24 @@ PetscErrorCode TDySavePetscVecScatterAsASCII(VecScatter scatter, const char file
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDySavePetscISLocalToGlobalMappingAsASCII(ISLocalToGlobalMapping map, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  PetscObjectGetComm((PetscObject)map,&comm);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
+  ierr = ISLocalToGlobalMappingView(map, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode ExtractSubVectors(Vec A, PetscInt stride, Vec *Asub) {
 
   PetscInt local_size, block_size;
