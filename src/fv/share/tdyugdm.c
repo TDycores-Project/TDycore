@@ -38,7 +38,7 @@ static PetscErrorCode CreateVectors(PetscInt ngmax, PetscInt nlmax, PetscInt ndo
 
   // 1. Create local vector.
   // Note: The size of the Vec is 'ngmax' (= local cells + ghost cells)
-  ierr = VecCreate(PETSC_COMM_WORLD, &ugdm->LocalVec); CHKERRQ(ierr);
+  ierr = VecCreate(PETSC_COMM_SELF, &ugdm->LocalVec); CHKERRQ(ierr);
   ierr = VecSetSizes(ugdm->LocalVec, ngmax*ndof, PETSC_DECIDE); CHKERRQ(ierr);
   ierr = VecSetBlockSize(ugdm->LocalVec, ndof); CHKERRQ(ierr);
   ierr = VecSetFromOptions(ugdm->LocalVec); CHKERRQ(ierr);
@@ -151,6 +151,60 @@ static PetscErrorCode CreateNaturalOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUG
 }
 
 /* ---------------------------------------------------------------- */
+static PetscErrorCode CreateVecScatters(PetscInt ndof, PetscInt nlmax, TDyUGDM *ugdm){
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  Vec *vec_from, *vec_to;
+  IS *is_from, *is_to;
+  VecScatter *vec_scatter;
+
+  vec_from    = &ugdm->LocalVec;
+  vec_to      = &ugdm->GlobalVec;
+  is_from     = &ugdm->IS_LocalCells_in_LocalOrder;
+  is_to       = &ugdm->IS_LocalCells_in_PetscOrder;
+  vec_scatter = &ugdm->Scatter_LocalCells_to_GlobalCells;
+  ierr = VecScatterCreate(*vec_from, *is_from, *vec_to, *is_to, vec_scatter); CHKERRQ(ierr);
+  ierr = TDySavePetscVecScatterAsASCII(*vec_scatter, "scatter_ltog_1.out");
+
+  vec_from    = &ugdm->GlobalVec;
+  vec_to      = &ugdm->LocalVec;
+  is_from     = &ugdm->IS_GhostedCells_in_PetscOrder;
+  is_to       = &ugdm->IS_GhostedCells_in_LocalOrder;
+  vec_scatter = &ugdm->Scatter_GlobalCells_to_LocalCells;
+  ierr = VecScatterCreate(*vec_from, *is_from, *vec_to, *is_to, vec_scatter); CHKERRQ(ierr);
+  ierr = TDySavePetscVecScatterAsASCII(*vec_scatter, "scatter_gtol_1.out");
+
+  ierr = VecScatterCopy(ugdm->Scatter_GlobalCells_to_LocalCells, &ugdm->Scatter_LocalCells_to_LocalCells); CHKERRQ(ierr);
+  const PetscInt *int_ptr;
+  ierr = ISGetIndices(ugdm->IS_LocalCells_in_LocalOrder, &int_ptr); CHKERRQ(ierr);
+  PetscInt idx[nlmax];
+  for (PetscInt i=0; i<nlmax; i++) {
+    idx[i] = int_ptr[i];
+  }
+  ierr = VecScatterRemap(ugdm->Scatter_LocalCells_to_LocalCells, idx, PETSC_NULL); CHKERRQ(ierr);
+  ierr = ISRestoreIndices(ugdm->IS_LocalCells_in_LocalOrder, &int_ptr); CHKERRQ(ierr);
+  ierr = TDySavePetscVecScatterAsASCII(*vec_scatter, "scatter_ltol_1.out");
+
+  vec_from    = &ugdm->GlobalVec;
+  is_from     = &ugdm->IS_LocalCells_in_PetscOrder;
+  is_to       = &ugdm->IS_LocalCells_to_NaturalCells;
+  vec_scatter = &ugdm->Scatter_GlobalCells_to_NaturalCells;
+
+  Vec vec_tmp = NULL;
+  ierr = VecCreate(PETSC_COMM_WORLD, &vec_tmp); CHKERRQ(ierr);
+  ierr = VecSetSizes(vec_tmp, nlmax*ndof, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(vec_tmp, ndof); CHKERRQ(ierr);
+  ierr = VecSetFromOptions(vec_tmp); CHKERRQ(ierr);
+  ierr = VecScatterCreate(*vec_from, *is_from, vec_tmp, *is_to, vec_scatter); CHKERRQ(ierr);
+  ierr = VecDestroy(&vec_tmp); CHKERRQ(ierr);
+  ierr = TDySavePetscVecScatterAsASCII(*vec_scatter, "scatter_gton_1.out");
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *ugdm){
 
   PetscFunctionBegin;
@@ -169,7 +223,10 @@ PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *u
   ierr = CreatePetscOrderIS(ndof, ugrid, ugdm); CHKERRQ(ierr);
 
   // Create natural-order IS
-  ierr = CreateNaturalOrderIS(ndof, ugrid, ugdm);
+  ierr = CreateNaturalOrderIS(ndof, ugrid, ugdm); CHKERRQ(ierr);
+
+  // Create four VecScatter
+  ierr = CreateVecScatters(ndof, ugrid->num_cells_local, ugdm); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
