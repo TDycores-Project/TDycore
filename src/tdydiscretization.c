@@ -9,10 +9,10 @@
 /// @param [in] tdy     A TDy struct
 /// @param [out] vector A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyCreateGlobalVector(TDy tdy, Vec *vector){
+PetscErrorCode TDyCreateGlobalVector(TDyDM *tdydm, Vec *vector){
 
   PetscFunctionBegin;
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = tdydm->dm;
   PetscErrorCode ierr;
 
   ierr = DMCreateGlobalVector(dm, vector); CHKERRQ(ierr);
@@ -51,7 +51,7 @@ PetscErrorCode TDyCreateNaturalVector(TDy tdy, Vec *vector){
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  ierr = TDyCreateGlobalVector(tdy, vector); CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(&tdy->tdydm, vector); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -161,7 +161,7 @@ PetscErrorCode TDyNaturaltoLocal(TDy tdy,Vec natural, Vec *local) {
   PetscErrorCode ierr;
   Vec global;
   
-  ierr = TDyCreateGlobalVector(tdy, &global);CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(&tdy->tdydm, &global);CHKERRQ(ierr);
 
   ierr = TDyNaturalToGlobal(tdy, natural, global);CHKERRQ(ierr);
   ierr = TDyGlobalToLocal(tdy, global, *local); CHKERRQ(ierr);

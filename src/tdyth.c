@@ -1,5 +1,6 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdythimpl.h>
+#include <private/tdydiscretization.h>
 
 PetscErrorCode TDyTHInitialize(TDy tdy) {
   PetscErrorCode ierr;
@@ -18,7 +19,7 @@ PetscErrorCode TDyTHInitialize(TDy tdy) {
     PetscRandom rand;
     ierr = PetscRandomCreate(comm,&rand); CHKERRQ(ierr);
     ierr = VecGetLocalSize(tdy->soln,&local_size); CHKERRQ(ierr);
-    ierr = TDyCreateGlobalVector(tdy, &temp_vec); CHKERRQ(ierr);
+    ierr = TDyCreateGlobalVector(&tdy->tdydm, &temp_vec); CHKERRQ(ierr);
     // pressure
     ierr = PetscRandomSetInterval(rand,1.e4,1.e5); CHKERRQ(ierr);
     ierr = VecSetRandom(temp_vec,rand); CHKERRQ(ierr);

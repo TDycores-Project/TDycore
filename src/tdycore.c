@@ -1515,7 +1515,7 @@ PetscErrorCode TDyCreatePrognosticVector(TDy tdy, Vec *prog_vec) {
   }
 
   // Create a cell-centered scalar field vector.
-  ierr = TDyCreateGlobalVector(tdy, prog_vec); CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(&tdy->tdydm, prog_vec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1625,7 +1625,7 @@ PetscErrorCode TDyGetLiquidPressure(TDy tdy, Vec liq_press_vec) {
   PetscFunctionBegin;
 
   Vec tmp_vec;
-  ierr = TDyCreateGlobalVector(tdy, &tmp_vec); CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(&tdy->tdydm, &tmp_vec); CHKERRQ(ierr);
   ierr = ExtractPrognosticField(tdy, VAR_PRESSURE, tmp_vec); CHKERRQ(ierr);
   ierr = TDyGlobalToNatural(tdy, tmp_vec, liq_press_vec);CHKERRQ(ierr); CHKERRQ(ierr);
   ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
@@ -1867,7 +1867,7 @@ PetscErrorCode TDyCreateVectors(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   if (tdy->soln == NULL) {
-    ierr = TDyCreateGlobalVector(tdy, &tdy->soln); CHKERRQ(ierr);
+    ierr = TDyCreateGlobalVector(&tdy->tdydm, &tdy->soln); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->residual); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->accumulation_prev); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->soln_prev); CHKERRQ(ierr);

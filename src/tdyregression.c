@@ -49,7 +49,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   MPI_Comm_size(PetscObjectComm((PetscObject)dm),&size);
   MPI_Comm_rank(PetscObjectComm((PetscObject)dm),&myrank);
 
-  ierr = TDyCreateGlobalVector(tdy,&U); CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(&tdy->tdydm,&U); CHKERRQ(ierr);
   ierr = VecGetLocalSize(U,&vecsize_local); CHKERRQ(ierr);
 
   ierr = MPI_Allreduce(&vecsize_local,&min_vecsize_local,1,MPIU_INT,MPI_MIN,PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);

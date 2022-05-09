@@ -338,7 +338,7 @@ PetscErrorCode TDyIOOutputCheckpoint(TDy tdy){
   sprintf(filename,"%11.5e_%s.h5",time,"chk");
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,filename,FILE_MODE_APPEND,&viewer);CHKERRQ(ierr);
 
-  ierr = TDyCreateGlobalVector(tdy,&p_natural);
+  ierr = TDyCreateGlobalVector(&tdy->tdydm,&p_natural);
   ierr = TDyGlobalToNatural(tdy,p,p_natural);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject) p_natural,"IC");CHKERRQ(ierr);
   ierr = VecView(p_natural,viewer);CHKERRQ(ierr);
@@ -425,10 +425,10 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     if (useNatural) {
       Vec p_natural;
       Vec s_natural;
-      ierr = TDyCreateGlobalVector(tdy,&p_natural);
+      ierr = TDyCreateGlobalVector(&tdy->tdydm,&p_natural);
       ierr = TDyGlobalToNatural(tdy, p, p_natural);CHKERRQ(ierr);
 
-      ierr = TDyCreateGlobalVector(tdy, &s_natural);
+      ierr = TDyCreateGlobalVector(&tdy->tdydm, &s_natural);
       ierr = TDyGlobalToNatural(tdy, s, s_natural);CHKERRQ(ierr);
 
       ierr = TDyIOWriteHDF5Var(ofilename,dm,p_natural,zonalVarNames[0],time);CHKERRQ(ierr);

@@ -2,8 +2,9 @@
 #define TDYDISCRETIZATION_H
 
 #include <petsc.h>
+#include <private/tdydmimpl.h>
 
-PETSC_INTERN PetscErrorCode TDyCreateGlobalVector(TDy,Vec*);
+PETSC_INTERN PetscErrorCode TDyCreateGlobalVector(TDyDM*,Vec*);
 PETSC_INTERN PetscErrorCode TDyCreateLocalVector(TDy,Vec*);
 PETSC_INTERN PetscErrorCode TDyCreateNaturalVector(TDy,Vec*);
 PETSC_INTERN PetscErrorCode TDyCreateJacobianMatrix(TDy,Mat*);
