@@ -3,6 +3,7 @@
 
 #include <petsc.h>
 #include <private/tdyugdmimpl.h>
+#include <private/tdyugridimpl.h>
 
 typedef enum{
   PLEX_TYPE=0,

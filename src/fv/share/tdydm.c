@@ -1,4 +1,5 @@
 #include <private/tdydmimpl.h>
+#include <private/tdyugridimpl.h>
 
 PetscErrorCode TDyDMCreate(TDyDM *tdydm) {
 
@@ -19,7 +20,7 @@ PetscErrorCode TDyDMCreateFromPFLOTRANMesh(TDyUGrid *ugrid, TDyDM *tdydm, const 
 
   PetscErrorCode ierr;
 
-  ierr = TDyUGDMCreateFromPFLOTRANMesh(ugrid, &tdydm->ugdm, mesh_file); CHKERRQ(ierr);
+  //ierr = TDyUGDMCreateFromPFLOTRANMesh(ugrid, &tdydm->ugdm, mesh_file); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
