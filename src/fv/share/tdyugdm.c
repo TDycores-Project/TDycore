@@ -20,12 +20,73 @@ PetscErrorCode TDyUGDMCreate(TDyUGDM *ugdm){
   ugdm->IS_GhostCells_in_LocalOrder = NULL;
   ugdm->IS_GhostCells_in_PetscOrder = NULL;
 
+  ugdm->IS_LocalCells_to_NaturalCells = NULL;
+
   ugdm->Scatter_LocalCells_to_GlobalCells = NULL;
-  ugdm->Scatter_LocalCells_to_LocalCells = NULL;
+  ugdm->Scatter_GlobalCells_to_LocalCells = NULL;
   ugdm->Scatter_LocalCells_to_LocalCells = NULL;
   ugdm->Scatter_GlobalCells_to_NaturalCells = NULL;
 
   ugdm->Mapping_LocalCells_to_GhostedCells = NULL;
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDyUGDMDestroy(TDyUGDM *ugdm){
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  if (ugdm->IS_GhostedCells_in_LocalOrder != NULL) {
+    ierr = ISDestroy(&ugdm->IS_GhostedCells_in_LocalOrder); CHKERRQ(ierr);
+  }
+
+  if (ugdm->IS_GhostedCells_in_PetscOrder != NULL) {
+    ierr = ISDestroy(&ugdm->IS_GhostedCells_in_PetscOrder); CHKERRQ(ierr);
+  }
+
+  if (ugdm->IS_LocalCells_in_LocalOrder != NULL) {
+    ierr = ISDestroy(&ugdm->IS_LocalCells_in_LocalOrder); CHKERRQ(ierr);
+  }
+
+  if (ugdm->IS_LocalCells_in_PetscOrder != NULL) {
+    ierr = ISDestroy(&ugdm->IS_LocalCells_in_PetscOrder); CHKERRQ(ierr);
+  }
+
+  if (ugdm->IS_GhostCells_in_LocalOrder != NULL) {
+    ierr = ISDestroy(&ugdm->IS_GhostCells_in_LocalOrder); CHKERRQ(ierr);
+  }
+
+  if (ugdm->IS_GhostCells_in_PetscOrder != NULL) {
+    ierr = ISDestroy(&ugdm->IS_GhostCells_in_PetscOrder); CHKERRQ(ierr);
+  }
+
+  if (ugdm->IS_LocalCells_to_NaturalCells != NULL) {
+    ierr = ISDestroy(&ugdm->IS_LocalCells_to_NaturalCells); CHKERRQ(ierr);
+  }
+
+  if (ugdm->Scatter_LocalCells_to_GlobalCells != NULL) {
+    ierr = VecScatterDestroy(&ugdm->Scatter_LocalCells_to_GlobalCells); CHKERRQ(ierr);
+  }
+
+  if (ugdm->Scatter_GlobalCells_to_LocalCells != NULL) {
+    ierr = VecScatterDestroy(&ugdm->Scatter_GlobalCells_to_LocalCells); CHKERRQ(ierr);
+  }
+
+  if (ugdm->Scatter_LocalCells_to_LocalCells != NULL) {
+    ierr = VecScatterDestroy(&ugdm->Scatter_LocalCells_to_LocalCells); CHKERRQ(ierr);
+  }
+
+  if (ugdm->Scatter_GlobalCells_to_NaturalCells != NULL) {
+    ierr = VecScatterDestroy(&ugdm->Scatter_GlobalCells_to_NaturalCells); CHKERRQ(ierr);
+  }
+
+  if (ugdm->Mapping_LocalCells_to_GhostedCells != NULL) {
+    ISLocalToGlobalMappingDestroy(&ugdm->Mapping_LocalCells_to_GhostedCells);
+  }
+
+  free(ugdm);
 
   PetscFunctionReturn(0);
 }

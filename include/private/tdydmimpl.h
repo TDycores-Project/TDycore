@@ -19,6 +19,7 @@ typedef struct {
 } TDyDM;
 
 PETSC_INTERN PetscErrorCode TDyDMCreate(TDyDM*);
+PETSC_INTERN PetscErrorCode TDyDMDestroy(TDyDM*);
 PETSC_INTERN PetscErrorCode TDyDMCreateFromUGrid(PetscInt,TDyUGrid*,TDyDM*);
 
 #endif

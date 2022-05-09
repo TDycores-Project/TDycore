@@ -15,6 +15,19 @@ PetscErrorCode TDyDMCreate(TDyDM *tdydm) {
 }
 
 /* ---------------------------------------------------------------- */
+PetscErrorCode TDyDMDestroy(TDyDM *tdydm) {
+
+  PetscErrorCode ierr;
+
+  ierr = DMDestroy(&tdydm->dm); CHKERRQ(ierr);
+  ierr = TDyUGDMDestroy(&tdydm->ugdm); CHKERRQ(ierr);
+
+  free (tdydm);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 
 PetscErrorCode TDyDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyDM *tdydm) {
 

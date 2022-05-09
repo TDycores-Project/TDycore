@@ -8,7 +8,21 @@ PetscErrorCode TDyDiscretizationCreate(TDyDiscretizationType *discretization) {
 
   discretization = malloc(sizeof(TDyDiscretization));
 
-  ierr = TDyDMCreate (&discretization->tdydm);
+  ierr = TDyDMCreate (&discretization->tdydm); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyDiscretizationDestroy(TDyDiscretizationType *discretization) {
+
+  PetscErrorCode ierr;
+
+  discretization = malloc(sizeof(TDyDiscretization));
+
+  ierr = TDyDMDestroy (&discretization->tdydm); CHKERRQ(ierr);
+  free(discretization);
 
   PetscFunctionReturn(0);
 
