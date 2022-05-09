@@ -24,7 +24,7 @@ typedef struct {
   VecScatter Scatter_LocalCells_to_LocalCells;
   VecScatter Scatter_GlobalCells_to_NaturalCells;
 
-  ISLocalToGlobalMapping Mapping_LocalCells_to_NaturalCells;
+  ISLocalToGlobalMapping Mapping_LocalCells_to_GhostedCells;
 
 } TDyUGDM;
 

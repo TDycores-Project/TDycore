@@ -25,7 +25,7 @@ PetscErrorCode TDyUGDMCreate(TDyUGDM *ugdm){
   ugdm->Scatter_LocalCells_to_LocalCells = NULL;
   ugdm->Scatter_GlobalCells_to_NaturalCells = NULL;
 
-  ugdm->Mapping_LocalCells_to_NaturalCells = NULL;
+  ugdm->Mapping_LocalCells_to_GhostedCells = NULL;
 
   PetscFunctionReturn(0);
 }
@@ -227,6 +227,10 @@ PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *u
 
   // Create four VecScatter
   ierr = CreateVecScatters(ndof, ugrid->num_cells_local, ugdm); CHKERRQ(ierr);
+
+ // Creates the mapping
+ ierr = ISLocalToGlobalMappingCreateIS(ugdm->IS_GhostedCells_in_PetscOrder, &ugdm->Mapping_LocalCells_to_GhostedCells); CHKERRQ(ierr);
+ ierr = TDySavePetscISLocalToGlobalMappingAsASCII(ugdm->Mapping_LocalCells_to_GhostedCells, "mapping_ltog_1.out"); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
