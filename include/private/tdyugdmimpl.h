@@ -2,8 +2,12 @@
 #define TDYUGDMIMPL_H
 
 #include <petsc.h>
+#include <private/tdyugridimpl.h>
 
 typedef struct {
+  Vec LocalVec;
+  Vec GlobalVec;
+
   IS IS_GhostedCells_in_LocalOrder;
   IS IS_GhostedCells_in_PetscOrder;
 
@@ -25,5 +29,6 @@ typedef struct {
 } TDyUGDM;
 
 PETSC_INTERN PetscErrorCode TDyUGDMCreate(TDyUGDM*);
+PETSC_INTERN PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt,TDyUGrid*,TDyUGDM*);
 
 #endif

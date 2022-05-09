@@ -16,11 +16,11 @@ PetscErrorCode TDyDMCreate(TDyDM *tdydm) {
 
 /* ---------------------------------------------------------------- */
 
-PetscErrorCode TDyDMCreateFromPFLOTRANMesh(TDyUGrid *ugrid, TDyDM *tdydm, const char *mesh_file) {
+PetscErrorCode TDyDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyDM *tdydm) {
 
   PetscErrorCode ierr;
 
-  //ierr = TDyUGDMCreateFromPFLOTRANMesh(ugrid, &tdydm->ugdm, mesh_file); CHKERRQ(ierr);
+  ierr = TDyUGDMCreateFromUGrid(ndof, ugrid, &tdydm->ugdm); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
