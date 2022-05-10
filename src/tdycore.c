@@ -3,6 +3,7 @@ static char help[] = "TDycore \n\
   -tdy_velocity_bc_func <string>                : select one of the registered velocity boundary function \n\
   -tdy_init_file <input_file>                   : file for reading the initial conditions\n\
   -tdy_read_mesh <input_file>                   : mesh file \n\
+  -tdy_read_pflotran_mesh <input_file>          : PFLOTRAN HDF5 mesh file \n\
   -tdy_output_cell_geom_attributes <output_file> : file to output cell geometric attributes\n\
   -tdy_read_cell_geom_attributes <input_file>    : file for reading cell geometric attribtue\n\n";
 
@@ -592,6 +593,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   // Mesh-related options
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Mesh options",""); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_mesh", options->mesh_file,sizeof(options->mesh_file),&options->read_mesh); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_pflotran_mesh", options->mesh_file,sizeof(options->mesh_file),&options->read_pflotran_mesh); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-tdy_output_mesh","Enable output of mesh attributes","",options->output_mesh,&(options->output_mesh),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
@@ -620,7 +622,11 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   tdy->setup_flags |= TDyOptionsSet;
 
   // Create our DM.
-  if (!(&tdy->tdydm)->dm) {
+  if (tdy->options.read_pflotran_mesh) {
+    ierr = TDyUGridCreateFromPFLOTRANMesh(&tdy->ugrid, tdy->options.mesh_file); CHKERRQ(ierr);
+    PetscInt ndof = tdy->ops->get_num_dm_fields(tdy->context);
+    ierr = TDyDMCreateFromUGrid(ndof, &tdy->ugrid, &tdy->tdydm); CHKERRQ(ierr);
+  } else if (!(&tdy->tdydm)->dm) {
     DM dm;
     if (tdy->options.read_mesh) {
       ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
