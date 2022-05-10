@@ -14,6 +14,7 @@
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdyoptions.h>
 #include <private/tdydmimpl.h>
+#include <private/tdydiscretizationimpl.h>
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
@@ -88,6 +89,9 @@ struct _p_TDy {
 
   // Flags that indicate where the dycore is in the setup process
   TDySetupFlags setup_flags;
+
+
+  TDyDiscretizationType discretization;
 
   // Grid and data management -- handed to a solver when the dycore is fully
   // configured

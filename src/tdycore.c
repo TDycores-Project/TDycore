@@ -294,7 +294,7 @@ PetscErrorCode TDyCreate(MPI_Comm comm, TDy *_tdy) {
   ierr = TDyIOCreate(&tdy->io); CHKERRQ(ierr);
 
   // initialize flags/parameters
-  ierr = TDyDMCreate(&tdy->tdydm); CHKERRQ(ierr);
+  ierr = TDyDiscretizationCreate(&tdy->discretization); CHKERRQ(ierr);
 
   tdy->soln = NULL;
   tdy->J = NULL;
