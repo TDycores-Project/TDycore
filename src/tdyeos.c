@@ -50,7 +50,6 @@ PetscErrorCode ComputeWaterDensity_BatzleWang(PetscReal P, PetscReal T, PetscRea
 
   *den = pw + S*(0.668 + 0.44*S + 1e-6 * (300. *P*Pa_to_MPa - 2400.*P*Pa_to_MPa*S +T*(80.+3.*T-3300.*S -
 							       13.*P*Pa_to_MPa + 47.*P*Pa_to_MPa*S)))*1000.;
-
   PetscFunctionReturn(0);
 }
 
@@ -96,9 +95,8 @@ PetscErrorCode ComputeWaterViscosity_BatzleWang(PetscReal p, PetscReal T, PetscR
 
   PetscFunctionBegin;
 
-  *vis = 0.1 + 0.333 * S + (1.65 + 91.9 *pow(S,3))*exp((-0.42*pow((pow(S,0.8)-0.17),2)+0.45)*pow(T,0.8));
+  *vis = 0.1 + 0.333 * S + (1.65 + 91.9 *pow(S,3))*exp((-0.42*pow((pow(S,0.8)-0.17),2)-0.045)*pow(T,0.8));
   *vis = *vis * 1e-3;
-
 
   PetscFunctionReturn(0);
 }
@@ -115,7 +113,9 @@ PetscErrorCode ComputeWaterViscosity(PetscReal p, PetscReal T, PetscReal S,Petsc
     ierr = ComputeWaterViscosity_Constant(p,vis,dvis_dP,d2vis_dP2); CHKERRQ(ierr);
     break;
   case WATER_VISCOSITY_BATZLE_AND_WANG :
-    ierr = ComputeWaterViscosity_BatzleWang(p,T,S,vis); CHKERRQ(ierr);
+    //  ierr = ComputeWaterViscosity_Constant(p,vis,dvis_dP,d2vis_dP2); CHKERRQ(ierr);
+
+   	  ierr = ComputeWaterViscosity_BatzleWang(p,T,S,vis); CHKERRQ(ierr);
     break;
   default:
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_SUP,"Unknown water viscosity function");
@@ -162,7 +162,6 @@ PetscErrorCode ComputeSalinityFraction(PetscReal Psi, PetscReal mw, PetscReal de
   PetscFunctionBegin;
 
   *m_nacl = (Psi * mw) / ((Psi*mw) + 999.);
-
 
   PetscFunctionReturn(0);
 }
