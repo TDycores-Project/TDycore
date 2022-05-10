@@ -662,18 +662,19 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
     ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
     (&tdy->tdydm)->dm = dm;
+
+    // Mark the grid's boundary faces and their transitive closure. All are
+    // stored at their appropriate strata within the label.
+    DMLabel boundary_label;
+    ierr = DMCreateLabel((&tdy->tdydm)->dm, "boundary"); CHKERRQ(ierr);
+    ierr = DMGetLabel((&tdy->tdydm)->dm, "boundary", &boundary_label); CHKERRQ(ierr);
+    ierr = DMPlexMarkBoundaryFaces((&tdy->tdydm)->dm, 1, boundary_label); CHKERRQ(ierr);
+    ierr = DMPlexLabelComplete((&tdy->tdydm)->dm, boundary_label); CHKERRQ(ierr);
+
   }
 
-  // Mark the grid's boundary faces and their transitive closure. All are
-  // stored at their appropriate strata within the label.
-  DMLabel boundary_label;
-  ierr = DMCreateLabel((&tdy->tdydm)->dm, "boundary"); CHKERRQ(ierr);
-  ierr = DMGetLabel((&tdy->tdydm)->dm, "boundary", &boundary_label); CHKERRQ(ierr);
-  ierr = DMPlexMarkBoundaryFaces((&tdy->tdydm)->dm, 1, boundary_label); CHKERRQ(ierr);
-  ierr = DMPlexLabelComplete((&tdy->tdydm)->dm, boundary_label); CHKERRQ(ierr);
-
-  PetscInt dim;
-  ierr = DMGetDimension((&tdy->tdydm)->dm, &dim); CHKERRQ(ierr);
+  PetscInt dim = 3;
+  //ierr = DMGetDimension((&tdy->tdydm)->dm, &dim); CHKERRQ(ierr);
 
   // Create an empty material properties object. Each function must be set
   // explicitly by the driver program.
