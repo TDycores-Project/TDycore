@@ -37,24 +37,19 @@ int main(int argc, char **argv) {
   ierr = TDyDriverInitializeTDy(tdy); CHKERRQ(ierr);
   // default mode and method must be set prior to TDySetFromOptions()
   ncells = 5;
-  //ierr = VecGetLocalSize(tdy->solution,&ncells); CHKERRQ(ierr);
-  PetscRandom rand;
-    ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
-    ierr = DMCreateGlobalVector(tdy->dm,&U); CHKERRQ(ierr);
-    ierr = VecGetArray(U,&soln);
-    for (c=0; c<(ncells*2); c+=2){
-      soln[c] = 201325.;
+
+  ierr = DMCreateGlobalVector(tdy->dm,&U); CHKERRQ(ierr);
+  ierr = VecGetArray(U,&soln);
+  for (c=0; c<(ncells*2); c+=2){
+    soln[c] = 101325.;
   }
   soln[1] = 1.0;
   for (c=3; c<=(ncells*2); c+=2){
-  soln[c] = 0.000001;
-  // printf("soln  %f",soln[c]);
+    soln[c] = 0.00001;
   }
   ierr = VecRestoreArray(U,&soln);
-
   ierr = TDySetInitialCondition(tdy,U);
-	
-       
+	       
   if (!rank) {
     ierr = TDyIOSetIOProcess(tdy->io, PETSC_TRUE); CHKERRQ(ierr);
   }
