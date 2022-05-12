@@ -1372,7 +1372,6 @@ static PetscErrorCode SaveNaturalIDs(TDyMesh *mesh, DM dm){
 /* -------------------------------------------------------------------------- */
 /// Converts an integer datatype of TDy mesh element in compressed format
 ///
-/// @param [in] dm                   A DM object
 /// @param [in] num_elements         Number of elements
 /// @param [in] default_offset_size  Default offset size for elements
 /// @param [in] update_offset        Determines if subelement_offset should be updated
@@ -1380,7 +1379,7 @@ static PetscErrorCode SaveNaturalIDs(TDyMesh *mesh, DM dm){
 /// @param [inout] subelement_offset Offset of subelements for a given element
 /// @param [inout] subelement_id     Subelement ids
 /// @returns 0                       on success, or a non-zero error code on failure
-static PetscErrorCode ConvertMeshElementToCompressedFormatIntegerValues(DM dm,
+static PetscErrorCode ConvertMeshElementToCompressedFormatIntegerValues(
     PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
     PetscInt **subelement_num, PetscInt **subelement_offset, PetscInt **subelement_id) {
 
@@ -1613,16 +1612,16 @@ static PetscErrorCode ConvertCellsToCompressedFormat(DM dm, TDyMesh* mesh) {
 
   PetscInt update_offset = 1;
 
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_cells, num_vertices, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_cells, num_vertices, update_offset,
     &cells->num_vertices, &cells->vertex_offset, &cells->vertex_ids); CHKERRQ(ierr);
 
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_cells, num_edges, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_cells, num_edges, update_offset,
     &cells->num_edges, &cells->edge_offset, &cells->edge_ids); CHKERRQ(ierr);
 
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_cells, num_neighbors, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_cells, num_neighbors, update_offset,
     &cells->num_neighbors, &cells->neighbor_offset, &cells->neighbor_ids); CHKERRQ(ierr);
 
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_cells, num_faces, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_cells, num_faces, update_offset,
     &cells->num_faces, &cells->face_offset, &cells->face_ids); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -1662,19 +1661,19 @@ static PetscErrorCode ConvertSubcellsToCompressedFormat(DM dm, TDyMesh *mesh) {
 
   /* Change variables that have subelement size of 'num_faces'*/
   update_offset = 0;
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_subcells_per_cell, num_faces, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_subcells_per_cell, num_faces, update_offset,
     &subcells->num_faces, &subcells->face_offset, &subcells->face_ids); CHKERRQ(ierr);
 
   update_offset = 0;
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_subcells_per_cell, num_faces, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_subcells_per_cell, num_faces, update_offset,
     &subcells->num_faces, &subcells->face_offset, &subcells->is_face_up); CHKERRQ(ierr);
 
   update_offset = 0;
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_subcells_per_cell, num_faces, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_subcells_per_cell, num_faces, update_offset,
     &subcells->num_faces, &subcells->face_offset, &subcells->face_unknown_idx); CHKERRQ(ierr);
 
   update_offset = 0;
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_subcells_per_cell, num_faces, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_subcells_per_cell, num_faces, update_offset,
     &subcells->num_faces, &subcells->face_offset, &subcells->face_flux_idx); CHKERRQ(ierr);
 
   update_offset = 0;
@@ -1682,7 +1681,7 @@ static PetscErrorCode ConvertSubcellsToCompressedFormat(DM dm, TDyMesh *mesh) {
     &subcells->num_faces, &subcells->face_offset, &subcells->face_area); CHKERRQ(ierr);
 
   update_offset = 1;
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_subcells_per_cell, num_faces, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_subcells_per_cell, num_faces, update_offset,
     &subcells->num_faces, &subcells->face_offset, &subcells->vertex_ids); CHKERRQ(ierr);
 
   /* Change variables that have subelement size of 'num_nu_vectors'*/
@@ -1733,7 +1732,7 @@ static PetscErrorCode ConvertVerticesToCompressedFormat(DM dm, TDyMesh* mesh) {
 
   /* Convert edge_ids */
   update_offset = 1;
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_vertices, nedges_per_vertex, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_vertices, nedges_per_vertex, update_offset,
     &vertices->num_edges, &vertices->edge_offset, &vertices->edge_ids); CHKERRQ(ierr);
 
   /* Convert face_ids */
@@ -1743,28 +1742,28 @@ static PetscErrorCode ConvertVerticesToCompressedFormat(DM dm, TDyMesh* mesh) {
   //       The vertices->face_offset are updated in the second round
   //       i.e. when the subface_ids are updated.
   update_offset = 0;
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_vertices, nfaces_per_vertex, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_vertices, nfaces_per_vertex, update_offset,
     &vertices->num_faces, &vertices->face_offset, &vertices->face_ids); CHKERRQ(ierr);
 
   /* Convert subface_ids */
   update_offset = 1;
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_vertices, nfaces_per_vertex, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_vertices, nfaces_per_vertex, update_offset,
     &vertices->num_faces, &vertices->face_offset, &vertices->subface_ids); CHKERRQ(ierr);
 
 
   /* Convert internal_cell_ids */
   update_offset = 1;
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_vertices, ncells_per_vertex, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_vertices, ncells_per_vertex, update_offset,
     &vertices->num_internal_cells, &vertices->internal_cell_offset, &vertices->internal_cell_ids); CHKERRQ(ierr);
 
   /* Convert subcell_ids */
   update_offset = 1;
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_vertices, nfaces_per_vertex, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_vertices, nfaces_per_vertex, update_offset,
     &vertices->num_internal_cells, &vertices->subcell_offset, &vertices->subcell_ids); CHKERRQ(ierr);
 
   /* Convert boundary_face_ids */
   update_offset = 1;
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_vertices, nfaces_per_vertex, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_vertices, nfaces_per_vertex, update_offset,
     &vertices->num_boundary_faces, &vertices->boundary_face_offset, &vertices->boundary_face_ids); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -1792,7 +1791,7 @@ static PetscErrorCode ConvertFacesToCompressedFormat(DM dm, TDyMesh *mesh) {
   /* Convert vertex_ids */
   PetscInt num_faces = mesh->num_faces;
   PetscInt update_offset = 1;
-  ierr = ConvertMeshElementToCompressedFormatIntegerValues(dm, num_faces, num_vertices_per_face, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatIntegerValues(num_faces, num_vertices_per_face, update_offset,
     &faces->num_vertices, &faces->vertex_offset, &faces->vertex_ids); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
