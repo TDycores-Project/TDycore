@@ -1434,10 +1434,7 @@ static PetscErrorCode ConvertMeshElementToCompressedFormatTDyVectorValues(DM dm,
 
   PetscFunctionBegin;
 
-  PetscErrorCode ierr;
-
-  PetscInt dim;
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  PetscInt dim = 3;
 
   PetscInt count = 0, new_offset = 0;
 
@@ -1477,7 +1474,6 @@ static PetscErrorCode ConvertMeshElementToCompressedFormatTDyVectorValues(DM dm,
 /* -------------------------------------------------------------------------- */
 /// Converts TDyCoordinate datatype of TDy mesh element in compressed format
 ///
-/// @param [in] dm                   A DM object
 /// @param [in] num_elements         Number of elements
 /// @param [in] default_offset_size  Default offset size for elements
 /// @param [in] update_offset        Determines if subelement_offset should be updated
@@ -1485,17 +1481,14 @@ static PetscErrorCode ConvertMeshElementToCompressedFormatTDyVectorValues(DM dm,
 /// @param [inout] subelement_offset Offset of subelements for a given element
 /// @param [inout] subelement_id     Subelement ids
 /// @returns 0                       on success, or a non-zero error code on failure
-static PetscErrorCode ConvertMeshElementToCompressedFormatTDyCoordinateValues(DM dm,
+static PetscErrorCode ConvertMeshElementToCompressedFormatTDyCoordinateValues(
     PetscInt num_element, PetscInt default_offset_size, PetscInt update_offset,
     PetscInt **subelement_num, PetscInt **subelement_offset,
     TDyCoordinate **subelement_value) {
 
   PetscFunctionBegin;
 
-  PetscErrorCode ierr;
-
-  PetscInt dim;
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  PetscInt dim = 3;
 
   PetscInt count = 0, new_offset = 0;
 
@@ -1593,12 +1586,7 @@ static PetscErrorCode ConvertCellsToCompressedFormat(DM dm, TDyMesh* mesh) {
   TDyCell *cells = &mesh->cells;
   PetscErrorCode ierr;
 
-  PetscInt c_start, c_end;
-  ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
-  PetscInt num_cells = c_end - c_start;
-
-  PetscInt dim;
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  PetscInt num_cells = mesh->num_cells;
 
   // compute number of vertices per grid cell
   PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm,
@@ -1638,12 +1626,7 @@ static PetscErrorCode ConvertSubcellsToCompressedFormat(DM dm, TDyMesh *mesh) {
   TDySubcell *subcells = &mesh->subcells;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
-
-  PetscInt c_start, c_end;
-  ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
-  PetscInt num_cells = c_end - c_start;
+  PetscInt num_cells = mesh->num_cells;
 
   PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm,
       mesh->closureSize, mesh->closure);
@@ -1694,16 +1677,16 @@ static PetscErrorCode ConvertSubcellsToCompressedFormat(DM dm, TDyMesh *mesh) {
     &subcells->num_nu_vectors, &subcells->nu_vector_offset, &subcells->nu_star_vector); CHKERRQ(ierr);
 
   update_offset = 0;
-  ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(dm, num_subcells_per_cell, num_nu_vectors, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(num_subcells_per_cell, num_nu_vectors, update_offset,
     &subcells->num_nu_vectors, &subcells->nu_vector_offset, &subcells->variable_continuity_coordinates); CHKERRQ(ierr);
 
   update_offset = 1;
-  ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(dm, num_subcells_per_cell, num_nu_vectors, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(num_subcells_per_cell, num_nu_vectors, update_offset,
     &subcells->num_nu_vectors, &subcells->nu_vector_offset, &subcells->face_centroid); CHKERRQ(ierr);
 
   /* Change variables that have subelement size of 'num_vertices'*/
   update_offset = 1;
-  ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(dm, num_subcells_per_cell, num_vertices, update_offset,
+  ierr = ConvertMeshElementToCompressedFormatTDyCoordinateValues(num_subcells_per_cell, num_vertices, update_offset,
     &subcells->num_vertices, &subcells->vertex_offset, &subcells->vertices_coordinates); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -1781,8 +1764,6 @@ static PetscErrorCode ConvertFacesToCompressedFormat(DM dm, TDyMesh *mesh) {
   TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, mesh->closureSize, mesh->closure);
   TDyCellType cell_type = GetCellType(nverts_per_cell);
@@ -3525,8 +3506,7 @@ PetscErrorCode SetupSubcells(DM dm, TDyMesh *mesh) {
   PetscInt c_start, c_end;
   ierr = DMPlexGetHeightStratum(dm, 0, &c_start, &c_end); CHKERRQ(ierr);
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  PetscInt dim = mesh->dim;
 
   for (PetscInt icell=0; icell<c_end-c_start; icell++) {
 
@@ -3751,8 +3731,7 @@ PetscErrorCode UpdateCellOrientationAroundAFace(DM dm, TDyMesh *mesh) {
   TDyFace       *faces = &mesh->faces;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  PetscInt dim = mesh->dim;
 
   for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
 
@@ -3875,8 +3854,8 @@ static PetscErrorCode DetermineConnectivity(DM dm, TDyMesh *mesh) {
   ierr = DMPlexGetChart(dm, &p_start, &pEnd); CHKERRQ(ierr);
 
   // Faces -- only relevant in 3D calculations.
-  PetscInt dim, f_start, f_end;
-  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
+  PetscInt f_start, f_end;
+  PetscInt dim = mesh->dim;
   ierr = DMPlexGetDepthStratum( dm, 2, &f_start, &f_end); CHKERRQ(ierr);
 
   // cell--to--vertex
@@ -4149,11 +4128,7 @@ static PetscErrorCode TDyMeshComputeGeometryFromPlex(PetscReal **X, PetscReal **
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-  if (dim == 2) {
-    SETERRQ(comm,PETSC_ERR_USER,"TDyMeshComputeGeometryFromPlex only supports 3D calculations.");
-  }
+  PetscInt dim = 3;
 
   // Compute/store plex geometry.
   PetscInt pStart, pEnd, vStart, vEnd, eStart, eEnd;
@@ -4229,6 +4204,7 @@ PetscErrorCode TDyMeshCreate(DM dm, PetscReal **volumes, PetscReal **coords,
   num_faces = f_end - f_start;
 
   TDyMesh *m = *mesh;
+  m->dim = 3;
   m->num_cells    = num_cells;
   m->num_faces    = num_faces;
   m->num_edges    = num_edges;

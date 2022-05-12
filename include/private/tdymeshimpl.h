@@ -181,6 +181,8 @@ typedef struct {
 
 typedef struct TDyMesh {
 
+  PetscInt dim;
+
   PetscInt   num_cells;
   PetscInt   num_cells_local;
   PetscInt   num_faces;
