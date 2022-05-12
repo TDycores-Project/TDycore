@@ -14,6 +14,7 @@ typedef struct {
 
 
 PETSC_INTERN PetscErrorCode TDyDiscretizationCreate(TDyDiscretizationType*);
+PETSC_INTERN PetscErrorCode TDyDiscretizationCreateFromPFLOTRANMesh(const char*,PetscInt,TDyDiscretizationType*);
 PETSC_INTERN PetscErrorCode TDyCreateGlobalVector(TDyDM*,Vec*);
 PETSC_INTERN PetscErrorCode TDyCreateLocalVector(TDyDM*,Vec*);
 PETSC_INTERN PetscErrorCode TDyCreateNaturalVector(TDyDM*,Vec*);
