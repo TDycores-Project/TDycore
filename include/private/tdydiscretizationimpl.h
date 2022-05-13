@@ -15,16 +15,17 @@ typedef struct {
 
 PETSC_INTERN PetscErrorCode TDyDiscretizationCreate(TDyDiscretizationType*);
 PETSC_INTERN PetscErrorCode TDyDiscretizationCreateFromPFLOTRANMesh(const char*,PetscInt,TDyDiscretizationType*);
-PETSC_INTERN PetscErrorCode TDyCreateGlobalVector(TDyDM*,Vec*);
-PETSC_INTERN PetscErrorCode TDyCreateLocalVector(TDyDM*,Vec*);
-PETSC_INTERN PetscErrorCode TDyCreateNaturalVector(TDyDM*,Vec*);
-PETSC_INTERN PetscErrorCode TDyCreateJacobianMatrix(TDyDM*,Mat*);
-PETSC_INTERN PetscErrorCode TDyGlobalToNatural(TDyDM*,Vec,Vec);
-PETSC_INTERN PetscErrorCode TDyGlobalToLocal(TDyDM*,Vec,Vec);
-PETSC_INTERN PetscErrorCode TDyNaturalToGlobal(TDyDM*,Vec,Vec);
-PETSC_INTERN PetscErrorCode TDyNaturaltoLocal(TDyDM*,Vec,Vec*);
+PETSC_INTERN PetscErrorCode TDyDiscretizationCreateGlobalVector(TDyDiscretizationType*,Vec*);
+PETSC_INTERN PetscErrorCode TDyDiscretizationCreateLocalVector(TDyDiscretizationType*,Vec*);
+PETSC_INTERN PetscErrorCode TDyDiscretizationCreateNaturalVector(TDyDiscretizationType*,Vec*);
+PETSC_INTERN PetscErrorCode TDyDiscretizationCreateJacobianMatrix(TDyDiscretizationType*,Mat*);
+PETSC_INTERN PetscErrorCode TDyDiscretizationGlobalToNatural(TDyDiscretizationType*,Vec,Vec);
+PETSC_INTERN PetscErrorCode TDyDiscretizationGlobalToLocal(TDyDiscretizationType*,Vec,Vec);
+PETSC_INTERN PetscErrorCode TDyDiscretizationNaturalToGlobal(TDyDiscretizationType*,Vec,Vec);
+PETSC_INTERN PetscErrorCode TDyDiscretizationNaturaltoLocal(TDyDiscretizationType*,Vec,Vec*);
 PETSC_INTERN PetscErrorCode TDyDiscretizationGetTDyDM(TDyDiscretizationType*,TDyDM*);
 PETSC_INTERN PetscErrorCode TDyDiscretizationGetDM(TDyDiscretizationType*,DM*);
+
 
 #endif
 

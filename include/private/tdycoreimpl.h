@@ -144,4 +144,10 @@ struct _p_TDy {
 
 };
 
+PETSC_INTERN PetscErrorCode TDyCreateGlobalVector(TDy,Vec*);
+PETSC_INTERN PetscErrorCode TDyCreateLocalVector(TDy,Vec*);
+PETSC_INTERN PetscErrorCode TDyNaturalToGlobal(TDy,Vec,Vec);
+PETSC_INTERN PetscErrorCode TDyGlobalToLocal(TDy,Vec,Vec);
+PETSC_INTERN PetscErrorCode TDyGlobalToNatural(TDy,Vec,Vec);
+
 #endif

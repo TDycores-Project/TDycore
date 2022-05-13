@@ -28,7 +28,7 @@ PetscErrorCode TDyMPFAOIFunction_DAE(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void 
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
-  ierr = TDyGlobalToLocal(&(&tdy->discretization)->tdydm,U,tdy->soln_loc); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 

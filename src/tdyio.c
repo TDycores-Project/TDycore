@@ -305,8 +305,8 @@ PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, Pe
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
   ierr = VecLoad(u,viewer);CHKERRQ(ierr);
 
-  ierr = TDyCreateLocalVector(&(&tdy->discretization)->tdydm, &u_local);
-  ierr = TDyNaturaltoLocal(&(&tdy->discretization)->tdydm,u,&u_local);CHKERRQ(ierr);
+  ierr = TDyCreateLocalVector(tdy, &u_local);
+  ierr = TDyDiscretizationNaturaltoLocal(&tdy->discretization,u,&u_local);CHKERRQ(ierr);
 
   ierr = VecGetArray(u_local,&ptr);CHKERRQ(ierr);
   ierr = VecGetSize(u_local,&n);CHKERRQ(ierr);
@@ -340,8 +340,8 @@ PetscErrorCode TDyIOOutputCheckpoint(TDy tdy){
   sprintf(filename,"%11.5e_%s.h5",time,"chk");
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,filename,FILE_MODE_APPEND,&viewer);CHKERRQ(ierr);
 
-  ierr = TDyCreateGlobalVector(&(&tdy->discretization)->tdydm,&p_natural);
-  ierr = TDyGlobalToNatural(&(&tdy->discretization)->tdydm,p,p_natural);CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(tdy,&p_natural);
+  ierr = TDyGlobalToNatural(tdy,p,p_natural);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject) p_natural,"IC");CHKERRQ(ierr);
   ierr = VecView(p_natural,viewer);CHKERRQ(ierr);
   ierr = PetscViewerHDF5WriteAttribute(viewer,NULL,"time step", PETSC_INT, (void *) &tdy->ti->istep);CHKERRQ(ierr);
@@ -430,11 +430,11 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     if (useNatural) {
       Vec p_natural;
       Vec s_natural;
-      ierr = TDyCreateGlobalVector(&(&tdy->discretization)->tdydm,&p_natural);
-      ierr = TDyGlobalToNatural(&(&tdy->discretization)->tdydm, p, p_natural);CHKERRQ(ierr);
+      ierr = TDyCreateGlobalVector(tdy,&p_natural);
+      ierr = TDyGlobalToNatural(tdy, p, p_natural);CHKERRQ(ierr);
 
-      ierr = TDyCreateGlobalVector(&(&tdy->discretization)->tdydm, &s_natural);
-      ierr = TDyGlobalToNatural(&(&tdy->discretization)->tdydm, s, s_natural);CHKERRQ(ierr);
+      ierr = TDyCreateGlobalVector(tdy, &s_natural);
+      ierr = TDyGlobalToNatural(tdy, s, s_natural);CHKERRQ(ierr);
 
       ierr = TDyIOWriteHDF5Var(ofilename,dm,p_natural,zonalVarNames[0],time);CHKERRQ(ierr);
       ierr = TDyIOWriteHDF5Var(ofilename,dm,s_natural,zonalVarNames[1],time);CHKERRQ(ierr);

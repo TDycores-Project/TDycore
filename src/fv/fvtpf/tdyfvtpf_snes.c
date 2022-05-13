@@ -530,7 +530,7 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   DM dm;
   ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
 
-  ierr = TDyGlobalToLocal(&(&tdy->discretization)->tdydm, U, tdy->soln_loc); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy, U, tdy->soln_loc); CHKERRQ(ierr);
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate

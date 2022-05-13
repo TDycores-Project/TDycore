@@ -23,7 +23,7 @@ PetscErrorCode TDyMPFAOTransientVariable(TS ts, Vec U, Vec C, void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  ierr = TDyGlobalToLocal(&(&tdy->discretization)->tdydm,U,tdy->soln_loc); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(tdy->soln_loc,&p); CHKERRQ(ierr);
@@ -65,7 +65,7 @@ PetscErrorCode TDyMPFAOIFunction_TransientVariable(TS ts,PetscReal t,Vec U,Vec M
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
-  ierr = TDyGlobalToLocal(&(&tdy->discretization)->tdydm,U,tdy->soln_loc); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 

@@ -65,12 +65,13 @@ PetscErrorCode TDyDiscretizationGetDM(TDyDiscretizationType *discretization, DM 
 /// @param [in] tdy     A TDy struct
 /// @param [out] vector A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyCreateGlobalVector(TDyDM *tdydm, Vec *vector){
+PetscErrorCode TDyDiscretizationCreateGlobalVector(TDyDiscretizationType *discretization, Vec *vector){
 
   PetscFunctionBegin;
-  DM dm = tdydm->dm;
   PetscErrorCode ierr;
 
+  TDyDM *tdydm = &discretization->tdydm;
+  DM dm = tdydm->dm;
   ierr = DMCreateGlobalVector(dm, vector); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -84,12 +85,13 @@ PetscErrorCode TDyCreateGlobalVector(TDyDM *tdydm, Vec *vector){
 /// @param [in] tdy     A TDy struct
 /// @param [out] vector A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyCreateLocalVector(TDyDM *tdydm, Vec *vector){
+PetscErrorCode TDyDiscretizationCreateLocalVector(TDyDiscretizationType *discretization, Vec *vector){
 
   PetscFunctionBegin;
-  DM dm = tdydm->dm;
   PetscErrorCode ierr;
 
+  TDyDM *tdydm = &discretization->tdydm;
+  DM dm = tdydm->dm;
   ierr = DMCreateLocalVector(dm, vector); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -102,14 +104,16 @@ PetscErrorCode TDyCreateLocalVector(TDyDM *tdydm, Vec *vector){
 /// @param [in] tdy     A TDy struct
 /// @param [out] vector A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyCreateNaturalVector(TDyDM *tdydm, Vec *vector){
+PetscErrorCode TDyDiscretizationCreateNaturalVector(TDyDiscretizationType *discretization, Vec *vector){
 
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
+  TDyDM *tdydm = &discretization->tdydm;
+
   switch (tdydm->dmtype) {
     case PLEX_TYPE:
-      ierr = TDyCreateGlobalVector(tdydm, vector); CHKERRQ(ierr);
+      ierr = TDyDiscretizationCreateGlobalVector(discretization, vector); CHKERRQ(ierr);
       break;
     case TDYCORE_DM_TYPE:
       //ierr = TDyUGDMCreateNaturalVec(tdydm->ugdm, vector); CHKERRQ(ierr);
@@ -127,11 +131,13 @@ PetscErrorCode TDyCreateNaturalVector(TDyDM *tdydm, Vec *vector){
 /// @param [in] tdy     A TDy struct
 /// @param [out] matrix A PETSc matrix
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyCreateJacobianMatrix(TDyDM *tdydm, Mat *matrix){
+PetscErrorCode TDyDiscretizationCreateJacobianMatrix(TDyDiscretizationType *discretization, Mat *matrix){
 
   PetscFunctionBegin;
-  DM dm = tdydm->dm;
   PetscErrorCode ierr;
+
+  TDyDM *tdydm = &discretization->tdydm;
+  DM dm = tdydm->dm;
 
   ierr = DMCreateMatrix(dm, matrix); CHKERRQ(ierr);
   ierr = MatSetOption(*matrix, MAT_KEEP_NONZERO_PATTERN, PETSC_FALSE); CHKERRQ(ierr);
@@ -149,12 +155,14 @@ PetscErrorCode TDyCreateJacobianMatrix(TDyDM *tdydm, Mat *matrix){
 /// @param [in] global   A PETSc vector
 /// @param [out] natural A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyGlobalToNatural(TDyDM *tdydm, Vec global, Vec natural){
+PetscErrorCode TDyDiscretizationGlobalToNatural(TDyDiscretizationType *discretization, Vec global, Vec natural){
 
   PetscFunctionBegin;
-  DM dm = tdydm->dm;
   PetscBool useNatural;
   PetscErrorCode ierr;
+
+  TDyDM *tdydm = &discretization->tdydm;
+  DM dm = tdydm->dm;
 
   ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);
   if (!useNatural) {
@@ -175,11 +183,13 @@ PetscErrorCode TDyGlobalToNatural(TDyDM *tdydm, Vec global, Vec natural){
 /// @param [in] global A PETSc vector
 /// @param [out] local A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyGlobalToLocal(TDyDM *tdydm, Vec global, Vec local){
+PetscErrorCode TDyDiscretizationGlobalToLocal(TDyDiscretizationType *discretization, Vec global, Vec local){
 
   PetscFunctionBegin;
-  DM dm = tdydm->dm;
   PetscErrorCode ierr;
+
+  TDyDM *tdydm = &discretization->tdydm;
+  DM dm = tdydm->dm;
 
   ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, local);CHKERRQ(ierr);
   ierr = DMGlobalToLocalEnd(dm, global, INSERT_VALUES, local);CHKERRQ(ierr);
@@ -193,12 +203,14 @@ PetscErrorCode TDyGlobalToLocal(TDyDM *tdydm, Vec global, Vec local){
 /// @param [in] global A PETSc vector
 /// @param [out] local A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyNaturalToGlobal(TDyDM *tdydm, Vec natural, Vec global){
+PetscErrorCode TDyDiscretizationNaturalToGlobal(TDyDiscretizationType *discretization, Vec natural, Vec global){
 
   PetscFunctionBegin;
-  DM dm = tdydm->dm;
   PetscBool useNatural;
   PetscErrorCode ierr;
+
+  TDyDM *tdydm = &discretization->tdydm;
+  DM dm = tdydm->dm;
 
   ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);
   if (!useNatural) {
@@ -219,17 +231,17 @@ PetscErrorCode TDyNaturalToGlobal(TDyDM *tdydm, Vec natural, Vec global){
 /// @param [in] natural A PETSc vector
 /// @param [out] local   A PETSc vector
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode TDyNaturaltoLocal(TDyDM *tdydm,Vec natural, Vec *local) {
+PetscErrorCode TDyDiscretizationNaturaltoLocal(TDyDiscretizationType *discretization,Vec natural, Vec *local) {
 
   PetscFunctionBegin;
 
   PetscErrorCode ierr;
   Vec global;
   
-  ierr = TDyCreateGlobalVector(tdydm, &global);CHKERRQ(ierr);
+  ierr = TDyDiscretizationCreateGlobalVector(discretization, &global);CHKERRQ(ierr);
 
-  ierr = TDyNaturalToGlobal(tdydm, natural, global);CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(tdydm, global, *local); CHKERRQ(ierr);
+  ierr = TDyDiscretizationNaturalToGlobal(discretization, natural, global);CHKERRQ(ierr);
+  ierr = TDyDiscretizationGlobalToLocal(discretization, global, *local); CHKERRQ(ierr);
 
   ierr = VecDestroy(&global); CHKERRQ(ierr);
 

@@ -1425,6 +1425,39 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDyNaturalToGlobal(TDy tdy, Vec natural, Vec global) {
+
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  ierr = TDyDiscretizationNaturalToGlobal(&tdy->discretization, natural, global); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyGlobalToLocal(TDy tdy, Vec global, Vec local) {
+
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  ierr = TDyDiscretizationGlobalToLocal(&tdy->discretization, global, local); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyGlobalToNatural(TDy tdy, Vec global, Vec natural) {
+
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  ierr = TDyDiscretizationGlobalToNatural(&tdy->discretization, global, natural); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 /// Sets initial condition for the TDy solver
 ///
 /// @param [inout] tdy A TDy struct
@@ -1437,9 +1470,9 @@ PetscErrorCode TDySetDtimeForSNESSolver(TDy tdy, PetscReal dtime) {
 PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ierr = TDyNaturalToGlobal(&(&tdy->discretization)->tdydm,initial,tdy->soln); CHKERRQ(ierr);
-  ierr = TDyNaturalToGlobal(&(&tdy->discretization)->tdydm,initial,tdy->soln_prev); CHKERRQ(ierr);
-  ierr = TDyNaturaltoLocal(&(&tdy->discretization)->tdydm,initial,&(tdy->soln_loc)); CHKERRQ(ierr);
+  ierr = TDyNaturalToGlobal(tdy,initial,tdy->soln); CHKERRQ(ierr);
+  ierr = TDyNaturalToGlobal(tdy,initial,tdy->soln_prev); CHKERRQ(ierr);
+  ierr = TDyDiscretizationNaturaltoLocal(&tdy->discretization,initial,&(tdy->soln_loc)); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1518,6 +1551,24 @@ PetscErrorCode TDyCreateDiagnosticVector(TDy tdy, Vec *diag_vec) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyCreateGlobalVector(TDy tdy, Vec *vec) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  
+  ierr = TDyDiscretizationCreateGlobalVector(&tdy->discretization, vec); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyCreateLocalVector(TDy tdy, Vec *vec) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  
+  ierr = TDyDiscretizationCreateLocalVector(&tdy->discretization, vec); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 /// Creates a Vec that can store a cell-centered scalar prognostic field such as
 /// the saturation or liquid mass.
 /// @param [in] tdy A TDy object
@@ -1534,7 +1585,7 @@ PetscErrorCode TDyCreatePrognosticVector(TDy tdy, Vec *prog_vec) {
   }
 
   // Create a cell-centered scalar field vector.
-  ierr = TDyCreateGlobalVector(&(&tdy->discretization)->tdydm, prog_vec); CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(tdy, prog_vec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1593,7 +1644,7 @@ PetscErrorCode TDyGetLiquidSaturation(TDy tdy, Vec sat_vec) {
   Vec tmp_vec;
   ierr = TDyCreateDiagnosticVector(tdy, &tmp_vec); CHKERRQ(ierr);
   ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_SATURATION, tmp_vec); CHKERRQ(ierr);
-  ierr = TDyGlobalToNatural(&(&tdy->discretization)->tdydm, tmp_vec, sat_vec);CHKERRQ(ierr); CHKERRQ(ierr);
+  ierr = TDyGlobalToNatural(tdy, tmp_vec, sat_vec);CHKERRQ(ierr); CHKERRQ(ierr);
   ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
 
   CHKERRQ(ierr);
@@ -1612,7 +1663,7 @@ PetscErrorCode TDyGetLiquidMass(TDy tdy, Vec mass_vec) {
   Vec tmp_vec;
   ierr = TDyCreateDiagnosticVector(tdy, &tmp_vec); CHKERRQ(ierr);
   ierr = ExtractDiagnosticField(tdy, DIAG_LIQUID_MASS, tmp_vec); CHKERRQ(ierr);
-  ierr = TDyGlobalToNatural(&(&tdy->discretization)->tdydm, tmp_vec, mass_vec);CHKERRQ(ierr); CHKERRQ(ierr);
+  ierr = TDyGlobalToNatural(tdy, tmp_vec, mass_vec);CHKERRQ(ierr); CHKERRQ(ierr);
   ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -1646,9 +1697,9 @@ PetscErrorCode TDyGetLiquidPressure(TDy tdy, Vec liq_press_vec) {
   PetscFunctionBegin;
 
   Vec tmp_vec;
-  ierr = TDyCreateGlobalVector(&(&tdy->discretization)->tdydm, &tmp_vec); CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(tdy, &tmp_vec); CHKERRQ(ierr);
   ierr = ExtractPrognosticField(tdy, VAR_PRESSURE, tmp_vec); CHKERRQ(ierr);
-  ierr = TDyGlobalToNatural(&(&tdy->discretization)->tdydm, tmp_vec, liq_press_vec);CHKERRQ(ierr); CHKERRQ(ierr);
+  ierr = TDyGlobalToNatural(tdy, tmp_vec, liq_press_vec);CHKERRQ(ierr); CHKERRQ(ierr);
   ierr = VecDestroy(&tmp_vec); CHKERRQ(ierr);
 
   CHKERRQ(ierr);
@@ -1895,12 +1946,12 @@ PetscErrorCode TDyCreateVectors(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   if (tdy->soln == NULL) {
-    ierr = TDyCreateGlobalVector(&(&tdy->discretization)->tdydm, &tdy->soln); CHKERRQ(ierr);
+    ierr = TDyCreateGlobalVector(tdy, &tdy->soln); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->residual); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->accumulation_prev); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->soln_prev); CHKERRQ(ierr);
 
-    ierr = TDyCreateLocalVector(&(&tdy->discretization)->tdydm,&tdy->soln_loc); CHKERRQ(ierr);
+    ierr = TDyCreateLocalVector(tdy,&tdy->soln_loc); CHKERRQ(ierr);
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -1914,8 +1965,8 @@ PetscErrorCode TDyCreateJacobian(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   if (tdy->J == NULL) {
-    ierr = TDyCreateJacobianMatrix(&(&tdy->discretization)->tdydm,&tdy->J); CHKERRQ(ierr);
-    ierr = TDyCreateJacobianMatrix(&(&tdy->discretization)->tdydm,&tdy->Jpre); CHKERRQ(ierr);
+    ierr = TDyDiscretizationCreateJacobianMatrix(&tdy->discretization,&tdy->J); CHKERRQ(ierr);
+    ierr = TDyDiscretizationCreateJacobianMatrix(&tdy->discretization,&tdy->Jpre); CHKERRQ(ierr);
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
