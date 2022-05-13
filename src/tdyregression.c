@@ -4,7 +4,7 @@
 
 PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   TDyRegression *regression;
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = (&(&tdy->discretization)->tdydm)->dm;
   PetscInt c;
   PetscInt increment, global_offset;
   PetscInt myrank, size;
@@ -49,7 +49,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   MPI_Comm_size(PetscObjectComm((PetscObject)dm),&size);
   MPI_Comm_rank(PetscObjectComm((PetscObject)dm),&myrank);
 
-  ierr = TDyCreateGlobalVector(&tdy->tdydm,&U); CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(&(&tdy->discretization)->tdydm,&U); CHKERRQ(ierr);
   ierr = VecGetLocalSize(U,&vecsize_local); CHKERRQ(ierr);
 
   ierr = MPI_Allreduce(&vecsize_local,&min_vecsize_local,1,MPIU_INT,MPI_MIN,PetscObjectComm((PetscObject)dm)); CHKERRQ(ierr);
@@ -138,7 +138,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
 
 PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
 
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = (&(&tdy->discretization)->tdydm)->dm;
   TDyRegression *reg;
   PetscInt myrank, size;
   PetscErrorCode ierr;
@@ -276,7 +276,7 @@ PetscErrorCode TDyRegressionDestroy(TDy tdy) {
   ierr = VecScatterDestroy(&tdy->regression->scatter_cells_per_process_gtos); CHKERRQ(ierr);
   ierr = VecDestroy(&tdy->regression->cells_per_process_vec); CHKERRQ(ierr);
   int myrank;
-  MPI_Comm_rank(PetscObjectComm((PetscObject)(&tdy->tdydm)->dm),&myrank);
+  MPI_Comm_rank(PetscObjectComm((PetscObject)(&(&tdy->discretization)->tdydm)->dm),&myrank);
   if (myrank == 0) {
     ierr = PetscFree(tdy->regression->cells_per_process_natural_ids); CHKERRQ(ierr);
   }

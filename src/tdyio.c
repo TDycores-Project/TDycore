@@ -171,9 +171,9 @@ PetscErrorCode TDyIOReadPermeability(TDy tdy){
     strcpy(VariableName, tdy->io->permeability_dataset);
   }
 
-  ierr = DMGetDimension((&tdy->tdydm)->dm, &dim);
+  ierr = DMGetDimension((&(&tdy->discretization)->tdydm)->dm, &dim);
   PetscInt cStart,cEnd;
-  ierr = DMPlexGetHeightStratum((&tdy->tdydm)->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum((&(&tdy->discretization)->tdydm)->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
 
   if (tdy->io->anisotropic_permeability) {
     // Set up a function/context that assigns a diagonal anisotropic
@@ -303,8 +303,8 @@ PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, Pe
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,filename,FILE_MODE_READ,&viewer);CHKERRQ(ierr);
   ierr = VecLoad(u,viewer);CHKERRQ(ierr);
 
-  ierr = TDyCreateLocalVector(&tdy->tdydm, &u_local);
-  ierr = TDyNaturaltoLocal(&tdy->tdydm,u,&u_local);CHKERRQ(ierr);
+  ierr = TDyCreateLocalVector(&(&tdy->discretization)->tdydm, &u_local);
+  ierr = TDyNaturaltoLocal(&(&tdy->discretization)->tdydm,u,&u_local);CHKERRQ(ierr);
 
   ierr = VecGetArray(u_local,&ptr);CHKERRQ(ierr);
   ierr = VecGetSize(u_local,&n);CHKERRQ(ierr);
@@ -338,8 +338,8 @@ PetscErrorCode TDyIOOutputCheckpoint(TDy tdy){
   sprintf(filename,"%11.5e_%s.h5",time,"chk");
   ierr = PetscViewerHDF5Open(PETSC_COMM_WORLD,filename,FILE_MODE_APPEND,&viewer);CHKERRQ(ierr);
 
-  ierr = TDyCreateGlobalVector(&tdy->tdydm,&p_natural);
-  ierr = TDyGlobalToNatural(&tdy->tdydm,p,p_natural);CHKERRQ(ierr);
+  ierr = TDyCreateGlobalVector(&(&tdy->discretization)->tdydm,&p_natural);
+  ierr = TDyGlobalToNatural(&(&tdy->discretization)->tdydm,p,p_natural);CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject) p_natural,"IC");CHKERRQ(ierr);
   ierr = VecView(p_natural,viewer);CHKERRQ(ierr);
   ierr = PetscViewerHDF5WriteAttribute(viewer,NULL,"time step", PETSC_INT, (void *) &tdy->ti->istep);CHKERRQ(ierr);
@@ -355,7 +355,7 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
 
   tdy->io->format = format;
   int num_vars = tdy->io->num_vars;
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = (&(&tdy->discretization)->tdydm)->dm;
   char *zonalVarNames[num_vars];
 
   PetscInt dim,istart,iend,numCell,numVert,numCorner;
@@ -389,7 +389,7 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscErrorCode ierr;
   PetscBool useNatural;
   Vec p = tdy->soln_prev;
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = (&(&tdy->discretization)->tdydm)->dm;
   PetscReal time = tdy->ti->time;
   int num_vars = tdy->io->num_vars;
   char *zonalVarNames[num_vars];
@@ -425,11 +425,11 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
     if (useNatural) {
       Vec p_natural;
       Vec s_natural;
-      ierr = TDyCreateGlobalVector(&tdy->tdydm,&p_natural);
-      ierr = TDyGlobalToNatural(&tdy->tdydm, p, p_natural);CHKERRQ(ierr);
+      ierr = TDyCreateGlobalVector(&(&tdy->discretization)->tdydm,&p_natural);
+      ierr = TDyGlobalToNatural(&(&tdy->discretization)->tdydm, p, p_natural);CHKERRQ(ierr);
 
-      ierr = TDyCreateGlobalVector(&tdy->tdydm, &s_natural);
-      ierr = TDyGlobalToNatural(&tdy->tdydm, s, s_natural);CHKERRQ(ierr);
+      ierr = TDyCreateGlobalVector(&(&tdy->discretization)->tdydm, &s_natural);
+      ierr = TDyGlobalToNatural(&(&tdy->discretization)->tdydm, s, s_natural);CHKERRQ(ierr);
 
       ierr = TDyIOWriteHDF5Var(ofilename,dm,p_natural,zonalVarNames[0],time);CHKERRQ(ierr);
       ierr = TDyIOWriteHDF5Var(ofilename,dm,s_natural,zonalVarNames[1],time);CHKERRQ(ierr);

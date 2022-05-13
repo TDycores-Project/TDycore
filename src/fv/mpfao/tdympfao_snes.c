@@ -86,7 +86,7 @@ PetscErrorCode TDyMPFAOSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
 
-  ierr = TDyGlobalToLocal(&tdy->tdydm,U,tdy->soln_loc); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(&(&tdy->discretization)->tdydm,U,tdy->soln_loc); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
@@ -153,9 +153,9 @@ PetscErrorCode TDyMPFAOSNESJacobian(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
 
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 
-  ierr = TDyGlobalToLocal(&tdy->tdydm,U,tdy->soln_loc); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(&(&tdy->discretization)->tdydm,U,tdy->soln_loc); CHKERRQ(ierr);
 
-  ierr = TDyGlobalToLocal(&tdy->tdydm,U,tdy->soln_loc); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(&(&tdy->discretization)->tdydm,U,tdy->soln_loc); CHKERRQ(ierr);
 
   ierr = TDyMPFAOIJacobian_Vertices(tdy->soln_loc, B, ctx); CHKERRQ(ierr);
 

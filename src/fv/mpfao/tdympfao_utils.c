@@ -102,7 +102,7 @@ PetscErrorCode TDyMPFAOUpdateBoundaryState(TDy tdy) {
 
 PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
-  DM             dm = (&tdy->tdydm)->dm;
+  DM             dm = (&(&tdy->discretization)->tdydm)->dm;
   TDyMPFAO *mpfao = tdy->context;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
@@ -216,7 +216,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDy tdy, Vec U, PetscRea
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
-  DM             dm = (&tdy->tdydm)->dm;
+  DM             dm = (&(&tdy->discretization)->tdydm)->dm;
   TDyMPFAO *mpfao = tdy->context;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
@@ -530,7 +530,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
-  DM             dm = (&tdy->tdydm)->dm;
+  DM             dm = (&(&tdy->discretization)->tdydm)->dm;
   TDyMPFAO *mpfao = tdy->context;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
@@ -698,7 +698,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
 
   PetscFunctionBegin;
 
-  ierr = DMPlexGetHeightStratum((&tdy->tdydm)->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum((&(&tdy->discretization)->tdydm)->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = VecGetArray(mpfao->P_vec,&p_vec_ptr); CHKERRQ(ierr);
@@ -716,7 +716,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
   }
 
 
-  ierr = DMGetDimension((&tdy->tdydm)->dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension((&(&tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr);
 
   for (iface=0; iface<mesh->num_faces; iface++) {
 
@@ -764,7 +764,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
 
   PetscFunctionBegin;
 
-  ierr = DMPlexGetHeightStratum((&tdy->tdydm)->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum((&(&tdy->discretization)->tdydm)->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = VecGetArray(mpfao->Temp_P_vec,&t_vec_ptr); CHKERRQ(ierr);
@@ -775,7 +775,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
     t[c] = u_p[c*2+1];
   }
 
-  ierr = DMGetDimension((&tdy->tdydm)->dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension((&(&tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr);
 
   for (iface=0; iface<mesh->num_faces; iface++) {
 

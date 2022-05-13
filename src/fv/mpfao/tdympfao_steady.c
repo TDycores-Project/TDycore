@@ -9,7 +9,7 @@
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy, Mat K,Vec F) {
-  DM             dm = (&tdy->tdydm)->dm;
+  DM             dm = (&(&tdy->discretization)->tdydm)->dm;
   TDyMPFAO      *mpfao = tdy->context;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
@@ -86,7 +86,7 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy, Mat K,Vec F) {
 PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices(TDy tdy,
     Mat K,Vec F) {
 
-  DM            dm = (&tdy->tdydm)->dm;
+  DM            dm = (&(&tdy->discretization)->tdydm)->dm;
   TDyMPFAO      *mpfao = tdy->context;
   Conditions    *conditions = tdy->conditions;
   TDyMesh       *mesh = mpfao->mesh;
@@ -304,7 +304,7 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices(TDy tdy,
     Mat K,Vec F) {
 
-  DM             dm = (&tdy->tdydm)->dm;
+  DM             dm = (&(&tdy->discretization)->tdydm)->dm;
   TDyMPFAO      *mpfao = tdy->context;
   Conditions    *conditions = tdy->conditions;
   TDyMesh       *mesh = mpfao->mesh;

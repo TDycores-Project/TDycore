@@ -167,7 +167,7 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
   PetscReal ehat  = 1;    // area of ref element face ( [-1,1]^(dim-1) )
   PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],n0[3],n1[3],
               f; /* allocated at maximum possible size */
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = (&(&tdy->discretization)->tdydm)->dm;
   TDyWY *wy = tdy->context;
   Conditions *conditions = tdy->conditions;
 
@@ -546,7 +546,7 @@ PetscErrorCode IntegrateOnFaceConstant(TDy tdy,PetscInt c,PetscInt f,
   PetscReal value = 0;
   PetscInt dim;
   (*integral) = 0;
-  ierr = DMGetDimension((&tdy->tdydm)->dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetDimension((&(&tdy->discretization)->tdydm)->dm,&dim); CHKERRQ(ierr);
 
   if (tdy->ops->compute_boundary_pressure) {
     ierr = (*tdy->ops->compute_boundary_pressure)(tdy,
@@ -569,7 +569,7 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
   PetscQuadrature quadrature;
   const PetscScalar *quad_x,*quad_w;
   PetscReal xq[3],x[27],J[9],N[24],DF[81],DFinv[81],value;
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = (&(&tdy->discretization)->tdydm)->dm;
   ncv  = tdy->ncv;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quadrature);
@@ -664,7 +664,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
   PetscScalar pdirichlet,wgt,tol=1e4*PETSC_MACHINE_EPSILON;
   TDyWY *wy = tdy->context;
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = (&(&tdy->discretization)->tdydm)->dm;
   Conditions *conditions = tdy->conditions;
   PetscFunctionBegin;
 
@@ -829,7 +829,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   PetscInt element_col,local_col,global_col;
   PetscScalar A[MAX_LOCAL_SIZE],F[MAX_LOCAL_SIZE],sign_row,sign_col;
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
-  DM dm = (&tdy->tdydm)->dm;
+  DM dm = (&(&tdy->discretization)->tdydm)->dm;
   TDyWY *wy = tdy->context;
   Conditions *conditions = tdy->conditions;
 
@@ -840,7 +840,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   PetscScalar *u,pdirichlet,wgt;
   Vec localU;
   ierr = DMGetLocalVector(dm,&localU); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(&tdy->tdydm,U,localU); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(&(&tdy->discretization)->tdydm,U,localU); CHKERRQ(ierr);
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
   ierr = DMGetLocalSection(dm, &section); CHKERRQ(ierr);
   nq   = wy->ncv;
@@ -1151,7 +1151,7 @@ PetscErrorCode TDyWYResidual(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
   nv   = wy->nfv;
   wgt  = 1/((PetscReal)nv);
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
-  ierr = TDyGlobalToLocal(&tdy->tdydm,U,Ul); CHKERRQ(ierr);
+  ierr = TDyGlobalToLocal(&(&tdy->discretization)->tdydm,U,Ul); CHKERRQ(ierr);
   ierr = VecGetArray(Ul,&p); CHKERRQ(ierr);
   ierr = VecGetArray(U_t,&dp_dt); CHKERRQ(ierr);
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);

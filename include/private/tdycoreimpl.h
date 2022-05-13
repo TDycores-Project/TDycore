@@ -90,16 +90,8 @@ struct _p_TDy {
   // Flags that indicate where the dycore is in the setup process
   TDySetupFlags setup_flags;
 
-
+  // Discretization that hold information about DM and grid
   TDyDiscretizationType discretization;
-
-  // Grid and data management -- handed to a solver when the dycore is fully
-  // configured
-  TDyDM tdydm;
-
-  // An alternate to DMPlex for managing unstructured grid.
-  // This is only support two-point FV method.
-  TDyUGrid ugrid;
 
   // Contextual information passed to create_dm (if given).
   void* create_dm_context;

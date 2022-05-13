@@ -95,9 +95,9 @@ PetscErrorCode TDySetTimingMetadata(TDy tdy) {
     md->discretization = tdy->options.discretization;
     TDyMPFAO *mpfao = tdy->context;
     TDyMesh *mesh = mpfao->mesh;
-    if ((&tdy->tdydm)->dm != NULL) {
+    if ((&(&tdy->discretization)->tdydm)->dm != NULL) {
       PetscInt cStart, cEnd;
-      DMPlexGetHeightStratum((&tdy->tdydm)->dm,0,&cStart,&cEnd);
+      DMPlexGetHeightStratum((&(&tdy->discretization)->tdydm)->dm,0,&cStart,&cEnd);
       md->num_cells = mesh->num_cells_local;
     } else {
       md->num_cells = 0;
