@@ -24,7 +24,6 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_TH(Vec Ul, Vec R, void *ctx) {
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   TDyVertex *vertices = &mesh->vertices;
-  DM dm = (&(&tdy->discretization)->tdydm)->dm;
   PetscReal *r;
   PetscInt ivertex;
   PetscInt dim;
@@ -38,7 +37,8 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_TH(Vec Ul, Vec R, void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
@@ -211,7 +211,9 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
 
   PetscInt c,cStart,cEnd;
-  ierr = DMPlexGetHeightStratum((&(&tdy->discretization)->tdydm)->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
   PetscReal p[cEnd-cStart], dp_dt[cEnd-cStart],
             temp[cEnd-cStart], dtemp_dt[cEnd-cStart];
@@ -304,7 +306,6 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_TH(Vec Ul, Mat A, void *ctx) {
   TDyCell *cells = &mesh->cells;
   TDyFace *faces = &mesh->faces;
   TDyVertex *vertices = &mesh->vertices;
-  DM dm = (&(&tdy->discretization)->tdydm)->dm;
   PetscInt ivertex, vertex_id;
   PetscInt npitf_bc, nflux_in;
   PetscInt cell_id, cell_id_up, cell_id_dn;
@@ -329,6 +330,8 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices_TH(Vec Ul, Mat A, void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   ierr = VecGetArray(mpfao->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
@@ -607,7 +610,9 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_TH(Vec Ul,Vec Udotl,PetscReal shif
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
 
   PetscInt c,cStart,cEnd;
-  ierr = DMPlexGetHeightStratum((&(&tdy->discretization)->tdydm)->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
   PetscReal dp_dt[cEnd-cStart], dT_dt[cEnd-cStart], temp[cEnd-cStart];
   for (c=0;c<cEnd-cStart;c++) {
@@ -840,13 +845,14 @@ PetscErrorCode TDyMPFAOIJacobian_Accumulation_TH(Vec Ul,Vec Udotl,PetscReal shif
 PetscErrorCode TDyMPFAOIJacobian_TH(TS ts,PetscReal t,Vec U,Vec U_t,PetscReal shift,Mat A,Mat B,void *ctx) {
 
   TDy      tdy = (TDy)ctx;
-  DM             dm = (&(&tdy->discretization)->tdydm)->dm;
   Vec Udotl;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
 
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 

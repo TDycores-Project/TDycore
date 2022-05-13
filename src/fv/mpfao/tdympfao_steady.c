@@ -9,7 +9,6 @@
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy, Mat K,Vec F) {
-  DM             dm = (&(&tdy->discretization)->tdydm)->dm;
   TDyMPFAO      *mpfao = tdy->context;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
@@ -26,6 +25,8 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy, Mat K,Vec F) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -86,7 +87,6 @@ PetscErrorCode TDyMPFAOComputeSystem_InternalVertices(TDy tdy, Mat K,Vec F) {
 PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices(TDy tdy,
     Mat K,Vec F) {
 
-  DM            dm = (&(&tdy->discretization)->tdydm)->dm;
   TDyMPFAO      *mpfao = tdy->context;
   Conditions    *conditions = tdy->conditions;
   TDyMesh       *mesh = mpfao->mesh;
@@ -108,6 +108,8 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum( dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
@@ -304,7 +306,6 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVertices(TDy tdy,
     Mat K,Vec F) {
 
-  DM             dm = (&(&tdy->discretization)->tdydm)->dm;
   TDyMPFAO      *mpfao = tdy->context;
   Conditions    *conditions = tdy->conditions;
   TDyMesh       *mesh = mpfao->mesh;
@@ -325,6 +326,8 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
 
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);

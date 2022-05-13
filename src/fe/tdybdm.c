@@ -428,7 +428,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscQuadrature quadrature;
   PetscQuadrature face_quadrature;
   TDyBDM *bdm = tdy->context;
-  DM dm = (&(&tdy->discretization)->tdydm)->dm;
+    DM dm;
+    ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   Conditions *conditions = tdy->conditions;
 
   /* Get domain constants */

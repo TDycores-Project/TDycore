@@ -167,7 +167,8 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
   PetscReal ehat  = 1;    // area of ref element face ( [-1,1]^(dim-1) )
   PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],n0[3],n1[3],
               f; /* allocated at maximum possible size */
-  DM dm = (&(&tdy->discretization)->tdydm)->dm;
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   TDyWY *wy = tdy->context;
   Conditions *conditions = tdy->conditions;
 
@@ -664,7 +665,8 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
   PetscScalar pdirichlet,wgt,tol=1e4*PETSC_MACHINE_EPSILON;
   TDyWY *wy = tdy->context;
-  DM dm = (&(&tdy->discretization)->tdydm)->dm;
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   Conditions *conditions = tdy->conditions;
   PetscFunctionBegin;
 
@@ -829,7 +831,8 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   PetscInt element_col,local_col,global_col;
   PetscScalar A[MAX_LOCAL_SIZE],F[MAX_LOCAL_SIZE],sign_row,sign_col;
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
-  DM dm = (&(&tdy->discretization)->tdydm)->dm;
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   TDyWY *wy = tdy->context;
   Conditions *conditions = tdy->conditions;
 

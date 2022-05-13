@@ -79,6 +79,9 @@ PetscErrorCode TDyAddProfilingStage(const char* name) {
 }
 
 PetscErrorCode TDySetTimingMetadata(TDy tdy) {
+
+  PetscErrorCode ierr;
+
   if (timersEnabled_) {
     // Convert the tdy pointer to a 64-bit integer address so we can use it as
     // a key in the metadata table.
@@ -95,9 +98,11 @@ PetscErrorCode TDySetTimingMetadata(TDy tdy) {
     md->discretization = tdy->options.discretization;
     TDyMPFAO *mpfao = tdy->context;
     TDyMesh *mesh = mpfao->mesh;
-    if ((&(&tdy->discretization)->tdydm)->dm != NULL) {
+    DM dm;
+    ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+    if (dm != NULL) {
       PetscInt cStart, cEnd;
-      DMPlexGetHeightStratum((&(&tdy->discretization)->tdydm)->dm,0,&cStart,&cEnd);
+      DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);
       md->num_cells = mesh->num_cells_local;
     } else {
       md->num_cells = 0;

@@ -389,7 +389,9 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
     ierr = MaterialPropDestroy(tdy->matprop); CHKERRQ(ierr);
   }
 
-  ierr = DMDestroy(&(&(&tdy->discretization)->tdydm)->dm); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = DMDestroy(&dm); CHKERRQ(ierr);
   ierr = PetscFree(tdy); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -399,7 +401,9 @@ PetscErrorCode TDyGetDimension(TDy tdy,PetscInt *dim) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
-  ierr = DMGetDimension((&(&tdy->discretization)->tdydm)->dm,dim); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,dim); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -431,7 +435,9 @@ PetscErrorCode TDyGetBoundaryFaces(TDy tdy, PetscInt *num_faces,
   PetscErrorCode ierr;
   DMLabel label;
   IS is;
-  ierr = DMGetLabel((&(&tdy->discretization)->tdydm)->dm, "boundary", &label); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = DMGetLabel(dm, "boundary", &label); CHKERRQ(ierr);
   ierr = DMLabelGetStratumSize(label, 1, num_faces); CHKERRQ(ierr);
   ierr = DMLabelGetStratumIS(label, 1, &is); CHKERRQ(ierr);
   ierr = ISGetIndices(is, faces); CHKERRQ(ierr);
@@ -447,7 +453,9 @@ PetscErrorCode TDyRestoreBoundaryFaces(TDy tdy, PetscInt *num_faces,
   PetscErrorCode ierr;
   DMLabel label;
   IS is;
-  ierr = DMGetLabel((&(&tdy->discretization)->tdydm)->dm, "boundary", &label); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = DMGetLabel(dm, "boundary", &label); CHKERRQ(ierr);
   ierr = DMLabelGetStratumIS(label, 1, &is); CHKERRQ(ierr);
   ierr = ISRestoreIndices(is, faces); CHKERRQ(ierr);
   PetscFunctionReturn(0);
@@ -673,7 +681,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   }
 
   PetscInt dim = 3;
-  //ierr = DMGetDimension((&(&tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr);
 
   // Create an empty material properties object. Each function must be set
   // explicitly by the driver program.
@@ -714,13 +721,15 @@ PetscErrorCode TDySetup(TDy tdy) {
   tdy->eos.enthalpy_type = tdy->options.enthalpy_type;
 
   // Perform implementation-specific setup.
-  ierr = tdy->ops->setup(tdy->context, (&(&tdy->discretization)->tdydm)->dm, &tdy->eos, tdy->matprop,
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = tdy->ops->setup(tdy->context, dm, &tdy->eos, tdy->matprop,
                          tdy->cc, tdy->conditions); CHKERRQ(ierr);
 
   // If we support diagnostics, set up the DMs and the diagnostic vector.
   if (tdy->ops->update_diagnostics) {
     // Create a DM for diagnostic fields, and set its layout.
-    ierr = DMClone((&(&tdy->discretization)->tdydm)->dm, &tdy->diag_dm); CHKERRQ(ierr);
+    ierr = DMClone(dm, &tdy->diag_dm); CHKERRQ(ierr);
 
     // We define two cell-centered scalar fields: saturation and liquid mass
     PetscInt num_fields = 2;
@@ -1280,7 +1289,9 @@ PetscErrorCode TDyUpdateState(TDy tdy,PetscReal *U, PetscInt num_cells) {
   TDY_START_FUNCTION_TIMER()
 
   // Call the implementation-specific state update.
-  ierr = tdy->ops->update_state(tdy->context, (&(&tdy->discretization)->tdydm)->dm, &tdy->eos, tdy->matprop,
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = tdy->ops->update_state(tdy->context, dm, &tdy->eos, tdy->matprop,
                                 tdy->cc, num_cells, U); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
@@ -1386,7 +1397,9 @@ PetscErrorCode TDyComputeErrorNorms(TDy tdy, Vec U,
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
-  ierr = tdy->ops->compute_error_norms(tdy->context, (&(&tdy->discretization)->tdydm)->dm, tdy->conditions,
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = tdy->ops->compute_error_norms(tdy->context, dm, tdy->conditions,
                                        U, pressure_norm, velocity_norm);
   CHKERRQ(ierr);
   TDY_STOP_FUNCTION_TIMER()
@@ -1561,7 +1574,9 @@ PetscErrorCode TDyCreateMatrix(TDy tdy, Mat *mat) {
   }
 
   // Create a cell-centered scalar field vector.
-  ierr = DMCreateMatrix((&(&tdy->discretization)->tdydm)->dm, mat); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = DMCreateMatrix(dm, mat); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1655,10 +1670,11 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   PetscInt dim;
-  ierr = DMGetDimension((&(&tdy->discretization)->tdydm)->dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
-  ierr = DMGetLocalSection((&(&tdy->discretization)->tdydm)->dm, &sec);
+  ierr = DMGetLocalSection(dm, &sec);
   PetscInt num_fields;
   ierr = PetscSectionGetNumFields(sec, &num_fields);
   ierr = TSGetDM(ts,&dm);CHKERRQ(ierr);
@@ -1748,8 +1764,10 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   TDY_START_FUNCTION_TIMER()
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   PetscInt dim;
-  ierr = DMGetDimension((&(&tdy->discretization)->tdydm)->dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.discretization) {
   case MPFA_O:
@@ -1785,8 +1803,10 @@ PetscErrorCode TDySetSNESJacobian(SNES snes,TDy tdy) {
   TDY_START_FUNCTION_TIMER()
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   PetscInt dim;
-  ierr = DMGetDimension((&(&tdy->discretization)->tdydm)->dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.discretization) {
   case MPFA_O:
@@ -1838,8 +1858,10 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  ierr = PetscObjectGetComm((PetscObject)(&(&tdy->discretization)->tdydm)->dm,&comm); CHKERRQ(ierr);
-  ierr = DMGetDimension((&(&tdy->discretization)->tdydm)->dm,&dim); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.discretization) {
   case MPFA_O:

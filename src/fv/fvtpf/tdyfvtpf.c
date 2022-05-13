@@ -645,7 +645,9 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
 
   PetscFunctionBegin;
 
-  ierr = DMPlexGetHeightStratum((&(&tdy->discretization)->tdydm)->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
 
@@ -655,7 +657,7 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
     p[c] = u_p[c];
   }
 
-  ierr = DMGetDimension((&(&tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   for (iface=0; iface<mesh->num_faces; iface++) {
 

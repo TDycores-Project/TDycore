@@ -527,6 +527,9 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+
   ierr = TDyGlobalToLocal(&(&tdy->discretization)->tdydm, U, tdy->soln_loc); CHKERRQ(ierr);
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
@@ -557,7 +560,7 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
     PetscInt cell_id_dn = cell_ids[1];
 
     PetscReal Res;
-    ierr = RichardsResidual(fvtpf, (&(&tdy->discretization)->tdydm)->dm, tdy->matprop, iface, &Res);
+    ierr = RichardsResidual(fvtpf, dm, tdy->matprop, iface, &Res);
 
     if (cell_id_up >= 0 && cells->is_local[cell_id_up]) {
       r_ptr[cell_id_up] += Res;
@@ -582,10 +585,10 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
     PetscReal Res;
     switch (faces->bc_type[iface]) {
     case DIRICHLET_BC:
-      ierr = RichardsBCResidual(fvtpf, (&(&tdy->discretization)->tdydm)->dm, tdy->matprop, iface, &Res);
+      ierr = RichardsBCResidual(fvtpf, dm, tdy->matprop, iface, &Res);
       break;
     case SEEPAGE_BC:
-      ierr = RichardsSeepageBCResidual(fvtpf, (&(&tdy->discretization)->tdydm)->dm, tdy->matprop, iface, &Res);
+      ierr = RichardsSeepageBCResidual(fvtpf, dm, tdy->matprop, iface, &Res);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported bc type in the computation of the residual");
@@ -630,6 +633,9 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 
   // Compute contribution to Jacobian for internal faces
@@ -644,7 +650,7 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
     PetscInt cell_id_dn = cell_ids[1];
 
     PetscReal Jup, Jdn;
-    ierr = RichardsJacobian(fvtpf, (&(&tdy->discretization)->tdydm)->dm, tdy->matprop, iface, &Jup, &Jdn);
+    ierr = RichardsJacobian(fvtpf, dm, tdy->matprop, iface, &Jup, &Jdn);
 
     if (cell_id_up >= 0 && cells->is_local[cell_id_up]) {
       //r_ptr[cell_id_up] += Res;
@@ -675,10 +681,10 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
     PetscReal Jdn;
     switch (faces->bc_type[iface]) {
     case DIRICHLET_BC:
-      ierr = RichardsBCJacobian(fvtpf, (&(&tdy->discretization)->tdydm)->dm, tdy->matprop, iface, &Jdn);
+      ierr = RichardsBCJacobian(fvtpf, dm, tdy->matprop, iface, &Jdn);
       break;
     case SEEPAGE_BC:
-      ierr = RichardsSeepageBCJacobian(fvtpf, (&(&tdy->discretization)->tdydm)->dm, tdy->matprop, iface, &Jdn);
+      ierr = RichardsSeepageBCJacobian(fvtpf, dm, tdy->matprop, iface, &Jdn);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported bc type in the computation of the jacobian");
