@@ -23,6 +23,8 @@ PETSC_INTERN PetscErrorCode TDyGlobalToNatural(TDyDM*,Vec,Vec);
 PETSC_INTERN PetscErrorCode TDyGlobalToLocal(TDyDM*,Vec,Vec);
 PETSC_INTERN PetscErrorCode TDyNaturalToGlobal(TDyDM*,Vec,Vec);
 PETSC_INTERN PetscErrorCode TDyNaturaltoLocal(TDyDM*,Vec,Vec*);
+PETSC_INTERN PetscErrorCode TDyDiscretizationGetTDyDM(TDyDiscretizationType*,TDyDM*);
+PETSC_INTERN PetscErrorCode TDyDiscretizationGetDM(TDyDiscretizationType*,DM*);
 
 #endif
 

@@ -14,6 +14,7 @@ PetscErrorCode TDyDiscretizationCreate(TDyDiscretizationType *discretization) {
 
 }
 
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyDiscretizationCreateFromPFLOTRANMesh(const char *mesh_file, PetscInt ndof, TDyDiscretizationType *discretization) {
 
   PetscErrorCode ierr;
@@ -36,6 +37,23 @@ PetscErrorCode TDyDiscretizationDestroy(TDyDiscretizationType *discretization) {
 
   PetscFunctionReturn(0);
 
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyDiscretizationGetTDyDM(TDyDiscretizationType *discretization, TDyDM *tdydm) {
+
+  tdydm = &(discretization->tdydm);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyDiscretizationGetDM(TDyDiscretizationType *discretization, DM *dm) {
+
+  TDyDM *tdydm = &discretization->tdydm;
+  dm = &tdydm->dm;
+
+  PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */
