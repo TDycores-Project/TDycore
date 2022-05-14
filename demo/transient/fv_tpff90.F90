@@ -273,6 +273,7 @@ program main
   pflotran_consistent = PETSC_FALSE
   bc_type = NEUMANN_BC
   use_tdydriver = PETSC_FALSE
+  use_seepage_bc = PETSC_FALSE
 
   call TDyInit(ierr); CHKERRA(ierr);
   call TDyCreate(tdy, ierr); CHKERRA(ierr);
