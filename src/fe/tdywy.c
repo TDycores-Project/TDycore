@@ -547,7 +547,7 @@ PetscErrorCode IntegrateOnFaceConstant(TDy tdy,PetscInt c,PetscInt f,
   PetscReal value = 0;
   PetscInt dim;
   (*integral) = 0;
-  ierr = DMGetDimension((&(&tdy->discretization)->tdydm)->dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetDimension((&(tdy->discretization)->tdydm)->dm,&dim); CHKERRQ(ierr);
 
   if (tdy->ops->compute_boundary_pressure) {
     ierr = (*tdy->ops->compute_boundary_pressure)(tdy,
@@ -570,7 +570,7 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
   PetscQuadrature quadrature;
   const PetscScalar *quad_x,*quad_w;
   PetscReal xq[3],x[27],J[9],N[24],DF[81],DFinv[81],value;
-  DM dm = (&(&tdy->discretization)->tdydm)->dm;
+  DM dm = (&(tdy->discretization)->tdydm)->dm;
   ncv  = tdy->ncv;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quadrature);

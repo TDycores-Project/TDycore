@@ -419,7 +419,7 @@ PetscErrorCode TDyGetDiscretization(TDy tdy, TDyDiscretization* disc) {
 PetscErrorCode TDyGetDM(TDy tdy,DM *dm) {
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
-  *dm = (&(&tdy->discretization)->tdydm)->dm;
+  *dm = (&(tdy->discretization)->tdydm)->dm;
   PetscFunctionReturn(0);
 }
 
@@ -632,8 +632,8 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   // Create our DM.
   if (tdy->options.read_pflotran_mesh) {
     PetscInt ndof = tdy->ops->get_num_dm_fields(tdy->context);
-    ierr = TDyDiscretizationCreateFromPFLOTRANMesh(tdy->options.mesh_file, ndof, &tdy->discretization); CHKERRQ(ierr);
-  } else if (!(&(&tdy->discretization)->tdydm)->dm) {
+    ierr = TDyDiscretizationCreateFromPFLOTRANMesh(tdy->options.mesh_file, ndof, tdy->discretization); CHKERRQ(ierr);
+  } else if (!(&(tdy->discretization)->tdydm)->dm) {
     DM dm;
     if (tdy->options.read_mesh) {
       ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
@@ -668,15 +668,15 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     }
     ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
     ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
-    (&(&tdy->discretization)->tdydm)->dm = dm;
+    (&(tdy->discretization)->tdydm)->dm = dm;
 
     // Mark the grid's boundary faces and their transitive closure. All are
     // stored at their appropriate strata within the label.
     DMLabel boundary_label;
-    ierr = DMCreateLabel((&(&tdy->discretization)->tdydm)->dm, "boundary"); CHKERRQ(ierr);
-    ierr = DMGetLabel((&(&tdy->discretization)->tdydm)->dm, "boundary", &boundary_label); CHKERRQ(ierr);
-    ierr = DMPlexMarkBoundaryFaces((&(&tdy->discretization)->tdydm)->dm, 1, boundary_label); CHKERRQ(ierr);
-    ierr = DMPlexLabelComplete((&(&tdy->discretization)->tdydm)->dm, boundary_label); CHKERRQ(ierr);
+    ierr = DMCreateLabel((&(tdy->discretization)->tdydm)->dm, "boundary"); CHKERRQ(ierr);
+    ierr = DMGetLabel((&(tdy->discretization)->tdydm)->dm, "boundary", &boundary_label); CHKERRQ(ierr);
+    ierr = DMPlexMarkBoundaryFaces((&(tdy->discretization)->tdydm)->dm, 1, boundary_label); CHKERRQ(ierr);
+    ierr = DMPlexLabelComplete((&(tdy->discretization)->tdydm)->dm, boundary_label); CHKERRQ(ierr);
 
   }
 
@@ -1430,7 +1430,7 @@ PetscErrorCode TDyNaturalToGlobal(TDy tdy, Vec natural, Vec global) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  ierr = TDyDiscretizationNaturalToGlobal(&tdy->discretization, natural, global); CHKERRQ(ierr);
+  ierr = TDyDiscretizationNaturalToGlobal(tdy->discretization, natural, global); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1441,7 +1441,7 @@ PetscErrorCode TDyGlobalToLocal(TDy tdy, Vec global, Vec local) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  ierr = TDyDiscretizationGlobalToLocal(&tdy->discretization, global, local); CHKERRQ(ierr);
+  ierr = TDyDiscretizationGlobalToLocal(tdy->discretization, global, local); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1452,7 +1452,7 @@ PetscErrorCode TDyGlobalToNatural(TDy tdy, Vec global, Vec natural) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  ierr = TDyDiscretizationGlobalToNatural(&tdy->discretization, global, natural); CHKERRQ(ierr);
+  ierr = TDyDiscretizationGlobalToNatural(tdy->discretization, global, natural); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1472,7 +1472,7 @@ PetscErrorCode TDySetInitialCondition(TDy tdy, Vec initial) {
   PetscFunctionBegin;
   ierr = TDyNaturalToGlobal(tdy,initial,tdy->soln); CHKERRQ(ierr);
   ierr = TDyNaturalToGlobal(tdy,initial,tdy->soln_prev); CHKERRQ(ierr);
-  ierr = TDyDiscretizationNaturaltoLocal(&tdy->discretization,initial,&(tdy->soln_loc)); CHKERRQ(ierr);
+  ierr = TDyDiscretizationNaturaltoLocal(tdy->discretization,initial,&(tdy->soln_loc)); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1555,7 +1555,7 @@ PetscErrorCode TDyCreateGlobalVector(TDy tdy, Vec *vec) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   
-  ierr = TDyDiscretizationCreateGlobalVector(&tdy->discretization, vec); CHKERRQ(ierr);
+  ierr = TDyDiscretizationCreateGlobalVector(tdy->discretization, vec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1564,7 +1564,7 @@ PetscErrorCode TDyCreateLocalVector(TDy tdy, Vec *vec) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   
-  ierr = TDyDiscretizationCreateLocalVector(&tdy->discretization, vec); CHKERRQ(ierr);
+  ierr = TDyDiscretizationCreateLocalVector(tdy->discretization, vec); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -1965,8 +1965,8 @@ PetscErrorCode TDyCreateJacobian(TDy tdy) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   if (tdy->J == NULL) {
-    ierr = TDyDiscretizationCreateJacobianMatrix(&tdy->discretization,&tdy->J); CHKERRQ(ierr);
-    ierr = TDyDiscretizationCreateJacobianMatrix(&tdy->discretization,&tdy->Jpre); CHKERRQ(ierr);
+    ierr = TDyDiscretizationCreateJacobianMatrix(tdy->discretization,&tdy->J); CHKERRQ(ierr);
+    ierr = TDyDiscretizationCreateJacobianMatrix(tdy->discretization,&tdy->Jpre); CHKERRQ(ierr);
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);

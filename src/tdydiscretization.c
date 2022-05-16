@@ -2,13 +2,13 @@
 #include <private/tdydmimpl.h>
 #include <private/tdydiscretizationimpl.h>
 
-PetscErrorCode TDyDiscretizationCreate(TDyDiscretizationType *discretization) {
+PetscErrorCode TDyDiscretizationCreate(TDyDiscretizationType **discretization) {
 
   PetscErrorCode ierr;
 
-  discretization = malloc(sizeof(TDyDiscretization));
+  ierr = PetscCalloc(sizeof(TDyDiscretization), discretization); CHKERRQ(ierr);
 
-  ierr = TDyDMCreate (&discretization->tdydm); CHKERRQ(ierr);
+  ierr = TDyDMCreate (&(*discretization)->tdydm); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 

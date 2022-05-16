@@ -306,7 +306,7 @@ PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, Pe
   ierr = VecLoad(u,viewer);CHKERRQ(ierr);
 
   ierr = TDyCreateLocalVector(tdy, &u_local);
-  ierr = TDyDiscretizationNaturaltoLocal(&tdy->discretization,u,&u_local);CHKERRQ(ierr);
+  ierr = TDyDiscretizationNaturaltoLocal(tdy->discretization,u,&u_local);CHKERRQ(ierr);
 
   ierr = VecGetArray(u_local,&ptr);CHKERRQ(ierr);
   ierr = VecGetSize(u_local,&n);CHKERRQ(ierr);

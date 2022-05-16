@@ -13,7 +13,7 @@ typedef struct {
 } TDyDiscretizationType;
 
 
-PETSC_INTERN PetscErrorCode TDyDiscretizationCreate(TDyDiscretizationType*);
+PETSC_INTERN PetscErrorCode TDyDiscretizationCreate(TDyDiscretizationType**);
 PETSC_INTERN PetscErrorCode TDyDiscretizationCreateFromPFLOTRANMesh(const char*,PetscInt,TDyDiscretizationType*);
 PETSC_INTERN PetscErrorCode TDyDiscretizationCreateGlobalVector(TDyDiscretizationType*,Vec*);
 PETSC_INTERN PetscErrorCode TDyDiscretizationCreateLocalVector(TDyDiscretizationType*,Vec*);

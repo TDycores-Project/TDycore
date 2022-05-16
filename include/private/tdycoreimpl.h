@@ -91,7 +91,7 @@ struct _p_TDy {
   TDySetupFlags setup_flags;
 
   // Discretization that hold information about DM and grid
-  TDyDiscretizationType discretization;
+  TDyDiscretizationType *discretization;
 
   // Contextual information passed to create_dm (if given).
   void* create_dm_context;
