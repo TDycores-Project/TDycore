@@ -9,6 +9,7 @@ PetscErrorCode TDyDiscretizationCreate(TDyDiscretizationType **discretization) {
   ierr = PetscCalloc(sizeof(TDyDiscretization), discretization); CHKERRQ(ierr);
 
   ierr = TDyDMCreate (&(*discretization)->tdydm); CHKERRQ(ierr);
+  ierr = TDyUGridCreate (&(*discretization)->ugrid); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
@@ -19,9 +20,9 @@ PetscErrorCode TDyDiscretizationCreateFromPFLOTRANMesh(const char *mesh_file, Pe
 
   PetscErrorCode ierr;
 
-  ierr = TDyUGridCreateFromPFLOTRANMesh(&discretization->ugrid, mesh_file); CHKERRQ(ierr);
+  ierr = TDyUGridCreateFromPFLOTRANMesh(discretization->ugrid, mesh_file); CHKERRQ(ierr);
 
-  ierr = TDyDMCreateFromUGrid(ndof, &discretization->ugrid, discretization->tdydm); CHKERRQ(ierr);
+  ierr = TDyDMCreateFromUGrid(ndof, discretization->ugrid, discretization->tdydm); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -42,7 +43,7 @@ PetscErrorCode TDyDiscretizationDestroy(TDyDiscretizationType *discretization) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyDiscretizationGetTDyDM(TDyDiscretizationType *discretization, TDyDM *tdydm) {
 
-  tdydm = &(discretization->tdydm);
+  tdydm = (discretization->tdydm);
 
   PetscFunctionReturn(0);
 }

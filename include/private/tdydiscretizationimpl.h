@@ -8,7 +8,7 @@
 typedef struct {
 
   TDyDM *tdydm;
-  TDyUGrid ugrid;
+  TDyUGrid *ugrid;
 
 } TDyDiscretizationType;
 
