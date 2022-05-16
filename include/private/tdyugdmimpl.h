@@ -28,7 +28,7 @@ typedef struct {
 
 } TDyUGDM;
 
-PETSC_INTERN PetscErrorCode TDyUGDMCreate(TDyUGDM*);
+PETSC_INTERN PetscErrorCode TDyUGDMCreate(TDyUGDM**);
 PETSC_INTERN PetscErrorCode TDyUGDMDestroy(TDyUGDM*);
 PETSC_INTERN PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt,TDyUGrid*,TDyUGDM*);
 PETSC_INTERN PetscErrorCode TDyUGDMCreateGlobalVec(PetscInt,PetscInt,TDyUGDM*,Vec*);

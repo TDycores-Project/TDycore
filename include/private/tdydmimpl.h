@@ -12,7 +12,7 @@ typedef enum{
 
 typedef struct {
   DM dm;
-  TDyUGDM ugdm;
+  TDyUGDM *ugdm;
 
   TDyDMType dmtype;
 

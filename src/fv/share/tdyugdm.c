@@ -6,28 +6,29 @@
 #include <private/tdyutils.h>
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode TDyUGDMCreate(TDyUGDM *ugdm){
+PetscErrorCode TDyUGDMCreate(TDyUGDM **ugdm){
   PetscFunctionBegin;
+  PetscErrorCode ierr;
 
-  ugdm = malloc(sizeof(TDyUGDM));
+  ierr = PetscCalloc(sizeof(TDyUGDM), ugdm); CHKERRQ(ierr);
 
-  ugdm->IS_GhostedCells_in_LocalOrder = NULL;
-  ugdm->IS_GhostedCells_in_PetscOrder = NULL;
+  (*ugdm)->IS_GhostedCells_in_LocalOrder = NULL;
+  (*ugdm)->IS_GhostedCells_in_PetscOrder = NULL;
 
-  ugdm->IS_LocalCells_in_LocalOrder = NULL;
-  ugdm->IS_LocalCells_in_PetscOrder = NULL;
+  (*ugdm)->IS_LocalCells_in_LocalOrder = NULL;
+  (*ugdm)->IS_LocalCells_in_PetscOrder = NULL;
 
-  ugdm->IS_GhostCells_in_LocalOrder = NULL;
-  ugdm->IS_GhostCells_in_PetscOrder = NULL;
+  (*ugdm)->IS_GhostCells_in_LocalOrder = NULL;
+  (*ugdm)->IS_GhostCells_in_PetscOrder = NULL;
 
-  ugdm->IS_LocalCells_to_NaturalCells = NULL;
+  (*ugdm)->IS_LocalCells_to_NaturalCells = NULL;
 
-  ugdm->Scatter_LocalCells_to_GlobalCells = NULL;
-  ugdm->Scatter_GlobalCells_to_LocalCells = NULL;
-  ugdm->Scatter_LocalCells_to_LocalCells = NULL;
-  ugdm->Scatter_GlobalCells_to_NaturalCells = NULL;
+  (*ugdm)->Scatter_LocalCells_to_GlobalCells = NULL;
+  (*ugdm)->Scatter_GlobalCells_to_LocalCells = NULL;
+  (*ugdm)->Scatter_LocalCells_to_LocalCells = NULL;
+  (*ugdm)->Scatter_GlobalCells_to_NaturalCells = NULL;
 
-  ugdm->Mapping_LocalCells_to_GhostedCells = NULL;
+  (*ugdm)->Mapping_LocalCells_to_GhostedCells = NULL;
 
   PetscFunctionReturn(0);
 }
