@@ -1,15 +1,15 @@
 #include <private/tdydmimpl.h>
 #include <private/tdyugridimpl.h>
 
-PetscErrorCode TDyDMCreate(TDyDM *tdydm) {
+PetscErrorCode TDyDMCreate(TDyDM **tdydm) {
 
   PetscErrorCode ierr;
 
-  tdydm = malloc(sizeof(TDyDM));
+  ierr = PetscCalloc(sizeof(TDyDM), tdydm); CHKERRQ(ierr);
 
-  tdydm->dm = NULL;
+  (*tdydm)->dm = NULL;
 
-  ierr = TDyUGDMCreate(&tdydm->ugdm); CHKERRQ(ierr);
+  ierr = TDyUGDMCreate(&(*tdydm)->ugdm); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

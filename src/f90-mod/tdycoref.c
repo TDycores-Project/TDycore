@@ -380,7 +380,7 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   PetscErrorCode ierr; \
   PetscFunctionBegin; \
   PetscInt dim; \
-  ierr = DMGetDimension((&(tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
+  ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
   void *context; \
   ierr = CreateF90SpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
   ierr = matprop_fn(tdy->matprop, context, wrapper_fn, DestroyContext); \
@@ -409,7 +409,7 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   PetscErrorCode ierr; \
   PetscFunctionBegin; \
   PetscInt dim; \
-  ierr = DMGetDimension((&(tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
+  ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
   void *context; \
   ierr = CreateF90SpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
   ierr = condition_fn(tdy->conditions, context, wrapper_fn, DestroyContext); \
@@ -422,7 +422,7 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   PetscErrorCode ierr; \
   PetscFunctionBegin; \
   PetscInt dim; \
-  ierr = DMGetDimension((&(tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
+  ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
   void *context; \
   ierr = CreateF90IntegerSpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
   ierr = condition_fn(tdy->conditions, context, wrapper_fn, DestroyContext); \

@@ -21,7 +21,7 @@ PetscErrorCode TDyDiscretizationCreateFromPFLOTRANMesh(const char *mesh_file, Pe
 
   ierr = TDyUGridCreateFromPFLOTRANMesh(&discretization->ugrid, mesh_file); CHKERRQ(ierr);
 
-  ierr = TDyDMCreateFromUGrid(ndof, &discretization->ugrid, &discretization->tdydm); CHKERRQ(ierr);
+  ierr = TDyDMCreateFromUGrid(ndof, &discretization->ugrid, discretization->tdydm); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -32,7 +32,7 @@ PetscErrorCode TDyDiscretizationDestroy(TDyDiscretizationType *discretization) {
 
   discretization = malloc(sizeof(TDyDiscretization));
 
-  ierr = TDyDMDestroy (&discretization->tdydm); CHKERRQ(ierr);
+  ierr = TDyDMDestroy (discretization->tdydm); CHKERRQ(ierr);
   free(discretization);
 
   PetscFunctionReturn(0);
@@ -50,7 +50,7 @@ PetscErrorCode TDyDiscretizationGetTDyDM(TDyDiscretizationType *discretization, 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyDiscretizationGetDM(TDyDiscretizationType *discretization, DM *dm) {
 
-  TDyDM *tdydm = &discretization->tdydm;
+  TDyDM *tdydm = discretization->tdydm;
   dm = &tdydm->dm;
 
   PetscFunctionReturn(0);
@@ -70,7 +70,7 @@ PetscErrorCode TDyDiscretizationCreateGlobalVector(TDyDiscretizationType *discre
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  TDyDM *tdydm = &discretization->tdydm;
+  TDyDM *tdydm = discretization->tdydm;
   DM dm = tdydm->dm;
   ierr = DMCreateGlobalVector(dm, vector); CHKERRQ(ierr);
 
@@ -90,7 +90,7 @@ PetscErrorCode TDyDiscretizationCreateLocalVector(TDyDiscretizationType *discret
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  TDyDM *tdydm = &discretization->tdydm;
+  TDyDM *tdydm = discretization->tdydm;
   DM dm = tdydm->dm;
   ierr = DMCreateLocalVector(dm, vector); CHKERRQ(ierr);
 
@@ -109,7 +109,7 @@ PetscErrorCode TDyDiscretizationCreateNaturalVector(TDyDiscretizationType *discr
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  TDyDM *tdydm = &discretization->tdydm;
+  TDyDM *tdydm = discretization->tdydm;
 
   switch (tdydm->dmtype) {
     case PLEX_TYPE:
@@ -136,7 +136,7 @@ PetscErrorCode TDyDiscretizationCreateJacobianMatrix(TDyDiscretizationType *disc
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  TDyDM *tdydm = &discretization->tdydm;
+  TDyDM *tdydm = discretization->tdydm;
   DM dm = tdydm->dm;
 
   ierr = DMCreateMatrix(dm, matrix); CHKERRQ(ierr);
@@ -161,7 +161,7 @@ PetscErrorCode TDyDiscretizationGlobalToNatural(TDyDiscretizationType *discretiz
   PetscBool useNatural;
   PetscErrorCode ierr;
 
-  TDyDM *tdydm = &discretization->tdydm;
+  TDyDM *tdydm = discretization->tdydm;
   DM dm = tdydm->dm;
 
   ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);
@@ -188,7 +188,7 @@ PetscErrorCode TDyDiscretizationGlobalToLocal(TDyDiscretizationType *discretizat
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  TDyDM *tdydm = &discretization->tdydm;
+  TDyDM *tdydm = discretization->tdydm;
   DM dm = tdydm->dm;
 
   ierr = DMGlobalToLocalBegin(dm, global, INSERT_VALUES, local);CHKERRQ(ierr);
@@ -209,7 +209,7 @@ PetscErrorCode TDyDiscretizationNaturalToGlobal(TDyDiscretizationType *discretiz
   PetscBool useNatural;
   PetscErrorCode ierr;
 
-  TDyDM *tdydm = &discretization->tdydm;
+  TDyDM *tdydm = discretization->tdydm;
   DM dm = tdydm->dm;
 
   ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);

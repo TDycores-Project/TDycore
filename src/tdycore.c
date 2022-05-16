@@ -419,7 +419,7 @@ PetscErrorCode TDyGetDiscretization(TDy tdy, TDyDiscretization* disc) {
 PetscErrorCode TDyGetDM(TDy tdy,DM *dm) {
   PetscFunctionBegin;
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
-  *dm = (&(tdy->discretization)->tdydm)->dm;
+  *dm = ((tdy->discretization)->tdydm)->dm;
   PetscFunctionReturn(0);
 }
 
@@ -633,7 +633,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   if (tdy->options.read_pflotran_mesh) {
     PetscInt ndof = tdy->ops->get_num_dm_fields(tdy->context);
     ierr = TDyDiscretizationCreateFromPFLOTRANMesh(tdy->options.mesh_file, ndof, tdy->discretization); CHKERRQ(ierr);
-  } else if (!(&(tdy->discretization)->tdydm)->dm) {
+  } else if (!((tdy->discretization)->tdydm)->dm) {
     DM dm;
     if (tdy->options.read_mesh) {
       ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
@@ -668,15 +668,15 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     }
     ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
     ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
-    (&(tdy->discretization)->tdydm)->dm = dm;
+    ((tdy->discretization)->tdydm)->dm = dm;
 
     // Mark the grid's boundary faces and their transitive closure. All are
     // stored at their appropriate strata within the label.
     DMLabel boundary_label;
-    ierr = DMCreateLabel((&(tdy->discretization)->tdydm)->dm, "boundary"); CHKERRQ(ierr);
-    ierr = DMGetLabel((&(tdy->discretization)->tdydm)->dm, "boundary", &boundary_label); CHKERRQ(ierr);
-    ierr = DMPlexMarkBoundaryFaces((&(tdy->discretization)->tdydm)->dm, 1, boundary_label); CHKERRQ(ierr);
-    ierr = DMPlexLabelComplete((&(tdy->discretization)->tdydm)->dm, boundary_label); CHKERRQ(ierr);
+    ierr = DMCreateLabel(((tdy->discretization)->tdydm)->dm, "boundary"); CHKERRQ(ierr);
+    ierr = DMGetLabel(((tdy->discretization)->tdydm)->dm, "boundary", &boundary_label); CHKERRQ(ierr);
+    ierr = DMPlexMarkBoundaryFaces(((tdy->discretization)->tdydm)->dm, 1, boundary_label); CHKERRQ(ierr);
+    ierr = DMPlexLabelComplete(((tdy->discretization)->tdydm)->dm, boundary_label); CHKERRQ(ierr);
 
   }
 
