@@ -724,7 +724,6 @@ PetscErrorCode TDySetup(TDy tdy) {
   // Perform implementation-specific setup.
   DM dm;
   ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
-  printf("tmp = %d\n",(tdy->discretization)->tmp);
   ierr = tdy->ops->setup(tdy->context, tdy->discretization, &tdy->eos, tdy->matprop,
                          tdy->cc, tdy->conditions); CHKERRQ(ierr);
 

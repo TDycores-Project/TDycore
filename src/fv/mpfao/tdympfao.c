@@ -2373,7 +2373,6 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
   PetscInt dim2 = dim*dim;
   PetscInt cStart = 0, cEnd = num_cells;
   PetscInt nc = cEnd - cStart;
-  printf("TDyUpdateState_Richards_MPFAO\n");
 
   // Compute the capillary pressure on all cells.
   PetscReal Pc[nc];

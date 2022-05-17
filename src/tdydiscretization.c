@@ -10,11 +10,9 @@ PetscErrorCode TDyDiscretizationCreate(TDyDiscretizationType **discretization) {
   discretization_ptr = (TDyDiscretizationType*) malloc(sizeof(TDyDiscretizationType));
   *discretization = discretization_ptr;
 
-  ierr = TDyDMCreate(&((*discretization)->tdydm));
+  ierr = TDyDMCreate(&((*discretization)->tdydm)); CHKERRQ(ierr);
 
-  ierr = TDyUGridCreate(&((*discretization)->ugrid));
-
-  (*discretization)->tmp = -10;
+  ierr = TDyUGridCreate(&((*discretization)->ugrid)); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 
