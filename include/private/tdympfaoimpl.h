@@ -7,6 +7,7 @@
 #include <private/tdyeosimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdymeshimpl.h>
+#include <private/tdydiscretizationimpl.h>
 
 // This struct stores MPFA-O specific data for the dycore.
 typedef struct TDyMPFAO {
@@ -97,9 +98,9 @@ PETSC_INTERN PetscErrorCode TDyGetNumDMFields_Richards_MPFAO_DAE(void*);
 PETSC_INTERN PetscErrorCode TDySetDMFields_Richards_MPFAO(void*, DM);
 PETSC_INTERN PetscErrorCode TDySetDMFields_Richards_MPFAO_DAE(void*, DM);
 PETSC_INTERN PetscErrorCode TDySetDMFields_TH_MPFAO(void*, DM);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
-PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, TDyDiscretizationType*, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, TDyDiscretizationType*, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
+PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, TDyDiscretizationType*, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_MPFAO(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);

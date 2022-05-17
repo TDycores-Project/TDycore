@@ -62,7 +62,7 @@ struct _TDyOps {
   // Called by TDySetup -- configures the DM for solvers. By the time this
   // function is called, the DM has its field layout defined and has been
   // distributed across processes.
-  PetscErrorCode (*setup)(void*, DM, EOS*, MaterialProp*,
+  PetscErrorCode (*setup)(void*, TDyDiscretizationType*, EOS*, MaterialProp*,
                           CharacteristicCurves*, Conditions*);
 
   // Called by TDyUpdateState -- updates the state maintained by the

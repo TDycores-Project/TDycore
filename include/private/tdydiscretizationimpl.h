@@ -7,6 +7,7 @@
 
 typedef struct {
 
+  PetscInt tmp;
   TDyDM *tdydm;
   TDyUGrid *ugrid;
 

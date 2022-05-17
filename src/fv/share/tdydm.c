@@ -7,9 +7,7 @@ PetscErrorCode TDyDMCreate(TDyDM **tdydm) {
 
   ierr = PetscCalloc(sizeof(TDyDM), tdydm); CHKERRQ(ierr);
 
-  (*tdydm)->dm = NULL;
-
-  ierr = TDyUGDMCreate(&(*tdydm)->ugdm); CHKERRQ(ierr);
+  ierr = TDyUGDMCreate(&((*tdydm)->ugdm)); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

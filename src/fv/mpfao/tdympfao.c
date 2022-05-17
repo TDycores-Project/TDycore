@@ -412,6 +412,8 @@ PetscErrorCode TDyCreate_MPFAO(void **context) {
   mpfao->Pref = 101325;
   mpfao->Tref = 25;
   mpfao->gravity[0] = 0; mpfao->gravity[1] = 0; mpfao->gravity[2] = 0;
+  mpfao->vel = NULL;
+  mpfao->vel_count = NULL;
 
   PetscFunctionReturn(0);
 }
@@ -421,6 +423,7 @@ PetscErrorCode TDyDestroy_MPFAO(void *context) {
   PetscFunctionBegin;
   TDyMPFAO* mpfao = context;
 
+  PetscFunctionReturn(0);
   if (mpfao->vel) { ierr = PetscFree(mpfao->vel); CHKERRQ(ierr); }
   if (mpfao->vel_count) { ierr = PetscFree(mpfao->vel_count); CHKERRQ(ierr); }
 
@@ -2177,7 +2180,7 @@ static PetscErrorCode ComputeGravityDiscretization(TDyMPFAO *mpfao, DM dm,
 }
 
 // Setup function for Richards + MPFA_O
-PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
+PetscErrorCode TDySetup_Richards_MPFAO(void *context, TDyDiscretizationType* discretization, EOS *eos,
                                        MaterialProp *matprop,
                                        CharacteristicCurves *cc,
                                        Conditions *conditions) {
@@ -2185,6 +2188,8 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
 
   PetscErrorCode ierr;
   TDyMPFAO *mpfao = context;
+  DM dm;
+  ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
 
   ierr = TDyMeshCreate(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
   ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
@@ -2230,7 +2235,7 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, DM dm, EOS *eos,
 }
 
 // Setup function for Richards + MPFAO_DAE
-PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
+PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, TDyDiscretizationType *discretization, EOS *eos,
                                            MaterialProp *matprop,
                                            CharacteristicCurves *cc,
                                            Conditions* conditions) {
@@ -2239,6 +2244,8 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
   PetscFunctionReturn(0);
 
   TDyMPFAO *mpfao = context;
+  DM dm;
+  ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
 
   ierr = TDyMeshCreate(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
   ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
@@ -2282,7 +2289,7 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, DM dm, EOS *eos,
 }
 
 // Setup function for TH + MPFA-O
-PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
+PetscErrorCode TDySetup_TH_MPFAO(void *context, TDyDiscretizationType *discretization, EOS *eos,
                                  MaterialProp *matprop,
                                  CharacteristicCurves *cc,
                                  Conditions* conditions) {
@@ -2290,6 +2297,8 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, DM dm, EOS *eos,
 
   PetscErrorCode ierr;
   TDyMPFAO* mpfao = context;
+  DM dm;
+  ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
 
   ierr = TDyMeshCreate(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
   ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
@@ -2364,6 +2373,7 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
   PetscInt dim2 = dim*dim;
   PetscInt cStart = 0, cEnd = num_cells;
   PetscInt nc = cEnd - cStart;
+  printf("TDyUpdateState_Richards_MPFAO\n");
 
   // Compute the capillary pressure on all cells.
   PetscReal Pc[nc];

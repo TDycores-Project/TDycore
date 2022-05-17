@@ -669,6 +669,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     ierr = DMSetFromOptions(dm); CHKERRQ(ierr);
     ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
     ((tdy->discretization)->tdydm)->dm = dm;
+    //ierr = DMClone(dm, &((tdy->discretization)->tdydm)->dm); CHKERRQ(ierr);
 
     // Mark the grid's boundary faces and their transitive closure. All are
     // stored at their appropriate strata within the label.
@@ -723,7 +724,8 @@ PetscErrorCode TDySetup(TDy tdy) {
   // Perform implementation-specific setup.
   DM dm;
   ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
-  ierr = tdy->ops->setup(tdy->context, dm, &tdy->eos, tdy->matprop,
+  printf("tmp = %d\n",(tdy->discretization)->tmp);
+  ierr = tdy->ops->setup(tdy->context, tdy->discretization, &tdy->eos, tdy->matprop,
                          tdy->cc, tdy->conditions); CHKERRQ(ierr);
 
   // If we support diagnostics, set up the DMs and the diagnostic vector.

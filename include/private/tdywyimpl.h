@@ -7,6 +7,7 @@
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdyconditionsimpl.h>
+#include <private/tdydiscretizationimpl.h>
 
 // This struct stores Wheeler-Yotov specific data for the dycore.
 typedef struct TDyWY {
@@ -56,7 +57,7 @@ PETSC_INTERN PetscErrorCode TDyDestroy_WY(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_WY(void*, TDyOptions*);
 PETSC_INTERN PetscErrorCode TDySetDMFields_WY(void*,DM);
 PETSC_INTERN PetscInt TDyGetNumDMFields_WY(void*);
-PETSC_INTERN PetscErrorCode TDySetup_WY(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,Conditions*);
+PETSC_INTERN PetscErrorCode TDySetup_WY(void*,TDyDiscretizationType*,EOS*,MaterialProp*,CharacteristicCurves*,Conditions*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_WY(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,PetscInt,PetscReal*);
 PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_WY(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 

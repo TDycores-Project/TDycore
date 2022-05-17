@@ -6,10 +6,15 @@ PetscErrorCode TDyDiscretizationCreate(TDyDiscretizationType **discretization) {
 
   PetscErrorCode ierr;
 
-  ierr = PetscCalloc(sizeof(TDyDiscretization), discretization); CHKERRQ(ierr);
+  TDyDiscretizationType *discretization_ptr;
+  discretization_ptr = (TDyDiscretizationType*) malloc(sizeof(TDyDiscretizationType));
+  *discretization = discretization_ptr;
 
-  ierr = TDyDMCreate (&(*discretization)->tdydm); CHKERRQ(ierr);
-  ierr = TDyUGridCreate (&(*discretization)->ugrid); CHKERRQ(ierr);
+  ierr = TDyDMCreate(&((*discretization)->tdydm));
+
+  ierr = TDyUGridCreate(&((*discretization)->ugrid));
+
+  (*discretization)->tmp = -10;
 
   PetscFunctionReturn(0);
 
@@ -52,7 +57,7 @@ PetscErrorCode TDyDiscretizationGetTDyDM(TDyDiscretizationType *discretization, 
 PetscErrorCode TDyDiscretizationGetDM(TDyDiscretizationType *discretization, DM *dm) {
 
   TDyDM *tdydm = discretization->tdydm;
-  dm = &tdydm->dm;
+  *dm = tdydm->dm;
 
   PetscFunctionReturn(0);
 }

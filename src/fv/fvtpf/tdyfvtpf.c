@@ -530,7 +530,7 @@ PetscErrorCode TDyUpdateState_Richards_FVTPF(void *context, DM dm,
 }
 
 // Setup function for Richards + FV-TPF
-PetscErrorCode TDySetup_Richards_FVTPF(void *context, DM dm, EOS *eos,
+PetscErrorCode TDySetup_Richards_FVTPF(void *context, TDyDiscretizationType *discretization, EOS *eos,
                                        MaterialProp *matprop,
                                        CharacteristicCurves *cc,
                                        Conditions *conditions) {
@@ -538,6 +538,8 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, DM dm, EOS *eos,
 
   PetscErrorCode ierr;
   TDyFVTPF *fvtpf = context;
+  DM dm;
+  ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
 
   ierr = TDyMeshCreate(dm, &fvtpf->V, &fvtpf->X, &fvtpf->N, &fvtpf->mesh);
   ierr = TDyMeshGetMaxVertexConnectivity(fvtpf->mesh, &fvtpf->ncv, &fvtpf->nfv);

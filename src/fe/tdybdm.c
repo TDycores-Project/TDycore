@@ -3,6 +3,7 @@
 #include <private/tdybdmimpl.h>
 #include <petscblaslapack.h>
 #include <tdytimers.h>
+#include <private/tdydiscretizationimpl.h>
 
 /* (dim*vertices_per_cell+1)^2 */
 #define MAX_LOCAL_SIZE 625
@@ -92,7 +93,7 @@ PetscErrorCode TDySetDMFields_BDM(void *context, DM dm) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetup_BDM(void *context, DM dm, EOS *eos, MaterialProp *matprop,
+PetscErrorCode TDySetup_BDM(void *context, TDyDiscretizationType *discretization, EOS *eos, MaterialProp *matprop,
                             CharacteristicCurves *cc, Conditions *conditions) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
@@ -101,6 +102,8 @@ PetscErrorCode TDySetup_BDM(void *context, DM dm, EOS *eos, MaterialProp *matpro
            mStart,mEnd,i,nlocal,closureSize,*closure,d,dim;
 
   TDyBDM *bdm = context;
+  DM dm;
+  ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
 
   // Compute/store plex geometry.
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);

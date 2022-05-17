@@ -3,6 +3,7 @@
 
 #include <petsc.h>
 #include <tdycore.h>
+#include <private/tdydiscretizationimpl.h>
 
 // This struct stores BDM specific data for the dycore.
 typedef struct TDyBDM {
@@ -35,7 +36,7 @@ PETSC_INTERN PetscErrorCode TDyDestroy_BDM(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_BDM(void*,TDyOptions*);
 PETSC_INTERN PetscErrorCode TDySetDMFields_BDM(void*,DM);
 PETSC_INTERN PetscInt TDyGetNumDMFields_BDM(void*);
-PETSC_INTERN PetscErrorCode TDySetup_BDM(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,Conditions*);
+PETSC_INTERN PetscErrorCode TDySetup_BDM(void*,TDyDiscretizationType*,EOS*,MaterialProp*,CharacteristicCurves*,Conditions*);
 PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_BDM(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 
 #endif

@@ -320,7 +320,7 @@ PetscErrorCode TDySetDMFields_WY(void *context, DM dm) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
+PetscErrorCode TDySetup_WY(void *context, TDyDiscretizationType *discretization, EOS *eos,
                            MaterialProp *matprop, CharacteristicCurves *cc,
                            Conditions* conditions) {
   PetscFunctionBegin;
@@ -330,6 +330,9 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
   PetscInt  closureSize,  *closure;
 
   TDyWY *wy = context;
+  DM dm;
+  ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   // Compute/store plex geometry.
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -547,7 +550,7 @@ PetscErrorCode IntegrateOnFaceConstant(TDy tdy,PetscInt c,PetscInt f,
   PetscReal value = 0;
   PetscInt dim;
   (*integral) = 0;
-  ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(*((tdy->discretization)->tdydm)->dm,&dim); CHKERRQ(ierr);
 
   if (tdy->ops->compute_boundary_pressure) {
     ierr = (*tdy->ops->compute_boundary_pressure)(tdy,
