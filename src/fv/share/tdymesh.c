@@ -4305,6 +4305,47 @@ static PetscErrorCode TDyMeshMapIndices(TDyDiscretizationType *discretization, T
 }
 
 
+static PetscErrorCode TDySetupCellsFromDiscretization(TDyDiscretizationType *discretization, TDyMesh **mesh) {
+
+  PetscErrorCode ierr;
+
+  // compute number of vertices per grid cell
+  TDyUGrid *ugrid;
+  ierr = TDyDiscretizationGetTDyUGrid(discretization, &ugrid);
+
+  PetscInt nverts_per_cell = ugrid->max_verts_per_cell;
+  PetscInt num_cells = ugrid->num_cells_global;
+  PetscInt ngmax = ugrid->num_cells_global;
+  PetscInt nlmax = ugrid->num_cells_local;
+
+  TDyCellType cell_type = GetCellType(nverts_per_cell);
+
+  TDyMesh *mesh_ptr = *mesh;
+  ierr = AllocateCells(num_cells, cell_type, &mesh_ptr->cells); CHKERRQ(ierr);
+
+  TDyCell *cells = &mesh_ptr->cells;
+  PetscReal **vertices = ugrid->vertices;
+  PetscInt **cell_vertices = ugrid->cell_vertices;
+
+  for (PetscInt icell=0; icell<ngmax; icell++) {
+
+    PetscReal x=0.0,y=0.0,z=0.0;
+    PetscInt nvmax = ugrid->cell_num_vertices[icell];
+
+    for (PetscInt ivertex; ivertex<nvmax; ivertex++) {
+      PetscInt vertex_id = cell_vertices[icell][ivertex];
+      x += vertices[vertex_id][0];
+      y += vertices[vertex_id][1];
+      z += vertices[vertex_id][2];
+    }
+    cells->centroid[icell].X[0] = x/nvmax;
+    cells->centroid[icell].X[1] = y/nvmax;
+    cells->centroid[icell].X[2] = z/nvmax;
+  }
+
+  PetscFunctionReturn(0);
+}
+
 /// Constructs a mesh from TDycore-managed (i) TDyDM, and (ii) TDyUGrid
 /// @param [in] discretization A TDyDiscretizationType from which the mesh is created
 /// @param [out] mesh the newly constructed mesh instance
@@ -4315,6 +4356,8 @@ PetscErrorCode TDyMeshCreateFromDiscretization(TDyDiscretizationType *discretiza
   *mesh = malloc(sizeof(TDyMesh));
 
   ierr = TDyMeshMapIndices(discretization, mesh); CHKERRQ(ierr);
+  ierr = TDySetupCellsFromDiscretization(discretization, mesh); CHKERRQ(ierr);
+
 
   PetscFunctionReturn(0);
 }
