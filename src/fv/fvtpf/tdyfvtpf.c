@@ -541,8 +541,26 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, TDyDiscretizationType *dis
   DM dm;
   ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
 
-  ierr = TDyMeshCreate(dm, &fvtpf->V, &fvtpf->X, &fvtpf->N, &fvtpf->mesh);
-  ierr = TDyMeshGetMaxVertexConnectivity(fvtpf->mesh, &fvtpf->ncv, &fvtpf->nfv);
+  TDyDM *tdydm_ptr;
+  ierr = TDyDiscretizationGetTDyDM(discretization, &tdydm_ptr); CHKERRQ(ierr);
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+
+  switch (tdydm_ptr->dmtype) {
+    case PLEX_TYPE:
+    ierr = TDyMeshCreate(dm, &fvtpf->V, &fvtpf->X, &fvtpf->N, &fvtpf->mesh);
+    ierr = TDyMeshGetMaxVertexConnectivity(fvtpf->mesh, &fvtpf->ncv, &fvtpf->nfv);
+    break;
+
+    case TDYCORE_DM_TYPE:
+      SETERRQ(comm,PETSC_ERR_USER,"Add code to support TDYCORE_DM_TYPE");
+    break;
+
+    default:
+    SETERRQ(comm,PETSC_ERR_USER,"Unknown DMTYPE");
+
+  }
 
   ierr = TDyAllocate_RealArray_1D(&(fvtpf->vel), fvtpf->mesh->num_faces); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&(fvtpf->vel_count), fvtpf->mesh->num_faces); CHKERRQ(ierr);
