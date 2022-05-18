@@ -52,10 +52,27 @@ PetscErrorCode TDyDiscretizationGetTDyDM(TDyDiscretizationType *discretization, 
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDyDiscretizationGetTDyUGrid(TDyDiscretizationType *discretization, TDyUGrid **grid) {
+
+  *grid = discretization->ugrid;
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 PetscErrorCode TDyDiscretizationGetDM(TDyDiscretizationType *discretization, DM *dm) {
 
   TDyDM *tdydm = discretization->tdydm;
   *dm = tdydm->dm;
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyDiscretizationGetTDyUGDM(TDyDiscretizationType *discretization, TDyUGDM **ugdm) {
+
+  TDyDM *tdydm = discretization->tdydm;
+  *ugdm = tdydm->ugdm;
 
   PetscFunctionReturn(0);
 }

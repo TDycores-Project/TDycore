@@ -25,7 +25,8 @@ PETSC_INTERN PetscErrorCode TDyDiscretizationNaturalToGlobal(TDyDiscretizationTy
 PETSC_INTERN PetscErrorCode TDyDiscretizationNaturaltoLocal(TDyDiscretizationType*,Vec,Vec*);
 PETSC_INTERN PetscErrorCode TDyDiscretizationGetTDyDM(TDyDiscretizationType*,TDyDM**);
 PETSC_INTERN PetscErrorCode TDyDiscretizationGetDM(TDyDiscretizationType*,DM*);
-
+PETSC_INTERN PetscErrorCode TDyDiscretizationGetTDyUGrid(TDyDiscretizationType*,TDyUGrid**);
+PETSC_INTERN PetscErrorCode TDyDiscretizationGetTDyUGDM(TDyDiscretizationType*,TDyUGDM**);
 
 #endif
 
