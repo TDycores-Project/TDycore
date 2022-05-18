@@ -4265,6 +4265,60 @@ PetscErrorCode TDyMeshCreate(DM dm, PetscReal **volumes, PetscReal **coords,
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+static PetscErrorCode TDyMeshMapIndices(TDyDiscretizationType *discretization, TDyMesh** mesh) {
+
+  PetscErrorCode ierr;
+
+  TDyMesh *mesh_ptr = *mesh;
+
+  TDyUGrid *ugrid;
+  ierr = TDyDiscretizationGetTDyUGrid(discretization,&ugrid);
+
+  TDyUGDM *ugdm;
+  ierr = TDyDiscretizationGetTDyUGDM(discretization,&ugdm);
+
+  PetscInt ngmax = ugrid->num_cells_global;
+  PetscInt nlmax = ugrid->num_cells_local;
+
+  ierr = TDyAllocate_IntegerArray_1D(&mesh_ptr->nG2L,ngmax); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&mesh_ptr->nL2G,nlmax); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&mesh_ptr->nG2A,ngmax); CHKERRQ(ierr);
+
+  const PetscInt *int_ptr;
+  ierr = ISGetIndices(ugdm->IS_GhostedCells_in_PetscOrder, &int_ptr); CHKERRQ(ierr);
+
+  for (PetscInt icell=0; icell<nlmax; icell++) {
+    mesh_ptr->nG2L[icell] = icell;
+    mesh_ptr->nL2G[icell] = icell;
+    mesh_ptr->nG2A[icell] = int_ptr[icell];
+  }
+
+  for (PetscInt icell=nlmax; icell<ngmax; icell++) {
+    mesh_ptr->nG2L[icell] = -1;
+    mesh_ptr->nG2A[icell] = int_ptr[icell];
+  }
+
+  ierr = ISRestoreIndices(ugdm->IS_GhostedCells_in_PetscOrder, &int_ptr); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+
+/// Constructs a mesh from TDycore-managed (i) TDyDM, and (ii) TDyUGrid
+/// @param [in] discretization A TDyDiscretizationType from which the mesh is created
+/// @param [out] mesh the newly constructed mesh instance
+PetscErrorCode TDyMeshCreateFromDiscretization(TDyDiscretizationType *discretization, TDyMesh** mesh) {
+
+  PetscErrorCode ierr;
+
+  *mesh = malloc(sizeof(TDyMesh));
+
+  ierr = TDyMeshMapIndices(discretization, mesh); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 /// Destroy a mesh, freeing any resources it uses.
 /// @param [inout] mesh A mesh instance to be destroyed
 PetscErrorCode TDyMeshDestroy(TDyMesh *mesh) {

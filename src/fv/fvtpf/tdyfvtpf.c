@@ -554,7 +554,8 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, TDyDiscretizationType *dis
     break;
 
     case TDYCORE_DM_TYPE:
-      SETERRQ(comm,PETSC_ERR_USER,"Add code to support TDYCORE_DM_TYPE");
+    ierr = TDyMeshCreateFromDiscretization(discretization, &fvtpf->mesh);
+    SETERRQ(comm,PETSC_ERR_USER,"Add code to support TDYCORE_DM_TYPE");
     break;
 
     default:

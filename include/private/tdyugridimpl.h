@@ -5,9 +5,9 @@
 
 typedef struct {
 
-  PetscInt num_cells_global;
-  PetscInt num_cells_local;
-  PetscInt num_cells_ghost;
+  PetscInt num_cells_global;  // Number of global cells = local/non-ghost and ghost cells
+  PetscInt num_cells_local;   // Number of local/non-ghost cells
+  PetscInt num_cells_ghost;   // Number of ghost cells
 
   PetscInt max_verts_per_cell;
   PetscInt max_ndual_per_cell;

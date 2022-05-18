@@ -4,6 +4,7 @@
 #include <petsc.h>
 #include <tdycore.h>
 #include <private/tdyregionimpl.h>
+#include <private/tdydiscretizationimpl.h>
 
 typedef struct TDyMPFAO TDyMPFAO;
 
@@ -202,9 +203,15 @@ typedef struct TDyMesh {
   TDyRegion region_connected;
 
   PetscInt *closureSize, **closure, maxClosureSize;
+
+  PetscInt *nG2L; // Mapping of global cells to local cells
+  PetscInt *nL2G; // Mapping of local cells to global cells
+  PetscInt *nG2A; // Mapping of global cells to application/natural cells
+
 } TDyMesh;
 
 PETSC_INTERN PetscErrorCode TDyMeshCreate(DM,PetscReal**,PetscReal**,PetscReal**,TDyMesh**);
+PETSC_INTERN PetscErrorCode TDyMeshCreateFromDiscretization(TDyDiscretizationType*,TDyMesh**);
 PETSC_INTERN PetscErrorCode TDyMeshDestroy(TDyMesh*);
 
 // These don't work, and we'll likely get rid of them.
