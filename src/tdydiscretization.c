@@ -44,9 +44,9 @@ PetscErrorCode TDyDiscretizationDestroy(TDyDiscretizationType *discretization) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyDiscretizationGetTDyDM(TDyDiscretizationType *discretization, TDyDM *tdydm) {
+PetscErrorCode TDyDiscretizationGetTDyDM(TDyDiscretizationType *discretization, TDyDM **tdydm) {
 
-  tdydm = (discretization->tdydm);
+  *tdydm = (discretization->tdydm);
 
   PetscFunctionReturn(0);
 }
