@@ -781,3 +781,26 @@ PetscErrorCode GeometryProjectPointOnPlane (PetscReal plane[4], PetscReal point[
 
   PetscFunctionReturn(0);
 }
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode VolumeofTetrahedron(PetscReal point1[3], PetscReal point2[3], PetscReal point3[3], PetscReal point4[3], PetscReal *volume) {
+
+  PetscErrorCode ierr;
+
+  PetscInt dim=3;
+  PetscReal vv1_minus_vv4[dim], vv2_minus_vv4[dim], vv3_minus_vv4[dim];
+
+  for (PetscInt i=0; i<dim; i++) {
+    vv1_minus_vv4[i] = point1[i] - point4[i];
+    vv2_minus_vv4[i] = point2[i] - point4[i];
+    vv3_minus_vv4[i] = point3[i] - point4[i];
+  }
+
+  PetscReal cross_2_minus_4_X_3_minus_4[dim], dot_prod;
+  ierr = TDyCrossProduct(vv2_minus_vv4, vv3_minus_vv4, cross_2_minus_4_X_3_minus_4); CHKERRQ(ierr);
+  ierr = TDyDotProduct(vv1_minus_vv4, cross_2_minus_4_X_3_minus_4, &dot_prod); CHKERRQ(ierr);
+
+  *volume = PetscAbsReal(dot_prod)/6.0;
+
+  PetscFunctionReturn(0);
+} 

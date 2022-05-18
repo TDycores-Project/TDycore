@@ -4304,7 +4304,97 @@ static PetscErrorCode TDyMeshMapIndices(TDyDiscretizationType *discretization, T
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+static PetscErrorCode ComputeVolume(TDyCoordinate *coords, PetscInt ncoords, PetscReal *volume) {
 
+  PetscErrorCode ierr;
+  PetscReal tmp_vol;
+
+  PetscInt hex_tet_num = 5;
+  PetscInt hex_tet_ids[5][4] = {
+    {0, 1, 2, 5},
+    {0, 5, 7, 4},
+    {0, 5, 2, 7},
+    {7, 5, 2, 6},
+    {0, 2, 3, 7}
+  };
+
+  PetscInt wedge_tet_num = 3;
+  PetscInt wedge_tet_ids[3][4] = {
+    {0, 1, 2, 3},
+    {2, 3, 4, 5},
+    {0, 1, 3, 4}
+  };
+
+  PetscInt prism_tet_num = 2;
+  PetscInt prism_tet_ids[3][4] = {
+    {0, 1, 2, 4},
+    {2, 3, 0, 4}
+  };
+
+  PetscInt a,b,c,d;
+
+  *volume = 0.0;
+  switch (ncoords){
+  case 8:
+    for (PetscInt i=0; i<hex_tet_num; i++) {
+      a=hex_tet_ids[i][0];
+      b=hex_tet_ids[i][1];
+      c=hex_tet_ids[i][2];
+      d=hex_tet_ids[i][3];
+
+      ierr = VolumeofTetrahedron(coords[a].X, coords[b].X, coords[c].X, coords[d].X, &tmp_vol); CHKERRQ(ierr);
+
+      *volume += tmp_vol;
+    }
+    break;
+
+  case 6:
+    for (PetscInt i=0; i<wedge_tet_num; i++) {
+      a=wedge_tet_ids[i][0];
+      b=wedge_tet_ids[i][1];
+      c=wedge_tet_ids[i][2];
+      d=wedge_tet_ids[i][3];
+
+      ierr = VolumeofTetrahedron(coords[a].X, coords[b].X, coords[c].X, coords[d].X, &tmp_vol); CHKERRQ(ierr);
+
+      *volume += tmp_vol;
+    }
+    break;
+
+  case 5:
+    for (PetscInt i=0; i<prism_tet_num; i++) {
+      a=prism_tet_ids[i][0];
+      b=prism_tet_ids[i][1];
+      c=prism_tet_ids[i][2];
+      d=prism_tet_ids[i][3];
+
+      ierr = VolumeofTetrahedron(coords[a].X, coords[b].X, coords[c].X, coords[d].X, &tmp_vol); CHKERRQ(ierr);
+
+      *volume += tmp_vol;
+    }
+    break;
+
+  case 4:
+    a=0;
+    b=1;
+    c=2;
+    d=3;
+
+    ierr = VolumeofTetrahedron(coords[a].X, coords[b].X, coords[c].X, coords[d].X, &tmp_vol); CHKERRQ(ierr);
+
+    *volume += tmp_vol;
+    break;
+
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"ComputeVolume only supports hex, wedge, prism, and tetrahedron cell types.");
+    break;
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 static PetscErrorCode TDySetupCellsFromDiscretization(TDyDiscretizationType *discretization, TDyMesh **mesh) {
 
   PetscErrorCode ierr;
@@ -4327,20 +4417,37 @@ static PetscErrorCode TDySetupCellsFromDiscretization(TDyDiscretizationType *dis
   PetscReal **vertices = ugrid->vertices;
   PetscInt **cell_vertices = ugrid->cell_vertices;
 
+  TDyCoordinate vertex_coords[nverts_per_cell];
+
+  PetscInt dim=3;
+  PetscReal xyz[dim];
+
   for (PetscInt icell=0; icell<ngmax; icell++) {
 
-    PetscReal x=0.0,y=0.0,z=0.0;
     PetscInt nvmax = ugrid->cell_num_vertices[icell];
 
-    for (PetscInt ivertex; ivertex<nvmax; ivertex++) {
-      PetscInt vertex_id = cell_vertices[icell][ivertex];
-      x += vertices[vertex_id][0];
-      y += vertices[vertex_id][1];
-      z += vertices[vertex_id][2];
+    // initialize x,y,z cell centroid to zero
+    for (PetscInt idim=0; idim<3; idim++) {
+      xyz[idim] = 0.0;
     }
-    cells->centroid[icell].X[0] = x/nvmax;
-    cells->centroid[icell].X[1] = y/nvmax;
-    cells->centroid[icell].X[2] = z/nvmax;
+
+    // - compute centroid as mean of vertex coordinates
+    // - save vertex coordinates for computation of cell volume
+    for (PetscInt ivertex=0; ivertex<nvmax; ivertex++) {
+      PetscInt vertex_id = cell_vertices[icell][ivertex];
+
+      for (PetscInt idim=0; idim<dim; idim++) {
+        vertex_coords[ivertex].X[idim] = vertices[vertex_id][idim];
+        xyz[idim] += vertices[vertex_id][idim];
+      }
+    }
+
+    for (PetscInt idim=0; idim<dim; idim++) {
+      cells->centroid[icell].X[idim] = xyz[idim]/nvmax;
+    }
+
+    // compute cell volume
+    ierr = ComputeVolume(vertex_coords, nvmax, &cells->volume[icell]); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
