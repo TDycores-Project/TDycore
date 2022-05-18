@@ -8,6 +8,7 @@ PetscErrorCode TDyDMCreate(TDyDM **tdydm) {
   ierr = PetscCalloc(sizeof(TDyDM), tdydm); CHKERRQ(ierr);
 
   ierr = TDyUGDMCreate(&((*tdydm)->ugdm)); CHKERRQ(ierr);
+  (*tdydm)->dmtype = PLEX_TYPE;
 
   PetscFunctionReturn(0);
 }
