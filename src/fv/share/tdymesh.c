@@ -229,8 +229,8 @@ static PetscErrorCode AllocateFaces(
   PetscFunctionBegin;
 
   PetscInt num_cells    = GetNumCellsPerFaceForCellType(cell_type);
-  PetscInt num_edges    = GetNumOfEdgesFormingAFaceForCellType(cell_type);
-  PetscInt num_vertices = GetNumOfVerticesFormingAFaceForCellType(cell_type);
+  PetscInt num_edges    = GetMaxNumOfEdgesFormingAFaceForCellType(cell_type);
+  PetscInt num_vertices = GetMaxNumOfVerticesFormingAFaceForCellType(cell_type);
 
   PetscErrorCode ierr;
   ierr = TDyAllocate_IntegerArray_1D(&faces->id,num_faces); CHKERRQ(ierr);
@@ -282,6 +282,12 @@ TDyCellType GetCellType(PetscInt nverts_per_cell) {
   PetscFunctionBegin;
 
   switch (nverts_per_cell) {
+    case 4:
+      cell_type = CELL_TET_TYPE;
+      break;
+    case 5:
+      cell_type = CELL_PYRAMID_TYPE;
+      break;
     case 6:
       cell_type = CELL_WEDGE_TYPE;
       break;
@@ -301,32 +307,14 @@ PetscInt GetNumVerticesForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
-    case CELL_QUAD_TYPE:
+    case CELL_TET_TYPE:
       value = 4;
+      break;
+    case CELL_PYRAMID_TYPE:
+      value = 5;
       break;
     case CELL_WEDGE_TYPE:
       value = 6;
-      break;
-    case CELL_HEX_TYPE:
-      value = 8;
-      break;
-    default:
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported cell_type");
-      break;
-  }
-  PetscFunctionReturn(value);
-}
-
-/* ---------------------------------------------------------------- */
-PetscInt GetNumOfCellsSharingAVertexForCellType(TDyCellType cell_type) {
-  PetscFunctionBegin;
-  PetscInt value;
-  switch (cell_type) {
-    case CELL_QUAD_TYPE:
-      value = 4;
-      break;
-    case CELL_WEDGE_TYPE:
-      value = 16;
       break;
     case CELL_HEX_TYPE:
       value = 8;
@@ -343,8 +331,11 @@ PetscInt GetNumCellsPerEdgeForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
-    case CELL_QUAD_TYPE:
-      value = 2;
+    case CELL_TET_TYPE:
+      value = 3;
+      break;
+    case CELL_PYRAMID_TYPE:
+      value = 4;
       break;
     case CELL_WEDGE_TYPE:
       value = 4;
@@ -364,8 +355,11 @@ PetscInt GetNumCellsPerFaceForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
-    case CELL_QUAD_TYPE:
-      value = 0;
+    case CELL_TET_TYPE:
+      value = 2;
+      break;
+    case CELL_PYRAMID_TYPE:
+      value = 2;
       break;
     case CELL_WEDGE_TYPE:
       value = 2;
@@ -381,13 +375,10 @@ PetscInt GetNumCellsPerFaceForCellType(TDyCellType cell_type) {
 }
 
 /* ---------------------------------------------------------------- */
-PetscInt GetNumOfCellsSharingAFaceForCellType(TDyCellType cell_type) {
+PetscInt GetMaxNumOfVerticesFormingAFaceForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
-    case CELL_QUAD_TYPE:
-      value = 0;
-      break;
     case CELL_WEDGE_TYPE:
       value = 4;
       break;
@@ -402,15 +393,59 @@ PetscInt GetNumOfCellsSharingAFaceForCellType(TDyCellType cell_type) {
 }
 
 /* ---------------------------------------------------------------- */
-PetscInt GetNumOfVerticesFormingAFaceForCellType(TDyCellType cell_type) {
+TDyFaceType GetFaceTypeForCellType(TDyCellType cell_type, PetscInt iface) {
+  PetscFunctionBegin;
+  TDyFaceType face_type;
+
+  switch (cell_type) {
+    case CELL_TET_TYPE:
+      face_type = TRI_FACE_TYPE;
+      break;
+    case CELL_PYRAMID_TYPE:
+      if (iface > 4) {
+	face_type = QUAD_FACE_TYPE;
+      } else {
+	face_type = TRI_FACE_TYPE;
+      }
+      break;
+    case CELL_WEDGE_TYPE:
+      if (iface > 3) {
+	face_type = TRI_FACE_TYPE;
+      } else {
+	face_type = QUAD_FACE_TYPE;
+      }
+      break;
+    case CELL_HEX_TYPE:
+      face_type = QUAD_FACE_TYPE;
+      break;
+    default:
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported cell_type");
+      break;
+  }  
+  PetscFunctionReturn(face_type);
+}
+
+/* ---------------------------------------------------------------- */
+PetscInt GetNumOfVerticesOfIthFacesForCellType(TDyCellType cell_type, PetscInt iface) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
-    case CELL_QUAD_TYPE:
-      value = 0;
+    case CELL_TET_TYPE:
+      value = 3;
+      break;
+    case CELL_PYRAMID_TYPE:
+      if (iface > 4) {
+        value = 4;
+      } else {
+        value = 3;
+      }
       break;
     case CELL_WEDGE_TYPE:
-      value = 4;
+      if (iface > 3) {
+        value = 3;
+      } else {
+        value = 4;
+      }
       break;
     case CELL_HEX_TYPE:
       value = 4;
@@ -423,12 +458,15 @@ PetscInt GetNumOfVerticesFormingAFaceForCellType(TDyCellType cell_type) {
 }
 
 /* ---------------------------------------------------------------- */
-PetscInt GetNumOfEdgesFormingAFaceForCellType(TDyCellType cell_type) {
+PetscInt GetMaxNumOfEdgesFormingAFaceForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
-    case CELL_QUAD_TYPE:
-      value = 0;
+    case CELL_TET_TYPE:
+      value = 3;
+      break;
+    case CELL_PYRAMID_TYPE:
+      value = 4;
       break;
     case CELL_WEDGE_TYPE:
       value = 4;
@@ -448,8 +486,11 @@ PetscInt GetNumEdgesForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
-    case CELL_QUAD_TYPE:
-      value = 4;
+  case CELL_TET_TYPE:
+      value = 6;
+      break;
+    case CELL_PYRAMID_TYPE:
+      value = 8;
       break;
     case CELL_WEDGE_TYPE:
       value = 9;
@@ -469,8 +510,11 @@ PetscInt GetNumNeighborsForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
-    case CELL_QUAD_TYPE:
+    case CELL_TET_TYPE:
       value = 4;
+      break;
+    case CELL_PYRAMID_TYPE:
+      value = 5;
       break;
     case CELL_WEDGE_TYPE:
       value = 5;
@@ -490,8 +534,11 @@ PetscInt GetNumFacesForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
-    case CELL_QUAD_TYPE:
-      value = 0;
+    case CELL_TET_TYPE:
+      value = 4;
+      break;
+    case CELL_PYRAMID_TYPE:
+      value = 5;
       break;
     case CELL_WEDGE_TYPE:
       value = 5;
@@ -507,33 +554,10 @@ PetscInt GetNumFacesForCellType(TDyCellType cell_type) {
 }
 
 /* ---------------------------------------------------------------- */
-PetscInt GetNumFacesSharedByVertexForCellType(TDyCellType cell_type) {
-  PetscFunctionBegin;
-  PetscInt value;
-  switch (cell_type) {
-    case CELL_QUAD_TYPE:
-      value = 0;
-      break;
-    case CELL_WEDGE_TYPE:
-      value = 24;
-      break;
-    case CELL_HEX_TYPE:
-      value = 12;
-      break;
-    default:
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported cell_type");
-      break;
-  }
-  PetscFunctionReturn(value);
-}
-/* ---------------------------------------------------------------- */
 TDySubcellType GetSubcellTypeForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   TDySubcellType value;
   switch (cell_type) {
-    case CELL_QUAD_TYPE:
-      value = SUBCELL_QUAD_TYPE;
-      break;
     case CELL_WEDGE_TYPE:
       value = SUBCELL_HEX_TYPE;
       break;
@@ -552,9 +576,6 @@ PetscInt GetNumSubcellsForSubcellType(TDySubcellType subcell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (subcell_type) {
-  case SUBCELL_QUAD_TYPE:
-    value = 4;
-    break;
   case SUBCELL_HEX_TYPE:
     value = 8;
     break;
@@ -570,9 +591,6 @@ PetscInt GetNumOfNuVectorsForSubcellType(TDySubcellType subcell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (subcell_type) {
-  case SUBCELL_QUAD_TYPE:
-    value = 2;
-    break;
   case SUBCELL_HEX_TYPE:
     value = 3;
     break;
@@ -588,9 +606,6 @@ PetscInt GetNumVerticesForSubcellType(TDySubcellType subcell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (subcell_type) {
-  case SUBCELL_QUAD_TYPE:
-    value = 4;
-    break;
   case SUBCELL_HEX_TYPE:
     value = 8;
     break;
@@ -606,9 +621,6 @@ PetscInt GetNumFacesForSubcellType(TDySubcellType subcell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (subcell_type) {
-  case SUBCELL_QUAD_TYPE:
-    value = 0;
-    break;
   case SUBCELL_HEX_TYPE:
     value = GetNumOfNuVectorsForSubcellType(subcell_type);
     break;
@@ -1767,7 +1779,7 @@ static PetscErrorCode ConvertFacesToCompressedFormat(DM dm, TDyMesh *mesh) {
 
   PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, mesh->closureSize, mesh->closure);
   TDyCellType cell_type = GetCellType(nverts_per_cell);
-  PetscInt num_vertices_per_face = GetNumOfVerticesFormingAFaceForCellType(cell_type);
+  PetscInt num_vertices_per_face = GetMaxNumOfVerticesFormingAFaceForCellType(cell_type);
 
   /* Convert vertex_ids */
   PetscInt num_faces = mesh->num_faces;
@@ -4452,6 +4464,7 @@ static PetscErrorCode TDySetupCellsFromDiscretization(TDyDiscretizationType *dis
 
   PetscFunctionReturn(0);
 }
+
 
 /// Constructs a mesh from TDycore-managed (i) TDyDM, and (ii) TDyUGrid
 /// @param [in] discretization A TDyDiscretizationType from which the mesh is created

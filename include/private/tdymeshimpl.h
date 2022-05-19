@@ -17,14 +17,19 @@ typedef struct {
 } TDyVector;
 
 typedef enum {
-  CELL_QUAD_TYPE=0, /* quadrilateral cell for a 2D cell */
-  CELL_WEDGE_TYPE,  /* wedge/prism cell for a 3D cell */
-  CELL_HEX_TYPE     /* hexahedron cell for a 3D cell */
+  CELL_TET_TYPE=0,   /* tetrahedron cell for a 3D cell */
+  CELL_PYRAMID_TYPE, /* pyramid cell for a 3D cell */
+  CELL_WEDGE_TYPE,   /* wedge cell/prism for a 3D cell */
+  CELL_HEX_TYPE      /* hexahedron cell for a 3D cell */
 } TDyCellType;
 
 typedef enum {
-  SUBCELL_QUAD_TYPE=0, /* quadrilateral subcell for a 2D cell */
-  SUBCELL_HEX_TYPE     /* hexahedron subcell for a 3D cell */
+  TRI_FACE_TYPE=0, /* triangular face for 3D cell */
+  QUAD_FACE_TYPE   /* quadrilateral face for 3D cell */
+} TDyFaceType;
+
+typedef enum {
+  SUBCELL_HEX_TYPE=0 /* hexahedron subcell for a 3D cell */
 } TDySubcellType;
 
 typedef struct {
@@ -267,16 +272,13 @@ PETSC_INTERN PetscErrorCode TDyMeshGetSubcellIDGivenCellIdVertexIdFaceId(TDyMesh
 
 PETSC_INTERN TDyCellType GetCellType(PetscInt);
 PETSC_INTERN PetscInt GetNumVerticesForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumOfCellsSharingAVertexForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumCellsPerEdgeForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumCellsPerFaceForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumOfCellsSharingAFaceForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumOfVerticesFormingAFaceForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumOfEdgesFormingAFaceForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetMaxNumOfVerticesFormingAFaceForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetMaxNumOfEdgesFormingAFaceForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumEdgesForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumNeighborsForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumFacesForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumFacesSharedByVertexForCellType(TDyCellType);
 PETSC_INTERN TDySubcellType GetSubcellTypeForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumSubcellsForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt GetNumOfNuVectorsForSubcellType(TDySubcellType);
