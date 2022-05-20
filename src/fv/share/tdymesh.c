@@ -402,14 +402,14 @@ TDyFaceType GetFaceTypeForCellType(TDyCellType cell_type, PetscInt iface) {
       face_type = TRI_FACE_TYPE;
       break;
     case CELL_PYRAMID_TYPE:
-      if (iface > 4) {
+      if (iface > 3) {
 	face_type = QUAD_FACE_TYPE;
       } else {
 	face_type = TRI_FACE_TYPE;
       }
       break;
     case CELL_WEDGE_TYPE:
-      if (iface > 3) {
+      if (iface > 2) {
 	face_type = TRI_FACE_TYPE;
       } else {
 	face_type = QUAD_FACE_TYPE;
@@ -434,14 +434,14 @@ PetscInt GetNumOfVerticesOfIthFacesForCellType(TDyCellType cell_type, PetscInt i
       value = 3;
       break;
     case CELL_PYRAMID_TYPE:
-      if (iface > 4) {
+      if (iface > 3) {
         value = 4;
       } else {
         value = 3;
       }
       break;
     case CELL_WEDGE_TYPE:
-      if (iface > 3) {
+      if (iface > 2) {
         value = 3;
       } else {
         value = 4;
@@ -4465,6 +4465,299 @@ static PetscErrorCode TDySetupCellsFromDiscretization(TDyDiscretizationType *dis
   PetscFunctionReturn(0);
 }
 
+/* -------------------------------------------------------------------------- */
+static PetscErrorCode GetHexFaceVertices(PetscInt iface, PetscInt *vertex_ids){
+
+PetscFunctionBegin;
+
+switch (iface)
+{
+case 0:
+  vertex_ids[0] = 0;
+  vertex_ids[1] = 1;
+  vertex_ids[2] = 5;
+  vertex_ids[3] = 4;
+  break;
+
+case 1:
+  vertex_ids[0] = 1;
+  vertex_ids[1] = 2;
+  vertex_ids[2] = 6;
+  vertex_ids[3] = 7;
+  break;
+
+case 2:
+  vertex_ids[0] = 1;
+  vertex_ids[1] = 3;
+  vertex_ids[2] = 7;
+  vertex_ids[3] = 6;
+  break;
+
+case 3:
+  vertex_ids[0] = 3;
+  vertex_ids[1] = 0;
+  vertex_ids[2] = 4;
+  vertex_ids[3] = 7;
+  break;
+
+case 4:
+  vertex_ids[0] = 0;
+  vertex_ids[1] = 3;
+  vertex_ids[2] = 2;
+  vertex_ids[3] = 1;
+  break;
+
+case 5:
+  vertex_ids[0] = 4;
+  vertex_ids[1] = 5;
+  vertex_ids[2] = 6;
+  vertex_ids[3] = 7;
+  break;
+
+default:
+  SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Hexahedron can only have 6 faces");
+  break;
+}
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+static PetscErrorCode GetWedgeFaceVertices(PetscInt iface, PetscInt *vertex_ids){
+
+PetscFunctionBegin;
+
+switch (iface)
+{
+case 0:
+  vertex_ids[0] = 0;
+  vertex_ids[1] = 1;
+  vertex_ids[2] = 4;
+  vertex_ids[3] = 3;
+  break;
+
+case 1:
+  vertex_ids[0] = 1;
+  vertex_ids[1] = 2;
+  vertex_ids[2] = 5;
+  vertex_ids[3] = 4;
+  break;
+
+case 2:
+  vertex_ids[0] = 1;
+  vertex_ids[1] = 0;
+  vertex_ids[2] = 3;
+  vertex_ids[3] = 5;
+  break;
+
+case 3:
+  vertex_ids[0] = 0;
+  vertex_ids[1] = 1;
+  vertex_ids[2] = 2;
+  vertex_ids[3] = -1;
+  break;
+
+case 4:
+  vertex_ids[0] = 3;
+  vertex_ids[1] = 4;
+  vertex_ids[2] = 5;
+  vertex_ids[3] = -1;
+  break;
+
+default:
+  SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Wedge can only have 5 faces");
+  break;
+}
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+static PetscErrorCode GetPyramidFaceVertices(PetscInt iface, PetscInt *vertex_ids){
+
+PetscFunctionBegin;
+
+switch (iface)
+{
+case 0:
+  vertex_ids[0] = 0;
+  vertex_ids[1] = 1;
+  vertex_ids[2] = 4;
+  vertex_ids[3] = -1;
+  break;
+
+case 1:
+  vertex_ids[0] = 1;
+  vertex_ids[1] = 2;
+  vertex_ids[2] = 4;
+  vertex_ids[3] = -1;
+  break;
+
+case 2:
+  vertex_ids[0] = 2;
+  vertex_ids[1] = 3;
+  vertex_ids[2] = 4;
+  vertex_ids[3] = -1;
+  break;
+
+case 3:
+  vertex_ids[0] = 3;
+  vertex_ids[1] = 0;
+  vertex_ids[2] = 4;
+  vertex_ids[3] = -1;
+  break;
+
+case 4:
+  vertex_ids[0] = 0;
+  vertex_ids[1] = 3;
+  vertex_ids[2] = 2;
+  vertex_ids[3] = 1;
+  break;
+
+default:
+  SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Pyramid can only have 5 faces");
+  break;
+}
+
+  PetscFunctionReturn(0);
+}
+/* -------------------------------------------------------------------------- */
+static PetscErrorCode GetTetFaceVertices(PetscInt iface, PetscInt *vertex_ids){
+
+PetscFunctionBegin;
+
+switch (iface)
+{
+case 0:
+  vertex_ids[0] = 0;
+  vertex_ids[1] = 1;
+  vertex_ids[2] = 3;
+  vertex_ids[3] = -1;
+  break;
+
+case 1:
+  vertex_ids[0] = 1;
+  vertex_ids[1] = 2;
+  vertex_ids[2] = 3;
+  vertex_ids[3] = -1;
+  break;
+
+case 2:
+  vertex_ids[0] = 0;
+  vertex_ids[1] = 3;
+  vertex_ids[2] = 2;
+  vertex_ids[3] = -1;
+  break;
+
+case 3:
+  vertex_ids[0] = 0;
+  vertex_ids[1] = 2;
+  vertex_ids[2] = 1;
+  vertex_ids[3] = -1;
+  break;
+
+default:
+  SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Tetrahedron can only have 4 faces");
+  break;
+}
+
+  PetscFunctionReturn(0);
+}
+/* -------------------------------------------------------------------------- */
+static PetscErrorCode GetFaceVertices(TDyCellType cell_type, PetscInt iface, PetscInt *vertex_ids){
+
+  PetscErrorCode ierr;
+
+  switch (cell_type)
+  {
+  case CELL_HEX_TYPE:
+  ierr = GetHexFaceVertices(iface, vertex_ids); CHKERRQ(ierr);
+  break;
+
+  case CELL_WEDGE_TYPE:
+  ierr = GetWedgeFaceVertices(iface, vertex_ids); CHKERRQ(ierr);
+  break;
+
+  case CELL_PYRAMID_TYPE:
+  ierr = GetPyramidFaceVertices(iface, vertex_ids); CHKERRQ(ierr);
+  break;
+
+  case CELL_TET_TYPE:
+  ierr = GetTetFaceVertices(iface, vertex_ids); CHKERRQ(ierr);
+  break;
+
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unknown cell type. Supported cell types include hexahedron, wedge, prism, and tetrahedron");
+    break;
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *discretization, TDyMesh **mesh) {
+
+  PetscErrorCode ierr;
+
+  // face_to_vertex
+  // face_to_cell
+  // cell_to_face
+  // vertex_to_cell
+  TDyUGrid *ugrid;
+  ierr = TDyDiscretizationGetTDyUGrid(discretization, &ugrid);
+
+  PetscInt num_vertices_local = ugrid->num_verts_local;
+  PetscInt nverts_per_cell = ugrid->max_verts_per_cell;
+  PetscInt ngmax = ugrid->num_cells_global;
+
+  PetscInt max_cells_sharing_a_vertex = ugrid->max_cells_sharing_a_vertex;
+  PetscInt max_vert_per_face = ugrid->max_vert_per_face;
+  PetscInt max_face_per_cell = ugrid->max_face_per_cell;
+
+  PetscInt face_to_vertex[max_vert_per_face][max_face_per_cell*ngmax];
+  PetscInt face_to_cell[2][max_face_per_cell*ngmax];
+  PetscInt cell_to_face[max_face_per_cell][ngmax];
+  PetscInt vertex_to_cell[max_cells_sharing_a_vertex][num_vertices_local];
+  PetscInt vertex_num_cells[num_vertices_local];
+
+  ierr = TDyAllocate_IntegerArray_2D(&ugrid->face_to_vertex_natural,max_vert_per_face, max_face_per_cell*ngmax); CHKERRQ(ierr);
+
+  PetscInt *vertex_ids;
+  ierr = TDyAllocate_IntegerArray_1D(&vertex_ids, 4); CHKERRQ(ierr);
+
+  PetscInt face_count=0;
+  for (PetscInt icell=0; icell<ngmax; icell++) {
+    PetscInt num_vertices = ugrid->cell_num_vertices[icell];
+    TDyCellType cell_type = GetCellType(num_vertices);
+    PetscInt nfaces = GetNumFacesForCellType(cell_type);
+
+    for (PetscInt iface=0; iface<nfaces; iface++) {
+      cell_to_face[iface][icell] = face_count;
+      face_to_cell[0][face_count] = icell;
+
+      PetscInt nvertices = GetNumOfVerticesOfIthFacesForCellType(cell_type, iface);
+      ierr = GetFaceVertices(cell_type, iface, vertex_ids); CHKERRQ(ierr);
+
+      for (PetscInt ivertex=0; ivertex<nvertices; ivertex++) {
+
+        PetscInt vertex_id_relative = vertex_ids[ivertex];
+        PetscInt vertex_id = ugrid->cell_vertices[icell][vertex_id_relative];
+
+        face_to_vertex[ivertex][face_count] = vertex_id;
+
+        if (vertex_id > -1) {
+          ugrid->face_to_vertex_natural[ivertex][face_count] = ugrid->vertex_ids_natural[vertex_id];
+        }
+      }
+
+      face_count++;
+    }
+  }
+
+  
+
+  PetscFunctionReturn(0);
+}
 
 /// Constructs a mesh from TDycore-managed (i) TDyDM, and (ii) TDyUGrid
 /// @param [in] discretization A TDyDiscretizationType from which the mesh is created
@@ -4477,7 +4770,7 @@ PetscErrorCode TDyMeshCreateFromDiscretization(TDyDiscretizationType *discretiza
 
   ierr = TDyMeshMapIndices(discretization, mesh); CHKERRQ(ierr);
   ierr = TDySetupCellsFromDiscretization(discretization, mesh); CHKERRQ(ierr);
-
+  ierr = TDySetupFacesFromDiscretization(discretization, mesh); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
