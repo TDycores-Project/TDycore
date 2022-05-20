@@ -40,9 +40,18 @@ PetscErrorCode TDyUGridCreate(TDyUGrid **ugrid) {
   (*ugrid)->cell_num_neighbors_ghosted = NULL;
 
   (*ugrid)->vertices = NULL;
-  (*ugrid)->vertex_ids_natural = NULL;
 
   (*ugrid)->ao_natural_to_petsc = NULL;
+
+  (*ugrid)->max_cells_sharing_a_vertex = 24;
+  (*ugrid)->max_vert_per_face = 4;
+  (*ugrid)->max_face_per_cell = 6;
+
+  (*ugrid)->face_to_vertex_natural = NULL;
+  (*ugrid)->face_to_vertex = NULL;
+  (*ugrid)->cell_to_face_ghosted = NULL;
+  (*ugrid)->vertex_ids_natural = NULL;
+  (*ugrid)->cell_neighbors_local_ghosted = NULL;
 
   PetscFunctionReturn(0);
 }

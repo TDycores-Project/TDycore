@@ -29,9 +29,18 @@ typedef struct {
   PetscInt *cell_num_neighbors_ghosted;
 
   PetscReal **vertices;
-  PetscInt *vertex_ids_natural;
 
   AO ao_natural_to_petsc;
+
+  PetscInt max_cells_sharing_a_vertex;
+  PetscInt max_vert_per_face;
+  PetscInt max_face_per_cell;
+
+  PetscInt **face_to_vertex_natural;
+  PetscInt **face_to_vertex;
+  PetscInt **cell_to_face_ghosted;
+  PetscInt *vertex_ids_natural;
+  PetscInt **cell_neighbors_local_ghosted;
 
 } TDyUGrid;
 
