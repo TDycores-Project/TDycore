@@ -305,5 +305,11 @@ PETSC_INTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDyCell*, P
 PETSC_INTERN PetscErrorCode TDySubCell_GetIthNuStarVector(TDySubcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyEdge_GetNormal(TDyEdge*,PetscInt,PetscInt, PetscReal*);
 PETSC_INTERN PetscBool IsClosureWithinBounds(PetscInt,PetscInt,PetscInt);
+PETSC_INTERN PetscInt GetNumOfVerticesOfIthFacesForCellType(TDyCellType,PetscInt);
+PETSC_INTERN PetscErrorCode AllocateCells(PetscInt,TDyCellType,TDyCell*);
+PETSC_INTERN PetscErrorCode AllocateSubcells(PetscInt,PetscInt,TDySubcellType,TDySubcell*);
+PETSC_INTERN PetscErrorCode AllocateVertices(PetscInt,PetscInt,PetscInt,PetscInt,TDyCellType,TDyVertex*);
+PETSC_INTERN PetscErrorCode AllocateEdges(PetscInt,TDyCellType,TDyEdge*);
+PETSC_INTERN PetscErrorCode AllocateFaces(PetscInt,TDyCellType,TDyFace*faces);
 
 #endif

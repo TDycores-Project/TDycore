@@ -9,6 +9,7 @@
 #include <private/tdyeosimpl.h>
 #include <private/tdydiscretizationimpl.h>
 #include <petscblaslapack.h>
+#include <private/tdymeshcustomimpl.h>
 
 PetscErrorCode TDyCreate_FVTPF(void **context) {
   PetscErrorCode ierr;
