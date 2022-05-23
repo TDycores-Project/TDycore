@@ -4804,12 +4804,12 @@ static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *dis
   PetscInt **face_to_cell;
   PetscInt **cell_to_face;
   PetscInt **vertex_to_cell;
-  PetscInt *vertex_num_cells;
+  PetscInt *num_vertex_to_cell;
   ierr = TDyAllocate_IntegerArray_2D(&face_to_vertex, max_vert_per_face, max_face_per_cell*ngmax); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_2D(&face_to_cell, 2, max_face_per_cell*ngmax); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_2D(&cell_to_face, max_face_per_cell, ngmax); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_2D(&vertex_to_cell, max_cells_sharing_a_vertex, num_vertices_local); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&vertex_num_cells, num_vertices_local); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&num_vertex_to_cell, num_vertices_local); CHKERRQ(ierr);
   
 
   ierr = TDyAllocate_IntegerArray_2D(&ugrid->face_to_vertex_natural,max_vert_per_face, max_face_per_cell*ngmax); CHKERRQ(ierr);
@@ -4900,6 +4900,109 @@ static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *dis
         SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"2. Did not find a common face between two neighbors");
       }
     } // idual-loop
+  }
+
+  // Determine number of unique faces
+  face_count = 0;
+  for (PetscInt iface=0; iface<max_face_per_cell*ngmax; iface++){
+    if (face_to_cell[0][iface] >= 0) {
+      face_count++;
+    }
+  }
+
+  // Save face-to-vertex mapping
+  ierr = TDyAllocate_IntegerArray_2D(&ugrid->face_to_vertex,max_vert_per_face,face_count); CHKERRQ(ierr);
+  face_count = 0;
+  for (PetscInt iface=0; iface<max_face_per_cell*ngmax; iface++){
+    if (face_to_cell[0][iface] >= 0) {
+      for (PetscInt ivertex=0; ivertex<max_vert_per_face; ivertex++) {
+        ugrid->face_to_vertex[ivertex][face_count] = face_to_vertex[ivertex][face_count];
+      }
+      face_count++;
+    }
+  }
+  ierr = TDyDeallocate_IntegerArray_2D(face_to_vertex, max_vert_per_face);
+
+  // Since duplicate faces have been removed, update the face-to-cell mapping
+  PetscInt **tmp_int_2d;
+  PetscInt *tmp_int;
+  ierr = TDyAllocate_IntegerArray_1D(&tmp_int, max_face_per_cell*ngmax); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&tmp_int_2d, 2, face_count); CHKERRQ(ierr);
+
+  face_count = 0;
+  for (PetscInt iface=0; iface<max_face_per_cell*ngmax; iface++) {
+    if (face_to_cell[0][iface] > -1) {
+
+      for (PetscInt i=0; i<2; i++) {
+        tmp_int_2d[i][face_count] = face_to_cell[i][iface];
+      }
+      tmp_int[iface] = face_count;
+
+      face_count++;
+    }
+  }
+  ierr = TDyDeallocate_IntegerArray_2D(face_to_cell, 2); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&face_to_cell, 2, face_count); CHKERRQ(ierr);
+  for (PetscInt iface=0; iface<face_count; iface++) {
+    for (PetscInt i=0; i<2; i++) {
+      face_to_cell[i][iface] = tmp_int_2d[i][iface];
+    }
+  }
+
+  // Since duplicate faces have been removed, update the cell-to-face mapping
+  for (PetscInt iface=0; iface<face_count; iface++) {
+    PetscInt face_id = iface;
+    for (PetscInt i=0; i<2; i++) {
+
+      PetscInt cell_id = face_to_cell[i][face_id];
+
+      if (cell_id < 0) continue;
+
+      PetscBool found = PETSC_FALSE;
+      PetscInt num_vertices = ugrid->cell_num_vertices[cell_id];
+      TDyCellType cell_type = GetCellType(num_vertices);
+      PetscInt nfaces = GetNumFacesForCellType(cell_type);
+
+      for (PetscInt iface2=0; iface2<nfaces; iface2++) {
+        PetscInt face_id2 = cell_to_face[iface2][cell_id];
+
+        if (face_id2 < 0) continue;
+
+        if (face_id == tmp_int[face_id2]) {
+          found = PETSC_TRUE;
+          cell_to_face[iface2][cell_id] = face_id;
+          break;
+        }
+      }
+      if (!found) {
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Remapping of face ids failed");
+      }
+    }
+  }
+  free(tmp_int);
+
+  // Set up vertex-to-cell mapping
+  for (PetscInt ivertex=0; ivertex<num_vertices_local; ivertex++){
+    num_vertex_to_cell[ivertex] = 0;
+  }
+
+  for (PetscInt icell=0; icell<ngmax; icell++) {
+
+    PetscInt nvertex = ugrid->cell_num_vertices[icell];
+
+    for (PetscInt ivertex=0; ivertex<nvertex; ivertex++) {
+      PetscInt vertex_id = ugrid->cell_vertices[icell][ivertex];
+
+      if (vertex_id < 0) continue;
+
+      PetscInt idx=num_vertex_to_cell[ivertex];
+      vertex_to_cell[idx][vertex_id] = icell;
+
+      num_vertex_to_cell[ivertex]++;
+      if (num_vertex_to_cell[ivertex] > max_cells_sharing_a_vertex) {
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Vertex is shared by more than max_cells_sharing_a_vertex");
+      }
+    }
   }
 
   PetscFunctionReturn(0);
