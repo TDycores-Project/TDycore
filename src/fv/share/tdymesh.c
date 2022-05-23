@@ -4418,7 +4418,6 @@ static PetscErrorCode TDySetupCellsFromDiscretization(TDyDiscretizationType *dis
   PetscInt nverts_per_cell = ugrid->max_verts_per_cell;
   PetscInt num_cells = ugrid->num_cells_global;
   PetscInt ngmax = ugrid->num_cells_global;
-  PetscInt nlmax = ugrid->num_cells_local;
 
   TDyCellType cell_type = GetCellType(nverts_per_cell);
 
@@ -4483,11 +4482,11 @@ case 1:
   vertex_ids[0] = 1;
   vertex_ids[1] = 2;
   vertex_ids[2] = 6;
-  vertex_ids[3] = 7;
+  vertex_ids[3] = 5;
   break;
 
 case 2:
-  vertex_ids[0] = 1;
+  vertex_ids[0] = 2;
   vertex_ids[1] = 3;
   vertex_ids[2] = 7;
   vertex_ids[3] = 6;
@@ -4544,7 +4543,7 @@ case 1:
   break;
 
 case 2:
-  vertex_ids[0] = 1;
+  vertex_ids[0] = 2;
   vertex_ids[1] = 0;
   vertex_ids[2] = 3;
   vertex_ids[3] = 5;
@@ -4552,8 +4551,8 @@ case 2:
 
 case 3:
   vertex_ids[0] = 0;
-  vertex_ids[1] = 1;
-  vertex_ids[2] = 2;
+  vertex_ids[1] = 2;
+  vertex_ids[2] = 1;
   vertex_ids[3] = -1;
   break;
 
@@ -4695,6 +4694,92 @@ static PetscErrorCode GetFaceVertices(TDyCellType cell_type, PetscInt iface, Pet
 }
 
 /* -------------------------------------------------------------------------- */
+static PetscBool AllVerticesPresentInDual(TDyUGrid *ugrid, PetscInt cell_id, PetscInt cell_id2, PetscInt iface, PetscInt **cell_to_face, PetscInt **face_to_vertex) {
+
+  PetscInt num_vertices = ugrid->cell_num_vertices[cell_id];
+  TDyCellType cell_type = GetCellType(num_vertices);
+
+  PetscInt num_face_vertices = GetNumOfVerticesOfIthFacesForCellType(cell_type, iface);
+  PetscInt face_id = cell_to_face[iface][cell_id];
+
+  // Check if all vertices of the face_id (of cell_id) are present in cell_id2
+  PetscBool vertex_found = PETSC_FALSE;
+  for (PetscInt ivertex=0; ivertex<num_face_vertices; ivertex++) {
+    PetscInt vertex_id = face_to_vertex[ivertex][face_id];
+
+    PetscInt num_vertices2 = ugrid->cell_num_vertices[cell_id2];
+    vertex_found = PETSC_FALSE;
+    for (PetscInt ivertex2=0; ivertex2<num_vertices2; ivertex2++) {
+      PetscInt vertex_id2 = ugrid->cell_vertices[cell_id2][ivertex2];
+
+      // check if the ivertex of cell_id is found in cell_id2
+      if (vertex_id == vertex_id2) {
+        vertex_found = PETSC_TRUE;
+        continue;
+      }
+    }
+
+    if (!vertex_found) {
+      break;
+    }
+  }
+
+  PetscFunctionReturn(vertex_found);
+}
+
+/* -------------------------------------------------------------------------- */
+static PetscInt GetCorrespondingFaceInDualCell(TDyUGrid *ugrid, PetscInt cell_id, PetscInt cell_id2, PetscInt iface, PetscInt **cell_to_face, PetscInt **face_to_vertex) {
+
+
+  PetscInt corresponding_face_id = -1;
+
+  PetscInt num_cell_vertices = ugrid->cell_num_vertices[cell_id];
+  TDyCellType cell_type = GetCellType(num_cell_vertices);
+  PetscInt nvertices = GetNumOfVerticesOfIthFacesForCellType(cell_type, iface);
+  PetscInt face_id = cell_to_face[iface][cell_id];
+
+  PetscInt num_cell_vertices2 = ugrid->cell_num_vertices[cell_id2];
+  TDyCellType cell_type2 = GetCellType(num_cell_vertices2);
+  PetscInt nfaces2 = GetNumFacesForCellType(cell_type2);
+
+  for (PetscInt iface2=0; iface2<nfaces2; iface2++) {
+    PetscInt face_id2 = cell_to_face[iface2][cell_id2];
+    PetscInt nvertices2 = GetNumOfVerticesOfIthFacesForCellType(cell_type2, iface2);
+
+    // Check if the number of vertices forming the face are same
+    if (nvertices == nvertices2) {
+
+      // Now check if all the vertices of 'iface' are present in 'face2'
+      PetscInt num_match = 0;
+
+      for (PetscInt ivertex=0; ivertex<nvertices; ivertex++) {
+          PetscInt vertex_id = face_to_vertex[ivertex][face_id];
+          PetscBool vertex_found = PETSC_FALSE;
+
+        for (PetscInt ivertex2=0; ivertex2<nvertices2; ivertex2++) {
+          PetscInt vertex_id2 = face_to_vertex[ivertex2][face_id2];
+          if (vertex_id == vertex_id2) {
+            vertex_found = PETSC_TRUE;
+            num_match++;
+            break;
+          }
+        }
+        if (!vertex_found) {
+          break;
+        }
+      }
+
+      if (num_match == nvertices) {
+        corresponding_face_id = iface2;
+        break;
+      }
+    }
+  }
+
+  PetscFunctionReturn(corresponding_face_id);
+}
+
+/* -------------------------------------------------------------------------- */
 static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *discretization, TDyMesh **mesh) {
 
   PetscErrorCode ierr;
@@ -4709,16 +4794,23 @@ static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *dis
   PetscInt num_vertices_local = ugrid->num_verts_local;
   PetscInt nverts_per_cell = ugrid->max_verts_per_cell;
   PetscInt ngmax = ugrid->num_cells_global;
+  PetscInt nlmax = ugrid->num_cells_local;
 
   PetscInt max_cells_sharing_a_vertex = ugrid->max_cells_sharing_a_vertex;
   PetscInt max_vert_per_face = ugrid->max_vert_per_face;
   PetscInt max_face_per_cell = ugrid->max_face_per_cell;
 
-  PetscInt face_to_vertex[max_vert_per_face][max_face_per_cell*ngmax];
-  PetscInt face_to_cell[2][max_face_per_cell*ngmax];
-  PetscInt cell_to_face[max_face_per_cell][ngmax];
-  PetscInt vertex_to_cell[max_cells_sharing_a_vertex][num_vertices_local];
-  PetscInt vertex_num_cells[num_vertices_local];
+  PetscInt **face_to_vertex;
+  PetscInt **face_to_cell;
+  PetscInt **cell_to_face;
+  PetscInt **vertex_to_cell;
+  PetscInt *vertex_num_cells;
+  ierr = TDyAllocate_IntegerArray_2D(&face_to_vertex, max_vert_per_face, max_face_per_cell*ngmax); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&face_to_cell, 2, max_face_per_cell*ngmax); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&cell_to_face, max_face_per_cell, ngmax); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&vertex_to_cell, max_cells_sharing_a_vertex, num_vertices_local); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&vertex_num_cells, num_vertices_local); CHKERRQ(ierr);
+  
 
   ierr = TDyAllocate_IntegerArray_2D(&ugrid->face_to_vertex_natural,max_vert_per_face, max_face_per_cell*ngmax); CHKERRQ(ierr);
 
@@ -4754,7 +4846,61 @@ static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *dis
     }
   }
 
+  // Remove duplicate faces that are shared between two cells
+  for (PetscInt icell=0; icell<nlmax; icell++) {
+
+    // 1. Pick cell_id
+    PetscInt cell_id = icell;
+    PetscInt num_vertices = ugrid->cell_num_vertices[icell];
+    TDyCellType cell_type = GetCellType(num_vertices);
+    PetscInt nfaces = GetNumFacesForCellType(cell_type);
+    PetscBool common_face_found = PETSC_FALSE;
+
+    for (PetscInt idual=0; idual<ugrid->cell_num_neighbors_ghosted[icell]; idual++) {
+      common_face_found = PETSC_FALSE;
+      // 2. Pick a neighbor of cell_id
+      PetscInt cell_id2 = PetscAbs(ugrid->cell_neighbors_ghosted[cell_id][idual]);
+      if (cell_id2 < 0) cell_id2 = -cell_id2;
+
+      if (cell_id2 <= cell_id) {
+        // 3. skip this neigbhor because the duplicate face was removed earlier
+        common_face_found = PETSC_TRUE;
+        continue;
+      }
+
+      common_face_found = PETSC_FALSE;
+      for (PetscInt iface=0; iface<nfaces; iface++) {
+        PetscInt face_id = cell_to_face[iface][cell_id];
+
+        // 4. Check if 'cell_id' and 'cell_id2' share a face
+        common_face_found = PETSC_FALSE;
+        if (AllVerticesPresentInDual(ugrid, cell_id, cell_id2, iface, cell_to_face, face_to_vertex)) { // face_to_vertex, ugrid%cell_vertices
   
+          // 5. For face_id of cell_id, find the corresponding face_id2 of cell_id2
+          PetscInt iface2 = GetCorrespondingFaceInDualCell(ugrid, cell_id, cell_id2, iface, cell_to_face, face_to_vertex); // cell_to_face, face_to_vertex
+          if (iface2 > -1) {
+            common_face_found = PETSC_TRUE;
+            PetscInt face_id2 = cell_to_face[iface2][cell_id2];
+
+            if (face_id2 > face_id) {
+              cell_to_face[iface2][cell_id2] = face_id;
+              face_to_cell[0][face_id2] = -face_to_cell[0][face_id2];
+              face_to_cell[1][face_id ] = cell_id2;
+            } else {
+              cell_to_face[iface][cell_id] = face_id2;
+              face_to_cell[0][face_id ] = -face_to_cell[0][face_id ];
+              face_to_cell[1][face_id2] = cell_id;
+            }
+          }
+        }
+
+        if (common_face_found) break;
+      }
+      if (!common_face_found) {
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"2. Did not find a common face between two neighbors");
+      }
+    } // idual-loop
+  }
 
   PetscFunctionReturn(0);
 }
