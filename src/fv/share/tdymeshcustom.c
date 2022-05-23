@@ -511,6 +511,71 @@ static PetscInt GetCorrespondingFaceInDualCell(TDyUGrid *ugrid, PetscInt cell_id
 }
 
 /* -------------------------------------------------------------------------- */
+static PetscErrorCode RemoveDuplicateFaces(TDyUGrid *ugrid, PetscInt **face_to_vertex, PetscInt **face_to_cell, PetscInt **cell_to_face) {
+
+  PetscInt nlmax = ugrid->num_cells_local;
+
+  for (PetscInt icell=0; icell<nlmax; icell++) {
+
+    // 1. Pick cell_id
+    PetscInt cell_id = icell;
+    PetscInt num_vertices = ugrid->cell_num_vertices[icell];
+    TDyCellType cell_type = GetCellType(num_vertices);
+    PetscInt nfaces = GetNumFacesForCellType(cell_type);
+    PetscBool common_face_found = PETSC_FALSE;
+
+    for (PetscInt idual=0; idual<ugrid->cell_num_neighbors_ghosted[icell]; idual++) {
+      common_face_found = PETSC_FALSE;
+      // 2. Pick a neighbor of cell_id
+      PetscInt cell_id2 = PetscAbs(ugrid->cell_neighbors_ghosted[cell_id][idual]);
+      if (cell_id2 < 0) cell_id2 = -cell_id2;
+
+      if (cell_id2 <= cell_id) {
+        // 3. skip this neigbhor because the duplicate face was removed earlier
+        common_face_found = PETSC_TRUE;
+        continue;
+      }
+
+      common_face_found = PETSC_FALSE;
+      for (PetscInt iface=0; iface<nfaces; iface++) {
+        PetscInt face_id = cell_to_face[iface][cell_id];
+
+        // 4. Check if 'cell_id' and 'cell_id2' share a face
+        common_face_found = PETSC_FALSE;
+        if (AllVerticesPresentInDual(ugrid, cell_id, cell_id2, iface, cell_to_face, face_to_vertex)) { // face_to_vertex, ugrid%cell_vertices
+  
+          // 5. For face_id of cell_id, find the corresponding face_id2 of cell_id2
+          PetscInt iface2 = GetCorrespondingFaceInDualCell(ugrid, cell_id, cell_id2, iface, cell_to_face, face_to_vertex); // cell_to_face, face_to_vertex
+          if (iface2 > -1) {
+            common_face_found = PETSC_TRUE;
+            PetscInt face_id2 = cell_to_face[iface2][cell_id2];
+            printf("%02d <====> %02d Remove Duplicate %02d --> %02d\n",cell_id,cell_id2,face_id2+1,face_id+1);
+
+            if (face_id2 > face_id) {
+              cell_to_face[iface2][cell_id2] = face_id;
+              face_to_cell[0][face_id2] = -face_to_cell[0][face_id2];
+              face_to_cell[1][face_id ] = cell_id2;
+            } else {
+              cell_to_face[iface][cell_id] = face_id2;
+              face_to_cell[0][face_id ] = -face_to_cell[0][face_id ];
+              face_to_cell[1][face_id2] = cell_id;
+            }
+          }
+        }
+
+        if (common_face_found) break;
+      }
+      if (!common_face_found) {
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"2. Did not find a common face between two neighbors");
+      }
+    } // idual-loop
+  }
+  
+  PetscFunctionReturn(0);
+}
+
+
+/* -------------------------------------------------------------------------- */
 static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *discretization, TDyMesh **mesh) {
 
   PetscErrorCode ierr;
@@ -576,62 +641,10 @@ static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *dis
       face_count++;
     }
   }
+  free(vertex_ids);
 
   // Remove duplicate faces that are shared between two cells
-  for (PetscInt icell=0; icell<nlmax; icell++) {
-
-    // 1. Pick cell_id
-    PetscInt cell_id = icell;
-    PetscInt num_vertices = ugrid->cell_num_vertices[icell];
-    TDyCellType cell_type = GetCellType(num_vertices);
-    PetscInt nfaces = GetNumFacesForCellType(cell_type);
-    PetscBool common_face_found = PETSC_FALSE;
-
-    for (PetscInt idual=0; idual<ugrid->cell_num_neighbors_ghosted[icell]; idual++) {
-      common_face_found = PETSC_FALSE;
-      // 2. Pick a neighbor of cell_id
-      PetscInt cell_id2 = PetscAbs(ugrid->cell_neighbors_ghosted[cell_id][idual]);
-      if (cell_id2 < 0) cell_id2 = -cell_id2;
-
-      if (cell_id2 <= cell_id) {
-        // 3. skip this neigbhor because the duplicate face was removed earlier
-        common_face_found = PETSC_TRUE;
-        continue;
-      }
-
-      common_face_found = PETSC_FALSE;
-      for (PetscInt iface=0; iface<nfaces; iface++) {
-        PetscInt face_id = cell_to_face[iface][cell_id];
-
-        // 4. Check if 'cell_id' and 'cell_id2' share a face
-        common_face_found = PETSC_FALSE;
-        if (AllVerticesPresentInDual(ugrid, cell_id, cell_id2, iface, cell_to_face, face_to_vertex)) { // face_to_vertex, ugrid%cell_vertices
-  
-          // 5. For face_id of cell_id, find the corresponding face_id2 of cell_id2
-          PetscInt iface2 = GetCorrespondingFaceInDualCell(ugrid, cell_id, cell_id2, iface, cell_to_face, face_to_vertex); // cell_to_face, face_to_vertex
-          if (iface2 > -1) {
-            common_face_found = PETSC_TRUE;
-            PetscInt face_id2 = cell_to_face[iface2][cell_id2];
-
-            if (face_id2 > face_id) {
-              cell_to_face[iface2][cell_id2] = face_id;
-              face_to_cell[0][face_id2] = -face_to_cell[0][face_id2];
-              face_to_cell[1][face_id ] = cell_id2;
-            } else {
-              cell_to_face[iface][cell_id] = face_id2;
-              face_to_cell[0][face_id ] = -face_to_cell[0][face_id ];
-              face_to_cell[1][face_id2] = cell_id;
-            }
-          }
-        }
-
-        if (common_face_found) break;
-      }
-      if (!common_face_found) {
-        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"2. Did not find a common face between two neighbors");
-      }
-    } // idual-loop
-  }
+  ierr = RemoveDuplicateFaces(ugrid, face_to_vertex, face_to_cell, cell_to_face); CHKERRQ(ierr);
 
   // Determine number of unique faces
   face_count = 0;
