@@ -423,9 +423,9 @@ PetscErrorCode TDyDestroy_MPFAO(void *context) {
   PetscFunctionBegin;
   TDyMPFAO* mpfao = context;
 
-  PetscFunctionReturn(0);
-  if (mpfao->vel) { ierr = PetscFree(mpfao->vel); CHKERRQ(ierr); }
-  if (mpfao->vel_count) { ierr = PetscFree(mpfao->vel_count); CHKERRQ(ierr); }
+  //PetscFunctionReturn(0);
+  if (mpfao->vel) { ierr = TDyDeallocate_RealArray_1D(mpfao->vel); CHKERRQ(ierr); }
+  if (mpfao->vel_count) { ierr = TDyDeallocate_IntegerArray_1D(mpfao->vel_count); CHKERRQ(ierr); }
 
   if (mpfao->source_sink) { ierr = PetscFree(mpfao->source_sink); CHKERRQ(ierr); }
   if (mpfao->energy_source_sink) {

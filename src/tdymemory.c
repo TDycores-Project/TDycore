@@ -179,6 +179,22 @@ PetscErrorCode TDyAllocate_RealArray_4D(PetscReal *****array_4D, PetscInt ndim_1
 }
 
 /* ---------------------------------------------------------------- */
+PetscErrorCode TDyDeallocate_RealArray_1D(PetscReal *array_1D) {
+
+  PetscFunctionBegin;
+  free(array_1D);
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDyDeallocate_IntegerArray_1D(PetscInt *array_1D) {
+
+  PetscFunctionBegin;
+  free(array_1D);
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
 PetscErrorCode TDyDeallocate_IntegerArray_2D(PetscInt **array_2D, PetscInt ndim_1) {
 
   PetscInt i;
