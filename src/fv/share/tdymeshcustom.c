@@ -549,6 +549,7 @@ static PetscErrorCode SetupMaps_C2F_F2C_F2V(TDyUGrid *ugrid, PetscInt **cell_to_
   }
   free(vertex_ids);
 
+  PetscFunctionReturn(0);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -590,7 +591,6 @@ static PetscErrorCode RemoveDuplicateFaces(TDyUGrid *ugrid, PetscInt **face_to_v
           if (iface2 > -1) {
             common_face_found = PETSC_TRUE;
             PetscInt face_id2 = cell_to_face[iface2][cell_id2];
-            printf("%02d <====> %02d Remove Duplicate %02d --> %02d\n",cell_id,cell_id2,face_id2+1,face_id+1);
 
             if (face_id2 > face_id) {
               cell_to_face[iface2][cell_id2] = face_id;
@@ -707,48 +707,12 @@ static PetscErrorCode UpdateMapsC2F_F2C_F2V(TDyUGrid *ugrid, PetscInt **cell_to_
 }
 
 /* -------------------------------------------------------------------------- */
-static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *discretization, TDyMesh **mesh) {
-
-  PetscErrorCode ierr;
-
-  // face_to_vertex
-  // face_to_cell
-  // cell_to_face
-  // vertex_to_cell
-  TDyUGrid *ugrid;
-  ierr = TDyDiscretizationGetTDyUGrid(discretization, &ugrid);
+static PetscErrorCode SetupMap_V2C(TDyUGrid *ugrid, PetscInt *num_vertex_to_cell, PetscInt **vertex_to_cell) {
 
   PetscInt num_vertices_local = ugrid->num_verts_local;
-  PetscInt nverts_per_cell = ugrid->max_verts_per_cell;
-  PetscInt ngmax = ugrid->num_cells_global;
-  PetscInt nlmax = ugrid->num_cells_local;
-
   PetscInt max_cells_sharing_a_vertex = ugrid->max_cells_sharing_a_vertex;
-  PetscInt max_vert_per_face = ugrid->max_vert_per_face;
-  PetscInt max_face_per_cell = ugrid->max_face_per_cell;
+  PetscInt ngmax = ugrid->num_cells_global;
 
-  PetscInt **face_to_vertex;
-  PetscInt **face_to_cell;
-  PetscInt **cell_to_face;
-  PetscInt **vertex_to_cell;
-  PetscInt *num_vertex_to_cell;
-  ierr = TDyAllocate_IntegerArray_2D(&face_to_vertex, max_vert_per_face, max_face_per_cell*ngmax); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_2D(&face_to_cell, 2, max_face_per_cell*ngmax); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_2D(&cell_to_face, max_face_per_cell, ngmax); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_2D(&vertex_to_cell, max_cells_sharing_a_vertex, num_vertices_local); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&num_vertex_to_cell, num_vertices_local); CHKERRQ(ierr);
-
-  ierr = TDyAllocate_IntegerArray_2D(&ugrid->face_to_vertex_natural,max_vert_per_face, max_face_per_cell*ngmax); CHKERRQ(ierr);
-
-  // Set up few mappings
-  ierr = SetupMaps_C2F_F2C_F2V(ugrid,cell_to_face,face_to_cell,face_to_vertex);
-
-  // Remove duplicate faces that are shared between two cells
-  ierr = RemoveDuplicateFaces(ugrid, face_to_vertex, face_to_cell, cell_to_face); CHKERRQ(ierr);
-
-  ierr = UpdateMapsC2F_F2C_F2V(ugrid, cell_to_face, face_to_cell, face_to_vertex);
-
-  // Set up vertex-to-cell mapping
   for (PetscInt ivertex=0; ivertex<num_vertices_local; ivertex++){
     num_vertex_to_cell[ivertex] = 0;
   }
@@ -771,6 +735,167 @@ static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *dis
       }
     }
   }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **cell_to_face, TDyUGrid *ugrid, TDyMesh **mesh) {
+
+  PetscErrorCode ierr;
+
+  PetscInt nlmax = ugrid->num_cells_local;
+  PetscInt nconn = 0;
+
+  // Compute number of internal faces
+  for (PetscInt icell=0; icell<nlmax; icell++) {
+    PetscInt ndual = ugrid->cell_num_neighbors_ghosted[icell];
+    for (PetscInt idual=0; idual<ndual; idual++) {
+      PetscInt dual_id = ugrid->cell_neighbors_ghosted[icell][idual];
+      if (dual_id < 0 || icell < dual_id){
+        nconn++;
+      }
+    }
+  }
+
+  TDyMesh *mesh_ptr = *mesh;
+  TDyCellType cell_type = CELL_HEX_TYPE;
+  ierr = AllocateFaces (nconn, cell_type, &mesh_ptr->faces); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&ugrid->connection_to_face, nconn); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&ugrid->face_area, nconn); CHKERRQ(ierr);
+
+
+  PetscInt iconn=0, offset = 0;
+  for (PetscInt icell=0; icell<nlmax; icell++) {
+
+    PetscInt ndual = ugrid->cell_num_neighbors_ghosted[icell];
+
+    for (PetscInt idual=0; idual<ndual; idual++) {
+
+      PetscInt dual_id = ugrid->cell_neighbors_ghosted[icell][idual];
+      PetscInt face_id = -1;
+
+      if (icell < PetscAbs(dual_id)){
+        PetscBool found = PETSC_FALSE;
+        PetscInt iface = -1, iface_tmp = -1;
+        PetscInt iface2 = -1, iface2_tmp = -1;
+        PetscInt cell_id2 = -1;
+
+        PetscInt num_cell_vertices = ugrid->cell_num_vertices[icell];
+        TDyCellType icell_type = GetCellType(num_cell_vertices);
+        PetscInt nfaces = GetNumFacesForCellType(icell_type);
+
+        // Find the iface that is shared by icell and cell_id2
+        for (iface=0; iface<nfaces; iface++) {
+          face_id = cell_to_face[iface][icell];
+          for (PetscInt iside=0; iside<2; iside++) {
+            cell_id2 = face_to_cell[iside][face_id];
+            if (cell_id2 == abs(dual_id)) {
+              iface_tmp = iface;
+              found = PETSC_TRUE;
+              break;
+            }
+          }
+          if (found) break;
+        }
+
+        if (found) {
+          ugrid->connection_to_face[iconn] = face_id;
+        } else {
+          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Face not found");
+        }
+        iface = iface_tmp;
+
+        // Check that there exist a correspond face in the cell_id2 for
+        // the iface-th of icell-th
+        found = PETSC_FALSE;
+        for (iface2=0; iface2<ugrid->cell_num_vertices[cell_id2]; iface2++) {
+          if (cell_to_face[iface][icell] == cell_to_face[iface2][cell_id2]) {
+            iface2_tmp = iface2;
+            found = PETSC_TRUE;
+            break;
+          }
+        }
+        iface2 = iface2_tmp;
+
+        // Now check the corresponding faces are of the same type
+        if (found) {
+          PetscInt num_cell_vertices = ugrid->cell_num_vertices[icell];
+          TDyCellType icell_type = GetCellType(num_cell_vertices);
+          TDyFaceType face_type = GetFaceTypeForCellType(icell_type, iface);
+
+          PetscInt num_cell_vertices2 = ugrid->cell_num_vertices[cell_id2];
+          TDyCellType icell_type2 = GetCellType(num_cell_vertices2);
+          TDyFaceType face_type2 = GetFaceTypeForCellType(icell_type2,iface2);
+
+          if (face_type != face_type2) {
+            SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Face types do not match");
+          }
+
+        } else {
+          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Global face not found");
+        }
+
+        mesh_ptr->faces.cell_offset[iface] = offset;
+        mesh_ptr->faces.cell_ids[offset++] = icell;
+        mesh_ptr->faces.cell_ids[offset++] = abs(dual_id);
+        mesh_ptr->faces.id[iface] = cell_to_face[iface][icell];
+
+        iconn++;
+      }
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *discretization, TDyMesh **mesh) {
+
+  PetscErrorCode ierr;
+
+  // face_to_vertex
+  // face_to_cell
+  // cell_to_face
+  // vertex_to_cell
+  TDyUGrid *ugrid;
+  ierr = TDyDiscretizationGetTDyUGrid(discretization, &ugrid);
+
+  PetscInt num_vertices_local = ugrid->num_verts_local;
+  PetscInt ngmax = ugrid->num_cells_global;
+
+  PetscInt max_cells_sharing_a_vertex = ugrid->max_cells_sharing_a_vertex;
+  PetscInt max_vert_per_face = ugrid->max_vert_per_face;
+  PetscInt max_face_per_cell = ugrid->max_face_per_cell;
+
+  PetscInt **face_to_vertex;
+  PetscInt **face_to_cell;
+  PetscInt **cell_to_face;
+  ierr = TDyAllocate_IntegerArray_2D(&face_to_vertex, max_vert_per_face, max_face_per_cell*ngmax); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&face_to_cell, 2, max_face_per_cell*ngmax); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&cell_to_face, max_face_per_cell, ngmax); CHKERRQ(ierr);
+
+  ierr = TDyAllocate_IntegerArray_2D(&ugrid->face_to_vertex_natural,max_vert_per_face, max_face_per_cell*ngmax); CHKERRQ(ierr);
+
+  // Set up few mappings
+  ierr = SetupMaps_C2F_F2C_F2V(ugrid,cell_to_face,face_to_cell,face_to_vertex);
+
+  // Remove duplicate faces that are shared between two cells
+  ierr = RemoveDuplicateFaces(ugrid, face_to_vertex, face_to_cell, cell_to_face); CHKERRQ(ierr);
+
+  // Update the maps after removing duplicate faces
+  ierr = UpdateMapsC2F_F2C_F2V(ugrid, cell_to_face, face_to_cell, face_to_vertex);
+
+  // Set up vertex-to-cell mapping
+  PetscInt **vertex_to_cell;
+  PetscInt *num_vertex_to_cell;
+  ierr = TDyAllocate_IntegerArray_2D(&vertex_to_cell, max_cells_sharing_a_vertex, num_vertices_local); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&num_vertex_to_cell, num_vertices_local); CHKERRQ(ierr);
+  ierr = SetupMap_V2C(ugrid, num_vertex_to_cell, vertex_to_cell); CHKERRQ(ierr);
+
+  // Create internal faces
+  ierr = CreateInternalFaces(face_to_cell, cell_to_face, ugrid, mesh);
+
 
   PetscFunctionReturn(0);
 }

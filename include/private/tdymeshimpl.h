@@ -287,6 +287,7 @@ PETSC_INTERN PetscInt GetNumFacesForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalFaces(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfNonLocalFaces(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfNonInternalFaces(TDyMesh*);
+PETSC_INTERN TDyFaceType GetFaceTypeForCellType(TDyCellType,PetscInt);
 PETSC_INTERN PetscErrorCode TDyMeshFindFaceIDShareByTwoCells(TDyMesh*,PetscInt,PetscInt,PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshPrintSubcellInfo(TDyMesh*, PetscInt, PetscInt);
 PETSC_INTERN PetscErrorCode TDyMeshPrintFaceInfo(TDyMesh*, PetscInt);

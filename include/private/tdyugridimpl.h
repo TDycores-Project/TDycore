@@ -42,6 +42,9 @@ typedef struct {
   PetscInt *vertex_ids_natural;
   PetscInt **cell_neighbors_local_ghosted;
 
+  PetscInt *connection_to_face;
+  PetscReal *face_area;
+
 } TDyUGrid;
 
 PETSC_INTERN PetscErrorCode TDyUGridCreate(TDyUGrid**);
