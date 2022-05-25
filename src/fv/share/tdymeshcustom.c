@@ -866,12 +866,47 @@ static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **ce
 }
 
 /* -------------------------------------------------------------------------- */
+static PetscErrorCode ComputeAreasAndIntercpet(TDyUGrid *ugrid, PetscInt v_id1, PetscInt v_id2, PetscInt v_id3, PetscReal point_up[3], PetscReal point_dn[3], PetscReal n_up_dn[3], PetscReal *area, PetscReal *area_projected, PetscReal intercept[3]) {
+
+  PetscErrorCode ierr;
+
+  PetscReal **vertices = ugrid->vertices;
+  PetscInt dim=3;
+  PetscReal point1[dim], point2[dim], point3[dim], v1[dim], v2[dim], cross_prod[dim], n1[dim];
+  PetscReal plane[4];
+  PetscReal dot_prod, tmp;
+
+  for (PetscInt idim=0; idim<dim; idim++) {
+    point1[idim] = vertices[v_id1][idim];
+    point2[idim] = vertices[v_id2][idim];
+    point3[idim] = vertices[v_id3][idim];
+    v1[idim] = point3[idim] - point2[idim];
+    v2[idim] = point1[idim] - point2[idim];
+  }
+  ierr = TDyCrossProduct(v1,v2,cross_prod);
+  ierr = TDyDotProduct(cross_prod,cross_prod,&dot_prod);
+
+  PetscReal magnitude = PetscPowReal(dot_prod,0.5);
+
+  for (PetscInt idim=0; idim<dim; idim++) {
+    n1[idim] = cross_prod[idim]/magnitude;
+  }
+  *area = 0.5*magnitude;
+  ierr = TDyDotProduct(n1,n_up_dn,&tmp); CHKERRQ(ierr);
+  *area_projected = PetscAbsReal((*area)*tmp);
+
+  ierr = ComputePlaneGeometry (point1, point2, point3, plane); CHKERRQ(ierr);
+  ierr = GeometryGetPlaneIntercept(plane, point_up, point_dn, intercept); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 static PetscErrorCode ComputeGeoAttrOfInternalFaces(TDyUGrid *ugrid, TDyMesh **mesh) {
 
   PetscErrorCode ierr;
 
   TDyMesh *mesh_ptr = *mesh;
-  PetscReal **vertices = ugrid->vertices;
 
   PetscInt nfaces = mesh_ptr->num_faces;
   TDyCell *cells = &mesh_ptr->cells;
@@ -888,14 +923,13 @@ static PetscErrorCode ComputeGeoAttrOfInternalFaces(TDyUGrid *ugrid, TDyMesh **m
     PetscInt cell_id_dn = abs(cell_ids[1]);
 
     PetscReal point_up[dim], point_dn[dim];
-    PetscReal dot_prod, cross_prod[dim];
-    PetscReal magnitude, tmp;
+    PetscReal dot_prod;
+    PetscReal tmp;
     PetscReal area1=0.0, area2=0.0;
     PetscReal area_projected1=0.0, area_projected2=0.0;
-    PetscReal point1[dim], point2[dim], point3[dim], point4[dim], plane[dim];
     PetscReal intercept[dim], intercept1[dim], intercept2[dim];
     PetscReal v1[dim], v2[dim], v3[dim];
-    PetscReal n_up_dn[dim],n1[dim],n2[dim];
+    PetscReal n_up_dn[dim];
 
     for (PetscInt idim=0; idim<dim; idim++) {
       point_up[idim] = cells->centroid[cell_id_up].X[idim];
@@ -914,52 +948,12 @@ static PetscErrorCode ComputeGeoAttrOfInternalFaces(TDyUGrid *ugrid, TDyMesh **m
     PetscInt vertex_id3 = ugrid->face_to_vertex[2][ugrid_face_id];
     PetscInt vertex_id4 = -1;
 
-    for (PetscInt idim=0; idim<dim; idim++) {
-      point1[idim] = vertices[vertex_id1][idim];
-      point2[idim] = vertices[vertex_id2][idim];
-      point3[idim] = vertices[vertex_id3][idim];
-      v1[idim] = point3[idim] - point2[idim];
-      v2[idim] = point1[idim] - point2[idim];
-    }
-    ierr = TDyCrossProduct(v1,v2,cross_prod);
-    ierr = TDyDotProduct(cross_prod,cross_prod,&dot_prod);
-
-    magnitude = PetscPowReal(dot_prod,0.5);
-
-    for (PetscInt idim=0; idim<dim; idim++) {
-      n1[idim] = cross_prod[idim]/magnitude;
-    }
-    area1 = 0.5*magnitude;
-    ierr = TDyDotProduct(n1,n_up_dn,&tmp); CHKERRQ(ierr);
-    area_projected1 = PetscAbsReal(area1*tmp);
-
-    ierr = ComputePlaneGeometry (point1, point2, point3, plane); CHKERRQ(ierr);
-    ierr = GeometryGetPlaneIntercept(plane, point_up, point_dn, intercept1); CHKERRQ(ierr);
+    ierr = ComputeAreasAndIntercpet(ugrid, vertex_id1, vertex_id2, vertex_id3, point_up, point_dn, n_up_dn, &area1, &area_projected1, intercept1);
 
     if (faces->num_vertices[face_id] == 4) {
       vertex_id4 = ugrid->face_to_vertex[3][ugrid_face_id];
 
-      for (PetscInt idim=0; idim<dim; idim++) {
-        point4[idim] = vertices[vertex_id4][idim];
-        v1[idim] = point3[idim] - point4[idim];
-        v2[idim] = point1[idim] - point4[idim];
-      }
-      
-      ierr = TDyCrossProduct(v1,v2,cross_prod);
-      ierr = TDyDotProduct(cross_prod,cross_prod,&dot_prod);
-
-      magnitude = PetscPowReal(dot_prod,0.5);      
-
-      for (PetscInt idim=0; idim<dim; idim++) {
-        n2[idim] = cross_prod[idim]/magnitude;
-      }
-      area2 = 0.5*magnitude;
-      ierr = TDyDotProduct(n2,n_up_dn,&tmp); CHKERRQ(ierr);
-      area_projected2 = PetscAbs(area2*tmp);
-
-      ierr = ComputePlaneGeometry (point2, point3, point4, plane); CHKERRQ(ierr);
-      ierr = GeometryGetPlaneIntercept(plane, point_up, point_dn, intercept2); CHKERRQ(ierr);
-
+      ierr = ComputeAreasAndIntercpet(ugrid, vertex_id1, vertex_id4, vertex_id3, point_up, point_dn, n_up_dn, &area2, &area_projected2, intercept2);
       for (PetscInt idim=0; idim<dim; idim++) {
         intercept[idim] = (intercept1[idim] + intercept2[idim])/2.0;
       }
