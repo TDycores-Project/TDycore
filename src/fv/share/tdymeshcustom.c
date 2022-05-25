@@ -611,7 +611,7 @@ static PetscErrorCode RemoveDuplicateFaces(TDyUGrid *ugrid, PetscInt **face_to_v
       }
     } // idual-loop
   }
-  
+
   PetscFunctionReturn(0);
 }
 
@@ -633,16 +633,16 @@ static PetscErrorCode UpdateMapsC2F_F2C_F2V(TDyUGrid *ugrid, PetscInt **cell_to_
 
   // Save face-to-vertex mapping
   ierr = TDyAllocate_IntegerArray_2D(&ugrid->face_to_vertex,max_vert_per_face,face_count); CHKERRQ(ierr);
+  ugrid->num_faces = face_count;
   face_count = 0;
   for (PetscInt iface=0; iface<max_face_per_cell*ngmax; iface++){
     if (face_to_cell[0][iface] >= 0) {
       for (PetscInt ivertex=0; ivertex<max_vert_per_face; ivertex++) {
-        ugrid->face_to_vertex[ivertex][face_count] = face_to_vertex[ivertex][face_count];
+        ugrid->face_to_vertex[ivertex][face_count] = face_to_vertex[ivertex][iface];
       }
       face_count++;
     }
   }
-  ierr = TDyDeallocate_IntegerArray_2D(face_to_vertex, max_vert_per_face);
 
   // Since duplicate faces have been removed, update the face-to-cell mapping
   PetscInt **tmp_int_2d;
@@ -763,6 +763,7 @@ static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **ce
   ierr = AllocateFaces (nconn, cell_type, &mesh_ptr->faces); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&ugrid->connection_to_face, nconn); CHKERRQ(ierr);
   ierr = TDyAllocate_RealArray_1D(&ugrid->face_area, nconn); CHKERRQ(ierr);
+  mesh_ptr->num_faces = nconn;
 
 
   PetscInt iconn=0, offset = 0;
@@ -822,27 +823,176 @@ static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **ce
         if (found) {
           PetscInt num_cell_vertices = ugrid->cell_num_vertices[icell];
           TDyCellType icell_type = GetCellType(num_cell_vertices);
-          TDyFaceType face_type = GetFaceTypeForCellType(icell_type, iface);
+          TDyFaceType face_type = TDyGetFaceTypeForCellType(icell_type, iface);
 
           PetscInt num_cell_vertices2 = ugrid->cell_num_vertices[cell_id2];
           TDyCellType icell_type2 = GetCellType(num_cell_vertices2);
-          TDyFaceType face_type2 = GetFaceTypeForCellType(icell_type2,iface2);
+          TDyFaceType face_type2 = TDyGetFaceTypeForCellType(icell_type2,iface2);
 
           if (face_type != face_type2) {
             SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Face types do not match");
           }
 
+          PetscInt nvertices = TDyGetNumVerticesForFaceType(face_type);
+          mesh_ptr->faces.num_vertices[iconn] = nvertices;
+
         } else {
           SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Global face not found");
         }
 
-        mesh_ptr->faces.cell_offset[iface] = offset;
+        mesh_ptr->faces.cell_offset[iconn] = offset;
         mesh_ptr->faces.cell_ids[offset++] = icell;
         mesh_ptr->faces.cell_ids[offset++] = abs(dual_id);
-        mesh_ptr->faces.id[iface] = cell_to_face[iface][icell];
+        mesh_ptr->faces.id[iconn] = cell_to_face[iface][icell];
+        mesh_ptr->faces.is_local[iconn] = PETSC_TRUE;
 
+        if (dual_id >= 0) {
+          mesh_ptr->faces.is_local[iconn] = PETSC_TRUE;
+        } else {
+          PetscInt icell_petsc_id = ugrid->cell_ids_petsc[icell];
+          PetscInt dual_petsc_id = ugrid->cell_ids_petsc[PetscAbs(dual_id)];
+          if (icell_petsc_id < dual_petsc_id) {
+            mesh_ptr->faces.is_local[iconn] = PETSC_TRUE;
+          } else {
+            mesh_ptr->faces.is_local[iconn] = PETSC_FALSE;
+          }
+        }
         iconn++;
       }
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+static PetscErrorCode ComputeGeoAttrOfInternalFaces(TDyUGrid *ugrid, TDyMesh **mesh) {
+
+  PetscErrorCode ierr;
+
+  TDyMesh *mesh_ptr = *mesh;
+  PetscReal **vertices = ugrid->vertices;
+
+  PetscInt nfaces = mesh_ptr->num_faces;
+  TDyCell *cells = &mesh_ptr->cells;
+  TDyFace *faces = &mesh_ptr->faces;
+
+  PetscInt dim = 3;
+  PetscInt *cell_ids, num_face_cells;
+
+  for (PetscInt iface=0; iface<nfaces; iface++) {
+    PetscInt face_id = iface;
+
+    ierr = TDyMeshGetFaceCells(mesh_ptr, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
+    PetscInt cell_id_up = cell_ids[0];
+    PetscInt cell_id_dn = abs(cell_ids[1]);
+
+    PetscReal point_up[dim], point_dn[dim];
+    PetscReal dot_prod, cross_prod[dim];
+    PetscReal magnitude, tmp;
+    PetscReal area1=0.0, area2=0.0;
+    PetscReal area_projected1=0.0, area_projected2=0.0;
+    PetscReal point1[dim], point2[dim], point3[dim], point4[dim], plane[dim];
+    PetscReal intercept[dim], intercept1[dim], intercept2[dim];
+    PetscReal v1[dim], v2[dim], v3[dim];
+    PetscReal n_up_dn[dim],n1[dim],n2[dim];
+
+    for (PetscInt idim=0; idim<dim; idim++) {
+      point_up[idim] = cells->centroid[cell_id_up].X[idim];
+      point_dn[idim] = cells->centroid[cell_id_dn].X[idim];
+      v1[idim] = point_dn[idim] - point_up[idim];      
+    }
+
+    ierr = TDyDotProduct(v1,v1,&dot_prod); CHKERRQ(ierr);
+    for (PetscInt idim=0; idim<dim; idim++) {
+      n_up_dn[idim] = v1[idim]/PetscPowReal(dot_prod,0.5);
+    }
+
+    PetscInt ugrid_face_id = ugrid->connection_to_face[face_id];
+    PetscInt vertex_id1 = ugrid->face_to_vertex[0][ugrid_face_id];
+    PetscInt vertex_id2 = ugrid->face_to_vertex[1][ugrid_face_id];
+    PetscInt vertex_id3 = ugrid->face_to_vertex[2][ugrid_face_id];
+    PetscInt vertex_id4 = -1;
+
+    for (PetscInt idim=0; idim<dim; idim++) {
+      point1[idim] = vertices[vertex_id1][idim];
+      point2[idim] = vertices[vertex_id2][idim];
+      point3[idim] = vertices[vertex_id3][idim];
+      v1[idim] = point3[idim] - point2[idim];
+      v2[idim] = point1[idim] - point2[idim];
+    }
+    ierr = TDyCrossProduct(v1,v2,cross_prod);
+    ierr = TDyDotProduct(cross_prod,cross_prod,&dot_prod);
+
+    magnitude = PetscPowReal(dot_prod,0.5);
+
+    for (PetscInt idim=0; idim<dim; idim++) {
+      n1[idim] = cross_prod[idim]/magnitude;
+    }
+    area1 = 0.5*magnitude;
+    ierr = TDyDotProduct(n1,n_up_dn,&tmp); CHKERRQ(ierr);
+    area_projected1 = PetscAbsReal(area1*tmp);
+
+    ierr = ComputePlaneGeometry (point1, point2, point3, plane); CHKERRQ(ierr);
+    ierr = GeometryGetPlaneIntercept(plane, point_up, point_dn, intercept1); CHKERRQ(ierr);
+
+    if (faces->num_vertices[face_id] == 4) {
+      vertex_id4 = ugrid->face_to_vertex[3][ugrid_face_id];
+
+      for (PetscInt idim=0; idim<dim; idim++) {
+        point4[idim] = vertices[vertex_id4][idim];
+        v1[idim] = point3[idim] - point4[idim];
+        v2[idim] = point1[idim] - point4[idim];
+      }
+      
+      ierr = TDyCrossProduct(v1,v2,cross_prod);
+      ierr = TDyDotProduct(cross_prod,cross_prod,&dot_prod);
+
+      magnitude = PetscPowReal(dot_prod,0.5);      
+
+      for (PetscInt idim=0; idim<dim; idim++) {
+        n2[idim] = cross_prod[idim]/magnitude;
+      }
+      area2 = 0.5*magnitude;
+      ierr = TDyDotProduct(n2,n_up_dn,&tmp); CHKERRQ(ierr);
+      area_projected2 = PetscAbs(area2*tmp);
+
+      ierr = ComputePlaneGeometry (point2, point3, point4, plane); CHKERRQ(ierr);
+      ierr = GeometryGetPlaneIntercept(plane, point_up, point_dn, intercept2); CHKERRQ(ierr);
+
+      for (PetscInt idim=0; idim<dim; idim++) {
+        intercept[idim] = (intercept1[idim] + intercept2[idim])/2.0;
+      }
+
+    } else {
+
+      area2 = 0.0;
+      area_projected2 = 0.0;
+      for (PetscInt idim=0; idim<dim; idim++) {
+        intercept[idim] = intercept1[idim];
+      }
+
+    }
+
+    for (PetscInt idim=0; idim<dim; idim++) {
+      v1[idim] = intercept[idim] - point_up[idim];
+      v2[idim] = point_dn[idim] - intercept[idim];
+      v3[idim] = v1[idim] + v2[idim];
+    }
+    PetscReal dist_up, dist_dn;
+    ierr = TDyDotProduct(v1,v1,&dist_up); CHKERRQ(ierr);
+    ierr = TDyDotProduct(v2,v2,&dist_dn); CHKERRQ(ierr);
+    ierr = TDyDotProduct(v3,v3,&tmp); CHKERRQ(ierr);
+
+    faces->area[face_id] = area1 + area2;
+    faces->projected_area[face_id] = area_projected1 + area_projected2;
+    faces->dist_up_dn[face_id][0] = dist_up;
+    faces->dist_up_dn[face_id][1] = dist_dn;
+    faces->dist[face_id] = dist_up + dist_dn;
+    faces->dist_wt_up[face_id] = dist_up/(dist_up + dist_dn);
+
+    for (PetscInt idim=0; idim<dim; idim++) {
+      faces->unit_vec_up_dn[face_id][idim] = v3[idim]/PetscPowReal(tmp,0.5);
     }
   }
 
@@ -885,6 +1035,7 @@ static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *dis
 
   // Update the maps after removing duplicate faces
   ierr = UpdateMapsC2F_F2C_F2V(ugrid, cell_to_face, face_to_cell, face_to_vertex);
+  ierr = TDyDeallocate_IntegerArray_2D(face_to_vertex, max_vert_per_face);
 
   // Set up vertex-to-cell mapping
   PetscInt **vertex_to_cell;
@@ -896,6 +1047,7 @@ static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *dis
   // Create internal faces
   ierr = CreateInternalFaces(face_to_cell, cell_to_face, ugrid, mesh);
 
+  ierr = ComputeGeoAttrOfInternalFaces(ugrid, mesh); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

@@ -252,6 +252,13 @@ PetscErrorCode AllocateFaces(
   ierr = TDyAllocate_IntegerArray_1D(&faces->bc_type,num_faces); CHKERRQ(ierr);
 
   ierr = TDyAllocate_RealArray_1D(&faces->area,num_faces); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&faces->projected_area,num_faces); CHKERRQ(ierr);
+
+  ierr = TDyAllocate_RealArray_1D(&faces->dist,num_faces); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&faces->dist_wt_up,num_faces); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&faces->dist_up_dn,num_faces,2); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_2D(&faces->unit_vec_up_dn,num_faces,2); CHKERRQ(ierr);
+
   ierr = TDyAllocate_TDyCoordinate_1D(num_faces, &faces->centroid); CHKERRQ(ierr);
   ierr = TDyAllocate_TDyVector_1D(num_faces, &faces->normal); CHKERRQ(ierr);
 
@@ -393,7 +400,7 @@ PetscInt GetMaxNumOfVerticesFormingAFaceForCellType(TDyCellType cell_type) {
 }
 
 /* ---------------------------------------------------------------- */
-TDyFaceType GetFaceTypeForCellType(TDyCellType cell_type, PetscInt iface) {
+TDyFaceType TDyGetFaceTypeForCellType(TDyCellType cell_type, PetscInt iface) {
   PetscFunctionBegin;
   TDyFaceType face_type;
 
@@ -423,6 +430,29 @@ TDyFaceType GetFaceTypeForCellType(TDyCellType cell_type, PetscInt iface) {
       break;
   }  
   PetscFunctionReturn(face_type);
+}
+
+/* ---------------------------------------------------------------- */
+PetscInt TDyGetNumVerticesForFaceType(TDyFaceType face_type) {
+
+  PetscInt nvertices=0;
+
+  switch (face_type)
+  {
+  case TRI_FACE_TYPE:
+    nvertices = 3;
+    break;
+
+  case QUAD_FACE_TYPE:
+    nvertices = 4;
+    break;
+
+  default:
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported face_type");
+    break;
+  }
+
+  PetscFunctionReturn(nvertices);
 }
 
 /* ---------------------------------------------------------------- */

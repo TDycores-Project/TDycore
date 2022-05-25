@@ -19,7 +19,7 @@ typedef struct {
   PetscInt global_offset;
 
   PetscInt **cell_vertices;
-  PetscInt *cell_num_vertices;
+  PetscInt *cell_num_vertices; // number of vertices for the cell
 
   PetscInt *cell_ids_natural;
   PetscInt *cell_ids_petsc;
@@ -36,9 +36,14 @@ typedef struct {
   PetscInt max_vert_per_face;
   PetscInt max_face_per_cell;
 
-  PetscInt **face_to_vertex_natural;
-  PetscInt **face_to_vertex;
+  PetscInt num_faces;               // (1) internal faces (local+ghosted) (2) boundary faces
+  PetscInt *face_num_vertices;      // number of vertices for the face
+  PetscInt **face_to_vertex_natural;// size = [max_vert_per_face x max_face_per_cell*ngmax]
+  PetscInt **face_to_vertex;        // size = [max_vert_per_face x num_faces]
+  PetscReal **face_centroid;        // size = [num_faces x 3]
+
   PetscInt **cell_to_face_ghosted;
+
   PetscInt *vertex_ids_natural;
   PetscInt **cell_neighbors_local_ghosted;
 
