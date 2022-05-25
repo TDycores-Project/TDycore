@@ -762,7 +762,6 @@ static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **ce
   TDyCellType cell_type = CELL_HEX_TYPE;
   ierr = AllocateFaces (nconn, cell_type, &mesh_ptr->faces); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&ugrid->connection_to_face, nconn); CHKERRQ(ierr);
-  ierr = TDyAllocate_RealArray_1D(&ugrid->face_area, nconn); CHKERRQ(ierr);
   mesh_ptr->num_faces = nconn;
 
 
@@ -861,6 +860,32 @@ static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **ce
       }
     }
   }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+static PetscErrorCode ComputeArea(TDyUGrid *ugrid, PetscInt v_id1, PetscInt v_id2, PetscInt v_id3, PetscReal *area) {
+
+  PetscErrorCode ierr;
+
+  PetscReal **vertices = ugrid->vertices;
+  PetscInt dim=3;
+  PetscReal point1[dim], point2[dim], point3[dim], v1[dim], v2[dim], cross_prod[dim];
+  PetscReal dot_prod;
+
+  for (PetscInt idim=0; idim<dim; idim++) {
+    point1[idim] = vertices[v_id1][idim];
+    point2[idim] = vertices[v_id2][idim];
+    point3[idim] = vertices[v_id3][idim];
+    v1[idim] = point3[idim] - point2[idim];
+    v2[idim] = point1[idim] - point2[idim];
+  }
+  ierr = TDyCrossProduct(v1,v2,cross_prod); CHKERRQ(ierr);
+  ierr = TDyDotProduct(cross_prod,cross_prod,&dot_prod); CHKERRQ(ierr);
+
+  PetscReal magnitude = PetscPowReal(dot_prod,0.5);
+  *area = 0.5*magnitude;
 
   PetscFunctionReturn(0);
 }
@@ -994,6 +1019,74 @@ static PetscErrorCode ComputeGeoAttrOfInternalFaces(TDyUGrid *ugrid, TDyMesh **m
 }
 
 /* -------------------------------------------------------------------------- */
+static PetscErrorCode ComputeGoeAttrOfUGridFaces(TDyUGrid *ugrid, PetscInt **cell_to_face) {
+
+  PetscErrorCode ierr;
+
+  PetscInt max_face_per_cell = ugrid->max_face_per_cell;
+  PetscInt max_vert_per_face = ugrid->max_vert_per_face;
+  PetscInt nlmax = ugrid->num_cells_local;
+  PetscInt dim=3;
+
+  ierr = TDyAllocate_RealArray_2D(&ugrid->face_centroid, ugrid->num_faces, dim); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_1D(&ugrid->face_area, ugrid->num_faces); CHKERRQ(ierr);
+
+  PetscBool is_face_set[ugrid->num_faces];
+  for (PetscInt iface; iface<ugrid->num_faces; iface++) {
+    is_face_set[iface] = PETSC_FALSE;
+    for (PetscInt idim=0; idim<dim; idim++) {
+      ugrid->face_centroid[iface][idim] = 0.0;
+    }
+  }
+
+
+  for (PetscInt icell=0; icell<nlmax; icell++) {
+    for (PetscInt iface=0; iface<max_face_per_cell; iface++) {
+      PetscInt face_id = cell_to_face[iface][icell];
+
+      if (face_id == -1) continue;
+      if (is_face_set[face_id]) continue;
+
+      is_face_set[face_id] = PETSC_TRUE;
+
+      PetscReal area1=0.0, area2 = 0.0;
+      PetscInt vertex_id1 = ugrid->face_to_vertex[0][face_id];
+      PetscInt vertex_id2 = ugrid->face_to_vertex[1][face_id];
+      PetscInt vertex_id3 = ugrid->face_to_vertex[2][face_id];
+      ierr = ComputeArea(ugrid, vertex_id1, vertex_id2, vertex_id3, &area1); CHKERRQ(ierr);
+
+      PetscInt num_cell_vertices = ugrid->cell_num_vertices[icell];
+      TDyCellType icell_type = GetCellType(num_cell_vertices);
+      TDyFaceType face_type = TDyGetFaceTypeForCellType(icell_type, iface);
+      PetscInt nvertices = TDyGetNumVerticesForFaceType(face_type);
+
+      if (nvertices == 4) {
+        PetscInt vertex_id4 = ugrid->face_to_vertex[3][face_id];
+        ierr = ComputeArea(ugrid, vertex_id1, vertex_id4, vertex_id3, &area2); CHKERRQ(ierr);
+      }
+
+      ugrid->face_area[face_id] = area1 + area2;
+
+      PetscInt count = 0;
+      for (PetscInt ivertex=0; ivertex<max_vert_per_face; ivertex++) {
+        PetscInt vertex_id = ugrid->face_to_vertex[ivertex][face_id];
+        if (vertex_id >= 0) {
+          for (PetscInt idim=0; idim<dim; idim++) {
+            ugrid->face_centroid[face_id][idim] += ugrid->vertices[vertex_id][idim];
+          }
+          count++;
+        }
+      }
+      for (PetscInt idim=0; idim<dim; idim++) {
+        ugrid->face_centroid[face_id][idim] /= count;
+      }
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *discretization, TDyMesh **mesh) {
 
   PetscErrorCode ierr;
@@ -1041,7 +1134,12 @@ static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *dis
   // Create internal faces
   ierr = CreateInternalFaces(face_to_cell, cell_to_face, ugrid, mesh);
 
+  // Compute geometric attributes of internal faces e.g. distances, areas, unit normal, etc
   ierr = ComputeGeoAttrOfInternalFaces(ugrid, mesh); CHKERRQ(ierr);
+
+  // Computes geometric attirbutes of all faces and saves them in the TDyUGrid struct
+  ierr = ComputeGoeAttrOfUGridFaces(ugrid, cell_to_face); CHKERRQ(ierr);
+
 
   PetscFunctionReturn(0);
 }

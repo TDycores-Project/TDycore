@@ -41,14 +41,14 @@ typedef struct {
   PetscInt **face_to_vertex_natural;// size = [max_vert_per_face x max_face_per_cell*ngmax]
   PetscInt **face_to_vertex;        // size = [max_vert_per_face x num_faces]
   PetscReal **face_centroid;        // size = [num_faces x 3]
+  PetscInt *connection_to_face;
+  PetscReal *face_area;             // size = [num_faces]
 
   PetscInt **cell_to_face_ghosted;
 
   PetscInt *vertex_ids_natural;
   PetscInt **cell_neighbors_local_ghosted;
 
-  PetscInt *connection_to_face;
-  PetscReal *face_area;
 
 } TDyUGrid;
 
