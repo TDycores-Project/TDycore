@@ -550,7 +550,7 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, TDyDiscretizationType *dis
 
   switch (tdydm_ptr->dmtype) {
     case PLEX_TYPE:
-    ierr = TDyMeshCreate(dm, &fvtpf->V, &fvtpf->X, &fvtpf->N, &fvtpf->mesh);
+    ierr = TDyMeshCreateFromPlex(dm, &fvtpf->V, &fvtpf->X, &fvtpf->N, &fvtpf->mesh);
     ierr = TDyMeshGetMaxVertexConnectivity(fvtpf->mesh, &fvtpf->ncv, &fvtpf->nfv);
     break;
 

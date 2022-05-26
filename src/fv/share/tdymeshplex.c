@@ -3513,7 +3513,7 @@ static PetscErrorCode TDyMeshComputeGeometryFromPlex(PetscReal **X, PetscReal **
 /// @param [in] coords An array assigning a set of coordinates to each mesh point
 /// @param [in] normals An array assigning a normal vector to each mesh point
 /// @param [out] mesh the newly constructed mesh instance
-PetscErrorCode TDyMeshCreate(DM dm, PetscReal **volumes, PetscReal **coords,
+PetscErrorCode TDyMeshCreateFromPlex(DM dm, PetscReal **volumes, PetscReal **coords,
                              PetscReal **normals, TDyMesh **mesh) {
   PetscFunctionBegin;
   PetscErrorCode ierr;

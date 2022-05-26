@@ -2190,7 +2190,7 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context, TDyDiscretizationType* dis
   DM dm;
   ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
 
-  ierr = TDyMeshCreate(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
+  ierr = TDyMeshCreateFromPlex(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
   ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
 
   ierr = TDyAllocate_RealArray_1D(&(mpfao->vel), mpfao->mesh->num_faces); CHKERRQ(ierr);
@@ -2246,7 +2246,7 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, TDyDiscretizationType 
   DM dm;
   ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
 
-  ierr = TDyMeshCreate(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
+  ierr = TDyMeshCreateFromPlex(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
   ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
 
   ierr = TDyAllocate_RealArray_1D(&(mpfao->vel), mpfao->mesh->num_faces); CHKERRQ(ierr);
@@ -2299,7 +2299,7 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, TDyDiscretizationType *discretiz
   DM dm;
   ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
 
-  ierr = TDyMeshCreate(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
+  ierr = TDyMeshCreateFromPlex(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
   ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
 
   ierr = TDyAllocate_RealArray_1D(&(mpfao->vel), mpfao->mesh->num_faces); CHKERRQ(ierr);
