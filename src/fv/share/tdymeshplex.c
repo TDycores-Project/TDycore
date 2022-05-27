@@ -3507,6 +3507,164 @@ static PetscErrorCode TDyMeshComputeGeometryFromPlex(PetscReal **X, PetscReal **
   PetscFunctionReturn(0);
 }
 
+/// Computes geometric attribues for faces that include
+///  - Upwind and downwind distance of cells sharing a face. If the face is a
+///    boundary face, one of the distance is zero
+///  - Unit normal vector to the face
+///
+/// @param [inout] tdy A TDyMesh struct
+/// @returns 0 on success, or a non-zero error code on failure
+static PetscErrorCode ComputeGeoAttrOfFaces(TDyMesh *mesh) {
+
+  PetscFunctionBegin;
+
+  TDyCell *cells = &mesh->cells;
+  TDyFace *faces = &mesh->faces;
+  TDyVertex *vertices = &mesh->vertices;
+  PetscErrorCode ierr;
+
+  PetscInt *face_cell_ids, num_cell_ids;
+  PetscReal dist_up, dist_dn;
+  PetscReal u_up2dn[3];
+
+  for (PetscInt face_id=0; face_id<mesh->num_faces; face_id++) {
+    ierr = TDyMeshGetFaceCells(mesh, face_id, &face_cell_ids, &num_cell_ids); CHKERRQ(ierr);
+    PetscInt cell_id_up = face_cell_ids[0];
+    PetscInt cell_id_dn = face_cell_ids[1];
+
+    if (cell_id_up < 0 && cell_id_dn < 0) {
+      SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Both cell IDs sharing a face are not valid");
+    }
+
+    PetscInt dim = 3;
+    PetscInt use_pflotran_approach = 1;
+
+    if (!use_pflotran_approach) {
+      PetscReal coord_face[dim];
+      ierr = TDyFace_GetCentroid(faces, face_id, dim, &coord_face[0]); CHKERRQ(ierr);
+
+      if (cell_id_up >= 0) {
+        PetscReal coord_up[dim];
+        ierr = TDyCell_GetCentroid2(cells, cell_id_up, dim, &coord_up[0]); CHKERRQ(ierr);
+        ierr = TDyComputeLength(coord_up, coord_face, dim, &dist_up); CHKERRQ(ierr);
+      } else {
+        dist_up = 0.0;
+      }
+
+      if (cell_id_dn >= 0) {
+        PetscReal coord_dn[dim];
+        ierr = TDyCell_GetCentroid2(cells, cell_id_dn, dim, &coord_dn[0]); CHKERRQ(ierr);
+        ierr = TDyComputeLength(coord_dn, coord_face, dim, &dist_dn); CHKERRQ(ierr);
+      } else {
+        dist_dn = 0.0;
+      }
+    } else {
+
+      PetscInt *vertex_ids, num_vertices;
+      ierr = TDyMeshGetFaceVertices(mesh, face_id, &vertex_ids, &num_vertices); CHKERRQ(ierr);
+      if (num_vertices < 3 || num_vertices > 4) {
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Number of vertices of a face is not equal to 3 or 4");
+      }
+      PetscReal coord_up[3], coord_dn[3];
+      if (cell_id_up >= 0) {
+        ierr = TDyCell_GetCentroid2(cells, cell_id_up, dim, &coord_up[0]); CHKERRQ(ierr);
+      } else {
+        ierr = TDyFace_GetCentroid(faces, face_id, dim, &coord_up[0]); CHKERRQ(ierr);
+      }
+
+      if (cell_id_dn >= 0){
+        ierr = TDyCell_GetCentroid2(cells, cell_id_dn, dim, &coord_dn[0]); CHKERRQ(ierr);
+      } else {
+        ierr = TDyFace_GetCentroid(faces, face_id, dim, &coord_dn[0]); CHKERRQ(ierr);
+      }
+
+      PetscInt dim = 3;
+
+      PetscReal plane[4], point1[dim], point2[dim], point3[dim], point4[dim];
+
+      ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[0], dim, &point1[0]);
+      ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[1], dim, &point2[0]);
+      ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[2], dim, &point3[0]);
+
+      ierr = ComputePlaneGeometry (point1, point2, point3, plane);
+
+      PetscReal intercept[3];
+      PetscBool boundary_face = PETSC_FALSE;
+
+      if (cell_id_up >= 0 && cell_id_dn >=0 ) { 
+        ierr = GeometryGetPlaneIntercept(plane, coord_up, coord_dn, intercept);
+      } else {
+        boundary_face = PETSC_TRUE;
+        if (cell_id_up >= 0 ) {
+          ierr = GeometryProjectPointOnPlane(plane, coord_up, intercept);
+        } else {
+          ierr = GeometryProjectPointOnPlane(plane, coord_dn, intercept);
+        }
+      }
+
+      if (!boundary_face) {
+        if (num_vertices == 4) {
+          PetscReal plane2[4];
+
+          ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[3], dim, &point4[0]);
+
+          ierr = ComputePlaneGeometry (point2, point3, point4, plane2);
+
+          PetscReal intercept2[3];
+          ierr = GeometryGetPlaneIntercept(plane2, coord_up, coord_dn, intercept2); CHKERRQ(ierr);
+
+          intercept[0] = (intercept[0] + intercept2[0])/2.0;
+          intercept[1] = (intercept[1] + intercept2[1])/2.0;
+          intercept[2] = (intercept[2] + intercept2[2])/2.0;
+        }
+
+        PetscReal v1[dim], v2[dim], v3[dim];
+
+        for (PetscInt i=0; i<dim; i++) {
+          v1[i] = intercept[i] - coord_up[i];
+          v2[i] = coord_dn[i] - intercept[i];
+          v3[i] = v1[i] + v2[i];
+        }
+
+        PetscReal d1,d2;
+        ierr = TDyDotProduct(v1,v1,&d1); CHKERRQ(ierr);
+        ierr = TDyDotProduct(v2,v2,&d2); CHKERRQ(ierr);
+        dist_up = PetscPowReal(d1,0.5);
+        dist_dn = PetscPowReal(d2,0.5);
+
+        PetscReal d3;
+        ierr = TDyDotProduct(v3,v3,&d3); CHKERRQ(ierr);
+        PetscReal dist3 = PetscPowReal(d3,0.5);
+        for (PetscInt i=0; i<dim; i++) {
+          u_up2dn[i] = v3[i]/dist3;
+        }
+
+
+      } else {
+        PetscReal v2[dim];
+        for (PetscInt i=0; i<dim; i++) {
+          v2[i] = coord_dn[i] - intercept[i];
+        }
+        PetscReal d2;
+        ierr = TDyDotProduct(v2,v2,&d2); CHKERRQ(ierr);
+        dist_up = 0.0;
+        dist_dn = PetscPowReal(d2,0.5);
+        for (PetscInt i=0; i<dim; i++) {
+          u_up2dn[i] = v2[i]/(dist_dn);
+        }
+      }
+
+    }
+    faces->dist_up_dn[face_id][0] = dist_up;
+    faces->dist_up_dn[face_id][1] = dist_dn;
+    for (PetscInt idim=0; idim<dim; idim++) {
+      faces->unit_vec_up_dn[face_id][idim] = u_up2dn[idim];
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
 /// Constructs a mesh from a PETSc DM.
 /// @param [in] dm A PETSc DM from which the mesh is created
 /// @param [in] volumes An array assigning a volume to each mesh point
@@ -3603,6 +3761,7 @@ PetscErrorCode TDyMeshCreateFromPlex(DM dm, PetscReal **volumes, PetscReal **coo
   ierr = UpdateFaceOrderAroundAVertex(dm, m); CHKERRQ(ierr);
   ierr = UpdateCellOrientationAroundAFace(dm, m); CHKERRQ(ierr);
   ierr = SetupSubcells(dm, m); CHKERRQ(ierr);
+  ierr = ComputeGeoAttrOfFaces(m);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
