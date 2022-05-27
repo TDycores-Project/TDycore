@@ -232,15 +232,27 @@ PetscErrorCode TDyDiscretizationNaturalToGlobal(TDyDiscretizationType *discretiz
 
   TDyDM *tdydm = discretization->tdydm;
   DM dm = tdydm->dm;
+  TDyUGDM *ugdm;
+  ierr = TDyDiscretizationGetTDyUGDM(discretization,&ugdm);
 
-  ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);
-  if (!useNatural) {
-    PetscPrintf(PETSC_COMM_WORLD,"TDyNaturalToGlobal cannot be performed as DMGetUseNatural is false");
-    exit(0);
+  switch (tdydm->dmtype) {
+    case PLEX_TYPE:
+      ierr = DMGetUseNatural(dm, &useNatural); CHKERRQ(ierr);
+      if (!useNatural) {
+        PetscPrintf(PETSC_COMM_WORLD,"TDyNaturalToGlobal cannot be performed as DMGetUseNatural is false");
+        exit(0);
+      }
+
+      ierr = DMPlexNaturalToGlobalBegin(dm, natural, global);CHKERRQ(ierr);
+      ierr = DMPlexNaturalToGlobalEnd(dm, natural, global);CHKERRQ(ierr);
+      break;
+    case TDYCORE_DM_TYPE:
+      ierr = VecScatterBegin(ugdm->Scatter_GlobalCells_to_NaturalCells,natural,global,INSERT_VALUES,SCATTER_REVERSE);CHKERRQ(ierr);
+      ierr = VecScatterEnd(ugdm->Scatter_GlobalCells_to_NaturalCells,natural,global,INSERT_VALUES,SCATTER_REVERSE);CHKERRQ(ierr);
+      break;
+    default:
+      break;
   }
-
-  ierr = DMPlexNaturalToGlobalBegin(dm, natural, global);CHKERRQ(ierr);
-  ierr = DMPlexNaturalToGlobalEnd(dm, natural, global);CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
