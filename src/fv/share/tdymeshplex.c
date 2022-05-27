@@ -3509,7 +3509,8 @@ static PetscErrorCode TDyMeshComputeGeometryFromPlex(PetscReal **X, PetscReal **
 
 /// Computes geometric attribues for faces that include
 ///  - Upwind and downwind distance of cells sharing a face. If the face is a
-///    boundary face, one of the distance is zero
+///    boundary face, one of the distance is zero.
+///  - Fraction of upwind distance w.r.t. total distance
 ///  - Unit normal vector to the face
 ///  - Projected face area
 ///
@@ -3661,6 +3662,7 @@ static PetscErrorCode ComputeGeoAttrOfFaces(TDyMesh *mesh) {
     for (PetscInt idim=0; idim<dim; idim++) {
       faces->unit_vec_up_dn[face_id][idim] = u_up2dn[idim];
     }
+    faces->dist_wt_up[face_id] = dist_up/(dist_up + dist_dn);
 
     PetscReal dot_prod;
     ierr = TDyDotProduct(u_up2dn, faces->normal[face_id].V, &dot_prod); CHKERRQ(ierr);
