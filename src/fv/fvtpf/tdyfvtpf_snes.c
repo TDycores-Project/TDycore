@@ -83,8 +83,7 @@ PetscErrorCode RichardsResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  PetscInt dim = 3;
 
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
@@ -139,8 +138,7 @@ PetscErrorCode RichardsBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  PetscInt dim = 3;
 
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
@@ -202,9 +200,7 @@ PetscErrorCode RichardsSeepageBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-
+  PetscInt dim=3;
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
   PetscInt cell_id_up = -cell_ids[0] - 1; // cell up is a boundary cell with negative ids, determine the id to use from *_bnd variables
@@ -262,9 +258,7 @@ PetscErrorCode RichardsJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-
+  PetscInt dim=3;
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
   PetscInt cell_id_up = cell_ids[0];
@@ -348,9 +342,7 @@ PetscErrorCode RichardsBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-
+  PetscInt dim=3;
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
   PetscInt cell_id_up = -cell_ids[0] - 1;
@@ -430,9 +422,7 @@ PetscErrorCode RichardsSeepageBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-
+  PetscInt dim=3;
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
   PetscInt cell_id_up = -cell_ids[0] - 1;
