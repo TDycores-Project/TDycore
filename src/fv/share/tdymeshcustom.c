@@ -23,6 +23,8 @@ static PetscErrorCode TDyMeshMapIndices(TDyDiscretizationType *discretization, T
 
   PetscInt ngmax = ugrid->num_cells_global;
   PetscInt nlmax = ugrid->num_cells_local;
+  mesh_ptr->num_cells = ngmax;
+  mesh_ptr->num_cells_local = nlmax;
 
   ierr = TDyAllocate_IntegerArray_1D(&mesh_ptr->nG2L,ngmax); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&mesh_ptr->nL2G,nlmax); CHKERRQ(ierr);
@@ -760,6 +762,9 @@ static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **ce
 
   TDyMesh *mesh_ptr = *mesh;
   TDyCellType cell_type = CELL_HEX_TYPE;
+  mesh_ptr->num_faces = nconn;
+  mesh_ptr->num_boundary_faces = ugrid->num_faces;
+  mesh_ptr->num_vertices = ugrid->num_verts_global;
   ierr = AllocateFaces (nconn, cell_type, &mesh_ptr->faces); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&ugrid->connection_to_face, nconn); CHKERRQ(ierr);
   mesh_ptr->num_faces = nconn;
