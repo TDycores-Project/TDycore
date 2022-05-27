@@ -848,7 +848,7 @@ static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **ce
         mesh_ptr->faces.cell_ids[offset++] = icell;
         mesh_ptr->faces.cell_ids[offset++] = abs(dual_id);
         mesh_ptr->faces.id[iconn] = cell_to_face[iface][icell];
-        mesh_ptr->faces.is_local[iconn] = PETSC_TRUE;
+        mesh_ptr->faces.is_internal[iconn] = PETSC_TRUE;
 
         if (dual_id >= 0) {
           mesh_ptr->faces.is_local[iconn] = PETSC_TRUE;
