@@ -3511,6 +3511,7 @@ static PetscErrorCode TDyMeshComputeGeometryFromPlex(PetscReal **X, PetscReal **
 ///  - Upwind and downwind distance of cells sharing a face. If the face is a
 ///    boundary face, one of the distance is zero
 ///  - Unit normal vector to the face
+///  - Projected face area
 ///
 /// @param [inout] tdy A TDyMesh struct
 /// @returns 0 on success, or a non-zero error code on failure
@@ -3660,6 +3661,14 @@ static PetscErrorCode ComputeGeoAttrOfFaces(TDyMesh *mesh) {
     for (PetscInt idim=0; idim<dim; idim++) {
       faces->unit_vec_up_dn[face_id][idim] = u_up2dn[idim];
     }
+
+    PetscReal dot_prod;
+    ierr = TDyDotProduct(u_up2dn, faces->normal[face_id].V, &dot_prod); CHKERRQ(ierr);
+
+    PetscReal face_area;
+    ierr = TDyMeshGetFaceArea(mesh, face_id, &face_area); CHKERRQ(ierr);
+
+    faces->projected_area[face_id] = face_area * dot_prod;
   }
 
   PetscFunctionReturn(0);

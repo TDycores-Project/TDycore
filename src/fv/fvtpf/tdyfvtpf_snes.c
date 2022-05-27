@@ -123,8 +123,7 @@ PetscErrorCode RichardsResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
 
     PetscReal v_darcy = Dq * ukvr * dphi;
 
-    PetscReal projected_area;
-    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+    PetscReal projected_area = (fvtpf->mesh)->faces.projected_area[face_id];
 
     PetscReal q = v_darcy * projected_area;
     *Res = q * den_aveg;
@@ -178,9 +177,7 @@ PetscErrorCode RichardsBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
     }
 
     PetscReal v_darcy = Dq * ukvr * dphi;
-
-    PetscReal projected_area;
-    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+    PetscReal projected_area = (fvtpf->mesh)->faces.projected_area[face_id];
 
     PetscReal q = v_darcy * projected_area;
     *Res = q * den_aveg;
@@ -250,9 +247,7 @@ PetscErrorCode RichardsSeepageBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
     }
 
     PetscReal v_darcy = Dq * ukvr * dphi;
-
-    PetscReal projected_area;
-    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+    PetscReal projected_area = (fvtpf->mesh)->faces.projected_area[face_id];
 
     PetscReal q = v_darcy * projected_area;
     *Res = q * den_aveg;
@@ -332,9 +327,7 @@ PetscErrorCode RichardsJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
     }
 
     PetscReal v_darcy = Dq * ukvr * dphi;
-
-    PetscReal projected_area;
-    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+    PetscReal projected_area = (fvtpf->mesh)->faces.projected_area[face_id];
 
     PetscReal q = v_darcy * projected_area;
     PetscReal dq_dp_up = Dq * (dukvr_dp_up * dphi + ukvr * dphi_dp_up)*projected_area;
@@ -407,9 +400,7 @@ PetscErrorCode RichardsBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
     }
 
     PetscReal v_darcy = Dq * ukvr * dphi;
-
-    PetscReal projected_area;
-    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+    PetscReal projected_area = (fvtpf->mesh)->faces.projected_area[face_id];
 
     PetscReal q = v_darcy * projected_area;
     PetscReal dq_dp_dn = Dq * (dukvr_dp_dn * dphi + ukvr * dphi_dp_dn)*projected_area;
@@ -499,9 +490,7 @@ PetscErrorCode RichardsSeepageBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
     }
 
     PetscReal v_darcy = Dq * ukvr * dphi;
-
-    PetscReal projected_area;
-    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+    PetscReal projected_area = (fvtpf->mesh)->faces.projected_area[face_id];
 
     PetscReal q = v_darcy * projected_area;
     PetscReal dq_dp_dn = Dq * (dukvr_dp_dn * dphi + ukvr * dphi_dp_dn)*projected_area;

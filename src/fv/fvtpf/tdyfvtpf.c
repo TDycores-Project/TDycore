@@ -817,29 +817,3 @@ PetscErrorCode FVTPFCalculateDistances(TDyFVTPF *fvtpf, PetscInt dim, PetscInt f
 
   PetscFunctionReturn(0);
 }
-
-PetscErrorCode FVTPFComputeProjectedArea(TDyFVTPF *fvtpf, PetscInt dim, PetscInt face_id, PetscReal *projected_area) {
-  
-  PetscFunctionBegin;
-
-  PetscErrorCode ierr;
-
-  PetscReal u_up2dn[dim];
-  PetscReal dist_up = (fvtpf->mesh)->faces.dist_up_dn[face_id][0];
-  PetscReal dist_dn = (fvtpf->mesh)->faces.dist_up_dn[face_id][0];
-  for (PetscInt idim=0; idim<dim; idim++) {
-    u_up2dn[idim] = (fvtpf->mesh)->faces.unit_vec_up_dn[face_id][idim];
-  }
-
-  TDyMesh *mesh = fvtpf->mesh;
-  PetscReal dot_prod;
-  ierr = TDyDotProduct(u_up2dn, mesh->faces.normal[face_id].V, &dot_prod); CHKERRQ(ierr);
-
-  PetscReal face_area;
-  ierr = TDyMeshGetFaceArea(mesh, face_id, &face_area); CHKERRQ(ierr);
-
-  *projected_area = face_area * dot_prod;
-
-  PetscFunctionReturn(0);
-
-}
