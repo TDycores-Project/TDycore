@@ -155,20 +155,14 @@ PetscErrorCode TDySetDMFields_Richards_FVTPF(void *context, DM dm) {
 
 // Initializes material properties and characteristic curve data.
 static PetscErrorCode InitMaterials(TDyFVTPF *fvtpf,
-                                    DM dm,
                                     MaterialProp *matprop,
                                     CharacteristicCurves *cc) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-
   // Allocate storage for material data and characteristic curves, and set to
   // zero using PetscCalloc instead of PetscMalloc.
-  PetscInt cStart, cEnd;
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  PetscInt nc = cEnd-cStart;
+  PetscInt nc = (fvtpf->mesh)->num_cells;
 
   // Material properties
   ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(fvtpf->K)); CHKERRQ(ierr);
@@ -216,7 +210,7 @@ static PetscErrorCode InitMaterials(TDyFVTPF *fvtpf,
   // Initialize characteristic curve parameters on all cells.
   PetscInt points[nc];
   for (PetscInt c = 0; c < nc; ++c) {
-    points[c] = cStart + c;
+    points[c] = c;
   }
 
   // By default, we use the Van Genuchten saturation model.
@@ -556,7 +550,7 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, TDyDiscretizationType *dis
 
     case TDYCORE_DM_TYPE:
     ierr = TDyMeshCreateFromDiscretization(discretization, &fvtpf->mesh);
-    SETERRQ(comm,PETSC_ERR_USER,"Add code to support TDYCORE_DM_TYPE");
+    //SETERRQ(comm,PETSC_ERR_USER,"Add code to support TDYCORE_DM_TYPE");
     break;
 
     default:
@@ -567,7 +561,7 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, TDyDiscretizationType *dis
   ierr = TDyAllocate_RealArray_1D(&(fvtpf->vel), fvtpf->mesh->num_faces); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&(fvtpf->vel_count), fvtpf->mesh->num_faces); CHKERRQ(ierr);
 
-  ierr = InitMaterials(fvtpf, dm, matprop, cc); CHKERRQ(ierr);
+  ierr = InitMaterials(fvtpf, matprop, cc); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForBoundaryValues(fvtpf, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(fvtpf); CHKERRQ(ierr);
@@ -669,7 +663,6 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
 
   DM dm;
   ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
 
