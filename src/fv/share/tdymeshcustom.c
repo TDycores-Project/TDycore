@@ -151,6 +151,7 @@ static PetscErrorCode TDySetupCellsFromDiscretization(TDyDiscretizationType *dis
   PetscInt nverts_per_cell = ugrid->max_verts_per_cell;
   PetscInt num_cells = ugrid->num_cells_global;
   PetscInt ngmax = ugrid->num_cells_global;
+  PetscInt nlmax = ugrid->num_cells_local;
 
   TDyCellType cell_type = GetCellType(nverts_per_cell);
 
@@ -189,6 +190,8 @@ static PetscErrorCode TDySetupCellsFromDiscretization(TDyDiscretizationType *dis
     for (PetscInt idim=0; idim<dim; idim++) {
       cells->centroid[icell].X[idim] = xyz[idim]/nvmax;
     }
+    if (icell<nlmax) cells->is_local[icell] = PETSC_TRUE;
+    else cells->is_local[icell] = PETSC_FALSE;
 
     // compute cell volume
     ierr = ComputeVolume(vertex_coords, nvmax, &cells->volume[icell]); CHKERRQ(ierr);
@@ -1010,10 +1013,12 @@ static PetscErrorCode ComputeGeoAttrOfInternalFaces(TDyUGrid *ugrid, TDyMesh **m
 
     faces->area[face_id] = area1 + area2;
     faces->projected_area[face_id] = area_projected1 + area_projected2;
+    dist_up = PetscPowReal(dist_up,0.5);
+    dist_dn = PetscPowReal(dist_dn,0.5);
     faces->dist_up_dn[face_id][0] = dist_up;
     faces->dist_up_dn[face_id][1] = dist_dn;
     faces->dist[face_id] = dist_up + dist_dn;
-    faces->dist_wt_up[face_id] = dist_up/(dist_up + dist_dn);
+    faces->dist_wt_up[face_id] = dist_dn/(dist_up + dist_dn);
 
     for (PetscInt idim=0; idim<dim; idim++) {
       faces->unit_vec_up_dn[face_id][idim] = v3[idim]/PetscPowReal(tmp,0.5);
