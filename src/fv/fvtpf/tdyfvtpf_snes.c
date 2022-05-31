@@ -561,7 +561,7 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
     PetscInt *cell_ids, num_face_cells;
     ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
 
-    PetscReal Res;
+    PetscReal Res = 0.0;
     switch (faces->bc_type[iface]) {
     case DIRICHLET_BC:
       ierr = RichardsBCResidual(fvtpf, dm, tdy->matprop, iface, &Res);
