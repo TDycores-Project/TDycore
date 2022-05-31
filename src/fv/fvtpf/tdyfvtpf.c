@@ -764,7 +764,7 @@ PetscErrorCode FVTPFComputeFacePeremabilityValueTPF(TDyFVTPF *fvtpf, MaterialPro
 
   PetscReal u_up2dn[dim];
   PetscReal dist_up = (fvtpf->mesh)->faces.dist_up_dn[face_id][0];
-  PetscReal dist_dn = (fvtpf->mesh)->faces.dist_up_dn[face_id][0];
+  PetscReal dist_dn = (fvtpf->mesh)->faces.dist_up_dn[face_id][1];
   for (PetscInt idim=0; idim<dim; idim++) {
     u_up2dn[idim] = (fvtpf->mesh)->faces.unit_vec_up_dn[face_id][idim];
   }
@@ -797,7 +797,7 @@ PetscErrorCode FVTPFCalculateDistances(TDyFVTPF *fvtpf, PetscInt dim, PetscInt f
 
   PetscReal u_up2dn[dim];
   PetscReal dist_up = (fvtpf->mesh)->faces.dist_up_dn[face_id][0];
-  PetscReal dist_dn = (fvtpf->mesh)->faces.dist_up_dn[face_id][0];
+  PetscReal dist_dn = (fvtpf->mesh)->faces.dist_up_dn[face_id][1];
   for (PetscInt idim=0; idim<dim; idim++) {
     u_up2dn[idim] = (fvtpf->mesh)->faces.unit_vec_up_dn[face_id][idim];
   }
