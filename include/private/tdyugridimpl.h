@@ -25,8 +25,8 @@ typedef struct {
   PetscInt *cell_ids_petsc;
   PetscInt *ghost_cell_ids_petsc;
 
-  PetscInt **cell_neighbors_ghosted;
-  PetscInt *cell_num_neighbors_ghosted;
+  PetscInt **cell_neighbors_local_ghosted;
+  PetscInt *cell_num_neighbors_local_ghosted;
 
   PetscReal **vertices;
 
@@ -47,7 +47,6 @@ typedef struct {
   PetscInt **cell_to_face_ghosted;
 
   PetscInt *vertex_ids_natural;
-  PetscInt **cell_neighbors_local_ghosted;
 
 
 } TDyUGrid;

@@ -5,6 +5,8 @@
 #include <private/tdyugridimpl.h>
 
 typedef struct {
+  PetscInt ndof;
+
   Vec LocalVec;
   Vec GlobalVec;
 
@@ -34,5 +36,6 @@ PETSC_INTERN PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt,TDyUGrid*,TDyUGDM*);
 PETSC_INTERN PetscErrorCode TDyUGDMCreateGlobalVec(PetscInt,PetscInt,TDyUGDM*,Vec*);
 PETSC_INTERN PetscErrorCode TDyUGDMCreateLocalVec(PetscInt,PetscInt,TDyUGDM*,Vec*);
 PETSC_INTERN PetscErrorCode TDyUGDMCreateNaturalVec(PetscInt,PetscInt,TDyUGDM*,Vec*);
+PETSC_INTERN PetscErrorCode TDyUGDMCreateMatrix(TDyUGrid*,TDyUGDM*,PetscInt,Mat*);
 
 #endif
