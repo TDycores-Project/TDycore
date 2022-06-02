@@ -160,11 +160,21 @@ PetscErrorCode TDyDiscretizationCreateJacobianMatrix(TDyDiscretizationType *disc
   TDyDM *tdydm = discretization->tdydm;
   DM dm = tdydm->dm;
 
-  ierr = DMCreateMatrix(dm, matrix); CHKERRQ(ierr);
-  ierr = MatSetOption(*matrix, MAT_KEEP_NONZERO_PATTERN, PETSC_FALSE); CHKERRQ(ierr);
-  ierr = MatSetOption(*matrix, MAT_ROW_ORIENTED, PETSC_FALSE); CHKERRQ(ierr);
-  ierr = MatSetOption(*matrix, MAT_NO_OFF_PROC_ZERO_ROWS, PETSC_TRUE); CHKERRQ(ierr);
-  ierr = MatSetOption(*matrix, MAT_NEW_NONZERO_LOCATIONS, PETSC_TRUE); CHKERRQ(ierr);
+  switch (tdydm->dmtype) {
+    case PLEX_TYPE:
+        ierr = DMCreateMatrix(dm, matrix); CHKERRQ(ierr);
+        ierr = MatSetOption(*matrix, MAT_KEEP_NONZERO_PATTERN, PETSC_FALSE); CHKERRQ(ierr);
+        ierr = MatSetOption(*matrix, MAT_ROW_ORIENTED, PETSC_FALSE); CHKERRQ(ierr);
+        ierr = MatSetOption(*matrix, MAT_NO_OFF_PROC_ZERO_ROWS, PETSC_TRUE); CHKERRQ(ierr);
+        ierr = MatSetOption(*matrix, MAT_NEW_NONZERO_LOCATIONS, PETSC_TRUE); CHKERRQ(ierr);
+      break;
+    case TDYCORE_DM_TYPE:
+      ierr = TDyUGDMCreateMatrix(discretization->ugrid,tdydm->ugdm, (tdydm->ugdm)->ndof, matrix); CHKERRQ(ierr);
+      break;
+    default:
+      break;
+  }
+
 
   PetscFunctionReturn(0);
 }

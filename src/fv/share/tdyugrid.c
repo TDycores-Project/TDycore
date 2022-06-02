@@ -36,8 +36,8 @@ PetscErrorCode TDyUGridCreate(TDyUGrid **ugrid) {
   (*ugrid)->cell_ids_petsc = NULL;
   (*ugrid)->ghost_cell_ids_petsc = NULL;
 
-  (*ugrid)->cell_neighbors_ghosted = NULL;
-  (*ugrid)->cell_num_neighbors_ghosted = NULL;
+  (*ugrid)->cell_neighbors_local_ghosted = NULL;
+  (*ugrid)->cell_num_neighbors_local_ghosted = NULL;
 
   (*ugrid)->vertices = NULL;
 
@@ -51,7 +51,6 @@ PetscErrorCode TDyUGridCreate(TDyUGrid **ugrid) {
   (*ugrid)->face_to_vertex = NULL;
   (*ugrid)->cell_to_face_ghosted = NULL;
   (*ugrid)->vertex_ids_natural = NULL;
-  (*ugrid)->cell_neighbors_local_ghosted = NULL;
 
   PetscFunctionReturn(0);
 }
@@ -707,15 +706,15 @@ static PetscErrorCode DetermineNeigbhorsCellIDsInGhostedOrder(TDyUGrid *ugrid, P
   PetscInt max_ndual = ugrid->max_ndual_per_cell;
   PetscInt nlmax = ugrid->num_cells_local;
 
-  ierr = TDyAllocate_IntegerArray_2D(&ugrid->cell_neighbors_ghosted, nlmax, max_ndual); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&ugrid->cell_num_neighbors_ghosted, nlmax); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_2D(&ugrid->cell_neighbors_local_ghosted, nlmax, max_ndual); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&ugrid->cell_num_neighbors_local_ghosted, nlmax); CHKERRQ(ierr);
 
   PetscScalar *v_ptr;
   ierr = VecGetArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);
   for (PetscInt icell=0; icell<nlmax; icell++){
 
     PetscInt count = 0;
-    ugrid->cell_num_neighbors_ghosted[icell] = count; // initialize the number of neighbors
+    ugrid->cell_num_neighbors_local_ghosted[icell] = count; // initialize the number of neighbors
 
     for (PetscInt idual=0; idual<max_ndual; idual++){
       PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset]; // 1-based index
@@ -728,9 +727,9 @@ static PetscErrorCode DetermineNeigbhorsCellIDsInGhostedOrder(TDyUGrid *ugrid, P
         } else {
           dualID--; // Converting to 0-based index
         }
-        ugrid->cell_neighbors_ghosted[icell][idual] = dualID;
+        ugrid->cell_neighbors_local_ghosted[icell][idual] = dualID;
       }
-      ugrid->cell_num_neighbors_ghosted[icell] = count;
+      ugrid->cell_num_neighbors_local_ghosted[icell] = count;
     }
   }
   ierr = VecRestoreArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);

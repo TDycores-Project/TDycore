@@ -68,7 +68,7 @@ static PetscErrorCode ComputeVolume(TDyCoordinate *coords, PetscInt ncoords, Pet
   PetscInt wedge_tet_ids[3][4] = {
     {0, 1, 2, 3},
     {2, 3, 4, 5},
-    {0, 1, 3, 4}
+    {1, 2, 3, 4}
   };
 
   PetscInt prism_tet_num = 2;
@@ -168,6 +168,9 @@ static PetscErrorCode TDySetupCellsFromDiscretization(TDyDiscretizationType *dis
   PetscReal xyz[dim];
 
   for (PetscInt icell=0; icell<ngmax; icell++) {
+
+    // save natural ids
+    mesh_ptr->cells.natural_id[icell] = ugrid->cell_ids_natural[icell];
 
     PetscInt nvmax = ugrid->cell_num_vertices[icell];
 
@@ -571,10 +574,10 @@ static PetscErrorCode RemoveDuplicateFaces(TDyUGrid *ugrid, PetscInt **face_to_v
     PetscInt nfaces = GetNumFacesForCellType(cell_type);
     PetscBool common_face_found = PETSC_FALSE;
 
-    for (PetscInt idual=0; idual<ugrid->cell_num_neighbors_ghosted[icell]; idual++) {
+    for (PetscInt idual=0; idual<ugrid->cell_num_neighbors_local_ghosted[icell]; idual++) {
       common_face_found = PETSC_FALSE;
       // 2. Pick a neighbor of cell_id
-      PetscInt cell_id2 = PetscAbs(ugrid->cell_neighbors_ghosted[cell_id][idual]);
+      PetscInt cell_id2 = PetscAbs(ugrid->cell_neighbors_local_ghosted[cell_id][idual]);
       if (cell_id2 < 0) cell_id2 = -cell_id2;
 
       if (cell_id2 <= cell_id) {
@@ -749,21 +752,21 @@ static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **ce
 
   PetscErrorCode ierr;
 
+  TDyMesh *mesh_ptr = *mesh;
   PetscInt nlmax = ugrid->num_cells_local;
   PetscInt nconn = 0;
 
   // Compute number of internal faces
   for (PetscInt icell=0; icell<nlmax; icell++) {
-    PetscInt ndual = ugrid->cell_num_neighbors_ghosted[icell];
+    PetscInt ndual = ugrid->cell_num_neighbors_local_ghosted[icell];
     for (PetscInt idual=0; idual<ndual; idual++) {
-      PetscInt dual_id = ugrid->cell_neighbors_ghosted[icell][idual];
+      PetscInt dual_id = ugrid->cell_neighbors_local_ghosted[icell][idual];
       if (dual_id < 0 || icell < dual_id){
         nconn++;
       }
     }
   }
 
-  TDyMesh *mesh_ptr = *mesh;
   TDyCellType cell_type = CELL_HEX_TYPE;
   mesh_ptr->num_faces = nconn;
   mesh_ptr->num_boundary_faces = ugrid->num_faces;
@@ -776,11 +779,11 @@ static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **ce
   PetscInt iconn=0, offset = 0;
   for (PetscInt icell=0; icell<nlmax; icell++) {
 
-    PetscInt ndual = ugrid->cell_num_neighbors_ghosted[icell];
+    PetscInt ndual = ugrid->cell_num_neighbors_local_ghosted[icell];
 
     for (PetscInt idual=0; idual<ndual; idual++) {
 
-      PetscInt dual_id = ugrid->cell_neighbors_ghosted[icell][idual];
+      PetscInt dual_id = ugrid->cell_neighbors_local_ghosted[icell][idual];
       PetscInt face_id = -1;
 
       if (icell < PetscAbs(dual_id)){
@@ -852,18 +855,7 @@ static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **ce
         mesh_ptr->faces.cell_ids[offset++] = abs(dual_id);
         mesh_ptr->faces.id[iconn] = cell_to_face[iface][icell];
         mesh_ptr->faces.is_internal[iconn] = PETSC_TRUE;
-
-        if (dual_id >= 0) {
-          mesh_ptr->faces.is_local[iconn] = PETSC_TRUE;
-        } else {
-          PetscInt icell_petsc_id = ugrid->cell_ids_petsc[icell];
-          PetscInt dual_petsc_id = ugrid->cell_ids_petsc[PetscAbs(dual_id)];
-          if (icell_petsc_id < dual_petsc_id) {
-            mesh_ptr->faces.is_local[iconn] = PETSC_TRUE;
-          } else {
-            mesh_ptr->faces.is_local[iconn] = PETSC_FALSE;
-          }
-        }
+        mesh_ptr->faces.is_local[iconn] = PETSC_TRUE;
         iconn++;
       }
     }

@@ -272,6 +272,7 @@ PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *u
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
+  ugdm->ndof = ndof;
   // Create vectors
   ierr = CreateVectors(ugrid->num_cells_global, ugrid->num_cells_local, ndof, ugdm); CHKERRQ(ierr);
 
@@ -336,6 +337,41 @@ PetscErrorCode TDyUGDMCreateNaturalVec(PetscInt ndof, PetscInt ngmax, TDyUGDM *u
   ierr = VecSetSizes(*natural, ngmax*ndof, PETSC_DECIDE); CHKERRQ(ierr);
   ierr = VecSetBlockSize(*natural, ndof); CHKERRQ(ierr);
   ierr = VecSetFromOptions(*natural); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* ---------------------------------------------------------------- */
+PetscErrorCode TDyUGDMCreateMatrix(TDyUGrid *ugrid, TDyUGDM *ugdm, PetscInt ndof, Mat *matrix) {
+
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  PetscInt nlmax=ugrid->num_cells_local;
+  PetscInt d_nnz[nlmax], o_nnz[nlmax];
+
+  for (PetscInt icell=0; icell<nlmax; icell++) {
+    d_nnz[icell] = 1;
+    o_nnz[icell] = 0;
+
+    PetscInt nneighbors = ugrid->cell_num_neighbors_local_ghosted[icell];
+    for (PetscInt ineighbor=0; ineighbor<nneighbors; ineighbor++) {
+      PetscInt id = ugrid->cell_neighbors_local_ghosted[icell][ineighbor];
+      if (id >= 0) {
+        d_nnz[icell]++;
+      } else {
+        o_nnz[icell]++;
+      }
+    }
+  }
+
+  PetscInt ndof_local = nlmax*ndof;
+
+  ierr = MatCreate(PETSC_COMM_WORLD,matrix); CHKERRQ(ierr);
+  ierr = MatSetType(*matrix,MATAIJ); CHKERRQ(ierr);
+  ierr = MatSetSizes(*matrix,ndof_local,ndof_local,PETSC_DETERMINE,PETSC_DETERMINE); CHKERRQ(ierr);
+  ierr = MatXAIJSetPreallocation(*matrix,ndof,d_nnz,o_nnz,PETSC_NULL,PETSC_NULL); CHKERRQ(ierr);
+  ierr = MatSetLocalToGlobalMapping(*matrix,ugdm->Mapping_LocalCells_to_GhostedCells,ugdm->Mapping_LocalCells_to_GhostedCells); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
