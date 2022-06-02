@@ -192,7 +192,9 @@ PETSC_EXTERN PetscErrorCode TDySetDtimeForSNESSolver(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetInitialCondition(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDyGetInitialCondition(TDy,Vec);
 PETSC_EXTERN PetscErrorCode TDySetPreviousSolutionForSNESSolver(TDy,Vec);
-PETSC_INTERN PetscErrorCode TDyPreSolveSNESSolver(TDy);
+PETSC_EXTERN PetscErrorCode TDyPreSolveSNESSolver(TDy);
+
+PETSC_EXTERN PetscErrorCode TDyGlobalToNatural(TDy,Vec,Vec);
 
 PETSC_EXTERN PetscErrorCode TDyOutputRegression(TDy,Vec);
 

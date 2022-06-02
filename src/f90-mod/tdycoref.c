@@ -44,6 +44,7 @@
 #define tdypostsolve_                                  TDYSETPOSTSOLVE
 #define tdycomputeerrornorms_                          TDYCOMPUTEERRORNORMS
 #define tdyupdatestate_                                TDYUPDATESTATE
+#define tdyglobaltonatural_                            TDYGLOBALTONATURAL
 #define tdyoutputregression_                           TDYOUTPUTREGRESSION
 #define tdydestroy_                                    TDYDESTROY
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
@@ -82,6 +83,7 @@
 #define tdypostsolve_                                  tdypostsolve
 #define tdycomputeerrornorms_                          tdycomputeerrornorms
 #define tdyupdatestate_                                tdyupdatestate
+#define tdyglobaltonatural_                            tdyglobaltonatural
 #define tdyoutputregression_                           tdyoutputregression
 #define tdydestroy_                                    tdydestroy
 #endif
@@ -254,6 +256,13 @@ PETSC_EXTERN void  tdydestroy_(TDy *_tdy, int *__ierr){
 PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int ncells, int *ierr )
 {
   *ierr = TDyUpdateState(*tdy,y,ncells);
+}
+
+PETSC_EXTERN void  tdyglobaltonatural_(TDy tdy, Vec global, Vec natural, int *__ierr){
+*__ierr = TDyGlobalToNatural(
+  (TDy)PetscToPointer(tdy),
+  (Vec)PetscToPointer(global),
+  (Vec)PetscToPointer(natural));
 }
 
 //------------------------------------------------------------------------
