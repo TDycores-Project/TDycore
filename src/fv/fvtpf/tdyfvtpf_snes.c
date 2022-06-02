@@ -290,8 +290,8 @@ PetscErrorCode RichardsJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
     PetscReal dgravity_dden_dn = (1.0 - upweight) * dist_gravity;
 
     PetscReal dphi = fvtpf->pressure[cell_id_up] - fvtpf->pressure[cell_id_dn] - gravity_term;
-    PetscReal dphi_dp_up =  1.0 - dgravity_dden_up * dden_ave_dp_up;
-    PetscReal dphi_dp_dn = -1.0 - dgravity_dden_dn * dden_ave_dp_dn;
+    PetscReal dphi_dp_up =  1.0 - dgravity_dden_up * fvtpf->drho_dP[cell_id_up];
+    PetscReal dphi_dp_dn = -1.0 - dgravity_dden_dn * fvtpf->drho_dP[cell_id_dn];
 
     PetscReal ukvr;
     PetscReal dukvr_dp_up = 0.0, dukvr_dp_dn = 0.0;
