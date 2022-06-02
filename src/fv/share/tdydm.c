@@ -1,6 +1,10 @@
 #include <private/tdydmimpl.h>
 #include <private/tdyugridimpl.h>
 
+/// Allocates memory and intializes a TDyDM struct
+/// @param [out] tdydm A TDyDM struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyDMCreate(TDyDM **tdydm) {
 
   PetscErrorCode ierr;
@@ -13,7 +17,10 @@ PetscErrorCode TDyDMCreate(TDyDM **tdydm) {
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Deallocates a TDyDM struct
+/// @param [inout] tdydm A TDyDM struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyDMDestroy(TDyDM *tdydm) {
 
   PetscErrorCode ierr;
@@ -26,8 +33,14 @@ PetscErrorCode TDyDMDestroy(TDyDM *tdydm) {
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
-
+/// Creates a TDyDM from TDyUGrid. This is done when TDycore manages
+/// its own DM via a DMShell
+///
+/// @param [in] ndof Number of degree of freedoms
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [inout] tdydm A TDyDM struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyDM *tdydm) {
 
   PetscErrorCode ierr;
