@@ -97,8 +97,8 @@ PetscErrorCode RichardsResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
   PetscReal perm_face, Dq;
   ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
-  PetscReal kr_eps = 1.d-8;
-  PetscReal sat_eps = 1.d-8;
+  PetscReal kr_eps = 1.e-8;
+  PetscReal sat_eps = 1.e-8;
   if (fvtpf->Kr[cell_id_up] > kr_eps || fvtpf->Kr[cell_id_dn] > kr_eps) {
     if (fvtpf->S[cell_id_up] < sat_eps) {
       upweight = 0.0;
@@ -154,8 +154,8 @@ PetscErrorCode RichardsBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
   PetscReal perm_face, Dq;
   ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
-  PetscReal kr_eps = 1.d-8;
-  PetscReal sat_eps = 1.d-8;
+  PetscReal kr_eps = 1.e-8;
+  PetscReal sat_eps = 1.e-8;
   if (fvtpf->Kr_bnd[cell_id_up] > kr_eps || fvtpf->Kr[cell_id_dn] > kr_eps) {
     if (fvtpf->S_bnd[cell_id_up] < sat_eps) {
       upweight = 0.0;
@@ -219,8 +219,8 @@ PetscErrorCode RichardsSeepageBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
   PetscReal perm_face, Dq;
   ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
-  PetscReal kr_eps = 1.d-8;
-  PetscReal sat_eps = 1.d-8;
+  PetscReal kr_eps = 1.e-8;
+  PetscReal sat_eps = 1.e-8;
   if (fvtpf->Kr_bnd[cell_id_up] > kr_eps || fvtpf->Kr[cell_id_dn] > kr_eps) {
     if (fvtpf->S_bnd[cell_id_up] < sat_eps) {
       upweight = 0.0;
@@ -237,7 +237,7 @@ PetscErrorCode RichardsSeepageBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
 
     // Only allow flow into the domain if the boundar pressure is larger than
     // the reference pressure
-    PetscReal pressure_eps = 1.d-8;
+    PetscReal pressure_eps = 1.e-8;
     if (dphi > 0.0 && (fvtpf->P_bnd[cell_id_up] - fvtpf->Pref < pressure_eps)) {
       dphi = 0.0;
     }
@@ -281,8 +281,8 @@ PetscErrorCode RichardsJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
   PetscReal perm_face, Dq;
   ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
-  PetscReal kr_eps = 1.d-8;
-  PetscReal sat_eps = 1.d-8;
+  PetscReal kr_eps = 1.e-8;
+  PetscReal sat_eps = 1.e-8;
   if (fvtpf->Kr[cell_id_up] > kr_eps || fvtpf->Kr[cell_id_dn] > kr_eps) {
     if (fvtpf->S[cell_id_up] < sat_eps) {
       upweight = 0.0;
@@ -369,8 +369,8 @@ PetscErrorCode RichardsBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
   PetscReal perm_face, Dq;
   ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
-  PetscReal kr_eps = 1.d-8;
-  PetscReal sat_eps = 1.d-8;
+  PetscReal kr_eps = 1.e-8;
+  PetscReal sat_eps = 1.e-8;
   if (fvtpf->Kr_bnd[cell_id_up] > kr_eps || fvtpf->Kr[cell_id_dn] > kr_eps) {
     if (fvtpf->S_bnd[cell_id_up] < sat_eps) {
       upweight = 0.0;
@@ -453,8 +453,8 @@ PetscErrorCode RichardsSeepageBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
   PetscReal perm_face, Dq;
   ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
-  PetscReal kr_eps = 1.d-8;
-  PetscReal sat_eps = 1.d-8;
+  PetscReal kr_eps = 1.e-8;
+  PetscReal sat_eps = 1.e-8;
   if (fvtpf->Kr_bnd[cell_id_up] > kr_eps || fvtpf->Kr[cell_id_dn] > kr_eps) {
     if (fvtpf->S_bnd[cell_id_up] < sat_eps) {
       upweight = 0.0;
@@ -479,7 +479,7 @@ PetscErrorCode RichardsSeepageBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
     if (dphi >= 0.0) {
       // Only allow flow into the domain if the boundar pressure is larger than
       // the reference pressure
-      PetscReal pressure_eps = 1.d-8;
+      PetscReal pressure_eps = 1.e-8;
       ukvr = fvtpf->Kr_bnd[cell_id_up]/fvtpf->vis_bnd[cell_id_up];
       if (fvtpf->P_bnd[cell_id_up] - fvtpf->Pref < pressure_eps) {
         dphi = 0.0;
