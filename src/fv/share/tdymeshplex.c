@@ -1110,7 +1110,7 @@ static PetscErrorCode ConvertFacesToCompressedFormat(DM dm, TDyMesh *mesh) {
 
   PetscInt nverts_per_cell = TDyGetNumberOfCellVerticesWithClosures(dm, mesh->closureSize, mesh->closure);
   TDyCellType cell_type = GetCellType(nverts_per_cell);
-  PetscInt num_vertices_per_face = GetMaxNumOfVerticesFormingAFaceForCellType(cell_type);
+  PetscInt num_vertices_per_face = GetMaxNumOfFaceVerticesForCellType(cell_type);
 
   /* Convert vertex_ids */
   PetscInt num_faces = mesh->num_faces;

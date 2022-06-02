@@ -7,6 +7,12 @@
 #include <private/tdyregionimpl.h>
 #include <private/tdydiscretizationimpl.h>
 
+/// Allocates memory and initialize a TDyCell struct
+/// @param [in] num_cells Number of cells
+/// @param [in] cell_type Type of 3D cell (e.g. hexahedron, wedge, etc)
+/// @param [out] cells A TDyCell struct that is allocated
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode AllocateCells(
   PetscInt    num_cells,
   TDyCellType cell_type,
@@ -69,6 +75,13 @@ PetscErrorCode AllocateCells(
   PetscFunctionReturn(0);
 }
 
+/// Allocates memory and initialize a TDySubcell struct
+/// @param [in] num_cells Number of cells
+/// @param [in] num_subcells_per_cell Maximum number of subcells for a given cell
+/// @param [in] subcell_type Type of 3D cell (e.g. hexahedron)
+/// @param [out] subcells A TDySubcell struct that is allocated
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode AllocateSubcells(
   PetscInt    num_cells,
   PetscInt    num_subcells_per_cell,
@@ -125,6 +138,15 @@ PetscErrorCode AllocateSubcells(
   PetscFunctionReturn(0);
 }
 
+/// Allocates memory and initialize a TDyVertex struct.
+/// @param [in] num_vertices Number of vertices
+/// @param [in] ncells_per_vertex Maximum number of cells that share a vertex
+/// @param [in] nfaces_per_vertex Maximum number of faces that share a vertex
+/// @param [in] nedges_per_vertex Maximum number of edges that share a verteex
+/// @param [in] cell_type Type of 3D cell (e.g. hexahedron, wedge, etc)
+/// @param [out] vertices A TDyVertex struct that is allocated
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode AllocateVertices(
   PetscInt       num_vertices,
   PetscInt       ncells_per_vertex,
@@ -184,6 +206,12 @@ PetscErrorCode AllocateVertices(
 
 }
 
+/// Allocates memory and initialize a TDyEdge struct
+/// @param [in] num_edges Number of edges
+/// @param [in] cell_type Type of 3D cell (e.g. hexahedron, wedge, etc)
+/// @param [out] edges A TDyEdge struct that is allocated
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode AllocateEdges(
   PetscInt num_edges,
   TDyCellType cell_type,
@@ -191,7 +219,7 @@ PetscErrorCode AllocateEdges(
 
   PetscFunctionBegin;
 
-  PetscInt num_cells = GetNumCellsPerEdgeForCellType(cell_type);
+  PetscInt num_cells = GetMaxNumCellsPerEdgeForCellType(cell_type);
 
   PetscErrorCode ierr;
   ierr = TDyAllocate_IntegerArray_1D(&edges->id,num_edges); CHKERRQ(ierr);
@@ -221,6 +249,12 @@ PetscErrorCode AllocateEdges(
   PetscFunctionReturn(0);
 }
 
+/// Allocates memory and initialize a TDyFace struct
+/// @param [in] num_faces Number of face
+/// @param [in] cell_type Type of 3D cell (e.g. hexahedron, wedge, etc)
+/// @param [out] faces A TDyFace struct that is allocated
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode AllocateFaces(
   PetscInt num_faces,
   TDyCellType cell_type,
@@ -228,9 +262,9 @@ PetscErrorCode AllocateFaces(
 
   PetscFunctionBegin;
 
-  PetscInt num_cells    = GetNumCellsPerFaceForCellType(cell_type);
-  PetscInt num_edges    = GetMaxNumOfEdgesFormingAFaceForCellType(cell_type);
-  PetscInt num_vertices = GetMaxNumOfVerticesFormingAFaceForCellType(cell_type);
+  PetscInt num_cells    = GetMaxNumCellsPerFaceForCellType(cell_type);
+  PetscInt num_edges    = GetMaxNumOfFaceEdgesForCellType(cell_type);
+  PetscInt num_vertices = GetMaxNumOfFaceVerticesForCellType(cell_type);
 
   PetscErrorCode ierr;
   ierr = TDyAllocate_IntegerArray_1D(&faces->id,num_faces); CHKERRQ(ierr);
@@ -282,6 +316,10 @@ PetscErrorCode AllocateFaces(
   PetscFunctionReturn(0);
 }
 
+/// Get the cell type based on the number of vertices of a cell
+/// @param [in] nverts_per_cell Number of vertices of a cell
+///
+/// @returns a TDyCellType 
 TDyCellType GetCellType(PetscInt nverts_per_cell) {
 
   TDyCellType cell_type;
@@ -309,7 +347,10 @@ TDyCellType GetCellType(PetscInt nverts_per_cell) {
   PetscFunctionReturn(cell_type);
 }
 
-/* ---------------------------------------------------------------- */
+/// Get the number of vertices for a given cell type
+/// @param [in] cell_type The type of 3D cell
+///
+/// @returns an integer 
 PetscInt GetNumVerticesForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
@@ -333,8 +374,11 @@ PetscInt GetNumVerticesForCellType(TDyCellType cell_type) {
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
-PetscInt GetNumCellsPerEdgeForCellType(TDyCellType cell_type) {
+/// Get maximum number of edges a given cell type
+/// @param [in] cell_type The type of 3D cell
+///
+/// @returns an integer 
+PetscInt GetMaxNumCellsPerEdgeForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
@@ -357,8 +401,11 @@ PetscInt GetNumCellsPerEdgeForCellType(TDyCellType cell_type) {
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
-PetscInt GetNumCellsPerFaceForCellType(TDyCellType cell_type) {
+/// Get maximum number of faces a given cell type
+/// @param [in] cell_type The type of 3D cell
+///
+/// @returns an integer 
+PetscInt GetMaxNumCellsPerFaceForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
@@ -381,8 +428,11 @@ PetscInt GetNumCellsPerFaceForCellType(TDyCellType cell_type) {
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
-PetscInt GetMaxNumOfVerticesFormingAFaceForCellType(TDyCellType cell_type) {
+/// Get maximum number of face vertices of a given cell type
+/// @param [in] cell_type The type of 3D cell
+///
+/// @returns an integer 
+PetscInt GetMaxNumOfFaceVerticesForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
@@ -399,7 +449,11 @@ PetscInt GetMaxNumOfVerticesFormingAFaceForCellType(TDyCellType cell_type) {
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
+/// Get face type for the iface-th of a given cell type
+/// @param [in] cell_type The type of 3D cell
+/// @param [in] iface The iface-th face of the 3D cell
+///
+/// @returns face type
 TDyFaceType TDyGetFaceTypeForCellType(TDyCellType cell_type, PetscInt iface) {
   PetscFunctionBegin;
   TDyFaceType face_type;
@@ -432,7 +486,10 @@ TDyFaceType TDyGetFaceTypeForCellType(TDyCellType cell_type, PetscInt iface) {
   PetscFunctionReturn(face_type);
 }
 
-/* ---------------------------------------------------------------- */
+/// Get the number of vertices for a give face type
+/// @param [in] face_type A face type
+///
+/// @returns num vertices
 PetscInt TDyGetNumVerticesForFaceType(TDyFaceType face_type) {
 
   PetscInt nvertices=0;
@@ -455,7 +512,11 @@ PetscInt TDyGetNumVerticesForFaceType(TDyFaceType face_type) {
   PetscFunctionReturn(nvertices);
 }
 
-/* ---------------------------------------------------------------- */
+/// Get the number of vertices for the iface-th of a give cell type
+/// @param [in] cell_type A cell type
+/// @param [in] iface A iface-th of the given cell type
+///
+/// @returns num of vertices
 PetscInt GetNumOfVerticesOfIthFacesForCellType(TDyCellType cell_type, PetscInt iface) {
   PetscFunctionBegin;
   PetscInt value;
@@ -487,8 +548,11 @@ PetscInt GetNumOfVerticesOfIthFacesForCellType(TDyCellType cell_type, PetscInt i
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
-PetscInt GetMaxNumOfEdgesFormingAFaceForCellType(TDyCellType cell_type) {
+/// Get the maximum number of face edges for a given cell type
+/// @param [in] cell_type A cell type
+///
+/// @returns num of vertices
+PetscInt GetMaxNumOfFaceEdgesForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
   switch (cell_type) {
@@ -511,7 +575,10 @@ PetscInt GetMaxNumOfEdgesFormingAFaceForCellType(TDyCellType cell_type) {
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
+/// Get the number of face for a given cell type
+/// @param [in] cell_type A cell type
+///
+/// @returns num of faces
 PetscInt GetNumEdgesForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
@@ -535,7 +602,10 @@ PetscInt GetNumEdgesForCellType(TDyCellType cell_type) {
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
+/// Get the number of neigbhors for a given cell type
+/// @param [in] cell_type A cell type
+///
+/// @returns num of neighbors
 PetscInt GetNumNeighborsForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
@@ -559,7 +629,10 @@ PetscInt GetNumNeighborsForCellType(TDyCellType cell_type) {
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
+/// Get the number of face for a given cell type
+/// @param [in] cell_type A cell type
+///
+/// @returns num of faces
 PetscInt GetNumFacesForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   PetscInt value;
@@ -583,7 +656,10 @@ PetscInt GetNumFacesForCellType(TDyCellType cell_type) {
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
+/// Get the type of subcells for a given cell type
+/// @param [in] cell_type A cell type
+///
+/// @returns subcell type
 TDySubcellType GetSubcellTypeForCellType(TDyCellType cell_type) {
   PetscFunctionBegin;
   TDySubcellType value;
@@ -601,7 +677,10 @@ TDySubcellType GetSubcellTypeForCellType(TDyCellType cell_type) {
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
+/// Get the number subcells for a given subcell type
+/// @param [in] subcell_type A subcell type
+///
+/// @returns num of subcells
 PetscInt GetNumSubcellsForSubcellType(TDySubcellType subcell_type) {
   PetscFunctionBegin;
   PetscInt value;
@@ -616,7 +695,10 @@ PetscInt GetNumSubcellsForSubcellType(TDySubcellType subcell_type) {
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
+/// Get the number nu-vectors for a given subcell type
+/// @param [in] subcell_type A subcell type
+///
+/// @returns num of nu-vectors
 PetscInt GetNumOfNuVectorsForSubcellType(TDySubcellType subcell_type) {
   PetscFunctionBegin;
   PetscInt value;
@@ -631,7 +713,10 @@ PetscInt GetNumOfNuVectorsForSubcellType(TDySubcellType subcell_type) {
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
+/// Get the number vertices for a given subcell type
+/// @param [in] subcell_type A subcell type
+///
+/// @returns num of vertices
 PetscInt GetNumVerticesForSubcellType(TDySubcellType subcell_type) {
   PetscFunctionBegin;
   PetscInt value;
@@ -646,7 +731,10 @@ PetscInt GetNumVerticesForSubcellType(TDySubcellType subcell_type) {
   PetscFunctionReturn(value);
 }
 
-/* ---------------------------------------------------------------- */
+/// Get the number faces (for nu-vectors) for a given subcell type
+/// @param [in] subcell_type A subcell type
+///
+/// @returns num of faces
 PetscInt GetNumFacesForSubcellType(TDySubcellType subcell_type) {
   PetscFunctionBegin;
   PetscInt value;
@@ -661,7 +749,10 @@ PetscInt GetNumFacesForSubcellType(TDySubcellType subcell_type) {
   PetscFunctionReturn(value);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Get the number of local faces
+/// @param [in] mesh A TDyMesh struct
+///
+/// @returns num of local faces
 PetscInt TDyMeshGetNumberOfLocalFaces(TDyMesh *mesh) {
 
   PetscInt nLocalFaces = 0;
@@ -676,7 +767,10 @@ PetscInt TDyMeshGetNumberOfLocalFaces(TDyMesh *mesh) {
   PetscFunctionReturn(nLocalFaces);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Get the number of non-local faces
+/// @param [in] mesh A TDyMesh struct
+///
+/// @returns num of non-local faces
 PetscInt TDyMeshGetNumberOfNonLocalFaces(TDyMesh *mesh) {
 
   PetscInt nNonLocalFaces = 0;
@@ -691,7 +785,10 @@ PetscInt TDyMeshGetNumberOfNonLocalFaces(TDyMesh *mesh) {
   PetscFunctionReturn(nNonLocalFaces);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Get the number of non-internal faces (i.e. boundary faces)
+/// @param [in] mesh A TDyMesh struct
+///
+/// @returns num of non-internal faces
 PetscInt TDyMeshGetNumberOfNonInternalFaces(TDyMesh *mesh) {
 
   PetscInt nNonInternalFaces = 0;
@@ -705,10 +802,6 @@ PetscInt TDyMeshGetNumberOfNonInternalFaces(TDyMesh *mesh) {
 
   PetscFunctionReturn(nNonInternalFaces);
 }
-
-
-
-
 
 /// Destroy a mesh, freeing any resources it uses.
 /// @param [inout] mesh A mesh instance to be destroyed
@@ -818,6 +911,8 @@ PetscErrorCode TDyMeshDestroy(TDyMesh *mesh) {
 /// @param [in] mesh A mesh instance
 /// @param [out] num_cells The maximum number of cells connected to any vertex.
 /// @param [out] num_faces The maximum number of faces connected to any vertex.
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetMaxVertexConnectivity(TDyMesh *mesh,
                                                PetscInt *num_cells,
                                                PetscInt *num_faces) {
@@ -834,6 +929,8 @@ PetscErrorCode TDyMeshGetMaxVertexConnectivity(TDyMesh *mesh,
 /// @param [out] edges Stores a pointer to an array of edges for the
 ///                    given cell
 /// @param [out] num_edges Stores the number of edges for the given cell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetCellEdges(TDyMesh *mesh,
                                    PetscInt cell,
                                    PetscInt **edges,
@@ -851,6 +948,8 @@ PetscErrorCode TDyMeshGetCellEdges(TDyMesh *mesh,
 /// @param [out] vertices Stores a pointer to an array of vertices for the
 ///                       given cell
 /// @param [out] num_vertices Stores the number of vertices for the given cell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetCellVertices(TDyMesh *mesh,
                                       PetscInt cell,
                                       PetscInt **vertices,
@@ -858,7 +957,7 @@ PetscErrorCode TDyMeshGetCellVertices(TDyMesh *mesh,
   PetscInt offset = mesh->cells.vertex_offset[cell];
   *vertices = &mesh->cells.vertex_ids[offset];
   *num_vertices = mesh->cells.vertex_offset[cell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a cell index, returns number of cell vertices
@@ -866,12 +965,14 @@ PetscErrorCode TDyMeshGetCellVertices(TDyMesh *mesh,
 /// @param [in] mesh A mesh instance
 /// @param [in] cell The index of a cell within the mesh
 /// @param [out] num_vertices Stores the number of vertices for the given cell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetCellNumVertices(TDyMesh *mesh,
                                          PetscInt cell,
                                          PetscInt *num_vertices) {
   PetscInt offset = mesh->cells.vertex_offset[cell];
   *num_vertices = mesh->cells.vertex_offset[cell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a cell index, retrieve an array of indices of faces bounding the cell,
@@ -881,6 +982,8 @@ PetscErrorCode TDyMeshGetCellNumVertices(TDyMesh *mesh,
 /// @param [out] faces Stores a pointer to an array of faces bounding the given
 ///                    cell
 /// @param [out] num_faces Stores the number of faces bounding the given cell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetCellFaces(TDyMesh *mesh,
                                    PetscInt cell,
                                    PetscInt **faces,
@@ -888,19 +991,21 @@ PetscErrorCode TDyMeshGetCellFaces(TDyMesh *mesh,
   PetscInt offset = mesh->cells.face_offset[cell];
   *faces = &mesh->cells.face_ids[offset];
   *num_faces = mesh->cells.face_offset[cell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a cell index, returns number of cell faces
 /// @param [in] mesh A mesh instance
 /// @param [in] cell The index of a cell within the mesh
 /// @param [out] num_faces Stores the number of faces bounding the given cell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetCellNumFaces(TDyMesh *mesh,
                                       PetscInt cell,
                                       PetscInt *num_faces) {
   PetscInt offset = mesh->cells.face_offset[cell];
   *num_faces = mesh->cells.face_offset[cell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a cell index, retrieve an array of indices of neighboring
@@ -911,6 +1016,8 @@ PetscErrorCode TDyMeshGetCellNumFaces(TDyMesh *mesh,
 ///                        given cell
 /// @param [out] num_neighbors Stores the number of cells neighboring the given
 ///                            cell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetCellNeighbors(TDyMesh *mesh,
                                        PetscInt cell,
                                        PetscInt **neighbors,
@@ -918,7 +1025,7 @@ PetscErrorCode TDyMeshGetCellNeighbors(TDyMesh *mesh,
   PetscInt offset = mesh->cells.neighbor_offset[cell];
   *neighbors = &mesh->cells.neighbor_ids[offset];
   *num_neighbors = mesh->cells.neighbor_offset[cell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a cell index, return number of cell neighbors
@@ -926,34 +1033,40 @@ PetscErrorCode TDyMeshGetCellNeighbors(TDyMesh *mesh,
 /// @param [in] cell The index of a cell within the mesh
 /// @param [out] num_neighbors Stores the number of cells neighboring the given
 ///                            cell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetCellNumNeighbors(TDyMesh *mesh,
                                           PetscInt cell,
                                           PetscInt *num_neighbors) {
   PetscInt offset = mesh->cells.neighbor_offset[cell];
   *num_neighbors = mesh->cells.neighbor_offset[cell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Retrieve the centroid for the given cell in the given mesh.
 /// @param [in] mesh A mesh instance
 /// @param [in] cell The index of a cell within the mesh
 /// @param [out] centroid Stores the centroid of the given cell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetCellCentroid(TDyMesh *mesh,
                                       PetscInt cell,
                                       TDyCoordinate *centroid) {
   *centroid = mesh->cells.centroid[cell];
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Retrieve the volume for the given cell in the given mesh.
 /// @param [in] mesh A mesh instance
 /// @param [in] cell The index of a cell within the mesh
 /// @param [out] centroid Stores the volume of the given cell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetCellVolume(TDyMesh *mesh,
                                     PetscInt cell,
                                     PetscReal *volume) {
   *volume = mesh->cells.volume[cell];
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a vertex index, retrieve an array of associated internal
@@ -964,6 +1077,8 @@ PetscErrorCode TDyMeshGetCellVolume(TDyMesh *mesh,
 ///                        attached to the given vertex
 /// @param [out] num_int_cells Stores the number of internal cells attached to
 ///                            the given vertex
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetVertexInternalCells(TDyMesh *mesh,
                                              PetscInt vertex,
                                              PetscInt **int_cells,
@@ -971,7 +1086,7 @@ PetscErrorCode TDyMeshGetVertexInternalCells(TDyMesh *mesh,
   PetscInt offset = mesh->vertices.internal_cell_offset[vertex];
   *int_cells = &mesh->vertices.internal_cell_ids[offset];
   *num_int_cells = mesh->vertices.internal_cell_offset[vertex+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a vertex index, return number of associated internal
@@ -980,12 +1095,14 @@ PetscErrorCode TDyMeshGetVertexInternalCells(TDyMesh *mesh,
 /// @param [in] vertex The index of a vertex within the mesh
 /// @param [out] num_int_cells Stores the number of internal cells attached to
 ///                            the given vertex
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetVertexNumInternalCells(TDyMesh *mesh,
                                                 PetscInt vertex,
                                                 PetscInt *num_int_cells) {
   PetscInt offset = mesh->vertices.internal_cell_offset[vertex];
   *num_int_cells = mesh->vertices.internal_cell_offset[vertex+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a vertex index, return number of associated subcells
@@ -993,12 +1110,14 @@ PetscErrorCode TDyMeshGetVertexNumInternalCells(TDyMesh *mesh,
 /// @param [in] vertex The index of a vertex within the mesh
 /// @param [out] num_subcells Stores the number of subcells attached to the
 ///                           given vertex
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetVertexNumSubcells(TDyMesh *mesh,
                                            PetscInt vertex,
                                            PetscInt *num_subcells) {
   PetscInt offset = mesh->vertices.subcell_offset[vertex];
   *num_subcells = mesh->vertices.subcell_offset[vertex+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a vertex index, retrieve an array of associated face
@@ -1009,6 +1128,8 @@ PetscErrorCode TDyMeshGetVertexNumSubcells(TDyMesh *mesh,
 ///                    the given vertex
 /// @param [out] num_faces Stores the number of faces attached to the given
 ///                        vertex
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetVertexFaces(TDyMesh *mesh,
                                      PetscInt vertex,
                                      PetscInt **faces,
@@ -1016,7 +1137,7 @@ PetscErrorCode TDyMeshGetVertexFaces(TDyMesh *mesh,
   PetscInt offset = mesh->vertices.face_offset[vertex];
   *faces = &mesh->vertices.face_ids[offset];
   *num_faces = mesh->vertices.face_offset[vertex+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a vertex index, return number of faces
@@ -1024,12 +1145,14 @@ PetscErrorCode TDyMeshGetVertexFaces(TDyMesh *mesh,
 /// @param [in] vertex The index of a vertex within the mesh
 /// @param [out] num_faces Stores the number of faces attached to the given
 ///                        vertex
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetVertexNumFaces(TDyMesh *mesh,
                                         PetscInt vertex,
                                         PetscInt *num_faces) {
   PetscInt offset = mesh->vertices.face_offset[vertex];
   *num_faces = mesh->vertices.face_offset[vertex+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a vertex index, retrieve an array of associated subface
@@ -1040,6 +1163,8 @@ PetscErrorCode TDyMeshGetVertexNumFaces(TDyMesh *mesh,
 ///                    the given vertex
 /// @param [out] num_subfaces Stores the number of faces attached to the given
 ///                        vertex
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetVertexSubfaces(TDyMesh *mesh,
                                      PetscInt vertex,
                                      PetscInt **subfaces,
@@ -1047,7 +1172,7 @@ PetscErrorCode TDyMeshGetVertexSubfaces(TDyMesh *mesh,
   PetscInt offset = mesh->vertices.face_offset[vertex];
   *subfaces = &mesh->vertices.subface_ids[offset];
   *num_subfaces = mesh->vertices.face_offset[vertex+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a vertex index, retrieve an array of associated boundary
@@ -1058,6 +1183,8 @@ PetscErrorCode TDyMeshGetVertexSubfaces(TDyMesh *mesh,
 ///                    to the given vertex
 /// @param [out] num_faces Stores the number of boundary faces attached to the
 ///                        given vertex
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetVertexBoundaryFaces(TDyMesh *mesh,
                                              PetscInt vertex,
                                              PetscInt **faces,
@@ -1065,7 +1192,7 @@ PetscErrorCode TDyMeshGetVertexBoundaryFaces(TDyMesh *mesh,
   PetscInt offset = mesh->vertices.boundary_face_offset[vertex];
   *faces = &mesh->vertices.boundary_face_ids[offset];
   *num_faces = mesh->vertices.boundary_face_offset[vertex+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a vertex index, return number of associated boundary
@@ -1074,12 +1201,14 @@ PetscErrorCode TDyMeshGetVertexBoundaryFaces(TDyMesh *mesh,
 /// @param [in] vertex The index of a vertex within the mesh
 /// @param [out] num_faces Stores the number of boundary faces attached to the
 ///                        given vertex
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetVertexNumBoundaryFaces(TDyMesh *mesh,
                                                 PetscInt vertex,
                                                 PetscInt *num_faces) {
   PetscInt offset = mesh->vertices.boundary_face_offset[vertex];
   *num_faces = mesh->vertices.boundary_face_offset[vertex+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a face index, retrieve an array of associated cell indices
@@ -1090,6 +1219,8 @@ PetscErrorCode TDyMeshGetVertexNumBoundaryFaces(TDyMesh *mesh,
 ///                    given face
 /// @param [out] num_cells Stores the number of cells attached to the given
 ///                        face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetFaceCells(TDyMesh *mesh,
                                    PetscInt face,
                                    PetscInt **cells,
@@ -1097,7 +1228,7 @@ PetscErrorCode TDyMeshGetFaceCells(TDyMesh *mesh,
   PetscInt offset = mesh->faces.cell_offset[face];
   *cells = &mesh->faces.cell_ids[offset];
   *num_cells = mesh->faces.cell_offset[face+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a face index, return number of associate cells
@@ -1105,12 +1236,16 @@ PetscErrorCode TDyMeshGetFaceCells(TDyMesh *mesh,
 /// @param [in] face The index of a vertex within the mesh
 /// @param [out] num_cells Stores the number of cells attached to the given
 ///                        face
+///
+/// @returns 0 on success, or a non-zero error code on failure
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetFaceNumCells(TDyMesh *mesh,
                                       PetscInt face,
                                       PetscInt *num_cells) {
   PetscInt offset = mesh->faces.cell_offset[face];
   *num_cells = mesh->faces.cell_offset[face+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a face index, retrieve an array of associated vertex
@@ -1121,6 +1256,8 @@ PetscErrorCode TDyMeshGetFaceNumCells(TDyMesh *mesh,
 ///                       the given face
 /// @param [out] num_vertices Stores the number of subcells attached to the given
 ///                           face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetFaceVertices(TDyMesh *mesh,
                                       PetscInt face,
                                       PetscInt **vertices,
@@ -1128,7 +1265,7 @@ PetscErrorCode TDyMeshGetFaceVertices(TDyMesh *mesh,
   PetscInt offset = mesh->faces.vertex_offset[face];
   *vertices = &mesh->faces.vertex_ids[offset];
   *num_vertices = mesh->faces.vertex_offset[face+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a face index, return number of associated vertex
@@ -1136,45 +1273,53 @@ PetscErrorCode TDyMeshGetFaceVertices(TDyMesh *mesh,
 /// @param [in] face The index of a vertex within the mesh
 /// @param [out] num_vertices Stores the number of subcells attached to the given
 ///                           face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetFaceNumVertices(TDyMesh *mesh,
                                          PetscInt face,
                                          PetscInt *num_vertices) {
   PetscInt offset = mesh->faces.vertex_offset[face];
   *num_vertices = mesh->faces.vertex_offset[face+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Retrieve the centroid for the given face in the given mesh.
 /// @param [in] mesh A mesh instance
 /// @param [in] face The index of a face within the mesh
 /// @param [out] centroid Stores the centroid of the given face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetFaceCentroid(TDyMesh *mesh,
                                       PetscInt face,
                                       TDyCoordinate *centroid) {
   *centroid = mesh->faces.centroid[face];
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Retrieve the normal vector for the given face in the given mesh.
 /// @param [in] mesh A mesh instance
 /// @param [in] face The index of a face within the mesh
 /// @param [out] normal Stores the normal vector for the given face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetFaceNormal(TDyMesh *mesh,
                                     PetscInt face,
                                     TDyVector *normal) {
   *normal = mesh->faces.normal[face];
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Retrieve the area of the given face in the given mesh.
 /// @param [in] mesh A mesh instance
 /// @param [in] face The index of a face within the mesh
 /// @param [out] area Stores the area of the given face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetFaceArea(TDyMesh *mesh,
                                   PetscInt face,
                                   PetscReal *area) {
   *area = mesh->faces.area[face];
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a subcell index, retrieve an array of associated face
@@ -1185,6 +1330,8 @@ PetscErrorCode TDyMeshGetFaceArea(TDyMesh *mesh,
 ///                    the given subcell
 /// @param [out] num_faces Stores the number of faces attached to the
 ///                        given subcell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetSubcellFaces(TDyMesh *mesh,
                                       PetscInt subcell,
                                       PetscInt **faces,
@@ -1192,7 +1339,7 @@ PetscErrorCode TDyMeshGetSubcellFaces(TDyMesh *mesh,
   PetscInt offset = mesh->subcells.face_offset[subcell];
   *faces = &mesh->subcells.face_ids[offset];
   *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a subcell index, return number of associated faces
@@ -1200,12 +1347,14 @@ PetscErrorCode TDyMeshGetSubcellFaces(TDyMesh *mesh,
 /// @param [in] subcell The index of a subcell within the mesh
 /// @param [out] num_faces Stores the number of faces attached to the
 ///                        given subcell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetSubcellNumFaces(TDyMesh *mesh,
                                          PetscInt subcell,
                                          PetscInt *num_faces) {
   PetscInt offset = mesh->subcells.face_offset[subcell];
   *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a subcell index, retrieve an array of associated is_face_up
@@ -1216,6 +1365,8 @@ PetscErrorCode TDyMeshGetSubcellNumFaces(TDyMesh *mesh,
 ///                         the given subcell
 /// @param [out] num_faces Stores the number of faces attached to the
 ///                        given subcell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetSubcellIsFaceUp(TDyMesh *mesh,
                                       PetscInt subcell,
                                       PetscInt **is_face_up,
@@ -1223,7 +1374,7 @@ PetscErrorCode TDyMeshGetSubcellIsFaceUp(TDyMesh *mesh,
   PetscInt offset = mesh->subcells.face_offset[subcell];
   *is_face_up = &mesh->subcells.is_face_up[offset];
   *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a subcell index, retrieve an array of associated face_unknown_idx
@@ -1234,6 +1385,8 @@ PetscErrorCode TDyMeshGetSubcellIsFaceUp(TDyMesh *mesh,
 ///                         the given subcell
 /// @param [out] num_faces Stores the number of faces attached to the
 ///                        given subcell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetSubcellFaceUnknownIdxs(TDyMesh *mesh,
                                       PetscInt subcell,
                                       PetscInt **face_unknown_idx,
@@ -1241,7 +1394,7 @@ PetscErrorCode TDyMeshGetSubcellFaceUnknownIdxs(TDyMesh *mesh,
   PetscInt offset = mesh->subcells.face_offset[subcell];
   *face_unknown_idx = &mesh->subcells.face_unknown_idx[offset];
   *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a subcell index, retrieve an array of associated face_flux_idx
@@ -1252,6 +1405,8 @@ PetscErrorCode TDyMeshGetSubcellFaceUnknownIdxs(TDyMesh *mesh,
 ///                         the given subcell
 /// @param [out] num_faces Stores the number of faces attached to the
 ///                        given subcell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetSubcellFaceFluxIdxs(TDyMesh *mesh,
                                       PetscInt subcell,
                                       PetscInt **face_flux_idx,
@@ -1259,7 +1414,7 @@ PetscErrorCode TDyMeshGetSubcellFaceFluxIdxs(TDyMesh *mesh,
   PetscInt offset = mesh->subcells.face_offset[subcell];
   *face_flux_idx = &mesh->subcells.face_flux_idx[offset];
   *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a subcell index, retrieve an array of associated face areas
@@ -1270,6 +1425,8 @@ PetscErrorCode TDyMeshGetSubcellFaceFluxIdxs(TDyMesh *mesh,
 ///                         the given subcell
 /// @param [out] num_faces Stores the number of faces attached to the
 ///                        given subcell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetSubcellFaceAreas(TDyMesh *mesh,
                                       PetscInt subcell,
                                       PetscReal **face_area,
@@ -1277,7 +1434,7 @@ PetscErrorCode TDyMeshGetSubcellFaceAreas(TDyMesh *mesh,
   PetscInt offset = mesh->subcells.face_offset[subcell];
   *face_area = &mesh->subcells.face_area[offset];
   *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a subcell index, retrieve an array of associated vertices
@@ -1288,6 +1445,8 @@ PetscErrorCode TDyMeshGetSubcellFaceAreas(TDyMesh *mesh,
 ///                         the given subcell
 /// @param [out] num_faces Stores the number of faces attached to the
 ///                        given subcell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetSubcellVertices(TDyMesh *mesh,
                                       PetscInt subcell,
                                       PetscInt **vertices,
@@ -1295,7 +1454,7 @@ PetscErrorCode TDyMeshGetSubcellVertices(TDyMesh *mesh,
   PetscInt offset = mesh->subcells.face_offset[subcell];
   *vertices = &mesh->subcells.vertex_ids[offset];
   *num_faces = mesh->subcells.face_offset[subcell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a subcell index, retrieve an array of associated nu_vectors
@@ -1306,6 +1465,8 @@ PetscErrorCode TDyMeshGetSubcellVertices(TDyMesh *mesh,
 ///                         the given subcell
 /// @param [out] num_faces Stores the number of faces attached to the
 ///                        given subcell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetSubcellNuVectors(TDyMesh *mesh,
                                       PetscInt subcell,
                                       TDyVector **nu_vectors,
@@ -1313,7 +1474,7 @@ PetscErrorCode TDyMeshGetSubcellNuVectors(TDyMesh *mesh,
   PetscInt offset = mesh->subcells.face_offset[subcell];
   *nu_vectors = &mesh->subcells.nu_vector[offset];
   *num_nu_vectors = mesh->subcells.nu_vector_offset[subcell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a subcell index, retrieve an array of associated nu_star_vectors
@@ -1324,6 +1485,8 @@ PetscErrorCode TDyMeshGetSubcellNuVectors(TDyMesh *mesh,
 ///                         the given subcell
 /// @param [out] num_faces Stores the number of faces attached to the
 ///                        given subcell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetSubcellNuStarVectors(TDyMesh *mesh,
                                       PetscInt subcell,
                                       TDyVector **nu_star_vectors,
@@ -1331,7 +1494,7 @@ PetscErrorCode TDyMeshGetSubcellNuStarVectors(TDyMesh *mesh,
   PetscInt offset = mesh->subcells.face_offset[subcell];
   *nu_star_vectors = &mesh->subcells.nu_star_vector[offset];
   *num_nu_star_vectors = mesh->subcells.nu_vector_offset[subcell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a subcell index, retrieve an array of associated variable_continuity_coordinates
@@ -1342,6 +1505,8 @@ PetscErrorCode TDyMeshGetSubcellNuStarVectors(TDyMesh *mesh,
 ///                         the given subcell
 /// @param [out] num_faces Stores the number of faces attached to the
 ///                        given subcell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetSubcellVariableContinutiyCoordinates(TDyMesh *mesh,
                                       PetscInt subcell,
                                       TDyCoordinate **variable_continuity_coordinates,
@@ -1349,7 +1514,7 @@ PetscErrorCode TDyMeshGetSubcellVariableContinutiyCoordinates(TDyMesh *mesh,
   PetscInt offset = mesh->subcells.face_offset[subcell];
   *variable_continuity_coordinates = &mesh->subcells.variable_continuity_coordinates[offset];
   *num_variable_continuity_coordinates = mesh->subcells.nu_vector_offset[subcell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a subcell index, retrieve an array of associated face_centroid
@@ -1360,6 +1525,8 @@ PetscErrorCode TDyMeshGetSubcellVariableContinutiyCoordinates(TDyMesh *mesh,
 ///                         the given subcell
 /// @param [out] num_faces Stores the number of faces attached to the
 ///                        given subcell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetSubcellFaceCentroids(TDyMesh *mesh,
                                       PetscInt subcell,
                                       TDyCoordinate **face_centroids,
@@ -1367,7 +1534,7 @@ PetscErrorCode TDyMeshGetSubcellFaceCentroids(TDyMesh *mesh,
   PetscInt offset = mesh->subcells.face_offset[subcell];
   *face_centroids = &mesh->subcells.variable_continuity_coordinates[offset];
   *num_face_centroids = mesh->subcells.nu_vector_offset[subcell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 
 /// Given a mesh and a subcell index, retrieve an array of associated vertices_coordinates
@@ -1378,6 +1545,8 @@ PetscErrorCode TDyMeshGetSubcellFaceCentroids(TDyMesh *mesh,
 ///                         the given subcell
 /// @param [out] num_faces Stores the number of faces attached to the
 ///                        given subcell
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh *mesh,
                                       PetscInt subcell,
                                       TDyCoordinate **vertices_coordinates,
@@ -1385,6 +1554,6 @@ PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh *mesh,
   PetscInt offset = mesh->subcells.face_offset[subcell];
   *vertices_coordinates = &mesh->subcells.vertices_coordinates[offset];
   *num_vertices_coordinates = mesh->subcells.nu_vector_offset[subcell+1] - offset;
-  return 0;
+  PetscFunctionReturn(0);
 }
 

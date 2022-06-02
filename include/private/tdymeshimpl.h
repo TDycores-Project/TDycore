@@ -277,10 +277,10 @@ PETSC_INTERN PetscErrorCode TDyMeshGetSubcellIDGivenCellIdVertexIdFaceId(TDyMesh
 
 PETSC_INTERN TDyCellType GetCellType(PetscInt);
 PETSC_INTERN PetscInt GetNumVerticesForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumCellsPerEdgeForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumCellsPerFaceForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetMaxNumOfVerticesFormingAFaceForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetMaxNumOfEdgesFormingAFaceForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetMaxNumCellsPerEdgeForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetMaxNumCellsPerFaceForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetMaxNumOfFaceVerticesForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetMaxNumOfFaceEdgesForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumEdgesForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumNeighborsForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumFacesForCellType(TDyCellType);
