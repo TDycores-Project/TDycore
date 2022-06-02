@@ -180,14 +180,14 @@ typedef struct {
                            /* (1) neumann */
                            /* (2) seepage */
 
-  TDyCoordinate *centroid; /* centroid of the face */
-  TDyVector *normal;       /* unit normal to the face */
-  PetscReal *area;          /* area of the face */
-  PetscReal **dist_up_dn;
-  PetscReal *dist_wt_up;
-  PetscReal *dist;
-  PetscReal **unit_vec_up_dn;
-  PetscReal *projected_area;
+  TDyCoordinate *centroid;    /* centroid of the face */
+  TDyVector *normal;          /* unit normal to the face */
+  PetscReal *area;            /* area of the face */
+  PetscReal **dist_up_dn;     /* distance between upwind and downwind cell to the face */
+  PetscReal *dist_wt_up;      /* ratio of the downwind cell distance to the total distance between cells */
+  PetscReal *dist;            /* distance between upwind and downwind cell */
+  PetscReal **unit_vec_up_dn; /* unit vector from upwind to downwind cell */
+  PetscReal *projected_area;  /* projected face area orthogonal to a face */
 } TDyFace;
 
 typedef struct TDyMesh {

@@ -25,7 +25,6 @@ PetscErrorCode TDyUGridCreate(TDyUGrid **ugrid) {
 
   (*ugrid)->num_verts_global = 0;
   (*ugrid)->num_verts_local = 0;
-  (*ugrid)->num_verts_natural = 0;
 
   (*ugrid)->global_offset = 0;
 
@@ -987,7 +986,6 @@ static PetscErrorCode SaveLocalVertexCoordinates(TDyUGrid *ugrid, PetscInt strid
 
   // 5. Update the memory size for save vertex data in local-order
   ierr = TDyDeallocate_RealArray_2D(ugrid->vertices, ugrid->num_verts_local); CHKERRQ(ierr);
-  ugrid->num_verts_natural = ugrid->num_verts_local;
   ugrid->num_verts_local = NewNumVertices;
   ierr = TDyAllocate_RealArray_2D(&ugrid->vertices, ugrid->num_verts_local, dim); CHKERRQ(ierr);
 

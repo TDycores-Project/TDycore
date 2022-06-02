@@ -5,26 +5,26 @@
 #include <private/tdyugridimpl.h>
 
 typedef struct {
-  PetscInt ndof;
+  PetscInt ndof; // number of degrees of freedom
 
-  Vec LocalVec;
-  Vec GlobalVec;
+  Vec LocalVec;  // vector size = (num_local_cells + num_ghost_cells) * ndof
+  Vec GlobalVec; // vector size = num_local_cells * ndof
 
-  IS IS_GhostedCells_in_LocalOrder;
-  IS IS_GhostedCells_in_PetscOrder;
+  IS IS_GhostedCells_in_LocalOrder; // IS of ghosted cells (local+ghost) from a local Vec
+  IS IS_GhostedCells_in_PetscOrder; // IS of ghosted cells (local+ghost) from a global Vec
 
-  IS IS_LocalCells_in_LocalOrder;
-  IS IS_LocalCells_in_PetscOrder;
+  IS IS_LocalCells_in_LocalOrder; // IS of local cells from a local Vec
+  IS IS_LocalCells_in_PetscOrder; // IS of local cells from a global Vec
 
-  IS IS_GhostCells_in_LocalOrder;
-  IS IS_GhostCells_in_PetscOrder;
+  IS IS_GhostCells_in_LocalOrder; // IS of ghost cells from a local Vec
+  IS IS_GhostCells_in_PetscOrder; // IS of ghost cells from a global Vec
 
-  IS IS_LocalCells_to_NaturalCells;
+  IS IS_LocalCells_to_NaturalCells; // IS of local cell from a natural Vec
 
-  VecScatter Scatter_LocalCells_to_GlobalCells;
-  VecScatter Scatter_GlobalCells_to_LocalCells;
-  VecScatter Scatter_LocalCells_to_LocalCells;
-  VecScatter Scatter_GlobalCells_to_NaturalCells;
+  VecScatter Scatter_LocalCells_to_GlobalCells;   // for scattering data from a local Vec to a global Vec
+  VecScatter Scatter_GlobalCells_to_LocalCells;   // for scattering data from a global Vec to a local Vec
+  VecScatter Scatter_LocalCells_to_LocalCells;    // for scattering data from a local Vec to a local Vec
+  VecScatter Scatter_GlobalCells_to_NaturalCells; // for scattering data from a global Vec to a natural Vec
 
   ISLocalToGlobalMapping Mapping_LocalCells_to_GhostedCells;
 
