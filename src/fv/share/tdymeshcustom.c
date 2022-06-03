@@ -8,7 +8,15 @@
 #include <private/tdydiscretizationimpl.h>
 #include <private/tdymeshimpl.h>
 
-/* -------------------------------------------------------------------------- */
+/// Create folllowing mapping of cells 
+///  - nG2L: global index to local index
+///  - nL2G: local index to global
+///  - nG2A: global index to application (or natural) index
+///
+/// @param [in] discretization TDyDiscretization struct
+/// @param [out] mesh TDyMesh struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode TDyMeshMapIndices(TDyDiscretizationType *discretization, TDyMesh** mesh) {
 
   PetscErrorCode ierr;
@@ -49,7 +57,13 @@ static PetscErrorCode TDyMeshMapIndices(TDyDiscretizationType *discretization, T
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Compute the volume of a cell by breaking the cell into tetrahedron
+///
+/// @param [in] coords TDyCoordinate struct
+/// @param [in] ncoords Number of vertices forming a cell
+/// @param [out] volume Cell volume
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode ComputeVolume(TDyCoordinate *coords, PetscInt ncoords, PetscReal *volume) {
 
   PetscErrorCode ierr;
@@ -203,7 +217,12 @@ static PetscErrorCode TDySetupCellsFromDiscretization(TDyDiscretizationType *dis
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Get vertex ids of the iface-th of a hexahedron
+///
+/// @param [in] iface Face ID
+/// @param [out] vertex_ids A map to get face vertex IDs forming a face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode GetHexFaceVertices(PetscInt iface, PetscInt *vertex_ids){
 
 PetscFunctionBegin;
@@ -260,7 +279,12 @@ default:
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Get vertex ids of the iface-th of a wedge
+///
+/// @param [in] iface Face ID
+/// @param [out] vertex_ids A map to get face vertex IDs forming a face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode GetWedgeFaceVertices(PetscInt iface, PetscInt *vertex_ids){
 
 PetscFunctionBegin;
@@ -310,7 +334,12 @@ default:
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Get vertex ids of the iface-th of a pyramid
+///
+/// @param [in] iface Face ID
+/// @param [out] vertex_ids A map to get face vertex IDs forming a face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode GetPyramidFaceVertices(PetscInt iface, PetscInt *vertex_ids){
 
 PetscFunctionBegin;
@@ -359,7 +388,13 @@ default:
 
   PetscFunctionReturn(0);
 }
-/* -------------------------------------------------------------------------- */
+
+/// Get vertex ids of the iface-th of a tetrahedron
+///
+/// @param [in] iface Face ID
+/// @param [out] vertex_ids A map to get face vertex IDs forming a face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode GetTetFaceVertices(PetscInt iface, PetscInt *vertex_ids){
 
 PetscFunctionBegin;
@@ -401,7 +436,14 @@ default:
 
   PetscFunctionReturn(0);
 }
-/* -------------------------------------------------------------------------- */
+
+/// Get vertex ids of the iface-th of a cell type
+///
+/// @param [in] cell_type A TDyCellType struct
+/// @param [in] iface Face ID
+/// @param [out] vertex_ids A map to get face vertex IDs forming a face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode GetFaceVertices(TDyCellType cell_type, PetscInt iface, PetscInt *vertex_ids){
 
   PetscErrorCode ierr;
@@ -432,8 +474,17 @@ static PetscErrorCode GetFaceVertices(TDyCellType cell_type, PetscInt iface, Pet
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-static PetscBool AllVerticesPresentInDual(TDyUGrid *ugrid, PetscInt cell_id, PetscInt cell_id2, PetscInt iface, PetscInt **cell_to_face, PetscInt **face_to_vertex) {
+/// Check if all vertices of the iface-th of a cell (cell_id) are present in the dual cell (cell_id2)
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [in] cell_id Cell ID 
+/// @param [in] cell_id2 Dual cell ID
+/// @param [in] iface The iface-th of dual cell
+/// @param [in] cell_to_face A map to get face ID for a iface-th of a cell
+/// @param [in] face_to_vertex A map to get face vertex IDs forming a face
+///
+/// @returns vertex_found True if all vertices are present
+static PetscBool AreAllVerticesPresentInDual(TDyUGrid *ugrid, PetscInt cell_id, PetscInt cell_id2, PetscInt iface, PetscInt **cell_to_face, PetscInt **face_to_vertex) {
 
   PetscInt num_vertices = ugrid->cell_num_vertices[cell_id];
   TDyCellType cell_type = GetCellType(num_vertices);
@@ -466,7 +517,16 @@ static PetscBool AllVerticesPresentInDual(TDyUGrid *ugrid, PetscInt cell_id, Pet
   PetscFunctionReturn(vertex_found);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Given the two neigbhoring cells, return the face index of the dual cell
+/// that is shared by two cells
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [in] cell_id Cell ID 
+/// @param [in] cell_id2 Dual cell ID
+/// @param [out] cell_to_face A map to get face ID for a iface-th of a cell
+/// @param [out] face_to_vertex A map to get face vertex IDs forming a face
+///
+/// @returns corresponding_face_id Face index of the dual cell
 static PetscInt GetCorrespondingFaceInDualCell(TDyUGrid *ugrid, PetscInt cell_id, PetscInt cell_id2, PetscInt iface, PetscInt **cell_to_face, PetscInt **face_to_vertex) {
 
 
@@ -518,7 +578,14 @@ static PetscInt GetCorrespondingFaceInDualCell(TDyUGrid *ugrid, PetscInt cell_id
   PetscFunctionReturn(corresponding_face_id);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Create maps between cells, faces, and vertices. So, the duplicate face needs to be removed.
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [out] cell_to_face A map to get face ID for a iface-th of a cell
+/// @param [out] face_to_cell A map to get IDs of upwind and downnwind cells
+/// @param [out] face_to_vertex A map to get face vertex IDs forming a face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode SetupMaps_C2F_F2C_F2V(TDyUGrid *ugrid, PetscInt **cell_to_face, PetscInt **face_to_cell, PetscInt **face_to_vertex) {
 
   PetscErrorCode ierr;
@@ -560,7 +627,15 @@ static PetscErrorCode SetupMaps_C2F_F2C_F2V(TDyUGrid *ugrid, PetscInt **cell_to_
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Same face is listed twice within the two cells that share the face.
+/// So, the duplicate face needs to be removed.
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [in] face_to_vertex A map to get face vertex IDs forming a face
+/// @param [inout] cell_to_face A map to get face ID for a iface-th of a cell
+/// @param [inout] face_to_cell A map to get IDs of upwind and downnwind cells
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode RemoveDuplicateFaces(TDyUGrid *ugrid, PetscInt **face_to_vertex, PetscInt **face_to_cell, PetscInt **cell_to_face) {
 
   PetscInt nlmax = ugrid->num_cells_local;
@@ -592,7 +667,7 @@ static PetscErrorCode RemoveDuplicateFaces(TDyUGrid *ugrid, PetscInt **face_to_v
 
         // 4. Check if 'cell_id' and 'cell_id2' share a face
         common_face_found = PETSC_FALSE;
-        if (AllVerticesPresentInDual(ugrid, cell_id, cell_id2, iface, cell_to_face, face_to_vertex)) { // face_to_vertex, ugrid%cell_vertices
+        if (AreAllVerticesPresentInDual(ugrid, cell_id, cell_id2, iface, cell_to_face, face_to_vertex)) { // face_to_vertex, ugrid%cell_vertices
   
           // 5. For face_id of cell_id, find the corresponding face_id2 of cell_id2
           PetscInt iface2 = GetCorrespondingFaceInDualCell(ugrid, cell_id, cell_id2, iface, cell_to_face, face_to_vertex); // cell_to_face, face_to_vertex
@@ -623,7 +698,14 @@ static PetscErrorCode RemoveDuplicateFaces(TDyUGrid *ugrid, PetscInt **face_to_v
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Update few cell, face, and vertex mappings after the deletion of duplicate faces
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [inout] cell_to_face A map to get face ID for a iface-th of a cell
+/// @param [inout] face_to_cell A map to get IDs of upwind and downnwind cells
+/// @param [inout] face_to_vertex A map to get face vertex IDs forming a face
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode UpdateMapsC2F_F2C_F2V(TDyUGrid *ugrid, PetscInt **cell_to_face, PetscInt **face_to_cell, PetscInt **face_to_vertex) {
 
   PetscErrorCode ierr;
@@ -714,7 +796,13 @@ static PetscErrorCode UpdateMapsC2F_F2C_F2V(TDyUGrid *ugrid, PetscInt **cell_to_
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Creates a mapping to find cell IDs that share a vertex
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [out] num_vertex_to_cell Number of cells that share a vertex
+/// @param [out] vertex_to_cell The map
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode SetupMap_V2C(TDyUGrid *ugrid, PetscInt *num_vertex_to_cell, PetscInt **vertex_to_cell) {
 
   PetscInt num_vertices_local = ugrid->num_verts_local;
@@ -747,7 +835,15 @@ static PetscErrorCode SetupMap_V2C(TDyUGrid *ugrid, PetscInt *num_vertex_to_cell
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
+/// - Creates internal faces in the TDyMesh struct
+/// - Creates mapping of internal connections to face IDs in TDyUGrid struct
+///
+/// @param [in] face_to_cell A map to get IDs of upwind and downnwind cells
+/// @param [in] cell_to_face A map to get face ID for a iface-th of a cell
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [inout] mesh A TDyMesh struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **cell_to_face, TDyUGrid *ugrid, TDyMesh **mesh) {
 
   PetscErrorCode ierr;
@@ -864,7 +960,15 @@ static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **ce
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Computes area of triangle
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [in] v_id1 First vertex ID of the triangel
+/// @param [in] v_id2 Second vertex ID of the triangel
+/// @param [in] v_id3 Third vertex ID of the triangel
+/// @param [out] area Area of the triange
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode ComputeArea(TDyUGrid *ugrid, PetscInt v_id1, PetscInt v_id2, PetscInt v_id3, PetscReal *area) {
 
   PetscErrorCode ierr;
@@ -890,8 +994,25 @@ static PetscErrorCode ComputeArea(TDyUGrid *ugrid, PetscInt v_id1, PetscInt v_id
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-static PetscErrorCode ComputeAreasAndIntercpet(TDyUGrid *ugrid, PetscInt v_id1, PetscInt v_id2, PetscInt v_id3, PetscReal point_up[3], PetscReal point_dn[3], PetscReal n_up_dn[3], PetscReal *area, PetscReal *area_projected, PetscReal intercept[3]) {
+/// For a triangle, compute the following:
+///  - area of the triangle
+///  - projected area of a triangle along the unit vector between upwind and downwind cells
+///  - intercept of the upwind-downwind line with the trinagle 
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [in] v_id1 First vertex ID of the triangel
+/// @param [in] v_id2 Second vertex ID of the triangel
+/// @param [in] v_id3 Third vertex ID of the triangel
+/// @param [in] point_up Coordinate of upwind cell
+/// @param [in] point_dn Coordinate of downwind cell
+/// @param [in] n_up_dn Unit vector joining upwind and downwind cells
+/// @param [out] area Area of the triange
+/// @param [out] area_projected Projected area along unit normal
+/// @param [out] intercept Intercept between upwind-downind line to the triangle
+///
+/// @returns 0 on success, or a non-zero error code on failure
+static PetscErrorCode ComputeAreasAndIntercpet(TDyUGrid *ugrid, PetscInt v_id1, PetscInt v_id2, PetscInt v_id3, PetscReal point_up[3], 
+  PetscReal point_dn[3], PetscReal n_up_dn[3], PetscReal *area, PetscReal *area_projected, PetscReal intercept[3]) {
 
   PetscErrorCode ierr;
 
@@ -926,7 +1047,17 @@ static PetscErrorCode ComputeAreasAndIntercpet(TDyUGrid *ugrid, PetscInt v_id1, 
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Computes following geometric attributes of intenral faces in the TDyMesh struct
+///  - area
+///  - area projected orthogonal to the face normal
+///  - distance of upwind and downwind cell based on the intercept of the line joining upwind and downwind cells to the face
+///  - downwind distance weight
+///  - unit vector from upwind to downwind cell
+///
+/// @param [in] cell_to_face Mapping of ith-face of a cell to face id
+/// @param [inout] ugrid A TDyUGrid struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode ComputeGeoAttrOfInternalFaces(TDyUGrid *ugrid, TDyMesh **mesh) {
 
   PetscErrorCode ierr;
@@ -1020,8 +1151,15 @@ static PetscErrorCode ComputeGeoAttrOfInternalFaces(TDyUGrid *ugrid, TDyMesh **m
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
-static PetscErrorCode ComputeGoeAttrOfUGridFaces(TDyUGrid *ugrid, PetscInt **cell_to_face) {
+/// Computes following geometric attributes of all faces in the TDyUGrid struct
+///  - centroid
+///  - area
+///
+/// @param [in] cell_to_face Mapping of ith-face of a cell to face id
+/// @param [inout] ugrid A TDyUGrid struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
+static PetscErrorCode ComputeGoeAttrOfUGridFaces(PetscInt **cell_to_face, TDyUGrid *ugrid) {
 
   PetscErrorCode ierr;
 
@@ -1088,7 +1226,19 @@ static PetscErrorCode ComputeGoeAttrOfUGridFaces(TDyUGrid *ugrid, PetscInt **cel
   PetscFunctionReturn(0);
 }
 
-/* -------------------------------------------------------------------------- */
+/// Sets up faces in a TDyMesh struct based on the TDycore-managed DM.
+///  - Creates multiple mappings between geometric elements
+///     - face-to-vertex
+///     - face-to-cell
+///     - cell-to-face
+///     - vertex-to-cell
+///  - Removes duplicate internal faces
+///  - Create a list of internal faces and their geometric attributes such as area, unit normal, etc
+///
+/// @param [in] discretization A TDyDiscretizationType from which the mesh is created
+/// @param [out] mesh the newly constructed mesh instance
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *discretization, TDyMesh **mesh) {
 
   PetscErrorCode ierr;
@@ -1140,7 +1290,7 @@ static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *dis
   ierr = ComputeGeoAttrOfInternalFaces(ugrid, mesh); CHKERRQ(ierr);
 
   // Computes geometric attirbutes of all faces and saves them in the TDyUGrid struct
-  ierr = ComputeGoeAttrOfUGridFaces(ugrid, cell_to_face); CHKERRQ(ierr);
+  ierr = ComputeGoeAttrOfUGridFaces(cell_to_face, ugrid); CHKERRQ(ierr);
 
 
   PetscFunctionReturn(0);
@@ -1149,6 +1299,8 @@ static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *dis
 /// Constructs a mesh from TDycore-managed (i) TDyDM, and (ii) TDyUGrid
 /// @param [in] discretization A TDyDiscretizationType from which the mesh is created
 /// @param [out] mesh the newly constructed mesh instance
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyMeshCreateFromDiscretization(TDyDiscretizationType *discretization, TDyMesh** mesh) {
 
   PetscErrorCode ierr;
