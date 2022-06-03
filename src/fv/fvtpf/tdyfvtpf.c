@@ -781,10 +781,8 @@ PetscErrorCode FVTPFComputeFacePeremabilityValueTPF(TDyFVTPF *fvtpf, MaterialPro
   Kup_value = 1.0/Kup_value;
   Kdn_value = 1.0/Kdn_value;
 
-  PetscReal wt_up = (fvtpf->mesh)->faces.dist_wt_up[face_id];
-
-  *Kface_value = (Kup_value*Kdn_value)/(wt_up*Kdn_value + (1.0-wt_up)*Kup_value);
-  *Dq = *Kface_value/(dist_up + dist_dn);
+  *Kface_value = (Kup_value*Kdn_value)/(dist_up*Kdn_value + dist_dn*Kup_value);
+  *Dq = *Kface_value;
 
   PetscFunctionReturn(0);
 }
