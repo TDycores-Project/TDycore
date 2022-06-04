@@ -5,7 +5,11 @@
 #include <private/tdymemoryimpl.h>
 #include <private/tdyutils.h>
 
-/* ---------------------------------------------------------------- */
+/// Allocates memory and initializes a TDyUGDM struct
+///
+/// @param [out] ugdm A TDyUGDM struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyUGDMCreate(TDyUGDM **ugdm){
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -33,7 +37,11 @@ PetscErrorCode TDyUGDMCreate(TDyUGDM **ugdm){
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Delloactes memory of a TDyUGDM struct
+///
+/// @param [inout] ugdm A TDyUGDM struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyUGDMDestroy(TDyUGDM *ugdm){
 
   PetscFunctionBegin;
@@ -92,7 +100,13 @@ PetscErrorCode TDyUGDMDestroy(TDyUGDM *ugdm){
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Creates local and global vectors of a TDyUGDM struct
+///
+/// @param [in] ngmax Number of global (local+ghost) cell
+/// @param [in] nlmax Number of local cells
+/// @param [inout] ugdm A TDyUGDM struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode CreateVectors(PetscInt ngmax, PetscInt nlmax, PetscInt ndof, TDyUGDM *ugdm){
 
   PetscFunctionBegin;
@@ -114,7 +128,15 @@ static PetscErrorCode CreateVectors(PetscInt ngmax, PetscInt nlmax, PetscInt ndo
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Creates IS for a local vector
+///
+/// @param [in] ngmax Number of global (local+ghost) cell
+/// @param [in] nlmax Number of local cells
+/// @param [in] nghost Number of ghost cells
+/// @param [in] ndof Number of degrees of freedom
+/// @param [inout] ugdm A TDyUGDM struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode CreateLocalOrderIS(PetscInt ngmax, PetscInt nlmax, PetscInt nghost, PetscInt ndof, TDyUGDM *ugdm){
 
   PetscFunctionBegin;
@@ -144,7 +166,12 @@ static PetscErrorCode CreateLocalOrderIS(PetscInt ngmax, PetscInt nlmax, PetscIn
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Creates IS for a PETSc-ordered vector
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [inout] ugdm A TDyUGDM struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode CreatePetscOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *ugdm){
 
   PetscFunctionBegin;
@@ -181,7 +208,12 @@ static PetscErrorCode CreatePetscOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Creates IS for a natural-ordered vector
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [inout] ugdm A TDyUGDM struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode CreateNaturalOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *ugdm){
 
   PetscFunctionBegin;
@@ -212,7 +244,16 @@ static PetscErrorCode CreateNaturalOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUG
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Creates following vector scaters
+///  - local vector to global vector
+///  - global vector to local vector
+///  - global vector to application/natural vector
+///
+/// @param [in] ndof Number of degrees of freedom
+/// @param [in] nlmax Number of local grid cells
+/// @param [inout] ugdm A TDyUGDM struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode CreateVecScatters(PetscInt ndof, PetscInt nlmax, TDyUGDM *ugdm){
 
   PetscFunctionBegin;
@@ -266,7 +307,13 @@ static PetscErrorCode CreateVecScatters(PetscInt ndof, PetscInt nlmax, TDyUGDM *
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Creates TDyUGDM struct from the TDyGrid struct
+///
+/// @param [in] ndof Number of degrees of freedom
+/// @param [in] ugrid A TDyUgrid struct
+/// @param [inout] ugdm A TDyUGDM struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *ugdm){
 
   PetscFunctionBegin;
@@ -298,7 +345,14 @@ PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *u
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Creates a strided global vector
+///
+/// @param [in] ndof Number of degrees of freedom
+/// @param [in] nlmax Number of local cells
+/// @param [in] ugrid A TDyUgrid struct
+/// @param [out] global Global vector
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyUGDMCreateGlobalVec(PetscInt ndof, PetscInt nlmax, TDyUGDM *ugdm, Vec *global) {
 
   PetscFunctionBegin;
@@ -313,7 +367,14 @@ PetscErrorCode TDyUGDMCreateGlobalVec(PetscInt ndof, PetscInt nlmax, TDyUGDM *ug
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Creates a strided local vector
+///
+/// @param [in] ndof Number of degrees of freedom
+/// @param [in] ngmax Number of global (local+ghost) cells
+/// @param [in] ugrid A TDyUgrid struct
+/// @param [out] local Local vector
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyUGDMCreateLocalVec(PetscInt ndof, PetscInt ngmax, TDyUGDM *ugdm, Vec *local) {
 
   PetscFunctionBegin;
@@ -327,7 +388,14 @@ PetscErrorCode TDyUGDMCreateLocalVec(PetscInt ndof, PetscInt ngmax, TDyUGDM *ugd
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Creates a strided natural vector
+///
+/// @param [in] ndof Number of degrees of freedom
+/// @param [in] ngmax Number of global (local+ghost) cells
+/// @param [in] ugrid A TDyUgrid struct
+/// @param [out] natural Natural vector
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyUGDMCreateNaturalVec(PetscInt ndof, PetscInt ngmax, TDyUGDM *ugdm, Vec *natural) {
 
   PetscFunctionBegin;
@@ -341,7 +409,15 @@ PetscErrorCode TDyUGDMCreateNaturalVec(PetscInt ndof, PetscInt ngmax, TDyUGDM *u
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Creates a strided matrix that is used for Jacobian computation
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [in] nlmax Number of local cells
+/// @param [in] ugrid A TDyUgrid struct
+/// @param [in] ndof Number of degrees of freedom
+/// @param [inout] ugdm A TDyUGDM struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyUGDMCreateMatrix(TDyUGrid *ugrid, TDyUGDM *ugdm, PetscInt ndof, Mat *matrix) {
 
   PetscFunctionBegin;
