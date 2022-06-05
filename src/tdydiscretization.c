@@ -23,7 +23,7 @@ PetscErrorCode TDyDiscretizationCreateFromPFLOTRANMesh(const char *mesh_file, Pe
 
   PetscErrorCode ierr;
 
-  ierr = TDyUGridCreateFromPFLOTRANMesh(discretization->ugrid, mesh_file); CHKERRQ(ierr);
+  ierr = TDyUGridCreateFromPFLOTRANMesh(mesh_file, discretization->ugrid); CHKERRQ(ierr);
 
   ierr = TDyDMCreateFromUGrid(ndof, discretization->ugrid, discretization->tdydm); CHKERRQ(ierr);
 
