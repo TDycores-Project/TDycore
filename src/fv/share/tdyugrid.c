@@ -9,7 +9,11 @@ static PetscInt vertex_separator = -777;
 static PetscInt dual_separator = -888;
 static PetscInt cell_separator = -999999;
 
-
+/// Allocates memory and initializes a TDyUGrid struct
+///
+/// @param [out] ugrid A TDyUGrid struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyUGridCreate(TDyUGrid **ugrid) {
 
   PetscErrorCode ierr;
@@ -54,7 +58,12 @@ PetscErrorCode TDyUGridCreate(TDyUGrid **ugrid) {
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Read in a PFLOTRAN-formatted HDF5 mesh file
+///
+/// @param [in] mesh_file Name of the mesh file
+/// @param [inout] ugrid A TDyUGrid struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugrid){
 
   PetscViewer viewer;
@@ -152,60 +161,11 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugri
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
-PetscErrorCode UGridPrintCells(TDyUGrid *ugrid) {
-
-  PetscInt rank, commsize;
-
-  MPI_Comm_size(PETSC_COMM_WORLD, &commsize);
-  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-
-  PetscInt **cell_vertices = ugrid->cell_vertices;
-  if (rank == 0) printf("Cells:\n");
-  for (PetscInt irank=0; irank<commsize; irank++) {
-    if (rank == irank) {
-      printf("Rank = %d\n",rank);
-      for (PetscInt icell=0; icell<ugrid->num_cells_local; icell++) {
-        for (PetscInt ivertex=0; ivertex<ugrid->max_verts_per_cell; ivertex++) {
-          printf("%02d ",cell_vertices[icell][ivertex]);
-        }
-        printf("\n");
-      }
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-
-  PetscFunctionReturn(0);
-}
-
-/* ---------------------------------------------------------------- */
-PetscErrorCode UGridPrintVertices(TDyUGrid *ugrid) {
-
-  PetscInt rank, commsize;
-
-  MPI_Comm_size(PETSC_COMM_WORLD, &commsize);
-  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-
-  PetscReal **vertices = ugrid->vertices;
-  if (rank == 0) printf("Vertices:\n");
-  for (PetscInt irank=0; irank<commsize; irank++) {
-    if (rank == irank) {
-      printf("Rank = %d\n",rank);
-      PetscInt dim=3;
-      for (PetscInt ivertex=0; ivertex<ugrid->num_verts_local; ivertex++) {
-        for (PetscInt idim=0; idim<dim; idim++) {
-          printf("%e ",vertices[ivertex][idim]);
-        }
-        printf("\n");
-      }
-    }
-    MPI_Barrier(MPI_COMM_WORLD);
-  }
-
-  PetscFunctionReturn(0);
-}
-
-/* ---------------------------------------------------------------- */
+/// Loop over all local cells and find the maximum vertices that form a local cell
+///
+/// @param [inout] ugrid A TDyUGrid struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode DetermineMaxNumVerticesActivePerCell(TDyUGrid *ugrid) {
 
   PetscErrorCode ierr;
@@ -228,7 +188,12 @@ static PetscErrorCode DetermineMaxNumVerticesActivePerCell(TDyUGrid *ugrid) {
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Create the adjacency matrix to be used for domain decompoisition
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [inout] AdjMat Adjacency matrix
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode CreateAdjacencyMatrix(TDyUGrid *ugrid, Mat *AdjMat) {
 
   PetscErrorCode ierr;
@@ -264,7 +229,13 @@ static PetscErrorCode CreateAdjacencyMatrix(TDyUGrid *ugrid, Mat *AdjMat) {
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Use the dual matrix to partition the grid
+///
+/// @param [in] DualMat A dual matrix of the adjaceny matrix
+/// @param [out] NewCellRankIS IS that identifies the rank that owns the grid cell
+/// @param [out] NewNumCellsLocal Number of local cells after partitioning
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode PartitionGrid(Mat DualMat, IS *NewCellRankIS, PetscInt *NewNumCellsLocal) {
 
    PetscErrorCode ierr;
@@ -293,7 +264,12 @@ PetscErrorCode PartitionGrid(Mat DualMat, IS *NewCellRankIS, PetscInt *NewNumCel
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Determine the max number of duals/neighbors of a grid cell in the mesh
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] DualMat A dual matrix of the adjaceny matrix
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode DetermineMaxNumDualCells(TDyUGrid *ugrid, Mat DualMat) {
 
   PetscErrorCode ierr;
@@ -328,7 +304,14 @@ static PetscErrorCode DetermineMaxNumDualCells(TDyUGrid *ugrid, Mat DualMat) {
 
 }
 
-/* ---------------------------------------------------------------- */
+/// Create IS the maps a natural-ordered Vec to a PETSC-ordered Vec
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [in] NewCellRankIS IS that identifies the rank that owns the grid cell
+/// @param [in] stride Block size of the Vec
+/// @param [out] NatToPetscIS IS for natural-to-PETSc Vec mapping
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode CreateISNatOrderToPetscOrder(TDyUGrid *ugrid, IS NewCellRankIS, PetscInt stride, IS *NatToPetscIS) {
 
   PetscErrorCode ierr;
@@ -350,7 +333,14 @@ static PetscErrorCode CreateISNatOrderToPetscOrder(TDyUGrid *ugrid, IS NewCellRa
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Create a natural-ordered, blocked Vec
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [in] NewCellRankIS IS that identifies the rank that owns the grid cell
+/// @param [in] stride Block size of the Vec
+/// @param [out] NatOrderVec Natural Vec
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode CreateVectorNatOrder(TDyUGrid *ugrid, IS NewCellRankIS, PetscInt stride, Vec *NatOrderVec) {
 
   PetscErrorCode ierr;
@@ -363,7 +353,13 @@ static PetscErrorCode CreateVectorNatOrder(TDyUGrid *ugrid, IS NewCellRankIS, Pe
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Fill a natural-ordered, blocked Vec with information about mesh pre-partitioning
+///
+/// @param [in] ugrid A TDyUGrid struct
+/// @param [in] DualMatrix A dual matrix
+/// @param [out] NatOrderVec Natural Vec
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode PackNatOrderVector(TDyUGrid *ugrid, Mat DualMat, Vec *NatOrderVec) {
 
   PetscErrorCode ierr;
@@ -414,7 +410,15 @@ static PetscErrorCode PackNatOrderVector(TDyUGrid *ugrid, Mat DualMat, Vec *NatO
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Scatter the pre-partition Vec with mesh details to post-partition Vec in natural order
+///
+/// @param [in] stride Block size of the Vec
+/// @param [in] NewNumCellsLocal Number of local cells after partition
+/// @param [in] NatToPetscIS IS for natural-to-PETSc Vec mapping
+/// @param [in] Pre pre-partition Vec with mesh details
+/// @param [out] Post post-partition Vec with mesh details
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode PrePartNatOrder_To_PostPartNatOrder(PetscInt stride, PetscInt NewNumCellsLocal, IS *NatToPetscIS, Vec *Pre, Vec *Post) {
 
   PetscErrorCode ierr;
@@ -435,7 +439,14 @@ PetscErrorCode PrePartNatOrder_To_PostPartNatOrder(PetscInt stride, PetscInt New
  PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Save natural cell ids after mesh partitioning
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] PostPartNatOrderVec A post-partition vector with mesh details
+/// @param [in] NewNumCellsLocal Number of local cells after partition
+/// @param [in] stride Block size of the Vec
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode SaveNaturalCellIDs(TDyUGrid *ugrid, Vec PostPartNatOrderVec, PetscInt NewNumCellsLocal, PetscInt stride) {
 
   PetscErrorCode ierr;
@@ -452,7 +463,13 @@ static PetscErrorCode SaveNaturalCellIDs(TDyUGrid *ugrid, Vec PostPartNatOrderVe
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Create mapping between PETSc and application/natural order
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] NewGlobalOffset Offset of local cell on each rank
+/// @param [in] NewNumCellsLocal Number of local cells on each rank post-partition
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode CreateApplicationOrder(TDyUGrid *ugrid, PetscInt NewGlobalOffset, PetscInt NewNumCellsLocal) {
 
   PetscErrorCode ierr;
@@ -471,7 +488,15 @@ static PetscErrorCode CreateApplicationOrder(TDyUGrid *ugrid, PetscInt NewGlobal
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Remaps cell and dual IDs from natural order (pre-partition) to PETSc order (post-partition)
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] stride Block size of the Vec
+/// @param [in] dual_offset Offset for dual IDs
+/// @param [in] NewNumCellsLocal Number of local cells on each rank post-partition
+/// @param [inout] PetscOrderVec Vec containg updaed mesh information
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode CellAndDualIDs_FromNatOrder_To_PetscOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *PetscOrderVec) {
 
   PetscErrorCode ierr;
@@ -524,7 +549,16 @@ static PetscErrorCode CellAndDualIDs_FromNatOrder_To_PetscOrder(TDyUGrid *ugrid,
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Remaps dual IDs from PETSc order to local order
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] stride Block size of the Vec
+/// @param [in] dual_offset Offset for dual IDs
+/// @param [in] NewNumCellsLocal Number of local cells on each rank post-partition
+/// @param [in] NewGlobalOffset Offset of local cell on each rank
+/// @param [inout] PetscOrderVec Vec containg updaed mesh information
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode DualIDs_FromPetscOrder_To_LocalOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, PetscInt NewGlobalOffset, Vec *PetscOrderVec) {
 
   PetscErrorCode ierr;
@@ -653,7 +687,15 @@ PetscErrorCode DualIDs_FromPetscOrder_To_LocalOrder(TDyUGrid *ugrid, PetscInt st
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Update the array that saves the natural cell ids to also include ghost cells
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] stride Block size of the Vec
+/// @param [in] dual_offset Offset for dual IDs
+/// @param [in] NatOrderVec Vec containg mesh information in natural-order
+/// @param [in] PetscOrderVec Vec containg mesh information in PETSc-order
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode UpdateNaturalCellIDs(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, Vec *NatOrderVec, Vec *PetscOrderVec) {
 
   PetscErrorCode ierr;
@@ -697,7 +739,14 @@ static PetscErrorCode UpdateNaturalCellIDs(TDyUGrid *ugrid, PetscInt stride, Pet
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Determine the ids of cell neigbhors (aka duals) in ghosted-index
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] stride Block size of the Vec
+/// @param [in] dual_offset Offset for dual IDs
+/// @param [in] PetscOrderVec Vec containg mesh information in PETSc-order
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode DetermineNeigbhorsCellIDsInGhostedOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, Vec *PetscOrderVec) {
 
   PetscErrorCode ierr;
@@ -736,7 +785,17 @@ static PetscErrorCode DetermineNeigbhorsCellIDsInGhostedOrder(TDyUGrid *ugrid, P
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Scatter mesh information from a natural-order Vec (pre-partition) to PETSc-ordered Vec (post-partition)
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] stride Block size of the Vec
+/// @param [in] dual_offset Offset for dual IDs
+/// @param [in] NewNumCellsLocal Number of local cells on each rank post-partition
+/// @param [in] NatOrderVec Vec containing mesh information in natural-order
+/// @param [in] NatToPetscIS IS for natural-to-PETSc Vec mapping
+/// @param [out] PetscOrderVec Vec containing mesh information in PETSc-order
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode ScatterVecNatOrderToPetscOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *NatOrderVec, IS *NatToPetscIS, Vec *PetscOrderVec) {
 
   PetscErrorCode ierr;
@@ -775,7 +834,14 @@ PetscErrorCode ScatterVecNatOrderToPetscOrder(TDyUGrid *ugrid, PetscInt stride, 
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Post-partition, scatter mesh information from a PETSc-ordered Vec to a local-ordered Vec
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] stride Block size of the Vec
+/// @param [in] PetscOrderVec Vec containing mesh information in PETSc-order
+/// @param [out] LocalOrderVec Vec containing mesh information in local-order
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode ScatterVecPetscOrderToLocalOrder(TDyUGrid *ugrid, PetscInt stride, Vec *PetscOrderVec, Vec *LocalOrderVec) {
 
   PetscErrorCode ierr;
@@ -833,7 +899,15 @@ PetscErrorCode ScatterVecPetscOrderToLocalOrder(TDyUGrid *ugrid, PetscInt stride
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Change vertex IDs from natural-order (pre-partition) to local-order (post-partition)
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] stride Block size of the Vec
+/// @param [in] vertex_offset Offset of vertices within the stride
+/// @param [in] NewNumVertices Number of vertices after partitioning
+/// @param [out] LocalOrderVec Vec containing mesh information in local-order
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode ChangeVertexNatOrderToLocalOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt vertex_offset, PetscInt *NewNumVertices, Vec *LocalOrderVec) {
 
   PetscErrorCode ierr;
@@ -937,7 +1011,14 @@ static PetscErrorCode ChangeVertexNatOrderToLocalOrder(TDyUGrid *ugrid, PetscInt
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Save coorindates of local vertices (post-partition) from natural vertices (pre-partition)
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] stride Block size of the Vec
+/// @param [in] vertex_offset Offset of vertices within the stride
+/// @param [in] NewNumVertices Number of vertices after partitioning
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode SaveLocalVertexCoordinates(TDyUGrid *ugrid, PetscInt stride, PetscInt vertex_offset, PetscInt NewNumVertices) {
 
   PetscErrorCode ierr;
@@ -1013,7 +1094,14 @@ static PetscErrorCode SaveLocalVertexCoordinates(TDyUGrid *ugrid, PetscInt strid
 }
 
 
-/* ---------------------------------------------------------------- */
+/// Scatter information about vertices from natural-order (pre-partition) to local-order (post-partition)
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] stride Block size of the Vec
+/// @param [in] vertex_offset Offset of vertices within the stride
+/// @param [out] LocalOrderVec Vec containing mesh information in local-order
+///
+/// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode ScatterVertexNatOrderToLocalOrder(TDyUGrid *ugrid, PetscInt stride, PetscInt vertex_offset, Vec *LocalOrderVec) {
 
   PetscErrorCode ierr;
@@ -1026,14 +1114,20 @@ static PetscErrorCode ScatterVertexNatOrderToLocalOrder(TDyUGrid *ugrid, PetscIn
   PetscFunctionReturn(0);
 }
 
-/* ---------------------------------------------------------------- */
+/// Set up a TDyUGrid struct from a PFLOTRAN-formatted HDF5 file.
+///  - Read the mesh
+///  - Partition the mesh using ParMETIS
+///  - Update information about local + ghost cell and vertices on each rank
+///
+/// @param [inout] ugrid A TDyUGrid struct
+/// @param [in] mesh_file Name of the mesh file
+///
+/// @returns 0 on success, or a non-zero error code on failure
 PetscErrorCode TDyUGridCreateFromPFLOTRANMesh(TDyUGrid *ugrid, const char *mesh_file) {
 
   PetscErrorCode ierr;
 
   ierr = ReadPFLOTRANMeshFile(mesh_file, ugrid); CHKERRQ(ierr);
-  //ierr = UGridPrintCells(ugrid); CHKERRQ(ierr);
-  //ierr = UGridPrintVertices(ugrid); CHKERRQ(ierr);
 
   ierr = DetermineMaxNumVerticesActivePerCell(ugrid); CHKERRQ(ierr);
 
