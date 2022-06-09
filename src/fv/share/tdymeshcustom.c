@@ -822,10 +822,10 @@ static PetscErrorCode SetupMap_V2C(TDyUGrid *ugrid, PetscInt *num_vertex_to_cell
 
       if (vertex_id < 0) continue;
 
-      PetscInt idx=num_vertex_to_cell[ivertex];
+      PetscInt idx=num_vertex_to_cell[vertex_id];
       vertex_to_cell[idx][vertex_id] = icell;
 
-      num_vertex_to_cell[ivertex]++;
+      num_vertex_to_cell[vertex_id]++;
       if (num_vertex_to_cell[ivertex] > max_cells_sharing_a_vertex) {
         SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Vertex is shared by more than max_cells_sharing_a_vertex");
       }
