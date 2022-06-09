@@ -728,6 +728,10 @@ PetscErrorCode TDySetup(TDy tdy) {
                          tdy->cc, tdy->conditions); CHKERRQ(ierr);
 
   // If we support diagnostics, set up the DMs and the diagnostic vector.
+  if ( ((tdy->discretization)->tdydm)->dmtype == TDYCORE_DM_TYPE) {
+    tdy->ops->update_diagnostics = PETSC_FALSE;
+  }
+
   if (tdy->ops->update_diagnostics) {
     // Create a DM for diagnostic fields, and set its layout.
     ierr = DMClone(dm, &tdy->diag_dm); CHKERRQ(ierr);
