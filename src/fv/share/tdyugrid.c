@@ -328,7 +328,7 @@ static PetscErrorCode CreateISNatOrderToPetscOrder(TDyUGrid *ugrid, IS NewCellRa
   ierr = ISRestoreIndices(NumberingIS, &is_ptr); CHKERRQ(ierr);
   ierr = ISDestroy(&NumberingIS); CHKERRQ(ierr);
 
-  ierr = TDySavePetscISAsASCII(NewCellRankIS,"is_scatter_elem_old_to_new.out");
+  ierr = TDySavePetscISAsASCII(*NatToPetscIS,"is_scatter_elem_old_to_new.out");
 
   PetscFunctionReturn(0);
 }
@@ -497,30 +497,37 @@ static PetscErrorCode CreateApplicationOrder(PetscInt NewGlobalOffset, PetscInt 
 /// @param [inout] PetscOrderVec Vec containg updaed mesh information
 ///
 /// @returns 0 on success, or a non-zero error code on failure
-static PetscErrorCode CellAndDualIDs_FromNatOrder_To_PetscOrder(PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, TDyUGrid *ugrid, Vec *PetscOrderVec) {
+static PetscErrorCode CellAndDualIDs_FromNatOrder_To_PetscOrder(PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, TDyUGrid *ugrid, Vec *PostPartNatOrderVec, Vec *PetscOrderVec) {
 
   PetscErrorCode ierr;
 
   PetscInt max_ndual = ugrid->max_ndual_per_cell;
-  PetscInt size = NewNumCellsLocal * max_ndual;
-  PetscInt IDs[size];
   PetscInt ndual = 0;
 
   PetscScalar *v_ptr;
-
-  ierr = VecGetArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);
+  ierr = VecGetArray(*PostPartNatOrderVec, &v_ptr); CHKERRQ(ierr);
   for (PetscInt icell=0; icell<NewNumCellsLocal; icell++) {
-
-    IDs[ndual++] = ugrid->cell_ids_natural[icell]; // Are in 0-based index
-
+    ndual++;
     for (PetscInt idual=0; idual<max_ndual; idual++) {
       PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset];
       if (dualID>0) {
-        IDs[ndual++] = dualID-1; // Changing from 1-based index to 0-based index
+        ndual++;
       }
     }
   }
-  ierr = VecRestoreArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);
+
+  PetscInt IDs[ndual];
+  ndual = 0;
+  for (PetscInt icell=0; icell<NewNumCellsLocal; icell++) {
+     IDs[ndual++] = ugrid->cell_ids_natural[icell]; // IDs are already in 0-based index
+     for (PetscInt idual=0; idual<max_ndual; idual++) {
+       PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset];
+       if (dualID>0) {
+         IDs[ndual++] = dualID-1; // Changing from 1-based to 0-based index
+       }
+     }
+  }
+  ierr = VecRestoreArray(*PostPartNatOrderVec, &v_ptr); CHKERRQ(ierr);
 
   ierr = AOApplicationToPetsc(ugrid->ao_natural_to_petsc, ndual, IDs); CHKERRQ(ierr);
 
@@ -531,16 +538,14 @@ static PetscErrorCode CellAndDualIDs_FromNatOrder_To_PetscOrder(PetscInt stride,
   for (PetscInt icell=0; icell<NewNumCellsLocal; icell++) {
 
     ugrid->cell_ids_petsc[icell] = IDs[ndual];
-    v_ptr[icell*stride] =  IDs[ndual] + 1; // Changing from 0-based to 1-based
+    v_ptr[icell*stride] =  IDs[ndual++] + 1; // Changing from 0-based to 1-based
 
     for (PetscInt idual=0; idual<max_ndual; idual++) {
       PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset];
       if (dualID > 0) {
-        ndual++;
-        v_ptr[icell*stride + idual + dual_offset] = IDs[ndual] + 1; // Changing from 0-based to 1-based
+        v_ptr[icell*stride + idual + dual_offset] = IDs[ndual++] + 1; // Changing from 0-based to 1-based
       }
     }
-    ndual++;
   }
   ierr = VecRestoreArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);
   ierr = TDySavePetscVecAsASCII(*PetscOrderVec,"elements_petsc.out");
@@ -820,7 +825,7 @@ static PetscErrorCode ScatterVecNatOrderToPetscOrder(PetscInt stride, PetscInt d
   ierr = CreateApplicationOrder(NewGlobalOffset, NewNumCellsLocal, ugrid); CHKERRQ(ierr);
 
   // Change cell and dual ids from natural-order to PETSc order
-  ierr = CellAndDualIDs_FromNatOrder_To_PetscOrder(stride, dual_offset, NewNumCellsLocal, ugrid, PetscOrderVec);
+  ierr = CellAndDualIDs_FromNatOrder_To_PetscOrder(stride, dual_offset, NewNumCellsLocal, ugrid, &PostPartNatOrderVec, PetscOrderVec);
 
   // Change the dual ids from PETSc-order to local-order
   ierr = DualIDs_FromPetscOrder_To_LocalOrder(stride, dual_offset, NewNumCellsLocal, NewGlobalOffset, ugrid, PetscOrderVec);
