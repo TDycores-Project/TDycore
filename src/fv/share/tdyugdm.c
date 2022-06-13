@@ -186,7 +186,7 @@ static PetscErrorCode CreatePetscOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM
     idxL[i] = i + ugrid->global_offset;
   }
   ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nlmax, idxL, PETSC_COPY_VALUES, &ugdm->IS_LocalCells_in_PetscOrder); CHKERRQ(ierr);
-  ierr = TDySavePetscISAsASCII(ugdm->IS_LocalCells_in_LocalOrder,"is_local_petsc_1.out");
+  ierr = TDySavePetscISAsASCII(ugdm->IS_LocalCells_in_PetscOrder,"is_local_petsc_1.out");
 
   PetscInt idxG[ngmax];
   for (PetscInt i=0; i<nlmax; i++) {
@@ -338,9 +338,9 @@ PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *u
   // Create four VecScatter
   ierr = CreateVecScatters(ndof, ugrid->num_cells_local, ugdm); CHKERRQ(ierr);
 
- // Creates the mapping
- ierr = ISLocalToGlobalMappingCreateIS(ugdm->IS_GhostedCells_in_PetscOrder, &ugdm->Mapping_LocalCells_to_GhostedCells); CHKERRQ(ierr);
- ierr = TDySavePetscISLocalToGlobalMappingAsASCII(ugdm->Mapping_LocalCells_to_GhostedCells, "mapping_ltog_1.out"); CHKERRQ(ierr);
+  // Creates the mapping
+  ierr = ISLocalToGlobalMappingCreateIS(ugdm->IS_GhostedCells_in_PetscOrder, &ugdm->Mapping_LocalCells_to_GhostedCells); CHKERRQ(ierr);
+  ierr = TDySavePetscISLocalToGlobalMappingAsASCII(ugdm->Mapping_LocalCells_to_GhostedCells, "mapping_ltog_1.out"); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -444,7 +444,7 @@ PetscErrorCode TDyUGDMCreateMatrix(TDyUGrid *ugrid, TDyUGDM *ugdm, PetscInt ndof
   PetscInt ndof_local = nlmax*ndof;
 
   ierr = MatCreate(PETSC_COMM_WORLD,matrix); CHKERRQ(ierr);
-  ierr = MatSetType(*matrix,MATAIJ); CHKERRQ(ierr);
+  ierr = MatSetType(*matrix,MATBAIJ); CHKERRQ(ierr);
   ierr = MatSetSizes(*matrix,ndof_local,ndof_local,PETSC_DETERMINE,PETSC_DETERMINE); CHKERRQ(ierr);
   ierr = MatXAIJSetPreallocation(*matrix,ndof,d_nnz,o_nnz,PETSC_NULL,PETSC_NULL); CHKERRQ(ierr);
   ierr = MatSetLocalToGlobalMapping(*matrix,ugdm->Mapping_LocalCells_to_GhostedCells,ugdm->Mapping_LocalCells_to_GhostedCells); CHKERRQ(ierr);

@@ -989,7 +989,9 @@ static PetscErrorCode ChangeVertexNatOrderToLocalOrder(PetscInt stride, PetscInt
   ierr = VecGetArray(*LocalOrderVec, &v_ptr); CHKERRQ(ierr);
 
   PetscInt nlmax = ugrid->num_cells_local;
-  ierr = TDyDeallocate_IntegerArray_2D(ugrid->cell_vertices, nlmax); CHKERRQ(ierr);
+  // The previously allocated memoroy for ugrid->cell_vertices cannot be deallocated
+  // because the dimension for the memory was prior to mesh partition and after
+  // mesh partition the size of ugrid->cell_vertices is not known
   ierr = TDyAllocate_IntegerArray_2D(&ugrid->cell_vertices, ngmax, max_nvert); CHKERRQ(ierr);
 
   for (PetscInt icell=0; icell<ngmax; icell++) {
@@ -1163,6 +1165,9 @@ PetscErrorCode TDyUGridCreateFromPFLOTRANMesh(const char *mesh_file, TDyUGrid *u
 
   ierr = PackNatOrderVector(ugrid, DualMat, &NatOrderVec);
   ierr = MatDestroy(&DualMat); CHKERRQ(ierr);
+
+  // Update the global offset
+  ierr = MPI_Exscan(&NewNumCellsLocal, &(ugrid->global_offset), 1, MPI_INTEGER, MPI_SUM, PETSC_COMM_WORLD); CHKERRQ(ierr);
 
   Vec PetscOrderVec;
   ierr = ScatterVecNatOrderToPetscOrder(stride, dual_offset, NewNumCellsLocal, &NatOrderVec, &NatToPetscIS, ugrid, &PetscOrderVec);
