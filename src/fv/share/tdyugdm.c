@@ -147,21 +147,27 @@ static PetscErrorCode CreateLocalOrderIS(PetscInt ngmax, PetscInt nlmax, PetscIn
     idxL[i] = i;
   }
   ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nlmax, idxL, PETSC_COPY_VALUES, &ugdm->IS_LocalCells_in_LocalOrder); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscISAsASCII(ugdm->IS_LocalCells_in_LocalOrder,"is_local_local_1.out");
+#endif
 
   PetscInt idxG[ngmax];
   for (PetscInt i=0; i<ngmax; i++) {
     idxG[i] = i;
   }
   ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, ngmax, idxG, PETSC_COPY_VALUES, &ugdm->IS_GhostedCells_in_LocalOrder); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscISAsASCII(ugdm->IS_GhostedCells_in_LocalOrder,"is_ghosted_local_1.out");
+#endif
 
   PetscInt idxGhost[nghost];
   for (PetscInt i=0; i<nghost; i++) {
     idxGhost[i] = nlmax+i;
   }
   ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nghost, idxGhost, PETSC_COPY_VALUES, &ugdm->IS_GhostCells_in_LocalOrder); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscISAsASCII(ugdm->IS_GhostCells_in_LocalOrder,"is_ghosts_local_1.out");
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -186,7 +192,9 @@ static PetscErrorCode CreatePetscOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM
     idxL[i] = i + ugrid->global_offset;
   }
   ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nlmax, idxL, PETSC_COPY_VALUES, &ugdm->IS_LocalCells_in_PetscOrder); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscISAsASCII(ugdm->IS_LocalCells_in_PetscOrder,"is_local_petsc_1.out");
+#endif
 
   PetscInt idxG[ngmax];
   for (PetscInt i=0; i<nlmax; i++) {
@@ -196,14 +204,18 @@ static PetscErrorCode CreatePetscOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM
     idxG[i+nlmax] = ugrid->ghost_cell_ids_petsc[i];
   }
   ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, ngmax, idxG, PETSC_COPY_VALUES, &ugdm->IS_GhostedCells_in_PetscOrder); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscISAsASCII(ugdm->IS_GhostedCells_in_PetscOrder,"is_ghosted_petsc_1.out");
+#endif
 
   PetscInt idxGhost[nghost];
   for (PetscInt i=0; i<nghost; i++) {
     idxGhost[i] = ugrid->ghost_cell_ids_petsc[i];
   }
   ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nghost, idxGhost, PETSC_COPY_VALUES, &ugdm->IS_GhostCells_in_PetscOrder); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscISAsASCII(ugdm->IS_GhostCells_in_PetscOrder,"is_ghosts_petsc_1.out");
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -239,7 +251,9 @@ static PetscErrorCode CreateNaturalOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUG
   ierr = ISDestroy(&is_tmp); CHKERRQ(ierr);
 
   ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nlmax, idx, PETSC_COPY_VALUES, &ugdm->IS_LocalCells_to_NaturalCells); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscISAsASCII(ugdm->IS_LocalCells_to_NaturalCells,"is_local_natural_1.out");
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -269,7 +283,9 @@ static PetscErrorCode CreateVecScatters(PetscInt ndof, PetscInt nlmax, TDyUGDM *
   is_to       = &ugdm->IS_LocalCells_in_PetscOrder;
   vec_scatter = &ugdm->Scatter_LocalCells_to_GlobalCells;
   ierr = VecScatterCreate(*vec_from, *is_from, *vec_to, *is_to, vec_scatter); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscVecScatterAsASCII(*vec_scatter, "scatter_ltog_1.out");
+#endif
 
   vec_from    = &ugdm->GlobalVec;
   vec_to      = &ugdm->LocalVec;
@@ -277,7 +293,9 @@ static PetscErrorCode CreateVecScatters(PetscInt ndof, PetscInt nlmax, TDyUGDM *
   is_to       = &ugdm->IS_GhostedCells_in_LocalOrder;
   vec_scatter = &ugdm->Scatter_GlobalCells_to_LocalCells;
   ierr = VecScatterCreate(*vec_from, *is_from, *vec_to, *is_to, vec_scatter); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscVecScatterAsASCII(*vec_scatter, "scatter_gtol_1.out");
+#endif
 
   ierr = VecScatterCopy(ugdm->Scatter_GlobalCells_to_LocalCells, &ugdm->Scatter_LocalCells_to_LocalCells); CHKERRQ(ierr);
   const PetscInt *int_ptr;
@@ -288,7 +306,9 @@ static PetscErrorCode CreateVecScatters(PetscInt ndof, PetscInt nlmax, TDyUGDM *
   }
   ierr = VecScatterRemap(ugdm->Scatter_LocalCells_to_LocalCells, idx, PETSC_NULL); CHKERRQ(ierr);
   ierr = ISRestoreIndices(ugdm->IS_LocalCells_in_LocalOrder, &int_ptr); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscVecScatterAsASCII(*vec_scatter, "scatter_ltol_1.out");
+#endif
 
   vec_from    = &ugdm->GlobalVec;
   is_from     = &ugdm->IS_LocalCells_in_PetscOrder;
@@ -302,7 +322,9 @@ static PetscErrorCode CreateVecScatters(PetscInt ndof, PetscInt nlmax, TDyUGDM *
   ierr = VecSetFromOptions(vec_tmp); CHKERRQ(ierr);
   ierr = VecScatterCreate(*vec_from, *is_from, vec_tmp, *is_to, vec_scatter); CHKERRQ(ierr);
   ierr = VecDestroy(&vec_tmp); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscVecScatterAsASCII(*vec_scatter, "scatter_gton_1.out");
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -340,7 +362,9 @@ PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *u
 
   // Creates the mapping
   ierr = ISLocalToGlobalMappingCreateIS(ugdm->IS_GhostedCells_in_PetscOrder, &ugdm->Mapping_LocalCells_to_GhostedCells); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscISLocalToGlobalMappingAsASCII(ugdm->Mapping_LocalCells_to_GhostedCells, "mapping_ltog_1.out"); CHKERRQ(ierr);
+#endif
 
   PetscFunctionReturn(0);
 }

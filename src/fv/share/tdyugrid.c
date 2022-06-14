@@ -224,7 +224,9 @@ static PetscErrorCode CreateAdjacencyMatrix(TDyUGrid *ugrid, Mat *AdjMat) {
   ierr = MPI_Exscan(&nrow, &global_offset, 1, MPI_INTEGER, MPI_SUM, PETSC_COMM_WORLD); CHKERRQ(ierr);
 
   ierr = MatCreateMPIAdj(PETSC_COMM_WORLD, nrow, ugrid->num_verts_global, i, j, PETSC_NULL, AdjMat); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscMatAsASCII(*AdjMat, "Adj.out"); CHKERRQ(ierr);
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -259,7 +261,9 @@ PetscErrorCode PartitionGrid(Mat DualMat, IS *NewCellRankIS, PetscInt *NewNumCel
   ierr = ISPartitioningCount(*NewCellRankIS, commsize, cell_counts); CHKERRQ(ierr);
   *NewNumCellsLocal = cell_counts[myrank];
 
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscISAsASCII(*NewCellRankIS,"is.out");
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -328,7 +332,9 @@ static PetscErrorCode CreateISNatOrderToPetscOrder(TDyUGrid *ugrid, IS NewCellRa
   ierr = ISRestoreIndices(NumberingIS, &is_ptr); CHKERRQ(ierr);
   ierr = ISDestroy(&NumberingIS); CHKERRQ(ierr);
 
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscISAsASCII(*NatToPetscIS,"is_scatter_elem_old_to_new.out");
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -433,8 +439,10 @@ PetscErrorCode PrePartNatOrder_To_PostPartNatOrder(PetscInt stride, PetscInt New
   ierr = VecScatterEnd(VecScatter, *Pre, *Post, INSERT_VALUES, SCATTER_FORWARD); CHKERRQ(ierr);
   ierr = VecScatterDestroy(&VecScatter); CHKERRQ(ierr);
 
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscVecAsASCII(*Pre,"elements_old.out");
   ierr = TDySavePetscVecAsASCII(*Post,"elements_natural.out");
+#endif
 
  PetscFunctionReturn(0);
 }
@@ -481,9 +489,11 @@ static PetscErrorCode CreateApplicationOrder(PetscInt NewGlobalOffset, PetscInt 
 
   ierr = AOCreateBasic(PETSC_COMM_WORLD, NewNumCellsLocal, ugrid->cell_ids_natural, int_array, &ugrid->ao_natural_to_petsc); CHKERRQ(ierr);
   PetscViewer viewer;
+#ifdef UGRID_DEBUG
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD, "ao.out", &viewer); CHKERRQ(ierr);
   ierr = AOView(ugrid->ao_natural_to_petsc, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -548,8 +558,9 @@ static PetscErrorCode CellAndDualIDs_FromNatOrder_To_PetscOrder(PetscInt stride,
     }
   }
   ierr = VecRestoreArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscVecAsASCII(*PetscOrderVec,"elements_petsc.out");
-
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -612,7 +623,9 @@ PetscErrorCode DualIDs_FromPetscOrder_To_LocalOrder(PetscInt stride, PetscInt du
   }
 
   ierr = VecRestoreArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscVecAsASCII(*PetscOrderVec,"elements_local_dual_unsorted.out");
+#endif
 
   // Sort any ghost cells that are present
   if (NumCellsGhost >0) {
@@ -683,7 +696,9 @@ PetscErrorCode DualIDs_FromPetscOrder_To_LocalOrder(PetscInt stride, PetscInt du
     }
     ierr = VecRestoreArray(*PetscOrderVec, &v_ptr); CHKERRQ(ierr);
   }
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscVecAsASCII(*PetscOrderVec,"elements_local_dual.out");
+#endif
 
   ugrid->num_cells_local = NewNumCellsLocal;
   ugrid->num_cells_ghost = NumCellsGhost;
@@ -898,8 +913,10 @@ PetscErrorCode ScatterVecPetscOrderToLocalOrder(PetscInt stride, Vec *PetscOrder
   PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
   char filename[20];
+#ifdef UGRID_DEBUG
   sprintf(filename,"elements_local%d.out",rank);
   ierr = TDySavePetscVecAsASCII(*LocalOrderVec, filename); CHKERRQ(ierr);
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -1012,8 +1029,10 @@ static PetscErrorCode ChangeVertexNatOrderToLocalOrder(PetscInt stride, PetscInt
   ierr = VecRestoreArray(*LocalOrderVec, &v_ptr); CHKERRQ(ierr); // Now vertex ids are in local-order
 
   char filename[30];
+#ifdef UGRID_DEBUG
   sprintf(filename,"elements_vert_local%d.out",rank);
   ierr = TDySavePetscVecAsASCII(*LocalOrderVec, filename); CHKERRQ(ierr);
+#endif
 
   PetscFunctionReturn(0);
 }
@@ -1046,8 +1065,10 @@ static PetscErrorCode SaveLocalVertexCoordinates(PetscInt stride, PetscInt verte
   }
   ierr = ISCreateBlock(PETSC_COMM_WORLD, dim, NewNumVertices, idx, PETSC_COPY_VALUES, &ISScatter); CHKERRQ(ierr);
 
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscISAsASCII(ISScatter,"is_scatter_vert_old_to_new.out");
   ierr = TDySavePetscISAsASCII(ISGather,"is_gather_vert_old_to_new.out");
+#endif
 
   // 3. Create vectors for data in natural-order and local-order
   Vec NatOrderVec;
@@ -1146,7 +1167,9 @@ PetscErrorCode TDyUGridCreateFromPFLOTRANMesh(const char *mesh_file, TDyUGrid *u
   Mat DualMat;
   PetscInt ncommonnodes=3;
   ierr = MatMeshToCellGraph(AdjMat, ncommonnodes, &DualMat); CHKERRQ(ierr);
+#ifdef UGRID_DEBUG
   ierr = TDySavePetscMatAsASCII(DualMat, "Dual.out"); CHKERRQ(ierr);
+#endif
 
   IS NewCellRankIS;
   PetscInt NewNumCellsLocal;

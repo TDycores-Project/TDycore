@@ -7,6 +7,10 @@ ifdef codecov
   LIBS    += -lgcov
 endif
 
+ifdef ugrid_debug
+  MYFLAGS += -DUGRID_DEBUG
+endif
+
 # These flags are supplemental to the PETSc flags
 CFLAGS   = ${LIBS}
 FFLAGS   = ${LIBS}
@@ -261,6 +265,6 @@ deleteetags:
 #
 demo: all-gmake
 	@cd demo; make
-	
+
 rtest: demo
 	-@(cd regression_tests; make test)
