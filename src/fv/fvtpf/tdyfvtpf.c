@@ -800,7 +800,12 @@ PetscErrorCode FVTPFCalculateDistances(TDyFVTPF *fvtpf, PetscInt dim, PetscInt f
     u_up2dn[idim] = (fvtpf->mesh)->faces.unit_vec_up_dn[face_id][idim];
   }
 
-  *upweight = (fvtpf->mesh)->faces.dist_wt_up[face_id];
+  // In order to match PFLOTRAN results, compute the ratio and use it for computing
+  // upweight instead of directly computing upweight as dist_dn/(dist_up+dist_dn)
+  PetscReal ratio = dist_up/(dist_up + dist_dn);
+  PetscReal up = (dist_up+dist_dn)*ratio;
+  PetscReal dn = (dist_up+dist_dn) - up;
+  *upweight = dn/(up+dn);
 
   ierr = TDyDotProduct(fvtpf->gravity, u_up2dn, dist_gravity); CHKERRQ(ierr);
   *dist_gravity *= (dist_up + dist_dn);

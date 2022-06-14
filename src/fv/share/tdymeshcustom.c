@@ -1141,7 +1141,7 @@ static PetscErrorCode ComputeGeoAttrOfInternalFaces(TDyUGrid *ugrid, TDyMesh **m
     faces->dist_up_dn[face_id][0] = dist_up;
     faces->dist_up_dn[face_id][1] = dist_dn;
     faces->dist[face_id] = dist_up + dist_dn;
-    faces->dist_wt_up[face_id] = dist_dn/(dist_up + dist_dn);
+    faces->dist_wt_up[face_id] = dist_up/(dist_up + dist_dn);
 
     for (PetscInt idim=0; idim<dim; idim++) {
       faces->unit_vec_up_dn[face_id][idim] = v3[idim]/PetscPowReal(tmp,0.5);
