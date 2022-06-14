@@ -520,62 +520,43 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   // Model options
   TDyMode mode = options->mode;
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Model options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsEnum("-tdy_mode","Flow mode",
-                          "TDySetMode",TDyModes,(PetscEnum)options->mode,
-                          (PetscEnum *)&mode, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsReal("-tdy_gravity", "Magnitude of gravity vector", NULL,
-                          options->gravity_constant, &options->gravity_constant,
-                          NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnum("-tdy_water_density","Water density vertical profile",
-                          "TDySetWaterDensityType",TDyWaterDensityTypes,
-                          (PetscEnum)options->rho_type,
-                          (PetscEnum *)&options->rho_type, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_mode","Flow mode", "TDySetMode",TDyModes,(PetscEnum)options->mode, (PetscEnum *)&mode, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsReal("-tdy_gravity", "Magnitude of gravity vector", NULL, options->gravity_constant, &options->gravity_constant, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_water_density","Water density vertical profile", "TDySetWaterDensityType", TDyWaterDensityTypes, (PetscEnum)options->rho_type, (PetscEnum *)&options->rho_type, NULL); CHKERRQ(ierr);
 
   // Create source/sink/boundary conditions.
   ierr = ConditionsCreate(&tdy->conditions); CHKERRQ(ierr);
 
   char func_name[PETSC_MAX_PATH_LEN];
-  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_pressure_bc_func", func_name,
-                               sizeof(func_name), &flag); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_pressure_bc_func", func_name, sizeof(func_name), &flag); CHKERRQ(ierr);
   if (flag) {
     ierr = TDySelectBoundaryPressureFunction(tdy, func_name);
   } else {
-    ierr = PetscOptionsReal("-tdy_pressure_bc_value", "Constant boundary pressure",
-                            NULL, options->boundary_pressure,
-                            &options->boundary_pressure,&flag); CHKERRQ(ierr);
+    ierr = PetscOptionsReal("-tdy_pressure_bc_value", "Constant boundary pressure", NULL, options->boundary_pressure, &options->boundary_pressure,&flag); CHKERRQ(ierr);
     if (flag) {
-      ierr = ConditionsSetConstantBoundaryPressure(tdy->conditions,
-                                                   options->boundary_pressure); CHKERRQ(ierr);
+      ierr = ConditionsSetConstantBoundaryPressure(tdy->conditions, options->boundary_pressure); CHKERRQ(ierr);
     } else { // TODO: what goes here??
     }
   }
 
-  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_velocity_bc_func", func_name,
-                               sizeof(func_name), &flag); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_velocity_bc_func", func_name, sizeof(func_name), &flag); CHKERRQ(ierr);
   if (flag) {
     ierr = TDySelectBoundaryVelocityFunction(tdy, func_name);
   } else {
-    ierr = PetscOptionsReal("-tdy_velocity_bc_value", "Constant normal boundary velocity",
-                            NULL, options->boundary_velocity,
-                            &options->boundary_velocity,&flag); CHKERRQ(ierr);
+    ierr = PetscOptionsReal("-tdy_velocity_bc_value", "Constant normal boundary velocity", NULL, options->boundary_velocity, &options->boundary_velocity,&flag); CHKERRQ(ierr);
     if (flag) {
-      ierr = ConditionsSetConstantBoundaryVelocity(tdy->conditions,
-                                                   options->boundary_velocity);
+      ierr = ConditionsSetConstantBoundaryVelocity(tdy->conditions, options->boundary_velocity);
     } else { // TODO: what goes here??
     }
   }
 
-  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_temperature_bc_func", func_name,
-                               sizeof(func_name), &flag); CHKERRQ(ierr);
+  ierr = PetscOptionsGetString(NULL, NULL, "-tdy_temperature_bc_func", func_name, sizeof(func_name), &flag); CHKERRQ(ierr);
   if (flag) {
     ierr = TDySelectBoundaryTemperatureFunction(tdy, func_name); CHKERRQ(ierr);
   } else {
-    ierr = PetscOptionsReal("-tdy_temperature_bc_value", "Constant boundary temperature",
-                            NULL, options->boundary_temperature,
-                            &options->boundary_temperature,&flag); CHKERRQ(ierr);
+    ierr = PetscOptionsReal("-tdy_temperature_bc_value", "Constant boundary temperature", NULL, options->boundary_temperature, &options->boundary_temperature,&flag); CHKERRQ(ierr);
     if (flag) {
-      ierr = ConditionsSetConstantBoundaryTemperature(tdy->conditions,
-                                                      options->boundary_temperature);
+      ierr = ConditionsSetConstantBoundaryTemperature(tdy->conditions, options->boundary_temperature);
     } else { // TODO: what goes here??
     }
   }
@@ -584,18 +565,14 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   // Numerics options
   TDyDiscretization discretization = options->discretization;
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Numerics options",""); CHKERRQ(ierr);
-  ierr = PetscOptionsEnum("-tdy_discretization","Discretization",
-                          "TDySetDiscretization",TDyDiscretizations,
-                          (PetscEnum)options->discretization,(PetscEnum *)&discretization,
-                          NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_discretization","Discretization", "TDySetDiscretization",TDyDiscretizations, (PetscEnum)options->discretization,(PetscEnum *)&discretization, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   ierr = PetscOptionsBool("-tdy_init_with_random_field","Initialize solution with a random field","",options->init_with_random_field,&(options->init_with_random_field),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_init_file", options->init_file,sizeof(options->init_file),&options->init_from_file); CHKERRQ(ierr);
 
   if (options->init_from_file && options->init_with_random_field) {
-    SETERRQ(comm,PETSC_ERR_USER,
-            "Only one of -tdy_init_from_file and -tdy_init_with_random_field can be specified");
+    SETERRQ(comm,PETSC_ERR_USER, "Only one of -tdy_init_from_file and -tdy_init_with_random_field can be specified");
   }
 
   // Mesh-related options
