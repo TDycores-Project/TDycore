@@ -474,11 +474,13 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
   PetscFunctionReturn(0);
 }
 
-/// Sets options for the dycore based on command line arguments supplied by a
-/// user. TDySetFromOptions must be called before TDySetup,
-/// since the latter uses options specified by the former.
-/// @param [inout] tdy The dycore instance
-PetscErrorCode TDySetFromOptions(TDy tdy) {
+/// Reads command line options specified by the user
+///
+/// @param [inout] tdy A TDy struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode ReadCommandLineOptions(TDy tdy) {
+
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
@@ -492,13 +494,12 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   // Collect options from command line arguments.
   TDyOptions *options = &tdy->options;
 
-  //------------------------------------------
-  // Set options using command line parameters
-  //------------------------------------------
-
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
   ierr = PetscObjectOptionsBegin((PetscObject)tdy); CHKERRQ(ierr);
   PetscBool flag;
+
+  TDyMode mode = options->mode;
+  TDyDiscretization discretization = options->discretization;
 
   // Material property options
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Material property options",""); CHKERRQ(ierr);
@@ -518,7 +519,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Model options
-  TDyMode mode = options->mode;
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Model options",""); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_mode","Flow mode", "TDySetMode",TDyModes,(PetscEnum)options->mode, (PetscEnum *)&mode, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_gravity", "Magnitude of gravity vector", NULL, options->gravity_constant, &options->gravity_constant, NULL); CHKERRQ(ierr);
@@ -563,10 +563,17 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
   // Numerics options
-  TDyDiscretization discretization = options->discretization;
   ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Numerics options",""); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_discretization","Discretization", "TDySetDiscretization",TDyDiscretizations, (PetscEnum)options->discretization,(PetscEnum *)&discretization, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+
+  // Override the mode and/or discretization if needed.
+  if (options->mode != mode) {
+    TDySetMode(tdy, mode);
+  }
+  if (options->discretization != discretization) {
+    TDySetDiscretization(tdy, discretization);
+  }
 
   ierr = PetscOptionsBool("-tdy_init_with_random_field","Initialize solution with a random field","",options->init_with_random_field,&(options->init_with_random_field),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_init_file", options->init_file,sizeof(options->init_file),&options->init_from_file); CHKERRQ(ierr);
@@ -584,14 +591,30 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
 
   // Other options
   ierr = PetscOptionsBool("-tdy_regression_test","Enable output of a regression file","",options->regression_testing,&(options->regression_testing),NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
 
-  // Override the mode and/or discretization if needed.
-  if (options->mode != mode) {
-    TDySetMode(tdy, mode);
+  PetscFunctionReturn(0);
+}
+
+/// Sets options for the dycore based on command line arguments supplied by a
+/// user. TDySetFromOptions must be called before TDySetup,
+/// since the latter uses options specified by the former.
+/// @param [inout] tdy The dycore instance
+PetscErrorCode TDySetFromOptions(TDy tdy) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  if ((tdy->setup_flags & TDySetupFinished) != 0) {
+    SETERRQ(comm,PETSC_ERR_USER,"You must call TDySetFromOptions before TDySetup()");
   }
-  if (options->discretization != discretization) {
-    TDySetDiscretization(tdy, discretization);
-  }
+
+  //------------------------------------------
+  // Set options using command line parameters
+  //------------------------------------------
+  ierr = ReadCommandLineOptions(tdy); CHKERRQ(ierr);
 
   // Now that we know the discretization, we can create our implementation-
   // specific context.
@@ -603,7 +626,6 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   }
 
   // Wrap up and indicate that options are set.
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
   tdy->setup_flags |= TDyOptionsSet;
 
   // Create our DM.
