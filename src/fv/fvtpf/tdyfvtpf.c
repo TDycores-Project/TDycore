@@ -659,7 +659,6 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
   PetscInt dim;
   PetscInt p_bnd_idx, cell_id, iface;
   PetscReal *u_p;
-  PetscInt c, cStart, cEnd;
   Conditions *conditions = tdy->conditions;
 
   PetscFunctionBegin;
@@ -671,7 +670,7 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
 
   PetscInt ncells = mesh->num_cells;
   PetscReal p[ncells];
-  for (c=0;c<ncells;c++) {
+  for (PetscInt c=0;c<ncells;c++) {
     p[c] = u_p[c];
   }
 

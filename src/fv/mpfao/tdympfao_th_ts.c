@@ -215,12 +215,11 @@ PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *
   ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
-  PetscReal p[cEnd-cStart], dp_dt[cEnd-cStart],
+  PetscReal dp_dt[cEnd-cStart],
             temp[cEnd-cStart], dtemp_dt[cEnd-cStart];
   ierr = VecGetArray(tdy->soln_loc,&u_p); CHKERRQ(ierr);
   for (c=0;c<cEnd-cStart;c++) {
     dp_dt[c]    = du_dt[c*2];
-    p[c]        = u_p[c*2];
     dtemp_dt[c] = du_dt[c*2+1];
     temp[c]     = u_p[c*2+1];
   }

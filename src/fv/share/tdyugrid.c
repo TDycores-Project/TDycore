@@ -488,8 +488,8 @@ static PetscErrorCode CreateApplicationOrder(PetscInt NewGlobalOffset, PetscInt 
   }
 
   ierr = AOCreateBasic(PETSC_COMM_WORLD, NewNumCellsLocal, ugrid->cell_ids_natural, int_array, &ugrid->ao_natural_to_petsc); CHKERRQ(ierr);
-  PetscViewer viewer;
 #ifdef UGRID_DEBUG
+  PetscViewer viewer;
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD, "ao.out", &viewer); CHKERRQ(ierr);
   ierr = AOView(ugrid->ao_natural_to_petsc, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -912,8 +912,8 @@ PetscErrorCode ScatterVecPetscOrderToLocalOrder(PetscInt stride, Vec *PetscOrder
 
   PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
-  char filename[20];
 #ifdef UGRID_DEBUG
+  char filename[20];
   sprintf(filename,"elements_local%d.out",rank);
   ierr = TDySavePetscVecAsASCII(*LocalOrderVec, filename); CHKERRQ(ierr);
 #endif
@@ -1005,7 +1005,6 @@ static PetscErrorCode ChangeVertexNatOrderToLocalOrder(PetscInt stride, PetscInt
   ierr = TDyAllocate_IntegerArray_1D(&ugrid->cell_num_vertices, ngmax); CHKERRQ(ierr);
   ierr = VecGetArray(*LocalOrderVec, &v_ptr); CHKERRQ(ierr);
 
-  PetscInt nlmax = ugrid->num_cells_local;
   // The previously allocated memoroy for ugrid->cell_vertices cannot be deallocated
   // because the dimension for the memory was prior to mesh partition and after
   // mesh partition the size of ugrid->cell_vertices is not known
@@ -1028,8 +1027,8 @@ static PetscErrorCode ChangeVertexNatOrderToLocalOrder(PetscInt stride, PetscInt
 
   ierr = VecRestoreArray(*LocalOrderVec, &v_ptr); CHKERRQ(ierr); // Now vertex ids are in local-order
 
-  char filename[30];
 #ifdef UGRID_DEBUG
+  char filename[30];
   sprintf(filename,"elements_vert_local%d.out",rank);
   ierr = TDySavePetscVecAsASCII(*LocalOrderVec, filename); CHKERRQ(ierr);
 #endif
