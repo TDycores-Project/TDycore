@@ -116,6 +116,7 @@ PetscErrorCode TDyInit(int argc, char* argv[]) {
 
   // Initialize PETSc if we haven't already.
   PetscErrorCode ierr = PetscInitialize(&argc, &argv, NULL, help); CHKERRQ(ierr);
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"+++++++++++++++++ TDycore +++++++++++++++++\n"); CHKERRQ(ierr);
 
   // Initialize TDycore-specific subsystems.
   ierr = TDyInitSubsystems(); CHKERRQ(ierr);
@@ -132,6 +133,7 @@ PetscErrorCode TDyInitNoArguments(void) {
 
   // Initialize PETSc if we haven't already.
   PetscErrorCode ierr = PetscInitializeNoArguments(); CHKERRQ(ierr);
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"+++++++++++++++++ TDycore +++++++++++++++++\n"); CHKERRQ(ierr);
 
   // Initialize TDycore-specific subsystems.
   ierr = TDyInitSubsystems(); CHKERRQ(ierr);
@@ -281,6 +283,8 @@ PetscErrorCode TDyCreate(MPI_Comm comm, TDy *_tdy) {
   PetscFunctionBegin;
   PetscValidPointer(_tdy,1);
   *_tdy = NULL;
+
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"Creating TDycore\n"); CHKERRQ(ierr);
 
   // Initialize TDycore-specific subsystems.
   ierr = TDyInitSubsystems(); CHKERRQ(ierr);
@@ -715,6 +719,8 @@ PetscErrorCode TDySetup(TDy tdy) {
   }
   TDyEnterProfilingStage("TDycore Setup");
 
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"TDycore setup\n"); CHKERRQ(ierr);
+
   // Set the EOS from options.
   tdy->eos.density_type = tdy->options.rho_type;
   tdy->eos.viscosity_type = tdy->options.mu_type;
@@ -881,6 +887,7 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       SETERRQ(comm,PETSC_ERR_USER, "Invalid discretization given!");
     }
   } else if (tdy->options.mode == TH) {
+    PetscPrintf(PETSC_COMM_WORLD,"Running TH mode.\n");
     if (discretization == MPFA_O) {
       tdy->ops->create = TDyCreate_MPFAO;
       tdy->ops->destroy = TDyDestroy_MPFAO;
@@ -1949,6 +1956,8 @@ PetscErrorCode TDyCreateVectors(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
+
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"Creating Vectors\n");
   if (tdy->soln == NULL) {
     ierr = TDyCreateGlobalVector(tdy, &tdy->soln); CHKERRQ(ierr);
     ierr = VecDuplicate(tdy->soln,&tdy->residual); CHKERRQ(ierr);
@@ -1968,6 +1977,7 @@ PetscErrorCode TDyCreateJacobian(TDy tdy) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
+  ierr = PetscPrintf(PETSC_COMM_WORLD,"Creating Jacobian matrix\n");
   if (tdy->J == NULL) {
     ierr = TDyDiscretizationCreateJacobianMatrix(tdy->discretization,&tdy->J); CHKERRQ(ierr);
     ierr = TDyDiscretizationCreateJacobianMatrix(tdy->discretization,&tdy->Jpre); CHKERRQ(ierr);

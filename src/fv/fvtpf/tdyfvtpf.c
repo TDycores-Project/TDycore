@@ -534,6 +534,7 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, TDyDiscretizationType *dis
   PetscErrorCode ierr;
   TDyFVTPF *fvtpf = context;
   DM dm;
+  ierr = PetscPrintf(PETSC_COMM_WORLD," Setting up RICHARDS FV-TPF method\n");
   ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
 
   TDyDM *tdydm_ptr;
@@ -544,13 +545,14 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, TDyDiscretizationType *dis
 
   switch (tdydm_ptr->dmtype) {
     case PLEX_TYPE:
+    ierr = PetscPrintf(PETSC_COMM_WORLD,"  Creating Mesh using DMPlex\n");
     ierr = TDyMeshCreateFromPlex(dm, &fvtpf->V, &fvtpf->X, &fvtpf->N, &fvtpf->mesh);
     ierr = TDyMeshGetMaxVertexConnectivity(fvtpf->mesh, &fvtpf->ncv, &fvtpf->nfv);
     break;
 
     case TDYCORE_DM_TYPE:
+    ierr = PetscPrintf(PETSC_COMM_WORLD,"  Creating Mesh using DMShell\n");
     ierr = TDyMeshCreateFromDiscretization(discretization, &fvtpf->mesh);
-    //SETERRQ(comm,PETSC_ERR_USER,"Add code to support TDYCORE_DM_TYPE");
     break;
 
     default:
@@ -561,6 +563,7 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, TDyDiscretizationType *dis
   ierr = TDyAllocate_RealArray_1D(&(fvtpf->vel), fvtpf->mesh->num_faces); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&(fvtpf->vel_count), fvtpf->mesh->num_faces); CHKERRQ(ierr);
 
+  ierr = PetscPrintf(PETSC_COMM_WORLD," Initializing material properties\n");
   ierr = InitMaterials(fvtpf, matprop, cc); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForBoundaryValues(fvtpf, eos); CHKERRQ(ierr);
