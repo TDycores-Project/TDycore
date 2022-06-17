@@ -77,6 +77,45 @@ PetscErrorCode TDyFVTPFSNESPreSolve(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
+/// Resets solver when a time step is cut
+/// @param [inout] TDy struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyFVTPFSNESTimeCut(TDy tdy) {
+
+  TDyFVTPF *fvtpf = tdy->context;
+  TDyMesh *mesh = fvtpf->mesh;
+  TDyCell *cells = &mesh->cells;
+  PetscReal *p, *accum_prev;
+  PetscInt icell;
+  PetscErrorCode ierr;
+
+  TDY_START_FUNCTION_TIMER()
+
+  // Copy previous solution
+  ierr = VecCopy(tdy->soln_prev, tdy->soln); CHKERRQ(ierr);
+
+  // Update the auxillary variables
+  ierr = VecGetArray(tdy->soln_prev,&p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, p, mesh->num_cells_local); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->soln_prev,&p); CHKERRQ(ierr);
+
+  ierr = VecGetArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
+
+  for (icell=0;icell<mesh->num_cells;icell++){
+
+    if (!cells->is_local[icell]) continue;
+
+    // d(rho*phi*s)/dt * Vol
+    //  = [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
+    //  = accum_current - accum_prev
+    ierr = TDyFVTPFSNESAccumulation(tdy,icell,&accum_prev[icell]); CHKERRQ(ierr);
+  }
+  ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 /* -------------------------------------------------------------------------- */
 PetscErrorCode RichardsResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, PetscInt face_id, PetscReal *Res) {
 

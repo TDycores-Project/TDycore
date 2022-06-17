@@ -104,51 +104,65 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
   TDyTimeIntegrator ti;
   SNESConvergedReason reason;
   PetscBool checkpoint = PETSC_FALSE;
-    
+  PetscInt icut=0;
+  PetscBool solver_converged;
+  PetscInt max_time_step_cuts = 25;
+
   switch(tdy->ti->time_integration_method) {
     case TDySNES:
       ti = tdy->ti;
 
       MPI_Comm comm;
-      PetscMPIInt rank;
       ierr = PetscObjectGetComm((PetscObject)ti->snes, &comm); CHKERRQ(ierr);
-      ierr = MPI_Comm_rank(comm, &rank); CHKERRQ(ierr);
 
       while (ti->time < sync_time) {
+        switch (tdy->options.mode){
+          case RICHARDS:
+            ierr = PetscPrintf(PETSC_COMM_WORLD,"===== RICHARDS MODE ==============================\n"); CHKERRQ(ierr);
+            break;
+          case TH:
+            ierr = PetscPrintf(PETSC_COMM_WORLD,"===== TH MODE ====================================\n"); CHKERRQ(ierr);
+            break;
+        }
         ierr = TDyTimeIntegratorSetTargetTime(ti,sync_time); CHKERRQ(ierr);
         ierr = TDySetDtimeForSNESSolver(tdy,ti->dt); CHKERRQ(ierr);
-        if (!rank){
-          switch (tdy->options.mode){
-            case RICHARDS:
-              printf("===== RICHARDS MODE ==============================\n");
-              break;
-            case TH:
-              printf("===== TH MODE ====================================\n");
-              break;
+        solver_converged = PETSC_FALSE;
+        while (!solver_converged){
+          ierr = TDyPreSolveSNESSolver(tdy); CHKERRQ(ierr);
+          ierr = SNESSolve(ti->snes,PETSC_NULL,tdy->soln); CHKERRQ(ierr);
+          PetscInt nit, lit;
+          ierr = SNESGetIterationNumber(ti->snes,&nit); CHKERRQ(ierr);
+          ierr = SNESGetLinearSolveIterations(ti->snes,&lit); CHKERRQ(ierr);
+          ierr = SNESGetConvergedReason(ti->snes,&reason); CHKERRQ(ierr);
+          if (reason < 0) {
+            icut++;
+            ti->dt *= 0.25;
+            ierr = TDySetDtimeForSNESSolver(tdy,ti->dt); CHKERRQ(ierr);
+            PetscChar message[1000];
+            sprintf(message,"-> Cut time step: snes=%d icut=%d time=%12.5e dt=%12.5e\n",reason,icut,ti->time,ti->dt);
+            ierr = PetscPrintf(PETSC_COMM_WORLD,message);
+            ierr = TDyTimeCut(tdy); CHKERRQ(ierr);
+            if (icut == max_time_step_cuts) {
+              SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDyTimeIntegratorRunToTime failed to converge after maximum time step cuts");
+            }
+          } else {
+            solver_converged = PETSC_TRUE;
+            ti->time += ti->dt;
+            ti->istep++;
+            ierr = TDyPostSolve(tdy,tdy->soln); CHKERRQ(ierr);
           }
-        }
-        ierr = TDyPreSolveSNESSolver(tdy); CHKERRQ(ierr);
-        ierr = SNESSolve(ti->snes,PETSC_NULL,tdy->soln); CHKERRQ(ierr);
-        ierr = TDyPostSolve(tdy,tdy->soln); CHKERRQ(ierr);
-        ti->time += ti->dt;
-        ti->istep++;
-        PetscInt nit, lit;
-        ierr = SNESGetIterationNumber(ti->snes,&nit); CHKERRQ(ierr);
-        ierr = SNESGetLinearSolveIterations(ti->snes,&lit); CHKERRQ(ierr);
-        ierr = SNESGetConvergedReason(ti->snes,&reason); CHKERRQ(ierr);
-        if (reason < 0) {
-          SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDyTimeIntegratorRunToTime failed to converge");
-        }
 
-        if (tdy->io->io_process) {
-          printf("\nTime step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n\n",
+          PetscChar message[1000];
+          sprintf(message,"\nTime step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n\n",
             ti->istep,ti->time,ti->dt,nit,lit, SNESConvergedReasons[reason]);
+          ierr = PetscPrintf(PETSC_COMM_WORLD,message); CHKERRQ(ierr);
           if (tdy->io->output_timestep_interval > 0) {
             if ((tdy->ti->istep)%(tdy->io->output_timestep_interval) == 0) {
               ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);
             }
           }
         }
+
         if (tdy->io->enable_checkpoint) {
           checkpoint = PETSC_TRUE;
           if ((tdy->ti->istep)%(tdy->io->checkpoint_timestep_interval) == 0 ){

@@ -31,9 +31,7 @@ int main(int argc, char **argv) {
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);
 
   ierr = TDyDriverInitializeTDy(tdy); CHKERRQ(ierr);
-  if (!rank) {
-    ierr = TDyIOSetIOProcess(tdy->io, PETSC_TRUE); CHKERRQ(ierr);
-  }
+  ierr = TDyIOSetIOProcess(tdy->io, PETSC_TRUE); CHKERRQ(ierr);
   PetscPrintf(comm,"--\n");
   if (size == 1) {
     ierr = TDyIOSetMode(tdy,format);CHKERRQ(ierr);

@@ -92,6 +92,7 @@ PETSC_INTERN PetscErrorCode TDyUpdateDiagnostics_FVTPF(void*,DM,Vec);
 PETSC_INTERN PetscErrorCode TDyFVTPFSNESFunction(SNES,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyFVTPFSNESJacobian(SNES,Vec,Mat,Mat,void*);
 PETSC_INTERN PetscErrorCode TDyFVTPFSNESPreSolve(TDy);
+PETSC_INTERN PetscErrorCode TDyFVTPFSNESTimeCut(TDy);
 
 // Utils
 PETSC_INTERN PetscErrorCode TDyFVTPFUpdateBoundaryState(TDy);

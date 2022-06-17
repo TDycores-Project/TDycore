@@ -1950,6 +1950,48 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
+/// Resets solver when a time step is cut
+/// @param [inout] TDy struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyTimeCut(TDy tdy) {
+  PetscInt dim;
+  PetscErrorCode ierr;
+  MPI_Comm       comm;
+
+  PetscFunctionBegin;
+  TDY_START_FUNCTION_TIMER()
+
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = PetscObjectGetComm((PetscObject)dm,&comm); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+
+  switch (tdy->options.discretization) {
+  case MPFA_O:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for MPFA_O");
+    break;
+  case MPFA_O_DAE:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for MPFA_O_DAE");
+    break;
+  case MPFA_O_TRANSIENTVAR:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for MPFA_O_TRANSIENTVAR");
+    break;
+  case BDM:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for BDM");
+    break;
+  case WY:
+    SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for WY");
+    break;
+  case FV_TPF:
+    ierr = TDyFVTPFSNESTimeCut(tdy); CHKERRQ(ierr);
+    break;
+  }
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
 /// Allocates storage for the vectors used by the dycore. Storage is allocated
 /// the first time the function is called. Subsequent calls have no effect.
 PetscErrorCode TDyCreateVectors(TDy tdy) {
