@@ -24,7 +24,7 @@
 #define tdyupdatediagnostics_                          TDYUPDATEDIAGNOSTICS
 #define tdycreatediagnosticvector_                     TDYCREATEDIAGNOSTICVECTOR
 #define tdycreateprognosticvector_                     TDYCREATEPROGGNOSTICVECTOR
-#define tdycreatepmatrix_                              TDYCREATEMATRIX
+#define tdycreatematrix_                               TDYCREATEMATRIX
 #define tdygetliquidsaturation_                        TDYGETLIQUIDSATURATION
 #define tdygetliquidmass_                              TDYGETLIQUIDMASS
 #define tdygetliquidpressure_                          TDYGETLIQUIDPRESSURE
