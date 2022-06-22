@@ -82,7 +82,7 @@ function reLoadSphinxTabs() {
 function getEmbedURL(url) {
     var params = {
         'doctool': 'sphinx',
-        'doctoolversion': '5.0.0',
+        'doctoolversion': '5.0.2',
         'url': url,
     }
     console.debug('Data: ' + JSON.stringify(params));
@@ -117,7 +117,7 @@ $(document).ready(function() {
                 var url = getEmbedURL(href);
                 $.ajax({
                     url: url,
-                    headers: {'X-HoverXRef-Version': '1.1.0'},
+                    headers: {'X-HoverXRef-Version': '1.1.1'},
                 }).done(
                     function (data) {
                         // call the 'content' method to update the content of our tooltip with the returned data.
@@ -187,7 +187,7 @@ $(document).ready(function() {
         var url = getEmbedURL(href);
         $.ajax({
             url: url,
-            headers: {'X-HoverXRef-Version': '1.1.0'},
+            headers: {'X-HoverXRef-Version': '1.1.1'},
         }).done(
             function (data) {
                 var content = $('<div></div>');
