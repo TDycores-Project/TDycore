@@ -4,6 +4,7 @@
 #include <petsc.h>
 #include <tdycore.h>
 #include <private/tdyregionimpl.h>
+#include <private/tdydiscretizationimpl.h>
 
 typedef struct TDyMPFAO TDyMPFAO;
 
@@ -16,14 +17,19 @@ typedef struct {
 } TDyVector;
 
 typedef enum {
-  CELL_QUAD_TYPE=0, /* quadrilateral cell for a 2D cell */
-  CELL_WEDGE_TYPE,  /* wedge/prism cell for a 3D cell */
-  CELL_HEX_TYPE     /* hexahedron cell for a 3D cell */
+  CELL_TET_TYPE=0,   /* tetrahedron cell for a 3D cell */
+  CELL_PYRAMID_TYPE, /* pyramid cell for a 3D cell */
+  CELL_WEDGE_TYPE,   /* wedge cell/prism for a 3D cell */
+  CELL_HEX_TYPE      /* hexahedron cell for a 3D cell */
 } TDyCellType;
 
 typedef enum {
-  SUBCELL_QUAD_TYPE=0, /* quadrilateral subcell for a 2D cell */
-  SUBCELL_HEX_TYPE     /* hexahedron subcell for a 3D cell */
+  TRI_FACE_TYPE=0, /* triangular face for 3D cell */
+  QUAD_FACE_TYPE   /* quadrilateral face for 3D cell */
+} TDyFaceType;
+
+typedef enum {
+  SUBCELL_HEX_TYPE=0 /* hexahedron subcell for a 3D cell */
 } TDySubcellType;
 
 typedef struct {
@@ -174,12 +180,19 @@ typedef struct {
                            /* (1) neumann */
                            /* (2) seepage */
 
-  TDyCoordinate *centroid; /* centroid of the face */
-  TDyVector *normal;       /* unit normal to the face */
-  PetscReal *area;          /* area of the face */
+  TDyCoordinate *centroid;    /* centroid of the face */
+  TDyVector *normal;          /* unit normal to the face */
+  PetscReal *area;            /* area of the face */
+  PetscReal **dist_up_dn;     /* distance between upwind and downwind cell to the face */
+  PetscReal *dist_wt_up;      /* ratio of the downwind cell distance to the total distance between cells */
+  PetscReal *dist;            /* distance between upwind and downwind cell */
+  PetscReal **unit_vec_up_dn; /* unit vector from upwind to downwind cell */
+  PetscReal *projected_area;  /* projected face area orthogonal to a face */
 } TDyFace;
 
 typedef struct TDyMesh {
+
+  PetscInt dim;
 
   PetscInt   num_cells;
   PetscInt   num_cells_local;
@@ -200,9 +213,12 @@ typedef struct TDyMesh {
   TDyRegion region_connected;
 
   PetscInt *closureSize, **closure, maxClosureSize;
+
+  PetscInt *nG2A; // Mapping of global cells to application/natural cells
+
 } TDyMesh;
 
-PETSC_INTERN PetscErrorCode TDyMeshCreate(DM,PetscReal*,PetscReal*,PetscReal*,TDyMesh**);
+PETSC_INTERN PetscErrorCode TDyMeshCreateFromPlex(DM,PetscReal**,PetscReal**,PetscReal**,TDyMesh**);
 PETSC_INTERN PetscErrorCode TDyMeshDestroy(TDyMesh*);
 
 // These don't work, and we'll likely get rid of them.
@@ -256,20 +272,15 @@ PETSC_INTERN PetscErrorCode TDyMeshGetSubcellVerticesCoordinates(TDyMesh*, Petsc
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellNumFaces(TDyMesh*, PetscInt, PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshGetSubcellIDGivenCellIdVertexIdFaceId(TDyMesh*,PetscInt,PetscInt,PetscInt,PetscInt*);
 
-PETSC_INTERN PetscErrorCode TDyMeshComputeGeometry(PetscReal**, PetscReal**, PetscReal**, DM);
-
 PETSC_INTERN TDyCellType GetCellType(PetscInt);
 PETSC_INTERN PetscInt GetNumVerticesForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumOfCellsSharingAVertexForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumCellsPerEdgeForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumCellsPerFaceForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumOfCellsSharingAFaceForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumOfVerticesFormingAFaceForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumOfEdgesFormingAFaceForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetMaxNumCellsPerEdgeForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetMaxNumCellsPerFaceForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetMaxNumOfFaceVerticesForCellType(TDyCellType);
+PETSC_INTERN PetscInt GetMaxNumOfFaceEdgesForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumEdgesForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumNeighborsForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumFacesForCellType(TDyCellType);
-PETSC_INTERN PetscInt GetNumFacesSharedByVertexForCellType(TDyCellType);
 PETSC_INTERN TDySubcellType GetSubcellTypeForCellType(TDyCellType);
 PETSC_INTERN PetscInt GetNumSubcellsForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt GetNumOfNuVectorsForSubcellType(TDySubcellType);
@@ -278,6 +289,8 @@ PETSC_INTERN PetscInt GetNumFacesForSubcellType(TDySubcellType);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfLocalFaces(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfNonLocalFaces(TDyMesh*);
 PETSC_INTERN PetscInt TDyMeshGetNumberOfNonInternalFaces(TDyMesh*);
+PETSC_INTERN TDyFaceType TDyGetFaceTypeForCellType(TDyCellType,PetscInt);
+PETSC_INTERN PetscInt TDyGetNumVerticesForFaceType(TDyFaceType);
 PETSC_INTERN PetscErrorCode TDyMeshFindFaceIDShareByTwoCells(TDyMesh*,PetscInt,PetscInt,PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMeshPrintSubcellInfo(TDyMesh*, PetscInt, PetscInt);
 PETSC_INTERN PetscErrorCode TDyMeshPrintFaceInfo(TDyMesh*, PetscInt);
@@ -296,5 +309,11 @@ PETSC_INTERN PetscErrorCode TDyFindSubcellOfACellThatIncludesAVertex(TDyCell*, P
 PETSC_INTERN PetscErrorCode TDySubCell_GetIthNuStarVector(TDySubcell*,PetscInt,PetscInt,PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyEdge_GetNormal(TDyEdge*,PetscInt,PetscInt, PetscReal*);
 PETSC_INTERN PetscBool IsClosureWithinBounds(PetscInt,PetscInt,PetscInt);
+PETSC_INTERN PetscInt GetNumOfVerticesOfIthFacesForCellType(TDyCellType,PetscInt);
+PETSC_INTERN PetscErrorCode AllocateCells(PetscInt,TDyCellType,TDyCell*);
+PETSC_INTERN PetscErrorCode AllocateSubcells(PetscInt,PetscInt,TDySubcellType,TDySubcell*);
+PETSC_INTERN PetscErrorCode AllocateVertices(PetscInt,PetscInt,PetscInt,PetscInt,TDyCellType,TDyVertex*);
+PETSC_INTERN PetscErrorCode AllocateEdges(PetscInt,TDyCellType,TDyEdge*);
+PETSC_INTERN PetscErrorCode AllocateFaces(PetscInt,TDyCellType,TDyFace*faces);
 
 #endif

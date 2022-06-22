@@ -16,6 +16,8 @@ PETSC_INTERN PetscErrorCode TDyAllocate_RealArray_1D(PetscReal**,PetscInt);
 PETSC_INTERN PetscErrorCode TDyAllocate_RealArray_2D(PetscReal***,PetscInt, PetscInt);
 PETSC_INTERN PetscErrorCode TDyAllocate_RealArray_3D(PetscReal****,PetscInt,PetscInt,PetscInt);
 PETSC_INTERN PetscErrorCode TDyAllocate_RealArray_4D(PetscReal*****,PetscInt,PetscInt,PetscInt,PetscInt);
+PETSC_INTERN PetscErrorCode TDyDeallocate_RealArray_1D(PetscReal*);
+PETSC_INTERN PetscErrorCode TDyDeallocate_IntegerArray_1D(PetscInt*);
 PETSC_INTERN PetscErrorCode TDyDeallocate_IntegerArray_2D(PetscInt**,PetscInt);
 PETSC_INTERN PetscErrorCode TDyDeallocate_RealArray_2D(PetscReal**,PetscInt);
 PETSC_INTERN PetscErrorCode TDyDeallocate_RealArray_3D(PetscReal***,PetscInt,PetscInt);

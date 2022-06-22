@@ -153,9 +153,9 @@ int main(int argc, char **argv) {
   /* Compute system */
   Mat K;
   Vec U,F;
-  ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
-  ierr = DMCreateGlobalVector(dm,&F); CHKERRQ(ierr);
-  ierr = DMCreateMatrix      (dm,&K); CHKERRQ(ierr);
+  ierr = TDyCreatePrognosticVector(tdy,&U); CHKERRQ(ierr);
+  ierr = TDyCreatePrognosticVector(tdy,&F); CHKERRQ(ierr);
+  ierr = TDyCreateMatrix          (tdy,&K); CHKERRQ(ierr);
   ierr = MatSetOption(K,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr);
   ierr = TDyWYComputeSystem(tdy,K,F); CHKERRQ(ierr);
 

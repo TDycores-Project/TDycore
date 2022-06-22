@@ -506,6 +506,24 @@ PetscErrorCode TDySavePetscVecAsBinary(Vec vec, const char filename[]) {
 }
 
 /* -------------------------------------------------------------------------- */
+PetscErrorCode TDySavePetscVecAsASCII(Vec V, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  PetscObjectGetComm((PetscObject)V,&comm);
+
+  ierr = PetscViewerASCIIOpen(comm,filename,&viewer); CHKERRQ(ierr);
+  ierr = VecView(V, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
 /// Reads a PETSc Vec as binary
 ///
 /// @param [in] vec A PETSc Vec
@@ -539,6 +557,78 @@ PetscErrorCode TDySavePetscMatAsBinary(Mat M, const char filename[]) {
   ierr = PetscViewerBinaryOpen(comm, filename, FILE_MODE_WRITE,
                                &viewer); CHKERRQ(ierr);
   ierr = MatView(M, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDySavePetscMatAsASCII(Mat M, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  PetscObjectGetComm((PetscObject)M,&comm);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
+  ierr = MatView(M, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDySavePetscISAsASCII(IS is, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  PetscObjectGetComm((PetscObject)is,&comm);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
+  ierr = ISView(is, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDySavePetscVecScatterAsASCII(VecScatter scatter, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  PetscObjectGetComm((PetscObject)scatter,&comm);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
+  ierr = VecScatterView(scatter, viewer); CHKERRQ(ierr);
+  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDySavePetscISLocalToGlobalMappingAsASCII(ISLocalToGlobalMapping map, const char filename[]) {
+
+  PetscViewer viewer;
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  PetscObjectGetComm((PetscObject)map,&comm);
+
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,filename,&viewer); CHKERRQ(ierr);
+  ierr = ISLocalToGlobalMappingView(map, viewer); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
@@ -691,3 +781,26 @@ PetscErrorCode GeometryProjectPointOnPlane (PetscReal plane[4], PetscReal point[
 
   PetscFunctionReturn(0);
 }
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode VolumeofTetrahedron(PetscReal point1[3], PetscReal point2[3], PetscReal point3[3], PetscReal point4[3], PetscReal *volume) {
+
+  PetscErrorCode ierr;
+
+  PetscInt dim=3;
+  PetscReal vv1_minus_vv4[dim], vv2_minus_vv4[dim], vv3_minus_vv4[dim];
+
+  for (PetscInt i=0; i<dim; i++) {
+    vv1_minus_vv4[i] = point1[i] - point4[i];
+    vv2_minus_vv4[i] = point2[i] - point4[i];
+    vv3_minus_vv4[i] = point3[i] - point4[i];
+  }
+
+  PetscReal cross_2_minus_4_X_3_minus_4[dim], dot_prod;
+  ierr = TDyCrossProduct(vv2_minus_vv4, vv3_minus_vv4, cross_2_minus_4_X_3_minus_4); CHKERRQ(ierr);
+  ierr = TDyDotProduct(vv1_minus_vv4, cross_2_minus_4_X_3_minus_4, &dot_prod); CHKERRQ(ierr);
+
+  *volume = PetscAbsReal(dot_prod)/6.0;
+
+  PetscFunctionReturn(0);
+} 

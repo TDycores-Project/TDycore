@@ -7,8 +7,9 @@
 #include <private/tdyfvtpfimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdyeosimpl.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 #include <petscblaslapack.h>
+#include <private/tdymeshcustomimpl.h>
 
 PetscErrorCode TDyCreate_FVTPF(void **context) {
   PetscErrorCode ierr;
@@ -136,6 +137,12 @@ static PetscErrorCode SetFields(DM dm, PetscInt num_fields,
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDyGetNumDMFields_Richards_FVTPF(void *context) {
+  PetscFunctionBegin;
+  PetscInt ndof = 1; // LiquidPressure
+  PetscFunctionReturn(ndof);
+}
+
 PetscErrorCode TDySetDMFields_Richards_FVTPF(void *context, DM dm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -148,20 +155,14 @@ PetscErrorCode TDySetDMFields_Richards_FVTPF(void *context, DM dm) {
 
 // Initializes material properties and characteristic curve data.
 static PetscErrorCode InitMaterials(TDyFVTPF *fvtpf,
-                                    DM dm,
                                     MaterialProp *matprop,
                                     CharacteristicCurves *cc) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  MPI_Comm comm;
-  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
-
   // Allocate storage for material data and characteristic curves, and set to
   // zero using PetscCalloc instead of PetscMalloc.
-  PetscInt cStart, cEnd;
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  PetscInt nc = cEnd-cStart;
+  PetscInt nc = (fvtpf->mesh)->num_cells;
 
   // Material properties
   ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(fvtpf->K)); CHKERRQ(ierr);
@@ -209,7 +210,7 @@ static PetscErrorCode InitMaterials(TDyFVTPF *fvtpf,
   // Initialize characteristic curve parameters on all cells.
   PetscInt points[nc];
   for (PetscInt c = 0; c < nc; ++c) {
-    points[c] = cStart + c;
+    points[c] = c;
   }
 
   // By default, we use the Van Genuchten saturation model.
@@ -523,41 +524,8 @@ PetscErrorCode TDyUpdateState_Richards_FVTPF(void *context, DM dm,
   PetscFunctionReturn(0);
 }
 
-// Creates a TDyMesh object to be used by the MPFA-O method.
-static PetscErrorCode CreateMesh(TDyFVTPF *fvtpf, DM dm) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  // Create the mesh.
-  ierr = TDyMeshCreate(dm, fvtpf->V, fvtpf->X, fvtpf->N, &fvtpf->mesh);
-
-/* TODO: this stuff doesn't work with the new mesh construction process, and
- * TODO: I'm not sure we still need it. -JNJ
-  // Read/write connectivity and geometry data if requested.
-  if (fvtpf->read_geom_attributes) {
-    ierr = TDyMeshReadGeometry(fvtpf->mesh, fvtpf->geom_attributes_file); CHKERRQ(ierr);
-    fvtpf->read_geom_attributes = 0;
-  }
-
-  if (fvtpf->output_geom_attributes) {
-    ierr = TDyMeshWriteGeometry(fvtpf->mesh, fvtpf->geom_attributes_file); CHKERRQ(ierr);
-    fvtpf->output_geom_attributes = 0;
-  }
-*/
-
-  ierr = TDyMeshGetMaxVertexConnectivity(fvtpf->mesh, &fvtpf->ncv, &fvtpf->nfv);
-  ierr = PetscMalloc(fvtpf->mesh->num_faces*sizeof(PetscReal),
-                     &(fvtpf->vel )); CHKERRQ(ierr);
-  ierr = TDyInitialize_RealArray_1D(fvtpf->vel, fvtpf->mesh->num_faces, 0.0); CHKERRQ(ierr);
-  ierr = PetscMalloc(fvtpf->mesh->num_faces*sizeof(PetscInt),
-                     &(fvtpf->vel_count)); CHKERRQ(ierr);
-  ierr = TDyInitialize_IntegerArray_1D(fvtpf->vel_count, fvtpf->mesh->num_faces, 0); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
 // Setup function for Richards + FV-TPF
-PetscErrorCode TDySetup_Richards_FVTPF(void *context, DM dm, EOS *eos,
+PetscErrorCode TDySetup_Richards_FVTPF(void *context, TDyDiscretizationType *discretization, EOS *eos,
                                        MaterialProp *matprop,
                                        CharacteristicCurves *cc,
                                        Conditions *conditions) {
@@ -565,10 +533,38 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, DM dm, EOS *eos,
 
   PetscErrorCode ierr;
   TDyFVTPF *fvtpf = context;
+  DM dm;
+  ierr = PetscPrintf(PETSC_COMM_WORLD," Setting up RICHARDS FV-TPF method\n");
+  ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
 
-  ierr = TDyMeshComputeGeometry(&fvtpf->X, &fvtpf->V, &fvtpf->N, dm); CHKERRQ(ierr);
-  ierr = CreateMesh(fvtpf, dm); CHKERRQ(ierr);
-  ierr = InitMaterials(fvtpf, dm, matprop, cc); CHKERRQ(ierr);
+  TDyDM *tdydm_ptr;
+  ierr = TDyDiscretizationGetTDyDM(discretization, &tdydm_ptr); CHKERRQ(ierr);
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
+
+  switch (tdydm_ptr->dmtype) {
+    case PLEX_TYPE:
+    ierr = PetscPrintf(PETSC_COMM_WORLD,"  Creating Mesh using DMPlex\n");
+    ierr = TDyMeshCreateFromPlex(dm, &fvtpf->V, &fvtpf->X, &fvtpf->N, &fvtpf->mesh);
+    ierr = TDyMeshGetMaxVertexConnectivity(fvtpf->mesh, &fvtpf->ncv, &fvtpf->nfv);
+    break;
+
+    case TDYCORE_DM_TYPE:
+    ierr = PetscPrintf(PETSC_COMM_WORLD,"  Creating Mesh using DMShell\n");
+    ierr = TDyMeshCreateFromDiscretization(discretization, &fvtpf->mesh);
+    break;
+
+    default:
+    SETERRQ(comm,PETSC_ERR_USER,"Unknown DMTYPE");
+
+  }
+
+  ierr = TDyAllocate_RealArray_1D(&(fvtpf->vel), fvtpf->mesh->num_faces); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&(fvtpf->vel_count), fvtpf->mesh->num_faces); CHKERRQ(ierr);
+
+  ierr = PetscPrintf(PETSC_COMM_WORLD," Initializing material properties\n");
+  ierr = InitMaterials(fvtpf, matprop, cc); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForBoundaryValues(fvtpf, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(fvtpf); CHKERRQ(ierr);
@@ -663,22 +659,22 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
   PetscInt dim;
   PetscInt p_bnd_idx, cell_id, iface;
   PetscReal *u_p;
-  PetscInt c, cStart, cEnd;
   Conditions *conditions = tdy->conditions;
 
   PetscFunctionBegin;
 
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
 
   PetscInt ncells = mesh->num_cells;
   PetscReal p[ncells];
-  for (c=0;c<ncells;c++) {
+  for (PetscInt c=0;c<ncells;c++) {
     p[c] = u_p[c];
   }
 
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   for (iface=0; iface<mesh->num_faces; iface++) {
 
@@ -706,158 +702,6 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
   }
 
   ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
-
-  PetscFunctionReturn(0);
-}
-
-/// Computes upwind and downwind distance of cells sharing a face. If the face is a
-/// boundary face, one of the distance is zero
-///
-/// @param [in] tdy A TDy struct
-/// @param [in] face_id ID of the face
-/// @param [out] dist_up Distance between the upwind cell centroid and face centroid
-/// @param [out] dist_dn Distance between the downwind cell centroid and face centroid
-/// @param [out] u_up2dn Unit vector from up to down cell
-/// @returns 0 on success, or a non-zero error code on failure
-static PetscErrorCode FVTPFComputeUpAndDownDist(TDyFVTPF *fvtpf, PetscInt face_id, PetscReal *dist_up, PetscReal *dist_dn, PetscReal *u_up2dn) {
-
-  PetscFunctionBegin;
-
-  TDyMesh *mesh = fvtpf->mesh;
-  TDyCell *cells = &mesh->cells;
-  TDyFace *faces = &mesh->faces;
-  TDyVertex *vertices = &mesh->vertices;
-  PetscErrorCode ierr;
-
-  PetscInt *face_cell_ids, num_cell_ids;
-  ierr = TDyMeshGetFaceCells(mesh, face_id, &face_cell_ids, &num_cell_ids); CHKERRQ(ierr);
-  PetscInt cell_id_up = face_cell_ids[0];
-  PetscInt cell_id_dn = face_cell_ids[1];
-
-  if (cell_id_up < 0 && cell_id_dn < 0) {
-    SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_USER, "Both cell IDs sharing a face are not valid");
-  }
-
-  PetscInt dim = 3;
-  PetscInt use_pflotran_approach = 1;
-
-  if (!use_pflotran_approach) {
-    PetscReal coord_face[dim];
-    ierr = TDyFace_GetCentroid(faces, face_id, dim, &coord_face[0]); CHKERRQ(ierr);
-
-    if (cell_id_up >= 0) {
-      PetscReal coord_up[dim];
-      ierr = TDyCell_GetCentroid2(cells, cell_id_up, dim, &coord_up[0]); CHKERRQ(ierr);
-      ierr = TDyComputeLength(coord_up, coord_face, dim, dist_up); CHKERRQ(ierr);
-    } else {
-      *dist_up = 0.0;
-    }
-
-    if (cell_id_dn >= 0) {
-      PetscReal coord_dn[dim];
-      ierr = TDyCell_GetCentroid2(cells, cell_id_dn, dim, &coord_dn[0]); CHKERRQ(ierr);
-      ierr = TDyComputeLength(coord_dn, coord_face, dim, dist_dn); CHKERRQ(ierr);
-    } else {
-      *dist_dn = 0.0;
-    }
-  } else {
-
-    PetscInt *vertex_ids, num_vertices;
-    ierr = TDyMeshGetFaceVertices(mesh, face_id, &vertex_ids, &num_vertices); CHKERRQ(ierr);
-    if (num_vertices < 3 || num_vertices > 4) {
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Number of vertices of a face is not equal to 3 or 4");
-    }
-    PetscReal coord_up[3], coord_dn[3];
-    if (cell_id_up >= 0) {
-      ierr = TDyCell_GetCentroid2(cells, cell_id_up, dim, &coord_up[0]); CHKERRQ(ierr);
-    } else {
-      ierr = TDyFace_GetCentroid(faces, face_id, dim, &coord_up[0]); CHKERRQ(ierr);
-    }
-
-    if (cell_id_dn >= 0){
-      ierr = TDyCell_GetCentroid2(cells, cell_id_dn, dim, &coord_dn[0]); CHKERRQ(ierr);
-    } else {
-      ierr = TDyFace_GetCentroid(faces, face_id, dim, &coord_dn[0]); CHKERRQ(ierr);
-    }
-
-    PetscInt dim = 3;
-
-    PetscReal plane[4], point1[dim], point2[dim], point3[dim], point4[dim];
-
-    ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[0], dim, &point1[0]);
-    ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[1], dim, &point2[0]);
-    ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[2], dim, &point3[0]);
-
-    ierr = ComputePlaneGeometry (point1, point2, point3, plane);
-
-    PetscReal intercept[3];
-    PetscBool boundary_face = PETSC_FALSE;
-
-    if (cell_id_up >= 0 && cell_id_dn >=0 ) { 
-      ierr = GeometryGetPlaneIntercept(plane, coord_up, coord_dn, intercept);
-    } else {
-      boundary_face = PETSC_TRUE;
-      if (cell_id_up >= 0 ) {
-        ierr = GeometryProjectPointOnPlane(plane, coord_up, intercept);
-      } else {
-        ierr = GeometryProjectPointOnPlane(plane, coord_dn, intercept);
-      }
-    }
-
-    if (!boundary_face) {
-      if (num_vertices == 4) {
-        PetscReal plane2[4];
-
-        ierr = TDyVertex_GetCoordinate(vertices, vertex_ids[3], dim, &point4[0]);
-
-        ierr = ComputePlaneGeometry (point2, point3, point4, plane2);
-
-        PetscReal intercept2[3];
-        ierr = GeometryGetPlaneIntercept(plane2, coord_up, coord_dn, intercept2); CHKERRQ(ierr);
-
-        intercept[0] = (intercept[0] + intercept2[0])/2.0;
-        intercept[1] = (intercept[1] + intercept2[1])/2.0;
-        intercept[2] = (intercept[2] + intercept2[2])/2.0;
-      }
-
-      PetscReal v1[dim], v2[dim], v3[dim];
-
-      for (PetscInt i=0; i<dim; i++) {
-        v1[i] = intercept[i] - coord_up[i];
-        v2[i] = coord_dn[i] - intercept[i];
-        v3[i] = v1[i] + v2[i];
-      }
-
-      PetscReal d1,d2;
-      ierr = TDyDotProduct(v1,v1,&d1); CHKERRQ(ierr);
-      ierr = TDyDotProduct(v2,v2,&d2); CHKERRQ(ierr);
-      *dist_up = PetscPowReal(d1,0.5);
-      *dist_dn = PetscPowReal(d2,0.5);
-
-      PetscReal d3;
-      ierr = TDyDotProduct(v3,v3,&d3); CHKERRQ(ierr);
-      PetscReal dist3 = PetscPowReal(d3,0.5);
-      for (PetscInt i=0; i<dim; i++) {
-        u_up2dn[i] = v3[i]/dist3;
-      }
-
-
-    } else {
-      PetscReal v2[dim];
-      for (PetscInt i=0; i<dim; i++) {
-        v2[i] = coord_dn[i] - intercept[i];
-      }
-      PetscReal d2;
-      ierr = TDyDotProduct(v2,v2,&d2); CHKERRQ(ierr);
-      *dist_up = 0.0;
-      *dist_dn = PetscPowReal(d2,0.5);
-      for (PetscInt i=0; i<dim; i++) {
-        u_up2dn[i] = v2[i]/(*dist_dn);
-      }
-    }
-
-  }
-
 
   PetscFunctionReturn(0);
 }
@@ -914,15 +758,18 @@ PetscErrorCode FVTPFExtractUpAndDownPermeabilityTensors(TDyFVTPF *fvtpf,
 /// @param [in] face_id ID of the face
 /// @param [out] *Kface_value Permeability value at the face
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode FVTPFComputeFacePeremabilityValueTPF(TDyFVTPF *fvtpf, MaterialProp *matprop, PetscInt dim, PetscInt face_id, PetscReal *Kface_value, PetscReal *Dq) {
+PetscErrorCode FVTPFComputeFacePermeabililtyValueTPF(TDyFVTPF *fvtpf, MaterialProp *matprop, PetscInt dim, PetscInt face_id, PetscReal *Kface_value, PetscReal *Dq) {
 
   PetscFunctionBegin;
 
   PetscErrorCode ierr;
 
   PetscReal u_up2dn[dim];
-  PetscReal dist_up, dist_dn;
-  ierr = FVTPFComputeUpAndDownDist(fvtpf, face_id, &dist_up, &dist_dn, u_up2dn); CHKERRQ(ierr);
+  PetscReal dist_up = (fvtpf->mesh)->faces.dist_up_dn[face_id][0];
+  PetscReal dist_dn = (fvtpf->mesh)->faces.dist_up_dn[face_id][1];
+  for (PetscInt idim=0; idim<dim; idim++) {
+    u_up2dn[idim] = (fvtpf->mesh)->faces.unit_vec_up_dn[face_id][idim];
+  }
 
   PetscReal Kup[dim*dim], Kdn[dim*dim];
   ierr = FVTPFExtractUpAndDownPermeabilityTensors(fvtpf, matprop, face_id, dim, Kup, Kdn); CHKERRQ(ierr);
@@ -936,10 +783,8 @@ PetscErrorCode FVTPFComputeFacePeremabilityValueTPF(TDyFVTPF *fvtpf, MaterialPro
   Kup_value = 1.0/Kup_value;
   Kdn_value = 1.0/Kdn_value;
 
-  PetscReal wt_up = dist_up / (dist_up + dist_dn);
-
-  *Kface_value = (Kup_value*Kdn_value)/(wt_up*Kdn_value + (1.0-wt_up)*Kup_value);
-  *Dq = *Kface_value/(dist_up + dist_dn);
+  *Kface_value = (Kup_value*Kdn_value)/(dist_up*Kdn_value + dist_dn*Kup_value);
+  *Dq = *Kface_value;
 
   PetscFunctionReturn(0);
 }
@@ -951,36 +796,21 @@ PetscErrorCode FVTPFCalculateDistances(TDyFVTPF *fvtpf, PetscInt dim, PetscInt f
   PetscErrorCode ierr;
 
   PetscReal u_up2dn[dim];
-  PetscReal dist_up, dist_dn;
-  ierr = FVTPFComputeUpAndDownDist(fvtpf, face_id, &dist_up, &dist_dn, u_up2dn); CHKERRQ(ierr);
+  PetscReal dist_up = (fvtpf->mesh)->faces.dist_up_dn[face_id][0];
+  PetscReal dist_dn = (fvtpf->mesh)->faces.dist_up_dn[face_id][1];
+  for (PetscInt idim=0; idim<dim; idim++) {
+    u_up2dn[idim] = (fvtpf->mesh)->faces.unit_vec_up_dn[face_id][idim];
+  }
 
-  *upweight = dist_up / (dist_up + dist_dn);
+  // In order to match PFLOTRAN results, compute the ratio and use it for computing
+  // upweight instead of directly computing upweight as dist_dn/(dist_up+dist_dn)
+  PetscReal ratio = dist_up/(dist_up + dist_dn);
+  PetscReal up = (dist_up+dist_dn)*ratio;
+  PetscReal dn = (dist_up+dist_dn) - up;
+  *upweight = dn/(up+dn);
 
   ierr = TDyDotProduct(fvtpf->gravity, u_up2dn, dist_gravity); CHKERRQ(ierr);
   *dist_gravity *= (dist_up + dist_dn);
 
   PetscFunctionReturn(0);
-}
-
-PetscErrorCode FVTPFComputeProjectedArea(TDyFVTPF *fvtpf, PetscInt dim, PetscInt face_id, PetscReal *projected_area) {
-  
-  PetscFunctionBegin;
-
-  PetscErrorCode ierr;
-
-  PetscReal u_up2dn[dim];
-  PetscReal dist_up, dist_dn;
-  ierr = FVTPFComputeUpAndDownDist(fvtpf, face_id, &dist_up, &dist_dn, u_up2dn); CHKERRQ(ierr);
-
-  TDyMesh *mesh = fvtpf->mesh;
-  PetscReal dot_prod;
-  ierr = TDyDotProduct(u_up2dn, mesh->faces.normal[face_id].V, &dot_prod); CHKERRQ(ierr);
-
-  PetscReal face_area;
-  ierr = TDyMeshGetFaceArea(mesh, face_id, &face_area); CHKERRQ(ierr);
-
-  *projected_area = face_area * dot_prod;
-
-  PetscFunctionReturn(0);
-
 }

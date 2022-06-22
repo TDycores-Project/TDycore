@@ -2,7 +2,7 @@
 #include <private/tdyioimpl.h>
 #include <private/tdyutils.h>
 #include <tdyio.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 #if defined(PETSC_HAVE_EXODUSII)
 #include "exodusII.h"
 #endif
@@ -171,9 +171,11 @@ PetscErrorCode TDyIOReadPermeability(TDy tdy){
     strcpy(VariableName, tdy->io->permeability_dataset);
   }
 
-  ierr = DMGetDimension(tdy->dm, &dim);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim);
   PetscInt cStart,cEnd;
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd);CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd);CHKERRQ(ierr);
 
   if (tdy->io->anisotropic_permeability) {
     // Set up a function/context that assigns a diagonal anisotropic
@@ -304,7 +306,7 @@ PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, Pe
   ierr = VecLoad(u,viewer);CHKERRQ(ierr);
 
   ierr = TDyCreateLocalVector(tdy, &u_local);
-  ierr = TDyNaturaltoLocal(tdy,u,&u_local);CHKERRQ(ierr);
+  ierr = TDyDiscretizationNaturaltoLocal(tdy->discretization,u,&u_local);CHKERRQ(ierr);
 
   ierr = VecGetArray(u_local,&ptr);CHKERRQ(ierr);
   ierr = VecGetSize(u_local,&n);CHKERRQ(ierr);
@@ -355,7 +357,8 @@ PetscErrorCode TDyIOSetMode(TDy tdy, TDyIOFormat format){
 
   tdy->io->format = format;
   int num_vars = tdy->io->num_vars;
-  DM dm = tdy->dm;
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   char *zonalVarNames[num_vars];
 
   PetscInt dim,istart,iend,numCell,numVert,numCorner;
@@ -389,7 +392,9 @@ PetscErrorCode TDyIOWriteVec(TDy tdy){
   PetscErrorCode ierr;
   PetscBool useNatural;
   Vec p = tdy->soln_prev;
-  DM dm = tdy->dm;
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+
   PetscReal time = tdy->ti->time;
   int num_vars = tdy->io->num_vars;
   char *zonalVarNames[num_vars];

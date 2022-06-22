@@ -13,6 +13,8 @@
 #include <private/tdyeosimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdyoptions.h>
+#include <private/tdydmimpl.h>
+#include <private/tdydiscretizationimpl.h>
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
@@ -55,10 +57,13 @@ struct _TDyOps {
   // before the DM is distributed across processes.
   PetscErrorCode (*set_dm_fields)(void*, DM);
 
+  // Returns implementation-specific number of DOFs
+  PetscInt (*get_num_dm_fields)(void*);
+
   // Called by TDySetup -- configures the DM for solvers. By the time this
   // function is called, the DM has its field layout defined and has been
   // distributed across processes.
-  PetscErrorCode (*setup)(void*, DM, EOS*, MaterialProp*,
+  PetscErrorCode (*setup)(void*, TDyDiscretizationType*, EOS*, MaterialProp*,
                           CharacteristicCurves*, Conditions*);
 
   // Called by TDyUpdateState -- updates the state maintained by the
@@ -86,9 +91,8 @@ struct _p_TDy {
   // Flags that indicate where the dycore is in the setup process
   TDySetupFlags setup_flags;
 
-  // Grid and data management -- handed to a solver when the dycore is fully
-  // configured
-  DM dm;
+  // Discretization that hold information about DM and grid
+  TDyDiscretizationType *discretization;
 
   // Contextual information passed to create_dm (if given).
   void* create_dm_context;
@@ -140,5 +144,11 @@ struct _p_TDy {
   Vec residual;
 
 };
+
+PETSC_INTERN PetscErrorCode TDyCreateGlobalVector(TDy,Vec*);
+PETSC_INTERN PetscErrorCode TDyCreateLocalVector(TDy,Vec*);
+PETSC_INTERN PetscErrorCode TDyNaturalToGlobal(TDy,Vec,Vec);
+PETSC_INTERN PetscErrorCode TDyGlobalToLocal(TDy,Vec,Vec);
+PETSC_INTERN PetscErrorCode TDyTimeCut(TDy);
 
 #endif

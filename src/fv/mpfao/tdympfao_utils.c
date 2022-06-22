@@ -5,7 +5,7 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdycharacteristiccurvesimpl.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode ComputeGtimesZ(PetscReal *gravity, PetscReal *X, PetscInt dim, PetscReal *gz) {
@@ -102,7 +102,6 @@ PetscErrorCode TDyMPFAOUpdateBoundaryState(TDy tdy) {
 
 PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
-  DM             dm = tdy->dm;
   TDyMPFAO *mpfao = tdy->context;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
@@ -123,6 +122,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDy tdy, Vec U, PetscRea
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
@@ -216,7 +218,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDy tdy, Vec U, PetscRea
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
-  DM             dm = tdy->dm;
   TDyMPFAO *mpfao = tdy->context;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
@@ -241,6 +242,8 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
   PetscFunctionBegin;
 
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
 
   ierr = DMPlexGetDepthStratum (dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum( dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
@@ -530,7 +533,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices(TDy tdy, Vec U, PetscReal *vel_error, PetscInt *count) {
 
-  DM             dm = tdy->dm;
   TDyMPFAO *mpfao = tdy->context;
   TDyMesh       *mesh = mpfao->mesh;
   TDyCell       *cells = &mesh->cells;
@@ -554,6 +556,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
+
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
 
   ierr = DMPlexGetDepthStratum(dm, 0, &vStart, &vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm, 2, &fStart, &fEnd); CHKERRQ(ierr);
@@ -675,9 +680,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
   ierr = MPI_Allreduce(&count,&count_sum,1,MPI_INT,MPI_SUM,
                        PetscObjectComm((PetscObject)U)); CHKERRQ(ierr);
 
-  PetscInt rank;
-  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-  if (rank==0) printf("%15.14f ",PetscPowReal(vel_error_sum/count_sum,0.5));
+  PetscPrintf(PETSC_COMM_WORLD,"%15.14f ",PetscPowReal(vel_error_sum/count_sum,0.5));
 
   PetscFunctionReturn(0);
 
@@ -698,7 +701,9 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
 
   PetscFunctionBegin;
 
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = VecGetArray(mpfao->P_vec,&p_vec_ptr); CHKERRQ(ierr);
@@ -716,7 +721,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
   }
 
 
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   for (iface=0; iface<mesh->num_faces; iface++) {
 
@@ -764,7 +769,9 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
 
   PetscFunctionBegin;
 
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = VecGetArray(mpfao->Temp_P_vec,&t_vec_ptr); CHKERRQ(ierr);
@@ -775,7 +782,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
     t[c] = u_p[c*2+1];
   }
 
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   for (iface=0; iface<mesh->num_faces; iface++) {
 

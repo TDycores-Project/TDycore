@@ -7,7 +7,7 @@
 #include <petscblaslapack.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdympfaotsimpl.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 
 //#define DEBUG
 #if defined(DEBUG)
@@ -152,8 +152,6 @@ PetscErrorCode TDyMPFAOSNESJacobian(SNES snes,Vec U,Mat A,Mat B,void *ctx) {
   TDY_START_FUNCTION_TIMER()
 
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
-
-  ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
 
   ierr = TDyGlobalToLocal(tdy,U,tdy->soln_loc); CHKERRQ(ierr);
 

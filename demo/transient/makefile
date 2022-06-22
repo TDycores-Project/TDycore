@@ -7,7 +7,7 @@ endif
 
 # These flags are supplemental to the PETSc flags
 CFLAGS   = ${LIBS}
-FFLAGS   = ${LIBS}
+FFLAGS   = ${LIBS} -ffree-line-length-0
 CPPFLAGS = ${MYFLAGS}
 FPPFLAGS = ${MYFLAGS}
 

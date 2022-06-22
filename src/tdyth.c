@@ -1,5 +1,6 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdythimpl.h>
+#include <private/tdydiscretizationimpl.h>
 
 PetscErrorCode TDyTHInitialize(TDy tdy) {
   PetscErrorCode ierr;
@@ -18,7 +19,7 @@ PetscErrorCode TDyTHInitialize(TDy tdy) {
     PetscRandom rand;
     ierr = PetscRandomCreate(comm,&rand); CHKERRQ(ierr);
     ierr = VecGetLocalSize(tdy->soln,&local_size); CHKERRQ(ierr);
-    ierr = DMCreateGlobalVector(tdy->dm,&temp_vec); CHKERRQ(ierr);
+    ierr = TDyCreateGlobalVector(tdy, &temp_vec); CHKERRQ(ierr);
     // pressure
     ierr = PetscRandomSetInterval(rand,1.e4,1.e5); CHKERRQ(ierr);
     ierr = VecSetRandom(temp_vec,rand); CHKERRQ(ierr);
@@ -97,11 +98,7 @@ PetscErrorCode TDyTHConvergenceTest(SNES snes, PetscInt it,
   //TDy tdy = (TDy)ctx;
   PetscErrorCode ierr;
   Vec r;
-  MPI_Comm comm;
-  PetscMPIInt rank;
   PetscFunctionBegin;
-  ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
-  ierr = MPI_Comm_rank(comm,&rank); CHKERRQ(ierr);
   ierr = SNESConvergedDefault(snes,it,xnorm,unorm,fnorm,reason,ctx);
          CHKERRQ(ierr);
   ierr = SNESGetFunction(snes,&r,NULL,NULL); CHKERRQ(ierr);
@@ -111,8 +108,7 @@ PetscErrorCode TDyTHConvergenceTest(SNES snes, PetscInt it,
   ierr = VecView(r,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
-  if (!rank)
-    printf("%3d: %9.2e %9.2e %9.2e\n",it,fnorm,xnorm,unorm);
+  PetscPrintf(PETSC_COMM_WORLD,"%3d: %9.2e %9.2e %9.2e\n",it,fnorm,xnorm,unorm);
 
   PetscFunctionReturn(0);
 }

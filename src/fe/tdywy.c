@@ -3,7 +3,7 @@
 #include <private/tdyutils.h>
 #include <private/tdywyimpl.h>
 #include <petscblaslapack.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 #include <tdytimers.h>
 
 #define MAX_LOCAL_SIZE 144
@@ -167,7 +167,8 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
   PetscReal ehat  = 1;    // area of ref element face ( [-1,1]^(dim-1) )
   PetscScalar x[24],DF[72],DFinv[72],J[8],Kinv[9],n0[3],n1[3],
               f; /* allocated at maximum possible size */
-  DM dm = tdy->dm;
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   TDyWY *wy = tdy->context;
   Conditions *conditions = tdy->conditions;
 
@@ -268,6 +269,12 @@ PetscErrorCode TDyDestroy_WY(void *context) {
   PetscFunctionReturn(0);
 }
 
+PetscInt TDyGetNumDMFields_WY(void *context) {
+  PetscFunctionBegin;
+  PetscInt ndof = 1; // Liquid pressure
+  PetscFunctionReturn(ndof);
+}
+
 PetscErrorCode TDySetFromOptions_WY(void *context, TDyOptions *options) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -313,7 +320,7 @@ PetscErrorCode TDySetDMFields_WY(void *context, DM dm) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
+PetscErrorCode TDySetup_WY(void *context, TDyDiscretizationType *discretization, EOS *eos,
                            MaterialProp *matprop, CharacteristicCurves *cc,
                            Conditions* conditions) {
   PetscFunctionBegin;
@@ -323,6 +330,9 @@ PetscErrorCode TDySetup_WY(void *context, DM dm, EOS *eos,
   PetscInt  closureSize,  *closure;
 
   TDyWY *wy = context;
+  DM dm;
+  ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   // Compute/store plex geometry.
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -540,7 +550,7 @@ PetscErrorCode IntegrateOnFaceConstant(TDy tdy,PetscInt c,PetscInt f,
   PetscReal value = 0;
   PetscInt dim;
   (*integral) = 0;
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(*((tdy->discretization)->tdydm)->dm,&dim); CHKERRQ(ierr);
 
   if (tdy->ops->compute_boundary_pressure) {
     ierr = (*tdy->ops->compute_boundary_pressure)(tdy,
@@ -563,7 +573,7 @@ PetscErrorCode IntegrateOnFace(TDy tdy,PetscInt c,PetscInt f,
   PetscQuadrature quadrature;
   const PetscScalar *quad_x,*quad_w;
   PetscReal xq[3],x[27],J[9],N[24],DF[81],DFinv[81],value;
-  DM dm = tdy->dm;
+  DM dm = ((tdy->discretization)->tdydm)->dm;
   ncv  = tdy->ncv;
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
   ierr = PetscDTGaussTensorQuadrature(dim-1,1,nq1d,-1,+1,&quadrature);
@@ -658,7 +668,8 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
   PetscScalar pdirichlet,wgt,tol=1e4*PETSC_MACHINE_EPSILON;
   TDyWY *wy = tdy->context;
-  DM dm = tdy->dm;
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   Conditions *conditions = tdy->conditions;
   PetscFunctionBegin;
 
@@ -823,7 +834,8 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
   PetscInt element_col,local_col,global_col;
   PetscScalar A[MAX_LOCAL_SIZE],F[MAX_LOCAL_SIZE],sign_row,sign_col;
   PetscInt Amap[MAX_LOCAL_SIZE],Bmap[MAX_LOCAL_SIZE];
-  DM dm = tdy->dm;
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   TDyWY *wy = tdy->context;
   Conditions *conditions = tdy->conditions;
 

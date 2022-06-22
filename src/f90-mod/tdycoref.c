@@ -24,6 +24,7 @@
 #define tdyupdatediagnostics_                          TDYUPDATEDIAGNOSTICS
 #define tdycreatediagnosticvector_                     TDYCREATEDIAGNOSTICVECTOR
 #define tdycreateprognosticvector_                     TDYCREATEPROGGNOSTICVECTOR
+#define tdycreatematrix_                               TDYCREATEMATRIX
 #define tdygetliquidsaturation_                        TDYGETLIQUIDSATURATION
 #define tdygetliquidmass_                              TDYGETLIQUIDMASS
 #define tdygetliquidpressure_                          TDYGETLIQUIDPRESSURE
@@ -43,6 +44,7 @@
 #define tdypostsolve_                                  TDYSETPOSTSOLVE
 #define tdycomputeerrornorms_                          TDYCOMPUTEERRORNORMS
 #define tdyupdatestate_                                TDYUPDATESTATE
+#define tdyglobaltonatural_                            TDYGLOBALTONATURAL
 #define tdyoutputregression_                           TDYOUTPUTREGRESSION
 #define tdydestroy_                                    TDYDESTROY
 #elif !defined(PETSC_HAVE_FORTRAN_UNDERSCORE) && !defined(FORTRANDOUBLEUNDERSCORE)
@@ -61,6 +63,7 @@
 #define tdyupdatediagnostics_                          tdyupdatediagnostics
 #define tdycreatediagnosticvector_                     tdycreatediagnosticvector
 #define tdycreateprognosticvector_                     tdycreatedprognosticvector
+#define tdycreatematrix_                               tdycreatematrix
 #define tdygetliquidsaturation_                        tdygetliquidsaturation
 #define tdygetliquidmass_                              tdygetliquidmass
 #define tdygetliquidpressure_                          tdygetliquidpressure
@@ -80,6 +83,7 @@
 #define tdypostsolve_                                  tdypostsolve
 #define tdycomputeerrornorms_                          tdycomputeerrornorms
 #define tdyupdatestate_                                tdyupdatestate
+#define tdyglobaltonatural_                            tdyglobaltonatural
 #define tdyoutputregression_                           tdyoutputregression
 #define tdydestroy_                                    tdydestroy
 #endif
@@ -138,6 +142,10 @@ PETSC_EXTERN void  tdycreatediagnosticvector_(TDy _tdy, Vec *v, int *__ierr){
 
 PETSC_EXTERN void  tdycreateprognosticvector_(TDy _tdy, Vec *v, int *__ierr){
 *__ierr = TDyCreatePrognosticVector((TDy)PetscToPointer((_tdy)), v);
+}
+
+PETSC_EXTERN void  tdycreatematrix_(TDy _tdy, Mat *m, int *__ierr){
+*__ierr = TDyCreateMatrix((TDy)PetscToPointer((_tdy)), m);
 }
 
 PETSC_EXTERN void  tdyupdatediagnostics_(TDy _tdy, int *__ierr){
@@ -248,6 +256,13 @@ PETSC_EXTERN void  tdydestroy_(TDy *_tdy, int *__ierr){
 PETSC_EXTERN void tdyupdatestate_(TDy *tdy,PetscScalar y[], int ncells, int *ierr )
 {
   *ierr = TDyUpdateState(*tdy,y,ncells);
+}
+
+PETSC_EXTERN void  tdyglobaltonatural_(TDy tdy, Vec global, Vec natural, int *__ierr){
+*__ierr = TDyGlobalToNatural(
+  (TDy)PetscToPointer(tdy),
+  (Vec)PetscToPointer(global),
+  (Vec)PetscToPointer(natural));
 }
 
 //------------------------------------------------------------------------
@@ -374,7 +389,7 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   PetscErrorCode ierr; \
   PetscFunctionBegin; \
   PetscInt dim; \
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr); \
+  ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
   void *context; \
   ierr = CreateF90SpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
   ierr = matprop_fn(tdy->matprop, context, wrapper_fn, DestroyContext); \
@@ -403,7 +418,7 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   PetscErrorCode ierr; \
   PetscFunctionBegin; \
   PetscInt dim; \
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr); \
+  ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
   void *context; \
   ierr = CreateF90SpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
   ierr = condition_fn(tdy->conditions, context, wrapper_fn, DestroyContext); \
@@ -416,7 +431,7 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   PetscErrorCode ierr; \
   PetscFunctionBegin; \
   PetscInt dim; \
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr); \
+  ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
   void *context; \
   ierr = CreateF90IntegerSpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
   ierr = condition_fn(tdy->conditions, context, wrapper_fn, DestroyContext); \

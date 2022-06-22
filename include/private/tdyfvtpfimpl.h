@@ -82,8 +82,9 @@ typedef struct TDyFVTPF {
 PETSC_INTERN PetscErrorCode TDyCreate_FVTPF(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_FVTPF(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_FVTPF(void*, TDyOptions*);
+PETSC_INTERN PetscErrorCode TDyGetNumDMFields_Richards_FVTPF(void*);
 PETSC_INTERN PetscErrorCode TDySetDMFields_Richards_FVTPF(void*, DM);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_FVTPF(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_FVTPF(void*, TDyDiscretizationType*, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_FVTPF(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_FVTPF(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode TDyUpdateDiagnostics_FVTPF(void*,DM,Vec);
@@ -91,13 +92,13 @@ PETSC_INTERN PetscErrorCode TDyUpdateDiagnostics_FVTPF(void*,DM,Vec);
 PETSC_INTERN PetscErrorCode TDyFVTPFSNESFunction(SNES,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyFVTPFSNESJacobian(SNES,Vec,Mat,Mat,void*);
 PETSC_INTERN PetscErrorCode TDyFVTPFSNESPreSolve(TDy);
+PETSC_INTERN PetscErrorCode TDyFVTPFSNESTimeCut(TDy);
 
 // Utils
 PETSC_INTERN PetscErrorCode TDyFVTPFUpdateBoundaryState(TDy);
 PETSC_INTERN PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy,Vec);
 
-PETSC_INTERN PetscErrorCode FVTPFComputeFacePeremabilityValueTPF(TDyFVTPF*, MaterialProp*, PetscInt, PetscInt, PetscReal*, PetscReal*);
+PETSC_INTERN PetscErrorCode FVTPFComputeFacePermeabililtyValueTPF(TDyFVTPF*, MaterialProp*, PetscInt, PetscInt, PetscReal*, PetscReal*);
 PETSC_INTERN PetscErrorCode FVTPFCalculateDistances(TDyFVTPF*, PetscInt, PetscInt, PetscReal*, PetscReal*);
-PETSC_INTERN PetscErrorCode FVTPFComputeProjectedArea(TDyFVTPF*, PetscInt, PetscInt, PetscReal*);
 
 #endif

@@ -18,16 +18,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
 
-  DM dm;
-  ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
-
-  PetscInt dim;
-  ierr = DMGetDimension(tdy->dm,&dim); CHKERRQ(ierr);
-
-  if (dim != 3) {
-    SETERRQ(comm,PETSC_ERR_USER,"Driver currently only supports 3D");
-  }
-
   switch(tdy->options.discretization) {
     case MPFA_O:
       break;
@@ -139,7 +129,6 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
 //      ierr = TSPseudoSetTimeStep(ts,TSPseudoTimeStepDefault,NULL); CHKERRQ(ierr);
       ierr = TSSetEquationType(ts,TS_EQ_IMPLICIT); CHKERRQ(ierr);
       ierr = TSSetProblemType(ts,TS_NONLINEAR); CHKERRQ(ierr);
-      ierr = TSSetDM(ts,tdy->dm); CHKERRQ(ierr);
       ierr = TSSetSolution(ts,tdy->soln); CHKERRQ(ierr);
       ierr = TDySetIFunction(ts,tdy); CHKERRQ(ierr);
       ierr = TDySetIJacobian(ts,tdy); CHKERRQ(ierr);

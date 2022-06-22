@@ -46,6 +46,7 @@ typedef struct {
 
   // Mesh-related options
   PetscBool read_mesh;
+  PetscBool read_pflotran_mesh;
   char mesh_file[PETSC_MAX_PATH_LEN];
 
   // I/O settings

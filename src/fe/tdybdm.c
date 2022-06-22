@@ -3,6 +3,7 @@
 #include <private/tdybdmimpl.h>
 #include <petscblaslapack.h>
 #include <tdytimers.h>
+#include <private/tdydiscretizationimpl.h>
 
 /* (dim*vertices_per_cell+1)^2 */
 #define MAX_LOCAL_SIZE 625
@@ -69,6 +70,12 @@ PetscErrorCode TDySetFromOptions_BDM(void *context, TDyOptions *options) {
   PetscFunctionReturn(0);
 }
 
+PetscInt TDyGetNumDMFields_BDM(void *context) {
+  PetscFunctionBegin;
+  PetscInt ndof = 1; // Liquid pressure
+  PetscFunctionReturn(ndof);
+}
+
 PetscErrorCode TDySetDMFields_BDM(void *context, DM dm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -86,7 +93,7 @@ PetscErrorCode TDySetDMFields_BDM(void *context, DM dm) {
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetup_BDM(void *context, DM dm, EOS *eos, MaterialProp *matprop,
+PetscErrorCode TDySetup_BDM(void *context, TDyDiscretizationType *discretization, EOS *eos, MaterialProp *matprop,
                             CharacteristicCurves *cc, Conditions *conditions) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
@@ -95,6 +102,8 @@ PetscErrorCode TDySetup_BDM(void *context, DM dm, EOS *eos, MaterialProp *matpro
            mStart,mEnd,i,nlocal,closureSize,*closure,d,dim;
 
   TDyBDM *bdm = context;
+  DM dm;
+  ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
 
   // Compute/store plex geometry.
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
@@ -422,7 +431,8 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   PetscQuadrature quadrature;
   PetscQuadrature face_quadrature;
   TDyBDM *bdm = tdy->context;
-  DM dm = tdy->dm;
+    DM dm;
+    ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   Conditions *conditions = tdy->conditions;
 
   /* Get domain constants */

@@ -36,19 +36,15 @@ PetscErrorCode TDyRichardsTSPostStep(TS ts) {
   PetscInt lit;
   SNES snes;
   SNESConvergedReason reason;
-  MPI_Comm comm;
-  PetscMPIInt rank;
   PetscFunctionBegin;
-  ierr = PetscObjectGetComm((PetscObject)ts,&comm); CHKERRQ(ierr);
-  ierr = MPI_Comm_rank(comm,&rank); CHKERRQ(ierr);
   ierr = TSGetTimeStep(ts,&dt); CHKERRQ(ierr); 
   ierr = TSGetTime(ts,&time); CHKERRQ(ierr); 
   ierr = TSGetStepNumber(ts,&istep); CHKERRQ(ierr); 
   ierr = TSGetSNES(ts,&snes); CHKERRQ(ierr);
   ierr = SNESGetIterationNumber(snes,&nit); CHKERRQ(ierr); ierr = SNESGetLinearSolveIterations(snes,&lit); CHKERRQ(ierr);
   ierr = SNESGetConvergedReason(snes,&reason); CHKERRQ(ierr);
-  if (!rank)
-    printf("Time step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n",
+  
+  PetscPrintf(PETSC_COMM_WORLD,"Time step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n",
            istep,time,dt,nit,lit,SNESConvergedReasons[reason]);
 //           ti->istep,ti->time,ti->dt,nit,lit);
   PetscFunctionReturn(0);
@@ -79,11 +75,7 @@ PetscErrorCode TDyRichardsConvergenceTest(SNES snes, PetscInt it,
                  SNESConvergedReason *reason, void *ctx) {
   PetscErrorCode ierr;
   Vec r;
-  MPI_Comm comm;
-  PetscMPIInt rank;
   PetscFunctionBegin;
-  ierr = PetscObjectGetComm((PetscObject)snes,&comm); CHKERRQ(ierr);
-  ierr = MPI_Comm_rank(comm,&rank); CHKERRQ(ierr);
   ierr = SNESConvergedDefault(snes,it,xnorm,unorm,fnorm,reason,ctx);
          CHKERRQ(ierr);
   ierr = SNESGetFunction(snes,&r,NULL,NULL); CHKERRQ(ierr);
@@ -93,9 +85,7 @@ PetscErrorCode TDyRichardsConvergenceTest(SNES snes, PetscInt it,
   ierr = VecView(r,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 #endif
-  if (!rank) {
-    printf("%3d: 2r:%9.2e 2x:%9.2e 2u:%9.2e\n",it,fnorm,xnorm,unorm);
-  }
+  PetscPrintf(PETSC_COMM_WORLD,"%3d: 2r:%9.2e 2x:%9.2e 2u:%9.2e\n",it,fnorm,xnorm,unorm);
     
   PetscFunctionReturn(0);
 }

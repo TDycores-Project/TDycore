@@ -38,7 +38,7 @@ endif
 # standard tests that are run to verify executable is built correctly
 #
 
-test : test-steady test-transient test-transient-mpfaof90 test-transient-snes-mpfaof90 test-richards test-th
+test : test-steady test-transient test-transient-mpfaof90 test-transient-snes-mpfaof90 test-richards test-th test-fv-tpff90
 
 test-steady :
 	$(PYTHON) $(TEST_MANAGER) -e ../demo/steady/steady $(TEST_OPTIONS) \

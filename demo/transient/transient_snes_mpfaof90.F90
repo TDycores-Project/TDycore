@@ -227,6 +227,9 @@ implicit none
   bc_type = NEUMANN_BC
   use_tdydriver = PETSC_FALSE
   dm_plex_extrude_layers=0
+  ic_filename = ""
+  string = ""
+  bc_type_name = ""
 
   call MPI_Comm_rank(PETSC_COMM_WORLD,rank,ierr)
   CHKERRA(ierr)
@@ -359,7 +362,7 @@ implicit none
   call TDyCreateJacobian(tdy,ierr); CHKERRA(ierr)
 
   ! Set initial condition
-  call DMCreateGlobalVector(dm,U,ierr)
+  call TDyCreatePrognosticVector(tdy,U,ierr)
   CHKERRA(ierr)
 
   if (ic_file_flg) then

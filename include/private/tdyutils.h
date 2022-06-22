@@ -22,8 +22,13 @@ PETSC_INTERN PetscErrorCode TDyComputeVolumeOfTetrahedron(PetscReal node_1[3], P
 PETSC_INTERN PetscErrorCode TDyCreateVecJoiningTwoVertices(PetscReal vtx_from[3],PetscReal vtx_to[3], PetscReal vec[3]);
 PETSC_INTERN PetscInt TDyReturnIndexInList(PetscInt *list, PetscInt nlist, PetscInt value);
 PETSC_INTERN PetscInt TDySavePetscVecAsBinary(Vec vec, const char filename[]);
+PETSC_INTERN PetscInt TDySavePetscVecAsASCII(Vec vec, const char filename[]);
 PETSC_INTERN PetscInt TDyReadBinaryPetscVec(Vec vec, MPI_Comm comm, const char filename[]);
 PETSC_INTERN PetscInt TDySavePetscMatAsBinary(Mat, const char []);
+PETSC_INTERN PetscInt TDySavePetscMatAsASCII(Mat, const char []);
+PETSC_INTERN PetscInt TDySavePetscISAsASCII(IS, const char []);
+PETSC_INTERN PetscInt TDySavePetscVecScatterAsASCII(VecScatter, const char []);
+PETSC_INTERN PetscInt TDySavePetscISLocalToGlobalMappingAsASCII(ISLocalToGlobalMapping, const char []);
 PETSC_INTERN PetscErrorCode ExtractSubVectors(Vec,PetscInt,Vec *);
 PETSC_INTERN PetscErrorCode ComputeTheta(PetscReal, PetscReal, PetscReal *);
 PETSC_INTERN PetscErrorCode ComputeDeterminantOf3by3Matrix(PetscReal [9], PetscReal *);
@@ -31,4 +36,6 @@ PETSC_INTERN PetscErrorCode ComputeInverseOf3by3Matrix(PetscReal[9], PetscReal[9
 PETSC_INTERN PetscErrorCode ComputePlaneGeometry (PetscReal[3], PetscReal[3], PetscReal[3], PetscReal[4]);
 PETSC_INTERN PetscErrorCode GeometryGetPlaneIntercept (PetscReal[4], PetscReal[3], PetscReal[3], PetscReal[3]);
 PETSC_INTERN PetscErrorCode GeometryProjectPointOnPlane (PetscReal[4], PetscReal[3], PetscReal[3]);
+PETSC_INTERN PetscErrorCode VolumeofTetrahedron(PetscReal[3],PetscReal[3],PetscReal[3],PetscReal[3],PetscReal*);
+
 #endif

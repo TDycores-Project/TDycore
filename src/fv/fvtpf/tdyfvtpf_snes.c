@@ -6,26 +6,24 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdycharacteristiccurvesimpl.h>
-#include <private/tdydiscretization.h>
+#include <private/tdydiscretizationimpl.h>
 
-PetscErrorCode TDyFVTPFSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accum) {
+PetscErrorCode TDyFVTPFSNESAccumulation(PetscInt icell, PetscReal dtime, TDyFVTPF *fvtpf, PetscReal *accum) {
 
   PetscFunctionBegin;
 
-  TDyFVTPF *fvtpf = tdy->context;
   TDyMesh *mesh = fvtpf->mesh;
   TDyCell *cells = &mesh->cells;
 
-  *accum = fvtpf->rho[icell] * fvtpf->porosity[icell] * fvtpf->S[icell] * cells->volume[icell] / tdy->dtime;
+  *accum = fvtpf->rho[icell] * fvtpf->porosity[icell] * fvtpf->S[icell] * cells->volume[icell] / dtime;
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyFVTPFSNESJacobianAccumulation(TDy tdy, PetscInt icell, PetscReal *J) {
+PetscErrorCode TDyFVTPFSNESJacobianAccumulation(PetscInt icell, PetscReal dtime, TDyFVTPF *fvtpf, PetscReal *J) {
 
   PetscFunctionBegin;
 
-  TDyFVTPF *fvtpf = tdy->context;
   TDyMesh *mesh = fvtpf->mesh;
   TDyCell *cells = &mesh->cells;
 
@@ -35,7 +33,7 @@ PetscErrorCode TDyFVTPFSNESJacobianAccumulation(TDy tdy, PetscInt icell, PetscRe
   PetscReal drho_dP = fvtpf->drho_dP[icell];
   PetscReal dpor_dP = 0.0;
   PetscReal dS_dP = fvtpf->dS_dP[icell];
-  PetscReal vol_over_dt = cells->volume[icell] / tdy->dtime;
+  PetscReal vol_over_dt = cells->volume[icell]/dtime;
 
   // accum = rho * por * S * vol/dtime
   *J = (drho_dP * por * S + rho * dpor_dP * S + rho * por * dS_dP) * vol_over_dt;
@@ -69,11 +67,50 @@ PetscErrorCode TDyFVTPFSNESPreSolve(TDy tdy) {
     // d(rho*phi*s)/dt * Vol
     //  = [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
     //  = accum_current - accum_prev
-    ierr = TDyFVTPFSNESAccumulation(tdy,icell,&accum_prev[icell]); CHKERRQ(ierr);
+    ierr = TDyFVTPFSNESAccumulation(icell,tdy->dtime,tdy->context,&accum_prev[icell]); CHKERRQ(ierr);
   }
   ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
+
+/// Resets solver when a time step is cut
+/// @param [inout] TDy struct
+///
+/// @returns 0 on success, or a non-zero error code on failure
+PetscErrorCode TDyFVTPFSNESTimeCut(TDy tdy) {
+
+  TDyFVTPF *fvtpf = tdy->context;
+  TDyMesh *mesh = fvtpf->mesh;
+  TDyCell *cells = &mesh->cells;
+  PetscReal *p, *accum_prev;
+  PetscInt icell;
+  PetscErrorCode ierr;
+
+  TDY_START_FUNCTION_TIMER()
+
+  // Copy previous solution
+  ierr = VecCopy(tdy->soln_prev, tdy->soln); CHKERRQ(ierr);
+
+  // Update the auxillary variables
+  ierr = VecGetArray(tdy->soln_prev,&p); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, p, mesh->num_cells_local); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->soln_prev,&p); CHKERRQ(ierr);
+
+  ierr = VecGetArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
+
+  for (icell=0;icell<mesh->num_cells;icell++){
+
+    if (!cells->is_local[icell]) continue;
+
+    // d(rho*phi*s)/dt * Vol
+    //  = [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
+    //  = accum_current - accum_prev
+    ierr = TDyFVTPFSNESAccumulation(icell,tdy->dtime,tdy->context,&accum_prev[icell]); CHKERRQ(ierr);
+  }
+  ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
+
   PetscFunctionReturn(0);
 }
 
@@ -83,8 +120,7 @@ PetscErrorCode RichardsResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  PetscInt dim = 3;
 
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
@@ -95,7 +131,7 @@ PetscErrorCode RichardsResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
   ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
 
   PetscReal perm_face, Dq;
-  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+  ierr = FVTPFComputeFacePermeabililtyValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
   PetscReal kr_eps = 1.e-8;
   PetscReal sat_eps = 1.e-8;
@@ -123,8 +159,7 @@ PetscErrorCode RichardsResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
 
     PetscReal v_darcy = Dq * ukvr * dphi;
 
-    PetscReal projected_area;
-    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+    PetscReal projected_area = (fvtpf->mesh)->faces.projected_area[face_id];
 
     PetscReal q = v_darcy * projected_area;
     *Res = q * den_aveg;
@@ -140,8 +175,7 @@ PetscErrorCode RichardsBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
+  PetscInt dim = 3;
 
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
@@ -152,7 +186,7 @@ PetscErrorCode RichardsBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
   ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
 
   PetscReal perm_face, Dq;
-  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+  ierr = FVTPFComputeFacePermeabililtyValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
   PetscReal kr_eps = 1.e-8;
   PetscReal sat_eps = 1.e-8;
@@ -178,9 +212,7 @@ PetscErrorCode RichardsBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
     }
 
     PetscReal v_darcy = Dq * ukvr * dphi;
-
-    PetscReal projected_area;
-    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+    PetscReal projected_area = (fvtpf->mesh)->faces.projected_area[face_id];
 
     PetscReal q = v_darcy * projected_area;
     *Res = q * den_aveg;
@@ -205,9 +237,7 @@ PetscErrorCode RichardsSeepageBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-
+  PetscInt dim=3;
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
   PetscInt cell_id_up = -cell_ids[0] - 1; // cell up is a boundary cell with negative ids, determine the id to use from *_bnd variables
@@ -217,7 +247,7 @@ PetscErrorCode RichardsSeepageBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
   ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
 
   PetscReal perm_face, Dq;
-  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+  ierr = FVTPFComputeFacePermeabililtyValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
   PetscReal kr_eps = 1.e-8;
   PetscReal sat_eps = 1.e-8;
@@ -250,9 +280,7 @@ PetscErrorCode RichardsSeepageBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
     }
 
     PetscReal v_darcy = Dq * ukvr * dphi;
-
-    PetscReal projected_area;
-    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+    PetscReal projected_area = (fvtpf->mesh)->faces.projected_area[face_id];
 
     PetscReal q = v_darcy * projected_area;
     *Res = q * den_aveg;
@@ -267,9 +295,7 @@ PetscErrorCode RichardsJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-
+  PetscInt dim=3;
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
   PetscInt cell_id_up = cell_ids[0];
@@ -279,7 +305,7 @@ PetscErrorCode RichardsJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
   ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
 
   PetscReal perm_face, Dq;
-  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+  ierr = FVTPFComputeFacePermeabililtyValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
   PetscReal kr_eps = 1.e-8;
   PetscReal sat_eps = 1.e-8;
@@ -301,8 +327,8 @@ PetscErrorCode RichardsJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
     PetscReal dgravity_dden_dn = (1.0 - upweight) * dist_gravity;
 
     PetscReal dphi = fvtpf->pressure[cell_id_up] - fvtpf->pressure[cell_id_dn] - gravity_term;
-    PetscReal dphi_dp_up =  1.0 - dgravity_dden_up * dden_ave_dp_up;
-    PetscReal dphi_dp_dn = -1.0 - dgravity_dden_dn * dden_ave_dp_dn;
+    PetscReal dphi_dp_up =  1.0 - dgravity_dden_up * fvtpf->drho_dP[cell_id_up];
+    PetscReal dphi_dp_dn = -1.0 - dgravity_dden_dn * fvtpf->drho_dP[cell_id_dn];
 
     PetscReal ukvr;
     PetscReal dukvr_dp_up = 0.0, dukvr_dp_dn = 0.0;
@@ -332,9 +358,7 @@ PetscErrorCode RichardsJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
     }
 
     PetscReal v_darcy = Dq * ukvr * dphi;
-
-    PetscReal projected_area;
-    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+    PetscReal projected_area = (fvtpf->mesh)->faces.projected_area[face_id];
 
     PetscReal q = v_darcy * projected_area;
     PetscReal dq_dp_up = Dq * (dukvr_dp_up * dphi + ukvr * dphi_dp_up)*projected_area;
@@ -355,9 +379,7 @@ PetscErrorCode RichardsBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-
+  PetscInt dim=3;
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
   PetscInt cell_id_up = -cell_ids[0] - 1;
@@ -367,7 +389,7 @@ PetscErrorCode RichardsBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
   ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
 
   PetscReal perm_face, Dq;
-  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+  ierr = FVTPFComputeFacePermeabililtyValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
   PetscReal kr_eps = 1.e-8;
   PetscReal sat_eps = 1.e-8;
@@ -407,9 +429,7 @@ PetscErrorCode RichardsBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
     }
 
     PetscReal v_darcy = Dq * ukvr * dphi;
-
-    PetscReal projected_area;
-    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+    PetscReal projected_area = (fvtpf->mesh)->faces.projected_area[face_id];
 
     PetscReal q = v_darcy * projected_area;
     PetscReal dq_dp_dn = Dq * (dukvr_dp_dn * dphi + ukvr * dphi_dp_dn)*projected_area;
@@ -439,9 +459,7 @@ PetscErrorCode RichardsSeepageBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  PetscInt dim;
-  ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
-
+  PetscInt dim=3;
   PetscInt *cell_ids, num_face_cells;
   ierr = TDyMeshGetFaceCells(fvtpf->mesh, face_id, &cell_ids, &num_face_cells); CHKERRQ(ierr);
   PetscInt cell_id_up = -cell_ids[0] - 1;
@@ -451,7 +469,7 @@ PetscErrorCode RichardsSeepageBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
   ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
 
   PetscReal perm_face, Dq;
-  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+  ierr = FVTPFComputeFacePermeabililtyValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
   PetscReal kr_eps = 1.e-8;
   PetscReal sat_eps = 1.e-8;
@@ -499,9 +517,7 @@ PetscErrorCode RichardsSeepageBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
     }
 
     PetscReal v_darcy = Dq * ukvr * dphi;
-
-    PetscReal projected_area;
-    ierr = FVTPFComputeProjectedArea(fvtpf, dim, face_id, &projected_area);
+    PetscReal projected_area = (fvtpf->mesh)->faces.projected_area[face_id];
 
     PetscReal q = v_darcy * projected_area;
     PetscReal dq_dp_dn = Dq * (dukvr_dp_dn * dphi + ukvr * dphi_dp_dn)*projected_area;
@@ -526,6 +542,9 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
+
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
 
   ierr = TDyGlobalToLocal(tdy, U, tdy->soln_loc); CHKERRQ(ierr);
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
@@ -557,7 +576,7 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
     PetscInt cell_id_dn = cell_ids[1];
 
     PetscReal Res;
-    ierr = RichardsResidual(fvtpf, tdy->dm, tdy->matprop, iface, &Res);
+    ierr = RichardsResidual(fvtpf, dm, tdy->matprop, iface, &Res);
 
     if (cell_id_up >= 0 && cells->is_local[cell_id_up]) {
       r_ptr[cell_id_up] += Res;
@@ -579,13 +598,13 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
     PetscInt *cell_ids, num_face_cells;
     ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
 
-    PetscReal Res;
+    PetscReal Res = 0.0;
     switch (faces->bc_type[iface]) {
     case DIRICHLET_BC:
-      ierr = RichardsBCResidual(fvtpf, tdy->dm, tdy->matprop, iface, &Res);
+      ierr = RichardsBCResidual(fvtpf, dm, tdy->matprop, iface, &Res);
       break;
     case SEEPAGE_BC:
-      ierr = RichardsSeepageBCResidual(fvtpf, tdy->dm, tdy->matprop, iface, &Res);
+      ierr = RichardsSeepageBCResidual(fvtpf, dm, tdy->matprop, iface, &Res);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported bc type in the computation of the residual");
@@ -601,7 +620,7 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 
     if (!cells->is_local[icell]) continue;
 
-    ierr = TDyFVTPFSNESAccumulation(tdy,icell,&accum_current); CHKERRQ(ierr);
+    ierr = TDyFVTPFSNESAccumulation(icell,tdy->dtime,tdy->context,&accum_current); CHKERRQ(ierr);
 
     r_ptr[icell] += accum_current - accum_prev[icell];
     r_ptr[icell] -= fvtpf->source_sink[icell];
@@ -630,6 +649,9 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+
   ierr = MatZeroEntries(B); CHKERRQ(ierr);
 
   // Compute contribution to Jacobian for internal faces
@@ -644,7 +666,7 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
     PetscInt cell_id_dn = cell_ids[1];
 
     PetscReal Jup, Jdn;
-    ierr = RichardsJacobian(fvtpf, tdy->dm, tdy->matprop, iface, &Jup, &Jdn);
+    ierr = RichardsJacobian(fvtpf, dm, tdy->matprop, iface, &Jup, &Jdn);
 
     if (cell_id_up >= 0 && cells->is_local[cell_id_up]) {
       //r_ptr[cell_id_up] += Res;
@@ -675,10 +697,10 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
     PetscReal Jdn;
     switch (faces->bc_type[iface]) {
     case DIRICHLET_BC:
-      ierr = RichardsBCJacobian(fvtpf, tdy->dm, tdy->matprop, iface, &Jdn);
+      ierr = RichardsBCJacobian(fvtpf, dm, tdy->matprop, iface, &Jdn);
       break;
     case SEEPAGE_BC:
-      ierr = RichardsSeepageBCJacobian(fvtpf, tdy->dm, tdy->matprop, iface, &Jdn);
+      ierr = RichardsSeepageBCJacobian(fvtpf, dm, tdy->matprop, iface, &Jdn);
       break;
     default:
       SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported bc type in the computation of the jacobian");
@@ -698,7 +720,7 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
     if (!cells->is_local[icell]) continue;
 
     PetscReal J;
-    ierr = TDyFVTPFSNESJacobianAccumulation(tdy, icell, &J); CHKERRQ(ierr);
+    ierr = TDyFVTPFSNESJacobianAccumulation(icell,tdy->dtime,tdy->context,&J); CHKERRQ(ierr);
 
     ierr = MatSetValuesLocal(B,1,&icell,1,&icell,&J,ADD_VALUES);CHKERRQ(ierr);
 

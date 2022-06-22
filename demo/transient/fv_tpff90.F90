@@ -93,7 +93,7 @@ contains
    PetscReal, intent(out) :: K(9)
    K(1) = 1.0d-12; K(2) = 0.0    ; K(3) = 0.0
    K(4) = 0.0    ; K(5) = 1.0d-12; K(6) = 0.0
-   K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 1.0d-13
+   K(7) = 0.0    ; K(8) = 0.0    ; K(9) = 5.0d-13
  end subroutine Permeability_PFLOTRAN
 
  subroutine PermeabilityFunctionPFLOTRAN(n,x,K,ierr)
@@ -273,6 +273,7 @@ program main
   pflotran_consistent = PETSC_FALSE
   bc_type = NEUMANN_BC
   use_tdydriver = PETSC_FALSE
+  use_seepage_bc = PETSC_FALSE
 
   call TDyInit(ierr); CHKERRA(ierr);
   call TDyCreate(tdy, ierr); CHKERRA(ierr);
@@ -298,25 +299,19 @@ program main
 
   call TDyGetDM(tdy, dm, ierr); CHKERRA(ierr)
   call DMGetDimension(dm, dim, ierr);  CHKERRA(ierr)
-  call PetscFECreateDefault(PETSC_COMM_SELF, dim, 1, PETSC_FALSE, "p_", -1, fe, ierr); CHKERRA(ierr)
-  call PetscObjectSetName(fe, "p", ierr); CHKERRA(ierr)
-  call DMSetField(dm, 0, PETSC_NULL_DMLABEL, fe, ierr); CHKERRA(ierr)
-  call DMCreateDS(dm, ierr); CHKERRA(ierr)
-  call PetscFEDestroy(fe, ierr); CHKERRA(ierr)
-  call DMSetUseNatural(dm, PETSC_TRUE, ierr); CHKERRA(ierr)
 
   if (pflotran_consistent) then
      call Permeability_PFLOTRAN(perm)
      call ResidualSaturation_PFLOTRAN(resSat) 
-  else
+     call TDySetWaterDensityType(tdy,WATER_DENSITY_EXPONENTIAL, ierr); CHKERRA(ierr)
+   else
      call Permeability(perm)
      call ResidualSaturation(resSat)
-  endif
+     call TDySetWaterDensityType(tdy,WATER_DENSITY_CONSTANT, ierr); CHKERRA(ierr)
+   endif
   call TDySetConstantTensorPermeability(tdy, perm, ierr); CHKERRA(ierr)
   call TDySetConstantResidualSaturation(tdy, resSat, ierr); CHKERRA(ierr)
 
-  !call TDySetWaterDensityType(tdy,WATER_DENSITY_EXPONENTIAL, ierr); CHKERRA(ierr)
-  call TDySetWaterDensityType(tdy,WATER_DENSITY_CONSTANT, ierr); CHKERRA(ierr)
 
   call TDySetPorosityFunction(tdy,PorosityFunction,ierr); CHKERRA(ierr)
   call TDySetBoundaryPressureFunction(tdy,PressureFunction,ierr); CHKERRA(ierr)
@@ -335,8 +330,8 @@ program main
   call TDyCreateJacobian(tdy, ierr); CHKERRA(ierr)
 
   ! Set initial condition
-  call DMCreateGlobalVector(dm, U, ierr); CHKERRA(ierr);
-  call DMCreateGlobalVector(dm, U_natural, ierr); CHKERRA(ierr);
+  call TDyCreatePrognosticVector(tdy, U, ierr); CHKERRA(ierr);
+  call TDyCreatePrognosticVector(tdy, U_natural, ierr); CHKERRA(ierr);
 
   ! initial pressure
   if (ic_file_flg) then
@@ -379,8 +374,7 @@ program main
         endif
         call TDyPostSolve(tdy,U,ierr);CHKERRA(ierr);
 
-        call DMPlexGlobalToNaturalBegin(dm, U, U_natural, ierr); CHKERRA(ierr)
-        call DMPlexGlobalToNaturalEnd(dm, U, U_natural, ierr); CHKERRA(ierr)
+        call TDyGlobalToNatural(tdy, U, U_natural, ierr); CHKERRA(ierr)
 
      endif
 
