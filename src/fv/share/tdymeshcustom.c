@@ -9,8 +9,6 @@
 #include <private/tdymeshimpl.h>
 
 /// Create folllowing mapping of cells 
-///  - nG2L: global index to local index
-///  - nL2G: local index to global
 ///  - nG2A: global index to application (or natural) index
 ///
 /// @param [in] discretization TDyDiscretization struct
@@ -34,21 +32,12 @@ static PetscErrorCode TDyMeshMapIndices(TDyDiscretizationType *discretization, T
   mesh_ptr->num_cells = ngmax;
   mesh_ptr->num_cells_local = nlmax;
 
-  ierr = TDyAllocate_IntegerArray_1D(&mesh_ptr->nG2L,ngmax); CHKERRQ(ierr);
-  ierr = TDyAllocate_IntegerArray_1D(&mesh_ptr->nL2G,nlmax); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&mesh_ptr->nG2A,ngmax); CHKERRQ(ierr);
 
   const PetscInt *int_ptr;
   ierr = ISGetIndices(ugdm->IS_GhostedCells_in_GlobalOrder, &int_ptr); CHKERRQ(ierr);
 
-  for (PetscInt icell=0; icell<nlmax; icell++) {
-    mesh_ptr->nG2L[icell] = icell;
-    mesh_ptr->nL2G[icell] = icell;
-    mesh_ptr->nG2A[icell] = int_ptr[icell];
-  }
-
-  for (PetscInt icell=nlmax; icell<ngmax; icell++) {
-    mesh_ptr->nG2L[icell] = -1;
+  for (PetscInt icell=0; icell<ngmax; icell++) {
     mesh_ptr->nG2A[icell] = int_ptr[icell];
   }
 

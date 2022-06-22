@@ -214,8 +214,6 @@ typedef struct TDyMesh {
 
   PetscInt *closureSize, **closure, maxClosureSize;
 
-  PetscInt *nG2L; // Mapping of global cells to local cells
-  PetscInt *nL2G; // Mapping of local cells to global cells
   PetscInt *nG2A; // Mapping of global cells to application/natural cells
 
 } TDyMesh;
