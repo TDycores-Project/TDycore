@@ -483,7 +483,7 @@ PetscErrorCode TDyView(TDy tdy,PetscViewer viewer) {
 /// @param [inout] tdy A TDy struct
 ///
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode ReadCommandLineOptions(TDy tdy) {
+static PetscErrorCode ReadCommandLineOptions(TDy tdy) {
 
   PetscErrorCode ierr;
   PetscFunctionBegin;

@@ -57,6 +57,7 @@ struct _TDyOps {
   // before the DM is distributed across processes.
   PetscErrorCode (*set_dm_fields)(void*, DM);
 
+  // Returns implementation-specific number of DOFs
   PetscInt (*get_num_dm_fields)(void*);
 
   // Called by TDySetup -- configures the DM for solvers. By the time this

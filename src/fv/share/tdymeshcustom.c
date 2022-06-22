@@ -969,7 +969,7 @@ static PetscErrorCode CreateInternalFaces(PetscInt **face_to_cell, PetscInt **ce
 /// @param [out] area Area of the triange
 ///
 /// @returns 0 on success, or a non-zero error code on failure
-static PetscErrorCode ComputeArea(TDyUGrid *ugrid, PetscInt v_id1, PetscInt v_id2, PetscInt v_id3, PetscReal *area) {
+static PetscErrorCode ComputeTriArea(TDyUGrid *ugrid, PetscInt v_id1, PetscInt v_id2, PetscInt v_id3, PetscReal *area) {
 
   PetscErrorCode ierr;
 
@@ -1011,7 +1011,7 @@ static PetscErrorCode ComputeArea(TDyUGrid *ugrid, PetscInt v_id1, PetscInt v_id
 /// @param [out] intercept Intercept between upwind-downind line to the triangle
 ///
 /// @returns 0 on success, or a non-zero error code on failure
-static PetscErrorCode ComputeAreasAndIntercpet(TDyUGrid *ugrid, PetscInt v_id1, PetscInt v_id2, PetscInt v_id3, PetscReal point_up[3], 
+static PetscErrorCode ComputeTriAreasAndIntercpet(TDyUGrid *ugrid, PetscInt v_id1, PetscInt v_id2, PetscInt v_id3, PetscReal point_up[3], 
   PetscReal point_dn[3], PetscReal n_up_dn[3], PetscReal *area, PetscReal *area_projected, PetscReal intercept[3]) {
 
   PetscErrorCode ierr;
@@ -1104,12 +1104,12 @@ static PetscErrorCode ComputeGeoAttrOfInternalFaces(TDyUGrid *ugrid, TDyMesh **m
     PetscInt vertex_id3 = ugrid->face_to_vertex[2][ugrid_face_id];
     PetscInt vertex_id4 = -1;
 
-    ierr = ComputeAreasAndIntercpet(ugrid, vertex_id1, vertex_id2, vertex_id3, point_up, point_dn, n_up_dn, &area1, &area_projected1, intercept1);
+    ierr = ComputeTriAreasAndIntercpet(ugrid, vertex_id1, vertex_id2, vertex_id3, point_up, point_dn, n_up_dn, &area1, &area_projected1, intercept1);
 
     if (faces->num_vertices[face_id] == 4) {
       vertex_id4 = ugrid->face_to_vertex[3][ugrid_face_id];
 
-      ierr = ComputeAreasAndIntercpet(ugrid, vertex_id1, vertex_id4, vertex_id3, point_up, point_dn, n_up_dn, &area2, &area_projected2, intercept2);
+      ierr = ComputeTriAreasAndIntercpet(ugrid, vertex_id1, vertex_id4, vertex_id3, point_up, point_dn, n_up_dn, &area2, &area_projected2, intercept2);
       for (PetscInt idim=0; idim<dim; idim++) {
         intercept[idim] = (intercept1[idim] + intercept2[idim])/2.0;
       }
@@ -1159,7 +1159,7 @@ static PetscErrorCode ComputeGeoAttrOfInternalFaces(TDyUGrid *ugrid, TDyMesh **m
 /// @param [inout] ugrid A TDyUGrid struct
 ///
 /// @returns 0 on success, or a non-zero error code on failure
-static PetscErrorCode ComputeGoeAttrOfUGridFaces(PetscInt **cell_to_face, TDyUGrid *ugrid) {
+static PetscErrorCode ComputeGeoAttrOfUGridFaces(PetscInt **cell_to_face, TDyUGrid *ugrid) {
 
   PetscErrorCode ierr;
 
@@ -1193,7 +1193,7 @@ static PetscErrorCode ComputeGoeAttrOfUGridFaces(PetscInt **cell_to_face, TDyUGr
       PetscInt vertex_id1 = ugrid->face_to_vertex[0][face_id];
       PetscInt vertex_id2 = ugrid->face_to_vertex[1][face_id];
       PetscInt vertex_id3 = ugrid->face_to_vertex[2][face_id];
-      ierr = ComputeArea(ugrid, vertex_id1, vertex_id2, vertex_id3, &area1); CHKERRQ(ierr);
+      ierr = ComputeTriArea(ugrid, vertex_id1, vertex_id2, vertex_id3, &area1); CHKERRQ(ierr);
 
       PetscInt num_cell_vertices = ugrid->cell_num_vertices[icell];
       TDyCellType icell_type = GetCellType(num_cell_vertices);
@@ -1202,7 +1202,7 @@ static PetscErrorCode ComputeGoeAttrOfUGridFaces(PetscInt **cell_to_face, TDyUGr
 
       if (nvertices == 4) {
         PetscInt vertex_id4 = ugrid->face_to_vertex[3][face_id];
-        ierr = ComputeArea(ugrid, vertex_id1, vertex_id4, vertex_id3, &area2); CHKERRQ(ierr);
+        ierr = ComputeTriArea(ugrid, vertex_id1, vertex_id4, vertex_id3, &area2); CHKERRQ(ierr);
       }
 
       ugrid->face_area[face_id] = area1 + area2;
@@ -1290,7 +1290,7 @@ static PetscErrorCode TDySetupFacesFromDiscretization(TDyDiscretizationType *dis
   ierr = ComputeGeoAttrOfInternalFaces(ugrid, mesh); CHKERRQ(ierr);
 
   // Computes geometric attirbutes of all faces and saves them in the TDyUGrid struct
-  ierr = ComputeGoeAttrOfUGridFaces(cell_to_face, ugrid); CHKERRQ(ierr);
+  ierr = ComputeGeoAttrOfUGridFaces(cell_to_face, ugrid); CHKERRQ(ierr);
 
 
   PetscFunctionReturn(0);

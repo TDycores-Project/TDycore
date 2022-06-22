@@ -4,7 +4,10 @@
 #include <petsc.h>
 #include <private/tdydmimpl.h>
 
-
+// A struct that stores:
+//  - TDycore wrapper of a PETSc DM.
+//  - TDycore-specific unstructured grid.
+// This struct follows PFLOTRAN's approach for supporting unstructured grid.
 typedef struct {
 
   TDyDM *tdydm;

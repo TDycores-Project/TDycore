@@ -133,7 +133,7 @@ PetscErrorCode RichardsResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
   ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
 
   PetscReal perm_face, Dq;
-  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+  ierr = FVTPFComputeFacePermeabililtyValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
   PetscReal kr_eps = 1.e-8;
   PetscReal sat_eps = 1.e-8;
@@ -188,7 +188,7 @@ PetscErrorCode RichardsBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
   ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
 
   PetscReal perm_face, Dq;
-  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+  ierr = FVTPFComputeFacePermeabililtyValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
   PetscReal kr_eps = 1.e-8;
   PetscReal sat_eps = 1.e-8;
@@ -249,7 +249,7 @@ PetscErrorCode RichardsSeepageBCResidual(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
   ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
 
   PetscReal perm_face, Dq;
-  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+  ierr = FVTPFComputeFacePermeabililtyValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
   PetscReal kr_eps = 1.e-8;
   PetscReal sat_eps = 1.e-8;
@@ -307,7 +307,7 @@ PetscErrorCode RichardsJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop, P
   ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
 
   PetscReal perm_face, Dq;
-  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+  ierr = FVTPFComputeFacePermeabililtyValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
   PetscReal kr_eps = 1.e-8;
   PetscReal sat_eps = 1.e-8;
@@ -391,7 +391,7 @@ PetscErrorCode RichardsBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *matprop,
   ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
 
   PetscReal perm_face, Dq;
-  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+  ierr = FVTPFComputeFacePermeabililtyValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
   PetscReal kr_eps = 1.e-8;
   PetscReal sat_eps = 1.e-8;
@@ -471,7 +471,7 @@ PetscErrorCode RichardsSeepageBCJacobian(TDyFVTPF *fvtpf, DM dm, MaterialProp *m
   ierr = FVTPFCalculateDistances(fvtpf, dim, face_id, &dist_gravity, &upweight);
 
   PetscReal perm_face, Dq;
-  ierr = FVTPFComputeFacePeremabilityValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
+  ierr = FVTPFComputeFacePermeabililtyValueTPF(fvtpf, matprop, dim, face_id, &perm_face, &Dq); CHKERRQ(ierr);
 
   PetscReal kr_eps = 1.e-8;
   PetscReal sat_eps = 1.e-8;

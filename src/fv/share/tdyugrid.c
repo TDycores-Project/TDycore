@@ -83,14 +83,12 @@ static PetscErrorCode ReadPFLOTRANMeshFile(const char *mesh_file, TDyUGrid *ugri
 
   // Read cells
   ierr = VecCreate(PETSC_COMM_WORLD, &cells); CHKERRQ(ierr);
-  ierr = PetscObjectSetName((PetscObject) cells, "cells");CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject) cells, "Cells"); CHKERRQ(ierr);
   ierr = VecSetFromOptions(cells); CHKERRQ(ierr);
   ierr = VecLoad(cells,viewer); CHKERRQ(ierr);
 
   // Read vertices
   ierr = VecCreate(PETSC_COMM_WORLD, &verts); CHKERRQ(ierr);
-  ierr = PetscObjectSetName((PetscObject) verts, "vertices");CHKERRQ(ierr);
   ierr = PetscObjectSetName((PetscObject) verts, "Vertices"); CHKERRQ(ierr);
   ierr = VecSetFromOptions(verts); CHKERRQ(ierr);
   ierr = VecLoad(verts,viewer); CHKERRQ(ierr);
@@ -233,7 +231,7 @@ static PetscErrorCode CreateAdjacencyMatrix(TDyUGrid *ugrid, Mat *AdjMat) {
 
 /// Use the dual matrix to partition the grid
 ///
-/// @param [in] DualMat A dual matrix of the adjaceny matrix
+/// @param [in] DualMat A dual matrix of the adjacency matrix
 /// @param [out] NewCellRankIS IS that identifies the rank that owns the grid cell
 /// @param [out] NewNumCellsLocal Number of local cells after partitioning
 ///
@@ -268,9 +266,9 @@ PetscErrorCode PartitionGrid(Mat DualMat, IS *NewCellRankIS, PetscInt *NewNumCel
   PetscFunctionReturn(0);
 }
 
-/// Determine the max number of duals/neighbors of a grid cell in the mesh
+/// Determine the max number of duals/neighbors of in the mesh
 ///
-/// @param [in] DualMat A dual matrix of the adjaceny matrix
+/// @param [in] DualMat A dual matrix of the adjacency matrix
 /// @param [inout] ugrid A TDyUGrid struct
 ///
 /// @returns 0 on success, or a non-zero error code on failure
@@ -913,7 +911,7 @@ PetscErrorCode ScatterVecPetscOrderToLocalOrder(PetscInt stride, Vec *PetscOrder
   PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
 
 #ifdef UGRID_DEBUG
-  char filename[20];
+  char filename[PETSC_MAX_PATH_LEN];
   sprintf(filename,"elements_local%d.out",rank);
   ierr = TDySavePetscVecAsASCII(*LocalOrderVec, filename); CHKERRQ(ierr);
 #endif
@@ -1028,7 +1026,7 @@ static PetscErrorCode ChangeVertexNatOrderToLocalOrder(PetscInt stride, PetscInt
   ierr = VecRestoreArray(*LocalOrderVec, &v_ptr); CHKERRQ(ierr); // Now vertex ids are in local-order
 
 #ifdef UGRID_DEBUG
-  char filename[30];
+  char filename[PETSC_MAX_PATH_LEN];
   sprintf(filename,"elements_vert_local%d.out",rank);
   ierr = TDySavePetscVecAsASCII(*LocalOrderVec, filename); CHKERRQ(ierr);
 #endif
@@ -1036,7 +1034,7 @@ static PetscErrorCode ChangeVertexNatOrderToLocalOrder(PetscInt stride, PetscInt
   PetscFunctionReturn(0);
 }
 
-/// Save coorindates of local vertices (post-partition) from natural vertices (pre-partition)
+/// Save coordinates of local vertices (post-partition) from natural vertices (pre-partition)
 ///
 /// @param [in] stride Block size of the Vec
 /// @param [in] vertex_offset Offset of vertices within the stride

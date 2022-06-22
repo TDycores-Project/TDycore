@@ -758,7 +758,7 @@ PetscErrorCode FVTPFExtractUpAndDownPermeabilityTensors(TDyFVTPF *fvtpf,
 /// @param [in] face_id ID of the face
 /// @param [out] *Kface_value Permeability value at the face
 /// @returns 0 on success, or a non-zero error code on failure
-PetscErrorCode FVTPFComputeFacePeremabilityValueTPF(TDyFVTPF *fvtpf, MaterialProp *matprop, PetscInt dim, PetscInt face_id, PetscReal *Kface_value, PetscReal *Dq) {
+PetscErrorCode FVTPFComputeFacePermeabililtyValueTPF(TDyFVTPF *fvtpf, MaterialProp *matprop, PetscInt dim, PetscInt face_id, PetscReal *Kface_value, PetscReal *Dq) {
 
   PetscFunctionBegin;
 

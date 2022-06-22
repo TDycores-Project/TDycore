@@ -98,7 +98,7 @@ PETSC_INTERN PetscErrorCode TDyFVTPFSNESTimeCut(TDy);
 PETSC_INTERN PetscErrorCode TDyFVTPFUpdateBoundaryState(TDy);
 PETSC_INTERN PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy,Vec);
 
-PETSC_INTERN PetscErrorCode FVTPFComputeFacePeremabilityValueTPF(TDyFVTPF*, MaterialProp*, PetscInt, PetscInt, PetscReal*, PetscReal*);
+PETSC_INTERN PetscErrorCode FVTPFComputeFacePermeabililtyValueTPF(TDyFVTPF*, MaterialProp*, PetscInt, PetscInt, PetscReal*, PetscReal*);
 PETSC_INTERN PetscErrorCode FVTPFCalculateDistances(TDyFVTPF*, PetscInt, PetscInt, PetscReal*, PetscReal*);
 
 #endif
