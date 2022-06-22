@@ -680,9 +680,7 @@ PetscErrorCode TDyMPFAORecoverVelocity(TDy tdy, Vec U) {
   ierr = MPI_Allreduce(&count,&count_sum,1,MPI_INT,MPI_SUM,
                        PetscObjectComm((PetscObject)U)); CHKERRQ(ierr);
 
-  PetscInt rank;
-  MPI_Comm_rank(PETSC_COMM_WORLD, &rank);
-  if (rank==0) printf("%15.14f ",PetscPowReal(vel_error_sum/count_sum,0.5));
+  PetscPrintf(PETSC_COMM_WORLD,"%15.14f ",PetscPowReal(vel_error_sum/count_sum,0.5));
 
   PetscFunctionReturn(0);
 
