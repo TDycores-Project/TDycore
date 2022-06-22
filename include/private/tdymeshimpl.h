@@ -219,7 +219,6 @@ typedef struct TDyMesh {
 } TDyMesh;
 
 PETSC_INTERN PetscErrorCode TDyMeshCreateFromPlex(DM,PetscReal**,PetscReal**,PetscReal**,TDyMesh**);
-PETSC_INTERN PetscErrorCode TDyMeshCreateFromDiscretization(TDyDiscretizationType*,TDyMesh**);
 PETSC_INTERN PetscErrorCode TDyMeshDestroy(TDyMesh*);
 
 // These don't work, and we'll likely get rid of them.
