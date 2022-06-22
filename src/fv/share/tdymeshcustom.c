@@ -39,7 +39,7 @@ static PetscErrorCode TDyMeshMapIndices(TDyDiscretizationType *discretization, T
   ierr = TDyAllocate_IntegerArray_1D(&mesh_ptr->nG2A,ngmax); CHKERRQ(ierr);
 
   const PetscInt *int_ptr;
-  ierr = ISGetIndices(ugdm->IS_GhostedCells_in_PetscOrder, &int_ptr); CHKERRQ(ierr);
+  ierr = ISGetIndices(ugdm->IS_GhostedCells_in_GlobalOrder, &int_ptr); CHKERRQ(ierr);
 
   for (PetscInt icell=0; icell<nlmax; icell++) {
     mesh_ptr->nG2L[icell] = icell;
@@ -52,7 +52,7 @@ static PetscErrorCode TDyMeshMapIndices(TDyDiscretizationType *discretization, T
     mesh_ptr->nG2A[icell] = int_ptr[icell];
   }
 
-  ierr = ISRestoreIndices(ugdm->IS_GhostedCells_in_PetscOrder, &int_ptr); CHKERRQ(ierr);
+  ierr = ISRestoreIndices(ugdm->IS_GhostedCells_in_GlobalOrder, &int_ptr); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }

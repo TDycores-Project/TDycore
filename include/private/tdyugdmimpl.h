@@ -11,13 +11,13 @@ typedef struct {
   Vec GlobalVec; // vector size = num_local_cells * ndof
 
   IS IS_GhostedCells_in_LocalOrder; // IS of ghosted cells (local+ghost) from a local Vec
-  IS IS_GhostedCells_in_PetscOrder; // IS of ghosted cells (local+ghost) from a global Vec
+  IS IS_GhostedCells_in_GlobalOrder; // IS of ghosted cells (local+ghost) from a global Vec
 
   IS IS_LocalCells_in_LocalOrder; // IS of local cells from a local Vec
-  IS IS_LocalCells_in_PetscOrder; // IS of local cells from a global Vec
+  IS IS_LocalCells_in_GlobalOrder; // IS of local cells from a global Vec
 
   IS IS_GhostCells_in_LocalOrder; // IS of ghost cells from a local Vec
-  IS IS_GhostCells_in_PetscOrder; // IS of ghost cells from a global Vec
+  IS IS_GhostCells_in_GlobalOrder; // IS of ghost cells from a global Vec
 
   IS IS_LocalCells_to_NaturalCells; // IS of local cell from a natural Vec
 

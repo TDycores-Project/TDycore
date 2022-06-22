@@ -17,13 +17,13 @@ PetscErrorCode TDyUGDMCreate(TDyUGDM **ugdm){
   ierr = PetscCalloc(sizeof(TDyUGDM), ugdm); CHKERRQ(ierr);
 
   (*ugdm)->IS_GhostedCells_in_LocalOrder = NULL;
-  (*ugdm)->IS_GhostedCells_in_PetscOrder = NULL;
+  (*ugdm)->IS_GhostedCells_in_GlobalOrder = NULL;
 
   (*ugdm)->IS_LocalCells_in_LocalOrder = NULL;
-  (*ugdm)->IS_LocalCells_in_PetscOrder = NULL;
+  (*ugdm)->IS_LocalCells_in_GlobalOrder = NULL;
 
   (*ugdm)->IS_GhostCells_in_LocalOrder = NULL;
-  (*ugdm)->IS_GhostCells_in_PetscOrder = NULL;
+  (*ugdm)->IS_GhostCells_in_GlobalOrder = NULL;
 
   (*ugdm)->IS_LocalCells_to_NaturalCells = NULL;
 
@@ -51,24 +51,24 @@ PetscErrorCode TDyUGDMDestroy(TDyUGDM *ugdm){
     ierr = ISDestroy(&ugdm->IS_GhostedCells_in_LocalOrder); CHKERRQ(ierr);
   }
 
-  if (ugdm->IS_GhostedCells_in_PetscOrder != NULL) {
-    ierr = ISDestroy(&ugdm->IS_GhostedCells_in_PetscOrder); CHKERRQ(ierr);
+  if (ugdm->IS_GhostedCells_in_GlobalOrder != NULL) {
+    ierr = ISDestroy(&ugdm->IS_GhostedCells_in_GlobalOrder); CHKERRQ(ierr);
   }
 
   if (ugdm->IS_LocalCells_in_LocalOrder != NULL) {
     ierr = ISDestroy(&ugdm->IS_LocalCells_in_LocalOrder); CHKERRQ(ierr);
   }
 
-  if (ugdm->IS_LocalCells_in_PetscOrder != NULL) {
-    ierr = ISDestroy(&ugdm->IS_LocalCells_in_PetscOrder); CHKERRQ(ierr);
+  if (ugdm->IS_LocalCells_in_GlobalOrder != NULL) {
+    ierr = ISDestroy(&ugdm->IS_LocalCells_in_GlobalOrder); CHKERRQ(ierr);
   }
 
   if (ugdm->IS_GhostCells_in_LocalOrder != NULL) {
     ierr = ISDestroy(&ugdm->IS_GhostCells_in_LocalOrder); CHKERRQ(ierr);
   }
 
-  if (ugdm->IS_GhostCells_in_PetscOrder != NULL) {
-    ierr = ISDestroy(&ugdm->IS_GhostCells_in_PetscOrder); CHKERRQ(ierr);
+  if (ugdm->IS_GhostCells_in_GlobalOrder != NULL) {
+    ierr = ISDestroy(&ugdm->IS_GhostCells_in_GlobalOrder); CHKERRQ(ierr);
   }
 
   if (ugdm->IS_LocalCells_to_NaturalCells != NULL) {
@@ -172,7 +172,7 @@ static PetscErrorCode CreateLocalOrderIS(PetscInt ngmax, PetscInt nlmax, PetscIn
   PetscFunctionReturn(0);
 }
 
-/// Creates IS for a PETSc-ordered vector
+/// Creates IS for a Glboal-ordered vector
 ///
 /// @param [in] ugrid A TDyUGrid struct
 /// @param [inout] ugdm A TDyUGDM struct
@@ -191,9 +191,9 @@ static PetscErrorCode CreatePetscOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM
   for (PetscInt i=0; i<nlmax; i++) {
     idxL[i] = i + ugrid->global_offset;
   }
-  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nlmax, idxL, PETSC_COPY_VALUES, &ugdm->IS_LocalCells_in_PetscOrder); CHKERRQ(ierr);
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nlmax, idxL, PETSC_COPY_VALUES, &ugdm->IS_LocalCells_in_GlobalOrder); CHKERRQ(ierr);
 #ifdef UGRID_DEBUG
-  ierr = TDySavePetscISAsASCII(ugdm->IS_LocalCells_in_PetscOrder,"is_local_petsc_1.out");
+  ierr = TDySavePetscISAsASCII(ugdm->IS_LocalCells_in_GlobalOrder,"is_local_petsc_1.out");
 #endif
 
   PetscInt idxG[ngmax];
@@ -203,18 +203,18 @@ static PetscErrorCode CreatePetscOrderIS(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM
   for (PetscInt i=0; i<nghost; i++) {
     idxG[i+nlmax] = ugrid->ghost_cell_ids_petsc[i];
   }
-  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, ngmax, idxG, PETSC_COPY_VALUES, &ugdm->IS_GhostedCells_in_PetscOrder); CHKERRQ(ierr);
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, ngmax, idxG, PETSC_COPY_VALUES, &ugdm->IS_GhostedCells_in_GlobalOrder); CHKERRQ(ierr);
 #ifdef UGRID_DEBUG
-  ierr = TDySavePetscISAsASCII(ugdm->IS_GhostedCells_in_PetscOrder,"is_ghosted_petsc_1.out");
+  ierr = TDySavePetscISAsASCII(ugdm->IS_GhostedCells_in_GlobalOrder,"is_ghosted_petsc_1.out");
 #endif
 
   PetscInt idxGhost[nghost];
   for (PetscInt i=0; i<nghost; i++) {
     idxGhost[i] = ugrid->ghost_cell_ids_petsc[i];
   }
-  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nghost, idxGhost, PETSC_COPY_VALUES, &ugdm->IS_GhostCells_in_PetscOrder); CHKERRQ(ierr);
+  ierr = ISCreateBlock(PETSC_COMM_WORLD, ndof, nghost, idxGhost, PETSC_COPY_VALUES, &ugdm->IS_GhostCells_in_GlobalOrder); CHKERRQ(ierr);
 #ifdef UGRID_DEBUG
-  ierr = TDySavePetscISAsASCII(ugdm->IS_GhostCells_in_PetscOrder,"is_ghosts_petsc_1.out");
+  ierr = TDySavePetscISAsASCII(ugdm->IS_GhostCells_in_GlobalOrder,"is_ghosts_petsc_1.out");
 #endif
 
   PetscFunctionReturn(0);
@@ -280,7 +280,7 @@ static PetscErrorCode CreateVecScatters(PetscInt ndof, PetscInt nlmax, TDyUGDM *
   vec_from    = &ugdm->LocalVec;
   vec_to      = &ugdm->GlobalVec;
   is_from     = &ugdm->IS_LocalCells_in_LocalOrder;
-  is_to       = &ugdm->IS_LocalCells_in_PetscOrder;
+  is_to       = &ugdm->IS_LocalCells_in_GlobalOrder;
   vec_scatter = &ugdm->Scatter_LocalCells_to_GlobalCells;
   ierr = VecScatterCreate(*vec_from, *is_from, *vec_to, *is_to, vec_scatter); CHKERRQ(ierr);
 #ifdef UGRID_DEBUG
@@ -289,7 +289,7 @@ static PetscErrorCode CreateVecScatters(PetscInt ndof, PetscInt nlmax, TDyUGDM *
 
   vec_from    = &ugdm->GlobalVec;
   vec_to      = &ugdm->LocalVec;
-  is_from     = &ugdm->IS_GhostedCells_in_PetscOrder;
+  is_from     = &ugdm->IS_GhostedCells_in_GlobalOrder;
   is_to       = &ugdm->IS_GhostedCells_in_LocalOrder;
   vec_scatter = &ugdm->Scatter_GlobalCells_to_LocalCells;
   ierr = VecScatterCreate(*vec_from, *is_from, *vec_to, *is_to, vec_scatter); CHKERRQ(ierr);
@@ -311,7 +311,7 @@ static PetscErrorCode CreateVecScatters(PetscInt ndof, PetscInt nlmax, TDyUGDM *
 #endif
 
   vec_from    = &ugdm->GlobalVec;
-  is_from     = &ugdm->IS_LocalCells_in_PetscOrder;
+  is_from     = &ugdm->IS_LocalCells_in_GlobalOrder;
   is_to       = &ugdm->IS_LocalCells_to_NaturalCells;
   vec_scatter = &ugdm->Scatter_GlobalCells_to_NaturalCells;
 
@@ -351,7 +351,7 @@ PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *u
   // Create three local-ordered ISs
   ierr = CreateLocalOrderIS(ugrid->num_cells_global, ugrid->num_cells_local, ugrid->num_cells_ghost, ndof, ugdm); CHKERRQ(ierr);
 
-  // Create three PETSc-ordered ISs
+  // Create three Glboal-ordered ISs
   ierr = CreatePetscOrderIS(ndof, ugrid, ugdm); CHKERRQ(ierr);
 
   // Create natural-order IS
@@ -361,7 +361,7 @@ PetscErrorCode TDyUGDMCreateFromUGrid(PetscInt ndof, TDyUGrid *ugrid, TDyUGDM *u
   ierr = CreateVecScatters(ndof, ugrid->num_cells_local, ugdm); CHKERRQ(ierr);
 
   // Creates the mapping
-  ierr = ISLocalToGlobalMappingCreateIS(ugdm->IS_GhostedCells_in_PetscOrder, &ugdm->Mapping_LocalCells_to_GhostedCells); CHKERRQ(ierr);
+  ierr = ISLocalToGlobalMappingCreateIS(ugdm->IS_GhostedCells_in_GlobalOrder, &ugdm->Mapping_LocalCells_to_GhostedCells); CHKERRQ(ierr);
 #ifdef UGRID_DEBUG
   ierr = TDySavePetscISLocalToGlobalMappingAsASCII(ugdm->Mapping_LocalCells_to_GhostedCells, "mapping_ltog_1.out"); CHKERRQ(ierr);
 #endif

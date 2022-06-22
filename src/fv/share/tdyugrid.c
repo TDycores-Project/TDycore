@@ -505,7 +505,7 @@ static PetscErrorCode CreateApplicationOrder(PetscInt NewGlobalOffset, PetscInt 
 /// @param [inout] PetscOrderVec Vec containg updaed mesh information
 ///
 /// @returns 0 on success, or a non-zero error code on failure
-static PetscErrorCode CellAndDualIDs_FromNatOrder_To_PetscOrder(PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, TDyUGrid *ugrid, Vec *PostPartNatOrderVec, Vec *PetscOrderVec) {
+static PetscErrorCode CellAndDualIDs_FromNatOrder_To_GlobalOrder(PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, TDyUGrid *ugrid, Vec *PostPartNatOrderVec, Vec *PetscOrderVec) {
 
   PetscErrorCode ierr;
 
@@ -598,7 +598,7 @@ PetscErrorCode DualIDs_FromPetscOrder_To_LocalOrder(PetscInt stride, PetscInt du
 
   PetscInt IntArray1[NumCellsGhost];
 
-  // 1. Make a list of ghost cells IDs that in PETSc-order
+  // 1. Make a list of ghost cells IDs that in Glboal-order
   // 2. Change IDs of duals that are locally-owned and ghost cells in PetscOrderVec
   //   - Locally-owned dual IDs are positive values
   //   - Ghost dual IDs are negative values
@@ -609,9 +609,9 @@ PetscErrorCode DualIDs_FromPetscOrder_To_LocalOrder(PetscInt stride, PetscInt du
       PetscInt dualID = (PetscInt) v_ptr[icell*stride + idual + dual_offset];
 
       if (dualID > 0) {
-        // Determine if the dual is a ghost based on the ID of the dual that is in PETSc-order
+        // Determine if the dual is a ghost based on the ID of the dual that is in Glboal-order
         if (dualID <= NewGlobalOffset || dualID > NewGlobalOffset + NewNumCellsLocal) {
-          IntArray1[NumCellsGhost++] = dualID; // Save the dual ID in PETSc-order
+          IntArray1[NumCellsGhost++] = dualID; // Save the dual ID in Glboal-order
           v_ptr[icell*stride + idual + dual_offset] = -NumCellsGhost;
         } else {
           v_ptr[icell*stride + idual + dual_offset] = dualID - NewGlobalOffset;
@@ -710,7 +710,7 @@ PetscErrorCode DualIDs_FromPetscOrder_To_LocalOrder(PetscInt stride, PetscInt du
 /// @param [in] stride Block size of the Vec
 /// @param [in] dual_offset Offset for dual IDs
 /// @param [in] NatOrderVec Vec containg mesh information in natural-order
-/// @param [in] PetscOrderVec Vec containg mesh information in PETSc-order
+/// @param [in] PetscOrderVec Vec containg mesh information in Glboal-order
 /// @param [inout] ugrid A TDyUGrid struct
 ///
 /// @returns 0 on success, or a non-zero error code on failure
@@ -761,7 +761,7 @@ static PetscErrorCode UpdateNaturalCellIDs(PetscInt stride, PetscInt dual_offset
 ///
 /// @param [in] stride Block size of the Vec
 /// @param [in] dual_offset Offset for dual IDs
-/// @param [in] PetscOrderVec Vec containg mesh information in PETSc-order
+/// @param [in] PetscOrderVec Vec containg mesh information in Glboal-order
 /// @param [inout] ugrid A TDyUGrid struct
 ///
 /// @returns 0 on success, or a non-zero error code on failure
@@ -803,7 +803,7 @@ static PetscErrorCode DetermineNeigbhorsCellIDsInGhostedOrder(PetscInt stride, P
   PetscFunctionReturn(0);
 }
 
-/// Scatter mesh information from a natural-order Vec (pre-partition) to PETSc-ordered Vec (post-partition)
+/// Scatter mesh information from a natural-order Vec (pre-partition) to Glboal-ordered Vec (post-partition)
 ///
 /// @param [in] stride Block size of the Vec
 /// @param [in] dual_offset Offset for dual IDs
@@ -811,7 +811,7 @@ static PetscErrorCode DetermineNeigbhorsCellIDsInGhostedOrder(PetscInt stride, P
 /// @param [in] NatOrderVec Vec containing mesh information in natural-order
 /// @param [in] NatToPetscIS IS for natural-to-PETSc Vec mapping
 /// @param [inout] ugrid A TDyUGrid struct
-/// @param [out] PetscOrderVec Vec containing mesh information in PETSc-order
+/// @param [out] PetscOrderVec Vec containing mesh information in Glboal-order
 ///
 /// @returns 0 on success, or a non-zero error code on failure
 static PetscErrorCode ScatterVecNatOrderToPetscOrder(PetscInt stride, PetscInt dual_offset, PetscInt NewNumCellsLocal, Vec *NatOrderVec, IS *NatToPetscIS, TDyUGrid *ugrid, Vec *PetscOrderVec) {
@@ -834,13 +834,13 @@ static PetscErrorCode ScatterVecNatOrderToPetscOrder(PetscInt stride, PetscInt d
   // Save natural ids of local cells owned by each rank after mesh partitioning
   ierr = SaveNaturalCellIDs(PostPartNatOrderVec, NewNumCellsLocal, stride, ugrid); CHKERRQ(ierr);
 
-  // Create application order (AO) from natural-order to PETSc-order
+  // Create application order (AO) from natural-order to Glboal-order
   ierr = CreateApplicationOrder(NewGlobalOffset, NewNumCellsLocal, ugrid); CHKERRQ(ierr);
 
   // Change cell and dual ids from natural-order to PETSc order
-  ierr = CellAndDualIDs_FromNatOrder_To_PetscOrder(stride, dual_offset, NewNumCellsLocal, ugrid, &PostPartNatOrderVec, PetscOrderVec);
+  ierr = CellAndDualIDs_FromNatOrder_To_GlobalOrder(stride, dual_offset, NewNumCellsLocal, ugrid, &PostPartNatOrderVec, PetscOrderVec);
 
-  // Change the dual ids from PETSc-order to local-order
+  // Change the dual ids from Glboal-order to local-order
   ierr = DualIDs_FromPetscOrder_To_LocalOrder(stride, dual_offset, NewNumCellsLocal, NewGlobalOffset, ugrid, PetscOrderVec);
 
   // Update the array that saves the natural cell ids to include ghost cells
@@ -852,10 +852,10 @@ static PetscErrorCode ScatterVecNatOrderToPetscOrder(PetscInt stride, PetscInt d
   PetscFunctionReturn(0);
 }
 
-/// Post-partition, scatter mesh information from a PETSc-ordered Vec to a local-ordered Vec
+/// Post-partition, scatter mesh information from a Glboal-ordered Vec to a local-ordered Vec
 ///
 /// @param [in] stride Block size of the Vec
-/// @param [in] PetscOrderVec Vec containing mesh information in PETSc-order
+/// @param [in] PetscOrderVec Vec containing mesh information in Glboal-order
 /// @param [inout] ugrid A TDyUGrid struct
 /// @param [out] LocalOrderVec Vec containing mesh information in local-order
 ///
@@ -877,7 +877,7 @@ PetscErrorCode ScatterVecPetscOrderToLocalOrder(PetscInt stride, Vec *PetscOrder
   // 2. Create index sets (ISs)
   PetscInt idx[ngmax];
 
-  // 2.1 Index set to scatter data from a MPI Vec in PETSc-order
+  // 2.1 Index set to scatter data from a MPI Vec in Glboal-order
   for (PetscInt icell=0; icell<nlmax; icell++) {
     idx[icell] = ugrid->cell_ids_petsc[icell];
   }
