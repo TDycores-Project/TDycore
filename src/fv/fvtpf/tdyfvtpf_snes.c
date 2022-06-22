@@ -8,24 +8,22 @@
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdydiscretizationimpl.h>
 
-PetscErrorCode TDyFVTPFSNESAccumulation(TDy tdy, PetscInt icell, PetscReal *accum) {
+PetscErrorCode TDyFVTPFSNESAccumulation(PetscInt icell, PetscReal dtime, TDyFVTPF *fvtpf, PetscReal *accum) {
 
   PetscFunctionBegin;
 
-  TDyFVTPF *fvtpf = tdy->context;
   TDyMesh *mesh = fvtpf->mesh;
   TDyCell *cells = &mesh->cells;
 
-  *accum = fvtpf->rho[icell] * fvtpf->porosity[icell] * fvtpf->S[icell] * cells->volume[icell] / tdy->dtime;
+  *accum = fvtpf->rho[icell] * fvtpf->porosity[icell] * fvtpf->S[icell] * cells->volume[icell] / dtime;
 
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDyFVTPFSNESJacobianAccumulation(TDy tdy, PetscInt icell, PetscReal *J) {
+PetscErrorCode TDyFVTPFSNESJacobianAccumulation(PetscInt icell, PetscReal dtime, TDyFVTPF *fvtpf, PetscReal *J) {
 
   PetscFunctionBegin;
 
-  TDyFVTPF *fvtpf = tdy->context;
   TDyMesh *mesh = fvtpf->mesh;
   TDyCell *cells = &mesh->cells;
 
@@ -35,7 +33,7 @@ PetscErrorCode TDyFVTPFSNESJacobianAccumulation(TDy tdy, PetscInt icell, PetscRe
   PetscReal drho_dP = fvtpf->drho_dP[icell];
   PetscReal dpor_dP = 0.0;
   PetscReal dS_dP = fvtpf->dS_dP[icell];
-  PetscReal vol_over_dt = cells->volume[icell] / tdy->dtime;
+  PetscReal vol_over_dt = cells->volume[icell]/dtime;
 
   // accum = rho * por * S * vol/dtime
   *J = (drho_dP * por * S + rho * dpor_dP * S + rho * por * dS_dP) * vol_over_dt;
@@ -69,7 +67,7 @@ PetscErrorCode TDyFVTPFSNESPreSolve(TDy tdy) {
     // d(rho*phi*s)/dt * Vol
     //  = [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
     //  = accum_current - accum_prev
-    ierr = TDyFVTPFSNESAccumulation(tdy,icell,&accum_prev[icell]); CHKERRQ(ierr);
+    ierr = TDyFVTPFSNESAccumulation(icell,tdy->dtime,tdy->context,&accum_prev[icell]); CHKERRQ(ierr);
   }
   ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
 
@@ -109,7 +107,7 @@ PetscErrorCode TDyFVTPFSNESTimeCut(TDy tdy) {
     // d(rho*phi*s)/dt * Vol
     //  = [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
     //  = accum_current - accum_prev
-    ierr = TDyFVTPFSNESAccumulation(tdy,icell,&accum_prev[icell]); CHKERRQ(ierr);
+    ierr = TDyFVTPFSNESAccumulation(icell,tdy->dtime,tdy->context,&accum_prev[icell]); CHKERRQ(ierr);
   }
   ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
 
@@ -622,7 +620,7 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 
     if (!cells->is_local[icell]) continue;
 
-    ierr = TDyFVTPFSNESAccumulation(tdy,icell,&accum_current); CHKERRQ(ierr);
+    ierr = TDyFVTPFSNESAccumulation(icell,tdy->dtime,tdy->context,&accum_current); CHKERRQ(ierr);
 
     r_ptr[icell] += accum_current - accum_prev[icell];
     r_ptr[icell] -= fvtpf->source_sink[icell];
@@ -722,7 +720,7 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
     if (!cells->is_local[icell]) continue;
 
     PetscReal J;
-    ierr = TDyFVTPFSNESJacobianAccumulation(tdy, icell, &J); CHKERRQ(ierr);
+    ierr = TDyFVTPFSNESJacobianAccumulation(icell,tdy->dtime,tdy->context,&J); CHKERRQ(ierr);
 
     ierr = MatSetValuesLocal(B,1,&icell,1,&icell,&J,ADD_VALUES);CHKERRQ(ierr);
 
