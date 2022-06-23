@@ -1,5 +1,6 @@
 #include <private/tdycoreimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
+#include <private/tdymemoryimpl.h>
 #include <tdytimers.h>
 #include <private/tdyoptions.h>
 
@@ -40,7 +41,7 @@ PetscErrorCode MaterialPropDestroy(MaterialProp *matprop) {
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
 PetscErrorCode MaterialPropSetPermeability(MaterialProp *matprop, void *context,
                                            PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                           void (*dtor)(void*)) {
+                                           PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (matprop->permeability_context && matprop->permeability_dtor)
     matprop->permeability_dtor(matprop->permeability_context);
@@ -57,7 +58,7 @@ PetscErrorCode MaterialPropSetPermeability(MaterialProp *matprop, void *context,
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
 PetscErrorCode MaterialPropSetPorosity(MaterialProp *matprop, void *context,
                                        PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                       void (*dtor)(void*)) {
+                                       PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (matprop->porosity_context && matprop->porosity_dtor)
     matprop->porosity_dtor(matprop->porosity_context);
@@ -74,7 +75,7 @@ PetscErrorCode MaterialPropSetPorosity(MaterialProp *matprop, void *context,
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
 PetscErrorCode MaterialPropSetThermalConductivity(MaterialProp *matprop, void *context,
                                                   PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                                  void (*dtor)(void*)) {
+                                                  PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (matprop->thermal_conductivity_context && matprop->thermal_conductivity_dtor)
     matprop->thermal_conductivity_dtor(matprop->thermal_conductivity_context);
@@ -91,7 +92,7 @@ PetscErrorCode MaterialPropSetThermalConductivity(MaterialProp *matprop, void *c
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
 PetscErrorCode MaterialPropSetResidualSaturation(MaterialProp *matprop, void *context,
                                                  PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                                 void (*dtor)(void*)) {
+                                                 PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (matprop->residual_saturation_context && matprop->residual_saturation_dtor)
     matprop->residual_saturation_dtor(matprop->residual_saturation_context);
@@ -108,7 +109,7 @@ PetscErrorCode MaterialPropSetResidualSaturation(MaterialProp *matprop, void *co
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
 PetscErrorCode MaterialPropSetSoilDensity(MaterialProp *matprop, void *context,
                                           PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                          void (*dtor)(void*)) {
+                                          PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (matprop->soil_density_context && matprop->soil_density_dtor)
     matprop->soil_density_dtor(matprop->soil_density_context);
@@ -125,7 +126,7 @@ PetscErrorCode MaterialPropSetSoilDensity(MaterialProp *matprop, void *context,
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
 PetscErrorCode MaterialPropSetSoilSpecificHeat(MaterialProp *matprop, void *context,
                                                PetscErrorCode(*f)(void*,int,PetscReal*,PetscReal*),
-                                               void (*dtor)(void*)) {
+                                               PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (matprop->soil_specific_heat_context && matprop->soil_specific_heat_dtor)
     matprop->soil_specific_heat_dtor(matprop->soil_specific_heat_context);
@@ -441,12 +442,6 @@ static PetscErrorCode FullTensorWrapperFunction(void *context, PetscInt n,
   PetscFunctionReturn(0);
 }
 
-// Generic destructor for contexts for functions in this file. Called when
-// the corresponding MaterialProp instance is destroyed.
-static void DestroyContext(void* context) {
-  PetscFree(context);
-}
-
 /// Sets the porosity function to the given constant value.
 PetscErrorCode MaterialPropSetConstantPorosity(MaterialProp *matprop,
                                                PetscReal porosity) {
@@ -458,7 +453,7 @@ PetscErrorCode MaterialPropSetConstantPorosity(MaterialProp *matprop,
   value[0] = porosity;
   ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetPorosity(matprop, context, ConstantScalarWrapperFunction,
-                                 DestroyContext); CHKERRQ(ierr);
+                                 TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -471,7 +466,7 @@ PetscErrorCode MaterialPropSetHeterogeneousPorosity(MaterialProp *matprop,
   void *context;
   ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetPorosity(matprop, context, ScalarWrapperFunction,
-                                 DestroyContext); CHKERRQ(ierr);
+                                 TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -487,7 +482,7 @@ PetscErrorCode MaterialPropSetConstantIsotropicPermeability(MaterialProp *matpro
   value[0] = perm;
   ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetPermeability(matprop, context, ConstantIsotropicTensorWrapperFunction,
-                                     DestroyContext); CHKERRQ(ierr);
+                                     TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -501,7 +496,7 @@ PetscErrorCode MaterialPropSetHeterogeneousIsotropicPermeability(MaterialProp *m
   void *context;
   ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetPermeability(matprop, context, IsotropicTensorWrapperFunction,
-                                     DestroyContext); CHKERRQ(ierr);
+                                     TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -516,7 +511,7 @@ PetscErrorCode MaterialPropSetConstantDiagonalPermeability(MaterialProp *matprop
   value[0] = perm[0]; value[1] = perm[1]; value[2] = perm[2];
   ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetPermeability(matprop, context, ConstantDiagonalTensorWrapperFunction,
-                                     DestroyContext); CHKERRQ(ierr);
+                                     TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -530,7 +525,7 @@ PetscErrorCode MaterialPropSetHeterogeneousDiagonalPermeability(MaterialProp *ma
   void *context;
   ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetPermeability(matprop, context, DiagonalTensorWrapperFunction,
-                                     DestroyContext); CHKERRQ(ierr);
+                                     TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -543,7 +538,7 @@ PetscErrorCode MaterialPropSetConstantTensorPermeability(MaterialProp *matprop,
   void *context;
   ierr = CreateConstantContext(matprop->dim, perm, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetPermeability(matprop, context, ConstantFullTensorWrapperFunction,
-                                     DestroyContext); CHKERRQ(ierr);
+                                     TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -557,7 +552,7 @@ PetscErrorCode MaterialPropSetHeterogeneousTensorPermeability(MaterialProp *matp
   void *context;
   ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetPermeability(matprop, context, FullTensorWrapperFunction,
-                                     DestroyContext); CHKERRQ(ierr);
+                                     TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -573,7 +568,7 @@ PetscErrorCode MaterialPropSetConstantIsotropicThermalConductivity(MaterialProp 
   value[0] = conductivity;
   ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetThermalConductivity(matprop, context, ConstantIsotropicTensorWrapperFunction,
-                                            DestroyContext); CHKERRQ(ierr);
+                                            TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -587,7 +582,7 @@ PetscErrorCode MaterialPropSetHeterogeneousIsotropicThermalConductivity(Material
   void *context;
   ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetThermalConductivity(matprop, context, IsotropicTensorWrapperFunction,
-                                            DestroyContext); CHKERRQ(ierr);
+                                            TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -602,7 +597,7 @@ PetscErrorCode MaterialPropSetConstantDiagonalThermalConductivity(MaterialProp *
   value[0] = conductivity[0]; value[1] = conductivity[1]; value[2] = conductivity[2];
   ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetThermalConductivity(matprop, context, ConstantDiagonalTensorWrapperFunction,
-                                             DestroyContext); CHKERRQ(ierr);
+                                             TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -616,7 +611,7 @@ PetscErrorCode MaterialPropSetHeterogeneousDiagonalThermalConductivity(MaterialP
   void *context;
   ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetThermalConductivity(matprop, context, DiagonalTensorWrapperFunction,
-                                            DestroyContext); CHKERRQ(ierr);
+                                            TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -629,7 +624,7 @@ PetscErrorCode MaterialPropSetConstantTensorThermalConductivity(MaterialProp *ma
   void *context;
   ierr = CreateConstantContext(matprop->dim, conductivity, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetThermalConductivity(matprop, context, ConstantFullTensorWrapperFunction,
-                                            DestroyContext); CHKERRQ(ierr);
+                                            TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -643,7 +638,7 @@ PetscErrorCode MaterialPropSetHeterogeneousTensorThermalConductivity(MaterialPro
   void *context;
   ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetThermalConductivity(matprop, context, FullTensorWrapperFunction,
-                                            DestroyContext); CHKERRQ(ierr);
+                                            TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -658,7 +653,7 @@ PetscErrorCode MaterialPropSetConstantResidualSaturation(MaterialProp *matprop,
   value[0] = saturation;
   ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetResidualSaturation(matprop, context, ConstantScalarWrapperFunction,
-                                           DestroyContext); CHKERRQ(ierr);
+                                           TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -671,7 +666,7 @@ PetscErrorCode MaterialPropSetHeterogeneousResidualSaturation(MaterialProp *matp
   void *context;
   ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetResidualSaturation(matprop, context, ScalarWrapperFunction,
-                                           DestroyContext); CHKERRQ(ierr);
+                                           TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -686,7 +681,7 @@ PetscErrorCode MaterialPropSetConstantSoilDensity(MaterialProp *matprop,
   value[0] = density;
   ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetSoilDensity(matprop, context, ConstantScalarWrapperFunction,
-                                    DestroyContext); CHKERRQ(ierr);
+                                    TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -699,7 +694,7 @@ PetscErrorCode MaterialPropSetHeterogeneousSoilDensity(MaterialProp *matprop,
   void *context;
   ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetSoilDensity(matprop, context, ScalarWrapperFunction,
-                                    DestroyContext); CHKERRQ(ierr);
+                                    TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -714,7 +709,7 @@ PetscErrorCode MaterialPropSetConstantSoilSpecificHeat(MaterialProp *matprop,
   value[0] = specific_heat;
   ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetSoilSpecificHeat(matprop, context, ConstantScalarWrapperFunction,
-                                                                                                         DestroyContext); CHKERRQ(ierr);
+                                         TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -727,7 +722,7 @@ PetscErrorCode MaterialPropSetHeterogeneousSoilSpecificHeat(MaterialProp *matpro
   void *context;
   ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
   ierr = MaterialPropSetSoilSpecificHeat(matprop, context, ScalarWrapperFunction,
-                                         DestroyContext); CHKERRQ(ierr);
+                                         TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

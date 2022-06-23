@@ -16,7 +16,7 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   TDyIO io;
   PetscErrorCode ierr;
 
-  io = (TDyIO)malloc(sizeof(struct _p_TDyIO));
+  ierr = TDyAlloc(sizeof(struct _p_TDyIO), &io); CHKERRQ(ierr);
   *_io = io;
 
   io->io_process = PETSC_FALSE;
@@ -111,7 +111,7 @@ static PetscErrorCode DiagonalTensorsCreate(PetscInt dim, PetscReal *Tx,
                                             DiagonalTensors **diag_tensors) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  ierr = PetscMalloc(sizeof(DiagonalTensors), diag_tensors); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(DiagonalTensors), diag_tensors); CHKERRQ(ierr);
   (*diag_tensors)->dim = dim;
   (*diag_tensors)->Tx = Tx;
   (*diag_tensors)->Ty = Ty;
@@ -141,12 +141,21 @@ static PetscErrorCode AssignDiagonalTensors(void *context, PetscInt n,
   PetscFunctionReturn(0);
 }
 
-static void DiagonalTensorsDestroy(void *context) {
+static PetscErrorCode DiagonalTensorsDestroy(void *context) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
   DiagonalTensors *diag_tensors = context;
-  if (diag_tensors->Tx) free(diag_tensors->Tx);
-  if (diag_tensors->Ty) free(diag_tensors->Ty);
-  if (diag_tensors->Tz) free(diag_tensors->Tz);
-  PetscFree(diag_tensors);
+  if (diag_tensors->Tx) {
+    ierr = TDyFree(diag_tensors->Tx); CHKERRQ(ierr);
+  }
+  if (diag_tensors->Ty) {
+    ierr = TDyFree(diag_tensors->Ty); CHKERRQ(ierr);
+  }
+  if (diag_tensors->Tz) {
+    ierr = TDyFree(diag_tensors->Tz); CHKERRQ(ierr);
+  }
+  ierr = TDyFree(diag_tensors); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
 }
 
 /// Reads in and sets initial permeability for the TDy solver
@@ -215,8 +224,8 @@ static PetscErrorCode AssignScalars(void *context, PetscInt n, PetscReal *x,
   }
   PetscFunctionReturn(0);
 }
-static void ScalarsDestroy(void* context) {
-  free(context);
+static PetscErrorCode ScalarsDestroy(void* context) {
+  return TDyFree(context);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -311,7 +320,7 @@ PetscErrorCode TDyIOReadVariable(TDy tdy, char *VariableName, char *filename, Pe
   ierr = VecGetArray(u_local,&ptr);CHKERRQ(ierr);
   ierr = VecGetSize(u_local,&n);CHKERRQ(ierr);
 
-  ierr = TDyAllocate_RealArray_1D(variable,n);CHKERRQ(ierr);
+  ierr = TDyAlloc(n,variable);CHKERRQ(ierr);
   for (i = 0;i<n;++i){
     (*variable)[i] = ptr[i];
   }
@@ -690,7 +699,7 @@ PetscErrorCode TDyIOWriteXMFFooter(){
 PetscErrorCode TDyIODestroy(TDyIO *io) {
   PetscFunctionBegin;
   TDyIOWriteXMFFooter();
-  free(*io);
+  TDyFree(*io);
   io = PETSC_NULL;
   PetscFunctionReturn(0);
 }

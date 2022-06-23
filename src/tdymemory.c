@@ -1,12 +1,5 @@
 #include <private/tdymemoryimpl.h>
 
-/// Allocates a chunk of zeroed memory of the given size (in bytes).
-/// @param [in] size The size of the requested allocation.
-/// @param [out] result A pointer to the requested memory chunk.
-PetscErrorCode TDyAlloc(size_t size, void **result) {
-  return PetscCalloc1(size, result);
-}
-
 /// Frees memory allocated by TDyAlloc.
 /// @param [out] memory The pointer to the memory to be freed.
 PetscErrorCode TDyFree(void *memory) {

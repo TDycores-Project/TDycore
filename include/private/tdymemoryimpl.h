@@ -4,7 +4,17 @@
 #include <petsc.h>
 #include <private/tdymeshimpl.h>
 
-PETSC_INTERN PetscErrorCode TDyAlloc(size_t,void**);
+/// @def TDyAlloc
+/// Allocates a chunk of zeroed memory of the given size (in bytes).
+/// @param [in] size The size of the requested allocation.
+/// @param [out] result A pointer to the requested memory chunk.
+#define TDyAlloc(size,result) PetscCalloc1(size,result)
+
+/// @def TDyRealloc
+/// Resizes the given chunk of memory to the new requested size.
+/// @param [in] size The size of the requested allocation.
+/// @param [inout] memory A pointer to a previously allocated memory chunk.
+#define TDyRealloc(size,memory) PetscRealloc(size,memory)
 PETSC_INTERN PetscErrorCode TDyFree(void*);
 PETSC_INTERN PetscErrorCode TDySetIntArray(size_t,PetscInt[],PetscInt);
 PETSC_INTERN PetscErrorCode TDySetRealArray(size_t,PetscReal[],PetscReal);
