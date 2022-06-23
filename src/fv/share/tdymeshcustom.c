@@ -1161,7 +1161,7 @@ static PetscErrorCode ComputeGeoAttrOfUGridFaces(PetscInt **cell_to_face, TDyUGr
   ierr = TDyAllocate_RealArray_1D(&ugrid->face_area, ugrid->num_faces); CHKERRQ(ierr);
 
   PetscBool is_face_set[ugrid->num_faces];
-  for (PetscInt iface; iface<ugrid->num_faces; iface++) {
+  for (PetscInt iface = 0; iface<ugrid->num_faces; iface++) {
     is_face_set[iface] = PETSC_FALSE;
     for (PetscInt idim=0; idim<dim; idim++) {
       ugrid->face_centroid[iface][idim] = 0.0;
