@@ -39,7 +39,7 @@ PetscErrorCode TDyRegionAddCells(PetscInt ncells, PetscInt ids[], TDyRegion *reg
 /// @returns 0 on success, or a non-zero error code on failure.
 PetscErrorCode TDyRegionDestroy(TDyRegion *region) {
   if (region->cell_ids != NULL) {
-    return PetscFree(region->cell_ids);
+    return TDyFree(region->cell_ids);
   }
   PetscFunctionReturn(0);
 }

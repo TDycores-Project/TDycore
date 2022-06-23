@@ -295,7 +295,7 @@ static PetscErrorCode CreateF90SpatialFunctionContext(PetscInt dim,
   PetscErrorCode ierr;
   PetscFunctionBegin;
   F90SpatialFunctionWrapper *wrapper;
-  ierr = PetscMalloc(sizeof(F90SpatialFunctionWrapper), &wrapper); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(F90SpatialFunctionWrapper), &wrapper); CHKERRQ(ierr);
   wrapper->dim = dim;
   wrapper->id = id;
   *context = wrapper;
@@ -309,7 +309,7 @@ static PetscErrorCode CreateF90IntegerSpatialFunctionContext(PetscInt dim,
   PetscErrorCode ierr;
   PetscFunctionBegin;
   F90IntegerSpatialFunctionWrapper *wrapper;
-  ierr = PetscMalloc(sizeof(F90IntegerSpatialFunctionWrapper), &wrapper); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(F90IntegerSpatialFunctionWrapper), &wrapper); CHKERRQ(ierr);
   wrapper->dim = dim;
   wrapper->id = id;
   *context = wrapper;

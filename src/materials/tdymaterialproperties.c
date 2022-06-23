@@ -14,7 +14,7 @@ PetscErrorCode MaterialPropCreate(PetscInt dim, MaterialProp **matprop) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  ierr = PetscCalloc(sizeof(MaterialProp), matprop); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(MaterialProp), matprop); CHKERRQ(ierr);
   (*matprop)->dim = dim;
 
   PetscFunctionReturn(0);
@@ -23,6 +23,7 @@ PetscErrorCode MaterialPropCreate(PetscInt dim, MaterialProp **matprop) {
 /// Destroys the given instance (and any context pointers managed by it).
 /// @param [inout] matprop A MaterialProp instance
 PetscErrorCode MaterialPropDestroy(MaterialProp *matprop) {
+  PetscErrorCode ierr;
   PetscFunctionBegin;
   MaterialPropSetPorosity(matprop, NULL, NULL, NULL);
   MaterialPropSetPermeability(matprop, NULL, NULL, NULL);
@@ -30,7 +31,7 @@ PetscErrorCode MaterialPropDestroy(MaterialProp *matprop) {
   MaterialPropSetResidualSaturation(matprop, NULL, NULL, NULL);
   MaterialPropSetSoilDensity(matprop, NULL, NULL, NULL);
   MaterialPropSetSoilSpecificHeat(matprop, NULL, NULL, NULL);
-  PetscFree(matprop);
+  ierr = TDyFree(matprop); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -303,7 +304,7 @@ static PetscErrorCode CreateConstantContext(PetscInt dim, PetscReal value[9],
   PetscErrorCode ierr;
   PetscFunctionBegin;
   WrapperStruct *wrapper;
-  ierr = PetscMalloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
   wrapper->dim = dim;
   memcpy(wrapper->value, value, 9*sizeof(PetscReal));
   wrapper->func = NULL;
@@ -318,7 +319,7 @@ static PetscErrorCode CreateSpatialContext(PetscInt dim,
   PetscErrorCode ierr;
   PetscFunctionBegin;
   WrapperStruct *wrapper;
-  ierr = PetscMalloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
   wrapper->dim = dim;
   memset(wrapper->value, 0, 9*sizeof(PetscReal));
   wrapper->func = func;

@@ -4,6 +4,7 @@
 #include <petscblaslapack.h>
 #include <tdytimers.h>
 #include <private/tdydiscretizationimpl.h>
+#include <private/tdymemoryimpl.h>
 
 /* (dim*vertices_per_cell+1)^2 */
 #define MAX_LOCAL_SIZE 625
@@ -21,7 +22,7 @@ PetscErrorCode TDyCreate_BDM(void **context) {
 
   // Allocate a new context for the WY method.
   TDyBDM *bdm;
-  ierr = PetscMalloc(sizeof(TDyBDM), &bdm); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(TDyBDM), &bdm); CHKERRQ(ierr);
   *context = bdm;
 
   // initialize data
@@ -38,17 +39,17 @@ PetscErrorCode TDyDestroy_BDM(void *context) {
   PetscFunctionBegin;
   TDyBDM *bdm = context;
 
-  if (bdm->vmap  ) { ierr = PetscFree(bdm->vmap  ); CHKERRQ(ierr); }
-  if (bdm->emap  ) { ierr = PetscFree(bdm->emap  ); CHKERRQ(ierr); }
-  if (bdm->fmap  ) { ierr = PetscFree(bdm->fmap  ); CHKERRQ(ierr); }
-  if (bdm->faces ) { ierr = PetscFree(bdm->faces ); CHKERRQ(ierr); }
-  if (bdm->LtoG  ) { ierr = PetscFree(bdm->LtoG  ); CHKERRQ(ierr); }
-  if (bdm->orient) { ierr = PetscFree(bdm->orient); CHKERRQ(ierr); }
+  if (bdm->vmap  ) { ierr = TDyFree(bdm->vmap  ); CHKERRQ(ierr); }
+  if (bdm->emap  ) { ierr = TDyFree(bdm->emap  ); CHKERRQ(ierr); }
+  if (bdm->fmap  ) { ierr = TDyFree(bdm->fmap  ); CHKERRQ(ierr); }
+  if (bdm->faces ) { ierr = TDyFree(bdm->faces ); CHKERRQ(ierr); }
+  if (bdm->LtoG  ) { ierr = TDyFree(bdm->LtoG  ); CHKERRQ(ierr); }
+  if (bdm->orient) { ierr = TDyFree(bdm->orient); CHKERRQ(ierr); }
   if (bdm->quad  ) { ierr = PetscQuadratureDestroy(&(bdm->quad)); CHKERRQ(ierr); }
 
-  ierr = PetscFree(bdm->V); CHKERRQ(ierr);
-  ierr = PetscFree(bdm->X); CHKERRQ(ierr);
-  ierr = PetscFree(bdm->N); CHKERRQ(ierr);
+  ierr = TDyFree(bdm->V); CHKERRQ(ierr);
+  ierr = TDyFree(bdm->X); CHKERRQ(ierr);
+  ierr = TDyFree(bdm->N); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -115,11 +116,11 @@ PetscErrorCode TDySetup_BDM(void *context, TDyDiscretizationType *discretization
   ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(bdm->V));
+  ierr = TDyAlloc(    (pEnd-pStart)*sizeof(PetscReal),&(bdm->V));
   CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(bdm->X));
+  ierr = TDyAlloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(bdm->X));
   CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(bdm->N));
+  ierr = TDyAlloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(bdm->N));
   CHKERRQ(ierr);
   PetscSection coordSection;
   Vec coordinates;
@@ -187,8 +188,8 @@ PetscErrorCode TDySetup_BDM(void *context, TDyDiscretizationType *discretization
 
   /* Build map(face,local_vertex) --> vertex */
   nfv = TDyGetNumberOfFaceVertices(dm);
-  ierr = PetscMalloc(nfv*(fEnd-fStart)*sizeof(PetscInt),
-                     &(bdm->fmap)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nfv*(fEnd-fStart)*sizeof(PetscInt),
+                  &(bdm->fmap)); CHKERRQ(ierr);
   for(f=fStart; f<fEnd; f++) {
     closure = NULL;
     ierr = DMPlexGetTransitiveClosure(dm,f,PETSC_TRUE,
@@ -213,10 +214,10 @@ PetscErrorCode TDySetup_BDM(void *context, TDyDiscretizationType *discretization
      assembly */
   ncv = bdm->ncv;
   nlocal = dim*ncv + 1;
-  ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),
-                     &(bdm->LtoG)); CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*nlocal*sizeof(PetscInt),
-                     &(bdm->orient)); CHKERRQ(ierr);
+  ierr = TDyAlloc((cEnd-cStart)*nlocal*sizeof(PetscInt),
+                  &(bdm->LtoG)); CHKERRQ(ierr);
+  ierr = TDyAlloc((cEnd-cStart)*nlocal*sizeof(PetscInt),
+                  &(bdm->orient)); CHKERRQ(ierr);
   PetscBool found;
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexGetPointGlobal(dm,c,&mStart,&mEnd); CHKERRQ(ierr);
@@ -246,8 +247,8 @@ PetscErrorCode TDySetup_BDM(void *context, TDyDiscretizationType *discretization
   }
 
   /* map(cell,dim,side) --> global_face */
-  ierr = PetscMalloc((cEnd-cStart)*PetscPowInt(2,dim)*sizeof(PetscInt),
-                     &(bdm->faces)); CHKERRQ(ierr);
+  ierr = TDyAlloc((cEnd-cStart)*PetscPowInt(2,dim)*sizeof(PetscInt),
+                  &(bdm->faces)); CHKERRQ(ierr);
   #if defined(PETSC_USE_DEBUG)
   for(c=0; c<((cEnd-cStart)*(2*dim)); c++) { bdm->faces[c] = -1; }
   #endif
@@ -271,7 +272,7 @@ PetscErrorCode TDySetup_BDM(void *context, TDyDiscretizationType *discretization
 
   // Initialize material properties.
   PetscInt nc = cEnd-cStart;
-  ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(bdm->K)); CHKERRQ(ierr);
+  ierr = TDyAlloc(9*nc*sizeof(PetscReal),&(bdm->K)); CHKERRQ(ierr);
   ierr = MaterialPropComputePermeability(matprop, nc, bdm->X, bdm->K); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
@@ -301,7 +302,7 @@ PetscErrorCode Inverse(PetscScalar *K,PetscInt nn) {
   PetscBLASInt n,lwork=nn*nn;
   ierr = PetscBLASIntCast(nn,&n); CHKERRQ(ierr);
   PetscBLASInt info,*pivots;
-  ierr = PetscMalloc((n+1)*sizeof(PetscBLASInt),&pivots); CHKERRQ(ierr);
+  ierr = TDyAlloc((n+1)*sizeof(PetscBLASInt),&pivots); CHKERRQ(ierr);
   PetscScalar work[n*n];
 
   // Find LU factors of K
@@ -314,7 +315,7 @@ PetscErrorCode Inverse(PetscScalar *K,PetscInt nn) {
   if (info<0) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"illegal argument value");
   if (info>0) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_MAT_LU_ZRPVT,"singular matrix");
 
-  ierr = PetscFree(pivots); CHKERRQ(ierr);
+  ierr = TDyFree(pivots); CHKERRQ(ierr);
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
@@ -376,8 +377,8 @@ PetscErrorCode IntegratePressureBoundary(TDyBDM *bdm, DM dm,
 
   /* dummy 1 point quadrature to get the mapping information */
   ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&quadrature); CHKERRQ(ierr);
-  ierr = PetscMalloc1(3,&single_point); CHKERRQ(ierr);
-  ierr = PetscMalloc1(1,&single_weight); CHKERRQ(ierr);
+  ierr = TDyAlloc(3*sizeof(PetscReal),&single_point); CHKERRQ(ierr);
+  ierr = TDyAlloc(1*sizeof(PetscReal),&single_weight); CHKERRQ(ierr);
 
   /* integrate on the face */
   for(q=0;q<nfq;q++){
@@ -621,8 +622,8 @@ PetscErrorCode TDyComputeErrorNorms_BDM(void *context, DM dm, Conditions *condit
 
     PetscQuadrature cquad;
     PetscReal *points,*weights;
-    ierr = PetscMalloc1(dim,&points); CHKERRQ(ierr);
-    ierr = PetscMalloc1(1,&weights); CHKERRQ(ierr);
+    ierr = TDyAlloc(dim*sizeof(PetscReal),&points); CHKERRQ(ierr);
+    ierr = TDyAlloc(1*sizeof(PetscReal),&weights); CHKERRQ(ierr);
 
     PetscReal cx[3],cDF[9],cDFinv[9],cJ[1];
     ierr = PetscQuadratureCreate(PETSC_COMM_SELF,&cquad); CHKERRQ(ierr);
