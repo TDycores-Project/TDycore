@@ -1,5 +1,42 @@
 #include <private/tdymemoryimpl.h>
 
+/// Allocates a chunk of zeroed memory of the given size (in bytes).
+/// @param [in] size The size of the requested allocation.
+/// @param [out] result A pointer to the requested memory chunk.
+PetscErrorCode TDyAlloc(size_t size, void **result) {
+  return PetscCalloc1(size, result);
+}
+
+/// Frees memory allocated by TDyAlloc.
+/// @param [out] memory The pointer to the memory to be freed.
+PetscErrorCode TDyFree(void *memory) {
+  return PetscFree(memory);
+}
+
+/// Sets all values in the given memory block to the given integer value.
+/// @param size The number of integers in the array
+/// @param array The array whose values are to be set
+/// @param value The value to which the array's values is set
+PetscErrorCode TDySetIntArray(size_t size, PetscInt array[size], PetscInt value) {
+  PetscFunctionBegin;
+  for (size_t i = 0; i < size; ++i) {
+    array[i] = value;
+  }
+  PetscFunctionReturn(0);
+}
+
+/// Sets all values in the given memory block to the given real value.
+/// @param size The number of real numbers in the array
+/// @param array The array whose values are to be set
+/// @param value The value to which the array's values is set
+PetscErrorCode TDySetRealArray(size_t size, PetscReal array[size], PetscReal value) {
+  PetscFunctionBegin;
+  for (size_t i = 0; i < size; ++i) {
+    array[i] = value;
+  }
+  PetscFunctionReturn(0);
+}
+
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyInitialize_IntegerArray_1D(PetscInt *array_1D, PetscInt ndim_1,
     PetscInt init_value) {

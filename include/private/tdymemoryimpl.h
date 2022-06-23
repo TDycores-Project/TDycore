@@ -4,6 +4,87 @@
 #include <petsc.h>
 #include <private/tdymeshimpl.h>
 
+PETSC_INTERN PetscErrorCode TDyAlloc(size_t,void**);
+PETSC_INTERN PetscErrorCode TDyFree(void*);
+PETSC_INTERN PetscErrorCode TDySetIntArray(size_t,PetscInt[],PetscInt);
+PETSC_INTERN PetscErrorCode TDySetRealArray(size_t,PetscReal[],PetscReal);
+
+/// @def TDY_DECLARE_2D_ARRAY
+/// Declares a 2D array variable that uses specified storage
+/// @param type The (primitive) data type of the array
+/// @param array_var The declared multidimensional array
+/// @param storage A "flat" array with enough room to fit all the data in array_var
+/// @param dim1 The dimension of the array's first component
+/// @param dim2 The dimension of the array's first component
+#define TDY_DECLARE_2D_ARRAY(type, array_var, storage, dim1, dim2) \
+type (*array_var)[dim2] = (void*)storage
+
+/// @def TDY_DECLARE_3D_ARRAY
+/// Declares a 3D array variable that uses specified storage
+/// @param type The (primitive) data type of the array
+/// @param array_var The declared multidimensional array
+/// @param storage A "flat" array with enough room to fit all the data in array_var.
+/// @param dim1 The dimension of the array's first component
+/// @param dim2 The dimension of the array's second component
+/// @param dim3 The dimension of the array's third component
+#define TDY_DECLARE_3D_ARRAY(type, array_var, storage, dim1, dim2, dim3) \
+type (*array_var)[dim2][dim3] = (void*)storage
+
+/// @def TDY_DECLARE_4D_ARRAY
+/// Declares a 4D array variable that uses specified storage
+/// @param type The (primitive) data type of the array
+/// @param array_var The declared multidimensional array
+/// @param storage A "flat" array with enough room to fit all the data in array_var
+/// @param dim1 The dimension of the array's first component
+/// @param dim2 The dimension of the array's second component
+/// @param dim3 The dimension of the array's third component
+/// @param dim4 The dimension of the array's fourth component
+#define TDY_DECLARE_4D_ARRAY(type, array_var, storage, dim1, dim2, dim3, dim4) \
+type (*array_var)[dim2][dim3][dim4] = (void*)storage
+
+/// @def TDY_DECLARE_5D_ARRAY
+/// Declares a 5D array variable that uses specified storage
+/// @param type The (primitive) data type of the array
+/// @param array_var The declared multidimensional array
+/// @param storage A "flat" array with enough room to fit all the data in array_var
+/// @param dim1 The dimension of the array's first component
+/// @param dim2 The dimension of the array's second component
+/// @param dim3 The dimension of the array's third component
+/// @param dim4 The dimension of the array's fourth component
+/// @param dim5 The dimension of the array's fifth component
+#define TDY_DECLARE_5D_ARRAY(type, array_var, storage, dim1, dim2, dim3, dim4, dim5) \
+type (*array_var)[dim2][dim3][dim4][dim5] = (void*)storage
+
+/// @def TDY_DECLARE_6D_ARRAY
+/// Declares a 6D array variable that uses specified storage
+/// @param type The (primitive) data type of the array
+/// @param array_var The declared multidimensional array
+/// @param storage A "flat" array with enough room to fit all the data in array_var
+/// @param dim1 The dimension of the array's first component
+/// @param dim2 The dimension of the array's second component
+/// @param dim3 The dimension of the array's third component
+/// @param dim4 The dimension of the array's fourth component
+/// @param dim5 The dimension of the array's fifth component
+/// @param dim6 The dimension of the array's sixth component
+#define TDY_DECLARE_6D_ARRAY(type, array_var, storage, dim1, dim2, dim3, dim4, dim5, dim6) \
+type (*array_var)[dim2][dim3][dim4][dim5][dim6] = (void*)storage
+
+/// @def TDY_DECLARE_7D_ARRAY
+/// Declares a 7D array variable that uses specified storage
+/// @param type The (primitive) data type of the array
+/// @param array_var The declared multidimensional array
+/// @param storage A "flat" array with enough room to fit all the data in array_var
+/// @param dim1 The dimension of the array's first component
+/// @param dim2 The dimension of the array's second component
+/// @param dim3 The dimension of the array's third component
+/// @param dim4 The dimension of the array's fourth component
+/// @param dim5 The dimension of the array's fifth component
+/// @param dim6 The dimension of the array's sixth component
+/// @param dim7 The dimension of the array's seventh component
+#define TDY_DECLARE_7D_ARRAY(type, array_var, storage, dim1, dim2, dim3, dim4, dim5, dim6, dim7) \
+type (*array_var)[dim2][dim3][dim4][dim5][dim6][dim7] = (void*)storage
+
+// These functions will be removed in the future.
 PETSC_INTERN PetscErrorCode TDyInitialize_IntegerArray_1D(PetscInt*,PetscInt,PetscInt);
 PETSC_INTERN PetscErrorCode TDyInitialize_IntegerArray_2D(PetscInt**,PetscInt,PetscInt,PetscInt);
 PETSC_INTERN PetscErrorCode TDyInitialize_RealArray_1D(PetscReal*,PetscInt,PetscReal);
