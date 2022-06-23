@@ -1,4 +1,5 @@
 #include <private/tdycoreimpl.h>
+#include <private/tdymemoryimpl.h>
 #include <tdycore.h>
 #include <private/tdyioimpl.h>
 #include <tdytimers.h>
@@ -9,7 +10,7 @@ PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
   char time_integration_method[32];
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  ti = (TDyTimeIntegrator)malloc(sizeof(struct _p_TDyTimeIntegrator));
+  ierr = TDyAlloc(sizeof(struct _p_TDyTimeIntegrator), &ti); CHKERRQ(ierr);
   *_ti =ti;
 
   ti->time_integration_method = TDySNES;
@@ -213,7 +214,7 @@ PetscErrorCode TDyTimeIntegratorDestroy(TDyTimeIntegrator *ti) {
         TSDestroy(&((*ti)->ts));
         break;
     }
-    free(*ti);
+    TDyFree(*ti);
   }
   ti = PETSC_NULL;
   PetscFunctionReturn(0);

@@ -611,7 +611,7 @@ static PetscErrorCode SetupMaps_C2F_F2C_F2V(TDyUGrid *ugrid, PetscInt **cell_to_
       face_count++;
     }
   }
-  free(vertex_ids);
+  TDyFree(vertex_ids);
 
   PetscFunctionReturn(0);
 }
@@ -780,7 +780,7 @@ static PetscErrorCode UpdateMapsC2F_F2C_F2V(TDyUGrid *ugrid, PetscInt **cell_to_
       }
     }
   }
-  free(tmp_int);
+  TDyFree(tmp_int);
 
   PetscFunctionReturn(0);
 }
@@ -1294,7 +1294,7 @@ PetscErrorCode TDyMeshCreateFromDiscretization(TDyDiscretizationType *discretiza
 
   PetscErrorCode ierr;
 
-  *mesh = malloc(sizeof(TDyMesh));
+  ierr = TDyAlloc(sizeof(TDyMesh), mesh); CHKERRQ(ierr);
 
   ierr = TDyMeshMapIndices(discretization, mesh); CHKERRQ(ierr);
   ierr = TDySetupCellsFromDiscretization(discretization, mesh); CHKERRQ(ierr);

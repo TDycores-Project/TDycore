@@ -3478,9 +3478,9 @@ static PetscErrorCode TDyMeshComputeGeometryFromPlex(PetscReal **X, PetscReal **
   ierr = DMPlexGetChart(dm,&pStart,&pEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc((pEnd-pStart)*sizeof(PetscReal),V); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),X); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),N); CHKERRQ(ierr);
+  ierr = TDyAlloc((pEnd-pStart)*sizeof(PetscReal),V); CHKERRQ(ierr);
+  ierr = TDyAlloc(dim*(pEnd-pStart)*sizeof(PetscReal),X); CHKERRQ(ierr);
+  ierr = TDyAlloc(dim*(pEnd-pStart)*sizeof(PetscReal),N); CHKERRQ(ierr);
 
   PetscSection coordSection;
   Vec coordinates;
@@ -3695,7 +3695,7 @@ PetscErrorCode TDyMeshCreateFromPlex(DM dm, PetscReal **volumes, PetscReal **coo
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"MPFA-O only supports 3D meshes");
   }
 
-  *mesh = malloc(sizeof(TDyMesh));
+  ierr = TDyAlloc(sizeof(TDyMesh), mesh); CHKERRQ(ierr);
 
   // Determine the number of cells, edges, and vertices of the mesh
   PetscInt c_start, c_end;

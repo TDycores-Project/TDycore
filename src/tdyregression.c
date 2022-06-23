@@ -1,4 +1,5 @@
 #include <private/tdycoreimpl.h>
+#include <private/tdymemoryimpl.h>
 #include <private/tdydiscretizationimpl.h>
 #include <tdytimers.h>
 
@@ -28,7 +29,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   ndof_per_cell = 1;
   if (tdy->options.mode == TH) ndof_per_cell = 2;
 
-  regression = (TDyRegression *) malloc(sizeof(TDyRegression));
+  ierr = TDyAlloc(sizeof(TDyRegression), &regression); CHKERRQ(ierr);
 
   regression->num_cells_per_process = 2;
 
@@ -60,7 +61,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   }
 
   if (myrank == 0) {
-    ierr = PetscMalloc(ndof_per_cell*size*regression->num_cells_per_process*sizeof(PetscInt),&(regression->cells_per_process_natural_ids)); CHKERRQ(ierr);
+    ierr = TDyAlloc(ndof_per_cell*size*regression->num_cells_per_process*sizeof(PetscInt),&(regression->cells_per_process_natural_ids)); CHKERRQ(ierr);
   }
 
   if (tdy->options.mode == TH) {
@@ -83,7 +84,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
 
   for (c=0; c<regression->num_cells_per_process; c++){
     for (int idof=0; idof<ndof_per_cell; idof++)
-      vec_ptr[ndof_per_cell*c+idof] = ndof_per_cell*c*increment + 
+      vec_ptr[ndof_per_cell*c+idof] = ndof_per_cell*c*increment +
                                       global_offset + idof;
   }
 
@@ -96,7 +97,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   ierr = VecSetSizes(regression->cells_per_process_vec,global_count,PETSC_DECIDE);CHKERRQ(ierr);
   ierr = VecSetFromOptions(regression->cells_per_process_vec); CHKERRQ(ierr);
 
-  ierr = PetscMalloc(global_count*sizeof(PetscInt),&(int_array)); CHKERRQ(ierr);
+  ierr = TDyAlloc(global_count*sizeof(PetscInt),&(int_array)); CHKERRQ(ierr);
 
   for (c=0; c<global_count; c++){
     int_array[c] = c;
@@ -131,7 +132,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
 
   ierr = VecDestroy(&U); CHKERRQ(ierr);
   ierr = PetscOptionsEnd(); CHKERRQ(ierr);
-  ierr = PetscFree(int_array); CHKERRQ(ierr);
+  ierr = TDyFree(int_array); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -282,8 +283,8 @@ PetscErrorCode TDyRegressionDestroy(TDy tdy) {
   ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   MPI_Comm_rank(PetscObjectComm((PetscObject)dm),&myrank);
   if (myrank == 0) {
-    ierr = PetscFree(tdy->regression->cells_per_process_natural_ids); CHKERRQ(ierr);
+    ierr = TDyFree(tdy->regression->cells_per_process_natural_ids); CHKERRQ(ierr);
   }
-  free(tdy->regression);
+  ierr = TDyFree(tdy->regression); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

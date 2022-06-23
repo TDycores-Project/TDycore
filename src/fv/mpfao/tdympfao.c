@@ -289,14 +289,14 @@ static PetscErrorCode AllocateMemoryForBoundaryValues(TDyMPFAO *mpfao,
 
   nbnd_faces = mesh->num_boundary_faces;
 
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->Kr_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->dKr_dS_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->S_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->dS_dP_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->d2S_dP2_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->P_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->rho_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->vis_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(mpfao->Kr_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(mpfao->dKr_dS_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(mpfao->S_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(mpfao->dS_dP_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(mpfao->d2S_dP2_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(mpfao->P_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(mpfao->rho_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(mpfao->vis_bnd)); CHKERRQ(ierr);
 
   PetscInt i;
   PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
@@ -321,8 +321,8 @@ static PetscErrorCode AllocateMemoryForEnergyBoundaryValues(TDyMPFAO *mpfao,
 
   nbnd_faces = mesh->num_boundary_faces;
 
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->T_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(mpfao->h_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(mpfao->T_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(mpfao->h_bnd)); CHKERRQ(ierr);
 
   PetscInt i;
   PetscReal dh_dP, dh_dT;
@@ -346,7 +346,7 @@ static PetscErrorCode AllocateMemoryForSourceSinkValues(TDyMPFAO *mpfao) {
 
   ncells = mesh->num_cells;
 
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(mpfao->source_sink)); CHKERRQ(ierr);
+  ierr = TDyAlloc(ncells*sizeof(PetscReal),&(mpfao->source_sink)); CHKERRQ(ierr);
 
   PetscInt i;
   for (i=0;i<ncells;i++) mpfao->source_sink[i] = 0.0;
@@ -366,7 +366,7 @@ static PetscErrorCode AllocateMemoryForEnergySourceSinkValues(TDyMPFAO *mpfao) {
 
   ncells = mesh->num_cells;
 
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(mpfao->energy_source_sink)); CHKERRQ(ierr);
+  ierr = TDyAlloc(ncells*sizeof(PetscReal),&(mpfao->energy_source_sink)); CHKERRQ(ierr);
 
   PetscInt i;
   for (i=0;i<ncells;i++) mpfao->energy_source_sink[i] = 0.0;
@@ -403,7 +403,7 @@ PetscErrorCode TDyCreate_MPFAO(void **context) {
 
   // Allocate a new context for the MPFA-O method.
   TDyMPFAO* mpfao;
-  ierr = PetscCalloc(sizeof(TDyMPFAO), &mpfao); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(TDyMPFAO), &mpfao); CHKERRQ(ierr);
   *context = mpfao;
 
   // Initialize defaults and data.
@@ -426,48 +426,48 @@ PetscErrorCode TDyDestroy_MPFAO(void *context) {
   if (mpfao->vel) { ierr = TDyDeallocate_RealArray_1D(mpfao->vel); CHKERRQ(ierr); }
   if (mpfao->vel_count) { ierr = TDyDeallocate_IntegerArray_1D(mpfao->vel_count); CHKERRQ(ierr); }
 
-  if (mpfao->source_sink) { ierr = PetscFree(mpfao->source_sink); CHKERRQ(ierr); }
+  if (mpfao->source_sink) { ierr = TDyFree(mpfao->source_sink); CHKERRQ(ierr); }
   if (mpfao->energy_source_sink) {
-    ierr = PetscFree(mpfao->energy_source_sink); CHKERRQ(ierr);
+    ierr = TDyFree(mpfao->energy_source_sink); CHKERRQ(ierr);
   }
 
-  ierr = PetscFree(mpfao->V); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->X); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->N); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->Kr); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->dKr_dS); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->S); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->dS_dP); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->d2S_dP2); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->dS_dT); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->Sr); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->V); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->X); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->N); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->Kr); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->dKr_dS); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->S); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->dS_dP); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->d2S_dP2); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->dS_dT); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->Sr); CHKERRQ(ierr);
 
-  ierr = PetscFree(mpfao->rho); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->drho_dP); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->d2rho_dP2); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->vis); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->dvis_dP); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->d2vis_dP2); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->h); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->dh_dP); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->dh_dT); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->drho_dT); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->u); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->du_dP); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->du_dT); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->dvis_dT); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->rho); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->drho_dP); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->d2rho_dP2); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->vis); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->dvis_dP); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->d2vis_dP2); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->h); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->dh_dP); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->dh_dT); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->drho_dT); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->u); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->du_dP); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->du_dT); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->dvis_dT); CHKERRQ(ierr);
 
-  ierr = PetscFree(mpfao->Kr_bnd); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->dKr_dS_bnd); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->S_bnd); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->dS_dP_bnd); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->d2S_dP2_bnd); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->P_bnd); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->rho_bnd); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->vis_bnd); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->Kr_bnd); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->dKr_dS_bnd); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->S_bnd); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->dS_dP_bnd); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->d2S_dP2_bnd); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->P_bnd); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->rho_bnd); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->vis_bnd); CHKERRQ(ierr);
 
-  if (mpfao->T_bnd) { ierr = PetscFree(mpfao->T_bnd); CHKERRQ(ierr); }
-  if (mpfao->h_bnd) { ierr = PetscFree(mpfao->h_bnd); CHKERRQ(ierr); }
+  if (mpfao->T_bnd) { ierr = TDyFree(mpfao->T_bnd); CHKERRQ(ierr); }
+  if (mpfao->h_bnd) { ierr = TDyFree(mpfao->h_bnd); CHKERRQ(ierr); }
 
   // if (mpfao->subc_Gmatrix) { ierr = TDyDeallocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
   //                                   nsubcells, nrow, ncol); CHKERRQ(ierr); }
@@ -501,23 +501,23 @@ PetscErrorCode TDyDestroy_MPFAO(void *context) {
   if (mpfao->Temp_P_vec       ) { ierr = VecDestroy(&mpfao->Temp_P_vec      ); CHKERRQ(ierr); }
   if (mpfao->Temp_TtimesP_vec ) { ierr = VecDestroy(&mpfao->Temp_TtimesP_vec); CHKERRQ(ierr); }
 
-  ierr = PetscFree(mpfao->K); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->K0); CHKERRQ(ierr);
-  ierr = PetscFree(mpfao->porosity); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->K); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->K0); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->porosity); CHKERRQ(ierr);
   if (mpfao->Kappa) {
-    ierr = PetscFree(mpfao->Kappa); CHKERRQ(ierr);
-    ierr = PetscFree(mpfao->Kappa0); CHKERRQ(ierr);
+    ierr = TDyFree(mpfao->Kappa); CHKERRQ(ierr);
+    ierr = TDyFree(mpfao->Kappa0); CHKERRQ(ierr);
   }
   if (mpfao->c_soil) {
-    ierr = PetscFree(mpfao->c_soil); CHKERRQ(ierr);
+    ierr = TDyFree(mpfao->c_soil); CHKERRQ(ierr);
   }
   if (mpfao->rho_soil) {
-    ierr = PetscFree(mpfao->rho_soil); CHKERRQ(ierr);
+    ierr = TDyFree(mpfao->rho_soil); CHKERRQ(ierr);
   }
 
   ierr = TDyMeshDestroy(mpfao->mesh);
 
-  PetscFree(mpfao);
+  TDyFree(mpfao);
 
   PetscFunctionReturn(0);
 }
@@ -588,51 +588,50 @@ static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)dm, &comm); CHKERRQ(ierr);
 
-  // Allocate storage for material data and characteristic curves, and set to
-  // zero using PetscCalloc instead of PetscMalloc.
+  // Allocate storage for material data and characteristic curves.
   PetscInt cStart, cEnd;
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   PetscInt nc = cEnd-cStart;
 
   // Material properties
-  ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->K)); CHKERRQ(ierr);
-  ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->K0)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->porosity)); CHKERRQ(ierr);
+  ierr = TDyAlloc(9*nc*sizeof(PetscReal),&(mpfao->K)); CHKERRQ(ierr);
+  ierr = TDyAlloc(9*nc*sizeof(PetscReal),&(mpfao->K0)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->porosity)); CHKERRQ(ierr);
   if (MaterialPropHasThermalConductivity(matprop)) {
-    ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->Kappa)); CHKERRQ(ierr);
-    ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(mpfao->Kappa0)); CHKERRQ(ierr);
+    ierr = TDyAlloc(9*nc*sizeof(PetscReal),&(mpfao->Kappa)); CHKERRQ(ierr);
+    ierr = TDyAlloc(9*nc*sizeof(PetscReal),&(mpfao->Kappa0)); CHKERRQ(ierr);
   }
   if (MaterialPropHasSoilSpecificHeat(matprop)) {
-    ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->c_soil)); CHKERRQ(ierr);
+    ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->c_soil)); CHKERRQ(ierr);
   }
   if (MaterialPropHasSoilDensity(matprop)) {
-    ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->rho_soil)); CHKERRQ(ierr);
+    ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->rho_soil)); CHKERRQ(ierr);
   }
 
   // Characteristic curve values
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->Kr)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dKr_dS)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->S)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dS_dP)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->d2S_dP2)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dS_dT)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->Sr)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->Kr)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->dKr_dS)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->S)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->dS_dP)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->d2S_dP2)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->dS_dT)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->Sr)); CHKERRQ(ierr);
 
   // Water properties
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->rho)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->drho_dP)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->d2rho_dP2)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->vis)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dvis_dP)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->d2vis_dP2)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->h)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dh_dT)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dh_dP)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->drho_dT)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->u)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->du_dP)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->du_dT)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(mpfao->dvis_dT)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->rho)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->drho_dP)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->d2rho_dP2)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->vis)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->dvis_dP)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->d2vis_dP2)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->h)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->dh_dT)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->dh_dP)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->drho_dT)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->u)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->du_dP)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->du_dT)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->dvis_dT)); CHKERRQ(ierr);
 
   // Initialize characteristic curve parameters on all cells.
   PetscInt points[nc];
@@ -1416,15 +1415,15 @@ static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
   ierr = TDyDeallocate_RealArray_2D(Cdn_32, nflux_neu_bc_dn); CHKERRQ(ierr);
   ierr = TDyDeallocate_RealArray_2D(Cdn_33, nflux_neu_bc_dn); CHKERRQ(ierr);
 
-  free(AinvB_1d);
-  free(CupInxIntimesAinvB_1d);
-  free(CupBCxIntimesAinvB_1d);
-  free(CdnBCxIntimesAinvB_1d);
-  free(AINBCxINBC_1d);
-  free(BINBCxCDBC_1d);
-  free(CupINBCxINBC_1d);
-  free(CupDBCxIn_1d);
-  free(CdnDBCxIn_1d);
+  TDyFree(AinvB_1d);
+  TDyFree(CupInxIntimesAinvB_1d);
+  TDyFree(CupBCxIntimesAinvB_1d);
+  TDyFree(CdnBCxIntimesAinvB_1d);
+  TDyFree(AINBCxINBC_1d);
+  TDyFree(BINBCxCDBC_1d);
+  TDyFree(CupINBCxINBC_1d);
+  TDyFree(CupDBCxIn_1d);
+  TDyFree(CdnDBCxIn_1d);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);

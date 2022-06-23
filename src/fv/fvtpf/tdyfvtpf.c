@@ -17,7 +17,7 @@ PetscErrorCode TDyCreate_FVTPF(void **context) {
 
   // Allocate a new context for the FV-TPF method.
   TDyFVTPF* fvtpf;
-  ierr = PetscCalloc(sizeof(TDyFVTPF), &fvtpf); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(TDyFVTPF), &fvtpf); CHKERRQ(ierr);
   *context = fvtpf;
 
   // Initialize defaults and data.
@@ -34,20 +34,20 @@ PetscErrorCode TDyDestroy_FVTPF(void *context) {
   PetscFunctionBegin;
   TDyFVTPF* fvtpf = context;
 
-  if (fvtpf->vel   ) { ierr = PetscFree(fvtpf->vel); CHKERRQ(ierr); }
+  if (fvtpf->vel   ) { ierr = TDyFree(fvtpf->vel); CHKERRQ(ierr); }
 
-  ierr = PetscFree(fvtpf->V); CHKERRQ(ierr);
-  ierr = PetscFree(fvtpf->X); CHKERRQ(ierr);
-  ierr = PetscFree(fvtpf->N); CHKERRQ(ierr);
-  ierr = PetscFree(fvtpf->rho); CHKERRQ(ierr);
-  ierr = PetscFree(fvtpf->d2rho_dP2); CHKERRQ(ierr);
-  ierr = PetscFree(fvtpf->vis); CHKERRQ(ierr);
-  ierr = PetscFree(fvtpf->dvis_dP); CHKERRQ(ierr);
-  ierr = PetscFree(fvtpf->d2vis_dP2); CHKERRQ(ierr);
-  ierr = PetscFree(fvtpf->h); CHKERRQ(ierr);
-  ierr = PetscFree(fvtpf->dh_dP); CHKERRQ(ierr);
-  ierr = PetscFree(fvtpf->dh_dT); CHKERRQ(ierr);
-  ierr = PetscFree(fvtpf->dvis_dT); CHKERRQ(ierr);
+  ierr = TDyFree(fvtpf->V); CHKERRQ(ierr);
+  ierr = TDyFree(fvtpf->X); CHKERRQ(ierr);
+  ierr = TDyFree(fvtpf->N); CHKERRQ(ierr);
+  ierr = TDyFree(fvtpf->rho); CHKERRQ(ierr);
+  ierr = TDyFree(fvtpf->d2rho_dP2); CHKERRQ(ierr);
+  ierr = TDyFree(fvtpf->vis); CHKERRQ(ierr);
+  ierr = TDyFree(fvtpf->dvis_dP); CHKERRQ(ierr);
+  ierr = TDyFree(fvtpf->d2vis_dP2); CHKERRQ(ierr);
+  ierr = TDyFree(fvtpf->h); CHKERRQ(ierr);
+  ierr = TDyFree(fvtpf->dh_dP); CHKERRQ(ierr);
+  ierr = TDyFree(fvtpf->dh_dT); CHKERRQ(ierr);
+  ierr = TDyFree(fvtpf->dvis_dT); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -160,52 +160,51 @@ static PetscErrorCode InitMaterials(TDyFVTPF *fvtpf,
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  // Allocate storage for material data and characteristic curves, and set to
-  // zero using PetscCalloc instead of PetscMalloc.
+  // Allocate storage for material data and characteristic curves.
   PetscInt nc = (fvtpf->mesh)->num_cells;
 
   // Material properties
-  ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(fvtpf->K)); CHKERRQ(ierr);
-  ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(fvtpf->K0)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->porosity)); CHKERRQ(ierr);
+  ierr = TDyAlloc(9*nc*sizeof(PetscReal),&(fvtpf->K)); CHKERRQ(ierr);
+  ierr = TDyAlloc(9*nc*sizeof(PetscReal),&(fvtpf->K0)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->porosity)); CHKERRQ(ierr);
   if (MaterialPropHasThermalConductivity(matprop)) {
-    ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(fvtpf->Kappa)); CHKERRQ(ierr);
-    ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(fvtpf->Kappa0)); CHKERRQ(ierr);
+    ierr = TDyAlloc(9*nc*sizeof(PetscReal),&(fvtpf->Kappa)); CHKERRQ(ierr);
+    ierr = TDyAlloc(9*nc*sizeof(PetscReal),&(fvtpf->Kappa0)); CHKERRQ(ierr);
   }
   if (MaterialPropHasSoilSpecificHeat(matprop)) {
-    ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->c_soil)); CHKERRQ(ierr);
+    ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->c_soil)); CHKERRQ(ierr);
   }
   if (MaterialPropHasSoilDensity(matprop)) {
-    ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->rho_soil)); CHKERRQ(ierr);
+    ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->rho_soil)); CHKERRQ(ierr);
   }
 
   // Characteristic curve values
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->Kr)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->dKr_dS)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->S)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->dS_dP)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->d2S_dP2)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->dS_dT)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->Sr)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->Kr)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->dKr_dS)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->S)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->dS_dP)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->d2S_dP2)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->dS_dT)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->Sr)); CHKERRQ(ierr);
 
   // 
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->pressure)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->pressure)); CHKERRQ(ierr);
 
   // Water properties
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->rho)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->drho_dP)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->d2rho_dP2)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->vis)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->dvis_dP)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->d2vis_dP2)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->h)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->dh_dT)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->dh_dP)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->drho_dT)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->u)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->du_dP)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->du_dT)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(fvtpf->dvis_dT)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->rho)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->drho_dP)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->d2rho_dP2)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->vis)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->dvis_dP)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->d2vis_dP2)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->h)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->dh_dT)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->dh_dP)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->drho_dT)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->u)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->du_dP)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->du_dT)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(fvtpf->dvis_dT)); CHKERRQ(ierr);
 
   // Initialize characteristic curve parameters on all cells.
   PetscInt points[nc];
@@ -286,14 +285,14 @@ static PetscErrorCode AllocateMemoryForBoundaryValues(TDyFVTPF *fvtpf,
 
   nbnd_faces = mesh->num_boundary_faces;
 
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->Kr_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->dKr_dS_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->S_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->dS_dP_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->d2S_dP2_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->P_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->rho_bnd)); CHKERRQ(ierr);
-  ierr = PetscMalloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->vis_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->Kr_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->dKr_dS_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->S_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->dS_dP_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->d2S_dP2_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->P_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->rho_bnd)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nbnd_faces*sizeof(PetscReal),&(fvtpf->vis_bnd)); CHKERRQ(ierr);
 
   PetscInt i;
   PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
@@ -317,7 +316,7 @@ static PetscErrorCode AllocateMemoryForSourceSinkValues(TDyFVTPF *fvtpf) {
 
   ncells = mesh->num_cells;
 
-  ierr = PetscMalloc(ncells*sizeof(PetscReal),&(fvtpf->source_sink)); CHKERRQ(ierr);
+  ierr = TDyAlloc(ncells*sizeof(PetscReal),&(fvtpf->source_sink)); CHKERRQ(ierr);
 
   PetscInt i;
   for (i=0;i<ncells;i++) fvtpf->source_sink[i] = 0.0;

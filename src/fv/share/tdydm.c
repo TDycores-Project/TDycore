@@ -1,4 +1,5 @@
 #include <private/tdydmimpl.h>
+#include <private/tdymemoryimpl.h>
 #include <private/tdyugridimpl.h>
 
 /// Allocates memory and intializes a TDyDM struct
@@ -9,7 +10,7 @@ PetscErrorCode TDyDMCreate(TDyDM **tdydm) {
 
   PetscErrorCode ierr;
 
-  ierr = PetscCalloc(sizeof(TDyDM), tdydm); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(TDyDM), tdydm); CHKERRQ(ierr);
 
   ierr = TDyUGDMCreate(&((*tdydm)->ugdm)); CHKERRQ(ierr);
   (*tdydm)->dmtype = PLEX_TYPE;
@@ -28,7 +29,7 @@ PetscErrorCode TDyDMDestroy(TDyDM *tdydm) {
   ierr = DMDestroy(&tdydm->dm); CHKERRQ(ierr);
   ierr = TDyUGDMDestroy(tdydm->ugdm); CHKERRQ(ierr);
 
-  free (tdydm);
+  TDyFree(tdydm);
 
   PetscFunctionReturn(0);
 }

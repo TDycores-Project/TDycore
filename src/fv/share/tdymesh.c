@@ -34,7 +34,7 @@ PetscErrorCode AllocateCells(
   ierr = TDyAllocate_IntegerArray_1D(&cells->global_id,num_cells); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&cells->natural_id,num_cells); CHKERRQ(ierr);
 
-   cells->is_local = (PetscBool *)malloc(num_cells*sizeof(PetscBool));
+  ierr = TDyAlloc(num_cells*sizeof(PetscBool), &cells->is_local); CHKERRQ(ierr);
 
   ierr = TDyAllocate_IntegerArray_1D(&cells->num_vertices,num_cells); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&cells->num_edges,num_cells); CHKERRQ(ierr);
@@ -105,7 +105,8 @@ PetscErrorCode AllocateSubcells(
   ierr = TDyAllocate_IntegerArray_1D(&subcells->num_nu_vectors,num_cells*num_subcells_per_cell          ); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&subcells->num_vertices,num_cells*num_subcells_per_cell          ); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&subcells->num_faces,num_cells*num_subcells_per_cell          ); CHKERRQ(ierr);
-  subcells->type = (TDySubcellType *)malloc(num_cells*num_subcells_per_cell*sizeof(TDySubcellType));
+  ierr = TDyAlloc(num_cells*num_subcells_per_cell*sizeof(TDySubcellType),
+                  &subcells->type); CHKERRQ(ierr);
 
   ierr = TDyAllocate_IntegerArray_1D(&subcells->nu_vector_offset,num_cells*num_subcells_per_cell+1); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&subcells->vertex_offset  ,num_cells*num_subcells_per_cell+1); CHKERRQ(ierr);
@@ -165,7 +166,7 @@ PetscErrorCode AllocateVertices(
   ierr = TDyAllocate_IntegerArray_1D(&vertices->num_faces         ,num_vertices); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&vertices->num_boundary_faces,num_vertices); CHKERRQ(ierr);
 
-  vertices->is_local = (PetscBool *)malloc(num_vertices*sizeof(PetscBool));
+  ierr = TDyAlloc(num_vertices*sizeof(PetscBool), &vertices->is_local); CHKERRQ(ierr);
 
   ierr = TDyAllocate_TDyCoordinate_1D(num_vertices, &vertices->coordinate); CHKERRQ(ierr);
 
@@ -227,8 +228,8 @@ PetscErrorCode AllocateEdges(
   ierr = TDyAllocate_IntegerArray_1D(&edges->num_cells,num_edges); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&edges->vertex_ids,num_edges*2); CHKERRQ(ierr);
 
-  edges->is_local = (PetscBool *)malloc(num_edges*sizeof(PetscBool));
-  edges->is_internal = (PetscBool *)malloc(num_edges*sizeof(PetscBool));
+  ierr = TDyAlloc(num_edges*sizeof(PetscBool), &edges->is_local); CHKERRQ(ierr);
+  ierr = TDyAlloc(num_edges*sizeof(PetscBool), &edges->is_internal); CHKERRQ(ierr);
 
   ierr = TDyAllocate_IntegerArray_1D(&edges->cell_offset,num_edges+1); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&edges->cell_ids,num_edges*num_cells); CHKERRQ(ierr);
@@ -272,8 +273,8 @@ PetscErrorCode AllocateFaces(
   ierr = TDyAllocate_IntegerArray_1D(&faces->num_edges,num_faces); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&faces->num_cells,num_faces); CHKERRQ(ierr);
 
-  faces->is_local = (PetscBool *)malloc(num_faces*sizeof(PetscBool));
-  faces->is_internal = (PetscBool *)malloc(num_faces*sizeof(PetscBool));
+  ierr = TDyAlloc(num_faces*sizeof(PetscBool), &faces->is_local); CHKERRQ(ierr);
+  ierr = TDyAlloc(num_faces*sizeof(PetscBool), &faces->is_internal); CHKERRQ(ierr);
 
   ierr = TDyAllocate_IntegerArray_1D(&faces->vertex_offset,num_faces+1); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&faces->cell_offset,num_faces+1); CHKERRQ(ierr);
@@ -809,101 +810,101 @@ PetscErrorCode TDyMeshDestroy(TDyMesh *mesh) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
 
-  free(mesh->cells.id);
-  free(mesh->cells.global_id);
-  free(mesh->cells.natural_id);
-  free(mesh->cells.is_local);
-  free(mesh->cells.num_vertices);
-  free(mesh->cells.num_edges);
-  free(mesh->cells.num_faces);
-  free(mesh->cells.num_neighbors);
-  free(mesh->cells.num_subcells);
-  free(mesh->cells.vertex_offset);
-  free(mesh->cells.edge_offset);
-  free(mesh->cells.face_offset);
-  free(mesh->cells.neighbor_offset);
-  free(mesh->cells.vertex_ids);
-  free(mesh->cells.edge_ids);
-  free(mesh->cells.neighbor_ids);
-  free(mesh->cells.face_ids);
-  free(mesh->cells.centroid);
-  free(mesh->cells.volume);
+  ierr = TDyFree(mesh->cells.id); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.global_id); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.natural_id); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.is_local); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.num_vertices); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.num_edges); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.num_faces); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.num_neighbors); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.num_subcells); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.vertex_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.edge_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.face_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.neighbor_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.vertex_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.edge_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.neighbor_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.face_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.centroid); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->cells.volume); CHKERRQ(ierr);
 
-  free(mesh->subcells.nu_vector);
-  free(mesh->subcells.nu_star_vector);
-  free(mesh->subcells.variable_continuity_coordinates);
-  free(mesh->subcells.face_centroid);
-  free(mesh->subcells.vertices_coordinates);
-  free(mesh->subcells.id);
-  free(mesh->subcells.num_nu_vectors);
-  free(mesh->subcells.num_vertices);
-  free(mesh->subcells.num_faces);
-  free(mesh->subcells.type);
-  free(mesh->subcells.nu_vector_offset);
-  free(mesh->subcells.vertex_offset);
-  free(mesh->subcells.face_offset);
-  free(mesh->subcells.face_ids);
-  free(mesh->subcells.is_face_up);
-  free(mesh->subcells.face_unknown_idx);
-  free(mesh->subcells.face_flux_idx);
-  free(mesh->subcells.face_area);
-  free(mesh->subcells.vertex_ids);
-  free(mesh->subcells.T);
+  ierr = TDyFree(mesh->subcells.nu_vector); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.nu_star_vector); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.variable_continuity_coordinates); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.face_centroid); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.vertices_coordinates); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.id); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.num_nu_vectors); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.num_vertices); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.num_faces); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.type); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.nu_vector_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.vertex_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.face_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.face_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.is_face_up); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.face_unknown_idx); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.face_flux_idx); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.face_area); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.vertex_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->subcells.T); CHKERRQ(ierr);
 
-  free(mesh->vertices.id);
-  free(mesh->vertices.global_id);
-  free(mesh->vertices.num_internal_cells);
-  free(mesh->vertices.num_edges);
-  free(mesh->vertices.num_faces);
-  free(mesh->vertices.num_boundary_faces);
-  free(mesh->vertices.is_local);
-  free(mesh->vertices.coordinate);
-  free(mesh->vertices.edge_offset);
-  free(mesh->vertices.face_offset);
-  free(mesh->vertices.internal_cell_offset);
-  free(mesh->vertices.subcell_offset);
-  free(mesh->vertices.boundary_face_offset);
-  free(mesh->vertices.edge_ids);
-  free(mesh->vertices.face_ids);
-  free(mesh->vertices.subface_ids);
-  free(mesh->vertices.internal_cell_ids);
-  free(mesh->vertices.subcell_ids);
-  free(mesh->vertices.boundary_face_ids);
+  ierr = TDyFree(mesh->vertices.id); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.global_id); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.num_internal_cells); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.num_edges); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.num_faces); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.num_boundary_faces); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.is_local); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.coordinate); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.edge_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.face_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.internal_cell_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.subcell_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.boundary_face_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.edge_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.face_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.subface_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.internal_cell_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.subcell_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->vertices.boundary_face_ids); CHKERRQ(ierr);
 
-  free(mesh->edges.id);
-  free(mesh->edges.global_id);
-  free(mesh->edges.num_cells);
-  free(mesh->edges.vertex_ids);
-  free(mesh->edges.is_local);
-  free(mesh->edges.is_internal);
-  free(mesh->edges.cell_offset);
-  free(mesh->edges.cell_ids);
-  free(mesh->edges.centroid);
-  free(mesh->edges.normal);
-  free(mesh->edges.length);
+  ierr = TDyFree(mesh->edges.id); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->edges.global_id); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->edges.num_cells); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->edges.vertex_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->edges.is_local); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->edges.is_internal); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->edges.cell_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->edges.cell_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->edges.centroid); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->edges.normal); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->edges.length); CHKERRQ(ierr);
 
-  free(mesh->faces.id);
-  free(mesh->faces.num_vertices);
-  free(mesh->faces.num_edges);
-  free(mesh->faces.num_cells);
-  free(mesh->faces.is_local);
-  free(mesh->faces.is_internal);
-  free(mesh->faces.vertex_offset);
-  free(mesh->faces.cell_offset);
-  free(mesh->faces.edge_offset);
-  free(mesh->faces.cell_ids);
-  free(mesh->faces.edge_ids);
-  free(mesh->faces.vertex_ids);
-  free(mesh->faces.area);
-  free(mesh->faces.centroid);
-  free(mesh->faces.normal);
+  ierr = TDyFree(mesh->faces.id); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.num_vertices); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.num_edges); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.num_cells); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.is_local); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.is_internal); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.vertex_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.cell_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.edge_offset); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.cell_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.edge_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.vertex_ids); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.area); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.centroid); CHKERRQ(ierr);
+  ierr = TDyFree(mesh->faces.normal); CHKERRQ(ierr);
 
-  free(mesh->closureSize);
+  ierr = TDyFree(mesh->closureSize);
   ierr = TDyDeallocate_IntegerArray_2D(mesh->closure,
             mesh->num_cells+mesh->num_faces+mesh->num_edges+mesh->num_vertices);
   CHKERRQ(ierr);
 
-  free(mesh);
+  ierr = TDyFree(mesh); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

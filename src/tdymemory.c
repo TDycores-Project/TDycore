@@ -9,7 +9,7 @@ PetscErrorCode TDyFree(void *memory) {
 /// Sets all values in the given memory block to the given integer value.
 /// @param size The number of integers in the array
 /// @param array The array whose values are to be set
-/// @param value The value to which the array's values is set
+/// @param value The value to which the array's values are set
 PetscErrorCode TDySetIntArray(size_t size, PetscInt array[size], PetscInt value) {
   PetscFunctionBegin;
   for (size_t i = 0; i < size; ++i) {
@@ -21,7 +21,7 @@ PetscErrorCode TDySetIntArray(size_t size, PetscInt array[size], PetscInt value)
 /// Sets all values in the given memory block to the given real value.
 /// @param size The number of real numbers in the array
 /// @param array The array whose values are to be set
-/// @param value The value to which the array's values is set
+/// @param value The value to which the array's values are set
 PetscErrorCode TDySetRealArray(size_t size, PetscReal array[size], PetscReal value) {
   PetscFunctionBegin;
   for (size_t i = 0; i < size; ++i) {
@@ -118,10 +118,9 @@ PetscErrorCode TDyInitialize_RealArray_4D(PetscReal ****array_4D, PetscInt ndim_
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyAllocate_IntegerArray_1D(PetscInt **array_1D, PetscInt ndim_1) {
-
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  *array_1D = (PetscInt *)malloc(ndim_1*sizeof(PetscInt));
+  ierr = TDyAlloc(ndim_1*sizeof(PetscInt), array_1D); CHKERRQ(ierr);
   ierr = TDyInitialize_IntegerArray_1D(*array_1D, ndim_1, -1); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -133,9 +132,9 @@ PetscErrorCode TDyAllocate_IntegerArray_2D(PetscInt ***array_2D, PetscInt ndim_1
   PetscInt i;
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  *array_2D = (PetscInt **)malloc(ndim_1*sizeof(PetscInt *));
+  ierr = TDyAlloc(ndim_1*sizeof(PetscInt *), array_2D); CHKERRQ(ierr);
   for(i=0; i<ndim_1; i++) {
-    (*array_2D)[i] = (PetscInt *)malloc(ndim_2*sizeof(PetscInt ));
+    ierr = TDyAlloc(ndim_2*sizeof(PetscInt ), &((*array_2D)[i])); CHKERRQ(ierr);
   }
   ierr = TDyInitialize_IntegerArray_2D(*array_2D, ndim_1, ndim_2, -1); CHKERRQ(ierr);
   PetscFunctionReturn(0);
@@ -143,12 +142,7 @@ PetscErrorCode TDyAllocate_IntegerArray_2D(PetscInt ***array_2D, PetscInt ndim_1
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyAllocate_RealArray_1D(PetscReal **array_1D, PetscInt ndim_1) {
-
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  *array_1D = (PetscReal *)malloc(ndim_1*sizeof(PetscReal ));
-  ierr = TDyInitialize_RealArray_1D(*array_1D, ndim_1, 0.0); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
+  return TDyAlloc(ndim_1*sizeof(PetscReal), array_1D);
 }
 
 /* ---------------------------------------------------------------- */
@@ -158,11 +152,10 @@ PetscErrorCode TDyAllocate_RealArray_2D(PetscReal ***array_2D, PetscInt ndim_1,
   PetscInt i;
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  *array_2D = (PetscReal **)malloc(ndim_1*sizeof(PetscReal *));
+  ierr = TDyAlloc(ndim_1*sizeof(PetscReal *), array_2D); CHKERRQ(ierr);
   for(i=0; i<ndim_1; i++) {
-    (*array_2D)[i] = (PetscReal *)malloc(ndim_2*sizeof(PetscReal ));
+    ierr = TDyAlloc(ndim_2*sizeof(PetscReal ), &((*array_2D)[i])); CHKERRQ(ierr);
   }
-  ierr = TDyInitialize_RealArray_2D(*array_2D, ndim_1, ndim_2, 0.0); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -173,14 +166,13 @@ PetscErrorCode TDyAllocate_RealArray_3D(PetscReal ****array_3D, PetscInt ndim_1,
   PetscInt i,j;
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  *array_3D = (PetscReal ***)malloc(ndim_1*sizeof(PetscReal **));
+  ierr = TDyAlloc(ndim_1*sizeof(PetscReal **), array_3D); CHKERRQ(ierr);
   for(i=0; i<ndim_1; i++) {
-    (*array_3D)[i] = (PetscReal **)malloc(ndim_2*sizeof(PetscReal *));
+    ierr = TDyAlloc(ndim_2*sizeof(PetscReal *), &((*array_3D)[i])); CHKERRQ(ierr);
     for(j=0; j<ndim_2; j++) {
-      (*array_3D)[i][j] = (PetscReal *)malloc(ndim_3*sizeof(PetscReal));
+      ierr = TDyAlloc(ndim_3*sizeof(PetscReal), &((*array_3D)[i][j])); CHKERRQ(ierr);
     }
   }
-  ierr = TDyInitialize_RealArray_3D(*array_3D, ndim_1, ndim_2, ndim_3, 0.0);
   CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -193,13 +185,13 @@ PetscErrorCode TDyAllocate_RealArray_4D(PetscReal *****array_4D, PetscInt ndim_1
   PetscInt i,j,k;
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  *array_4D = (PetscReal ****)malloc(ndim_1*sizeof(PetscReal ***));
+  ierr = TDyAlloc(ndim_1*sizeof(PetscReal ***), array_4D); CHKERRQ(ierr);
   for(i=0; i<ndim_1; i++) {
-    (*array_4D)[i] = (PetscReal ***)malloc(ndim_2*sizeof(PetscReal **));
+    ierr = TDyAlloc(ndim_2*sizeof(PetscReal **), &((*array_4D)[i])); CHKERRQ(ierr);
     for(j=0; j<ndim_2; j++) {
-      (*array_4D)[i][j] = (PetscReal **)malloc(ndim_3*sizeof(PetscReal *));
+      ierr = TDyAlloc(ndim_3*sizeof(PetscReal *), &((*array_4D)[i][j])); CHKERRQ(ierr);
       for(k=0; k<ndim_3; k++) {
-        (*array_4D)[i][j][k] = (PetscReal *)malloc(ndim_4*sizeof(PetscReal));
+        ierr = TDyAlloc(ndim_4*sizeof(PetscReal), &((*array_4D)[i][j][k])); CHKERRQ(ierr);
       }
     }
   }
@@ -210,129 +202,106 @@ PetscErrorCode TDyAllocate_RealArray_4D(PetscReal *****array_4D, PetscInt ndim_1
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyDeallocate_RealArray_1D(PetscReal *array_1D) {
-
-  PetscFunctionBegin;
-  free(array_1D);
-  PetscFunctionReturn(0);
+  return TDyFree(array_1D);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyDeallocate_IntegerArray_1D(PetscInt *array_1D) {
-
-  PetscFunctionBegin;
-  free(array_1D);
-  PetscFunctionReturn(0);
+  return TDyFree(array_1D);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyDeallocate_IntegerArray_2D(PetscInt **array_2D, PetscInt ndim_1) {
 
+  PetscErrorCode ierr;
   PetscInt i;
   PetscFunctionBegin;
   for(i=0; i<ndim_1; i++) {
-    free(array_2D[i]);
+    ierr = TDyFree(array_2D[i]); CHKERRQ(ierr);
   }
-  free(array_2D);
+  ierr = TDyFree(array_2D); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyDeallocate_RealArray_2D(PetscReal **array_2D, PetscInt ndim_1) {
 
+  PetscErrorCode ierr;
   PetscInt i;
   PetscFunctionBegin;
   for(i=0; i<ndim_1; i++) {
-    free(array_2D[i]);
+    ierr = TDyFree(array_2D[i]); CHKERRQ(ierr);
   }
-  free(array_2D);
+  ierr = TDyFree(array_2D); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyDeallocate_RealArray_3D(PetscReal ***array_3D, PetscInt ndim_1, PetscInt ndim_2) {
 
+  PetscErrorCode ierr;
   PetscInt i,j;
   PetscFunctionBegin;
   for(i=0; i<ndim_1; i++) {
     for(j=0; j<ndim_2; j++) {
-      free(array_3D[i][j]);
+      ierr = TDyFree(array_3D[i][j]); CHKERRQ(ierr);
     }
-    free(array_3D[i]);
+    ierr = TDyFree(array_3D[i]); CHKERRQ(ierr);
   }
-  free(array_3D);
+  ierr = TDyFree(array_3D); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyDeallocate_RealArray_4D(PetscReal ****array_4D, PetscInt ndim_1, PetscInt ndim_2, PetscInt ndim_3) {
 
+  PetscErrorCode ierr;
   PetscInt i,j,k;
   PetscFunctionBegin;
   for(i=0; i<ndim_1; i++) {
     for(j=0; j<ndim_2; j++) {
       for(k=0; k<ndim_3; k++) {
-        free(array_4D[i][j][k]);
+        ierr = TDyFree(array_4D[i][j][k]); CHKERRQ(ierr);
       }
-      free(array_4D[i][j]);
+      ierr = TDyFree(array_4D[i][j]); CHKERRQ(ierr);
     }
-    free(array_4D[i]);
+    ierr = TDyFree(array_4D[i]); CHKERRQ(ierr);
   }
-  free(array_4D);
+  ierr = TDyFree(array_4D); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyAllocate_TDyCell_1D(PetscInt ndim_1, TDyCell **array_1D) {
-
-  PetscFunctionBegin;
-  *array_1D = (TDyCell *)malloc(ndim_1*sizeof(TDyCell));
-  PetscFunctionReturn(0);
+  return TDyAlloc(ndim_1*sizeof(TDyCell), array_1D);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyAllocate_TDyVertex_1D(PetscInt ndim_1, TDyVertex **array_1D) {
-
-  PetscFunctionBegin;
-  *array_1D = (TDyVertex *)malloc(ndim_1*sizeof(TDyVertex));
-  PetscFunctionReturn(0);
+  return TDyAlloc(ndim_1*sizeof(TDyVertex), array_1D);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyAllocate_TDyEdge_1D(PetscInt ndim_1, TDyEdge **array_1D) {
-
-  PetscFunctionBegin;
-  *array_1D = (TDyEdge *)malloc(ndim_1*sizeof(TDyEdge));
-  PetscFunctionReturn(0);
+  return TDyAlloc(ndim_1*sizeof(TDyEdge), array_1D);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyAllocate_TDyFace_1D(PetscInt ndim_1, TDyFace **array_1D) {
-
-  PetscFunctionBegin;
-  *array_1D = (TDyFace *)malloc(ndim_1*sizeof(TDyFace));
-  PetscFunctionReturn(0);
+  return TDyAlloc(ndim_1*sizeof(TDyFace), array_1D);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyAllocate_TDySubcell_1D(PetscInt ndim_1, TDySubcell **array_1D) {
-
-  PetscFunctionBegin;
-  *array_1D = (TDySubcell *)malloc(ndim_1*sizeof(TDySubcell));
-  PetscFunctionReturn(0);
+  return TDyAlloc(ndim_1*sizeof(TDySubcell), array_1D);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyAllocate_TDyVector_1D(PetscInt ndim_1, TDyVector **array_1D) {
-
-  PetscFunctionBegin;
-  *array_1D = (TDyVector *)malloc(ndim_1*sizeof(TDyVector));
-  PetscFunctionReturn(0);
+  return TDyAlloc(ndim_1*sizeof(TDyVector), array_1D);
 }
 
 /* ---------------------------------------------------------------- */
 PetscErrorCode TDyAllocate_TDyCoordinate_1D(PetscInt ndim_1, TDyCoordinate **array_1D) {
-
-  PetscFunctionBegin;
-  *array_1D = (TDyCoordinate *)malloc(ndim_1*sizeof(TDyCoordinate));
-  PetscFunctionReturn(0);
+  return TDyAlloc(ndim_1*sizeof(TDyCoordinate), array_1D);
 }
