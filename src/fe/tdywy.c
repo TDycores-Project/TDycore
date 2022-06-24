@@ -4,6 +4,7 @@
 #include <private/tdywyimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdydiscretizationimpl.h>
+#include <private/tdymemoryimpl.h>
 #include <tdytimers.h>
 
 #define MAX_LOCAL_SIZE 144
@@ -26,7 +27,7 @@ PetscErrorCode Pullback(PetscScalar *K,PetscScalar *DFinv,PetscScalar *Kappa,
   PetscBLASInt n,lwork=nn*nn;
   ierr = PetscBLASIntCast(nn,&n); CHKERRQ(ierr);
   PetscBLASInt info,*pivots;
-  ierr = PetscMalloc((n+1)*sizeof(PetscBLASInt),&pivots); CHKERRQ(ierr);
+  ierr = TDyAlloc((n+1)*sizeof(PetscBLASInt),&pivots); CHKERRQ(ierr);
 
   PetscScalar KDFinvT[n*n],work[n*n];
   /* LAPACK wants things in column major, so we need to transpose both
@@ -51,7 +52,7 @@ PetscErrorCode Pullback(PetscScalar *K,PetscScalar *DFinv,PetscScalar *Kappa,
   if (info<0) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"illegal argument value");
   if (info>0) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_MAT_LU_ZRPVT,"singular matrix");
 
-  ierr = PetscFree(pivots); CHKERRQ(ierr);
+  ierr = TDyFree(pivots); CHKERRQ(ierr);
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
@@ -75,7 +76,7 @@ PetscErrorCode FormStencil(PetscScalar *A,PetscScalar *B,PetscScalar *C,
   PetscScalar zero = 0,one = 1;
   ierr = PetscBLASIntCast(qq,&q); CHKERRQ(ierr);
   ierr = PetscBLASIntCast(rr,&r); CHKERRQ(ierr);
-  ierr = PetscMalloc((q+1)*sizeof(PetscBLASInt),&pivots); CHKERRQ(ierr);
+  ierr = TDyAlloc((q+1)*sizeof(PetscBLASInt),&pivots); CHKERRQ(ierr);
 
   // Copy B because we will need it again
   PetscScalar AinvB[qq*rr];
@@ -101,7 +102,7 @@ PetscErrorCode FormStencil(PetscScalar *A,PetscScalar *B,PetscScalar *C,
   BLASgemm_("T","N",&r,&r,&q,&one,B,&q,AinvB,&q,&zero,&C[0],&r); // B.T * AinvB
   BLASgemm_("T","N",&r,&o,&q,&one,B,&q,G,&q,&zero,&D[0],&r);     // B.T * G
 
-  ierr = PetscFree(pivots); CHKERRQ(ierr);
+  ierr = TDyFree(pivots); CHKERRQ(ierr);
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
@@ -119,7 +120,7 @@ PetscErrorCode RecoverVelocity(PetscScalar *A,PetscScalar *F,PetscInt qq) {
   PetscErrorCode ierr;
   PetscBLASInt q,o = 1,info,*pivots;
   ierr = PetscBLASIntCast(qq,&q); CHKERRQ(ierr);
-  ierr = PetscMalloc((q+1)*sizeof(PetscBLASInt),&pivots); CHKERRQ(ierr);
+  ierr = TDyAlloc((q+1)*sizeof(PetscBLASInt),&pivots); CHKERRQ(ierr);
 
   // Find A = LU factors of A
   LAPACKgetrf_(&q,&q,A,&q,pivots,&info);
@@ -132,7 +133,7 @@ PetscErrorCode RecoverVelocity(PetscScalar *A,PetscScalar *F,PetscInt qq) {
   LAPACKgetrs_("N",&q,&o,A,&q,pivots,F,&q,&info);
   if (info) SETERRQ(PETSC_COMM_SELF,PETSC_ERR_LIB,"GETRS - Bad solve");
 
-  ierr = PetscFree(pivots); CHKERRQ(ierr);
+  ierr = TDyFree(pivots); CHKERRQ(ierr);
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
 }
@@ -233,7 +234,7 @@ PetscErrorCode TDyCreate_WY(void **context) {
   PetscFunctionBegin;
   // Allocate a new context for the WY method.
   TDyWY *wy;
-  ierr = PetscCalloc(sizeof(TDyWY), &wy); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(TDyWY), &wy); CHKERRQ(ierr);
   *context = wy;
   PetscFunctionReturn(0);
 }
@@ -243,28 +244,28 @@ PetscErrorCode TDyDestroy_WY(void *context) {
   PetscFunctionBegin;
   TDyWY *wy = context;
 
-  if (wy->vmap  ) { ierr = PetscFree(wy->vmap  ); CHKERRQ(ierr); }
-  if (wy->emap  ) { ierr = PetscFree(wy->emap  ); CHKERRQ(ierr); }
-  if (wy->Alocal) { ierr = PetscFree(wy->Alocal); CHKERRQ(ierr); }
-  if (wy->Flocal) { ierr = PetscFree(wy->Flocal); CHKERRQ(ierr); }
-  if (wy->vel   ) { ierr = PetscFree(wy->vel   ); CHKERRQ(ierr); }
-  if (wy->fmap  ) { ierr = PetscFree(wy->fmap  ); CHKERRQ(ierr); }
-  if (wy->faces ) { ierr = PetscFree(wy->faces ); CHKERRQ(ierr); }
+  if (wy->vmap  ) { ierr = TDyFree(wy->vmap  ); CHKERRQ(ierr); }
+  if (wy->emap  ) { ierr = TDyFree(wy->emap  ); CHKERRQ(ierr); }
+  if (wy->Alocal) { ierr = TDyFree(wy->Alocal); CHKERRQ(ierr); }
+  if (wy->Flocal) { ierr = TDyFree(wy->Flocal); CHKERRQ(ierr); }
+  if (wy->vel   ) { ierr = TDyFree(wy->vel   ); CHKERRQ(ierr); }
+  if (wy->fmap  ) { ierr = TDyFree(wy->fmap  ); CHKERRQ(ierr); }
+  if (wy->faces ) { ierr = TDyFree(wy->faces ); CHKERRQ(ierr); }
   if (wy->quad  ) { ierr = PetscQuadratureDestroy(&(wy->quad)); CHKERRQ(ierr); }
 
-  if (wy->Sr) { ierr = PetscFree(wy->Sr); CHKERRQ(ierr); }
-  if (wy->dS_dP) { ierr = PetscFree(wy->dS_dP); CHKERRQ(ierr); }
-  if (wy->d2S_dP2) { ierr = PetscFree(wy->d2S_dP2); CHKERRQ(ierr); }
-  if (wy->S) { ierr = PetscFree(wy->S); CHKERRQ(ierr); }
-  if (wy->Kr) { ierr = PetscFree(wy->Kr); CHKERRQ(ierr); }
-  if (wy->dKr_dS) { ierr = PetscFree(wy->dKr_dS); CHKERRQ(ierr); }
-  if (wy->porosity) { ierr = PetscFree(wy->porosity); CHKERRQ(ierr); }
-  if (wy->K0) { ierr = PetscFree(wy->K0); CHKERRQ(ierr); }
-  if (wy->K) { ierr = PetscFree(wy->K); CHKERRQ(ierr); }
+  if (wy->Sr) { ierr = TDyFree(wy->Sr); CHKERRQ(ierr); }
+  if (wy->dS_dP) { ierr = TDyFree(wy->dS_dP); CHKERRQ(ierr); }
+  if (wy->d2S_dP2) { ierr = TDyFree(wy->d2S_dP2); CHKERRQ(ierr); }
+  if (wy->S) { ierr = TDyFree(wy->S); CHKERRQ(ierr); }
+  if (wy->Kr) { ierr = TDyFree(wy->Kr); CHKERRQ(ierr); }
+  if (wy->dKr_dS) { ierr = TDyFree(wy->dKr_dS); CHKERRQ(ierr); }
+  if (wy->porosity) { ierr = TDyFree(wy->porosity); CHKERRQ(ierr); }
+  if (wy->K0) { ierr = TDyFree(wy->K0); CHKERRQ(ierr); }
+  if (wy->K) { ierr = TDyFree(wy->K); CHKERRQ(ierr); }
 
-  ierr = PetscFree(wy->V); CHKERRQ(ierr);
-  ierr = PetscFree(wy->X); CHKERRQ(ierr);
-  ierr = PetscFree(wy->N); CHKERRQ(ierr);
+  ierr = TDyFree(wy->V); CHKERRQ(ierr);
+  ierr = TDyFree(wy->X); CHKERRQ(ierr);
+  ierr = TDyFree(wy->N); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -345,11 +346,11 @@ PetscErrorCode TDySetup_WY(void *context, TDyDiscretizationType *discretization,
   ierr = DMPlexGetDepthStratum(dm,1,&eStart,&eEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 0, &cStart, &cEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm, 1, &fStart, &fEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc(    (pEnd-pStart)*sizeof(PetscReal),&(wy->V));
+  ierr = TDyAlloc(    (pEnd-pStart)*sizeof(PetscReal),&(wy->V));
   CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(wy->X));
+  ierr = TDyAlloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(wy->X));
   CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(wy->N));
+  ierr = TDyAlloc(dim*(pEnd-pStart)*sizeof(PetscReal),&(wy->N));
   CHKERRQ(ierr);
   PetscSection coordSection;
   Vec coordinates;
@@ -391,16 +392,16 @@ PetscErrorCode TDySetup_WY(void *context, TDyDiscretizationType *discretization,
                                     &(wy->emap)); CHKERRQ(ierr);
 
   /* Allocate space for Alocal and Flocal */
-  ierr = PetscMalloc(dim*dim*wy->ncv*(cEnd-cStart)*sizeof(PetscReal),
+  ierr = TDyAlloc(dim*dim*wy->ncv*(cEnd-cStart)*sizeof(PetscReal),
                      &(wy->Alocal)); CHKERRQ(ierr);
-  ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),
+  ierr = TDyAlloc((cEnd-cStart)*sizeof(PetscReal),
                      &(wy->Flocal)); CHKERRQ(ierr);
 
   /* Allocate space for velocities and create a local_vertex->face map */
   wy->nfv = TDyGetNumberOfFaceVertices(dm);
-  ierr = PetscMalloc(wy->nfv*(fEnd-fStart)*sizeof(PetscReal),
+  ierr = TDyAlloc(wy->nfv*(fEnd-fStart)*sizeof(PetscReal),
                      &(wy->vel )); CHKERRQ(ierr);
-  ierr = PetscMalloc(wy->nfv*(fEnd-fStart)*sizeof(PetscInt ),
+  ierr = TDyAlloc(wy->nfv*(fEnd-fStart)*sizeof(PetscInt ),
                      &(wy->fmap)); CHKERRQ(ierr);
   for(f=fStart; f<fEnd; f++) {
     closure = NULL;
@@ -424,7 +425,7 @@ PetscErrorCode TDySetup_WY(void *context, TDyDiscretizationType *discretization,
   }
 
   /* map(cell,dim,side) --> global_face */
-  ierr = PetscMalloc((cEnd-cStart)*(2*dim)*sizeof(PetscInt),&(wy->faces));
+  ierr = TDyAlloc((cEnd-cStart)*(2*dim)*sizeof(PetscInt),&(wy->faces));
   CHKERRQ(ierr);
   #if defined(PETSC_USE_DEBUG)
   for(c=0; c<((cEnd-cStart)*(2*dim)); c++) { wy->faces[c] = -1; }
@@ -450,15 +451,15 @@ PetscErrorCode TDySetup_WY(void *context, TDyDiscretizationType *discretization,
 
   // Initialize material properties.
   PetscInt nc = cEnd-cStart;
-  ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(wy->K)); CHKERRQ(ierr);
-  ierr = PetscCalloc(9*nc*sizeof(PetscReal),&(wy->K0)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->porosity)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->Kr)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->dKr_dS)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->S)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->dS_dP)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->d2S_dP2)); CHKERRQ(ierr);
-  ierr = PetscCalloc(nc*sizeof(PetscReal),&(wy->Sr)); CHKERRQ(ierr);
+  ierr = TDyAlloc(9*nc*sizeof(PetscReal),&(wy->K)); CHKERRQ(ierr);
+  ierr = TDyAlloc(9*nc*sizeof(PetscReal),&(wy->K0)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(wy->porosity)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(wy->Kr)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(wy->dKr_dS)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(wy->S)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(wy->dS_dP)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(wy->d2S_dP2)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(wy->Sr)); CHKERRQ(ierr);
 
   PetscInt points[nc];
   for (PetscInt c = 0; c < nc; ++c) {

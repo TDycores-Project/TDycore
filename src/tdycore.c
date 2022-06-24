@@ -10,6 +10,7 @@ static char help[] = "TDycore \n\
 #include <private/tdycoreimpl.h>
 #include <private/tdycharacteristiccurvesimpl.h>
 #include <private/tdyconditionsimpl.h>
+#include <private/tdymemoryimpl.h>
 #include <private/tdympfaoimpl.h>
 #include <private/tdythimpl.h>
 #include <private/tdybdmimpl.h>
@@ -157,12 +158,13 @@ static int shutdown_funcs_cap_ = 0;
 
 /// Call this to register a shutdown function that is called during TDyFinalize.
 PetscErrorCode TDyOnFinalize(void (*shutdown_func)(void)) {
+  PetscErrorCode ierr;
   if (shutdown_funcs_ == NULL) {
     shutdown_funcs_cap_ = 32;
-    shutdown_funcs_ = malloc(sizeof(ShutdownFunc) * shutdown_funcs_cap_);
+    ierr = TDyAlloc(sizeof(ShutdownFunc) * shutdown_funcs_cap_, &shutdown_funcs_); CHKERRQ(ierr);
   } else if (num_shutdown_funcs_ == shutdown_funcs_cap_) { // need more space!
     shutdown_funcs_cap_ *= 2;
-    shutdown_funcs_ = realloc(shutdown_funcs_, sizeof(ShutdownFunc) * shutdown_funcs_cap_);
+    ierr = TDyRealloc(sizeof(ShutdownFunc) * shutdown_funcs_cap_, &shutdown_funcs_); CHKERRQ(ierr);
   }
   shutdown_funcs_[num_shutdown_funcs_] = shutdown_func;
   ++num_shutdown_funcs_;
@@ -178,7 +180,7 @@ PetscErrorCode TDyFinalize() {
     for (int i = num_shutdown_funcs_-1; i >= 0; --i) {
       shutdown_funcs_[i]();
     }
-    free(shutdown_funcs_);
+    TDyFree(shutdown_funcs_);
   }
 
   // Finalize PETSc.
@@ -396,7 +398,7 @@ PetscErrorCode TDyDestroy(TDy *_tdy) {
   DM dm;
   ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
   ierr = DMDestroy(&dm); CHKERRQ(ierr);
-  ierr = PetscFree(tdy); CHKERRQ(ierr);
+  ierr = TDyFree(tdy); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -734,7 +736,7 @@ PetscErrorCode TDySetup(TDy tdy) {
 
   // If we support diagnostics, set up the DMs and the diagnostic vector.
   if ( ((tdy->discretization)->tdydm)->dmtype == TDYCORE_DM_TYPE) {
-    tdy->ops->update_diagnostics = PETSC_FALSE;
+    tdy->ops->update_diagnostics = NULL;
   }
 
   if (tdy->ops->update_diagnostics) {
@@ -1178,10 +1180,11 @@ PetscErrorCode TDySetForcingFunction(TDy tdy,
                                      TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+  WrapperStruct *wrapper;
+  ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
   wrapper->func = f;
   ierr = ConditionsSetForcing(tdy->conditions, wrapper,
-                              WrapperFunction, free); CHKERRQ(ierr);
+                              WrapperFunction, TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1189,10 +1192,11 @@ PetscErrorCode TDySetEnergyForcingFunction(TDy tdy,
                                            TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+  WrapperStruct *wrapper;
+  ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
   wrapper->func = f;
   ierr = ConditionsSetEnergyForcing(tdy->conditions, wrapper,
-                                    WrapperFunction, free); CHKERRQ(ierr);
+                                    WrapperFunction, TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1200,10 +1204,11 @@ PetscErrorCode TDySetBoundaryPressureFunction(TDy tdy,
                                               TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+  WrapperStruct *wrapper;
+  ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
   wrapper->func = f;
   ierr = ConditionsSetBoundaryPressure(tdy->conditions, wrapper,
-                                       WrapperFunction, free); CHKERRQ(ierr);
+                                       WrapperFunction, TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1211,10 +1216,11 @@ PetscErrorCode TDySetBoundaryPressureTypeFunction(TDy tdy,
                                               TDyScalarSpatialIntegerFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  WrapperIntegerStruct *wrapper = malloc(sizeof(WrapperIntegerStruct));
+  WrapperIntegerStruct *wrapper;
+  ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
   wrapper->func = f;
   ierr = ConditionsSetBoundaryPressureType(tdy->conditions, wrapper,
-                                       WrapperIntegerFunction, free); CHKERRQ(ierr);
+                                       WrapperIntegerFunction, TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1222,10 +1228,11 @@ PetscErrorCode TDySetBoundaryTemperatureFunction(TDy tdy,
                                                  TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+  WrapperStruct *wrapper;
+  ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
   wrapper->func = f;
   ierr = ConditionsSetBoundaryTemperature(tdy->conditions, wrapper,
-                                          WrapperFunction, free); CHKERRQ(ierr);
+                                          WrapperFunction, TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1233,10 +1240,11 @@ PetscErrorCode TDySetBoundaryVelocityFunction(TDy tdy,
                                               TDyVectorSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  WrapperStruct *wrapper = malloc(sizeof(WrapperStruct));
+  WrapperStruct *wrapper;
+  ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
   wrapper->func = f;
   ierr = ConditionsSetBoundaryVelocity(tdy->conditions, wrapper,
-                                       WrapperFunction, free); CHKERRQ(ierr);
+                                       WrapperFunction, TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

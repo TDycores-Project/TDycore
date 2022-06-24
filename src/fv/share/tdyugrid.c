@@ -18,7 +18,7 @@ PetscErrorCode TDyUGridCreate(TDyUGrid **ugrid) {
 
   PetscErrorCode ierr;
 
-  ierr = PetscCalloc(sizeof(TDyUGrid), ugrid); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(TDyUGrid), ugrid); CHKERRQ(ierr);
 
   (*ugrid)->num_cells_global = 0;
   (*ugrid)->num_cells_local = 0;
@@ -728,7 +728,7 @@ static PetscErrorCode UpdateNaturalCellIDs(PetscInt stride, PetscInt dual_offset
   }
 
   PetscInt rank; MPI_Comm_rank(PETSC_COMM_WORLD,&rank);
-  free(ugrid->cell_ids_natural);
+  TDyFree(ugrid->cell_ids_natural);
   ierr = TDyAllocate_IntegerArray_1D(&ugrid->cell_ids_natural, ngmax); CHKERRQ(ierr);
 
   for (PetscInt ilocal=0; ilocal<nlmax; ilocal++) {

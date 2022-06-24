@@ -28,12 +28,12 @@ typedef struct {
   PetscErrorCode (*compute_soil_specific_heat)(void*,PetscInt,PetscReal*,PetscReal*);
 
   /// Material property context destructors.
-  void (*porosity_dtor)(void*);
-  void (*permeability_dtor)(void*);
-  void (*thermal_conductivity_dtor)(void*);
-  void (*residual_saturation_dtor)(void*);
-  void (*soil_density_dtor)(void*);
-  void (*soil_specific_heat_dtor)(void*);
+  PetscErrorCode (*porosity_dtor)(void*);
+  PetscErrorCode (*permeability_dtor)(void*);
+  PetscErrorCode (*thermal_conductivity_dtor)(void*);
+  PetscErrorCode (*residual_saturation_dtor)(void*);
+  PetscErrorCode (*soil_density_dtor)(void*);
+  PetscErrorCode (*soil_specific_heat_dtor)(void*);
 
 } MaterialProp;
 
@@ -42,12 +42,12 @@ PETSC_INTERN PetscErrorCode MaterialPropCreate(PetscInt,MaterialProp**);
 PETSC_INTERN PetscErrorCode MaterialPropDestroy(MaterialProp*);
 
 // material model setup functions
-PETSC_INTERN PetscErrorCode MaterialPropSetPorosity(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*),void(*)(void*));
-PETSC_INTERN PetscErrorCode MaterialPropSetPermeability(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*),void(*)(void*));
-PETSC_INTERN PetscErrorCode MaterialPropSetThermalConductivity(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*),void(*)(void*));
-PETSC_INTERN PetscErrorCode MaterialPropSetResidualSaturation(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*),void(*)(void*));
-PETSC_INTERN PetscErrorCode MaterialPropSetSoilDensity(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*),void(*)(void*));
-PETSC_INTERN PetscErrorCode MaterialPropSetSoilSpecificHeat(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*),void(*)(void*));
+PETSC_INTERN PetscErrorCode MaterialPropSetPorosity(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*),PetscErrorCode(*)(void*));
+PETSC_INTERN PetscErrorCode MaterialPropSetPermeability(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*),PetscErrorCode(*)(void*));
+PETSC_INTERN PetscErrorCode MaterialPropSetThermalConductivity(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*),PetscErrorCode(*)(void*));
+PETSC_INTERN PetscErrorCode MaterialPropSetResidualSaturation(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*),PetscErrorCode(*)(void*));
+PETSC_INTERN PetscErrorCode MaterialPropSetSoilDensity(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*),PetscErrorCode(*)(void*));
+PETSC_INTERN PetscErrorCode MaterialPropSetSoilSpecificHeat(MaterialProp*, void*, PetscErrorCode (*)(void*,PetscInt,PetscReal*,PetscReal*),PetscErrorCode(*)(void*));
 
 // material model query functions
 PETSC_INTERN PetscBool MaterialPropHasPorosity(MaterialProp*);

@@ -1,4 +1,5 @@
 #include <private/tdycoreimpl.h>
+#include <private/tdymemoryimpl.h>
 #include <petsc/private/khash/khash.h>
 
 /// Initializes a new Conditions instance.
@@ -6,7 +7,7 @@
 PetscErrorCode ConditionsCreate(Conditions** conditions) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
-  ierr = PetscCalloc(sizeof(Conditions), conditions); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(Conditions), conditions); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -18,7 +19,7 @@ PetscErrorCode ConditionsDestroy(Conditions* conditions) {
   ConditionsSetBoundaryPressure(conditions, NULL, NULL, NULL);
   ConditionsSetBoundaryTemperature(conditions, NULL, NULL, NULL);
   ConditionsSetBoundaryVelocity(conditions, NULL, NULL, NULL);
-  PetscFree(conditions);
+  TDyFree(conditions);
   PetscFunctionReturn(0);
 }
 
@@ -29,7 +30,7 @@ PetscErrorCode ConditionsDestroy(Conditions* conditions) {
 /// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
 PetscErrorCode ConditionsSetForcing(Conditions *conditions, void *context,
                                     PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                    void (*dtor)(void*)) {
+                                    PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (conditions->forcing_context && conditions->forcing_dtor)
     conditions->forcing_dtor(conditions->forcing_context);
@@ -46,7 +47,7 @@ PetscErrorCode ConditionsSetForcing(Conditions *conditions, void *context,
 /// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
 PetscErrorCode ConditionsSetEnergyForcing(Conditions *conditions, void *context,
                                           PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                          void (*dtor)(void*)) {
+                                          PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (conditions->energy_forcing_context && conditions->energy_forcing_dtor)
     conditions->energy_forcing_dtor(conditions->energy_forcing_context);
@@ -63,7 +64,7 @@ PetscErrorCode ConditionsSetEnergyForcing(Conditions *conditions, void *context,
 /// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
 PetscErrorCode ConditionsSetBoundaryPressure(Conditions *conditions, void *context,
                                              PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                             void (*dtor)(void*)) {
+                                             PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (conditions->boundary_pressure_context && conditions->boundary_pressure_dtor)
     conditions->boundary_pressure_dtor(conditions->boundary_pressure_context);
@@ -80,7 +81,7 @@ PetscErrorCode ConditionsSetBoundaryPressure(Conditions *conditions, void *conte
 /// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
 PetscErrorCode ConditionsSetBoundaryPressureType(Conditions *conditions, void *context,
                                              PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscInt*),
-                                             void (*dtor)(void*)) {
+                                             PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (conditions->boundary_pressure_type_context && conditions->boundary_pressure_type_dtor)
     conditions->boundary_pressure_type_dtor(conditions->boundary_pressure_type_context);
@@ -98,7 +99,7 @@ PetscErrorCode ConditionsSetBoundaryPressureType(Conditions *conditions, void *c
 PetscErrorCode ConditionsSetBoundaryTemperature(Conditions *conditions,
                                                 void *context,
                                                 PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                                void (*dtor)(void*)) {
+                                                PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (conditions->boundary_temperature_context && conditions->boundary_temperature_dtor)
     conditions->boundary_temperature_dtor(conditions->boundary_temperature_context);
@@ -116,7 +117,7 @@ PetscErrorCode ConditionsSetBoundaryTemperature(Conditions *conditions,
 PetscErrorCode ConditionsSetBoundaryVelocity(Conditions *conditions,
                                              void *context,
                                              PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                             void (*dtor)(void*)) {
+                                             PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (conditions->boundary_velocity_context && conditions->boundary_velocity_dtor)
     conditions->boundary_velocity_dtor(conditions->boundary_velocity_context);
@@ -204,10 +205,11 @@ PetscErrorCode ConditionsSetConstantBoundaryPressure(Conditions *conditions,
                                                      PetscReal p0) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  PetscReal *val = malloc(sizeof(PetscReal));
+  PetscReal *val;
+  ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = p0;
   ierr = ConditionsSetBoundaryPressure(conditions, val, ConstantBoundaryFn,
-                                       free); CHKERRQ(ierr);
+                                       TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -215,10 +217,11 @@ PetscErrorCode ConditionsSetConstantBoundaryTemperature(Conditions *conditions,
                                                         PetscReal T0) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  PetscReal *val = malloc(sizeof(PetscReal));
+  PetscReal *val;
+  ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = T0;
   ierr = ConditionsSetBoundaryTemperature(conditions, val, ConstantBoundaryFn,
-                                          free); CHKERRQ(ierr);
+                                          TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -226,9 +229,10 @@ PetscErrorCode ConditionsSetConstantBoundaryVelocity(Conditions *conditions,
                                                      PetscReal v0) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  PetscReal *val = malloc(sizeof(PetscReal));
+  PetscReal *val;
+  ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = v0;
   ierr = ConditionsSetBoundaryVelocity(conditions, val, ConstantBoundaryFn,
-                                       free); CHKERRQ(ierr);
+                                       TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

@@ -611,7 +611,7 @@ static PetscErrorCode SetupMaps_C2F_F2C_F2V(TDyUGrid *ugrid, PetscInt **cell_to_
       face_count++;
     }
   }
-  free(vertex_ids);
+  TDyFree(vertex_ids);
 
   PetscFunctionReturn(0);
 }
@@ -780,7 +780,7 @@ static PetscErrorCode UpdateMapsC2F_F2C_F2V(TDyUGrid *ugrid, PetscInt **cell_to_
       }
     }
   }
-  free(tmp_int);
+  TDyFree(tmp_int);
 
   PetscFunctionReturn(0);
 }
@@ -1161,7 +1161,7 @@ static PetscErrorCode ComputeGeoAttrOfUGridFaces(PetscInt **cell_to_face, TDyUGr
   ierr = TDyAllocate_RealArray_1D(&ugrid->face_area, ugrid->num_faces); CHKERRQ(ierr);
 
   PetscBool is_face_set[ugrid->num_faces];
-  for (PetscInt iface; iface<ugrid->num_faces; iface++) {
+  for (PetscInt iface = 0; iface<ugrid->num_faces; iface++) {
     is_face_set[iface] = PETSC_FALSE;
     for (PetscInt idim=0; idim<dim; idim++) {
       ugrid->face_centroid[iface][idim] = 0.0;
@@ -1294,7 +1294,7 @@ PetscErrorCode TDyMeshCreateFromDiscretization(TDyDiscretizationType *discretiza
 
   PetscErrorCode ierr;
 
-  *mesh = malloc(sizeof(TDyMesh));
+  ierr = TDyAlloc(sizeof(TDyMesh), mesh); CHKERRQ(ierr);
 
   ierr = TDyMeshMapIndices(discretization, mesh); CHKERRQ(ierr);
   ierr = TDySetupCellsFromDiscretization(discretization, mesh); CHKERRQ(ierr);

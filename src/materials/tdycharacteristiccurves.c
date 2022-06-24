@@ -17,7 +17,7 @@ PetscErrorCode CharacteristicCurvesCreate(CharacteristicCurves **cc) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  ierr = PetscMalloc(sizeof(CharacteristicCurves), cc); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(CharacteristicCurves), cc); CHKERRQ(ierr);
   ierr = SaturationCreate(&((*cc)->saturation)); CHKERRQ(ierr);
   ierr = RelativePermeabilityCreate(&((*cc)->rel_perm)); CHKERRQ(ierr);
 
@@ -32,7 +32,7 @@ PetscErrorCode CharacteristicCurvesDestroy(CharacteristicCurves *cc) {
 
   ierr = RelativePermeabilityDestroy(cc->rel_perm); CHKERRQ(ierr);
   ierr = SaturationDestroy(cc->saturation); CHKERRQ(ierr);
-  ierr = PetscFree(cc); CHKERRQ(ierr);
+  ierr = TDyFree(cc); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -42,7 +42,7 @@ PetscErrorCode SaturationCreate(Saturation **sat) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  ierr = PetscCalloc(sizeof(Saturation), sat); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(Saturation), sat); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -54,7 +54,7 @@ PetscErrorCode SaturationDestroy(Saturation *sat) {
   for (int type = 0; type < num_types; ++type) {
     SaturationSetType(sat, type, 0, NULL, NULL);
   }
-  ierr = PetscFree(sat); CHKERRQ(ierr);
+  ierr = TDyFree(sat); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -87,8 +87,8 @@ PetscErrorCode SaturationSetType(Saturation *sat, SaturationType type,
   // If we're changing the number of points for this type, free storage.
   if (sat->num_points[type] != num_points) {
     if (sat->points[type]) {
-      ierr = PetscFree(sat->points[type]); CHKERRQ(ierr);
-      ierr = PetscFree(sat->parameters[type]); CHKERRQ(ierr);
+      ierr = TDyFree(sat->points[type]); CHKERRQ(ierr);
+      ierr = TDyFree(sat->parameters[type]); CHKERRQ(ierr);
     }
   }
 
@@ -103,11 +103,11 @@ PetscErrorCode SaturationSetType(Saturation *sat, SaturationType type,
   }
 
   sat->num_points[type] = num_points;
-  ierr = PetscMalloc(num_points*sizeof(PetscInt),
-                     &(sat->points[type])); CHKERRQ(ierr);
+  ierr = TDyAlloc(num_points*sizeof(PetscInt),
+                  &(sat->points[type])); CHKERRQ(ierr);
   memcpy(sat->points[type], points, num_points*sizeof(PetscInt));
-  ierr = PetscMalloc(num_params*num_points*sizeof(PetscReal),
-                     &(sat->parameters[type])); CHKERRQ(ierr);
+  ierr = TDyAlloc(num_params*num_points*sizeof(PetscReal),
+                  &(sat->parameters[type])); CHKERRQ(ierr);
   memcpy(sat->parameters[type], parameters, num_params*num_points*sizeof(PetscReal));
   PetscFunctionReturn(0);
 }
@@ -240,7 +240,7 @@ PetscErrorCode RelativePermeabilityCreate(RelativePermeability **rel_perm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  ierr = PetscCalloc(sizeof(RelativePermeability), rel_perm); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(RelativePermeability), rel_perm); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -252,7 +252,7 @@ PetscErrorCode RelativePermeabilityDestroy(RelativePermeability *rel_perm) {
   for (int type = 0; type < num_types; ++type) {
     RelativePermeabilitySetType(rel_perm, type, 0, NULL, NULL);
   }
-  ierr = PetscFree(rel_perm); CHKERRQ(ierr);
+  ierr = TDyFree(rel_perm); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -299,17 +299,17 @@ PetscErrorCode RelativePermeabilitySetType(RelativePermeability *rel_perm,
   // If we're changing the number of points for this type, free storage.
   if (rel_perm->num_points[type] != num_points) {
     if (rel_perm->points[type]) {
-      ierr = PetscFree(rel_perm->points[type]); CHKERRQ(ierr);
-      ierr = PetscFree(rel_perm->parameters[type]); CHKERRQ(ierr);
+      ierr = TDyFree(rel_perm->points[type]); CHKERRQ(ierr);
+      ierr = TDyFree(rel_perm->parameters[type]); CHKERRQ(ierr);
     }
   }
 
   rel_perm->num_points[type] = num_points;
-  ierr = PetscMalloc(num_points*sizeof(PetscInt),
-                     &(rel_perm->points[type])); CHKERRQ(ierr);
+  ierr = TDyAlloc(num_points*sizeof(PetscInt),
+                  &(rel_perm->points[type])); CHKERRQ(ierr);
   memcpy(rel_perm->points[type], points, num_points*sizeof(PetscInt));
-  ierr = PetscMalloc(num_params*num_points*sizeof(PetscReal),
-                     &(rel_perm->parameters[type])); CHKERRQ(ierr);
+  ierr = TDyAlloc(num_params*num_points*sizeof(PetscReal),
+                  &(rel_perm->parameters[type])); CHKERRQ(ierr);
   memcpy(rel_perm->parameters[type], parameters,
          num_params*num_points*sizeof(PetscReal));
   PetscFunctionReturn(0);

@@ -34,12 +34,12 @@ typedef struct Conditions {
   PetscErrorCode (*compute_boundary_velocity)(void*,PetscInt,PetscReal*,PetscReal*);
 
   /// Context destructors.
-  void (*forcing_dtor)(void*);
-  void (*energy_forcing_dtor)(void*);
-  void (*boundary_pressure_dtor)(void*);
-  void (*boundary_pressure_type_dtor)(void*);
-  void (*boundary_temperature_dtor)(void*);
-  void (*boundary_velocity_dtor)(void*);
+  PetscErrorCode (*forcing_dtor)(void*);
+  PetscErrorCode (*energy_forcing_dtor)(void*);
+  PetscErrorCode (*boundary_pressure_dtor)(void*);
+  PetscErrorCode (*boundary_pressure_type_dtor)(void*);
+  PetscErrorCode (*boundary_temperature_dtor)(void*);
+  PetscErrorCode (*boundary_velocity_dtor)(void*);
 } Conditions;
 
 // conditions creation/destruction
@@ -47,12 +47,12 @@ PETSC_INTERN PetscErrorCode ConditionsCreate(Conditions**);
 PETSC_INTERN PetscErrorCode ConditionsDestroy(Conditions*);
 
 // conditions setup functions
-PETSC_INTERN PetscErrorCode ConditionsSetForcing(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetEnergyForcing(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetBoundaryPressure(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetBoundaryPressureType(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscInt*), void (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetBoundaryTemperature(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*) , void (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetBoundaryVelocity(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), void (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetForcing(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetEnergyForcing(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetBoundaryPressure(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetBoundaryPressureType(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscInt*), PetscErrorCode (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetBoundaryTemperature(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*) , PetscErrorCode (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetBoundaryVelocity(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
 
 // conditions query functions
 PETSC_INTERN PetscBool ConditionsHasForcing(Conditions*);

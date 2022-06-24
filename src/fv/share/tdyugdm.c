@@ -14,7 +14,7 @@ PetscErrorCode TDyUGDMCreate(TDyUGDM **ugdm){
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  ierr = PetscCalloc(sizeof(TDyUGDM), ugdm); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(TDyUGDM), ugdm); CHKERRQ(ierr);
 
   (*ugdm)->IS_GhostedCells_in_LocalOrder = NULL;
   (*ugdm)->IS_GhostedCells_in_GlobalOrder = NULL;
@@ -95,7 +95,7 @@ PetscErrorCode TDyUGDMDestroy(TDyUGDM *ugdm){
     ISLocalToGlobalMappingDestroy(&ugdm->Mapping_LocalCells_to_GhostedCells);
   }
 
-  free(ugdm);
+  TDyFree(ugdm);
 
   PetscFunctionReturn(0);
 }

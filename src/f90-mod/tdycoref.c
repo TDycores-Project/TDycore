@@ -4,6 +4,7 @@
 #include <tdycore.h>
 #include <private/tdycoreimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
+#include <private/tdymemoryimpl.h>
 #include <petsc/private/f90impl.h>
 
 #define PetscToPointer(a) (*(PetscFortranAddr *)(a))
@@ -294,7 +295,7 @@ static PetscErrorCode CreateF90SpatialFunctionContext(PetscInt dim,
   PetscErrorCode ierr;
   PetscFunctionBegin;
   F90SpatialFunctionWrapper *wrapper;
-  ierr = PetscMalloc(sizeof(F90SpatialFunctionWrapper), &wrapper); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(F90SpatialFunctionWrapper), &wrapper); CHKERRQ(ierr);
   wrapper->dim = dim;
   wrapper->id = id;
   *context = wrapper;
@@ -308,7 +309,7 @@ static PetscErrorCode CreateF90IntegerSpatialFunctionContext(PetscInt dim,
   PetscErrorCode ierr;
   PetscFunctionBegin;
   F90IntegerSpatialFunctionWrapper *wrapper;
-  ierr = PetscMalloc(sizeof(F90IntegerSpatialFunctionWrapper), &wrapper); CHKERRQ(ierr);
+  ierr = TDyAlloc(sizeof(F90IntegerSpatialFunctionWrapper), &wrapper); CHKERRQ(ierr);
   wrapper->dim = dim;
   wrapper->id = id;
   *context = wrapper;
@@ -373,11 +374,6 @@ static PetscErrorCode WrappedF90DiagonalTensorFunction(void *context, PetscInt n
   PetscFunctionReturn(0);
 }
 
-// Generic destructor for contexts that wrap F90 functions.
-static void DestroyContext(void* context) {
-  PetscFree(context);
-}
-
 //------------------------------------------------------------------------
 //                  Material properties and conditions
 //------------------------------------------------------------------------
@@ -392,7 +388,7 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
   void *context; \
   ierr = CreateF90SpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
-  ierr = matprop_fn(tdy->matprop, context, wrapper_fn, DestroyContext); \
+  ierr = matprop_fn(tdy->matprop, context, wrapper_fn, TDyFree); \
   CHKERRQ(ierr); \
   PetscFunctionReturn(0); \
 } \
@@ -421,7 +417,7 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
   void *context; \
   ierr = CreateF90SpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
-  ierr = condition_fn(tdy->conditions, context, wrapper_fn, DestroyContext); \
+  ierr = condition_fn(tdy->conditions, context, wrapper_fn, TDyFree); \
   CHKERRQ(ierr); \
   PetscFunctionReturn(0); \
 } \
@@ -434,7 +430,7 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
   void *context; \
   ierr = CreateF90IntegerSpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
-  ierr = condition_fn(tdy->conditions, context, wrapper_fn, DestroyContext); \
+  ierr = condition_fn(tdy->conditions, context, wrapper_fn, TDyFree); \
   CHKERRQ(ierr); \
   PetscFunctionReturn(0); \
 } \

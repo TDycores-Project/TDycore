@@ -1,4 +1,5 @@
-#include "private/tdyfeimpl.h"
+#include <private/tdyfeimpl.h>
+#include <private/tdymemoryimpl.h>
 #include <tdytimers.h>
 
 const char *const TDyQuadratureTypes[] = {
@@ -26,7 +27,7 @@ PetscErrorCode CreateCellVertexMap(DM dm, PetscInt nv, PetscReal *X, PetscInt **
   ierr = SetQuadrature(quad,dim); CHKERRQ(ierr);
   ierr = DMPlexGetDepthStratum(dm,0,&vStart,&vEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc(nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
+  ierr = TDyAlloc(nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
 #if defined(PETSC_USE_DEBUG)
   for(c=0; c<nv*(cEnd-cStart); c++) { (*map)[c] = -1; }
 #endif
@@ -100,7 +101,7 @@ PetscErrorCode CreateCellVertexDirFaceMap(DM dm, PetscInt nv, PetscReal *X,
   }
   ierr = DMPlexGetHeightStratum(dm,1,&fStart,&fEnd); CHKERRQ(ierr);
   ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  ierr = PetscMalloc(dim*nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
+  ierr = TDyAlloc(dim*nv*(cEnd-cStart)*sizeof(PetscInt),map); CHKERRQ(ierr);
 #if defined(PETSC_USE_DEBUG)
   for(c=0; c<dim*nv*(cEnd-cStart); c++) { (*map)[c] = 0; }
 #endif
@@ -155,8 +156,8 @@ PetscErrorCode SetQuadrature(PetscQuadrature q,PetscInt dim) {
   PetscReal *x,*w;
   PetscInt d,nv=1;
   for(d=0; d<dim; d++) nv *= 2;
-  ierr = PetscMalloc1(nv*dim,&x); CHKERRQ(ierr);
-  ierr = PetscMalloc1(nv,&w); CHKERRQ(ierr);
+  ierr = TDyAlloc(nv*dim,&x); CHKERRQ(ierr);
+  ierr = TDyAlloc(nv,&w); CHKERRQ(ierr);
   switch(nv*dim) {
   case 2: /* line */
     x[0] = -1.0; w[0] = 1.0;
