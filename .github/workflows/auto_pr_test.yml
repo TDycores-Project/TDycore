@@ -47,8 +47,7 @@ jobs:
         cd ../th
         make V=1 codecov=1
         cd ../transient
-        make V=1 codecov=1 transient
-        make V=1 transient_mpfaof90 transient_snes_mpfaof90
+        make V=1 codecov=1 transient transient_mpfaof90 transient_snes_mpfaof90
         cd ../../regression_tests
         make test-steady
         num_failures=$(( $num_failures + $? ))
