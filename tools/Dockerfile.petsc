@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   lcov \
   libcmocka-dev \
   liblapack-dev \
+  libmpich-dev \
   libtool \
   locales \
   m4 \
@@ -44,18 +45,17 @@ RUN git clone --branch=main https://gitlab.com/petsc/petsc && \
   PETSC_INSTALL_PREFIX=$PETSC_DIR; unset PETSC_DIR; \
   python3 configure \
     --prefix=$PETSC_INSTALL_PREFIX \
-    --with-cc=gcc \
-    --with-cxx=g++ \
-    --with-fc=gfortran \
+    --with-cc=mpicc \
+    --with-cxx=mpic++ \
+    --with-fc=mpif90 \
     --CFLAGS='-g -O0' --CXXFLAGS='-g -O0' --FFLAGS='-g -O0 -Wno-unused-function' \
     --with-clanguage=c \
     --with-debug=1 \
-    --with-shared-libraries=0 \
+    --with-shared-libraries=1 \
     --download-exodusii \
     --download-fblaslapack \
     --download-hdf5 \
     --download-metis \
-    --download-mpich \
     --download-netcdf \
     --download-parmetis \
     --download-pnetcdf \
