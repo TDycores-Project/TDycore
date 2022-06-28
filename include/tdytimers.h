@@ -24,7 +24,7 @@ KHASH_MAP_INIT_STR(TDY_TIMER_MAP, PetscLogEvent)
 PETSC_EXTERN khash_t(TDY_TIMER_MAP)* TDY_TIMERS;
 
 // t = TDyGetTimer(name): creates or returns a timer (PetscLogEvent).
-PETSC_STATIC_INLINE PetscLogEvent TDyGetTimer(const char* name) {
+static inline PetscLogEvent TDyGetTimer(const char* name) {
   khiter_t iter = kh_get(TDY_TIMER_MAP, TDY_TIMERS, name);
   PetscLogEvent timer;
   if (iter == kh_end(TDY_TIMERS)) {
