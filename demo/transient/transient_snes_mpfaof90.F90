@@ -151,7 +151,7 @@ contains
       call DMGetDimension(dm, dim, ierr)
       CHKERRA(ierr)
       if (dm_plex_extrude_layers > 0) then
-        call DMPlexExtrude(dm, PETSC_DETERMINE, -1.d0, PETSC_TRUE, PETSC_NULL_REAL, PETSC_TRUE, edm, ierr)
+        call DMPlexExtrude(dm, dm_plex_extrude_layers, -1.d0, PETSC_TRUE, PETSC_TRUE, PETSC_NULL_REAL, PETSC_NULL_REAL, edm, ierr)
         CHKERRA(ierr)
         call DMDestroy(dm ,ierr)
         dm = edm

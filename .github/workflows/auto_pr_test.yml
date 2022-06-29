@@ -55,10 +55,10 @@ jobs:
         num_failures=$(( $num_failures + $? ))
         make test-transient-snes-mpfaof90
         num_failures=$(( $num_failures + $? ))
-        make test-richards
-        num_failures=$(( $num_failures + $? ))
-        make test-th
-        num_failures=$(( $num_failures + $? ))
+        #make test-richards
+        #num_failures=$(( $num_failures + $? ))
+        #make test-th
+        #num_failures=$(( $num_failures + $? ))
         cd ..
         cat regression_tests/*testlog
         test $num_failures -eq 0
