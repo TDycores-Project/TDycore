@@ -14,7 +14,7 @@ jobs:
   # This job builds the box model and runs our test suite.
   build:
     runs-on: ${{ matrix.os }}
-    container: coherellc/tdycore-petsc:32a6fd01
+    container: coherellc/tdycore-petsc:c5e9cb18
 
     # A build matrix storing all desired configurations.
     strategy:
