@@ -31,7 +31,7 @@ jobs:
     - name: Building TDycore (${{ matrix.build-type }})
       run: |
         grep PETSC_VERSION_GIT $PETSC_DIR/include/petscconf.h | sed -e s/#define\ //g
-        make -j codecov=1 V=1
+        make -j codecov=1 V=1 all-gmake
 
     - name: Running tests (${{ matrix.build-type }})
       #if: github.event.pull_request.draft == false # skip for draft PRs
