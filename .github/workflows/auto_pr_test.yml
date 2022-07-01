@@ -14,7 +14,7 @@ jobs:
   # This job builds the box model and runs our test suite.
   build:
     runs-on: ${{ matrix.os }}
-    container: coherellc/tdycore-petsc:c29323cac9f
+    container: coherellc/tdycore-petsc:c5e9cb18
 
     # A build matrix storing all desired configurations.
     strategy:
@@ -31,7 +31,7 @@ jobs:
     - name: Building TDycore (${{ matrix.build-type }})
       run: |
         grep PETSC_VERSION_GIT $PETSC_DIR/include/petscconf.h | sed -e s/#define\ //g
-        make -j codecov=1 V=1
+        make -j codecov=1 V=1 all-gmake
 
     - name: Running tests (${{ matrix.build-type }})
       #if: github.event.pull_request.draft == false # skip for draft PRs
@@ -47,8 +47,7 @@ jobs:
         cd ../th
         make V=1 codecov=1
         cd ../transient
-        make V=1 codecov=1 transient
-        make V=1 transient_mpfaof90 transient_snes_mpfaof90
+        make V=1 codecov=1 transient transient_mpfaof90 transient_snes_mpfaof90
         cd ../../regression_tests
         make test-steady
         num_failures=$(( $num_failures + $? ))
@@ -56,10 +55,10 @@ jobs:
         num_failures=$(( $num_failures + $? ))
         make test-transient-snes-mpfaof90
         num_failures=$(( $num_failures + $? ))
-        make test-richards
-        num_failures=$(( $num_failures + $? ))
-        make test-th
-        num_failures=$(( $num_failures + $? ))
+        #make test-richards
+        #num_failures=$(( $num_failures + $? ))
+        #make test-th
+        #num_failures=$(( $num_failures + $? ))
         cd ..
         cat regression_tests/*testlog
         test $num_failures -eq 0

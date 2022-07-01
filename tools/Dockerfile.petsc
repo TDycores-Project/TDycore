@@ -3,7 +3,7 @@
 # and with the USER removed (since GitHub Actions only support Docker images
 # with a root user).
 
-FROM ubuntu:20.10
+FROM ubuntu:22.04
 
 RUN echo Etc/UTC > /etc/timezone && ln -s /usr/share/zoneinfo/Etc/UTC /etc/localtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   lcov \
   libcmocka-dev \
   liblapack-dev \
+  libmpich-dev \
   libtool \
   locales \
   m4 \
@@ -44,18 +45,17 @@ RUN git clone --branch=main https://gitlab.com/petsc/petsc && \
   PETSC_INSTALL_PREFIX=$PETSC_DIR; unset PETSC_DIR; \
   python3 configure \
     --prefix=$PETSC_INSTALL_PREFIX \
-    --with-cc=gcc \
-    --with-cxx=g++ \
-    --with-fc=gfortran \
+    --with-cc=mpicc \
+    --with-cxx=mpic++ \
+    --with-fc=mpif90 \
     --CFLAGS='-g -O0' --CXXFLAGS='-g -O0' --FFLAGS='-g -O0 -Wno-unused-function' \
     --with-clanguage=c \
     --with-debug=1 \
-    --with-shared-libraries=0 \
+    --with-shared-libraries=1 \
     --download-exodusii \
     --download-fblaslapack \
     --download-hdf5 \
     --download-metis \
-    --download-mpich=http://www.mpich.org/static/downloads/3.2/mpich-3.2.tar.gz \
     --download-netcdf \
     --download-parmetis \
     --download-pnetcdf \

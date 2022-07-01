@@ -146,12 +146,12 @@ contains
            PETSC_NULL_INTEGER, PETSC_TRUE, dm, ierr)
       CHKERRA(ierr)
     else
-      call DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE, dm, ierr)
+      call DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, "tdycore-dm", PETSC_TRUE, dm, ierr)
       CHKERRA(ierr)
       call DMGetDimension(dm, dim, ierr)
       CHKERRA(ierr)
       if (dm_plex_extrude_layers > 0) then
-        call DMPlexExtrude(dm, PETSC_DETERMINE, -1.d0, PETSC_TRUE, PETSC_NULL_REAL, PETSC_TRUE, edm, ierr)
+        call DMPlexExtrude(dm, dm_plex_extrude_layers, -1.d0, PETSC_TRUE, PETSC_TRUE, PETSC_NULL_REAL, PETSC_NULL_REAL, edm, ierr)
         CHKERRA(ierr)
         call DMDestroy(dm ,ierr)
         dm = edm

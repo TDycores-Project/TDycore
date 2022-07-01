@@ -3,8 +3,8 @@ LOCDIR = .
 DIRS   = include src docs test demo
 
 ifdef codecov
-  MYFLAGS += -fprofile-arcs -ftest-coverage
-  LIBS    += -lgcov
+  MYFLAGS += --coverage
+  LIBS    += --coverage
 endif
 
 ifdef ugrid_debug

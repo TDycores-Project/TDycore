@@ -23,7 +23,7 @@ with planar faces. The prismatic cells are aligned logically along a z axis.
 
 `TDycore` uses [PETSc](https://petsc.org/release/), tracking the
 [main branch](https://gitlab.com/petsc/petsc) fairly closely. Currently,
-`TDycore` is tested against revision `c29323cac9f`.
+`TDycore` is tested against revision `c5e9cb18` (release v3.17.3).
 
 ## More information
 

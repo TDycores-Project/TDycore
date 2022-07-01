@@ -641,7 +641,7 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
   } else if (!((tdy->discretization)->tdydm)->dm) {
     DM dm;
     if (tdy->options.read_mesh) {
-      ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file,
+      ierr = DMPlexCreateFromFile(comm, tdy->options.mesh_file, "tdycore-dm",
                                   PETSC_TRUE, &dm); CHKERRQ(ierr);
     } else {
       if (tdy->ops->create_dm) {

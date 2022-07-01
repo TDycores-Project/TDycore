@@ -204,7 +204,7 @@ contains
             PETSC_NULL_INTEGER, PETSC_TRUE, dm, ierr)
        CHKERRA(ierr)
     else
-       call DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, PETSC_TRUE, dm, ierr)
+       call DMPlexCreateFromFile(PETSC_COMM_WORLD, mesh_filename, "tdycore-dm", PETSC_TRUE, dm, ierr)
        CHKERRA(ierr)
        call DMGetDimension(dm, dim, ierr)
        CHKERRA(ierr)
