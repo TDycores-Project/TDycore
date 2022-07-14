@@ -96,9 +96,9 @@ $(document).ready(function() {
     // Remove ``title=`` attribute for intersphinx nodes that have hoverxref enabled.
     // It doesn't make sense the browser shows the default tooltip (browser's built-in)
     // and immediately after that our tooltip was shown.
-    $('.hoverxref.external').each(function () { $(this).removeAttr('title') });
+    $('.hxr-hoverxref.external').each(function () { $(this).removeAttr('title') });
 
-    $('.hoverxref.tooltip').tooltipster({
+    $('.hxr-hoverxref.hxr-tooltip').tooltipster({
         theme: ['tooltipster-shadow', 'tooltipster-shadow-custom'],
         interactive: true,
         maxWidth: 450,
@@ -117,7 +117,7 @@ $(document).ready(function() {
                 var url = getEmbedURL(href);
                 $.ajax({
                     url: url,
-                    headers: {'X-HoverXRef-Version': '1.1.1'},
+                    headers: {'X-HoverXRef-Version': '1.1.3'},
                 }).done(
                     function (data) {
                         // call the 'content' method to update the content of our tooltip with the returned data.
@@ -187,7 +187,7 @@ $(document).ready(function() {
         var url = getEmbedURL(href);
         $.ajax({
             url: url,
-            headers: {'X-HoverXRef-Version': '1.1.1'},
+            headers: {'X-HoverXRef-Version': '1.1.3'},
         }).done(
             function (data) {
                 var content = $('<div></div>');
@@ -235,7 +235,7 @@ $(document).ready(function() {
     };
 
     var delay = 350, setTimeoutConst;
-    $('.hoverxref.modal').hover(function(event) {
+    $('.hxr-hoverxref.hxr-modal').hover(function(event) {
         var element = $(this);
         console.debug('Event: ' + event + ' Element: ' + element);
         event.preventDefault();

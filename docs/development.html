@@ -62,7 +62,8 @@
 <li class="toctree-l1"><a class="reference internal" href="intro.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gettingstarted.html">Getting Started</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">TDycore Development</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#initializing-the-tdycore-library">Initializing the TDycore Library</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#initializing-the-tdycore-library">Initializing the TDycore Library</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#memory-allocation-and-deallocation">Memory Allocation and Deallocation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#fortran-90-interface">Fortran 90 Interface</a></li>
 </ul>
 </li>
@@ -126,7 +127,7 @@ library or trying to use it in an application.</p>
 <p>Because the TDycore library uses MPI, PETSc, and other subsystems, we have
 defined a function to initialize these various subsystems at the beginning of
 any TDycore-based driver/program::</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PetscErrorCode</span> <span class="n">TDyInit</span><span class="p">(</span><span class="nb">int</span> <span class="n">argc</span><span class="p">,</span> <span class="n">char</span><span class="o">*</span> <span class="n">argv</span><span class="p">[]);</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PetscErrorCode</span> <span class="n">TDyInit</span><span class="p">(</span><span class="nb">int</span> <span class="n">argc</span><span class="p">,</span> <span class="n">char</span> <span class="o">*</span><span class="n">argv</span><span class="p">[]);</span>
 </pre></div>
 </div>
 <p>Call this function where you would ordinarily call <code class="docutils literal notranslate"><span class="pre">MPI_Init</span></code> or
@@ -142,6 +143,24 @@ TDycore-based program::</p>
 </div>
 <p>Use this function instead of <code class="docutils literal notranslate"><span class="pre">MPI_Finalize</span></code> or <code class="docutils literal notranslate"><span class="pre">PetscFinalize</span></code>. This ensures
 that all TDycore subsystems properly free their resources.</p>
+</div>
+<div class="section" id="memory-allocation-and-deallocation">
+<h2>Memory Allocation and Deallocation<a class="headerlink" href="#memory-allocation-and-deallocation" title="Permalink to this heading"></a></h2>
+<p>Within the TDycore library, the following functions are used to dynamically
+allocate and deallocate memory::</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PetscErrorCode</span> <span class="n">TDyAlloc</span><span class="p">(</span><span class="n">size_t</span> <span class="n">size</span><span class="p">,</span> <span class="n">void</span> <span class="o">**</span><span class="n">result</span><span class="p">);</span>
+<span class="n">PetscErrorCode</span> <span class="n">TDyRealloc</span><span class="p">(</span><span class="n">size_t</span> <span class="n">size</span><span class="p">,</span> <span class="n">void</span> <span class="o">**</span><span class="n">memory</span><span class="p">);</span>
+<span class="n">PetscErrorCode</span> <span class="n">TDyFree</span><span class="p">(</span><span class="n">void</span> <span class="o">*</span><span class="n">memory</span><span class="p">);</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">TDyAlloc</span></code> allocates and zero-initializes a contiguous block of memory of
+the specified size in bytes, aligned to <code class="docutils literal notranslate"><span class="pre">PETSC_MEMALIGN</span></code>. Use this function
+anywhere you would use <code class="docutils literal notranslate"><span class="pre">malloc</span></code> or any of the PETSc memory allocation
+functions like <code class="docutils literal notranslate"><span class="pre">PetscMalloc</span></code>, <code class="docutils literal notranslate"><span class="pre">PetscCalloc</span></code>, etc.</p>
+<p><code class="docutils literal notranslate"><span class="pre">TDyRealloc</span></code> resizes an existing block of memory to a new size. Call this
+where you would call <code class="docutils literal notranslate"><span class="pre">realloc</span></code> or <code class="docutils literal notranslate"><span class="pre">PetscRealloc</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">TDyFree</span></code> frees an allocated block of memory. Call this where you would call
+<code class="docutils literal notranslate"><span class="pre">free</span></code> or <code class="docutils literal notranslate"><span class="pre">PetscFree</span></code>.</p>
 <div class="section" id="fortran-90-interface">
 <h3>Fortran 90 Interface<a class="headerlink" href="#fortran-90-interface" title="Permalink to this heading"></a></h3>
 <p>We offer two equivalent subroutines for Fortran 90, similar to their PETSc
