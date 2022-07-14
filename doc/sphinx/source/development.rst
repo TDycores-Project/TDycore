@@ -11,7 +11,7 @@ Because the TDycore library uses MPI, PETSc, and other subsystems, we have
 defined a function to initialize these various subsystems at the beginning of
 any TDycore-based driver/program:::
 
-    PetscErrorCode TDyInit(int argc, char* argv[]);
+    PetscErrorCode TDyInit(int argc, char *argv[]);
 
 Call this function where you would ordinarily call ``MPI_Init`` or
 ``PetscInitialize``. It has no effect on subsequent calls. You can check whether
@@ -26,6 +26,27 @@ TDycore-based program:::
 
 Use this function instead of ``MPI_Finalize`` or ``PetscFinalize``. This ensures
 that all TDycore subsystems properly free their resources.
+
+Memory Allocation and Deallocation
+----------------------------------
+
+Within the TDycore library, the following functions are used to dynamically
+allocate and deallocate memory:::
+
+    PetscErrorCode TDyAlloc(size_t size, void **result);
+    PetscErrorCode TDyRealloc(size_t size, void **memory);
+    PetscErrorCode TDyFree(void *memory);
+
+``TDyAlloc`` allocates and zero-initializes a contiguous block of memory of
+the specified size in bytes, aligned to ``PETSC_MEMALIGN``. Use this function
+anywhere you would use ``malloc`` or any of the PETSc memory allocation
+functions like ``PetscMalloc``, ``PetscCalloc``, etc.
+
+``TDyRealloc`` resizes an existing block of memory to a new size. Call this
+where you would call ``realloc`` or ``PetscRealloc``.
+
+``TDyFree`` frees an allocated block of memory. Call this where you would call
+``free`` or ``PetscFree``.
 
 Fortran 90 Interface
 ^^^^^^^^^^^^^^^^^^^^
