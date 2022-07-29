@@ -12,7 +12,9 @@ typedef enum {
   /// Richards equation
   RICHARDS=0,
   /// Non-isothermal flows
-  TH
+  TH,
+  /// Flows with salinity
+  SALINITY,
 } TDyMode;
 
 PETSC_EXTERN const char *const TDyModes[];
@@ -98,7 +100,8 @@ typedef struct _p_TDy *TDy;
 
 typedef enum {
   WATER_DENSITY_CONSTANT=0,
-  WATER_DENSITY_EXPONENTIAL=1
+  WATER_DENSITY_EXPONENTIAL=1,
+  WATER_DENSITY_BATZLEWANG=2
 } TDyWaterDensityType;
 
 PETSC_EXTERN const char *const TDyWaterDensityTypes[];

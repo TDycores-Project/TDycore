@@ -124,6 +124,9 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
           case TH:
             ierr = PetscPrintf(PETSC_COMM_WORLD,"===== TH MODE ====================================\n"); CHKERRQ(ierr);
             break;
+          case SALINITY:
+            ierr = PetscPrintf(PETSC_COMM_WORLD,"===== SALINITY MODE ==============================\n"); CHKERRQ(ierr);
+            break;
         }
         ierr = TDyTimeIntegratorSetTargetTime(ti,sync_time); CHKERRQ(ierr);
         ierr = TDySetDtimeForSNESSolver(tdy,ti->dt); CHKERRQ(ierr);

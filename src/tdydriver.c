@@ -91,6 +91,8 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     case RICHARDS:
     case TH:
       break;
+    case SALINITY:
+      break;
     default:
       SETERRQ(comm,PETSC_ERR_USER,"Unrecognized flow mode.");
   }
@@ -101,6 +103,9 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
         case RICHARDS:
           break;
         case TH:
+          SETERRQ(comm,PETSC_ERR_USER,"SNES not supported for TH mode.");
+          break;
+        case SALINITY:
           SETERRQ(comm,PETSC_ERR_USER,"SNES not supported for TH mode.");
           break;
       }
@@ -173,6 +178,19 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       }
       // FIXME: This is a different path from the one used by TDycore proper.
       ierr = TDyTHInitialize(tdy); CHKERRQ(ierr);
+      break;
+    case SALINITY:
+      ierr = SNESLineSearchSetPostCheck(linesearch,TDySalinitySNESPostCheck,
+                                        &tdy); CHKERRQ(ierr);
+      ierr = SNESSetConvergenceTest(snes,TDySalinityConvergenceTest,
+                                    &tdy,NULL); CHKERRQ(ierr);
+      switch(tdy->ti->time_integration_method) {
+        case TDySNES:
+          break;
+        case TDyTS:
+          ierr = TSSetPostStep(ts,TDySalinityTSPostStep); CHKERRQ(ierr);
+      }
+      ierr = TDySalinityInitialize(tdy); CHKERRQ(ierr);
       break;
   }
   PetscPrintf(comm,"tdy->ti->time_integration_method = %d\n",

@@ -487,6 +487,8 @@ PetscErrorCode TDyDestroy_MPFAO(void *context) {
                                       mpfao->mesh->num_cells, 8, 3);
     CHKERRQ(ierr);
   }
+
+  // TH
   if (mpfao->Temp_subc_Gmatrix) {
     ierr = TDyDeallocate_RealArray_4D(mpfao->Temp_subc_Gmatrix,
                                       mpfao->mesh->num_cells, 8, 3);
@@ -501,13 +503,21 @@ PetscErrorCode TDyDestroy_MPFAO(void *context) {
   if (mpfao->Temp_P_vec       ) { ierr = VecDestroy(&mpfao->Temp_P_vec      ); CHKERRQ(ierr); }
   if (mpfao->Temp_TtimesP_vec ) { ierr = VecDestroy(&mpfao->Temp_TtimesP_vec); CHKERRQ(ierr); }
 
-  ierr = TDyFree(mpfao->K); CHKERRQ(ierr);
-  ierr = TDyFree(mpfao->K0); CHKERRQ(ierr);
-  ierr = TDyFree(mpfao->porosity); CHKERRQ(ierr);
-  if (mpfao->Kappa) {
-    ierr = TDyFree(mpfao->Kappa); CHKERRQ(ierr);
-    ierr = TDyFree(mpfao->Kappa0); CHKERRQ(ierr);
+  // SALINITY
+  if (mpfao->Psi_subc_Gmatrix) {
+    ierr = TDyDeallocate_RealArray_4D(mpfao->Psi_subc_Gmatrix,
+                                      mpfao->mesh->num_cells, 8, 3);
+    CHKERRQ(ierr);
   }
+  if (mpfao->Psi_Trans) {
+    ierr = TDyDeallocate_RealArray_3D(mpfao->Psi_Trans, mpfao->mesh->num_vertices,
+                                      mpfao->nfv);
+    CHKERRQ(ierr);
+  }
+  if (mpfao->Psi_Trans_mat) { ierr = MatDestroy(&mpfao->Psi_Trans_mat   ); CHKERRQ(ierr); }
+  if (mpfao->Psi_vec      ) { ierr = VecDestroy(&mpfao->Psi_vec      ); CHKERRQ(ierr); }
+  if (mpfao->TtimesPsi_vec) { ierr = VecDestroy(&mpfao->TtimesPsi_vec); CHKERRQ(ierr); }
+
   if (mpfao->c_soil) {
     ierr = TDyFree(mpfao->c_soil); CHKERRQ(ierr);
   }
@@ -766,6 +776,12 @@ PetscErrorCode TDyGetNumDMFields_TH_MPFAO(void *context) {
   PetscFunctionReturn(ndof);
 }
 
+PetscErrorCode TDyGetNumDMFields_Salinity_MPFAO(void *context) {
+  PetscFunctionBegin;
+  PetscInt ndof = 2; // LiquidPressure, LiquidTemperature
+  PetscFunctionReturn(ndof);
+}
+
 PetscErrorCode TDySetDMFields_Richards_MPFAO(void *context, DM dm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
@@ -790,6 +806,15 @@ PetscErrorCode TDySetDMFields_TH_MPFAO(void *context, DM dm) {
   PetscErrorCode ierr;
   // Set up the section, 2 dofs per cell.
   ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "LiquidTemperature"},
+                   (PetscInt[2]){1, 1}); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetDMFields_Salinity_MPFAO(void *context, DM dm) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+  // Set up the section, 2 dofs per cell.
+  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "Concentration"},
                    (PetscInt[2]){1, 1}); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -1699,6 +1724,9 @@ static PetscErrorCode UpdateTransmissibilityMatrix(TDyMPFAO *mpfao) {
           if (mpfao->Temp_subc_Gmatrix) { // TH
             ierr = MatZeroRows(mpfao->Temp_Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
           }
+          if (mpfao->Psi_subc_Gmatrix) { // SALINITY
+            ierr = MatZeroRows(mpfao->Psi_Trans_mat,1,row,0.0,0,0); CHKERRQ(ierr);
+          }
         }
       }
     }
@@ -1748,6 +1776,11 @@ static PetscErrorCode ComputeTransmissibilityMatrix(TDyMPFAO *mpfao, DM dm) {
   if (mpfao->Temp_subc_Gmatrix) { // TH
     ierr = MatAssemblyBegin(mpfao->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
     ierr = MatAssemblyEnd(mpfao->Temp_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+  }
+
+  if (mpfao->Psi_subc_Gmatrix) { // SALINITY
+    ierr = MatAssemblyBegin(mpfao->Psi_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
+    ierr = MatAssemblyEnd(mpfao->Psi_Trans_mat,MAT_FINAL_ASSEMBLY);CHKERRQ(ierr);
   }
 
   TDyRegion *region = &mesh->region_connected;
@@ -2353,6 +2386,75 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, TDyDiscretizationType *discretiz
   PetscFunctionReturn(0);
 }
 
+// Setup function for SALINITY + MPFA-O
+PetscErrorCode TDySetup_Salinity_MPFAO(void *context,
+                                       TDyDiscretizationType *discretization,
+                                       EOS *eos,
+                                       MaterialProp *matprop,
+                                       CharacteristicCurves *cc,
+                                       Conditions* conditions) {
+  PetscFunctionBegin;
+
+  PetscErrorCode ierr;
+  TDyMPFAO* mpfao = context;
+  DM dm;
+  ierr = TDyDiscretizationGetDM(discretization,&dm); CHKERRQ(ierr);
+
+  ierr = TDyMeshCreateFromPlex(dm, &mpfao->V, &mpfao->X, &mpfao->N, &mpfao->mesh);
+  ierr = TDyMeshGetMaxVertexConnectivity(mpfao->mesh, &mpfao->ncv, &mpfao->nfv);
+
+  ierr = TDyAllocate_RealArray_1D(&(mpfao->vel), mpfao->mesh->num_faces); CHKERRQ(ierr);
+  ierr = TDyAllocate_IntegerArray_1D(&(mpfao->vel_count), mpfao->mesh->num_faces); CHKERRQ(ierr);
+
+  ierr = InitMaterials(mpfao, dm, matprop, cc); CHKERRQ(ierr);
+
+  // Gather mesh data.
+  PetscInt nLocalCells, nFaces, nNonLocalFaces, nNonInternalFaces;
+  PetscInt nrow, ncol, nz;
+
+  nFaces = mpfao->mesh->num_faces;
+  nLocalCells = mpfao->mesh->num_cells_local;
+  nNonLocalFaces = TDyMeshGetNumberOfNonLocalFaces(mpfao->mesh);
+  nNonInternalFaces = TDyMeshGetNumberOfNonInternalFaces(mpfao->mesh);
+
+  nrow = 4*nFaces;
+  ncol = nLocalCells + nNonLocalFaces + nNonInternalFaces;
+  nz   = mpfao->nfv;
+  ierr = TDyAllocate_RealArray_3D(&mpfao->Trans, mpfao->mesh->num_vertices,
+                                  mpfao->nfv, mpfao->nfv + mpfao->ncv); CHKERRQ(ierr);
+  ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&mpfao->Trans_mat); CHKERRQ(ierr);
+  ierr = MatSetOption(mpfao->Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+  ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&mpfao->P_vec);
+  ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->TtimesP_vec);
+  ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->GravDisVec);
+  ierr = VecZeroEntries(mpfao->GravDisVec);
+
+  ierr = TDyAllocate_RealArray_3D(&mpfao->Psi_Trans, mpfao->mesh->num_vertices,
+                                  mpfao->nfv, mpfao->nfv); CHKERRQ(ierr);
+  ierr = MatCreateSeqAIJ(PETSC_COMM_SELF,nrow,ncol,nz,NULL,&mpfao->Psi_Trans_mat); CHKERRQ(ierr);
+  ierr = MatSetOption(mpfao->Psi_Trans_mat, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
+  ierr = VecCreateSeq(PETSC_COMM_SELF,ncol,&mpfao->Psi_vec);
+  ierr = VecCreateSeq(PETSC_COMM_SELF,nrow,&mpfao->TtimesPsi_vec);
+
+  PetscInt nsubcells = 8;
+  ierr = TDyAllocate_RealArray_4D(&mpfao->subc_Gmatrix, mpfao->mesh->num_cells,
+                                  nsubcells, 3, 3); CHKERRQ(ierr);
+  ierr = TDyAllocate_RealArray_4D(&mpfao->Psi_subc_Gmatrix, mpfao->mesh->num_cells,
+                                  nsubcells, 3, 3); CHKERRQ(ierr);
+
+  // Compute matrices for our discretization.
+  ierr = ComputeGMatrix(mpfao, dm, matprop); CHKERRQ(ierr);
+  ierr = ComputeTransmissibilityMatrix(mpfao, dm); CHKERRQ(ierr);
+  ierr = ComputeGravityDiscretization(mpfao, dm, matprop); CHKERRQ(ierr);
+
+  ierr = AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
+  ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
+  ierr = AllocateMemoryForEnergyBoundaryValues(mpfao, eos); CHKERRQ(ierr);
+  ierr = AllocateMemoryForEnergySourceSinkValues(mpfao); CHKERRQ(ierr);
+
+  PetscFunctionReturn(0);
+}
+
 //-----------------------
 // UpdateState functions
 //-----------------------
@@ -2503,6 +2605,80 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
     t_vec_ptr[c] = temp[c];
   }
   ierr = VecRestoreArray(mpfao->Temp_P_vec, &t_vec_ptr); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyUpdateState_Salinity_MPFAO(void *context, DM dm,
+                                             EOS *eos, MaterialProp *matprop,
+                                             CharacteristicCurves *cc,
+                                             PetscInt num_cells, PetscReal *U) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  TDyMPFAO *mpfao = context;
+
+  PetscInt dim = 3;
+  PetscInt dim2 = dim*dim;
+  PetscInt cStart = 0, cEnd = num_cells;
+  PetscInt nc = cEnd - cStart;
+
+  // Obtain the capillary pressure and the salinity concentration on all cells.
+  PetscReal Pc[nc], Psi[nc];
+  for (PetscInt c=0;c<cEnd-cStart;c++) {
+    Pc[c] = mpfao->Pref - U[2*c];
+    Psi[c] = U[2*c+1];
+  }
+
+  // Compute the saturation and its derivatives.
+  ierr = SaturationCompute(cc->saturation, mpfao->Sr, Pc, mpfao->S, mpfao->dS_dP,
+                           mpfao->d2S_dP2);
+
+  // Compute the effective saturation on cells.
+  PetscReal Se[nc];
+  for (PetscInt c=0;c<nc;c++) {
+    Se[c] = (mpfao->S[c] - mpfao->Sr[c])/(1.0 - mpfao->Sr[c]);
+  }
+
+  // Compute the relative permeability and its derivative (w.r.t. Se).
+  ierr = RelativePermeabilityCompute(cc->rel_perm, Se, mpfao->Kr, mpfao->dKr_dS);
+
+  // Correct dKr/dS using the chain rule, and update the permeability.
+  for (PetscInt c=0;c<nc;c++) {
+    PetscReal dSe_dS = 1.0/(1.0 - mpfao->Sr[c]);
+    mpfao->dKr_dS[c] *= dSe_dS; // correct dKr/dS
+
+    for(PetscInt j=0; j<dim2; j++) {
+      mpfao->K[c*dim2+j] = mpfao->K0[c*dim2+j] * mpfao->Kr[c];
+    }
+
+    // Also update water properties.
+    PetscReal P = mpfao->Pref - Pc[c]; // pressure
+    ierr = EOSComputeWaterDensity(eos, P, &(mpfao->rho[c]),
+                                  &(mpfao->drho_dP[c]),
+                                  &(mpfao->d2rho_dP2[c])); CHKERRQ(ierr);
+    ierr = EOSComputeWaterViscosity(eos, P, &(mpfao->vis[c]),
+                                    &(mpfao->dvis_dP[c]),
+                                    &(mpfao->d2vis_dP2[c])); CHKERRQ(ierr);
+  }
+
+  PetscReal *p_vec_ptr, gz;
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
+
+  ierr = VecGetArray(mpfao->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+  for (PetscInt c=0; c<nc; c++) {
+    ierr = ComputeGtimesZ(mpfao->gravity,cells->centroid[c].X,dim,&gz);
+    PetscReal P = mpfao->Pref - Pc[c]; // pressure
+    p_vec_ptr[c] = P;
+  }
+  ierr = VecRestoreArray(mpfao->P_vec,&p_vec_ptr); CHKERRQ(ierr);
+
+  PetscReal *psi_vec_ptr;
+  ierr = VecGetArray(mpfao->Psi_vec, &t_vec_ptr); CHKERRQ(ierr);
+  for (PetscInt c=0; c<nc; c++) {
+    psi_vec_ptr[c] = Psi[c];
+  }
+  ierr = VecRestoreArray(mpfao->Psi_vec, &t_vec_ptr); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

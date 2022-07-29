@@ -53,6 +53,7 @@ const char *const TDyBoundaryConditionTypes[] = {
 const char *const TDyModes[] = {
   "RICHARDS",
   "TH",
+  "SALINITY",
   /* */
   "TDyMode","TDY_MODE_",NULL
 };
@@ -901,6 +902,21 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
     } else {
       SETERRQ(comm,PETSC_ERR_USER,
         "The TH mode does not support the selected discretization!");
+    }
+  } else if (tdy->options.mode == SALINITY) {
+    PetscPrintf(PETSC_COMM_WORLD,"Running SALINITY mode.\n");
+    if (discretization == MPFA_O) {
+      tdy->ops->create = TDyCreate_MPFAO;
+      tdy->ops->destroy = TDyDestroy_MPFAO;
+      tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
+      tdy->ops->get_num_dm_fields = TDyGetNumDMFields_Salinity_MPFAO;
+      tdy->ops->set_dm_fields = TDySetDMFields_Salinity_MPFAO;
+      tdy->ops->setup = TDySetup_Salinity_MPFAO;
+      tdy->ops->update_state = TDyUpdateState_Salinity_MPFAO;
+      tdy->ops->update_diagnostics = TDyUpdateDiagnostics_MPFAO;
+    } else {
+      SETERRQ(comm,PETSC_ERR_USER,
+        "The SALINITY mode does not support the selected discretization!");
     }
   }
   tdy->options.discretization = discretization;
@@ -1758,6 +1774,9 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
     case TH:
       ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_TH,tdy); CHKERRQ(ierr);
       break;
+    case SALINITY:
+      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_Salinity,tdy); CHKERRQ(ierr);
+      break;
     }
     break;
   case MPFA_O_DAE:
@@ -1799,7 +1818,9 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
     case TH:
       ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_TH,tdy); CHKERRQ(ierr);
       break;
-
+    case SALINITY:
+      ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian,tdy); CHKERRQ(ierr);
+      break;
     }
     break;
   case MPFA_O_DAE:
