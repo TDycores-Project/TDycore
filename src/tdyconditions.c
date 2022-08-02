@@ -57,6 +57,23 @@ PetscErrorCode ConditionsSetEnergyForcing(Conditions *conditions, void *context,
   PetscFunctionReturn(0);
 }
 
+/// Sets the function used to compute salinity sources
+/// @param [in] conditions A Conditions instance
+/// @param [in] context A context pointer to be passed to f
+/// @param [in] f A function that computes salinity sources at a given number of points
+/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
+PetscErrorCode ConditionsSetSalinitySource(Conditions *conditions, void *context,
+                                           PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
+                                           PetscErrorCode (*dtor)(void*)) {
+  PetscFunctionBegin;
+  if (conditions->salinity_source_context && conditions->salinity_source_dtor)
+    conditions->salinity_source_dtor(conditions->salinity_source_context);
+  conditions->salinity_source_context = context;
+  conditions->compute_salinity_source = f;
+  conditions->salinity_source_dtor = dtor;
+  PetscFunctionReturn(0);
+}
+
 /// Sets the function used to compute the boundary pressure.
 /// @param [in] conditions A Conditions instance
 /// @param [in] context A context pointer to be passed to f
@@ -135,6 +152,10 @@ PetscBool ConditionsHasEnergyForcing(Conditions *conditions) {
   return (conditions->compute_energy_forcing != NULL);
 }
 
+PetscBool ConditionsHasSalinitySource(Conditions *conditions) {
+  return (conditions->compute_salinity_source != NULL);
+}
+
 PetscBool ConditionsHasBoundaryPressure(Conditions *conditions) {
   return (conditions->compute_boundary_pressure != NULL);
 }
@@ -161,6 +182,13 @@ PetscErrorCode ConditionsComputeEnergyForcing(Conditions *conditions,
                                               PetscReal *E) {
   return conditions->compute_energy_forcing(conditions->energy_forcing_context,
                                             n, x, E);
+}
+
+PetscErrorCode ConditionsComputeSalinitySource(Conditions *conditions,
+                                               PetscInt n, PetscReal *x,
+                                               PetscReal *E) {
+  return conditions->compute_salinity_source(conditions->salinity_source_context,
+                                             n, x, E);
 }
 
 PetscErrorCode ConditionsComputeBoundaryPressure(Conditions *conditions,

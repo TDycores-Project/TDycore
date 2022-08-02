@@ -33,6 +33,7 @@ typedef struct TDyMPFAO {
   PetscReal *N; // face normals
   PetscInt ncv, nfv; // number of {cell|face} vertices
 
+  // Flow bookkeeping
   PetscReal ****subc_Gmatrix; // Gmatrix for subcells
   PetscReal ***Trans;
   Mat Trans_mat;
@@ -53,8 +54,12 @@ typedef struct TDyMPFAO {
 
   // For salinity (here for now, may factor out)
   PetscReal ****Psi_subc_Gmatrix; // Gmatrix for subcells
+  PetscReal ***Psi_Trans;
   Mat Psi_Trans_mat;
   Vec Psi_vec, TtimesPsi_vec;
+  PetscReal *m_nacl;
+  PetscReal *dm_nacl;
+  PetscReal *d2m_nacl;
 
   //-----------------------------------
   // Material property data (per cell)
@@ -64,6 +69,8 @@ typedef struct TDyMPFAO {
   PetscReal *Kappa, *Kappa0; // thermal conductivity
   PetscReal *rho_soil; // soil density
   PetscReal *c_soil; // soil specific heat
+  PetscReal *D_saline; // saline diffusivity
+  PetscReal *mu_saline; // saline molecular weight
 
   //--------------------------------------
   // Characteristic curve data (per cell)
@@ -82,8 +89,9 @@ typedef struct TDyMPFAO {
 
   PetscReal *Kr_bnd, *dKr_dS_bnd; // boundary rel perm and derivative
   PetscReal *S_bnd, *dS_dP_bnd, *d2S_dP2_bnd; // saturation and derivatives
-  PetscReal *source_sink;         // flow equation source sink
-  PetscReal *energy_source_sink;  // energy equation source sink
+  PetscReal *source_sink;          // flow equation source sink
+  PetscReal *energy_source_sink;   // energy equation source sink
+  PetscReal *salinity_source_sink; // salinity source sink
 
   //-----------------------------------------
   // non-linear functions of liquid pressure
@@ -114,18 +122,26 @@ typedef struct TDyMPFAO {
 PETSC_INTERN PetscErrorCode TDyCreate_MPFAO(void**);
 PETSC_INTERN PetscErrorCode TDyDestroy_MPFAO(void*);
 PETSC_INTERN PetscErrorCode TDySetFromOptions_MPFAO(void*, TDyOptions*);
-PETSC_INTERN PetscErrorCode TDyGetNumDMFields_Richards_MPFAO(void*);
-PETSC_INTERN PetscErrorCode TDyGetNumDMFields_Richards_MPFAO_DAE(void*);
-PETSC_INTERN PetscErrorCode TDySetDMFields_Richards_MPFAO(void*, DM);
-PETSC_INTERN PetscErrorCode TDySetDMFields_Richards_MPFAO_DAE(void*, DM);
-PETSC_INTERN PetscErrorCode TDySetDMFields_TH_MPFAO(void*, DM);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, TDyDiscretizationType*, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
-PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, TDyDiscretizationType*, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
-PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, TDyDiscretizationType*, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
-PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscInt, PetscReal*);
-PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscInt, PetscReal*);
 PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_MPFAO(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode TDyUpdateDiagnostics_MPFAO(void*,DM,Vec);
+
+PETSC_INTERN PetscErrorCode TDyGetNumDMFields_Richards_MPFAO(void*);
+PETSC_INTERN PetscErrorCode TDySetDMFields_Richards_MPFAO(void*, DM);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO(void*, TDyDiscretizationType*, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
+PETSC_INTERN PetscErrorCode TDyUpdateState_Richards_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscInt, PetscReal*);
+
+PETSC_INTERN PetscErrorCode TDyGetNumDMFields_Richards_MPFAO_DAE(void*);
+PETSC_INTERN PetscErrorCode TDySetDMFields_Richards_MPFAO_DAE(void*, DM);
+PETSC_INTERN PetscErrorCode TDySetup_Richards_MPFAO_DAE(void*, TDyDiscretizationType*, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
+
+PETSC_INTERN PetscErrorCode TDySetDMFields_TH_MPFAO(void*, DM);
+PETSC_INTERN PetscErrorCode TDySetup_TH_MPFAO(void*, TDyDiscretizationType*, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
+PETSC_INTERN PetscErrorCode TDyUpdateState_TH_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscInt, PetscReal*);
+
+PETSC_INTERN PetscErrorCode TDyGetNumDMFields_Salinity_MPFAO(void*);
+PETSC_INTERN PetscErrorCode TDySetDMFields_Salinity_MPFAO(void*, DM);
+PETSC_INTERN PetscErrorCode TDySetup_Salinity_MPFAO(void*, TDyDiscretizationType*, EOS*, MaterialProp*, CharacteristicCurves*, Conditions*);
+PETSC_INTERN PetscErrorCode TDyUpdateState_Salinity_MPFAO(void*, DM, EOS*, MaterialProp*, CharacteristicCurves*, PetscInt, PetscReal*);
 
 PETSC_INTERN PetscErrorCode TDyUpdateTransmissibilityMatrix(TDy);
 PETSC_INTERN PetscErrorCode TDyComputeTransmissibilityMatrix(TDy);
@@ -137,6 +153,7 @@ PETSC_INTERN PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWith
 PETSC_INTERN PetscErrorCode TDyMPFAOIFunction(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOIJacobian_TH(TS,PetscReal,Vec,Vec,PetscReal,Mat,Mat,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOIFunction_TH(TS,PetscReal,Vec,Vec,Vec,void*);
+PETSC_INTERN PetscErrorCode TDyMPFAOIFunction_Salinity(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOIJacobian(TS,PetscReal,Vec,Vec,PetscReal,Mat,Mat,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOIFunction_DAE(TS,PetscReal,Vec,Vec,Vec,void*);
 PETSC_INTERN PetscErrorCode TDyMPFAOTransientVariable(TS,Vec,Vec,void*);
@@ -148,12 +165,14 @@ PETSC_INTERN PetscErrorCode TDyMPFAOSNESPreSolve(TDy);
 // Utils
 PETSC_INTERN PetscErrorCode ExtractSubGmatrix(TDyMPFAO*,PetscInt,PetscInt,PetscInt,PetscReal**);
 PETSC_INTERN PetscErrorCode ExtractTempSubGmatrix(TDyMPFAO*,PetscInt,PetscInt,PetscInt,PetscReal**);
+PETSC_INTERN PetscErrorCode ExtractPsiSubGmatrix(TDyMPFAO*,PetscInt,PetscInt,PetscInt,PetscReal**);
 PETSC_INTERN PetscErrorCode TDyMPFAOUpdateBoundaryState(TDy);
 PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDy,Vec,PetscReal*,PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVertices(TDy, Vec,PetscReal*,PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices(TDy,Vec,PetscReal*,PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy,Vec);
+PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundarySalinity(TDy,Vec);
 PETSC_INTERN PetscErrorCode ComputeGtimesZ(PetscReal*,PetscReal*,PetscInt,PetscReal*);
 
 #endif

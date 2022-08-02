@@ -61,8 +61,21 @@ const char *const TDyModes[] = {
 const char *const TDyWaterDensityTypes[] = {
   "CONSTANT",
   "EXPONENTIAL",
+  "BATZLE_AND_WANG",
   /* */
   "TDyWaterDensityType","TDY_DENSITY_",NULL
+};
+
+const char *const TDyWaterViscosityTypes[] = {
+  "CONSTANT",
+  "BATZLE_AND_WANG",
+  /* */
+  "TDyWaterViscosityType","TDY_VISCOSITY_",NULL
+};
+
+const char *const TDyWaterEnthalpyTypes[] = {
+  "CONSTANT",
+  "TDyWaterEnthalpyType","TDY_ENTHALPY_",NULL
 };
 
 PetscClassId TDY_CLASSID = 0;
@@ -530,6 +543,7 @@ static PetscErrorCode ReadCommandLineOptions(TDy tdy) {
   ierr = PetscOptionsEnum("-tdy_mode","Flow mode", "TDySetMode",TDyModes,(PetscEnum)options->mode, (PetscEnum *)&mode, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_gravity", "Magnitude of gravity vector", NULL, options->gravity_constant, &options->gravity_constant, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_water_density","Water density vertical profile", "TDySetWaterDensityType", TDyWaterDensityTypes, (PetscEnum)options->rho_type, (PetscEnum *)&options->rho_type, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_water_viscosity","Water viscosity model", "TDySetWaterViscosityType", TDyWaterViscosityTypes, (PetscEnum)options->mu_type, (PetscEnum *)&options->mu_type, NULL); CHKERRQ(ierr);
 
   // Create source/sink/boundary conditions.
   ierr = ConditionsCreate(&tdy->conditions); CHKERRQ(ierr);
@@ -931,6 +945,13 @@ PetscErrorCode TDySetWaterDensityType(TDy tdy, TDyWaterDensityType dentype) {
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetWaterViscosityType(TDy tdy, TDyWaterViscosityType vistype) {
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  tdy->options.mu_type = vistype;
+  PetscFunctionReturn(0);
+}
+
 /// Sets the porosity used by the dycore to the given constant. May be called
 /// anytime after TDySetFromOptions.
 /// @param [in] tdy the dycore instance
@@ -1164,6 +1185,100 @@ PetscErrorCode TDySetSoilSpecificHeatFunction(TDy tdy,
   PetscErrorCode ierr;
   PetscFunctionBegin;
   ierr = MaterialPropSetHeterogeneousSoilSpecificHeat(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the saline diffusivity used by the dycore to the given constant.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantIsotropicSalineDiffusivity(TDy tdy, PetscReal value) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantIsotropicSalineDiffusivity(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute (isotropic) saline diffusivities in the
+/// dycore. May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetIsotropicSalineDiffusivityFunction(TDy tdy,
+                                                        TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousIsotropicSalineDiffusivity(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the saline diffusivity used by the dycore to the given diagonal constant.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantDiagonalSalineDiffusivity(TDy tdy, PetscReal value[]) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantDiagonalSalineDiffusivity(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute (diagonal anisotropic) saline
+/// diffusivities in the dycore. May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetDiagonalSalineDiffusivityFunction(TDy tdy,
+                                                       TDyVectorSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousDiagonalSalineDiffusivity(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the saline diffusivity used by the dycore to the given tensor constant.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantTensorSalineDiffusivity(TDy tdy, PetscReal value[]) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantTensorSalineDiffusivity(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute anisotropic saline diffusivities in the
+/// dycore. May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetTensorSalineDiffusivityFunction(TDy tdy,
+                                                     TDyTensorSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousTensorSalineDiffusivity(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the saline molecular weight used by the dycore to the given constant.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantSalineMolecularWeight(TDy tdy, PetscReal value) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantSalineMolecularWeight(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute saline molecular weights in the dycore.
+/// May be called anytime after TDySetFromOptions.
+PetscErrorCode TDySetSalineMolecularWeightFunction(TDy tdy,
+                                                   TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousSalineMolecularWeight(tdy->matprop, f);
   CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }

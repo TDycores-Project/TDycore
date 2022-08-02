@@ -2,6 +2,7 @@
 #include <private/tdyrichardsimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdythimpl.h>
+#include <private/tdysalinityimpl.h>
 #include <private/tdyioimpl.h>
 #include <tdytimers.h>
 #include <private/tdycharacteristiccurvesimpl.h>
@@ -77,6 +78,13 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     if (!MaterialPropHasSoilSpecificHeat(tdy->matprop)) {
       ierr = MaterialPropSetConstantSoilSpecificHeat(tdy->matprop,
           tdy->options.soil_specific_heat); CHKERRQ(ierr);
+    }
+  } else if (tdy->options.mode == SALINITY) {
+    ierr = TDySetConstantSalineMolecularWeight(tdy,
+      tdy->options.saline_molecular_weight);CHKERRQ(ierr);
+    if (!MaterialPropHasSalineDiffusivity(tdy->matprop)) {
+      ierr = TDySetConstantIsotropicSalineDiffusivity(tdy,
+        tdy->options.saline_diffusivity);CHKERRQ(ierr);
     }
   }
 

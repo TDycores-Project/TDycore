@@ -714,10 +714,14 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
     for (c=0;c<ncells;c++) {
       p[c] = u_p[c*2];
     }
-  }
-  else {
-    for (c=0;c<ncells;c++)
+  } else if (mpfao->Psi_subc_Gmatrix) { // SALINITY
+    for (c=0;c<ncells;c++) {
+      p[c] = u_p[c*2];
+    }
+  } else {
+    for (c=0;c<ncells;c++) {
       p[c] = u_p[c];
+    }
   }
 
 
@@ -816,9 +820,10 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAO_SetBoundaryConcentration(TDy tdy, Vec Ul) {
+PetscErrorCode TDyMPFAO_SetBoundarySalinity(TDy tdy, Vec Ul) {
 
-  TDyMesh *mesh = tdy->mesh;
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh *mesh = mpfao->mesh;
   TDyFace *faces = &mesh->faces;
   PetscErrorCode ierr;
   PetscInt dim, ncells;
@@ -828,11 +833,13 @@ PetscErrorCode TDyMPFAO_SetBoundaryConcentration(TDy tdy, Vec Ul) {
 
   PetscFunctionBegin;
 
-  ierr = DMPlexGetHeightStratum(tdy->dm,0,&cStart,&cEnd); CHKERRQ(ierr);
+  DM dm;
+  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
+  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
   ierr = PetscMalloc((cEnd-cStart)*sizeof(PetscReal),&psi);CHKERRQ(ierr);
 
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
-  ierr = VecGetArray(tdy->Psi_vec,&psi_vec_ptr); CHKERRQ(ierr);
+  ierr = VecGetArray(mpfao->Psi_vec,&psi_vec_ptr); CHKERRQ(ierr);
 
   for (c=0;c<cEnd-cStart;c++) {
     psi[c] = u_p[c*2+1];
@@ -840,7 +847,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryConcentration(TDy tdy, Vec Ul) {
 
   ncells = mesh->num_cells;
 
-  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  ierr = DMGetDimension(dm, &dim); CHKERRQ(ierr);
 
   for (iface=0; iface<mesh->num_faces; iface++) {
 
@@ -857,13 +864,13 @@ PetscErrorCode TDyMPFAO_SetBoundaryConcentration(TDy tdy, Vec Ul) {
       psi_bnd_idx = -cell_ids[0] - 1;
     }
 
-    tdy->Psi_BND[t_bnd_idx] = psi[cell_id];
+    mpfao->Psi_bnd[psi_bnd_idx] = psi[cell_id];
 
-    psi_vec_ptr[t_bnd_idx + ncells] = tdy->Psi_BND[t_bnd_idx];
+    psi_vec_ptr[psi_bnd_idx + ncells] = mpfao->Psi_bnd[psi_bnd_idx];
   }
 
   ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
-  ierr = VecRestoreArray(tdy->Psi_vec,&psi_vec_ptr); CHKERRQ(ierr);
+  ierr = VecRestoreArray(mpfao->Psi_vec,&psi_vec_ptr); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 }
@@ -896,6 +903,22 @@ PetscErrorCode ExtractTempSubGmatrix(TDyMPFAO *mpfao, PetscInt cell_id,
   for (i=0; i<dim; i++) {
     for (j=0; j<dim; j++) {
       Gmatrix[i][j] = mpfao->Temp_subc_Gmatrix[cell_id][sub_cell_id][i][j];
+    }
+  }
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode ExtractPsiSubGmatrix(TDyMPFAO *mpfao, PetscInt cell_id,
+                                    PetscInt sub_cell_id, PetscInt dim, PetscReal **Gmatrix) {
+
+  PetscInt i, j;
+
+  PetscFunctionBegin;
+
+  for (i=0; i<dim; i++) {
+    for (j=0; j<dim; j++) {
+      Gmatrix[i][j] = mpfao->Psi_subc_Gmatrix[cell_id][sub_cell_id][i][j];
     }
   }
 

@@ -18,6 +18,7 @@
 
 #define VAR_PRESSURE 0
 #define VAR_TEMPERATURE 1
+#define VAR_SALINE_CONCENTRATION 2
 
 // Diagnostic field names
 #define DIAG_LIQUID_SATURATION 0
