@@ -115,7 +115,7 @@ PETSC_EXTERN const char *const TDyWaterViscosityTypes[];
 
 typedef enum {
   WATER_ENTHALPY_CONSTANT=0,
-} WaterEnthalpyType;
+} TDyWaterEnthalpyType;
 
 PETSC_EXTERN const char *const TDyWaterEnthalpyTypes[];
 
@@ -152,6 +152,7 @@ PETSC_EXTERN PetscErrorCode TDyRestoreBoundaryFaces(TDy,PetscInt*, const PetscIn
 // Set material properties: via PETSc operations
 PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
 PETSC_EXTERN PetscErrorCode TDySetWaterViscosityType(TDy,TDyWaterViscosityType);
+PETSC_EXTERN PetscErrorCode TDySetWaterEnthalpyType(TDy,TDyWaterEnthalpyType);
 
 PETSC_EXTERN PetscErrorCode TDySetConstantPorosity(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetPorosityFunction(TDy,TDyScalarSpatialFunction);

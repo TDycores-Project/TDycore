@@ -273,6 +273,8 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   options->soil_density=2650.;
   options->soil_specific_heat=1000.0;
   options->thermal_conductivity=1.0;
+  options->saline_molecular_weight = 58.44;
+  options->saline_diffusivity = 1.e-8;
 
   options->residual_saturation=0.15;
   options->gardner_n=0.5;
@@ -544,6 +546,7 @@ static PetscErrorCode ReadCommandLineOptions(TDy tdy) {
   ierr = PetscOptionsReal("-tdy_gravity", "Magnitude of gravity vector", NULL, options->gravity_constant, &options->gravity_constant, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_water_density","Water density vertical profile", "TDySetWaterDensityType", TDyWaterDensityTypes, (PetscEnum)options->rho_type, (PetscEnum *)&options->rho_type, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_water_viscosity","Water viscosity model", "TDySetWaterViscosityType", TDyWaterViscosityTypes, (PetscEnum)options->mu_type, (PetscEnum *)&options->mu_type, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_water_enthalpy","Water enthalpy model", "TDySetWaterEnthalpyType", TDyWaterEnthalpyTypes, (PetscEnum)options->enthalpy_type, (PetscEnum *)&options->enthalpy_type, NULL); CHKERRQ(ierr);
 
   // Create source/sink/boundary conditions.
   ierr = ConditionsCreate(&tdy->conditions); CHKERRQ(ierr);
@@ -949,6 +952,13 @@ PetscErrorCode TDySetWaterViscosityType(TDy tdy, TDyWaterViscosityType vistype) 
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
   tdy->options.mu_type = vistype;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetWaterEnthalpyType(TDy tdy, TDyWaterEnthalpyType enthtype) {
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  tdy->options.enthalpy_type = enthtype;
   PetscFunctionReturn(0);
 }
 
@@ -1934,7 +1944,7 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
       ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_TH,tdy); CHKERRQ(ierr);
       break;
     case SALINITY:
-      ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian,tdy); CHKERRQ(ierr);
+      //ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian,tdy); CHKERRQ(ierr);
       break;
     }
     break;

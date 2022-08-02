@@ -186,7 +186,9 @@ PetscErrorCode EOSComputeWaterEnthalpy(EOS *eos, PetscReal t, PetscReal p,
 }
 
 /* ---------------------------------------------------------------- */
-PetscErrorCode EOSComputeSalinityFraction(EOS* eos, PetscReal Psi, PetscReal mw, PetscReal den, PetscReal *m_nacl, PetscReal *dm_nacl, PetscReal *d2m_nacl) {
+PetscErrorCode EOSComputeSalinityFraction(EOS* eos,
+  PetscReal Psi, PetscReal mw, PetscReal den,
+  PetscReal *m_nacl, PetscReal *dm_nacl, PetscReal *d2m_nacl) {
 
   PetscFunctionBegin;
 

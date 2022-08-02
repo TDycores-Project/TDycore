@@ -488,6 +488,9 @@ PetscErrorCode TDyDestroy_MPFAO(void *context) {
   ierr = TDyFree(mpfao->du_dT); CHKERRQ(ierr);
   ierr = TDyFree(mpfao->dvis_dT); CHKERRQ(ierr);
   ierr = TDyFree(mpfao->dvis_dPsi); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->m_nacl); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->dm_nacl); CHKERRQ(ierr);
+  ierr = TDyFree(mpfao->d2m_nacl); CHKERRQ(ierr);
 
   ierr = TDyFree(mpfao->Kr_bnd); CHKERRQ(ierr);
   ierr = TDyFree(mpfao->dKr_dS_bnd); CHKERRQ(ierr);
@@ -689,6 +692,9 @@ static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
   ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->du_dT)); CHKERRQ(ierr);
   ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->dvis_dT)); CHKERRQ(ierr);
   ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->dvis_dPsi)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->m_nacl)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->dm_nacl)); CHKERRQ(ierr);
+  ierr = TDyAlloc(nc*sizeof(PetscReal),&(mpfao->d2m_nacl)); CHKERRQ(ierr);
 
   // Initialize characteristic curve parameters on all cells.
   PetscInt points[nc];
@@ -2726,15 +2732,17 @@ PetscErrorCode TDyUpdateState_Salinity_MPFAO(void *context, DM dm,
 
     // Also update water properties.
     PetscReal P = mpfao->Pref - Pc[c]; // pressure
-    PetscReal drho_dPsi;
+    ierr = EOSComputeSalinityFraction(eos,
+      Psi[c], mpfao->mu_saline[c], mpfao->rho[c],
+      &(mpfao->m_nacl[c]),&(mpfao->dm_nacl[c]),
+      &(mpfao->d2m_nacl[c])); CHKERRQ(ierr);
     ierr = EOSComputeWaterDensity(eos,
       P, mpfao->Tref, mpfao->S[c],
-      &(mpfao->rho[c]), &(mpfao->drho_dP[c]), &drho_dPsi,
+      &(mpfao->rho[c]), &(mpfao->drho_dP[c]), &(mpfao->drho_dPsi[c]),
       &(mpfao->d2rho_dP2[c])); CHKERRQ(ierr);
-    PetscReal dvis_dPsi;
     ierr = EOSComputeWaterViscosity(eos,
       P, mpfao->Tref, mpfao->S[c],
-      &(mpfao->vis[c]), &(mpfao->dvis_dP[c]), &dvis_dPsi,
+      &(mpfao->vis[c]), &(mpfao->dvis_dP[c]), &(mpfao->dvis_dPsi[c]),
       &(mpfao->d2vis_dP2[c])); CHKERRQ(ierr);
   }
 
