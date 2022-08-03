@@ -10,7 +10,7 @@ typedef struct EOS {
 } EOS;
 
 PETSC_INTERN PetscErrorCode EOSComputeWaterDensity(EOS*,PetscReal,PetscReal,PetscReal,PetscReal,PetscReal,PetscReal*,PetscReal*,PetscReal*,PetscReal*);
-PETSC_INTERN PetscErrorCode EOSComputeWaterViscosity(EOS*,PetscReal,PetscReal,PetscReal,PetscReal*,PetscReal*,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode EOSComputeWaterViscosity(EOS*,PetscReal,PetscReal,PetscReal,PetscReal,PetscReal*,PetscReal*,PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode EOSComputeWaterEnthalpy(EOS*,PetscReal,PetscReal,PetscReal*,PetscReal*,PetscReal*);
 PETSC_EXTERN PetscErrorCode EOSComputeSalinityFraction(EOS*,PetscReal,PetscReal,PetscReal,PetscReal*,PetscReal*,PetscReal*);
 

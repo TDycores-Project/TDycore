@@ -1365,6 +1365,18 @@ PetscErrorCode TDySetBoundaryPressureTypeFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetBoundaryVelocityFunction(TDy tdy,
+                                              TDyVectorSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  WrapperStruct *wrapper;
+  ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
+  wrapper->func = f;
+  ierr = ConditionsSetBoundaryVelocity(tdy->conditions, wrapper,
+                                       WrapperFunction, TDyFree); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetBoundaryTemperatureFunction(TDy tdy,
                                                  TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
@@ -1377,14 +1389,14 @@ PetscErrorCode TDySetBoundaryTemperatureFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetBoundaryVelocityFunction(TDy tdy,
-                                              TDyVectorSpatialFunction f) {
+PetscErrorCode TDySetBoundarySalinityFunction(TDy tdy,
+                                              TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   WrapperStruct *wrapper;
   ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
   wrapper->func = f;
-  ierr = ConditionsSetBoundaryVelocity(tdy->conditions, wrapper,
+  ierr = ConditionsSetBoundarySalinity(tdy->conditions, wrapper,
                                        WrapperFunction, TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -1419,6 +1431,16 @@ PetscErrorCode TDySelectBoundaryPressureFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySelectBoundaryVelocityFunction(TDy tdy,
+                                                 const char *func_name) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDySpatialFunction f;
+  ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
+  ierr = TDySetBoundaryVelocityFunction(tdy, f); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy tdy,
                                                     const char *func_name) {
   PetscErrorCode ierr;
@@ -1429,13 +1451,13 @@ PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySelectBoundaryVelocityFunction(TDy tdy,
+PetscErrorCode TDySelectBoundarySalinityFunction(TDy tdy,
                                                  const char *func_name) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDySpatialFunction f;
   ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
-  ierr = TDySetBoundaryVelocityFunction(tdy, f); CHKERRQ(ierr);
+  ierr = TDySetBoundarySalinityFunction(tdy, f); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

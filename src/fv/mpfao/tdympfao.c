@@ -438,7 +438,7 @@ PetscErrorCode TDyCreate_MPFAO(void **context) {
 
   // Initialize defaults and data.
   mpfao->gmatrix_method = MPFAO_GMATRIX_DEFAULT;
-  mpfao->bc_type = DIRICHLET_BC;
+  mpfao->bc_type = NEUMANN_BC;
   mpfao->Pref = 101325;
   mpfao->Tref = 25;
   mpfao->gravity[0] = 0; mpfao->gravity[1] = 0; mpfao->gravity[2] = 0;

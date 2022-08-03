@@ -37,8 +37,6 @@ PetscErrorCode TDySalinityInitialize(TDy tdy) {
     ierr = VecSet(tdy->soln,101325.); CHKERRQ(ierr);
   }
 
-  //TODO: add call to update density functions to watzle and wang
-
   PetscFunctionReturn(0);
 }
 

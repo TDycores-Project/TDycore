@@ -73,14 +73,6 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_Salinity(Vec Ul, Vec R, void *ctx) {
       TtimesP[irow] = TtimesP_vec_ptr[face_id*num_subfaces + subface_id];
       TtimesPsi[irow] = TtimesPsi_vec_ptr[face_id*num_subfaces + subface_id];
 
-
-      //
-      // fluxm_ij = rho_ij * (kr/mu)_{ij,upwind} * [ T ] *  [ P+rho*g*z ]^T
-      // where
-      //      rho_ij = 0.5*(rho_i + rho_j)
-      //      (kr/mu)_{ij,upwind} = (kr/mu)_{i} if velocity is from i to j
-      //                          = (kr/mu)_{j} otherwise
-      //      T includes product of K and A_{ij}
       PetscInt *cell_ids, num_cells;
       ierr = TDyMeshGetFaceCells(mesh, face_id, &cell_ids, &num_cells); CHKERRQ(ierr);
 
@@ -134,7 +126,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_Salinity(Vec Ul, Vec R, void *ctx) {
 
       // fluxm > 0 implies flow is from 'up' to 'dn'
       if (cell_id_up >= 0 && cells->is_local[cell_id_up]) {
-        r[cell_id_up*2]   += fluxm;   //check index here
+        r[cell_id_up*2]   += fluxm;
         r[cell_id_up*2+1] += fluxt;
       }
       if (cell_id_dn >=0 && cells->is_local[cell_id_dn]) {
@@ -170,38 +162,31 @@ PetscErrorCode TDyMPFAOIFunction_Salinity(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,
 
   ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
 
-  //#if defined(DEBUG)
+  #if defined(DEBUG)
   PetscViewer viewer;
-  // char word[32];
-  // sprintf(word,"U%d.vec",icount_f);
+  char word[32];
+  sprintf(word,"U%d.vec",icount_f);
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"U2.vec",&viewer); CHKERRQ(ierr);
   ierr = VecView(U,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  //#endif
+  #endif
 
   ierr = DMGetLocalVector(dm,&Ul); CHKERRQ(ierr);
   ierr = TDyGlobalToLocal(tdy,U,Ul); CHKERRQ(ierr);
-
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Ul.vec",&viewer); CHKERRQ(ierr);
-  ierr = VecView(Ul,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
   ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
   ierr = TDyUpdateState(tdy,u_p, mesh->num_cells); CHKERRQ(ierr);
-  //  ierr = VecRestoreArray(Ul,&U_p); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
-  ierr = TDyMPFAO_SetBoundarySalinity(tdy,Ul); CHKERRQ(ierr); //write concentration
+  ierr = TDyMPFAO_SetBoundarySalinity(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(mpfao->Trans_mat,mpfao->P_vec,mpfao->TtimesP_vec);
-  //add in matmult for trans * rho, or maybe not
-  ierr = MatMult(mpfao->Psi_Trans_mat,mpfao->Psi_vec,mpfao->TtimesPsi_vec); // TODO: multiply in sat
+  ierr = MatMult(mpfao->Psi_Trans_mat,mpfao->Psi_vec,mpfao->TtimesPsi_vec);
 
-  //#if 0
-  // PetscViewer viewer;
+  #if 0
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Psi_Trans_mat.mat",&viewer); CHKERRQ(ierr);
   ierr = MatView(mpfao->Psi_Trans_mat,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
@@ -217,7 +202,7 @@ PetscErrorCode TDyMPFAOIFunction_Salinity(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"P_vec.vec",&viewer); CHKERRQ(ierr);
   ierr = VecView(mpfao->P_vec,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  //#endif
+  #endif
 
   // Fluxes
   ierr = TDyMPFAOIFunction_Vertices_Salinity(Ul,R,ctx); CHKERRQ(ierr);
@@ -252,31 +237,12 @@ PetscErrorCode TDyMPFAOIFunction_Salinity(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,
     if (!cells->is_local[icell]) break;
 
     // A_M = d(rho*phi*s)/dP * dP_dtime * Vol + d(rho*phi*s)/dT * dT_dtime * Vol //change
-    dmass_dP = dmass_dPsi = 0.0;
-/*
     dmass_dP = mpfao->rho[icell]       * dporosity_dP           * mpfao->S[icell] +
                mpfao->drho_dP[icell]   * mpfao->porosity[icell] * mpfao->S[icell] +
                mpfao->rho[icell]       * mpfao->porosity[icell] * mpfao->dS_dP[icell];
     dmass_dPsi = mpfao->rho[icell]       * dporosity_dPsi         * mpfao->S[icell] +
                  mpfao->drho_dPsi[icell] * mpfao->porosity[icell] * mpfao->S[icell] +
                  mpfao->rho[icell]       * mpfao->porosity[icell] * dS_dPsi;
-*/
-
-    //CHANGE
-    // A_E = [d(rho*phi*s*U)/dP + d(rho*(1-phi)*T)/dP] * dP_dtime *Vol + //change
-    //       [d(rho*phi*s*U)/dT + d(rho*(1-phi)*T)/dT] * dT_dtime *Vol
-    // denergy_dP = dden_dP     * por        * sat     * u     + &
-    //              den         * dpor_dP    * sat     * u     + &
-    //              den         * por        * dsat_dP * u     + &
-    //              den         * por        * sat     * du_dP + &
-    //              rock_dencpr * (-dpor_dP) * temp
-
-    // denergy_dt = dden_dt     * por        * sat     * u     + &
-    //              den         * dpor_dt    * sat     * u     + &
-    //              den         * por        * dsat_dt * u     + &
-    //              den         * por        * sat     * du_dt + &
-    //              rock_dencpr * (-dpor_dt) * temp            + &
-    //              rock_dencpr * (1-por)
 
     PetscReal dtrans_dP, dtrans_dPsi;
 
@@ -298,21 +264,18 @@ PetscErrorCode TDyMPFAOIFunction_Salinity(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,
   }
 
   /* Cleanup */
-  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr); //chck
-  ierr = VecRestoreArray(U_t,&du_dt); CHKERRQ(ierr); //check
+  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
+  ierr = VecRestoreArray(U_t,&du_dt); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
 
-  //PetscViewer viewer;
-  // sprintf(word,"Function%d.vec");
+#if defined(DEBUG)
+  sprintf(word,"Function%d.vec");
   ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Function.vec",&viewer); CHKERRQ(ierr);
   ierr = VecView(R,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"dudt.vec",&viewer); CHKERRQ(ierr);
-  ierr = VecView(U_t,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  //  icount_f++;
+  icount_f++;
+#endif
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
