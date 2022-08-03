@@ -1922,7 +1922,7 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
       ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_TH,tdy); CHKERRQ(ierr);
       break;
     case SALINITY:
-      ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_Salinity,tdy); CHKERRQ(ierr);
+      SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for Salinity");
       break;
     }
     break;
@@ -2008,24 +2008,34 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.discretization) {
-  case MPFA_O:
-    ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction,tdy); CHKERRQ(ierr);
-    break;
-  case MPFA_O_DAE:
-    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for MPFA_O_DAE");
-    break;
-  case MPFA_O_TRANSIENTVAR:
-    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for MPFA_O_TRANSIENTVAR");
-    break;
-  case BDM:
-    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for BDM");
-    break;
-  case WY:
-    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for WY");
-    break;
-  case FV_TPF:
-    ierr = SNESSetFunction(snes,tdy->residual,TDyFVTPFSNESFunction,tdy); CHKERRQ(ierr);
-    break;
+    case MPFA_O:
+      switch (tdy->options.mode) {
+        case RICHARDS:
+          ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction,tdy); CHKERRQ(ierr);
+          break;
+        case TH:
+          ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction,tdy); CHKERRQ(ierr);
+          break;
+        case SALINITY:
+          ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction_Salinity,tdy); CHKERRQ(ierr);
+          break;
+      }
+      break;
+    case MPFA_O_DAE:
+      SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for MPFA_O_DAE");
+      break;
+    case MPFA_O_TRANSIENTVAR:
+      SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for MPFA_O_TRANSIENTVAR");
+      break;
+    case BDM:
+      SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for BDM");
+      break;
+    case WY:
+      SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for WY");
+      break;
+    case FV_TPF:
+      ierr = SNESSetFunction(snes,tdy->residual,TDyFVTPFSNESFunction,tdy); CHKERRQ(ierr);
+      break;
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -2103,7 +2113,17 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
 
   switch (tdy->options.discretization) {
   case MPFA_O:
-    ierr = TDyMPFAOSNESPreSolve(tdy); CHKERRQ(ierr);
+    switch (tdy->options.mode) {
+      case RICHARDS:
+        ierr = TDyMPFAOSNESPreSolve(tdy); CHKERRQ(ierr);
+        break;
+      case TH:
+        SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for TH");
+        break;
+      case SALINITY:
+        ierr = TDyMPFAOSNESPreSolve_Salinity(tdy); CHKERRQ(ierr);
+        break;
+    }
     break;
   case MPFA_O_DAE:
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for MPFA_O_DAE");

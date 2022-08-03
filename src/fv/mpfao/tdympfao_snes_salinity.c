@@ -5,6 +5,7 @@
 #include <private/tdymemoryimpl.h>
 #include <petscblaslapack.h>
 #include <private/tdympfaoimpl.h>
+#include <private/tdympfaotsimpl.h>
 #include <private/tdympfaosalinitytsimpl.h>
 #include <private/tdydiscretizationimpl.h>
 
@@ -14,6 +15,76 @@ PetscInt icount_f = 0;
 PetscInt icount_j = 0;
 PetscInt max_count = 5;
 #endif
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAOSNESAccumulationMass(TDy tdy, PetscInt icell, PetscReal *accum) {
+
+  PetscFunctionBegin;
+
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
+  MaterialProp *matprop = tdy->matprop;
+
+  *accum = mpfao->rho[icell] * mpfao->porosity[icell] *
+           mpfao->S[icell] * cells->volume[icell] / tdy->dtime;
+
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDyMPFAOSNESAccumulationTransport(TDy tdy, PetscInt icell, PetscReal Psi, PetscReal *accum) {
+
+  PetscFunctionBegin;
+
+  TDyMPFAO *mpfao = tdy->context;
+  TDyMesh *mesh = mpfao->mesh;
+  TDyCell *cells = &mesh->cells;
+  MaterialProp *matprop = tdy->matprop;
+
+  *accum = mpfao->rho[icell] * mpfao->porosity[icell] *
+           mpfao->S[icell] * Psi * cells->volume[icell] / tdy->dtime;
+
+  PetscFunctionReturn(0);
+}
+
+/* -------------------------------------------------------------------------- */
+PetscErrorCode TDyMPFAOSNESPreSolve_Salinity(TDy tdy) {
+
+  TDyMPFAO      *mpfao = tdy->context;
+  TDyMesh       *mesh = mpfao->mesh;
+  TDyCell       *cells = &mesh->cells;
+  PetscReal *U, *accum_prev;
+  PetscInt icell;
+  PetscErrorCode ierr;
+
+  TDY_START_FUNCTION_TIMER()
+
+  // Update the auxillary variables
+  ierr = VecGetArray(tdy->soln_prev,&U); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, U, mesh->num_cells); CHKERRQ(ierr);
+
+  ierr = VecGetArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
+
+  for (icell=0;icell<mesh->num_cells;icell++){
+
+    if (!cells->is_local[icell]) continue;
+
+    // d(rho*phi*s)/dt * Vol
+    //  = [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
+    //  = accum_current - accum_prev
+    ierr = TDyMPFAOSNESAccumulationMass(tdy,icell,&accum_prev[icell*2]); CHKERRQ(ierr);
+    // d(rho*phi*s*psi)/dt * Vol
+    //  = [(rho*phi*s*psi)^{t+1} - (rho*phi*s*psi)^t]/dt * Vol
+    //  = accum_current - accum_prev
+
+    ierr = TDyMPFAOSNESAccumulationTransport(tdy,icell,U[icell*2+1],&accum_prev[icell*2+1]); CHKERRQ(ierr);
+  }
+  ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->soln_prev,&U); CHKERRQ(ierr);
+
+  TDY_STOP_FUNCTION_TIMER()
+  PetscFunctionReturn(0);
+}
 
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOIFunction_Vertices_Salinity(Vec Ul, Vec R, void *ctx) {
@@ -44,7 +115,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_Salinity(Vec Ul, Vec R, void *ctx) {
 
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
   ierr = VecGetArray(mpfao->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
-  ierr = VecGetArray(mpfao->TtimesPsi_vec,&TtimesPsi_vec_ptr); CHKERRQ(ierr); //CHANGE
+  ierr = VecGetArray(mpfao->TtimesPsi_vec,&TtimesPsi_vec_ptr); CHKERRQ(ierr);
   ierr = VecGetArray(mpfao->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
@@ -146,7 +217,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_Salinity(Vec Ul, Vec R, void *ctx) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAOIFunction_Salinity(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
+PetscErrorCode TDyMPFAOSNESFunction_Salinity(SNES snes,Vec U,Vec R,void *ctx) {
 
   TDy       tdy   = (TDy)ctx;
   TDyMPFAO *mpfao = tdy->context;
@@ -154,13 +225,13 @@ PetscErrorCode TDyMPFAOIFunction_Salinity(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,
   TDyCell  *cells = &mesh->cells;
   DM        dm;
   Vec       Ul;
-  PetscReal *du_dt,*r,*u_p;
+  PetscReal *soln, *r, *Psi;
   PetscErrorCode ierr;
 
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
 
-  ierr = TSGetDM(ts,&dm); CHKERRQ(ierr);
+  ierr = TDyGetDM(tdy,&dm); CHKERRQ(ierr);
 
   #if defined(DEBUG)
   PetscViewer viewer;
@@ -177,8 +248,8 @@ PetscErrorCode TDyMPFAOIFunction_Salinity(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,
   ierr = VecZeroEntries(R); CHKERRQ(ierr);
 
   // Update the auxillary variables based on the current iterate
-  ierr = VecGetArray(Ul,&u_p); CHKERRQ(ierr);
-  ierr = TDyUpdateState(tdy,u_p, mesh->num_cells); CHKERRQ(ierr);
+  ierr = VecGetArray(Ul, &soln); CHKERRQ(ierr);
+  ierr = TDyUpdateState(tdy, soln, mesh->num_cells); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyMPFAO_SetBoundarySalinity(tdy,Ul); CHKERRQ(ierr);
@@ -186,92 +257,44 @@ PetscErrorCode TDyMPFAOIFunction_Salinity(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,
   ierr = MatMult(mpfao->Trans_mat,mpfao->P_vec,mpfao->TtimesP_vec);
   ierr = MatMult(mpfao->Psi_Trans_mat,mpfao->Psi_vec,mpfao->TtimesPsi_vec);
 
-  #if 0
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Psi_Trans_mat.mat",&viewer); CHKERRQ(ierr);
-  ierr = MatView(mpfao->Psi_Trans_mat,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Psi_TtimesP_vec.vec",&viewer); CHKERRQ(ierr);
-  ierr = VecView(mpfao->TtimesPsi_vec,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Psi_vec.vec",&viewer); CHKERRQ(ierr);
-  ierr = VecView(mpfao->Psi_vec,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"P_vec.vec",&viewer); CHKERRQ(ierr);
-  ierr = VecView(mpfao->P_vec,viewer);
-  ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-  #endif
-
   // Fluxes
   ierr = TDyMPFAOIFunction_Vertices_Salinity(Ul,R,ctx); CHKERRQ(ierr);
 
-  ierr = VecGetArray(U_t,&du_dt); CHKERRQ(ierr);
+  PetscReal *accum_prev;
   ierr = VecGetArray(R,&r); CHKERRQ(ierr);
+  ierr = VecGetArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
 
-  PetscInt c,cStart,cEnd;
-  ierr = DMPlexGetHeightStratum(dm,0,&cStart,&cEnd); CHKERRQ(ierr);
-  PetscReal p[cEnd-cStart], dp_dt[cEnd-cStart],
-            Psi[cEnd-cStart], dPsi_dt[cEnd-cStart];
-
-  for (c=0;c<cEnd-cStart;c++) {
-    dp_dt[c]    = du_dt[c*2];
-    p[c]        = u_p[c*2];
-    dPsi_dt[c] = du_dt[c*2+1];
-    Psi[c]     = u_p[c*2+1];
-  }
-
-  MaterialProp *matprop = tdy->matprop;
-
-  PetscReal dporosity_dP = 0.0;
-  PetscReal dporosity_dPsi = 0.0;
-  PetscReal dS_dPsi = 0.0;
-  PetscReal dPsi_dP = 0.0;
-  PetscReal dmass_dP,dmass_dPsi;
+  PetscReal accum_current_mass, accum_current_transport;
   PetscInt icell;
 
-  // Accumulation and source/sink contributions
   for (icell=0;icell<mesh->num_cells;icell++){
 
-    if (!cells->is_local[icell]) break;
+    if (!cells->is_local[icell]) continue;
+    // d(rho*phi*s)/dt * Vol
+    //  = [(rho*phi*s)^{t+1} - (rho*phi*s)^t]/dt * Vol
+    //  = accum_current - accum_prev
+    ierr = TDyMPFAOSNESAccumulationMass(tdy,icell,&accum_current_mass); CHKERRQ(ierr);
 
-    // A_M = d(rho*phi*s)/dP * dP_dtime * Vol + d(rho*phi*s)/dT * dT_dtime * Vol //change
-    dmass_dP = mpfao->rho[icell]       * dporosity_dP           * mpfao->S[icell] +
-               mpfao->drho_dP[icell]   * mpfao->porosity[icell] * mpfao->S[icell] +
-               mpfao->rho[icell]       * mpfao->porosity[icell] * mpfao->dS_dP[icell];
-    dmass_dPsi = mpfao->rho[icell]       * dporosity_dPsi         * mpfao->S[icell] +
-                 mpfao->drho_dPsi[icell] * mpfao->porosity[icell] * mpfao->S[icell] +
-                 mpfao->rho[icell]       * mpfao->porosity[icell] * dS_dPsi;
+    // d(rho*phi*s*psi)/dt * Vol
+    //  = [(rho*phi*s*psi)^{t+1} - (rho*phi*s*psi)^t]/dt * Vol
+    //  = accum_current - accum_prev
+    ierr = TDyMPFAOSNESAccumulationTransport(tdy,icell,soln[icell*2+1],&accum_current_transport); CHKERRQ(ierr);
 
-    PetscReal dtrans_dP, dtrans_dPsi;
-
-    dtrans_dP =
-      mpfao->drho_dP[icell] * mpfao->porosity[icell] * mpfao->S[icell]     * Psi[icell] +
-      mpfao->rho[icell]     * dporosity_dP           * mpfao->S[icell]     * Psi[icell] +
-      mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->dS_dP[icell] * Psi[icell] +
-      mpfao->rho[icell]     * mpfao->porosity[icell] * mpfao->S[icell]     * dPsi_dP;
-    dtrans_dPsi =
-      mpfao->drho_dPsi[icell] * mpfao->porosity[icell] * mpfao->S[icell] * Psi[icell] +
-      mpfao->rho[icell]       * dporosity_dPsi         * mpfao->S[icell] * Psi[icell] +
-      mpfao->rho[icell]       * mpfao->porosity[icell] * dS_dPsi         * Psi[icell] +
-      mpfao->rho[icell]       * mpfao->porosity[icell] * mpfao->S[icell];
-
-    r[icell*2]   += dmass_dP * dp_dt[icell] * cells->volume[icell] + dmass_dPsi * dPsi_dt[icell] * cells->volume[icell];
-    r[icell*2+1] += dtrans_dP * dp_dt[icell] * cells->volume[icell] + dtrans_dPsi * dPsi_dt[icell] * cells->volume[icell];
-    r[icell*2]   -= mpfao->source_sink[icell] * cells->volume[icell];
-    r[icell*2+1] -= mpfao->salinity_source_sink[icell] * cells->volume[icell];
+    r[icell*2] += accum_current_mass - accum_prev[icell*2];
+    r[icell*2] -= mpfao->source_sink[icell];
+    r[icell*2+1] += accum_current_transport - accum_prev[icell*2+1];
+    r[icell*2+1] -= mpfao->salinity_source_sink[icell];
   }
 
   /* Cleanup */
-  ierr = VecRestoreArray(Ul,&u_p); CHKERRQ(ierr);
-  ierr = VecRestoreArray(U_t,&du_dt); CHKERRQ(ierr);
   ierr = VecRestoreArray(R,&r); CHKERRQ(ierr);
+  ierr = VecRestoreArray(Ul,&soln); CHKERRQ(ierr);
+  ierr = VecRestoreArray(tdy->accumulation_prev,&accum_prev); CHKERRQ(ierr);
   ierr = DMRestoreLocalVector(dm,&Ul); CHKERRQ(ierr);
 
 #if defined(DEBUG)
-  sprintf(word,"Function%d.vec");
-  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,"Function.vec",&viewer); CHKERRQ(ierr);
+  sprintf(word,"Function%d.vec", icount_f);
+  ierr = PetscViewerASCIIOpen(PETSC_COMM_WORLD,word,&viewer); CHKERRQ(ierr);
   ierr = VecView(R,viewer);
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
   icount_f++;
