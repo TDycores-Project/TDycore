@@ -274,7 +274,7 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   options->soil_specific_heat=1000.0;
   options->thermal_conductivity=1.0;
   options->saline_molecular_weight = 58.44;
-  options->saline_diffusivity = 1.e-8;
+  options->saline_diffusivity = 1.e-6;
 
   options->residual_saturation=0.15;
   options->gardner_n=0.5;

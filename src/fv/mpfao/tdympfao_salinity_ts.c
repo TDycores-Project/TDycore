@@ -125,11 +125,11 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_Salinity(Vec Ul, Vec R, void *ctx) {
 
       flow_rate = ukvr*(-TtimesP[irow]); // flow_rate is darcy flux times area
 
-      fluxm = 0.0; //den_aveg*flow_rate;
+      fluxm = den_aveg*flow_rate;
       fluxt = den_aveg*flow_rate;  //Advection term
 
       // Diffusion term in transport equation?
-      fluxt += -TtimesPsi[irow];
+      fluxt += -den_aveg*TtimesPsi[irow];
       fluxm += - pow(den_aveg,2.0) * ukvr * G;
 
       // fluxm > 0 implies flow is from 'up' to 'dn'
@@ -197,6 +197,7 @@ PetscErrorCode TDyMPFAOIFunction_Salinity(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,
   ierr = TDyMPFAO_SetBoundarySalinity(tdy,Ul); CHKERRQ(ierr); //write concentration
   ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(mpfao->Trans_mat,mpfao->P_vec,mpfao->TtimesP_vec);
+  //add in matmult for trans * rho, or maybe not
   ierr = MatMult(mpfao->Psi_Trans_mat,mpfao->Psi_vec,mpfao->TtimesPsi_vec); // TODO: multiply in sat
 
   //#if 0
@@ -251,12 +252,15 @@ PetscErrorCode TDyMPFAOIFunction_Salinity(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,
     if (!cells->is_local[icell]) break;
 
     // A_M = d(rho*phi*s)/dP * dP_dtime * Vol + d(rho*phi*s)/dT * dT_dtime * Vol //change
+    dmass_dP = dmass_dPsi = 0.0;
+/*
     dmass_dP = mpfao->rho[icell]       * dporosity_dP           * mpfao->S[icell] +
                mpfao->drho_dP[icell]   * mpfao->porosity[icell] * mpfao->S[icell] +
                mpfao->rho[icell]       * mpfao->porosity[icell] * mpfao->dS_dP[icell];
     dmass_dPsi = mpfao->rho[icell]       * dporosity_dPsi         * mpfao->S[icell] +
                  mpfao->drho_dPsi[icell] * mpfao->porosity[icell] * mpfao->S[icell] +
                  mpfao->rho[icell]       * mpfao->porosity[icell] * dS_dPsi;
+*/
 
     //CHANGE
     // A_E = [d(rho*phi*s*U)/dP + d(rho*(1-phi)*T)/dP] * dP_dtime *Vol + //change
@@ -285,8 +289,7 @@ PetscErrorCode TDyMPFAOIFunction_Salinity(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,
       mpfao->drho_dPsi[icell] * mpfao->porosity[icell] * mpfao->S[icell] * Psi[icell] +
       mpfao->rho[icell]       * dporosity_dPsi         * mpfao->S[icell] * Psi[icell] +
       mpfao->rho[icell]       * mpfao->porosity[icell] * dS_dPsi         * Psi[icell] +
-      mpfao->rho[icell]       * 0.1                    * 1.0;
-    //                          mpfao->porosity[icell]   mpfao->S[icell]
+      mpfao->rho[icell]       * mpfao->porosity[icell] * mpfao->S[icell];
 
     r[icell*2]   += dmass_dP * dp_dt[icell] * cells->volume[icell] + dmass_dPsi * dPsi_dt[icell] * cells->volume[icell];
     r[icell*2+1] += dtrans_dP * dp_dt[icell] * cells->volume[icell] + dtrans_dPsi * dPsi_dt[icell] * cells->volume[icell];

@@ -298,10 +298,10 @@ static PetscErrorCode AllocateMemoryForBoundaryValues(TDyFVTPF *fvtpf,
   PetscReal dden_dP, dden_dPsi, d2den_dP2, dmu_dP, dmu_dPsi, d2mu_dP2;
   for (i=0;i<nbnd_faces;i++) {
     ierr = EOSComputeWaterDensity(eos,
-      fvtpf->Pref, fvtpf->Tref, fvtpf->S_bnd[i],
+      fvtpf->Pref, fvtpf->Tref, 0.0, 0.0, 0.0,
       &(fvtpf->rho_bnd[i]), &dden_dP, &dden_dPsi, &d2den_dP2); CHKERRQ(ierr);
     ierr = EOSComputeWaterViscosity(eos,
-      fvtpf->Pref, fvtpf->Tref, fvtpf->S_bnd[i],
+      fvtpf->Pref, fvtpf->Tref, 0.0,
       &(fvtpf->vis_bnd[i]), &dmu_dP, &dmu_dPsi, &d2mu_dP2); CHKERRQ(ierr);
   }
 
@@ -517,11 +517,11 @@ PetscErrorCode TDyUpdateState_Richards_FVTPF(void *context, DM dm,
     // Also update water properties.
     PetscReal P = fvtpf->Pref - Pc[c]; // pressure
     PetscReal drho_dPsi;
-    ierr = EOSComputeWaterDensity(eos, P, fvtpf->Tref, fvtpf->S[c],
+    ierr = EOSComputeWaterDensity(eos, P, fvtpf->Tref, 0.0, 0.0, 0.0,
       &(fvtpf->rho[c]), &(fvtpf->drho_dP[c]), &drho_dPsi,
       &(fvtpf->d2rho_dP2[c])); CHKERRQ(ierr);
     PetscReal dvis_dPsi;
-    ierr = EOSComputeWaterViscosity(eos, P, fvtpf->Tref, fvtpf->S[c],
+    ierr = EOSComputeWaterViscosity(eos, P, fvtpf->Tref, 0.0,
       &(fvtpf->vis[c]), &(fvtpf->dvis_dP[c]), &dvis_dPsi,
       &(fvtpf->d2vis_dP2[c])); CHKERRQ(ierr);
   }

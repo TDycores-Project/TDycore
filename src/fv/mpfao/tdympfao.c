@@ -322,11 +322,14 @@ static PetscErrorCode AllocateMemoryForBoundaryValues(TDyMPFAO *mpfao,
   PetscInt i;
   PetscReal dden_dP, dden_dPsi, d2den_dP2, dmu_dP, dmu_dPsi, d2mu_dP2;
   for (i=0;i<nbnd_faces;i++) {
+    PetscReal m_nacl = mpfao->m_nacl[0];
+    PetscReal dm_nacl = mpfao->dm_nacl[0];
+    PetscReal d2m_nacl = mpfao->d2m_nacl[0];
     ierr = EOSComputeWaterDensity(eos,
-      mpfao->Pref, mpfao->Tref, mpfao->S_bnd[i],
+      mpfao->Pref, mpfao->Tref, m_nacl, dm_nacl, d2m_nacl,
       &(mpfao->rho_bnd[i]), &dden_dP, &dden_dPsi, &d2den_dP2); CHKERRQ(ierr);
     ierr = EOSComputeWaterViscosity(eos,
-      mpfao->Pref, mpfao->Tref, mpfao->S_bnd[i],
+      mpfao->Pref, mpfao->Tref, m_nacl,
       &(mpfao->vis_bnd[i]), &dmu_dP, &dmu_dPsi, &d2mu_dP2); CHKERRQ(ierr);
   }
 
@@ -2578,11 +2581,11 @@ PetscErrorCode TDyUpdateState_Richards_MPFAO(void *context, DM dm,
     PetscReal P = mpfao->Pref - Pc[c]; // pressure
     PetscReal drho_dPsi;
     ierr = EOSComputeWaterDensity(eos,
-      P, mpfao->Tref, mpfao->S[c],
+      P, mpfao->Tref, mpfao->m_nacl[c], mpfao->dm_nacl[c], mpfao->d2m_nacl[c],
       &(mpfao->rho[c]), &(mpfao->drho_dP[c]), &drho_dPsi,
       &(mpfao->d2rho_dP2[c])); CHKERRQ(ierr);
     ierr = EOSComputeWaterViscosity(eos,
-      P, mpfao->Tref, mpfao->S[c],
+      P, mpfao->Tref, mpfao->m_nacl[c],
       &(mpfao->vis[c]), &(mpfao->dvis_dP[c]), &(mpfao->dvis_dPsi[c]),
       &(mpfao->d2vis_dP2[c])); CHKERRQ(ierr);
   }
@@ -2648,12 +2651,12 @@ PetscErrorCode TDyUpdateState_TH_MPFAO(void *context, DM dm,
     PetscReal P = mpfao->Pref - Pc[c]; // pressure
     PetscReal drho_dPsi;
     ierr = EOSComputeWaterDensity(eos,
-      P, mpfao->Tref, mpfao->S[c],
+      P, mpfao->Tref, mpfao->m_nacl[c], mpfao->dm_nacl[c], mpfao->d2m_nacl[c],
       &(mpfao->rho[c]), &(mpfao->drho_dP[c]), &drho_dPsi,
       &(mpfao->d2rho_dP2[c])); CHKERRQ(ierr);
     PetscReal dvis_dPsi;
     ierr = EOSComputeWaterViscosity(eos,
-      P, mpfao->Tref, mpfao->S[c],
+      P, mpfao->Tref, mpfao->m_nacl[c],
       &(mpfao->vis[c]), &(mpfao->dvis_dP[c]), &dvis_dPsi,
       &(mpfao->d2vis_dP2[c])); CHKERRQ(ierr);
 
@@ -2737,11 +2740,11 @@ PetscErrorCode TDyUpdateState_Salinity_MPFAO(void *context, DM dm,
       &(mpfao->m_nacl[c]),&(mpfao->dm_nacl[c]),
       &(mpfao->d2m_nacl[c])); CHKERRQ(ierr);
     ierr = EOSComputeWaterDensity(eos,
-      P, mpfao->Tref, mpfao->S[c],
+      P, mpfao->Tref, mpfao->m_nacl[c], mpfao->dm_nacl[c], mpfao->d2m_nacl[c],
       &(mpfao->rho[c]), &(mpfao->drho_dP[c]), &(mpfao->drho_dPsi[c]),
       &(mpfao->d2rho_dP2[c])); CHKERRQ(ierr);
     ierr = EOSComputeWaterViscosity(eos,
-      P, mpfao->Tref, mpfao->S[c],
+      P, mpfao->Tref, mpfao->m_nacl[c],
       &(mpfao->vis[c]), &(mpfao->dvis_dP[c]), &(mpfao->dvis_dPsi[c]),
       &(mpfao->d2vis_dP2[c])); CHKERRQ(ierr);
   }
