@@ -43,7 +43,6 @@ static PetscErrorCode ComputeWaterDensity_BatzleWang(
   PetscFunctionBegin;
 
   PetscReal pw;
-  PetscReal dpw_drho;
   PetscReal Pa_to_MPa = 1.e-6;
 
   pw = 1 + 1.e-6*(-80.*T - 3.3 * pow(T,2) +0.00175*pow(T,3)+489. * P*Pa_to_MPa - 2.*T *P*Pa_to_MPa + 0.016 *P*Pa_to_MPa *pow(T,2) -
@@ -104,7 +103,9 @@ static PetscErrorCode ComputeWaterViscosity_BatzleWang(
 
   PetscFunctionBegin;
 
-  *vis = 0.1 + 0.333 * S + (1.65 + 91.9 *pow(S,3))*exp((-0.42*pow((pow(S,0.8)-0.17),2)+0.45)*pow(T,0.8));
+  *vis = 0.1 +
+         0.333 * S +
+         (1.65 + 91.9 *pow(S,3))*exp((-0.42*pow((pow(S,0.8)-0.17),2)+0.045)*pow(T,0.8));
   *vis *= 1e-3;
 
   PetscFunctionReturn(0);
