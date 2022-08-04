@@ -20,10 +20,10 @@ int main(int argc, char **argv) {
   ierr = TDySetMode(tdy,SALINITY); CHKERRQ(ierr);
   ierr = TDySetDiscretization(tdy,MPFA_O); CHKERRQ(ierr);
 
-  ierr = MPI_Comm_rank(PETSC_COMM_WORLD,&rank); CHKERRQ(ierr);
-  ierr = MPI_Comm_size(PETSC_COMM_WORLD,&size); CHKERRQ(ierr);
-  PetscPrintf(PETSC_COMM_WORLD,"Beginning salinity simulation.\n");
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
+  ierr = MPI_Comm_rank(comm,&rank); CHKERRQ(ierr);
+  ierr = MPI_Comm_size(comm,&size); CHKERRQ(ierr);
+  PetscPrintf(comm,"Beginning salinity simulation.\n");
+  ierr = PetscOptionsBegin(comm,NULL,"Sample Options","");
                            CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code",
                          "Code passed on successful completion","",
@@ -41,18 +41,14 @@ int main(int argc, char **argv) {
 
   // default mode and method must be set prior to TDySetFromOptions()
   ncells = 5;
-  //ierr = VecGetLocalSize(tdy->solution,&ncells); CHKERRQ(ierr);
-  PetscRandom rand;
-  ierr = PetscRandomCreate(PETSC_COMM_WORLD,&rand); CHKERRQ(ierr);
   ierr = DMCreateGlobalVector(dm,&U); CHKERRQ(ierr);
   ierr = VecGetArray(U,&soln);
   for (c=0; c<(ncells*2); c+=2){
-    soln[c] = 201325.;
+    soln[c] = 101325.;
   }
   soln[1] = 1.0;
   for (c=3; c<=(ncells*2); c+=2){
-  soln[c] = 0.000001;
-  // printf("soln  %f",soln[c]);
+    soln[c] = 0.00001;
   }
   ierr = VecRestoreArray(U,&soln);
 
@@ -61,19 +57,19 @@ int main(int argc, char **argv) {
   if (!rank) {
     ierr = TDyIOSetIOProcess(tdy->io, PETSC_TRUE); CHKERRQ(ierr);
   }
-  PetscPrintf(PETSC_COMM_WORLD,"--\n");
+  PetscPrintf(comm,"--\n");
   if (size == 1) {
     ierr = TDyIOSetMode(tdy,format);CHKERRQ(ierr);
     ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);
   }
-  ierr = TDyTimeIntegratorRunToTime(tdy,tdy->ti->final_time); 
+  ierr = TDyTimeIntegratorRunToTime(tdy,tdy->ti->final_time);
          CHKERRQ(ierr);
   if (size == 1) {ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);}
   ierr = TDyOutputRegression(tdy,tdy->soln); CHKERRQ(ierr);
   ierr = TDyDestroy(&tdy); CHKERRQ(ierr);
 
-  PetscPrintf(PETSC_COMM_WORLD,"--\n");
-  PetscPrintf(PETSC_COMM_WORLD,"Simulation complete.\n");
+  PetscPrintf(comm,"--\n");
+  PetscPrintf(comm,"Simulation complete.\n");
   ierr = TDyFinalize(); CHKERRQ(ierr);
   return(successful_exit_code);
 }
