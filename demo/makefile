@@ -1,4 +1,4 @@
-TARGETS = build-steady build-transient build-richards build-th
+TARGETS = build-steady build-transient build-richards build-th build-salinity
 
 ifdef codecov
   MYFLAGS += -fprofile-arcs -ftest-coverage
@@ -34,4 +34,7 @@ build-th:
 
 build-transient:
 	@cd transient; make
+
+build-salinity:
+	@cd salinity; make
 
