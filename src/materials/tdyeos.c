@@ -6,7 +6,7 @@ static PetscErrorCode ComputeWaterDensity_Constant(PetscReal p, PetscReal *den, 
 
   PetscFunctionBegin;
 
-  *den = 997.205;
+  *den = 998.0;
   *dden_dP = 0.0;
   *d2den_dP2 = 0.0;
 

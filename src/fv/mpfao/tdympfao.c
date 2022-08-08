@@ -436,7 +436,7 @@ PetscErrorCode TDyCreate_MPFAO(void **context) {
 
   // Initialize defaults and data.
   mpfao->gmatrix_method = MPFAO_GMATRIX_DEFAULT;
-  mpfao->bc_type = NEUMANN_BC;
+  mpfao->bc_type = DIRICHLET_BC;
   mpfao->Pref = 101325;
   mpfao->Tref = 25;
   mpfao->gravity[0] = 0; mpfao->gravity[1] = 0; mpfao->gravity[2] = 0;
@@ -866,7 +866,7 @@ PetscErrorCode TDySetDMFields_Salinity_MPFAO(void *context, DM dm) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   // Set up the section, 2 dofs per cell.
-  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "Concentration"},
+  ierr = SetFields(dm, 2, (const char*[2]){"LiquidPressure", "SalineConcentration"},
                    (PetscInt[2]){1, 1}); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
