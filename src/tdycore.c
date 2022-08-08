@@ -1389,15 +1389,15 @@ PetscErrorCode TDySetBoundaryTemperatureFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetBoundarySalinityFunction(TDy tdy,
-                                              TDyScalarSpatialFunction f) {
+PetscErrorCode TDySetBoundarySalineConcentrationFunction(TDy tdy,
+                                                         TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   WrapperStruct *wrapper;
   ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
   wrapper->func = f;
-  ierr = ConditionsSetBoundarySalinity(tdy->conditions, wrapper,
-                                       WrapperFunction, TDyFree); CHKERRQ(ierr);
+  ierr = ConditionsSetBoundarySalineConcentration(tdy->conditions, wrapper,
+                                                  WrapperFunction, TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1451,13 +1451,13 @@ PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySelectBoundarySalinityFunction(TDy tdy,
-                                                 const char *func_name) {
+PetscErrorCode TDySelectBoundarySalineConcenctrationFunction(TDy tdy,
+                                                             const char *func_name) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDySpatialFunction f;
   ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
-  ierr = TDySetBoundarySalinityFunction(tdy, f); CHKERRQ(ierr);
+  ierr = TDySetBoundarySalineConcentrationFunction(tdy, f); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

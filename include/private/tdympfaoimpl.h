@@ -171,7 +171,7 @@ PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWi
 PETSC_INTERN PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertices(TDy,Vec,PetscReal*,PetscInt*);
 PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy,Vec);
 PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy,Vec);
-PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundarySalinity(TDy,Vec);
+PETSC_INTERN PetscErrorCode TDyMPFAO_SetBoundarySalineConcentration(TDy,Vec);
 PETSC_INTERN PetscErrorCode ComputeGtimesZ(PetscReal*,PetscReal*,PetscInt,PetscReal*);
 
 #endif

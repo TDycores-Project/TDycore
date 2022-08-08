@@ -14,7 +14,7 @@ typedef struct Conditions {
   void* boundary_pressure_type_context;
   void* boundary_velocity_context;
   void* boundary_temperature_context;
-  void* boundary_salinity_context;
+  void* boundary_saline_conc_context;
 
   /// Compute momentum source/sink contributions at a set of given points.
   PetscErrorCode (*compute_forcing)(void*,PetscInt,PetscReal*,PetscReal*);
@@ -38,8 +38,8 @@ typedef struct Conditions {
   /// Compute the temperature at a set of given points on the boundary.
   PetscErrorCode (*compute_boundary_temperature)(void*,PetscInt,PetscReal*,PetscReal*);
 
-  /// Compute the salinity (concentration) at a set of given points on the boundary.
-  PetscErrorCode (*compute_boundary_salinity)(void*,PetscInt,PetscReal*,PetscReal*);
+  /// Compute the saline concentration at a set of given points on the boundary.
+  PetscErrorCode (*compute_boundary_saline_conc)(void*,PetscInt,PetscReal*,PetscReal*);
 
   /// Context destructors.
   PetscErrorCode (*forcing_dtor)(void*);
@@ -49,7 +49,7 @@ typedef struct Conditions {
   PetscErrorCode (*boundary_pressure_dtor)(void*);
   PetscErrorCode (*boundary_pressure_type_dtor)(void*);
   PetscErrorCode (*boundary_temperature_dtor)(void*);
-  PetscErrorCode (*boundary_salinity_dtor)(void*);
+  PetscErrorCode (*boundary_saline_conc_dtor)(void*);
 } Conditions;
 
 // conditions creation/destruction
@@ -64,7 +64,7 @@ PETSC_INTERN PetscErrorCode ConditionsSetBoundaryPressure(Conditions*, void*, Pe
 PETSC_INTERN PetscErrorCode ConditionsSetBoundaryPressureType(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscInt*), PetscErrorCode (*)(void*));
 PETSC_INTERN PetscErrorCode ConditionsSetBoundaryVelocity(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
 PETSC_INTERN PetscErrorCode ConditionsSetBoundaryTemperature(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*) , PetscErrorCode (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetBoundarySalinity(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetBoundarySalineConcentration(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
 
 // conditions query functions
 PETSC_INTERN PetscBool ConditionsHasForcing(Conditions*);
@@ -74,7 +74,7 @@ PETSC_INTERN PetscBool ConditionsHasBoundaryPressure(Conditions*);
 PETSC_INTERN PetscBool ConditionsHasBoundaryPressureType(Conditions*);
 PETSC_INTERN PetscBool ConditionsHasBoundaryVelocity(Conditions*);
 PETSC_INTERN PetscBool ConditionsHasBoundaryTemperature(Conditions*);
-PETSC_INTERN PetscBool ConditionsHasBoundarySalinity(Conditions*);
+PETSC_INTERN PetscBool ConditionsHasBoundarySalineConcentration(Conditions*);
 
 // conditions computation
 // TODO: Change to PETSC_INTERN when we fix demo/steady/steady.c
@@ -86,13 +86,13 @@ PETSC_EXTERN PetscErrorCode ConditionsComputeBoundaryPressure(Conditions*,PetscI
 PETSC_EXTERN PetscErrorCode ConditionsAssignBoundaryPressureType(Conditions*,PetscInt,PetscReal*,PetscInt*);
 PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryVelocity(Conditions*,PetscInt,PetscReal*,PetscReal*);
 PETSC_INTERN PetscErrorCode ConditionsComputeBoundaryTemperature(Conditions*,PetscInt,PetscReal*,PetscReal*);
-PETSC_INTERN PetscErrorCode ConditionsComputeBoundarySalinity(Conditions*,PetscInt,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode ConditionsComputeBoundarySalineConcentration(Conditions*,PetscInt,PetscReal*,PetscReal*);
 
 // convenience functions
 PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundaryPressure(Conditions*,PetscReal);
 PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundaryVelocity(Conditions*,PetscReal);
 PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundaryTemperature(Conditions*,PetscReal);
-PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundarySalinity(Conditions*,PetscReal);
+PETSC_INTERN PetscErrorCode ConditionsSetConstantBoundarySalineConcentration(Conditions*,PetscReal);
 
 #endif
 

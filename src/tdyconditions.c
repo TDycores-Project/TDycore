@@ -19,7 +19,7 @@ PetscErrorCode ConditionsDestroy(Conditions* conditions) {
   ConditionsSetBoundaryPressure(conditions, NULL, NULL, NULL);
   ConditionsSetBoundaryVelocity(conditions, NULL, NULL, NULL);
   ConditionsSetBoundaryTemperature(conditions, NULL, NULL, NULL);
-  ConditionsSetBoundarySalinity(conditions, NULL, NULL, NULL);
+  ConditionsSetBoundarySalineConcentration(conditions, NULL, NULL, NULL);
   TDyFree(conditions);
   PetscFunctionReturn(0);
 }
@@ -150,16 +150,16 @@ PetscErrorCode ConditionsSetBoundaryTemperature(Conditions *conditions,
 /// @param [in] context A context pointer to be passed to f
 /// @param [in] f A function that computes the boundary salinity forcing at a given number of points
 /// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
-PetscErrorCode ConditionsSetBoundarySalinity(Conditions *conditions,
-                                             void *context,
-                                             PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                             PetscErrorCode (*dtor)(void*)) {
+PetscErrorCode ConditionsSetBoundarySalineConcentration(Conditions *conditions,
+                                                        void *context,
+                                                        PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
+                                                        PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
-  if (conditions->boundary_salinity_context && conditions->boundary_salinity_dtor)
-    conditions->boundary_salinity_dtor(conditions->boundary_salinity_context);
-  conditions->boundary_salinity_context = context;
-  conditions->compute_boundary_salinity = f;
-  conditions->boundary_salinity_dtor = dtor;
+  if (conditions->boundary_saline_conc_context && conditions->boundary_saline_conc_dtor)
+    conditions->boundary_saline_conc_dtor(conditions->boundary_saline_conc_context);
+  conditions->boundary_saline_conc_context = context;
+  conditions->compute_boundary_saline_conc = f;
+  conditions->boundary_saline_conc_dtor = dtor;
   PetscFunctionReturn(0);
 }
 
@@ -191,8 +191,8 @@ PetscBool ConditionsHasBoundaryTemperature(Conditions *conditions) {
   return (conditions->compute_boundary_temperature != NULL);
 }
 
-PetscBool ConditionsHasBoundarySalinity(Conditions *conditions) {
-  return (conditions->compute_boundary_salinity != NULL);
+PetscBool ConditionsHasBoundarySalineConcentration(Conditions *conditions) {
+  return (conditions->compute_boundary_saline_conc != NULL);
 }
 
 PetscErrorCode ConditionsComputeForcing(Conditions *conditions, PetscInt n,
@@ -241,11 +241,11 @@ PetscErrorCode ConditionsComputeBoundaryTemperature(Conditions *conditions,
                                                   n, x, T);
 }
 
-PetscErrorCode ConditionsComputeBoundarySalinity(Conditions *conditions,
-                                                 PetscInt n, PetscReal *x,
-                                                 PetscReal *S) {
-  return conditions->compute_boundary_salinity(conditions->boundary_salinity_context,
-                                               n, x, S);
+PetscErrorCode ConditionsComputeBoundarySalineConcentration(Conditions *conditions,
+                                                            PetscInt n, PetscReal *x,
+                                                            PetscReal *S) {
+  return conditions->compute_boundary_saline_conc(conditions->boundary_saline_conc_context,
+                                                  n, x, S);
 }
 
 static PetscErrorCode ConstantBoundaryFn(void *context,
@@ -295,15 +295,15 @@ PetscErrorCode ConditionsSetConstantBoundaryTemperature(Conditions *conditions,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode ConditionsSetConstantBoundarySalinity(Conditions *conditions,
-                                                     PetscReal S0) {
+PetscErrorCode ConditionsSetConstantBoundarySalineConcentration(Conditions *conditions,
+                                                                PetscReal S0) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscReal *val;
   ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = S0;
-  ierr = ConditionsSetBoundarySalinity(conditions, val, ConstantBoundaryFn,
-                                       TDyFree); CHKERRQ(ierr);
+  ierr = ConditionsSetBoundarySalineConcentration(conditions, val, ConstantBoundaryFn,
+                                                  TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

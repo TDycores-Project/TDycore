@@ -252,7 +252,7 @@ PetscErrorCode TDyMPFAOSNESFunction_Salinity(SNES snes,Vec U,Vec R,void *ctx) {
   ierr = TDyUpdateState(tdy, soln, mesh->num_cells); CHKERRQ(ierr);
 
   ierr = TDyMPFAO_SetBoundaryPressure(tdy,Ul); CHKERRQ(ierr);
-  ierr = TDyMPFAO_SetBoundarySalinity(tdy,Ul); CHKERRQ(ierr);
+  ierr = TDyMPFAO_SetBoundarySalineConcentration(tdy,Ul); CHKERRQ(ierr);
   ierr = TDyMPFAOUpdateBoundaryState(tdy); CHKERRQ(ierr);
   ierr = MatMult(mpfao->Trans_mat,mpfao->P_vec,mpfao->TtimesP_vec);
   ierr = MatMult(mpfao->Psi_Trans_mat,mpfao->Psi_vec,mpfao->TtimesPsi_vec);

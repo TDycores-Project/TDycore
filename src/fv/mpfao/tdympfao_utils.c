@@ -820,7 +820,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
 }
 
 /* -------------------------------------------------------------------------- */
-PetscErrorCode TDyMPFAO_SetBoundarySalinity(TDy tdy, Vec Ul) {
+PetscErrorCode TDyMPFAO_SetBoundarySalineConcentration(TDy tdy, Vec Ul) {
 
   TDyMPFAO *mpfao = tdy->context;
   TDyMesh *mesh = mpfao->mesh;
@@ -864,10 +864,10 @@ PetscErrorCode TDyMPFAO_SetBoundarySalinity(TDy tdy, Vec Ul) {
       psi_bnd_idx = -cell_ids[0] - 1;
     }
 
-    if (ConditionsHasBoundarySalinity(tdy->conditions)) {
-      ierr = ConditionsComputeBoundarySalinity(tdy->conditions, 1,
-                                               (faces->centroid[iface].X),
-                                               &(mpfao->Psi_bnd[psi_bnd_idx]));
+    if (ConditionsHasBoundarySalineConcentration(tdy->conditions)) {
+      ierr = ConditionsComputeBoundarySalineConcentration(tdy->conditions, 1,
+                                                          (faces->centroid[iface].X),
+                                                          &(mpfao->Psi_bnd[psi_bnd_idx]));
       CHKERRQ(ierr);
     } else {
       mpfao->Psi_bnd[psi_bnd_idx] = psi[cell_id];
