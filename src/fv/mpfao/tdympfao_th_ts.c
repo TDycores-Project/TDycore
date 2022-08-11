@@ -57,7 +57,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_TH(Vec Ul, Vec R, void *ctx) {
     npitf_bc = vertices->num_boundary_faces[ivertex];
     nflux_in = vertices->num_faces[ivertex] - vertices->num_boundary_faces[ivertex];
 
-     PetscScalar TtimesP[nflux_in + npitf_bc], Temp_TtimesP[nflux_in + npitf_bc];
+    PetscScalar TtimesP[nflux_in + npitf_bc], Temp_TtimesP[nflux_in + npitf_bc];
 
     // Compute = T*P
     for (irow=0; irow<nflux_in + npitf_bc; irow++) {
@@ -147,10 +147,10 @@ PetscErrorCode TDyMPFAOIFunction_Vertices_TH(Vec Ul, Vec R, void *ctx) {
 /* -------------------------------------------------------------------------- */
 PetscErrorCode TDyMPFAOIFunction_TH(TS ts,PetscReal t,Vec U,Vec U_t,Vec R,void *ctx) {
 
-  TDy      tdy = (TDy)ctx;
-  TDyMPFAO *mpfao = tdy->context;
-  TDyMesh       *mesh = mpfao->mesh;
-  TDyCell       *cells = &mesh->cells;
+  TDy        tdy = (TDy)ctx;
+  TDyMPFAO  *mpfao = tdy->context;
+  TDyMesh   *mesh = mpfao->mesh;
+  TDyCell   *cells = &mesh->cells;
   PetscReal *du_dt,*r,*u_p;
   PetscErrorCode ierr;
 

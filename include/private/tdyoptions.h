@@ -14,7 +14,7 @@ typedef struct {
 
   // EOS settings
   TDyWaterDensityType rho_type;
-  PetscInt mu_type;
+  TDyWaterViscosityType mu_type;
   PetscInt enthalpy_type;
 
   // Constant material properties
@@ -24,6 +24,8 @@ typedef struct {
   PetscReal residual_saturation;
   PetscReal soil_density;
   PetscReal soil_specific_heat;
+  PetscReal saline_diffusivity;
+  PetscReal saline_molecular_weight;
 
   // Characteristic curve parameters
   PetscReal gardner_n;

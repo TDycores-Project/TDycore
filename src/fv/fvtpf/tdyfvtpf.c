@@ -297,8 +297,12 @@ static PetscErrorCode AllocateMemoryForBoundaryValues(TDyFVTPF *fvtpf,
   PetscInt i;
   PetscReal dden_dP, d2den_dP2, dmu_dP, d2mu_dP2;
   for (i=0;i<nbnd_faces;i++) {
-    ierr = EOSComputeWaterDensity(eos, fvtpf->Pref, &(fvtpf->rho_bnd[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
-    ierr = EOSComputeWaterViscosity(eos, fvtpf->Pref, &(fvtpf->vis_bnd[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
+    ierr = EOSComputeWaterDensity(eos,
+      fvtpf->Pref, fvtpf->Tref, 0.0,
+      &(fvtpf->rho_bnd[i]), &dden_dP, &d2den_dP2); CHKERRQ(ierr);
+    ierr = EOSComputeWaterViscosity(eos,
+      fvtpf->Pref, fvtpf->Tref, 0.0,
+      &(fvtpf->vis_bnd[i]), &dmu_dP, &d2mu_dP2); CHKERRQ(ierr);
   }
 
   TDY_STOP_FUNCTION_TIMER()
@@ -512,12 +516,12 @@ PetscErrorCode TDyUpdateState_Richards_FVTPF(void *context, DM dm,
 
     // Also update water properties.
     PetscReal P = fvtpf->Pref - Pc[c]; // pressure
-    ierr = EOSComputeWaterDensity(eos, P, &(fvtpf->rho[c]),
-                                  &(fvtpf->drho_dP[c]),
-                                  &(fvtpf->d2rho_dP2[c])); CHKERRQ(ierr);
-    ierr = EOSComputeWaterViscosity(eos, P, &(fvtpf->vis[c]),
-                                    &(fvtpf->dvis_dP[c]),
-                                    &(fvtpf->d2vis_dP2[c])); CHKERRQ(ierr);
+    ierr = EOSComputeWaterDensity(eos, P, fvtpf->Tref, 0.0,
+      &(fvtpf->rho[c]), &(fvtpf->drho_dP[c]),
+      &(fvtpf->d2rho_dP2[c])); CHKERRQ(ierr);
+    ierr = EOSComputeWaterViscosity(eos, P, fvtpf->Tref, 0.0,
+      &(fvtpf->vis[c]), &(fvtpf->dvis_dP[c]),
+      &(fvtpf->d2vis_dP2[c])); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);

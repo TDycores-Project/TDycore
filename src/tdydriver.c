@@ -2,6 +2,7 @@
 #include <private/tdyrichardsimpl.h>
 #include <private/tdymaterialpropertiesimpl.h>
 #include <private/tdythimpl.h>
+#include <private/tdysalinityimpl.h>
 #include <private/tdyioimpl.h>
 #include <tdytimers.h>
 #include <private/tdycharacteristiccurvesimpl.h>
@@ -78,6 +79,13 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       ierr = MaterialPropSetConstantSoilSpecificHeat(tdy->matprop,
           tdy->options.soil_specific_heat); CHKERRQ(ierr);
     }
+  } else if (tdy->options.mode == SALINITY) {
+    ierr = TDySetConstantSalineMolecularWeight(tdy,
+      tdy->options.saline_molecular_weight);CHKERRQ(ierr);
+    if (!MaterialPropHasSalineDiffusivity(tdy->matprop)) {
+      ierr = TDySetConstantIsotropicSalineDiffusivity(tdy,
+        tdy->options.saline_diffusivity);CHKERRQ(ierr);
+    }
   }
 
   ierr = TDySetup(tdy); CHKERRQ(ierr);
@@ -91,6 +99,8 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
     case RICHARDS:
     case TH:
       break;
+    case SALINITY:
+      break;
     default:
       SETERRQ(comm,PETSC_ERR_USER,"Unrecognized flow mode.");
   }
@@ -103,9 +113,20 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
         case TH:
           SETERRQ(comm,PETSC_ERR_USER,"SNES not supported for TH mode.");
           break;
+        case SALINITY:
+          break;
       }
       break;
     case TDyTS:
+      switch (tdy->options.mode) {
+        case RICHARDS:
+          break;
+        case TH:
+          break;
+ 	      case SALINITY:
+       	  SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TS not supported for SALINITY mode.");
+          break;
+      }
       break;
     default:
         SETERRQ(comm,PETSC_ERR_USER,"Unrecognized time integration method.");
@@ -173,6 +194,19 @@ PetscErrorCode TDyDriverInitializeTDy(TDy tdy) {
       }
       // FIXME: This is a different path from the one used by TDycore proper.
       ierr = TDyTHInitialize(tdy); CHKERRQ(ierr);
+      break;
+    case SALINITY:
+      ierr = SNESLineSearchSetPostCheck(linesearch,TDySalinitySNESPostCheck,
+                                        &tdy); CHKERRQ(ierr);
+      ierr = SNESSetConvergenceTest(snes,TDySalinityConvergenceTest,
+                                    &tdy,NULL); CHKERRQ(ierr);
+      switch(tdy->ti->time_integration_method) {
+        case TDySNES:
+          break;
+        case TDyTS:
+          ierr = TSSetPostStep(ts,TDySalinityTSPostStep); CHKERRQ(ierr);
+      }
+      ierr = TDySalinityInitialize(tdy); CHKERRQ(ierr);
       break;
   }
   PetscPrintf(comm,"tdy->ti->time_integration_method = %d\n",

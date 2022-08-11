@@ -31,6 +31,8 @@ PetscErrorCode MaterialPropDestroy(MaterialProp *matprop) {
   MaterialPropSetResidualSaturation(matprop, NULL, NULL, NULL);
   MaterialPropSetSoilDensity(matprop, NULL, NULL, NULL);
   MaterialPropSetSoilSpecificHeat(matprop, NULL, NULL, NULL);
+  MaterialPropSetSalineDiffusivity(matprop, NULL, NULL, NULL);
+  MaterialPropSetSalineMolecularWeight(matprop, NULL, NULL, NULL);
   ierr = TDyFree(matprop); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
@@ -137,6 +139,40 @@ PetscErrorCode MaterialPropSetSoilSpecificHeat(MaterialProp *matprop, void *cont
   PetscFunctionReturn(0);
 }
 
+/// Sets the function used to compute the saline diffusivity.
+/// @param [in] matprop A MaterialProp instance
+/// @param [in] context A context pointer to be passed to f
+/// @param [in] f A function that computes the saline diffusivity at a given number of points
+/// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
+PetscErrorCode MaterialPropSetSalineDiffusivity(MaterialProp *matprop, void *context,
+                                                PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
+                                                PetscErrorCode (*dtor)(void*)) {
+  PetscFunctionBegin;
+  if (matprop->saline_diffusivity_context && matprop->saline_diffusivity_dtor)
+    matprop->saline_diffusivity_dtor(matprop->saline_diffusivity_context);
+  matprop->saline_diffusivity_context = context;
+  matprop->compute_saline_diffusivity = f;
+  matprop->saline_diffusivity_dtor = dtor;
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute the saline molecular weight.
+/// @param [in] matprop A MaterialProp instance
+/// @param [in] context A context pointer to be passed to f
+/// @param [in] f A function that computes the saline molecular weight at a given number of points
+/// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
+PetscErrorCode MaterialPropSetSalineMolecularWeight(MaterialProp *matprop, void *context,
+                                                    PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
+                                                    PetscErrorCode (*dtor)(void*)) {
+  PetscFunctionBegin;
+  if (matprop->saline_molecular_weight_context && matprop->saline_molecular_weight_dtor)
+    matprop->saline_molecular_weight_dtor(matprop->saline_molecular_weight_context);
+  matprop->saline_molecular_weight_context = context;
+  matprop->compute_saline_molecular_weight = f;
+  matprop->saline_molecular_weight_dtor = dtor;
+  PetscFunctionReturn(0);
+}
+
 /// Returns true if this instance can compute porosities, false otherwise.
 /// @param [in] matprop A MaterialProp instance
 PetscBool MaterialPropHasPorosity(MaterialProp* matprop) {
@@ -177,6 +213,21 @@ PetscBool MaterialPropHasSoilDensity(MaterialProp *matprop) {
 PetscBool MaterialPropHasSoilSpecificHeat(MaterialProp *matprop) {
   PetscFunctionBegin;
   PetscFunctionReturn(matprop->compute_soil_specific_heat != NULL);
+}
+
+/// Returns true if this instance can compute saline diffusivities, false otherwise.
+/// @param [in] matprop A MaterialProp instance
+PetscBool MaterialPropHasSalineDiffusivity(MaterialProp *matprop) {
+  PetscFunctionBegin;
+  PetscFunctionReturn(matprop->compute_saline_diffusivity != NULL);
+}
+
+/// Returns true if this instance can compute saline molecular weights, false
+/// otherwise.
+/// @param [in] matprop A MaterialProp instance
+PetscBool MaterialPropHasSalineMolecularWeight(MaterialProp *matprop) {
+  PetscFunctionBegin;
+  PetscFunctionReturn(matprop->compute_saline_molecular_weight != NULL);
 }
 
 /// Computes the porosity at the given set of points (if the material properties
@@ -283,6 +334,42 @@ PetscErrorCode MaterialPropComputeSoilSpecificHeat(MaterialProp *matprop,
   if (matprop->compute_soil_specific_heat) {
     ierr = matprop->compute_soil_specific_heat(matprop->soil_specific_heat_context,
                                                n, x, specific_heat); CHKERRQ(ierr);
+  }
+  PetscFunctionReturn(0);
+}
+
+/// Computes the saline diffusivity tensor at the given set of points (if the
+/// material properties have a corresponding function).
+/// @param [in] matprop A MaterialProp instance
+/// @param [in] n The number of points
+/// @param [in] x The coordinates of the n points
+/// @param [out] conductivity The values of the diffusivity at each point
+PetscErrorCode MaterialPropComputeSalineDiffusivity(MaterialProp *matprop,
+                                                    PetscInt n, PetscReal *x,
+                                                    PetscReal *diffusivity) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  if (matprop->compute_saline_diffusivity) {
+    ierr = matprop->compute_saline_diffusivity(matprop->saline_diffusivity_context,
+                                               n, x, diffusivity); CHKERRQ(ierr);
+  }
+  PetscFunctionReturn(0);
+}
+
+/// Computes the saline molecular weight at the given set of points (if the
+/// material properties have a corresponding function).
+/// @param [in] matprop A MaterialProp instance
+/// @param [in] n The number of points
+/// @param [in] x The coordinates of the n points
+/// @param [out] conductivity The values of the molecular weight at each point
+PetscErrorCode MaterialPropComputeSalineMolecularWeight(MaterialProp *matprop,
+                                                        PetscInt n, PetscReal *x,
+                                                        PetscReal *weight) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  if (matprop->compute_saline_molecular_weight) {
+    ierr = matprop->compute_saline_molecular_weight(matprop->saline_molecular_weight_context,
+                                                    n, x, weight); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
 }
@@ -443,289 +530,233 @@ static PetscErrorCode FullTensorWrapperFunction(void *context, PetscInt n,
   PetscFunctionReturn(0);
 }
 
-/// Sets the porosity function to the given constant value.
-PetscErrorCode MaterialPropSetConstantPorosity(MaterialProp *matprop,
-                                               PetscReal porosity) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
+// These macros are used to support the various material model quantities.
+// In each case, a function is declared that calls
+// MaterialPropSetCapCamelName with a struct populated by an appropriate datum.
+// Some examples:
+// Quantity name:         CapCamelName:
+// porosity               Porosity
+// thermal conductivity   ThermalConductivity
 
-  void *context;
-  PetscReal value[9];
-  value[0] = porosity;
-  ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetPorosity(matprop, context, ConstantScalarWrapperFunction,
-                                 TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
+// Defines a function named MaterialPropSetConstantCapCamelName that assigns
+// the given quantity to a constant scalar.
+#define DEFINE_SET_CONSTANT_SCALAR(CapCamelName) \
+PetscErrorCode MaterialPropSetConstant##CapCamelName(MaterialProp *matprop, \
+                                                     PetscReal scalar) { \
+  PetscErrorCode ierr; \
+  PetscFunctionBegin; \
+\
+  void *context; \
+  PetscReal value[9]; \
+  value[0] = scalar; \
+  ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr); \
+  ierr = MaterialPropSet##CapCamelName(matprop, context, ConstantScalarWrapperFunction, \
+                                 TDyFree); CHKERRQ(ierr); \
+  PetscFunctionReturn(0); \
 }
+
+// Defines a function named MaterialPropSetHeterogeneousCapCamelName that
+// assigns the given quantity to a scalar spatial function.
+#define DEFINE_SET_HETEROGENEOUS_SCALAR(CapCamelName) \
+PetscErrorCode MaterialPropSetHeterogeneous##CapCamelName(MaterialProp *matprop, \
+                                                          TDyScalarSpatialFunction f) { \
+  PetscErrorCode ierr; \
+  PetscFunctionBegin; \
+\
+  void *context; \
+  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr); \
+  ierr = MaterialPropSet##CapCamelName(matprop, context, ScalarWrapperFunction, \
+                                       TDyFree); CHKERRQ(ierr); \
+  PetscFunctionReturn(0); \
+}
+
+// Defines a function named MaterialPropSetConstantIsotropicCapCamelName that
+// assigns the given quantity to a constant isotropic tensor.
+#define DEFINE_SET_CONSTANT_ISOTROPIC_TENSOR(CapCamelName) \
+PetscErrorCode MaterialPropSetConstantIsotropic##CapCamelName(MaterialProp *matprop, \
+                                                              PetscReal tensor) { \
+  PetscErrorCode ierr; \
+  PetscFunctionBegin; \
+\
+  void *context; \
+  PetscReal value[9]; \
+  value[0] = tensor; \
+  ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr); \
+  ierr = MaterialPropSet##CapCamelName(matprop, context, ConstantIsotropicTensorWrapperFunction, \
+                                      TDyFree); CHKERRQ(ierr); \
+  PetscFunctionReturn(0); \
+}
+
+// Defines a function named MaterialPropSetHeterogeneousIsotropicCapCamelName
+// that assigns the given quantity to a isotropic tensor spatial function.
+#define DEFINE_SET_HETEROGENEOUS_ISOTROPIC_TENSOR(CapCamelName) \
+PetscErrorCode MaterialPropSetHeterogeneousIsotropic##CapCamelName(MaterialProp *matprop, \
+                                                                   TDyScalarSpatialFunction f) { \
+  PetscErrorCode ierr; \
+  PetscFunctionBegin; \
+\
+  void *context; \
+  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr); \
+  ierr = MaterialPropSet##CapCamelName(matprop, context, IsotropicTensorWrapperFunction, \
+                                      TDyFree); CHKERRQ(ierr); \
+  PetscFunctionReturn(0); \
+}
+
+// Defines a function named MaterialPropSetConstantDiagonalCapCamelName
+// that assigns the given quantity to a constant diagonal tensor.
+#define DEFINE_SET_CONSTANT_DIAGONAL_TENSOR(CapCamelName) \
+PetscErrorCode MaterialPropSetConstantDiagonal##CapCamelName(MaterialProp *matprop, \
+                                                             PetscReal tensor[3]) { \
+  PetscErrorCode ierr; \
+  PetscFunctionBegin; \
+\
+  void *context; \
+  PetscReal value[9]; \
+  value[0] = tensor[0]; value[1] = tensor[1]; value[2] = tensor[2]; \
+  ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr); \
+  ierr = MaterialPropSet##CapCamelName(matprop, context, ConstantDiagonalTensorWrapperFunction, \
+                                       TDyFree); CHKERRQ(ierr); \
+  PetscFunctionReturn(0); \
+}
+
+// Defines a function named MaterialPropSetHeterogeneousDiagonalCapCamelName
+// that assigns the given quantity to a diagonal tensor spatial function.
+#define DEFINE_SET_HETEROGENEOUS_DIAGONAL_TENSOR(CapCamelName) \
+PetscErrorCode MaterialPropSetHeterogeneousDiagonal##CapCamelName(MaterialProp *matprop, \
+                                                                  TDyVectorSpatialFunction f) { \
+  PetscErrorCode ierr; \
+  PetscFunctionBegin; \
+\
+  void *context; \
+  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr); \
+  ierr = MaterialPropSet##CapCamelName(matprop, context, DiagonalTensorWrapperFunction, \
+                                       TDyFree); CHKERRQ(ierr); \
+  PetscFunctionReturn(0); \
+}
+
+// Defines a function named MaterialPropSetConstantTensorCapCamelName
+// that assigns the given quantity to a constant (full) tensor.
+#define DEFINE_SET_CONSTANT_TENSOR(CapCamelName) \
+PetscErrorCode MaterialPropSetConstantTensor##CapCamelName(MaterialProp *matprop, \
+                                                           PetscReal tensor[9]) { \
+  PetscErrorCode ierr; \
+  PetscFunctionBegin; \
+\
+  void *context; \
+  ierr = CreateConstantContext(matprop->dim, tensor, &context); CHKERRQ(ierr); \
+  ierr = MaterialPropSet##CapCamelName(matprop, context, ConstantFullTensorWrapperFunction, \
+                                       TDyFree); CHKERRQ(ierr); \
+  PetscFunctionReturn(0); \
+}
+
+// Defines a function named MaterialPropSetHeterogeneousTensorCapCamelName
+// that assigns the given quantity to a (full) tensor spatial function.
+#define DEFINE_SET_HETEROGENEOUS_TENSOR(CapCamelName) \
+PetscErrorCode MaterialPropSetHeterogeneousTensor##CapCamelName(MaterialProp *matprop, \
+                                                                TDyTensorSpatialFunction f) { \
+  PetscErrorCode ierr; \
+  PetscFunctionBegin; \
+\
+  void *context; \
+  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr); \
+  ierr = MaterialPropSet##CapCamelName(matprop, context, FullTensorWrapperFunction, \
+                                       TDyFree); CHKERRQ(ierr); \
+  PetscFunctionReturn(0); \
+}
+
+/// Sets the porosity function to the given constant value.
+DEFINE_SET_CONSTANT_SCALAR(Porosity)
 
 /// Sets the porosity function to the given spatial scalar function f.
-PetscErrorCode MaterialPropSetHeterogeneousPorosity(MaterialProp *matprop,
-                                                    TDyScalarSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetPorosity(matprop, context, ScalarWrapperFunction,
-                                 TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+DEFINE_SET_HETEROGENEOUS_SCALAR(Porosity)
 
 /// Sets the permeability function to a given constant value that provides an
-/// isotropic permeability.
-PetscErrorCode MaterialPropSetConstantIsotropicPermeability(MaterialProp *matprop,
-                                                            PetscReal perm) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  PetscReal value[9];
-  value[0] = perm;
-  ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetPermeability(matprop, context, ConstantIsotropicTensorWrapperFunction,
-                                     TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+/// isotropic tensor.
+DEFINE_SET_CONSTANT_ISOTROPIC_TENSOR(Permeability)
 
 /// Sets the permeability function to the given spatial scalar function f that
-/// provides an isotropic permeability.
-PetscErrorCode MaterialPropSetHeterogeneousIsotropicPermeability(MaterialProp *matprop,
-                                                                 TDyScalarSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
+/// provides an isotropic tensor.
+DEFINE_SET_HETEROGENEOUS_ISOTROPIC_TENSOR(Permeability)
 
-  void *context;
-  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetPermeability(matprop, context, IsotropicTensorWrapperFunction,
-                                     TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-/// Sets the permeability function to a given constant diagonal permeability.
-PetscErrorCode MaterialPropSetConstantDiagonalPermeability(MaterialProp *matprop,
-                                                           PetscReal perm[3]) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  PetscReal value[9];
-  value[0] = perm[0]; value[1] = perm[1]; value[2] = perm[2];
-  ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetPermeability(matprop, context, ConstantDiagonalTensorWrapperFunction,
-                                     TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+/// Sets the permeability function to a given constant diagonal tensor.
+DEFINE_SET_CONSTANT_DIAGONAL_TENSOR(Permeability)
 
 /// Sets the permeability function to a given spatial vector function f that
-/// will compute a diagonal anisotropic permeability tensor.
-PetscErrorCode MaterialPropSetHeterogeneousDiagonalPermeability(MaterialProp *matprop,
-                                                                TDyVectorSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
+/// computes a diagonal anisotropic tensor.
+DEFINE_SET_HETEROGENEOUS_DIAGONAL_TENSOR(Permeability)
 
-  void *context;
-  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetPermeability(matprop, context, DiagonalTensorWrapperFunction,
-                                     TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-/// Sets the permeability function to a given constant tensor permeability.
-PetscErrorCode MaterialPropSetConstantTensorPermeability(MaterialProp *matprop,
-                                                         PetscReal perm[9]) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  ierr = CreateConstantContext(matprop->dim, perm, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetPermeability(matprop, context, ConstantFullTensorWrapperFunction,
-                                     TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+/// Sets the permeability function to a given constant tensor.
+DEFINE_SET_CONSTANT_TENSOR(Permeability)
 
 /// Sets the permeability function to a given spatial tensor function f that
-/// will compute a full anisotropic permeability tensor.
-PetscErrorCode MaterialPropSetHeterogeneousTensorPermeability(MaterialProp *matprop,
-                                                              TDyTensorSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
+/// computes a full anisotropic tensor.
+DEFINE_SET_HETEROGENEOUS_TENSOR(Permeability)
 
-  void *context;
-  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetPermeability(matprop, context, FullTensorWrapperFunction,
-                                     TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-/// Sets the thermal conductivity function to a given constant value that
-/// provides an isotropic conductivity.
-PetscErrorCode MaterialPropSetConstantIsotropicThermalConductivity(MaterialProp *matprop,
-                                                                   PetscReal conductivity) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  PetscReal value[9];
-  value[0] = conductivity;
-  ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetThermalConductivity(matprop, context, ConstantIsotropicTensorWrapperFunction,
-                                            TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+/// Sets the thermal conductivity function to a given constant isotropic value.
+DEFINE_SET_CONSTANT_ISOTROPIC_TENSOR(ThermalConductivity)
 
 /// Sets the thermal conductivity function to the given spatial scalar function f that
-/// provides an isotropic conductivity.
-PetscErrorCode MaterialPropSetHeterogeneousIsotropicThermalConductivity(MaterialProp *matprop,
-                                                                        TDyScalarSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
+/// provides an isotropic tensor.
+DEFINE_SET_HETEROGENEOUS_ISOTROPIC_TENSOR(ThermalConductivity)
 
-  void *context;
-  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetThermalConductivity(matprop, context, IsotropicTensorWrapperFunction,
-                                            TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-/// Sets the thermal conductivity function to a given constant diagonal conductivity.
-PetscErrorCode MaterialPropSetConstantDiagonalThermalConductivity(MaterialProp *matprop,
-                                                                  PetscReal conductivity[3]) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  PetscReal value[9];
-  value[0] = conductivity[0]; value[1] = conductivity[1]; value[2] = conductivity[2];
-  ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetThermalConductivity(matprop, context, ConstantDiagonalTensorWrapperFunction,
-                                             TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+/// Sets the thermal conductivity function to a given constant diagonal tensor.
+DEFINE_SET_CONSTANT_DIAGONAL_TENSOR(ThermalConductivity)
 
 /// Sets the thermal conductivity function to a given spatial vector function f that
-/// will compute a diagonal anisotropic conductivity tensor.
-PetscErrorCode MaterialPropSetHeterogeneousDiagonalThermalConductivity(MaterialProp *matprop,
-                                                                       TDyVectorSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
+/// computes a diagonal anisotropic tensor.
+DEFINE_SET_HETEROGENEOUS_DIAGONAL_TENSOR(ThermalConductivity)
 
-  void *context;
-  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetThermalConductivity(matprop, context, DiagonalTensorWrapperFunction,
-                                            TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
-
-/// Sets the thermal conductivity function to a given constant tensor permeability.
-PetscErrorCode MaterialPropSetConstantTensorThermalConductivity(MaterialProp *matprop,
-                                                                PetscReal conductivity[9]) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  ierr = CreateConstantContext(matprop->dim, conductivity, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetThermalConductivity(matprop, context, ConstantFullTensorWrapperFunction,
-                                            TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+/// Sets the thermal conductivity function to a given constant tensor.
+DEFINE_SET_CONSTANT_TENSOR(ThermalConductivity)
 
 /// Sets the thermal conductivity function to a given spatial tensor function f that
-/// will compute a full anisotropic conductivity tensor.
-PetscErrorCode MaterialPropSetHeterogeneousTensorThermalConductivity(MaterialProp *matprop,
-                                                                     TDyTensorSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetThermalConductivity(matprop, context, FullTensorWrapperFunction,
-                                            TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+/// computes a full anisotropic conductivity tensor.
+DEFINE_SET_HETEROGENEOUS_TENSOR(ThermalConductivity)
 
 /// Sets the residual saturation function to the given constant value.
-PetscErrorCode MaterialPropSetConstantResidualSaturation(MaterialProp *matprop,
-                                                         PetscReal saturation) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  PetscReal value[9];
-  value[0] = saturation;
-  ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetResidualSaturation(matprop, context, ConstantScalarWrapperFunction,
-                                           TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+DEFINE_SET_CONSTANT_SCALAR(ResidualSaturation)
 
 /// Sets the residual saturation function to the given spatial scalar function f.
-PetscErrorCode MaterialPropSetHeterogeneousResidualSaturation(MaterialProp *matprop,
-                                                              TDyScalarSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetResidualSaturation(matprop, context, ScalarWrapperFunction,
-                                           TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+DEFINE_SET_HETEROGENEOUS_SCALAR(ResidualSaturation)
 
 /// Sets the soil density function to the given constant value.
-PetscErrorCode MaterialPropSetConstantSoilDensity(MaterialProp *matprop,
-                                                  PetscReal density) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  PetscReal value[9];
-  value[0] = density;
-  ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetSoilDensity(matprop, context, ConstantScalarWrapperFunction,
-                                    TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+DEFINE_SET_CONSTANT_SCALAR(SoilDensity)
 
 /// Sets the soil density function to the given spatial scalar function f.
-PetscErrorCode MaterialPropSetHeterogeneousSoilDensity(MaterialProp *matprop,
-                                                       TDyScalarSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetSoilDensity(matprop, context, ScalarWrapperFunction,
-                                    TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+DEFINE_SET_HETEROGENEOUS_SCALAR(SoilDensity)
 
 /// Sets the soil specific heat function to the given constant value.
-PetscErrorCode MaterialPropSetConstantSoilSpecificHeat(MaterialProp *matprop,
-                                                       PetscReal specific_heat) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-
-  void *context;
-  PetscReal value[9];
-  value[0] = specific_heat;
-  ierr = CreateConstantContext(matprop->dim, value, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetSoilSpecificHeat(matprop, context, ConstantScalarWrapperFunction,
-                                         TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+DEFINE_SET_CONSTANT_SCALAR(SoilSpecificHeat)
 
 /// Sets the soil specific heat function to the given spatial scalar function f.
-PetscErrorCode MaterialPropSetHeterogeneousSoilSpecificHeat(MaterialProp *matprop,
-                                                            TDyScalarSpatialFunction f) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
+DEFINE_SET_HETEROGENEOUS_SCALAR(SoilSpecificHeat)
 
-  void *context;
-  ierr = CreateSpatialContext(matprop->dim, f, &context); CHKERRQ(ierr);
-  ierr = MaterialPropSetSoilSpecificHeat(matprop, context, ScalarWrapperFunction,
-                                         TDyFree); CHKERRQ(ierr);
-  PetscFunctionReturn(0);
-}
+/// Sets the saline diffusivity function to a given constant isotropic value.
+DEFINE_SET_CONSTANT_ISOTROPIC_TENSOR(SalineDiffusivity)
+
+/// Sets the saline diffusivity function to the given spatial scalar function f that
+/// provides an isotropic tensor.
+DEFINE_SET_HETEROGENEOUS_ISOTROPIC_TENSOR(SalineDiffusivity)
+
+/// Sets the saline diffusivity function to a given constant diagonal tensor.
+DEFINE_SET_CONSTANT_DIAGONAL_TENSOR(SalineDiffusivity)
+
+/// Sets the saline diffusivity function to a given spatial vector function f
+/// that computes a diagonal anisotropic tensor.
+DEFINE_SET_HETEROGENEOUS_DIAGONAL_TENSOR(SalineDiffusivity)
+
+/// Sets the saline diffusivity function to a given constant tensor.
+DEFINE_SET_CONSTANT_TENSOR(SalineDiffusivity)
+
+/// Sets the saline diffusivity function to a given spatial tensor function f that
+/// will compute a full anisotropic tensor.
+DEFINE_SET_HETEROGENEOUS_TENSOR(SalineDiffusivity)
+
+/// Sets the saline molecular weight function to the given constant value.
+DEFINE_SET_CONSTANT_SCALAR(SalineMolecularWeight)
+
+/// Sets the saline molecular weight function to the given spatial scalar function f.
+DEFINE_SET_HETEROGENEOUS_SCALAR(SalineMolecularWeight)
 
 #if 0
 /*

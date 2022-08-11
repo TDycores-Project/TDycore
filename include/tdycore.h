@@ -12,7 +12,9 @@ typedef enum {
   /// Richards equation
   RICHARDS=0,
   /// Non-isothermal flows
-  TH
+  TH,
+  /// Flows with salinity
+  SALINITY,
 } TDyMode;
 
 PETSC_EXTERN const char *const TDyModes[];
@@ -98,10 +100,24 @@ typedef struct _p_TDy *TDy;
 
 typedef enum {
   WATER_DENSITY_CONSTANT=0,
-  WATER_DENSITY_EXPONENTIAL=1
+  WATER_DENSITY_EXPONENTIAL=1,
+  WATER_DENSITY_BATZLE_AND_WANG=2
 } TDyWaterDensityType;
 
 PETSC_EXTERN const char *const TDyWaterDensityTypes[];
+
+typedef enum {
+  WATER_VISCOSITY_CONSTANT=0,
+  WATER_VISCOSITY_BATZLE_AND_WANG=1,
+} TDyWaterViscosityType;
+
+PETSC_EXTERN const char *const TDyWaterViscosityTypes[];
+
+typedef enum {
+  WATER_ENTHALPY_CONSTANT=0,
+} TDyWaterEnthalpyType;
+
+PETSC_EXTERN const char *const TDyWaterEnthalpyTypes[];
 
 PETSC_EXTERN PetscClassId TDY_CLASSID;
 
@@ -135,39 +151,60 @@ PETSC_EXTERN PetscErrorCode TDyRestoreBoundaryFaces(TDy,PetscInt*, const PetscIn
 
 // Set material properties: via PETSc operations
 PETSC_EXTERN PetscErrorCode TDySetWaterDensityType(TDy,TDyWaterDensityType);
+PETSC_EXTERN PetscErrorCode TDySetWaterViscosityType(TDy,TDyWaterViscosityType);
+PETSC_EXTERN PetscErrorCode TDySetWaterEnthalpyType(TDy,TDyWaterEnthalpyType);
+
 PETSC_EXTERN PetscErrorCode TDySetConstantPorosity(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetPorosityFunction(TDy,TDyScalarSpatialFunction);
+
 PETSC_EXTERN PetscErrorCode TDySetConstantIsotropicPermeability(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetIsotropicPermeabilityFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetConstantDiagonalPermeability(TDy,PetscReal[]);
 PETSC_EXTERN PetscErrorCode TDySetDiagonalPermeabilityFunction(TDy,TDyVectorSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetConstantTensorPermeability(TDy,PetscReal[]);
 PETSC_EXTERN PetscErrorCode TDySetTensorPermeabilityFunction(TDy,TDyTensorSpatialFunction);
+
 PETSC_EXTERN PetscErrorCode TDySetConstantIsotropicThermalConductivity(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetIsotropicThermalConductivityFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetConstantDiagonalThermalConductivity(TDy,PetscReal[]);
 PETSC_EXTERN PetscErrorCode TDySetDiagonalThermalConductivityFunction(TDy,TDyVectorSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetConstantTensorThermalConductivity(TDy,PetscReal[]);
 PETSC_EXTERN PetscErrorCode TDySetTensorThermalConductivityFunction(TDy,TDyTensorSpatialFunction);
+
 PETSC_EXTERN PetscErrorCode TDySetConstantResidualSaturation(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetResidualSaturationFunction(TDy,TDyScalarSpatialFunction);
+
 PETSC_EXTERN PetscErrorCode TDySetConstantSoilDensity(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetSoilDensityFunction(TDy,TDyScalarSpatialFunction);
+
 PETSC_EXTERN PetscErrorCode TDySetConstantSoilSpecificHeat(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetSoilSpecificHeatFunction(TDy,TDyScalarSpatialFunction);
+
+PETSC_EXTERN PetscErrorCode TDySetConstantIsotropicSalineDiffusivity(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDySetIsotropicSalineDiffusivityFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetConstantDiagonalSalineDiffusivity(TDy,PetscReal[]);
+PETSC_EXTERN PetscErrorCode TDySetDiagonalSalineDiffusivityFunction(TDy,TDyVectorSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetConstantTensorSalineDiffusivity(TDy,PetscReal[]);
+PETSC_EXTERN PetscErrorCode TDySetTensorSalineDiffusivityFunction(TDy,TDyTensorSpatialFunction);
+
+PETSC_EXTERN PetscErrorCode TDySetConstantSalineMolecularWeight(TDy,PetscReal);
+PETSC_EXTERN PetscErrorCode TDySetSalineMolecularWeightFunction(TDy,TDyScalarSpatialFunction);
 
 // Set boundary conditions and sources/sinks
 PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetEnergyForcingFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetSalinitySourceFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureTypeFunction(TDy,TDyScalarSpatialIntegerFunction);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryTemperatureFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetBoundaryVelocityFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetBoundaryTemperatureFunction(TDy,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetBoundarySalineConcentrationFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySelectForcingFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectEnergyForcingFunction(TDy,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectBoundaryPressureFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy,const char*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFunction(TDy,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectBoundarySalineConcentrationFunction(TDy,const char*);
 
 PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*,PetscInt);
 PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);

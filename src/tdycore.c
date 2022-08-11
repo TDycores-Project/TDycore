@@ -53,6 +53,7 @@ const char *const TDyBoundaryConditionTypes[] = {
 const char *const TDyModes[] = {
   "RICHARDS",
   "TH",
+  "SALINITY",
   /* */
   "TDyMode","TDY_MODE_",NULL
 };
@@ -60,8 +61,21 @@ const char *const TDyModes[] = {
 const char *const TDyWaterDensityTypes[] = {
   "CONSTANT",
   "EXPONENTIAL",
+  "BATZLE_AND_WANG",
   /* */
   "TDyWaterDensityType","TDY_DENSITY_",NULL
+};
+
+const char *const TDyWaterViscosityTypes[] = {
+  "CONSTANT",
+  "BATZLE_AND_WANG",
+  /* */
+  "TDyWaterViscosityType","TDY_VISCOSITY_",NULL
+};
+
+const char *const TDyWaterEnthalpyTypes[] = {
+  "CONSTANT",
+  "TDyWaterEnthalpyType","TDY_ENTHALPY_",NULL
 };
 
 PetscClassId TDY_CLASSID = 0;
@@ -259,6 +273,8 @@ static PetscErrorCode SetDefaultOptions(TDy tdy) {
   options->soil_density=2650.;
   options->soil_specific_heat=1000.0;
   options->thermal_conductivity=1.0;
+  options->saline_molecular_weight = 58.44;
+  options->saline_diffusivity = 1.e-6;
 
   options->residual_saturation=0.15;
   options->gardner_n=0.5;
@@ -529,6 +545,8 @@ static PetscErrorCode ReadCommandLineOptions(TDy tdy) {
   ierr = PetscOptionsEnum("-tdy_mode","Flow mode", "TDySetMode",TDyModes,(PetscEnum)options->mode, (PetscEnum *)&mode, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_gravity", "Magnitude of gravity vector", NULL, options->gravity_constant, &options->gravity_constant, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_water_density","Water density vertical profile", "TDySetWaterDensityType", TDyWaterDensityTypes, (PetscEnum)options->rho_type, (PetscEnum *)&options->rho_type, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_water_viscosity","Water viscosity model", "TDySetWaterViscosityType", TDyWaterViscosityTypes, (PetscEnum)options->mu_type, (PetscEnum *)&options->mu_type, NULL); CHKERRQ(ierr);
+  ierr = PetscOptionsEnum("-tdy_water_enthalpy","Water enthalpy model", "TDySetWaterEnthalpyType", TDyWaterEnthalpyTypes, (PetscEnum)options->enthalpy_type, (PetscEnum *)&options->enthalpy_type, NULL); CHKERRQ(ierr);
 
   // Create source/sink/boundary conditions.
   ierr = ConditionsCreate(&tdy->conditions); CHKERRQ(ierr);
@@ -902,6 +920,21 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       SETERRQ(comm,PETSC_ERR_USER,
         "The TH mode does not support the selected discretization!");
     }
+  } else if (tdy->options.mode == SALINITY) {
+    PetscPrintf(PETSC_COMM_WORLD,"Running SALINITY mode.\n");
+    if (discretization == MPFA_O) {
+      tdy->ops->create = TDyCreate_MPFAO;
+      tdy->ops->destroy = TDyDestroy_MPFAO;
+      tdy->ops->set_from_options = TDySetFromOptions_MPFAO;
+      tdy->ops->get_num_dm_fields = TDyGetNumDMFields_Salinity_MPFAO;
+      tdy->ops->set_dm_fields = TDySetDMFields_Salinity_MPFAO;
+      tdy->ops->setup = TDySetup_Salinity_MPFAO;
+      tdy->ops->update_state = TDyUpdateState_Salinity_MPFAO;
+      tdy->ops->update_diagnostics = TDyUpdateDiagnostics_MPFAO;
+    } else {
+      SETERRQ(comm,PETSC_ERR_USER,
+        "The SALINITY mode does not support the selected discretization!");
+    }
   }
   tdy->options.discretization = discretization;
   tdy->setup_flags |= TDyDiscretizationSet;
@@ -912,6 +945,20 @@ PetscErrorCode TDySetWaterDensityType(TDy tdy, TDyWaterDensityType dentype) {
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
   tdy->options.rho_type = dentype;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetWaterViscosityType(TDy tdy, TDyWaterViscosityType vistype) {
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  tdy->options.mu_type = vistype;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode TDySetWaterEnthalpyType(TDy tdy, TDyWaterEnthalpyType enthtype) {
+  PetscValidPointer(tdy,1);
+  PetscFunctionBegin;
+  tdy->options.enthalpy_type = enthtype;
   PetscFunctionReturn(0);
 }
 
@@ -1152,6 +1199,100 @@ PetscErrorCode TDySetSoilSpecificHeatFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
+/// Sets the saline diffusivity used by the dycore to the given constant.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantIsotropicSalineDiffusivity(TDy tdy, PetscReal value) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantIsotropicSalineDiffusivity(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute (isotropic) saline diffusivities in the
+/// dycore. May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetIsotropicSalineDiffusivityFunction(TDy tdy,
+                                                        TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousIsotropicSalineDiffusivity(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the saline diffusivity used by the dycore to the given diagonal constant.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantDiagonalSalineDiffusivity(TDy tdy, PetscReal value[]) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantDiagonalSalineDiffusivity(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute (diagonal anisotropic) saline
+/// diffusivities in the dycore. May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetDiagonalSalineDiffusivityFunction(TDy tdy,
+                                                       TDyVectorSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousDiagonalSalineDiffusivity(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the saline diffusivity used by the dycore to the given tensor constant.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantTensorSalineDiffusivity(TDy tdy, PetscReal value[]) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantTensorSalineDiffusivity(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute anisotropic saline diffusivities in the
+/// dycore. May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] f the function to use
+PetscErrorCode TDySetTensorSalineDiffusivityFunction(TDy tdy,
+                                                     TDyTensorSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousTensorSalineDiffusivity(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the saline molecular weight used by the dycore to the given constant.
+/// May be called anytime after TDySetFromOptions.
+/// @param [in] tdy the dycore instance
+/// @param [in] value the constant value to use
+PetscErrorCode TDySetConstantSalineMolecularWeight(TDy tdy, PetscReal value) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetConstantSalineMolecularWeight(tdy->matprop, value); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+/// Sets the function used to compute saline molecular weights in the dycore.
+/// May be called anytime after TDySetFromOptions.
+PetscErrorCode TDySetSalineMolecularWeightFunction(TDy tdy,
+                                                   TDyScalarSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  ierr = MaterialPropSetHeterogeneousSalineMolecularWeight(tdy->matprop, f);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 // This struct is stored in a context and used to call a spatial function with a
 // NULL context.
 typedef struct WrapperStruct {
@@ -1224,6 +1365,18 @@ PetscErrorCode TDySetBoundaryPressureTypeFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySetBoundaryVelocityFunction(TDy tdy,
+                                              TDyVectorSpatialFunction f) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  WrapperStruct *wrapper;
+  ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
+  wrapper->func = f;
+  ierr = ConditionsSetBoundaryVelocity(tdy->conditions, wrapper,
+                                       WrapperFunction, TDyFree); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySetBoundaryTemperatureFunction(TDy tdy,
                                                  TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
@@ -1236,15 +1389,15 @@ PetscErrorCode TDySetBoundaryTemperatureFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySetBoundaryVelocityFunction(TDy tdy,
-                                              TDyVectorSpatialFunction f) {
+PetscErrorCode TDySetBoundarySalineConcentrationFunction(TDy tdy,
+                                                         TDyScalarSpatialFunction f) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   WrapperStruct *wrapper;
   ierr = TDyAlloc(sizeof(WrapperStruct), &wrapper); CHKERRQ(ierr);
   wrapper->func = f;
-  ierr = ConditionsSetBoundaryVelocity(tdy->conditions, wrapper,
-                                       WrapperFunction, TDyFree); CHKERRQ(ierr);
+  ierr = ConditionsSetBoundarySalineConcentration(tdy->conditions, wrapper,
+                                                  WrapperFunction, TDyFree); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1278,6 +1431,16 @@ PetscErrorCode TDySelectBoundaryPressureFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode TDySelectBoundaryVelocityFunction(TDy tdy,
+                                                 const char *func_name) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  TDySpatialFunction f;
+  ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
+  ierr = TDySetBoundaryVelocityFunction(tdy, f); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy tdy,
                                                     const char *func_name) {
   PetscErrorCode ierr;
@@ -1288,13 +1451,13 @@ PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy tdy,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode TDySelectBoundaryVelocityFunction(TDy tdy,
-                                                 const char *func_name) {
+PetscErrorCode TDySelectBoundarySalineConcenctrationFunction(TDy tdy,
+                                                             const char *func_name) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDySpatialFunction f;
   ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
-  ierr = TDySetBoundaryVelocityFunction(tdy, f); CHKERRQ(ierr);
+  ierr = TDySetBoundarySalineConcentrationFunction(tdy, f); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1758,6 +1921,9 @@ PetscErrorCode TDySetIFunction(TS ts,TDy tdy) {
     case TH:
       ierr = TSSetIFunction(ts,NULL,TDyMPFAOIFunction_TH,tdy); CHKERRQ(ierr);
       break;
+    case SALINITY:
+      SETERRQ(comm,PETSC_ERR_SUP,"IFunction not implemented for Salinity");
+      break;
     }
     break;
   case MPFA_O_DAE:
@@ -1799,7 +1965,9 @@ PetscErrorCode TDySetIJacobian(TS ts,TDy tdy) {
     case TH:
       ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian_TH,tdy); CHKERRQ(ierr);
       break;
-
+    case SALINITY:
+      //ierr = TSSetIJacobian(ts,tdy->J,tdy->J,TDyMPFAOIJacobian,tdy); CHKERRQ(ierr);
+      break;
     }
     break;
   case MPFA_O_DAE:
@@ -1840,24 +2008,34 @@ PetscErrorCode TDySetSNESFunction(SNES snes,TDy tdy) {
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   switch (tdy->options.discretization) {
-  case MPFA_O:
-    ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction,tdy); CHKERRQ(ierr);
-    break;
-  case MPFA_O_DAE:
-    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for MPFA_O_DAE");
-    break;
-  case MPFA_O_TRANSIENTVAR:
-    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for MPFA_O_TRANSIENTVAR");
-    break;
-  case BDM:
-    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for BDM");
-    break;
-  case WY:
-    SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for WY");
-    break;
-  case FV_TPF:
-    ierr = SNESSetFunction(snes,tdy->residual,TDyFVTPFSNESFunction,tdy); CHKERRQ(ierr);
-    break;
+    case MPFA_O:
+      switch (tdy->options.mode) {
+        case RICHARDS:
+          ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction,tdy); CHKERRQ(ierr);
+          break;
+        case TH:
+          ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction,tdy); CHKERRQ(ierr);
+          break;
+        case SALINITY:
+          ierr = SNESSetFunction(snes,tdy->residual,TDyMPFAOSNESFunction_Salinity,tdy); CHKERRQ(ierr);
+          break;
+      }
+      break;
+    case MPFA_O_DAE:
+      SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for MPFA_O_DAE");
+      break;
+    case MPFA_O_TRANSIENTVAR:
+      SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for MPFA_O_TRANSIENTVAR");
+      break;
+    case BDM:
+      SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for BDM");
+      break;
+    case WY:
+      SETERRQ(comm,PETSC_ERR_SUP,"SNESFunction not implemented for WY");
+      break;
+    case FV_TPF:
+      ierr = SNESSetFunction(snes,tdy->residual,TDyFVTPFSNESFunction,tdy); CHKERRQ(ierr);
+      break;
   }
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);
@@ -1935,7 +2113,17 @@ PetscErrorCode TDyPreSolveSNESSolver(TDy tdy) {
 
   switch (tdy->options.discretization) {
   case MPFA_O:
-    ierr = TDyMPFAOSNESPreSolve(tdy); CHKERRQ(ierr);
+    switch (tdy->options.mode) {
+      case RICHARDS:
+        ierr = TDyMPFAOSNESPreSolve(tdy); CHKERRQ(ierr);
+        break;
+      case TH:
+        SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for TH");
+        break;
+      case SALINITY:
+        ierr = TDyMPFAOSNESPreSolve_Salinity(tdy); CHKERRQ(ierr);
+        break;
+    }
     break;
   case MPFA_O_DAE:
     SETERRQ(comm,PETSC_ERR_SUP,"TDyPreSolveSNESSolver not implemented for MPFA_O_DAE");
