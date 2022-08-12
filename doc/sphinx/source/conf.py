@@ -40,7 +40,7 @@ extensions = [
     'breathe',
     'hoverxref.extension',
     'recommonmark',
-    'sphinx_markdown_tables',
+#    'sphinx_markdown_tables', # rotted!
     'sphinx_rtd_theme',
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
