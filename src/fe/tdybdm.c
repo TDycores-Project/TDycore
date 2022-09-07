@@ -325,9 +325,9 @@ PetscErrorCode Inverse(PetscScalar *K,PetscInt nn) {
   <g,w>
 
  */
-PetscErrorCode IntegratePressureBoundary(TDyBDM *bdm, DM dm,
-                                         Conditions *conditions, PetscInt f,
-                                         PetscInt c, PetscReal *gvdotn) {
+PetscErrorCode IntegratePressureBoundary(TDyBDM *bdm, DM dm, FlowBC *flow_bc,
+                                         PetscInt f, PetscInt c,
+                                         PetscReal *gvdotn) {
   PetscFunctionBegin;
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
@@ -404,7 +404,7 @@ PetscErrorCode IntegratePressureBoundary(TDyBDM *bdm, DM dm,
       HdivBasisHex(single_point,basis,DF,J[0]);
     }
     /* -<g,v.n>|_q */
-    ierr = ConditionsComputeBoundaryPressure(conditions, 1, x, &g);CHKERRQ(ierr);
+    ierr = EnforceFlowBC(flow_bc, 0.0, 1, x, &g);CHKERRQ(ierr); // FIXME: t = 0
     for(i=0; i<ncv*dim; i++) gvdotn[i] -= g*TDyADotB(&(basis[i*dim]),normal,dim)*fquad_w[q]*fJ[q];
   }
 
@@ -424,7 +424,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
   TDY_START_FUNCTION_TIMER()
   PetscErrorCode ierr;
   PetscInt dim,dim2,nlocal,pStart,pEnd,c,cStart,cEnd,q,nq,nfq,nv,vi,vj,di,dj,
-    local_row,local_col,isbc,f,nq1d=3;
+    local_row,local_col,f,nq1d=3;
   PetscScalar x[81],DF[243],DFinv[243],J[27],Klocal[MAX_LOCAL_SIZE],
               Flocal[MAX_LOCAL_SIZE],force,basis_hdiv[72];
   const PetscScalar *quad_x,*fquad_x;
@@ -516,9 +516,16 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
     ierr = DMPlexGetConeSize(dm,c,&coneSize); CHKERRQ(ierr);
     ierr = DMPlexGetCone    (dm,c,&cone); CHKERRQ(ierr);
     for(f=0;f<coneSize;f++){
-      ierr = DMGetLabelValue(dm,"marker",cone[f],&isbc); CHKERRQ(ierr);
-      if(isbc == 1 && ConditionsHasBoundaryPressure(conditions)) {
-        ierr = IntegratePressureBoundary(bdm,dm,conditions,cone[f],c,Flocal);
+      PetscInt face_set; // >= 0 for face set, -1 for interior face
+      ierr = DMGetLabelValue(dm,"Face Sets",cone[f],&face_set); CHKERRQ(ierr);
+      if (face_set >= 0) { // this face belongs to a face set
+        // Find the right (flow) boundary condition.
+        BoundaryConditions bcs;
+        ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
+        if (bcs.flow_bc.type == TDY_PRESSURE_BC) {
+          ierr = IntegratePressureBoundary(bdm,dm,&bcs.flow_bc,cone[f],c,Flocal);
+          CHKERRQ(ierr);
+        }
       }
     } /* end faces */
 

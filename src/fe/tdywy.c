@@ -747,15 +747,17 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
         B[local_col*nA+local_row] += wgt*sign_row*wy->V[global_row];
 
         // Pressure boundary conditions
-        PetscInt isbc;
-        ierr = DMGetLabelValue(dm,"boundary",global_row,&isbc); CHKERRQ(ierr);
-        if(isbc == 1 && ConditionsHasBoundaryPressure(conditions)) {
-          //ierr = IntegrateOnFace(tdy,c1,global_row,&pdirichlet); CHKERRQ(ierr);
-          //G[local_row] = wgt*pdirichlet;
-          ierr = ConditionsComputeBoundaryPressure(conditions, 1,
-                                                   &(wy->X[global_row*dim]),
-                                                   &pdirichlet); CHKERRQ(ierr);
-          G[local_row] = wgt*sign_row*pdirichlet*wy->V[global_row];
+        PetscInt face_set; // >= 0 for face set, -1 for interior face
+        ierr = DMGetLabelValue(dm,"Face Sets",global_row,&face_set); CHKERRQ(ierr);
+        if (face_set >= 0) {
+          // Find the right (flow) boundary condition.
+          BoundaryConditions bcs;
+          ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
+          if (bcs.flow_bc.type == TDY_PRESSURE_BC) {
+            ierr = EnforceFlowBC(&bcs.flow_bc, 1, &(wy->X[global_row*dim]),
+                                 &pdirichlet); CHKERRQ(ierr);
+            G[local_row] = wgt*sign_row*pdirichlet*wy->V[global_row];
+          }
         }
 
         for(element_col=0; element_col<dim;
@@ -911,15 +913,17 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
         F[local_row] += wgt*sign_row*u[offset]*wy->V[global_row];
 
         // boundary conditions
-        PetscInt isbc;
-        ierr = DMGetLabelValue(dm,"boundary",global_row,&isbc); CHKERRQ(ierr);
-        if(isbc == 1 && ConditionsHasBoundaryPressure(conditions)) {
-          //ierr = IntegrateOnFaceConstant(tdy,closure[c],global_row,&pdirichlet); CHKERRQ(ierr);
-          //F[local_row] -= wgt*sign_row*pdirichlet;
-          ierr = ConditionsComputeBoundaryPressure(conditions, 1,
-                                                   &(wy->X[global_row*dim]),
-                                                   &pdirichlet); CHKERRQ(ierr);
-          F[local_row] += -wgt*sign_row*pdirichlet*wy->V[global_row];
+        PetscInt face_set; // >= 0 for face set, -1 for interior face
+        ierr = DMGetLabelValue(dm,"Face Sets",global_row,&face_set); CHKERRQ(ierr);
+        if(face_set >= 0) {
+          // Find the right (flow) boundary condition.
+          BoundaryConditions bcs;
+          ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
+          if (bcs.flow_bc.type == TDY_PRESSURE_BC) {
+            ierr = EnforceFlowBC(&bcs.flow_bc, 1, &(wy->X[global_row*dim]),
+                                 &pdirichlet); CHKERRQ(ierr);
+            F[local_row] += -wgt*sign_row*pdirichlet*wy->V[global_row];
+          }
         }
 
         for(element_col=0; element_col<dim;

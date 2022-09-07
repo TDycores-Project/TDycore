@@ -31,7 +31,6 @@
 #define tdygetliquidpressure_                          TDYGETLIQUIDPRESSURE
 #define tdysetwaterdensitytype_                        TDYSETWATERDENSITYTYPE
 #define tdympfaosetgmatrixmethod_                      TDYMPFAOSETGMATRIXMETHOD
-#define tdympfaosetboundaryconditiontype_              TDYMPFAOSETBOUNDARYCONDITIONTYPE
 #define tdysetifunction_                               TDYSETIFUNCTION
 #define tdysetijacobian_                               TDYSETIJACOBIAN
 #define tdysetsnesfunction_                            TDYSETSNESFUNCTION
@@ -69,7 +68,6 @@
 #define tdygetliquidpressure_                          tdygetliquidpressure
 #define tdysetwaterdensitytype_                        tdysetwaterdensitytype
 #define tdympfaosetgmatrixmethod_                      tdympfaosetgmatrixmethod
-#define tdympfaosetboundaryconditiontype_              tdympfaosetboundaryconditiontype
 #define tdysetifunction_                               tdysetifunction
 #define tdysetijacobian_                               tdysetijacobian
 #define tdysetsnesfunction_                            tdysetsnesfunction
@@ -169,10 +167,6 @@ PETSC_EXTERN void  tdysetwaterdensitytype_(TDy tdy, PetscInt *method, int *__ier
 
 PETSC_EXTERN void  tdympfaosetgmatrixmethod_(TDy tdy, PetscInt *method, int *__ierr){
 *__ierr = TDyMPFAOSetGmatrixMethod((TDy)PetscToPointer((tdy)), *method);
-}
-
-PETSC_EXTERN void  tdympfaosetboundaryconditiontype_(TDy tdy, PetscInt *bctype, int *__ierr){
-*__ierr = TDyMPFAOSetBoundaryConditionType((TDy)PetscToPointer((tdy)), *bctype);
 }
 
 PETSC_EXTERN void  tdysetifunction_(TS ts, TDy tdy, int *__ierr){
@@ -399,8 +393,8 @@ WRAP_MATPROP(TDySetSoilDensityFunctionF90, MaterialPropSetSoilDensity, WrappedF9
 WRAP_MATPROP(TDySetSoilSpecificHeat, MaterialPropSetSoilSpecificHeat, WrappedF90SpatialFunction)
 
 // This macro can be used to expose a Fortran 90 subroutine that assigns a
-// spatial function to a boundary condition/source/sink.
-#define WRAP_CONDITION(f90_fn, condition_fn, wrapper_fn) \
+// spatial function to a source/sink.
+#define WRAP_SOURCE(f90_fn, set_source_fn, wrapper_fn) \
 PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   PetscErrorCode ierr; \
   PetscFunctionBegin; \
@@ -408,28 +402,49 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
   ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
   void *context; \
   ierr = CreateF90SpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
-  ierr = condition_fn(tdy->conditions, context, wrapper_fn, TDyFree); \
+  ierr = set_source_fn(tdy->conditions, context, wrapper_fn, TDyFree); \
   CHKERRQ(ierr); \
   PetscFunctionReturn(0); \
 } \
 
-#define WRAP_CONDITION_INTEGER(f90_fn, condition_fn, wrapper_fn) \
-PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
-  PetscErrorCode ierr; \
-  PetscFunctionBegin; \
-  PetscInt dim; \
-  ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
-  void *context; \
-  ierr = CreateF90IntegerSpatialFunctionContext(dim, id, &context); CHKERRQ(ierr); \
-  ierr = condition_fn(tdy->conditions, context, wrapper_fn, TDyFree); \
-  CHKERRQ(ierr); \
-  PetscFunctionReturn(0); \
-} \
+WRAP_SOURCE(TDySetForcingFunctionF90, ConditionsSetForcing, WrappedF90SpatialFunction)
+WRAP_SOURCE(TDySetEnergyForcingFunctionF90, ConditionsSetEnergyForcing, WrappedF90SpatialFunction)
 
-WRAP_CONDITION(TDySetForcingFunctionF90, ConditionsSetForcing, WrappedF90SpatialFunction)
-WRAP_CONDITION(TDySetEnergyForcingFunctionF90, ConditionsSetEnergyForcing, WrappedF90SpatialFunction)
-WRAP_CONDITION(TDySetBoundaryPressureFunctionF90, ConditionsSetBoundaryPressure, WrappedF90SpatialFunction)
-WRAP_CONDITION_INTEGER(TDySetBoundaryPressureTypeFunctionF90, ConditionsSetBoundaryPressureType, WrappedF90IntegerSpatialFunction)
-WRAP_CONDITION(TDySetBoundaryTemperatureFunctionF90, ConditionsSetBoundaryTemperature, WrappedF90SpatialFunction)
-WRAP_CONDITION(TDySetBoundaryVelocityFunctionF90, ConditionsSetBoundaryVelocity, WrappedF90SpatialFunction)
-
+// This function assigns ids associated with flow, thermal, and salinity
+// boundary conditions to the face set with the given index.
+PETSC_EXTERN PetscErrorCode TDyConditionsSetBCsF90(TDy tdy,
+                                                   PetscInt face_set,
+                                                   TDyFlowBCType flow_bc_type,
+                                                   PetscInt flow_bc_id,
+                                                   TDyThermalBCType thermal_bc_type,
+                                                   PetscInt thermal_bc_id,
+                                                   TDySalinityBCType salinity_bc_type,
+                                                   PetscInt salinity_bc_id) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  PetscInt dim;
+  ierr = DMGetDimension(tdy->dm, &dim); CHKERRQ(ierr);
+  void *flow_context, *thermal_context, *salinity_context;
+  ierr = CreateF90SpatialFunctionContext(dim, flow_bc_id, &flow_context); CHKERRQ(ierr);
+  ierr = CreateF90SpatialFunctionContext(dim, thermal_bc_id, &thermal_context); CHKERRQ(ierr);
+  ierr = CreateF90SpatialFunctionContext(dim, salinity_bc_id, &salinity_context); CHKERRQ(ierr);
+  BoundaryConditions bcs = {
+    .flow_bc = (FlowBC){
+      .type    = flow_bc_type,
+      .context = flow_context,
+      .compute = WrappedF90SpatialFunction,
+      .dtor    = DestroyContext
+    },
+    .thermal_bc = (ThermalBC){
+      .type    = thermal_bc_type,
+      .context = thermal_context,
+      .compute = WrappedF90SpatialFunction,
+      .dtor    = DestroyContext
+    },
+    .salinity_bc = (SalinityBC){
+      .type = salinity_bc_type,
+    }
+  };
+  ierr = ConditionsSetBCs(tdy->conditions, face_set, bcs); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}

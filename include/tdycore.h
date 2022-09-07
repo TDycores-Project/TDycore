@@ -39,20 +39,33 @@ typedef enum {
 
 PETSC_EXTERN const char *const TDyDiscretizations[];
 
+/// Types of flow boundary conditions
+typedef enum {
+  TDY_UNDEFINED_FLOW_BC = 0,
+  TDY_PRESSURE_BC,
+  TDY_NOFLOW_BC,
+  TDY_SEEPAGE_BC
+} TDyFlowBCType;
+
+/// Types of thermal boundary conditions
+typedef enum {
+  TDY_UNDEFINED_THERMAL_BC = 0,
+  TDY_TEMPERATURE_BC,
+  TDY_HEAT_FLUX_BC,
+} TDyThermalBCType;
+
+/// Types of salinity boundary conditions
+typedef enum {
+  TDY_UNDEFINED_SALINITY_BC = 0,
+  TDY_SALINE_CONC_BC,
+} TDySalinityBCType;
+
 typedef enum {
   MPFAO_GMATRIX_DEFAULT=0, /* default method to compute gmatrix for MPFA-O method        */
   MPFAO_GMATRIX_TPF        /* two-point flux method to compute gmatrix for MPFA-O method */
 } TDyMPFAOGmatrixMethod;
 
 PETSC_EXTERN const char *const TDyMPFAOGmatrixMethods[];
-
-typedef enum {
-  DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
-  NEUMANN_BC,       /* Neumann zero-flux boundary condition */
-  SEEPAGE_BC       /* Seepage boundary condition */
-} TDyBoundaryConditionType;
-
-PETSC_EXTERN const char *const TDyBoundaryConditionTypes[];
 
 typedef enum {
   TDySNES=0,
@@ -190,21 +203,20 @@ PETSC_EXTERN PetscErrorCode TDySetTensorSalineDiffusivityFunction(TDy,TDyTensorS
 PETSC_EXTERN PetscErrorCode TDySetConstantSalineMolecularWeight(TDy,PetscReal);
 PETSC_EXTERN PetscErrorCode TDySetSalineMolecularWeightFunction(TDy,TDyScalarSpatialFunction);
 
-// Set boundary conditions and sources/sinks
+// Set sources/sink functions
 PETSC_EXTERN PetscErrorCode TDySetForcingFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetEnergyForcingFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySetSalinitySourceFunction(TDy,TDyScalarSpatialFunction);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureFunction(TDy,TDyScalarSpatialFunction);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryPressureTypeFunction(TDy,TDyScalarSpatialIntegerFunction);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryVelocityFunction(TDy,TDyScalarSpatialFunction);
-PETSC_EXTERN PetscErrorCode TDySetBoundaryTemperatureFunction(TDy,TDyScalarSpatialFunction);
-PETSC_EXTERN PetscErrorCode TDySetBoundarySalineConcentrationFunction(TDy,TDyScalarSpatialFunction);
 PETSC_EXTERN PetscErrorCode TDySelectForcingFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectEnergyForcingFunction(TDy,const char*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryVelocityFunction(TDy,const char*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryPressureFunction(TDy,const char*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy,const char*);
-PETSC_EXTERN PetscErrorCode TDySelectBoundarySalineConcentrationFunction(TDy,const char*);
+
+// Set boundary condition functions
+PETSC_EXTERN PetscErrorCode TDySetFlowBCFunction(TDy,TDyFlowBCType,PetscInt,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetThermalBCFunction(TDy,TDyThermalBCType,PetscInt,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetSalinityBCFunction(TDy,TDySalinityBCType,PetscInt,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySelectFlowBCFunction(TDy,TDyFlowBCType,PetscInt,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectThermalBCFunction(TDy,TDyThermalBCType,PetscInt,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectSalinityBCFunction(TDy,TDySalinityBCType,PetscInt,const char*);
 
 PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*,PetscInt);
 
@@ -260,7 +272,6 @@ PETSC_EXTERN PetscErrorCode TDyDriverInitializeTDy(TDy);
 //-------------------------------------------------
 
 PETSC_EXTERN PetscErrorCode TDyMPFAOSetGmatrixMethod(TDy,TDyMPFAOGmatrixMethod);
-PETSC_EXTERN PetscErrorCode TDyMPFAOSetBoundaryConditionType(TDy,TDyBoundaryConditionType);
 PETSC_EXTERN PetscErrorCode TDyMPFAOComputeSystem(TDy,Mat,Vec);
 
 //------------------------

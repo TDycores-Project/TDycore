@@ -8,6 +8,7 @@ PetscErrorCode ConditionsCreate(Conditions** conditions) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
   ierr = TDyAlloc(sizeof(Conditions), conditions); CHKERRQ(ierr);
+  (*conditions)->bcs = kh_init(TDY_BC);
   PetscFunctionReturn(0);
 }
 
@@ -16,10 +17,22 @@ PetscErrorCode ConditionsDestroy(Conditions* conditions) {
   PetscFunctionBegin;
   ConditionsSetForcing(conditions, NULL, NULL, NULL);
   ConditionsSetEnergyForcing(conditions, NULL, NULL, NULL);
-  ConditionsSetBoundaryPressure(conditions, NULL, NULL, NULL);
-  ConditionsSetBoundaryVelocity(conditions, NULL, NULL, NULL);
-  ConditionsSetBoundaryTemperature(conditions, NULL, NULL, NULL);
-  ConditionsSetBoundarySalineConcentration(conditions, NULL, NULL, NULL);
+
+  // Clean up boundary conditions.
+  for (khiter_t iter = kh_begin(conditions->bcs);
+                iter != kh_end(conditions->bcs);
+              ++iter) {
+    if (!kh_exist(conditions->bcs, iter)) continue;
+    BoundaryConditions bcs = kh_value(conditions->bcs, iter);
+    if (bcs.flow_bc.context && bcs.flow_bc.dtor) {
+      bcs.flow_bc.dtor(bcs.flow_bc.context);
+    }
+    if (bcs.thermal_bc.context && bcs.thermal_bc.dtor) {
+      bcs.thermal_bc.dtor(bcs.thermal_bc.context);
+    }
+  }
+  kh_destroy(TDY_BC, conditions->bcs);
+
   TDyFree(conditions);
   PetscFunctionReturn(0);
 }
@@ -75,94 +88,6 @@ PetscErrorCode ConditionsSetSalinitySource(Conditions *conditions, void *context
   PetscFunctionReturn(0);
 }
 
-/// Sets the function used to compute the boundary pressure.
-/// @param [in] conditions A Conditions instance
-/// @param [in] context A context pointer to be passed to f
-/// @param [in] f A function that computes the boundary pressure forcing at a given number of points
-/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
-PetscErrorCode ConditionsSetBoundaryPressure(Conditions *conditions, void *context,
-                                             PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                             PetscErrorCode (*dtor)(void*)) {
-  PetscFunctionBegin;
-  if (conditions->boundary_pressure_context && conditions->boundary_pressure_dtor)
-    conditions->boundary_pressure_dtor(conditions->boundary_pressure_context);
-  conditions->boundary_pressure_context = context;
-  conditions->compute_boundary_pressure = f;
-  conditions->boundary_pressure_dtor = dtor;
-  PetscFunctionReturn(0);
-}
-
-/// Sets the function used to set the boundary pressure type
-/// @param [in] conditions A Conditions instance
-/// @param [in] context A context pointer to be passed to f
-/// @param [in] f A function that sets the boundary pressure type
-/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
-PetscErrorCode ConditionsSetBoundaryPressureType(Conditions *conditions, void *context,
-                                                 PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscInt*),
-                                                 PetscErrorCode (*dtor)(void*)) {
-  PetscFunctionBegin;
-  if (conditions->boundary_pressure_type_context && conditions->boundary_pressure_type_dtor)
-    conditions->boundary_pressure_type_dtor(conditions->boundary_pressure_type_context);
-  conditions->boundary_pressure_type_context = context;
-  conditions->assign_boundary_pressure_type = f;
-  conditions->boundary_pressure_type_dtor = dtor;
-  PetscFunctionReturn(0);
-}
-
-/// Sets the function used to compute the (normal) boundary velocity.
-/// @param [in] conditions A Conditions instance
-/// @param [in] context A context pointer to be passed to f
-/// @param [in] f A function that computes the boundary temperature forcing at a given number of points
-/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
-PetscErrorCode ConditionsSetBoundaryVelocity(Conditions *conditions,
-                                             void *context,
-                                             PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                             PetscErrorCode (*dtor)(void*)) {
-  PetscFunctionBegin;
-  if (conditions->boundary_velocity_context && conditions->boundary_velocity_dtor)
-    conditions->boundary_velocity_dtor(conditions->boundary_velocity_context);
-  conditions->boundary_velocity_context = context;
-  conditions->compute_boundary_velocity = f;
-  conditions->boundary_velocity_dtor = dtor;
-  PetscFunctionReturn(0);
-}
-
-/// Sets the function used to compute the boundary temperature.
-/// @param [in] conditions A Conditions instance
-/// @param [in] context A context pointer to be passed to f
-/// @param [in] f A function that computes the boundary temperature forcing at a given number of points
-/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
-PetscErrorCode ConditionsSetBoundaryTemperature(Conditions *conditions,
-                                                void *context,
-                                                PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                                PetscErrorCode (*dtor)(void*)) {
-  PetscFunctionBegin;
-  if (conditions->boundary_temperature_context && conditions->boundary_temperature_dtor)
-    conditions->boundary_temperature_dtor(conditions->boundary_temperature_context);
-  conditions->boundary_temperature_context = context;
-  conditions->compute_boundary_temperature = f;
-  conditions->boundary_temperature_dtor = dtor;
-  PetscFunctionReturn(0);
-}
-
-/// Sets the function used to compute the boundary saline concentration.
-/// @param [in] conditions A Conditions instance
-/// @param [in] context A context pointer to be passed to f
-/// @param [in] f A function that computes the boundary salinity forcing at a given number of points
-/// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
-PetscErrorCode ConditionsSetBoundarySalineConcentration(Conditions *conditions,
-                                                        void *context,
-                                                        PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                                        PetscErrorCode (*dtor)(void*)) {
-  PetscFunctionBegin;
-  if (conditions->boundary_saline_conc_context && conditions->boundary_saline_conc_dtor)
-    conditions->boundary_saline_conc_dtor(conditions->boundary_saline_conc_context);
-  conditions->boundary_saline_conc_context = context;
-  conditions->compute_boundary_saline_conc = f;
-  conditions->boundary_saline_conc_dtor = dtor;
-  PetscFunctionReturn(0);
-}
-
 PetscBool ConditionsHasForcing(Conditions *conditions) {
   return (conditions->compute_forcing != NULL);
 }
@@ -173,26 +98,6 @@ PetscBool ConditionsHasEnergyForcing(Conditions *conditions) {
 
 PetscBool ConditionsHasSalinitySource(Conditions *conditions) {
   return (conditions->compute_salinity_source != NULL);
-}
-
-PetscBool ConditionsHasBoundaryPressure(Conditions *conditions) {
-  return (conditions->compute_boundary_pressure != NULL);
-}
-
-PetscBool ConditionsHasBoundaryPressureType(Conditions *conditions) {
-  return (conditions->assign_boundary_pressure_type != NULL);
-}
-
-PetscBool ConditionsHasBoundaryVelocity(Conditions *conditions) {
-  return (conditions->compute_boundary_velocity != NULL);
-}
-
-PetscBool ConditionsHasBoundaryTemperature(Conditions *conditions) {
-  return (conditions->compute_boundary_temperature != NULL);
-}
-
-PetscBool ConditionsHasBoundarySalineConcentration(Conditions *conditions) {
-  return (conditions->compute_boundary_saline_conc != NULL);
 }
 
 PetscErrorCode ConditionsComputeForcing(Conditions *conditions, PetscInt n,
@@ -214,38 +119,53 @@ PetscErrorCode ConditionsComputeSalinitySource(Conditions *conditions,
                                              n, x, E);
 }
 
-PetscErrorCode ConditionsComputeBoundaryPressure(Conditions *conditions,
-                                                 PetscInt n, PetscReal *x,
-                                                 PetscReal *p) {
-  return conditions->compute_boundary_pressure(conditions->boundary_pressure_context,
-                                               n, x, p);
-}
-PetscErrorCode ConditionsAssignBoundaryPressureType(Conditions *conditions,
-                                                    PetscInt n, PetscReal *x,
-                                                    PetscInt *btype) {
-  return conditions->assign_boundary_pressure_type(conditions->boundary_pressure_type_context,
-                                                   n, x, btype);
+/// Sets flow, thermal, and salinity boundary conditions on the face set with
+/// the given index.
+/// @param [in] conditions A Conditions instance
+/// @param [in] face_set The index of a face set identifying the surface on
+///                      which to specify the boundary pressure
+/// @param [in] bcs A BoundaryConditions struct holding the desired flow,
+///                 thermal, and salinity boundary conditions
+PetscErrorCode ConditionsSetBCs(Conditions *conditions,
+                                PetscInt face_set,
+                                BoundaryConditions bcs) {
+  PetscFunctionBegin;
+  khiter_t iter = kh_get(TDY_BC, conditions->bcs, face_set);
+  if (iter != kh_end(conditions->bcs)) { // we've already assigned a BC
+    // Destroy the previous BC.
+    BoundaryConditions prev_bcs = kh_value(conditions->bcs, iter);
+    if (prev_bcs.flow_bc.context && prev_bcs.flow_bc.dtor) {
+      prev_bcs.flow_bc.dtor(prev_bcs.flow_bc.context);
+    }
+    if (prev_bcs.thermal_bc.context && prev_bcs.thermal_bc.dtor) {
+      prev_bcs.thermal_bc.dtor(prev_bcs.thermal_bc.context);
+    }
+  } else {
+    int ret;
+    iter = kh_put(TDY_BC, conditions->bcs, face_set, &ret);
+  }
+  kh_value(conditions->bcs, iter) = bcs;
+  PetscFunctionReturn(0);
 }
 
-PetscErrorCode ConditionsComputeBoundaryVelocity(Conditions *conditions,
-                                                 PetscInt n, PetscReal *x,
-                                                 PetscReal *v) {
-  return conditions->compute_boundary_velocity(conditions->boundary_velocity_context,
-                                               n, x, v);
-}
-
-PetscErrorCode ConditionsComputeBoundaryTemperature(Conditions *conditions,
-                                                    PetscInt n, PetscReal *x,
-                                                    PetscReal *T) {
-  return conditions->compute_boundary_temperature(conditions->boundary_temperature_context,
-                                                  n, x, T);
-}
-
-PetscErrorCode ConditionsComputeBoundarySalineConcentration(Conditions *conditions,
-                                                            PetscInt n, PetscReal *x,
-                                                            PetscReal *S) {
-  return conditions->compute_boundary_saline_conc(conditions->boundary_saline_conc_context,
-                                                  n, x, S);
+/// Retrieves flow, thermal, and salinity boundary conditions on the face set
+/// with the given index.
+/// @param [in] conditions A Conditions instance
+/// @param [in] face_set The index of a face set identifying the surface on
+///                      which to specify the boundary pressure
+/// @param [in] bcs Storage for the retrieved boundary conditions. If no
+///                 boundary conditions exist on the given face set, *bcs is
+///                 zero-initialized (indicating no boundary conditions).
+PetscErrorCode ConditionsGetBCs(Conditions *conditions,
+                                PetscInt face_set,
+                                BoundaryConditions *bcs) {
+  PetscFunctionBegin;
+  *bcs = (BoundaryConditions){0};
+  khiter_t iter = kh_get(TDY_BC, conditions->bcs, face_set);
+  if (iter != kh_end(conditions->bcs)) {
+    *bcs = kh_val(conditions->bcs, iter);
+  }
+  PetscFunctionReturn(0);
 }
 
 static PetscErrorCode ConstantBoundaryFn(void *context,
@@ -259,51 +179,98 @@ static PetscErrorCode ConstantBoundaryFn(void *context,
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode ConditionsSetConstantBoundaryPressure(Conditions *conditions,
-                                                     PetscReal p0) {
+PetscErrorCode CreateConstantPressureBC(FlowBC *bc, PetscReal p0) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscReal *val;
   ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = p0;
-  ierr = ConditionsSetBoundaryPressure(conditions, val, ConstantBoundaryFn,
-                                       TDyFree); CHKERRQ(ierr);
+  bc->type = TDY_PRESSURE_BC;
+  bc->context = val;
+  bc->compute = ConstantBoundaryFn;
+  bc->dtor = TDyFree;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode ConditionsSetConstantBoundaryVelocity(Conditions *conditions,
-                                                     PetscReal v0) {
+PetscErrorCode CreateConstantVelocityBC(FlowBC *bc, PetscReal v0) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscReal *val;
   ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = v0;
-  ierr = ConditionsSetBoundaryVelocity(conditions, val, ConstantBoundaryFn,
-                                       TDyFree); CHKERRQ(ierr);
+  bc->type = TDY_VELOCITY_BC;
+  bc->context = val;
+  bc->compute = ConstantBoundaryFn;
+  bc->dtor = TdyFree;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode ConditionsSetConstantBoundaryTemperature(Conditions *conditions,
-                                                        PetscReal T0) {
+PetscErrorCode CreateSeepageBC(FlowBC *bc) {
+  PetscFunctionBegin;
+  *bc = (FlowBC){0};
+  bc->type = TDY_SEEPAGE_BC;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode CreateConstantTemperatureBC(ThermalBC *bc, PetscReal T0) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscReal *val;
   ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = T0;
-  ierr = ConditionsSetBoundaryTemperature(conditions, val, ConstantBoundaryFn,
-                                          TDyFree); CHKERRQ(ierr);
+  bc->type = TDY_TEMPERATURE_BC;
+  bc->context = val;
+  bc->compute = ConstantBoundaryFn;
+  bc->dtor = TDyFree;
   PetscFunctionReturn(0);
 }
 
-PetscErrorCode ConditionsSetConstantBoundarySalineConcentration(Conditions *conditions,
-                                                                PetscReal S0) {
+PetscErrorCode CreateConstantHeatFluxBC(ThermalBC *bc, PetscReal T0) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  PetscReal *val;
+  ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
+  *val = T0;
+  bc->type = TDY_HEAT_FLUX_BC;
+  bc->context = val;
+  bc->compute = ConstantBoundaryFn;
+  bc->dtor = TDyFree;
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode CreateConstantSalinityBC(SalinityBC *bc, PetscReal S0) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   PetscReal *val;
   ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = S0;
-  ierr = ConditionsSetBoundarySalineConcentration(conditions, val, ConstantBoundaryFn,
-                                                  TDyFree); CHKERRQ(ierr);
+  bc->type = TDY_SALINE_CONC_BC;
+  bc->context = val;
+  bc->compute = ConstantBoundaryFn;
+  bc->dtor = TDyFree;
   PetscFunctionReturn(0);
 }
 
+PetscErrorCode EnforceFlowBC(FlowBC* bc, PetscReal t,
+                             PetscInt n, PetscReal *points,
+                             PetscReal *values) {
+  PetscFunctionBegin;
+  bc->compute(bc->context, t, n, points, values);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode EnforceThermalBC(ThermalBC* bc, PetscReal t,
+                                PetscInt n, PetscReal* points,
+                                PetscReal *values) {
+  PetscFunctionBegin;
+  bc->compute(bc->context, t, n, points, values);
+  PetscFunctionReturn(0);
+}
+
+PetscErrorCode EnforceSalinityBC(SalinityBC* bc, PetscReal t,
+                                 PetscInt n, PetscReal* points,
+                                 PetscReal *values) {
+  PetscFunctionBegin;
+  bc->compute(bc->context, t, n, points, values);
+  PetscFunctionReturn(0);
+}
