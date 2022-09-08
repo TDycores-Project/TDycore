@@ -109,15 +109,14 @@ int main(int argc, char **argv) {
   ierr = TDySetMode(tdy, RICHARDS); CHKERRQ(ierr);
   ierr = TDySetDiscretization(tdy,WY); CHKERRQ(ierr);
 
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,
-			   "Transient Options",""); CHKERRQ(ierr);
+  PetscOptionsBegin(PETSC_COMM_WORLD,NULL, "Transient Options","");
   ierr = PetscOptionsInt("-N","Number of elements in 1D",
 			 "",N,&N,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
   ierr = PetscOptionsString("-exo","Mesh file in exodus format","",
 			    exofile,exofile,256,&exo); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Specify a special DM to be constructed for this demo, and pass it the
   // relevant options.

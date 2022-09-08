@@ -580,7 +580,7 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
   TDyMPFAO* mpfao = context;
 
   // Set MPFA-O options.
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: MPFA-O options",""); CHKERRQ(ierr);
+  PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: MPFA-O options","");
   ierr = PetscOptionsEnum("-tdy_mpfao_gmatrix_method","MPFA-O gmatrix method",
     "TDySetMPFAOGmatrixMethod",TDyMPFAOGmatrixMethods,
     (PetscEnum)mpfao->gmatrix_method,(PetscEnum *)&mpfao->gmatrix_method,NULL);
@@ -605,7 +605,7 @@ PetscErrorCode TDySetFromOptions_MPFAO(void *context, TDyOptions *options) {
     SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Only one of -tdy_output_geom_attributes and -tdy_read_geom_attributes can be specified");
   }
   */
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Set characteristic curve data.
   mpfao->vangenuchten_m = options->vangenuchten_m;

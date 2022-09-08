@@ -25,8 +25,7 @@ PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
   ti->istep = 0;
 
   time_integration_method[0] = '\0';
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Time Integration Options","");
-                           CHKERRQ(ierr);
+  PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Time Integration Options","");
   ierr = PetscOptionsReal("-tdy_final_time","Final Time","",ti->final_time,
                           &ti->final_time,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_dt_max","Maximum Timestep Size","",ti->dt_max,
@@ -43,7 +42,7 @@ PetscErrorCode TDyTimeIntegratorCreate(TDyTimeIntegrator *_ti) {
                             "Time Integration Method","",
                             time_integration_method,time_integration_method,32,
                             NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   size_t len;
   ierr = PetscStrlen(time_integration_method,&len); CHKERRQ(ierr);

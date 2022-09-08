@@ -23,13 +23,12 @@ int main(int argc, char **argv) {
   ierr = MPI_Comm_rank(comm,&rank); CHKERRQ(ierr);
   ierr = MPI_Comm_size(comm,&size); CHKERRQ(ierr);
   PetscPrintf(comm,"Beginning salinity simulation.\n");
-  ierr = PetscOptionsBegin(comm,NULL,"Sample Options","");
-                           CHKERRQ(ierr);
+  PetscOptionsBegin(comm,NULL,"Sample Options","");
   ierr = PetscOptionsInt("-successful_exit_code",
                          "Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
                          CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   ierr = TDySetWaterDensityType(tdy,WATER_DENSITY_BATZLE_AND_WANG);
   ierr = TDySetWaterViscosityType(tdy,WATER_VISCOSITY_BATZLE_AND_WANG);

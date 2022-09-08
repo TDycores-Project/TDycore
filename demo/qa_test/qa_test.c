@@ -38,8 +38,7 @@ int main(int argc, char **argv) {
   char exofile[256];
   PetscBool exo = PETSC_FALSE;
   ierr = PetscInitialize(&argc,&argv,(char *)0,0); CHKERRQ(ierr);
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
-  CHKERRQ(ierr);
+  PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
   ierr = PetscOptionsInt ("-dim","Problem dimension","",dim,&dim,NULL);
   CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-N","Number of elements in 1D","",N,&N,NULL);
@@ -48,7 +47,7 @@ int main(int argc, char **argv) {
   CHKERRQ(ierr);
   ierr = PetscOptionsInt("-successful_exit_code","Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   /* Create and distribute the mesh */
   DM dm, dmDist = NULL;

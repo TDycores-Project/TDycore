@@ -38,8 +38,7 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   io->ic_dataset[0] = '\0';
   io->anisotropic_permeability = PETSC_FALSE;
 
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
-                           CHKERRQ(ierr);
+  PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
   ierr = PetscOptionsString("-init_permeability_file",
                             "Input Permeability Filename","",
 			    io->permeability_filename,io->permeability_filename,
@@ -88,7 +87,7 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
 			  io->output_timestep_interval,
 			  &io->output_timestep_interval, NULL);
                           CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   PetscFunctionReturn(0);
 }

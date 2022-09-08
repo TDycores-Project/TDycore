@@ -108,14 +108,14 @@ int main(int argc, char **argv) {
   ierr = TDyCreate(&tdy); CHKERRQ(ierr);
   ierr = TDySetDiscretizationMethod(tdy,WY); CHKERRQ(ierr);
 
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"SPE Options",""); CHKERRQ(ierr);
+  PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"SPE Options","");
   ierr = PetscOptionsInt ("-dim","Problem dimension","",
 			  dim,&dim,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt ("-N","Number of cells in each dimension","",
 			  N,&N,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-angle","Permeability angle","",
 			  ang,&ang,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   /* Create and distribute the mesh */
   DM dm, dmDist = NULL;

@@ -19,13 +19,12 @@ int main(int argc, char **argv) {
   ierr = MPI_Comm_rank(comm,&rank); CHKERRQ(ierr);
   ierr = MPI_Comm_size(comm,&size); CHKERRQ(ierr);
   PetscPrintf(comm,"Beginning Richards Driver simulation.\n");
-  ierr = PetscOptionsBegin(comm,NULL,"Sample Options","");
-                           CHKERRQ(ierr);
+  PetscOptionsBegin(comm,NULL,"Sample Options","");
   ierr = PetscOptionsInt("-successful_exit_code",
                          "Code passed on successful completion","",
                          successful_exit_code,&successful_exit_code,NULL);
                          CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // default mode and method must be set prior to TDySetFromOptions()
   ierr = TDySetFromOptions(tdy); CHKERRQ(ierr);

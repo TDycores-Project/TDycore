@@ -61,12 +61,12 @@ PetscErrorCode TDySetFromOptions_BDM(void *context, TDyOptions *options) {
   TDyBDM *bdm = context;
 
   // Set options.
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: BDM options",""); CHKERRQ(ierr);
+  PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: BDM options","");
   TDyQuadratureType qtype = FULL;
   ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type for finite element methods",
     "TDyWYSetQuadrature",TDyQuadratureTypes,(PetscEnum)qtype,
     (PetscEnum *)&bdm->qtype,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   PetscFunctionReturn(0);
 }

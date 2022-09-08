@@ -61,7 +61,7 @@ PetscErrorCode TDySetFromOptions_FVTPF(void *context, TDyOptions *options) {
   TDyFVTPF* fvtpf = context;
 
   // Set FV-TPF options.
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: FV-TPF options",""); CHKERRQ(ierr);
+  PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: FV-TPF options","");
   TDyBoundaryConditionType bctype = DIRICHLET_BC;
 
   PetscBool flag;
@@ -72,7 +72,7 @@ PetscErrorCode TDySetFromOptions_FVTPF(void *context, TDyOptions *options) {
   if (flag && (bctype != fvtpf->bc_type)) {
     fvtpf->bc_type = bctype;
   }
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Set characteristic curve data.
   fvtpf->vangenuchten_m = options->vangenuchten_m;
