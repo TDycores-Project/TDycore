@@ -530,8 +530,7 @@ static PetscErrorCode CubicPolynomialSetup(PetscReal x0, PetscReal x1, PetscReal
   dgesv_( &n, &nrhs, A, &lda, ipiv, rhs, &ldb, &info );
 
   if (info > 0) {
-    PetscPrintf(PETSC_COMM_WORLD,"");
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"CubicPolynomialSetup failed");
+    SETERRQ(PETSC_COMM_SELF,PETSC_ERR_USER,"CubicPolynomialSetup failed");
   }
 
   PetscFunctionReturn(0);
