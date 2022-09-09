@@ -733,7 +733,7 @@ int main(int argc, char **argv) {
   ierr = TDySetMode(tdy,RICHARDS); CHKERRQ(ierr);
   ierr = TDySetDiscretization(tdy,MPFA_O); CHKERRQ(ierr);
 
-  ierr = PetscOptionsBegin(comm,NULL,"Sample Options",""); CHKERRQ(ierr);
+  PetscOptionsBegin(comm,NULL,"Sample Options","");
   ierr = PetscOptionsInt("-dim","Problem dimension","",dim,&dim,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-N","Number of elements in 1D","",N,&N,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsInt("-problem","Problem number","",problem,&problem,NULL); CHKERRQ(ierr);
@@ -745,7 +745,7 @@ int main(int argc, char **argv) {
   ierr = PetscOptionsString("-view_centroids","Filename to save centroids","",centroids_filename,centroids_filename,256,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-view_true_pressure","Filename to save true pressure","",true_pres_filename,true_pres_filename,256,NULL); CHKERRQ(ierr);
   ierr = PetscOptionsString("-view_forcing","Filename to save forcing","",forcing_filename,forcing_filename,256,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   ierr = PetscStrcasecmp(paper,"wheeler2006",&wheeler2006); CHKERRQ(ierr);
   ierr = PetscStrcasecmp(paper,"wheeler2012",&wheeler2012); CHKERRQ(ierr);

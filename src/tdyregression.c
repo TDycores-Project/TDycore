@@ -33,7 +33,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
 
   regression->num_cells_per_process = 2;
 
-  ierr = PetscObjectOptionsBegin((PetscObject)tdy); CHKERRQ(ierr);
+  PetscObjectOptionsBegin((PetscObject)tdy);
 
   ierr = PetscOptionsInt ("-tdy_regression_test_num_cells_per_process",
 			  "Number of cells per MPI process","",
@@ -131,7 +131,7 @@ PetscErrorCode TDyRegressionInitialize(TDy tdy) {
   tdy->regression = regression;
 
   ierr = VecDestroy(&U); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
   ierr = TDyFree(int_array); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
@@ -267,7 +267,7 @@ PetscErrorCode TDyRegressionOutput(TDy tdy, Vec U) {
   }
 
   ierr = VecDestroy(&U_pres); CHKERRQ(ierr);
-  if (tdy->options.mode == TH) ierr = VecDestroy(&U_temp); CHKERRQ(ierr);
+  if (tdy->options.mode == TH) {ierr = VecDestroy(&U_temp); CHKERRQ(ierr);}
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);

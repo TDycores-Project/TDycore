@@ -38,8 +38,7 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
   io->ic_dataset[0] = '\0';
   io->anisotropic_permeability = PETSC_FALSE;
 
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
-                           CHKERRQ(ierr);
+  PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"Sample Options","");
   ierr = PetscOptionsString("-init_permeability_file",
                             "Input Permeability Filename","",
 			    io->permeability_filename,io->permeability_filename,
@@ -88,7 +87,7 @@ PetscErrorCode TDyIOCreate(TDyIO *_io) {
 			  io->output_timestep_interval,
 			  &io->output_timestep_interval, NULL);
                           CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   PetscFunctionReturn(0);
 }
@@ -543,7 +542,7 @@ PetscErrorCode TDyIOAddExodusTime(char *ofilename, PetscReal time, DM dm, TDyIO 
 
   io->num_times = io->num_times + 1;
   exoid = ex_open(ofilename, EX_WRITE, &CPU_word_size, &IO_word_size, &version);
-  if (exoid < 0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_FILE_UNEXPECTED, "Unable to open exodus file %\n", ofilename);
+  if (exoid < 0) SETERRQ(PETSC_COMM_SELF, PETSC_ERR_FILE_UNEXPECTED, "Unable to open exodus file %s\n", ofilename);
   ierr = ex_put_time(exoid,io->num_times,&time);CHKERRQ(ierr);
   ierr = DMSetOutputSequenceNumber(dm,io->num_times-1,time);CHKERRQ(ierr);
   ierr = ex_close(exoid);CHKERRQ(ierr);

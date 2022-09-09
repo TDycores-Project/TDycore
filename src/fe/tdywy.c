@@ -286,12 +286,12 @@ PetscErrorCode TDySetFromOptions_WY(void *context, TDyOptions *options) {
   wy->Pref = 101325;
 
   // Set options.
-  ierr = PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: WY options",""); CHKERRQ(ierr);
+  PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: WY options","");
   TDyQuadratureType qtype = FULL;
   ierr = PetscOptionsEnum("-tdy_quadrature","Quadrature type for finite element methods",
     "TDyWYSetQuadrature",TDyQuadratureTypes,(PetscEnum)qtype,
     (PetscEnum *)&wy->qtype,NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Set characteristic curve data.
   wy->vangenuchten_m = options->vangenuchten_m;

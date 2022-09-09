@@ -517,31 +517,31 @@ static PetscErrorCode ReadCommandLineOptions(TDy tdy) {
   TDyOptions *options = &tdy->options;
 
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
-  ierr = PetscObjectOptionsBegin((PetscObject)tdy); CHKERRQ(ierr);
+  PetscObjectOptionsBegin((PetscObject)tdy);
   PetscBool flag;
 
   TDyMode mode = options->mode;
   TDyDiscretization discretization = options->discretization;
 
   // Material property options
-  ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Material property options",""); CHKERRQ(ierr);
+  PetscOptionsBegin(comm,NULL,"TDyCore: Material property options","");
   ierr = PetscOptionsReal("-tdy_porosity", "Value of porosity", NULL, options->porosity, &options->porosity, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_permability", "Value of permeability", NULL, options->permeability, &options->permeability, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_soil_density", "Value of soil density", NULL, options->soil_density, &options->soil_density, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_soil_specific_heat", "Value of soil specific heat", NULL, options->soil_specific_heat, &options->soil_specific_heat, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_thermal_conductivity", "Value of thermal conductivity", NULL, options->porosity, &options->porosity, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Characteristic curve options
-  ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Characteristic curve options",""); CHKERRQ(ierr);
+  PetscOptionsBegin(comm,NULL,"TDyCore: Characteristic curve options","");
   ierr = PetscOptionsReal("-tdy_residual_satuaration", "Value of residual saturation", NULL, options->residual_saturation, &options->residual_saturation, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_gardner_param_n", "Value of Gardner n parameter", NULL, options->gardner_n, &options->gardner_n, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_vangenuchten_param_m", "Value of VanGenuchten m parameter", NULL, options->vangenuchten_m, &options->vangenuchten_m, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_vangenuchten_param_alpha", "Value of VanGenuchten alpha parameter", NULL, options->vangenuchten_alpha, &options->vangenuchten_alpha, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Model options
-  ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Model options",""); CHKERRQ(ierr);
+  PetscOptionsBegin(comm,NULL,"TDyCore: Model options","");
   ierr = PetscOptionsEnum("-tdy_mode","Flow mode", "TDySetMode",TDyModes,(PetscEnum)options->mode, (PetscEnum *)&mode, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsReal("-tdy_gravity", "Magnitude of gravity vector", NULL, options->gravity_constant, &options->gravity_constant, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_water_density","Water density vertical profile", "TDySetWaterDensityType", TDyWaterDensityTypes, (PetscEnum)options->rho_type, (PetscEnum *)&options->rho_type, NULL); CHKERRQ(ierr);
@@ -584,12 +584,12 @@ static PetscErrorCode ReadCommandLineOptions(TDy tdy) {
     } else { // TODO: what goes here??
     }
   }
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Numerics options
-  ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Numerics options",""); CHKERRQ(ierr);
+  PetscOptionsBegin(comm,NULL,"TDyCore: Numerics options","");
   ierr = PetscOptionsEnum("-tdy_discretization","Discretization", "TDySetDiscretization",TDyDiscretizations, (PetscEnum)options->discretization,(PetscEnum *)&discretization, NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Override the mode and/or discretization if needed.
   if (options->mode != mode) {
@@ -607,15 +607,15 @@ static PetscErrorCode ReadCommandLineOptions(TDy tdy) {
   }
 
   // Mesh-related options
-  ierr = PetscOptionsBegin(comm,NULL,"TDyCore: Mesh options",""); CHKERRQ(ierr);
+  PetscOptionsBegin(comm,NULL,"TDyCore: Mesh options","");
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_mesh", options->mesh_file,sizeof(options->mesh_file),&options->read_mesh); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_read_pflotran_mesh", options->mesh_file,sizeof(options->mesh_file),&options->read_pflotran_mesh); CHKERRQ(ierr);
   ierr = PetscOptionsBool("-tdy_output_mesh","Enable output of mesh attributes","",options->output_mesh,&(options->output_mesh),NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Other options
   ierr = PetscOptionsBool("-tdy_regression_test","Enable output of a regression file","",options->regression_testing,&(options->regression_testing),NULL); CHKERRQ(ierr);
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   PetscFunctionReturn(0);
 }
