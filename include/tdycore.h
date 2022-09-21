@@ -43,6 +43,7 @@ PETSC_EXTERN const char *const TDyDiscretizations[];
 typedef enum {
   TDY_UNDEFINED_FLOW_BC = 0,
   TDY_PRESSURE_BC,
+  TDY_VELOCITY_BC,
   TDY_NOFLOW_BC,
   TDY_SEEPAGE_BC
 } TDyFlowBCType;
@@ -81,33 +82,32 @@ typedef enum {
   TDySetupFinished=0x1<<4,
 } TDySetupFlags;
 
-/// A TDyScalarSpatialFunction computes the value of a scalar quantity f at n
-/// points x. Use this type to explicitly indicate that f is a scalar.
+/// A TDyScalarSpatialFunction computes the value of a scalar quantity f at
+/// time t, on n points x. Use this type to explicitly indicate that f is a
+/// scalar.
 /// Functions of this type accept an integer n for the number of points, an
 /// array x of length dim*n containing the coordinates of the points, and an
 /// array f of length n that stores the resulting n scalar values.
-typedef void (*TDyScalarSpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+typedef void (*TDyScalarSpatialFunction)(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f);
 
 /// A TDyVectorSpatialFunction computes the value of a vector quantity (or perhaps
-/// a diagonal anisotropic tensor) f at n points x. Use this type to explicitly
+/// a diagonal anisotropic tensor) f at time t on n points x. Use this type to explicitly
 /// indicate that f is a vector. Functions of this type accept an integer n for
 /// the number of points, an array x of length dim*n containing the coordinates
 /// of the points, and an array f of length dim*n that stores the resulting n
 /// vector values.
-typedef void (*TDyVectorSpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+typedef void (*TDyVectorSpatialFunction)(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f);
 
 /// A TDyTensorSpatialFunction computes the value of a rank-2 tensor quantity f at
-/// n points x. Use this type to explicitly indicate that f is a full tensor.
+/// time t on n points x. Use this type to explicitly indicate that f is a full tensor.
 /// Functions of this type accept an integer n for the number of points, an
 /// array x of length dim*n containing the coordinates of the points, and an
 /// array f of length dim*dim*n that stores the resulting n tensor values.
-typedef void (*TDyTensorSpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
+typedef void (*TDyTensorSpatialFunction)(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f);
 
 /// A TDySpatialFunction has the same type as the above functions, but can be
 /// used to store any one of them.
-typedef void (*TDySpatialFunction)(PetscInt n, PetscReal *x, PetscReal *f);
-
-typedef void (*TDyScalarSpatialIntegerFunction)(PetscInt n, PetscReal *x, PetscInt *f);
+typedef void (*TDySpatialFunction)(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f);
 
 typedef struct _p_TDy *TDy;
 

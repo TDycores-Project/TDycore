@@ -32,6 +32,13 @@ PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
   ierr = VecGetArray(mpfao->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
   ierr = VecGetArray(mpfao->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
 
+  // Get boundary conditions for each face set.
+  PetscInt num_face_sets = 1; // FIXME
+  BoundaryConditions bcs[num_face_sets];
+  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
+    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
+  }
+
   for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
     if (!vertices->is_local[ivertex]) continue;
@@ -101,7 +108,9 @@ PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
           PetscReal vis = mpfao->vis_bnd[-cell_id_up-1];
 
           ukvr = Kr/vis;
-          if (mpfao->bc_type == SEEPAGE_BC && mpfao->P_bnd[-cell_id_up-1] <= mpfao->Pref) {
+          PetscInt face_set = 0; // FIXME!
+          if (bcs[face_set].flow_bc.type == TDY_SEEPAGE_BC &&
+              mpfao->P_bnd[-cell_id_up-1] <= mpfao->Pref) {
             set_flow_to_zero = PETSC_TRUE;
           }
         }
@@ -117,7 +126,9 @@ PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
           PetscReal vis = mpfao->vis_bnd[-cell_id_dn-1];
 
           ukvr = Kr/vis;
-	        if (mpfao->bc_type == SEEPAGE_BC && mpfao->P_bnd[-cell_id_dn-1] <= mpfao->Pref) {
+          PetscInt face_set = 0; // FIXME!
+	        if (bcs[face_set].flow_bc.type == TDY_SEEPAGE_BC &&
+              mpfao->P_bnd[-cell_id_dn-1] <= mpfao->Pref) {
             set_flow_to_zero = PETSC_TRUE;
           }
         }
@@ -253,6 +264,13 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
   ierr = VecGetArray(mpfao->TtimesP_vec,&TtimesP_vec_ptr); CHKERRQ(ierr);
   ierr = VecGetArray(mpfao->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
 
+  // Get boundary conditions for each face set.
+  PetscInt num_face_sets = 1; // FIXME
+  BoundaryConditions bcs[num_face_sets];
+  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
+    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
+  }
+
   for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
     PetscInt vertex_id = ivertex;
@@ -357,7 +375,9 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
           ukvr = Kr/vis;
           dukvr_dPup = 0.0;
 
-          if (mpfao->bc_type == SEEPAGE_BC && mpfao->P_bnd[-cell_id_up-1] <= mpfao->Pref) {
+          PetscInt face_set = 0; // FIXME
+	        if (bcs[face_set].flow_bc.type == TDY_SEEPAGE_BC &&
+              mpfao->P_bnd[-cell_id_up-1] <= mpfao->Pref) {
             set_jac_to_zero = PETSC_TRUE;
           }
         }
@@ -383,7 +403,9 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
           ukvr       = Kr/vis;
           dukvr_dPdn = 0.0;
 
-          if (mpfao->bc_type == SEEPAGE_BC && mpfao->P_bnd[-cell_id_dn-1] <= mpfao->Pref) {
+          PetscInt face_set = 0; // FIXME
+	        if (bcs[face_set].flow_bc.type == TDY_SEEPAGE_BC &&
+              mpfao->P_bnd[-cell_id_dn-1] <= mpfao->Pref) {
             set_jac_to_zero = PETSC_TRUE;
           }
         }

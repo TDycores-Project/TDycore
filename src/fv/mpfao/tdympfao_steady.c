@@ -118,6 +118,13 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
 
   ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
+  // Get boundary conditions for each face set.
+  PetscInt num_face_sets = 1; // FIXME
+  BoundaryConditions bcs[num_face_sets];
+  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
+    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
+  }
+
     /*
 
     flux                   =              T                 *     P
@@ -186,11 +193,13 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
         cell_id_up = cell_ids[0];
         cell_id_dn = cell_ids[1];
 
-        if (faces->is_internal[face_id] == 0) {
+        if (!faces->is_internal[face_id]) {
           PetscInt f;
           f = faces->id[face_id] + fStart;
-          ierr = ConditionsComputeBoundaryPressure(conditions, 1, &(mpfao->X[f*dim]),
-            &pBoundary[numBoundary]);CHKERRQ(ierr);
+          PetscInt face_set = 0; // FIXME
+          // FIXME: can we assume that this face has a pressure BC?
+          ierr = EnforceFlowBC(&bcs[face_set].flow_bc, 0.0, 1,
+              &(mpfao->X[f*dim]), &pBoundary[numBoundary]);CHKERRQ(ierr);
           numBoundary++;
         }
       }
@@ -334,6 +343,13 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
+  // Get boundary conditions for each face set.
+  PetscInt num_face_sets = 1; // FIXME
+  BoundaryConditions bcs[num_face_sets];
+  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
+    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
+  }
+
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
     if (vertices->num_boundary_faces[ivertex] == 0) continue;
@@ -366,10 +382,11 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
 
       PetscInt f;
       f = faces->id[face_id] + fStart;
-       ierr = ConditionsComputeBoundaryPressure(conditions, 1, &(mpfao->X[f*dim]), 
-           &pBoundary[numBoundary]);CHKERRQ(ierr);
-       numBoundary++;
-
+      PetscInt face_set = 0; // FIXME
+      // FIXME: Can we assume a pressure boundary condition??
+      ierr = EnforceFlowBC(&bcs[face_set].flow_bc, 0.0, 1,
+        &(mpfao->X[f*dim]), &pBoundary[numBoundary]);CHKERRQ(ierr);
+      numBoundary++;
     }
 
     for (iface=0; iface<subcells->num_faces[subcell_id]; iface++) {

@@ -118,7 +118,7 @@ static PetscErrorCode DiagonalTensorsCreate(PetscInt dim, PetscReal *Tx,
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode AssignDiagonalTensors(void *context, PetscInt n,
+static PetscErrorCode AssignDiagonalTensors(void *context, PetscReal t, PetscInt n,
                                             PetscReal *x, PetscReal *tensors) {
   PetscFunctionBegin;
   DiagonalTensors *diag_tensors = context;
@@ -214,7 +214,7 @@ PetscErrorCode TDyIOReadPermeability(TDy tdy){
 }
 
 // This function is used to assign scalar values to each cell below.
-static PetscErrorCode AssignScalars(void *context, PetscInt n, PetscReal *x,
+static PetscErrorCode AssignScalars(void *context, PetscReal t, PetscInt n, PetscReal *x,
                                     PetscReal *scalars) {
   PetscFunctionBegin;
   PetscReal *values = context;

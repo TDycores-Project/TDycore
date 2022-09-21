@@ -68,6 +68,12 @@ const char *const TDyWaterEnthalpyTypes[] = {
   "TDyWaterEnthalpyType","TDY_ENTHALPY_",NULL
 };
 
+// This struct is stored in a context and used to call a spatial function with a
+// NULL context.
+typedef struct WrapperStruct {
+  TDySpatialFunction func;
+} WrapperStruct;
+
 PetscClassId TDY_CLASSID = 0;
 
 static PetscBool TDyPackageInitialized = PETSC_FALSE;
@@ -1522,16 +1528,6 @@ PetscErrorCode TDySetSalineMolecularWeightFunction(TDy tdy,
   CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
-
-// This struct is stored in a context and used to call a spatial function with a
-// NULL context.
-typedef struct WrapperStruct {
-  TDySpatialFunction func;
-} WrapperStruct;
-
-typedef struct WrapperIntegerStruct {
-  TDyScalarSpatialIntegerFunction func;
-} WrapperIntegerStruct;
 
 // This function calls an underlying function with a NULL context.
 static PetscErrorCode WrapperFunction(void *context, PetscReal t, PetscInt n, PetscReal *x, PetscReal *v) {

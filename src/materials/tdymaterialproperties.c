@@ -42,9 +42,10 @@ PetscErrorCode MaterialPropDestroy(MaterialProp *matprop) {
 /// @param [in] context A context pointer to be passed to f
 /// @param [in] f A function that computes the permeability at a given number of points
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
-PetscErrorCode MaterialPropSetPermeability(MaterialProp *matprop, void *context,
-                                           PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                           PetscErrorCode (*dtor)(void*)) {
+PetscErrorCode MaterialPropSetPermeability(MaterialProp *matprop,
+                                           void *context,
+                                           MaterialPropFunc f,
+                                           MaterialPropDtor dtor) {
   PetscFunctionBegin;
   if (matprop->permeability_context && matprop->permeability_dtor)
     matprop->permeability_dtor(matprop->permeability_context);
@@ -59,9 +60,10 @@ PetscErrorCode MaterialPropSetPermeability(MaterialProp *matprop, void *context,
 /// @param [in] context A context pointer to be passed to f
 /// @param [in] f A function that computes the porosity at a given number of points
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
-PetscErrorCode MaterialPropSetPorosity(MaterialProp *matprop, void *context,
-                                       PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                       PetscErrorCode (*dtor)(void*)) {
+PetscErrorCode MaterialPropSetPorosity(MaterialProp *matprop,
+                                       void *context,
+                                       MaterialPropFunc f,
+                                       MaterialPropDtor dtor) {
   PetscFunctionBegin;
   if (matprop->porosity_context && matprop->porosity_dtor)
     matprop->porosity_dtor(matprop->porosity_context);
@@ -76,9 +78,10 @@ PetscErrorCode MaterialPropSetPorosity(MaterialProp *matprop, void *context,
 /// @param [in] context A context pointer to be passed to f
 /// @param [in] f A function that computes the thermal conductivity at a given number of points
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
-PetscErrorCode MaterialPropSetThermalConductivity(MaterialProp *matprop, void *context,
-                                                  PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                                  PetscErrorCode (*dtor)(void*)) {
+PetscErrorCode MaterialPropSetThermalConductivity(MaterialProp *matprop,
+                                                  void *context,
+                                                  MaterialPropFunc f,
+                                                  MaterialPropDtor dtor) {
   PetscFunctionBegin;
   if (matprop->thermal_conductivity_context && matprop->thermal_conductivity_dtor)
     matprop->thermal_conductivity_dtor(matprop->thermal_conductivity_context);
@@ -93,9 +96,10 @@ PetscErrorCode MaterialPropSetThermalConductivity(MaterialProp *matprop, void *c
 /// @param [in] context A context pointer to be passed to f
 /// @param [in] f A function that computes the residual saturation at a given number of points
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
-PetscErrorCode MaterialPropSetResidualSaturation(MaterialProp *matprop, void *context,
-                                                 PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                                 PetscErrorCode (*dtor)(void*)) {
+PetscErrorCode MaterialPropSetResidualSaturation(MaterialProp *matprop,
+                                                 void *context,
+                                                 MaterialPropFunc f,
+                                                 MaterialPropDtor dtor) {
   PetscFunctionBegin;
   if (matprop->residual_saturation_context && matprop->residual_saturation_dtor)
     matprop->residual_saturation_dtor(matprop->residual_saturation_context);
@@ -110,9 +114,10 @@ PetscErrorCode MaterialPropSetResidualSaturation(MaterialProp *matprop, void *co
 /// @param [in] context A context pointer to be passed to f
 /// @param [in] f A function that computes the soil density at a given number of points
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
-PetscErrorCode MaterialPropSetSoilDensity(MaterialProp *matprop, void *context,
-                                          PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                          PetscErrorCode (*dtor)(void*)) {
+PetscErrorCode MaterialPropSetSoilDensity(MaterialProp *matprop,
+                                          void *context,
+                                          MaterialPropFunc f,
+                                          MaterialPropDtor dtor) {
   PetscFunctionBegin;
   if (matprop->soil_density_context && matprop->soil_density_dtor)
     matprop->soil_density_dtor(matprop->soil_density_context);
@@ -127,9 +132,10 @@ PetscErrorCode MaterialPropSetSoilDensity(MaterialProp *matprop, void *context,
 /// @param [in] context A context pointer to be passed to f
 /// @param [in] f A function that computes the soil density at a given number of points
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
-PetscErrorCode MaterialPropSetSoilSpecificHeat(MaterialProp *matprop, void *context,
-                                               PetscErrorCode(*f)(void*,int,PetscReal*,PetscReal*),
-                                               PetscErrorCode (*dtor)(void*)) {
+PetscErrorCode MaterialPropSetSoilSpecificHeat(MaterialProp *matprop,
+                                               void *context,
+                                               MaterialPropFunc f,
+                                               MaterialPropDtor dtor) {
   PetscFunctionBegin;
   if (matprop->soil_specific_heat_context && matprop->soil_specific_heat_dtor)
     matprop->soil_specific_heat_dtor(matprop->soil_specific_heat_context);
@@ -144,9 +150,10 @@ PetscErrorCode MaterialPropSetSoilSpecificHeat(MaterialProp *matprop, void *cont
 /// @param [in] context A context pointer to be passed to f
 /// @param [in] f A function that computes the saline diffusivity at a given number of points
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
-PetscErrorCode MaterialPropSetSalineDiffusivity(MaterialProp *matprop, void *context,
-                                                PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                                PetscErrorCode (*dtor)(void*)) {
+PetscErrorCode MaterialPropSetSalineDiffusivity(MaterialProp *matprop,
+                                                void *context,
+                                                MaterialPropFunc f,
+                                                MaterialPropDtor dtor) {
   PetscFunctionBegin;
   if (matprop->saline_diffusivity_context && matprop->saline_diffusivity_dtor)
     matprop->saline_diffusivity_dtor(matprop->saline_diffusivity_context);
@@ -161,9 +168,10 @@ PetscErrorCode MaterialPropSetSalineDiffusivity(MaterialProp *matprop, void *con
 /// @param [in] context A context pointer to be passed to f
 /// @param [in] f A function that computes the saline molecular weight at a given number of points
 /// @param [in] dtor A function that destroys the context when matprop is destroyed (can be NULL).
-PetscErrorCode MaterialPropSetSalineMolecularWeight(MaterialProp *matprop, void *context,
-                                                    PetscErrorCode(*f)(void*,PetscInt,PetscReal*,PetscReal*),
-                                                    PetscErrorCode (*dtor)(void*)) {
+PetscErrorCode MaterialPropSetSalineMolecularWeight(MaterialProp *matprop,
+                                                    void *context,
+                                                    MaterialPropFunc f,
+                                                    MaterialPropDtor dtor) {
   PetscFunctionBegin;
   if (matprop->saline_molecular_weight_context && matprop->saline_molecular_weight_dtor)
     matprop->saline_molecular_weight_dtor(matprop->saline_molecular_weight_context);
@@ -233,16 +241,18 @@ PetscBool MaterialPropHasSalineMolecularWeight(MaterialProp *matprop) {
 /// Computes the porosity at the given set of points (if the material properties
 /// have a corresponding function).
 /// @param [in] matprop A MaterialProp instance
+/// @param [in] t The time at which the property is evaluated
 /// @param [in] n The number of points
 /// @param [in] x The coordinates of the n points
 /// @param [out] porosity The values of the porosity at each point
 PetscErrorCode MaterialPropComputePorosity(MaterialProp *matprop,
-                                           PetscInt n, PetscReal *x,
+                                           PetscReal t, PetscInt n,
+                                           PetscReal *x,
                                            PetscReal *porosity) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   if (matprop->compute_porosity) {
-    ierr = matprop->compute_porosity(matprop->porosity_context,
+    ierr = matprop->compute_porosity(matprop->porosity_context, t,
                                      n, x, porosity); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -251,16 +261,18 @@ PetscErrorCode MaterialPropComputePorosity(MaterialProp *matprop,
 /// Computes the permeability tensor at the given set of points (if the material
 /// properties have a corresponding function).
 /// @param [in] matprop A MaterialProp instance
+/// @param [in] t The time at which the property is evaluated
 /// @param [in] n The number of points
 /// @param [in] x The coordinates of the n points
 /// @param [out] permeability The values of the permeability at each point
 PetscErrorCode MaterialPropComputePermeability(MaterialProp *matprop,
-                                               PetscInt n, PetscReal *x,
+                                               PetscReal t, PetscInt n,
+                                               PetscReal *x,
                                                PetscReal* permeability) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   if (matprop->compute_permeability) {
-    ierr = matprop->compute_permeability(matprop->permeability_context,
+    ierr = matprop->compute_permeability(matprop->permeability_context, t,
                                          n, x, permeability); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -269,16 +281,18 @@ PetscErrorCode MaterialPropComputePermeability(MaterialProp *matprop,
 /// Computes the thermal conductivity tensor at the given set of points (if the
 /// material properties have a corresponding function).
 /// @param [in] matprop A MaterialProp instance
+/// @param [in] t The time at which the property is evaluated
 /// @param [in] n The number of points
 /// @param [in] x The coordinates of the n points
 /// @param [out] conductivity The values of the conductivity at each point
 PetscErrorCode MaterialPropComputeThermalConductivity(MaterialProp *matprop,
-                                                      PetscInt n, PetscReal *x,
+                                                      PetscReal t, PetscInt n,
+                                                      PetscReal *x,
                                                       PetscReal *conductivity) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   if (matprop->compute_thermal_conductivity) {
-    ierr = matprop->compute_thermal_conductivity(matprop->thermal_conductivity_context,
+    ierr = matprop->compute_thermal_conductivity(matprop->thermal_conductivity_context, t,
                                                  n, x, conductivity); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -287,16 +301,18 @@ PetscErrorCode MaterialPropComputeThermalConductivity(MaterialProp *matprop,
 /// Computes the residual saturation at the given set of points (if the material
 /// properties have a corresponding function).
 /// @param [in] matprop A MaterialProp instance
+/// @param [in] t The time at which the property is evaluated
 /// @param [in] n The number of points
 /// @param [in] x The coordinates of the n points
 /// @param [out] saturation The values of the residual saturation at each point
 PetscErrorCode MaterialPropComputeResidualSaturation(MaterialProp *matprop,
-                                                     PetscInt n, PetscReal *x,
+                                                     PetscReal t, PetscInt n,
+                                                     PetscReal *x,
                                                      PetscReal *saturation) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   if (matprop->compute_residual_saturation) {
-    ierr = matprop->compute_residual_saturation(matprop->residual_saturation_context,
+    ierr = matprop->compute_residual_saturation(matprop->residual_saturation_context, t,
                                                 n, x, saturation); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -305,16 +321,18 @@ PetscErrorCode MaterialPropComputeResidualSaturation(MaterialProp *matprop,
 /// Computes the soil density at the given set of points (if the material
 /// properties have a corresponding function).
 /// @param [in] matprop A MaterialProp instance
+/// @param [in] t The time at which the property is evaluated
 /// @param [in] n The number of points
 /// @param [in] x The coordinates of the n points
 /// @param [out] density The values of the density at each point
 PetscErrorCode MaterialPropComputeSoilDensity(MaterialProp *matprop,
-                                              PetscInt n, PetscReal *x,
+                                              PetscReal t, PetscInt n,
+                                              PetscReal *x,
                                               PetscReal *density) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   if (matprop->compute_soil_density) {
-    ierr = matprop->compute_soil_density(matprop->soil_density_context,
+    ierr = matprop->compute_soil_density(matprop->soil_density_context, t,
                                          n, x, density); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -323,16 +341,18 @@ PetscErrorCode MaterialPropComputeSoilDensity(MaterialProp *matprop,
 /// Computes the soil specific heat at the given set of points (if the material
 /// properties have a corresponding function).
 /// @param [in] matprop A MaterialProp instance
+/// @param [in] t The time at which the property is evaluated
 /// @param [in] n The number of points
 /// @param [in] x The coordinates of the n points
 /// @param [out] specific_heat The values of the specific heat at each point
 PetscErrorCode MaterialPropComputeSoilSpecificHeat(MaterialProp *matprop,
-                                                   PetscInt n, PetscReal *x,
+                                                   PetscReal t, PetscInt n,
+                                                   PetscReal *x,
                                                    PetscReal *specific_heat) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   if (matprop->compute_soil_specific_heat) {
-    ierr = matprop->compute_soil_specific_heat(matprop->soil_specific_heat_context,
+    ierr = matprop->compute_soil_specific_heat(matprop->soil_specific_heat_context, t,
                                                n, x, specific_heat); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -341,16 +361,18 @@ PetscErrorCode MaterialPropComputeSoilSpecificHeat(MaterialProp *matprop,
 /// Computes the saline diffusivity tensor at the given set of points (if the
 /// material properties have a corresponding function).
 /// @param [in] matprop A MaterialProp instance
+/// @param [in] t The time at which the property is evaluated
 /// @param [in] n The number of points
 /// @param [in] x The coordinates of the n points
 /// @param [out] conductivity The values of the diffusivity at each point
 PetscErrorCode MaterialPropComputeSalineDiffusivity(MaterialProp *matprop,
-                                                    PetscInt n, PetscReal *x,
+                                                    PetscReal t, PetscInt n,
+                                                    PetscReal *x,
                                                     PetscReal *diffusivity) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   if (matprop->compute_saline_diffusivity) {
-    ierr = matprop->compute_saline_diffusivity(matprop->saline_diffusivity_context,
+    ierr = matprop->compute_saline_diffusivity(matprop->saline_diffusivity_context, t,
                                                n, x, diffusivity); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -359,16 +381,18 @@ PetscErrorCode MaterialPropComputeSalineDiffusivity(MaterialProp *matprop,
 /// Computes the saline molecular weight at the given set of points (if the
 /// material properties have a corresponding function).
 /// @param [in] matprop A MaterialProp instance
+/// @param [in] t The time at which the property is evaluated
 /// @param [in] n The number of points
 /// @param [in] x The coordinates of the n points
 /// @param [out] conductivity The values of the molecular weight at each point
 PetscErrorCode MaterialPropComputeSalineMolecularWeight(MaterialProp *matprop,
-                                                        PetscInt n, PetscReal *x,
+                                                        PetscReal t, PetscInt n,
+                                                        PetscReal *x,
                                                         PetscReal *weight) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   if (matprop->compute_saline_molecular_weight) {
-    ierr = matprop->compute_saline_molecular_weight(matprop->saline_molecular_weight_context,
+    ierr = matprop->compute_saline_molecular_weight(matprop->saline_molecular_weight_context, t,
                                                     n, x, weight); CHKERRQ(ierr);
   }
   PetscFunctionReturn(0);
@@ -382,7 +406,7 @@ typedef struct WrapperStruct {
   PetscReal value[9];
   // ScalarFunctions, VectorFunctions, and TensorFunctions can all be stored
   // here.
-  void (*func)(PetscInt, PetscReal*, PetscReal*);
+  void (*func)(PetscReal, PetscInt, PetscReal*, PetscReal*);
 } WrapperStruct;
 
 // Generic constructor for contexts for constant functions in this file.
@@ -401,7 +425,7 @@ static PetscErrorCode CreateConstantContext(PetscInt dim, PetscReal value[9],
 
 // Generic constructor for contexts for spatial functions in this file.
 static PetscErrorCode CreateSpatialContext(PetscInt dim,
-                                           void (*func)(PetscInt, PetscReal*, PetscReal*),
+                                           void (*func)(PetscReal, PetscInt, PetscReal*, PetscReal*),
                                            void **context) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -416,7 +440,7 @@ static PetscErrorCode CreateSpatialContext(PetscInt dim,
 
 // Generic function to call for constant functions that compute scalar
 // quantities in this file.
-static PetscErrorCode ConstantScalarWrapperFunction(void *context, PetscInt n,
+static PetscErrorCode ConstantScalarWrapperFunction(void *context, PetscReal t, PetscInt n,
                                                     PetscReal *x, PetscReal *f) {
   PetscFunctionBegin;
   WrapperStruct *wrapper = context;
@@ -428,17 +452,17 @@ static PetscErrorCode ConstantScalarWrapperFunction(void *context, PetscInt n,
 
 // Generic function to call for scalar spatial functions that compute scalar
 // quantities in this file.
-static PetscErrorCode ScalarWrapperFunction(void *context, PetscInt n,
+static PetscErrorCode ScalarWrapperFunction(void *context, PetscReal t, PetscInt n,
                                             PetscReal *x, PetscReal *f) {
   PetscFunctionBegin;
   WrapperStruct *wrapper = context;
-  wrapper->func(n, x, f);
+  wrapper->func(t, n, x, f);
   PetscFunctionReturn(0);
 }
 
 // Generic function to call for scalar constant functions that compute isotropic
 // tensor quantities in this file.
-static PetscErrorCode ConstantIsotropicTensorWrapperFunction(void *context, PetscInt n,
+static PetscErrorCode ConstantIsotropicTensorWrapperFunction(void *context, PetscReal t, PetscInt n,
                                                              PetscReal *x, PetscReal *f) {
   PetscFunctionBegin;
   WrapperStruct *wrapper = context;
@@ -454,12 +478,12 @@ static PetscErrorCode ConstantIsotropicTensorWrapperFunction(void *context, Pets
 
 // Generic function to call for scalar spatial functions that compute isotropic
 // tensor quantities in this file.
-static PetscErrorCode IsotropicTensorWrapperFunction(void *context, PetscInt n,
+static PetscErrorCode IsotropicTensorWrapperFunction(void *context, PetscReal t, PetscInt n,
                                                      PetscReal *x, PetscReal *f) {
   PetscFunctionBegin;
   WrapperStruct *wrapper = context;
   PetscReal values[n];
-  wrapper->func(n, x, values);
+  wrapper->func(t, n, x, values);
   PetscInt dim = wrapper->dim;
   PetscInt dim2 = dim*dim;
   for (PetscInt i = 0; i < n; ++i) {
@@ -472,7 +496,7 @@ static PetscErrorCode IsotropicTensorWrapperFunction(void *context, PetscInt n,
 
 // Generic function to call for vector constannt functions that compute
 // diagonal anisotropic tensor quantities in this file.
-static PetscErrorCode ConstantDiagonalTensorWrapperFunction(void *context, PetscInt n,
+static PetscErrorCode ConstantDiagonalTensorWrapperFunction(void *context, PetscReal t, PetscInt n,
                                                             PetscReal *x, PetscReal *f) {
   PetscFunctionBegin;
   WrapperStruct *wrapper = context;
@@ -488,14 +512,14 @@ static PetscErrorCode ConstantDiagonalTensorWrapperFunction(void *context, Petsc
 
 // Generic function to call for vector spatial functions that compute
 // diagonal anisotropic tensor quantities in this file.
-static PetscErrorCode DiagonalTensorWrapperFunction(void *context, PetscInt n,
+static PetscErrorCode DiagonalTensorWrapperFunction(void *context, PetscReal t, PetscInt n,
                                                     PetscReal *x, PetscReal *f) {
   PetscFunctionBegin;
   WrapperStruct *wrapper = context;
   PetscInt dim = wrapper->dim;
   PetscInt dim2 = dim*dim;
   PetscReal values[3*n];
-  wrapper->func(n, x, values);
+  wrapper->func(t, n, x, values);
   for (PetscInt i = 0; i < n; ++i) {
     for(PetscInt j = 0; j < dim; ++j) {
       f[dim2*i+j*dim+j] = values[3*i+j];
@@ -506,7 +530,7 @@ static PetscErrorCode DiagonalTensorWrapperFunction(void *context, PetscInt n,
 
 // Generic function to call for vector spatial functions that compute
 // full anisotropic tensor quantities in this file.
-static PetscErrorCode ConstantFullTensorWrapperFunction(void *context, PetscInt n,
+static PetscErrorCode ConstantFullTensorWrapperFunction(void *context, PetscReal t, PetscInt n,
                                                         PetscReal *x, PetscReal *f) {
   PetscFunctionBegin;
   WrapperStruct *wrapper = context;
@@ -522,11 +546,11 @@ static PetscErrorCode ConstantFullTensorWrapperFunction(void *context, PetscInt 
 
 // Generic function to call for vector spatial functions that compute
 // full anisotropic tensor quantities in this file.
-static PetscErrorCode FullTensorWrapperFunction(void *context, PetscInt n,
+static PetscErrorCode FullTensorWrapperFunction(void *context, PetscReal t, PetscInt n,
                                                 PetscReal *x, PetscReal *f) {
   PetscFunctionBegin;
   WrapperStruct *wrapper = context;
-  wrapper->func(n, x, f);
+  wrapper->func(t, n, x, f);
   PetscFunctionReturn(0);
 }
 

@@ -15,7 +15,7 @@ typedef struct FlowBC {
   /// vectorized function for computing boundary values
   PetscErrorCode (*compute)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*);
   /// destructor
-  void (*dtor)(void*);
+  PetscErrorCode (*dtor)(void*);
 } FlowBC;
 
 /// This type represents a temperature boundary condition defined by a function,
@@ -28,7 +28,7 @@ typedef struct ThermalBC {
   /// vectorized function for computing boundary values
   PetscErrorCode (*compute)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*);
   /// destructor
-  void (*dtor)(void*);
+  PetscErrorCode (*dtor)(void*);
 } ThermalBC;
 
 /// This type represents a saline concentration boundary condition defined by a
@@ -41,7 +41,7 @@ typedef struct SalinityBC {
   /// vectorized function for computing boundary values
   PetscErrorCode (*compute)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*);
   /// destructor
-  void (*dtor)(void*);
+  PetscErrorCode (*dtor)(void*);
 } SalinityBC;
 
 /// This type holds flow and thermal boundary conditions that can be
@@ -65,13 +65,13 @@ typedef struct Conditions {
   void* salinity_source_context;
 
   /// Compute momentum source/sink contributions at a set of given points.
-  PetscErrorCode (*compute_forcing)(void*,PetscInt,PetscReal*,PetscReal*);
+  PetscErrorCode (*compute_forcing)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*);
 
   /// Compute energy source/sink contributions at a set of given points.
-  PetscErrorCode (*compute_energy_forcing)(void*,PetscInt,PetscReal*,PetscReal*);
+  PetscErrorCode (*compute_energy_forcing)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*);
 
   /// Compute salinity source/sink contributions at a set of given points.
-  PetscErrorCode (*compute_salinity_source)(void*,PetscInt,PetscReal*,PetscReal*);
+  PetscErrorCode (*compute_salinity_source)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*);
 
   /// Context destructors.
   PetscErrorCode (*forcing_dtor)(void*);
@@ -87,9 +87,9 @@ PETSC_INTERN PetscErrorCode ConditionsCreate(Conditions**);
 PETSC_INTERN PetscErrorCode ConditionsDestroy(Conditions*);
 
 // source/sink setup functions
-PETSC_INTERN PetscErrorCode ConditionsSetForcing(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetEnergyForcing(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
-PETSC_INTERN PetscErrorCode ConditionsSetSalinitySource(Conditions*, void*, PetscErrorCode(*)(void*,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetForcing(Conditions*, void*, PetscErrorCode(*)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetEnergyForcing(Conditions*, void*, PetscErrorCode(*)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
+PETSC_INTERN PetscErrorCode ConditionsSetSalinitySource(Conditions*, void*, PetscErrorCode(*)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
 
 // source/sink query functions
 PETSC_INTERN PetscBool ConditionsHasForcing(Conditions*);
@@ -98,9 +98,9 @@ PETSC_INTERN PetscBool ConditionsHasSalinitySource(Conditions*);
 
 // conditions computation
 // TODO: Change to PETSC_INTERN when we fix demo/steady/steady.c
-PETSC_EXTERN PetscErrorCode ConditionsComputeForcing(Conditions*,PetscInt,PetscReal*,PetscReal*);
-PETSC_INTERN PetscErrorCode ConditionsComputeEnergyForcing(Conditions*,PetscInt,PetscReal*,PetscReal*);
-PETSC_INTERN PetscErrorCode ConditionsComputeSalinitySource(Conditions*,PetscInt,PetscReal*,PetscReal*);
+PETSC_EXTERN PetscErrorCode ConditionsComputeForcing(Conditions*,PetscReal,PetscInt,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode ConditionsComputeEnergyForcing(Conditions*,PetscReal,PetscInt,PetscReal*,PetscReal*);
+PETSC_INTERN PetscErrorCode ConditionsComputeSalinitySource(Conditions*,PetscReal,PetscInt,PetscReal*,PetscReal*);
 
 // boundary condition setup and query functions
 PETSC_INTERN PetscErrorCode ConditionsSetBCs(Conditions*, PetscInt, BoundaryConditions);

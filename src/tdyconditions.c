@@ -43,7 +43,7 @@ PetscErrorCode ConditionsDestroy(Conditions* conditions) {
 /// @param [in] f A function that computes forcing at a given number of points
 /// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
 PetscErrorCode ConditionsSetForcing(Conditions *conditions, void *context,
-                                    PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
+                                    PetscErrorCode (*f)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*),
                                     PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (conditions->forcing_context && conditions->forcing_dtor)
@@ -60,7 +60,7 @@ PetscErrorCode ConditionsSetForcing(Conditions *conditions, void *context,
 /// @param [in] f A function that computes energy forcing at a given number of points
 /// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
 PetscErrorCode ConditionsSetEnergyForcing(Conditions *conditions, void *context,
-                                          PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
+                                          PetscErrorCode (*f)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*),
                                           PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (conditions->energy_forcing_context && conditions->energy_forcing_dtor)
@@ -77,7 +77,7 @@ PetscErrorCode ConditionsSetEnergyForcing(Conditions *conditions, void *context,
 /// @param [in] f A function that computes salinity sources at a given number of points
 /// @param [in] dtor A function that destroys the context when conditions is destroyed (can be NULL).
 PetscErrorCode ConditionsSetSalinitySource(Conditions *conditions, void *context,
-                                           PetscErrorCode (*f)(void*,PetscInt,PetscReal*,PetscReal*),
+                                           PetscErrorCode (*f)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*),
                                            PetscErrorCode (*dtor)(void*)) {
   PetscFunctionBegin;
   if (conditions->salinity_source_context && conditions->salinity_source_dtor)
@@ -100,23 +100,23 @@ PetscBool ConditionsHasSalinitySource(Conditions *conditions) {
   return (conditions->compute_salinity_source != NULL);
 }
 
-PetscErrorCode ConditionsComputeForcing(Conditions *conditions, PetscInt n,
+PetscErrorCode ConditionsComputeForcing(Conditions *conditions, PetscReal t, PetscInt n,
                                         PetscReal *x, PetscReal *F) {
-  return conditions->compute_forcing(conditions->forcing_context, n, x, F);
+  return conditions->compute_forcing(conditions->forcing_context, t, n, x, F);
 }
 
-PetscErrorCode ConditionsComputeEnergyForcing(Conditions *conditions,
+PetscErrorCode ConditionsComputeEnergyForcing(Conditions *conditions, PetscReal t,
                                               PetscInt n, PetscReal *x,
                                               PetscReal *E) {
   return conditions->compute_energy_forcing(conditions->energy_forcing_context,
-                                            n, x, E);
+                                            t, n, x, E);
 }
 
-PetscErrorCode ConditionsComputeSalinitySource(Conditions *conditions,
+PetscErrorCode ConditionsComputeSalinitySource(Conditions *conditions, PetscReal t,
                                                PetscInt n, PetscReal *x,
                                                PetscReal *E) {
   return conditions->compute_salinity_source(conditions->salinity_source_context,
-                                             n, x, E);
+                                             t, n, x, E);
 }
 
 /// Sets flow, thermal, and salinity boundary conditions on the face set with
@@ -168,7 +168,7 @@ PetscErrorCode ConditionsGetBCs(Conditions *conditions,
   PetscFunctionReturn(0);
 }
 
-static PetscErrorCode ConstantBoundaryFn(void *context,
+static PetscErrorCode ConstantBoundaryFn(void *context, PetscReal t,
                                          PetscInt n, PetscReal *x,
                                          PetscReal *v) {
   PetscFunctionBegin;
@@ -201,7 +201,7 @@ PetscErrorCode CreateConstantVelocityBC(FlowBC *bc, PetscReal v0) {
   bc->type = TDY_VELOCITY_BC;
   bc->context = val;
   bc->compute = ConstantBoundaryFn;
-  bc->dtor = TdyFree;
+  bc->dtor = TDyFree;
   PetscFunctionReturn(0);
 }
 

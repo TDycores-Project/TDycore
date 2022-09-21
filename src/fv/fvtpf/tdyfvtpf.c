@@ -21,7 +21,6 @@ PetscErrorCode TDyCreate_FVTPF(void **context) {
   *context = fvtpf;
 
   // Initialize defaults and data.
-  fvtpf->bc_type = NEUMANN_BC;
   fvtpf->Pref = 101325.0;
   fvtpf->Tref = 25.0;
   fvtpf->gravity[0] = 0.0; fvtpf->gravity[1] = 0.0; fvtpf->gravity[2] = 0.0;
@@ -59,20 +58,6 @@ PetscErrorCode TDySetFromOptions_FVTPF(void *context, TDyOptions *options) {
   PetscErrorCode ierr;
 
   TDyFVTPF* fvtpf = context;
-
-  // Set FV-TPF options.
-  PetscOptionsBegin(PETSC_COMM_WORLD,NULL,"TDyCore: FV-TPF options","");
-  TDyBoundaryConditionType bctype = DIRICHLET_BC;
-
-  PetscBool flag;
-  ierr = PetscOptionsEnum("-tdy_fvtpf_boundary_condition_type",
-      "FV-TPF boundary condition type", "TDyFVTPFSetBoundaryConditionType",
-      TDyBoundaryConditionTypes,(PetscEnum)bctype,(PetscEnum *)&bctype,
-      &flag); CHKERRQ(ierr);
-  if (flag && (bctype != fvtpf->bc_type)) {
-    fvtpf->bc_type = bctype;
-  }
-  PetscOptionsEnd();
 
   // Set characteristic curve data.
   fvtpf->vangenuchten_m = options->vangenuchten_m;
@@ -255,19 +240,19 @@ static PetscErrorCode InitMaterials(TDyFVTPF *fvtpf,
   }
 
   // Compute material properties.
-  ierr = MaterialPropComputePermeability(matprop, nc, fvtpf->X, fvtpf->K0); CHKERRQ(ierr);
+  ierr = MaterialPropComputePermeability(matprop, 0.0, nc, fvtpf->X, fvtpf->K0); CHKERRQ(ierr);
   memcpy(fvtpf->K, fvtpf->K0, 9*nc*sizeof(PetscReal));
-  ierr = MaterialPropComputePorosity(matprop, nc, fvtpf->X, fvtpf->porosity); CHKERRQ(ierr);
-  ierr = MaterialPropComputeResidualSaturation(matprop, nc, fvtpf->X, fvtpf->Sr); CHKERRQ(ierr);
+  ierr = MaterialPropComputePorosity(matprop, 0.0, nc, fvtpf->X, fvtpf->porosity); CHKERRQ(ierr);
+  ierr = MaterialPropComputeResidualSaturation(matprop, 0.0, nc, fvtpf->X, fvtpf->Sr); CHKERRQ(ierr);
   if (MaterialPropHasThermalConductivity(matprop)) {
-    ierr = MaterialPropComputeThermalConductivity(matprop, nc, fvtpf->X, fvtpf->Kappa); CHKERRQ(ierr);
+    ierr = MaterialPropComputeThermalConductivity(matprop, 0.0, nc, fvtpf->X, fvtpf->Kappa); CHKERRQ(ierr);
     memcpy(fvtpf->Kappa0, fvtpf->Kappa, 9*nc*sizeof(PetscReal));
   }
   if (MaterialPropHasSoilSpecificHeat(matprop)) {
-    ierr = MaterialPropComputeSoilSpecificHeat(matprop, nc, fvtpf->X, fvtpf->c_soil); CHKERRQ(ierr);
+    ierr = MaterialPropComputeSoilSpecificHeat(matprop, 0.0, nc, fvtpf->X, fvtpf->c_soil); CHKERRQ(ierr);
   }
   if (MaterialPropHasSoilDensity(matprop)) {
-    ierr = MaterialPropComputeSoilDensity(matprop, nc, fvtpf->X, fvtpf->rho_soil); CHKERRQ(ierr);
+    ierr = MaterialPropComputeSoilDensity(matprop, 0.0, nc, fvtpf->X, fvtpf->rho_soil); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
@@ -326,35 +311,6 @@ static PetscErrorCode AllocateMemoryForSourceSinkValues(TDyFVTPF *fvtpf) {
   for (i=0;i<ncells;i++) fvtpf->source_sink[i] = 0.0;
 
   TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
-}
-
-static PetscErrorCode SetFaceBoundaryConditionType(TDyFVTPF *fvtpf, Conditions *condition) {
-
-  if (ConditionsHasBoundaryPressureType(condition)) {
-    TDyMesh  *mesh = fvtpf->mesh;
-    TDyFace  *faces = &mesh->faces;
-    PetscErrorCode ierr;
-
-    PetscInt boundary_type;
-    for (PetscInt iface=0; iface<mesh->num_faces; iface++){
-
-      // skip non-locan and internal faces
-      if (!faces->is_local[iface] || faces->is_internal[iface]) continue;
-
-      TDyCoordinate face_centroid;
-
-      ierr = TDyMeshGetFaceCentroid(mesh, iface, &face_centroid); CHKERRQ(ierr);
-      ierr = ConditionsAssignBoundaryPressureType(condition, 1, &(face_centroid.X[0]), &boundary_type); CHKERRQ(ierr);
-      if (boundary_type < DIRICHLET_BC || boundary_type > SEEPAGE_BC) {
-        char error_msg[100];
-        sprintf(error_msg,"The boundary pressure type is %d that is outside the allowable range of [%d %d]\n",boundary_type,DIRICHLET_BC,SEEPAGE_BC);
-        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,error_msg);
-      }
-      faces->bc_type[iface] = boundary_type;
-    }
-  }
-
   PetscFunctionReturn(0);
 }
 
@@ -489,7 +445,7 @@ PetscErrorCode TDySetup_Richards_FVTPF(void *context, TDyDiscretizationType *dis
 
   ierr = AllocateMemoryForBoundaryValues(fvtpf, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(fvtpf); CHKERRQ(ierr);
-  ierr = SetFaceBoundaryConditionType(fvtpf, conditions); CHKERRQ(ierr);
+  // FIXME: Might need to set BCs here?
 
   PetscFunctionReturn(0);
 }
