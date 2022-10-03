@@ -212,7 +212,7 @@ PetscErrorCode TDyWYLocalElementCompute(TDy tdy) {
 
       // integrate the forcing function using the same quadrature
       if (ConditionsHasForcing(conditions)) {
-        ierr = ConditionsComputeForcing(conditions, 1, &(x[q*dim]), &f);CHKERRQ(ierr);
+        ierr = ConditionsComputeForcing(conditions, 0.0, 1, &(x[q*dim]), &f);CHKERRQ(ierr);
         wy->Flocal[c] += f*J[q];
       }
     }
@@ -920,7 +920,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
           BoundaryConditions bcs;
           ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
           if (bcs.flow_bc.type == TDY_PRESSURE_BC) {
-            ierr = EnforceFlowBC(&bcs.flow_bc, 1, &(wy->X[global_row*dim]),
+            ierr = EnforceFlowBC(&bcs.flow_bc, 0.0, 1, &(wy->X[global_row*dim]),
                                  &pdirichlet); CHKERRQ(ierr);
             F[local_row] += -wgt*sign_row*pdirichlet*wy->V[global_row];
           }

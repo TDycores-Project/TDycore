@@ -845,7 +845,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
 
     PetscInt face_set = 0; // FIXME
     if (bcs[face_set].thermal_bc.type == TDY_TEMPERATURE_BC) {
-      ierr = EnforceSalinityBC(&bcs[face_set].thermal_bc, 0.0, 1,
+      ierr = EnforceThermalBC(&bcs[face_set].thermal_bc, 0.0, 1,
         faces->centroid[iface].X, &(mpfao->T_bnd[t_bnd_idx])); CHKERRQ(ierr);
     } else {
       mpfao->T_bnd[t_bnd_idx] = t[cell_id];

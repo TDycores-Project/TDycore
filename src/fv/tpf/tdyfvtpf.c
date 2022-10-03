@@ -569,7 +569,7 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
     }
 
     if (ConditionsHasBoundaryPressure(conditions)) {
-      ierr = ConditionsComputeBoundaryPressure(conditions, 1,
+      ierr = ConditionsComputeBoundaryPressure(conditions, 0.0, 1,
         faces->centroid[iface].X, &(fvtpf->P_bnd[p_bnd_idx])); CHKERRQ(ierr);
     } else {
       fvtpf->P_bnd[p_bnd_idx] = p[cell_id];

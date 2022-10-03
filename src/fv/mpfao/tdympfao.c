@@ -717,25 +717,25 @@ static PetscErrorCode InitMaterials(TDyMPFAO *mpfao,
   }
 
   // Compute material properties.
-  ierr = MaterialPropComputePermeability(matprop, nc, mpfao->X, mpfao->K0); CHKERRQ(ierr);
+  ierr = MaterialPropComputePermeability(matprop, 0.0, nc, mpfao->X, mpfao->K0); CHKERRQ(ierr);
   memcpy(mpfao->K, mpfao->K0, 9*nc*sizeof(PetscReal));
-  ierr = MaterialPropComputePorosity(matprop, nc, mpfao->X, mpfao->porosity); CHKERRQ(ierr);
-  ierr = MaterialPropComputeResidualSaturation(matprop, nc, mpfao->X, mpfao->Sr); CHKERRQ(ierr);
+  ierr = MaterialPropComputePorosity(matprop, 0.0, nc, mpfao->X, mpfao->porosity); CHKERRQ(ierr);
+  ierr = MaterialPropComputeResidualSaturation(matprop, 0.0, nc, mpfao->X, mpfao->Sr); CHKERRQ(ierr);
   if (MaterialPropHasThermalConductivity(matprop)) {
-    ierr = MaterialPropComputeThermalConductivity(matprop, nc, mpfao->X, mpfao->Kappa); CHKERRQ(ierr);
+    ierr = MaterialPropComputeThermalConductivity(matprop, 0.0, nc, mpfao->X, mpfao->Kappa); CHKERRQ(ierr);
     memcpy(mpfao->Kappa0, mpfao->Kappa, 9*nc*sizeof(PetscReal));
   }
   if (MaterialPropHasSoilSpecificHeat(matprop)) {
-    ierr = MaterialPropComputeSoilSpecificHeat(matprop, nc, mpfao->X, mpfao->c_soil); CHKERRQ(ierr);
+    ierr = MaterialPropComputeSoilSpecificHeat(matprop, 0.0, nc, mpfao->X, mpfao->c_soil); CHKERRQ(ierr);
   }
   if (MaterialPropHasSoilDensity(matprop)) {
-    ierr = MaterialPropComputeSoilDensity(matprop, nc, mpfao->X, mpfao->rho_soil); CHKERRQ(ierr);
+    ierr = MaterialPropComputeSoilDensity(matprop, 0.0, nc, mpfao->X, mpfao->rho_soil); CHKERRQ(ierr);
   }
   if (MaterialPropHasSalineDiffusivity(matprop)) {
-    ierr = MaterialPropComputeSalineDiffusivity(matprop, nc, mpfao->X, mpfao->D_saline); CHKERRQ(ierr);
+    ierr = MaterialPropComputeSalineDiffusivity(matprop, 0.0, nc, mpfao->X, mpfao->D_saline); CHKERRQ(ierr);
   }
   if (MaterialPropHasSalineMolecularWeight(matprop)) {
-    ierr = MaterialPropComputeSalineMolecularWeight(matprop, nc, mpfao->X, mpfao->mu_saline); CHKERRQ(ierr);
+    ierr = MaterialPropComputeSalineMolecularWeight(matprop, 0.0, nc, mpfao->X, mpfao->mu_saline); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
@@ -2544,8 +2544,8 @@ PetscErrorCode TDySetup_Salinity_MPFAO(void *context,
 
   // Compute matrices for our discretization.
   ierr = ComputeGMatrix(mpfao, dm, matprop); CHKERRQ(ierr);
-  ierr = ComputeTransmissibilityMatrix(mpfao, dm); CHKERRQ(ierr);
-  ierr = ComputeGravityDiscretization(mpfao, dm, matprop); CHKERRQ(ierr);
+  ierr = ComputeTransmissibilityMatrix(mpfao, dm, conditions); CHKERRQ(ierr);
+  ierr = ComputeGravityDiscretization(mpfao, dm, matprop, conditions); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
@@ -2846,7 +2846,7 @@ PetscErrorCode TDyMPFAOComputeSystem(TDy tdy,Mat K,Vec F) {
     for (PetscInt icell=0; icell<mesh->num_cells; icell++) {
       if (cells->is_local[icell]) {
         PetscReal f;
-        ierr = ConditionsComputeForcing(conditions, 1, &(mpfao->X[icell*dim]), &f);CHKERRQ(ierr);
+        ierr = ConditionsComputeForcing(conditions, 0.0, 1, &(mpfao->X[icell*dim]), &f);CHKERRQ(ierr);
         PetscReal value = f * cells->volume[icell];
         PetscInt row = cells->global_id[icell];
         ierr = VecSetValue(F, row, value, ADD_VALUES); CHKERRQ(ierr);

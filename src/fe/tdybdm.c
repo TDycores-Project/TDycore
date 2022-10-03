@@ -503,7 +503,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
 
       /* Integrate forcing if present */
       if (ConditionsHasForcing(conditions)) {
-        ierr = ConditionsComputeForcing(conditions, 1, &(x[q*dim]), &force);CHKERRQ(ierr);
+        ierr = ConditionsComputeForcing(conditions, 0.0, 1, &(x[q*dim]), &force);CHKERRQ(ierr);
         Flocal[nlocal-1] += -force*quad_w[q]*J[q];
       }
 

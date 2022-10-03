@@ -119,13 +119,28 @@ PetscErrorCode ConditionsComputeSalinitySource(Conditions *conditions, PetscReal
                                              t, n, x, E);
 }
 
+/// Stores true in the given boolean if the given face set is associated with a
+/// set of boundary conditions, false otherwise.
+/// @param [in] conditions A Conditions instance
+/// @param [in] face_set The index of a face set identifying the surface on
+///                      which to specify the boundary pressure
+/// @param [out] have_bcs stores the result of the query
+PetscErrorCode ConditionsHaveBCs(Conditions *conditions,
+                                 PetscInt face_set,
+                                 bool *have_bcs) {
+  PetscFunctionBegin;
+  khiter_t iter = kh_get(TDY_BC, conditions->bcs, face_set);
+  *have_bcs = (iter != kh_end(conditions->bcs));
+  PetscFunctionReturn(0);
+}
+
 /// Sets flow, thermal, and salinity boundary conditions on the face set with
 /// the given index.
 /// @param [in] conditions A Conditions instance
 /// @param [in] face_set The index of a face set identifying the surface on
 ///                      which to specify the boundary pressure
-/// @param [in] bcs A BoundaryConditions struct holding the desired flow,
-///                 thermal, and salinity boundary conditions
+/// @param [out] bcs A BoundaryConditions struct holding the desired flow,
+///                  thermal, and salinity boundary conditions
 PetscErrorCode ConditionsSetBCs(Conditions *conditions,
                                 PetscInt face_set,
                                 BoundaryConditions bcs) {
