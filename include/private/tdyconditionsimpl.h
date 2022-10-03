@@ -92,9 +92,9 @@ PETSC_INTERN PetscErrorCode ConditionsSetEnergyForcing(Conditions*, void*, Petsc
 PETSC_INTERN PetscErrorCode ConditionsSetSalinitySource(Conditions*, void*, PetscErrorCode(*)(void*,PetscReal,PetscInt,PetscReal*,PetscReal*), PetscErrorCode (*)(void*));
 
 // source/sink query functions
-PETSC_INTERN bool ConditionsHasForcing(Conditions*);
-PETSC_INTERN bool ConditionsHasEnergyForcing(Conditions*);
-PETSC_INTERN bool ConditionsHasSalinitySource(Conditions*);
+PETSC_INTERN PetscBool ConditionsHasForcing(Conditions*);
+PETSC_INTERN PetscBool ConditionsHasEnergyForcing(Conditions*);
+PETSC_INTERN PetscBool ConditionsHasSalinitySource(Conditions*);
 
 // conditions computation
 // TODO: Change to PETSC_INTERN when we fix demo/steady/steady.c
@@ -103,7 +103,7 @@ PETSC_INTERN PetscErrorCode ConditionsComputeEnergyForcing(Conditions*,PetscReal
 PETSC_INTERN PetscErrorCode ConditionsComputeSalinitySource(Conditions*,PetscReal,PetscInt,PetscReal*,PetscReal*);
 
 // boundary condition setup and query functions
-PETSC_INTERN PetscErrorCode ConditionsHaveBCs(Conditions*, PetscInt, bool*);
+PETSC_INTERN PetscBool ConditionsHaveBCs(Conditions*, PetscInt);
 PETSC_INTERN PetscErrorCode ConditionsSetBCs(Conditions*, PetscInt, BoundaryConditions);
 PETSC_INTERN PetscErrorCode ConditionsGetBCs(Conditions*, PetscInt, BoundaryConditions*);
 

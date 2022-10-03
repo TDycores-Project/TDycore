@@ -540,6 +540,13 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
 
   PetscFunctionBegin;
 
+  // Get boundary conditions for each face set.
+  PetscInt num_face_sets = 1; // FIXME
+  BoundaryConditions bcs[num_face_sets];
+  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
+    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
+  }
+
   DM dm;
   ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
 
@@ -568,9 +575,9 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
       p_bnd_idx = -cell_ids[0] - 1;
     }
 
-    if (ConditionsHasBoundaryPressure(conditions)) {
-      ierr = ConditionsComputeBoundaryPressure(conditions, 0.0, 1,
-        faces->centroid[iface].X, &(fvtpf->P_bnd[p_bnd_idx])); CHKERRQ(ierr);
+    if (bcs[0].flow_bc.type == TDY_PRESSURE_BC) { // FIXME
+      ierr = EnforceFlowBC(&bcs[0].flow_bc, 0.0, 1, faces->centroid[iface].X,
+        &(fvtpf->P_bnd[p_bnd_idx])); CHKERRQ(ierr);
     } else {
       fvtpf->P_bnd[p_bnd_idx] = p[cell_id];
     }

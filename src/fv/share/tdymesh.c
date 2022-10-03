@@ -284,8 +284,6 @@ PetscErrorCode AllocateFaces(
   ierr = TDyAllocate_IntegerArray_1D(&faces->edge_ids,num_faces*num_edges); CHKERRQ(ierr);
   ierr = TDyAllocate_IntegerArray_1D(&faces->vertex_ids,num_faces*num_vertices); CHKERRQ(ierr);
 
-  ierr = TDyAllocate_IntegerArray_1D(&faces->bc_type,num_faces); CHKERRQ(ierr);
-
   ierr = TDyAllocate_RealArray_1D(&faces->area,num_faces); CHKERRQ(ierr);
   ierr = TDyAllocate_RealArray_1D(&faces->projected_area,num_faces); CHKERRQ(ierr);
 
@@ -306,8 +304,6 @@ PetscErrorCode AllocateFaces(
 
     faces->num_cells[iface] = 0;
     faces->num_vertices[iface] = 0;
-
-    faces->bc_type[iface] = NEUMANN_BC;
 
     faces->cell_offset[iface] = iface*num_cells;
     faces->edge_offset[iface] = iface*num_edges;

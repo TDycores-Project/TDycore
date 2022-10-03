@@ -509,9 +509,9 @@ PetscErrorCode TDySetup_WY(void *context, TDyDiscretizationType *discretization,
   }
 
   // Compute material properties.
-  ierr = MaterialPropComputePermeability(matprop, nc, wy->X, wy->K0); CHKERRQ(ierr);
+  ierr = MaterialPropComputePermeability(matprop, 0.0, nc, wy->X, wy->K0); CHKERRQ(ierr);
   memcpy(wy->K, wy->K0, 9*sizeof(PetscReal)*nc);
-  MaterialPropComputePorosity(matprop, nc, wy->X, wy->porosity);
+  MaterialPropComputePorosity(matprop, 0.0, nc, wy->X, wy->porosity);
 
   /* Setup the section, 1 dof per cell */
   PetscSection sec;
@@ -754,7 +754,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
           BoundaryConditions bcs;
           ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
           if (bcs.flow_bc.type == TDY_PRESSURE_BC) {
-            ierr = EnforceFlowBC(&bcs.flow_bc, 1, &(wy->X[global_row*dim]),
+            ierr = EnforceFlowBC(&bcs.flow_bc, 0.0, 1, &(wy->X[global_row*dim]),
                                  &pdirichlet); CHKERRQ(ierr);
             G[local_row] = wgt*sign_row*pdirichlet*wy->V[global_row];
           }
