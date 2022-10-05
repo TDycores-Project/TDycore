@@ -119,6 +119,14 @@ PetscErrorCode ConditionsComputeSalinitySource(Conditions *conditions, PetscReal
                                              t, n, x, E);
 }
 
+/// Returns the number of face sets associated with boundary conditions in this
+/// Conditions instance.
+/// @param [in] conditions A Conditions instance
+PetscInt ConditionsNumFaceSets(Conditions* conditions) {
+  PetscFunctionBegin;
+  PetscFunctionReturn((PetscInt)kh_size(conditions->bcs));
+}
+
 /// Returns true if the given face set is associated with a set of boundary
 /// conditions, false otherwise.
 /// @param [in] conditions A Conditions instance
@@ -176,6 +184,34 @@ PetscErrorCode ConditionsGetBCs(Conditions *conditions,
   khiter_t iter = kh_get(TDY_BC, conditions->bcs, face_set);
   if (iter != kh_end(conditions->bcs)) {
     *bcs = kh_val(conditions->bcs, iter);
+  }
+  PetscFunctionReturn(0);
+}
+
+/// Retrieves all flow, thermal, and salinity boundary conditions on all face
+/// set associated with this Conditions instance
+/// @param [in] conditions A Conditions instance
+/// @param [in] face_sets An array sufficiently large to store the indices of
+///                       all face sets associated with this Conditions. If
+///                       NULL, face sets are not retrieved.
+/// @param [in] bcs An array suffiently large to store all boundary conditions.
+///                 If NULL, boundary conditions are not retrieved.
+PetscErrorCode ConditionsGetAllBCs(Conditions *conditions,
+                                   PetscInt *face_sets,
+                                   BoundaryConditions *bcs) {
+  PetscFunctionBegin;
+  PetscInt i = 0;
+	for (khiter_t k = kh_begin(conditions->bcs);
+       k != kh_end(conditions->bcs); ++k) {
+    if (kh_exist(conditions->bcs, k)) {
+      if (face_sets) {
+        face_sets[i] = kh_key(conditions->bcs, k);
+      }
+      if (bcs) {
+        bcs[i] = kh_val(conditions->bcs, k);
+      }
+      ++i;
+    }
   }
   PetscFunctionReturn(0);
 }

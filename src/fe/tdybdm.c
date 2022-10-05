@@ -273,7 +273,7 @@ PetscErrorCode TDySetup_BDM(void *context, TDyDiscretizationType *discretization
   // Initialize material properties.
   PetscInt nc = cEnd-cStart;
   ierr = TDyAlloc(9*nc*sizeof(PetscReal),&(bdm->K)); CHKERRQ(ierr);
-  ierr = MaterialPropComputePermeability(matprop, nc, bdm->X, bdm->K); CHKERRQ(ierr);
+  ierr = MaterialPropComputePermeability(matprop, 0.0, nc, bdm->X, bdm->K); CHKERRQ(ierr);
 
   TDY_STOP_FUNCTION_TIMER()
   PetscFunctionReturn(0);

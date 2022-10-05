@@ -119,11 +119,9 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_SharedWithInternalVertices
   ierr = TDyAllocate_RealArray_2D(&Gmatrix, dim, dim);
 
   // Get boundary conditions for each face set.
-  PetscInt num_face_sets = 1; // FIXME
+  PetscInt num_face_sets = ConditionsNumFaceSets(tdy->conditions);
   BoundaryConditions bcs[num_face_sets];
-  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
-    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
-  }
+  ierr = ConditionsGetAllBCs(tdy->conditions, NULL, bcs); CHKERRQ(ierr);
 
     /*
 
@@ -344,11 +342,9 @@ PetscErrorCode TDyMPFAOComputeSystem_BoundaryVertices_NotSharedWithInternalVerti
   ierr = DMGetDimension(dm,&dim); CHKERRQ(ierr);
 
   // Get boundary conditions for each face set.
-  PetscInt num_face_sets = 1; // FIXME
+  PetscInt num_face_sets = ConditionsNumFaceSets(tdy->conditions);
   BoundaryConditions bcs[num_face_sets];
-  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
-    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
-  }
+  ierr = ConditionsGetAllBCs(tdy->conditions, NULL, bcs); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 

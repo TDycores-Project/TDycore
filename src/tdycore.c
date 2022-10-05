@@ -548,7 +548,7 @@ static PetscErrorCode GetBCsForBoundaries(TDy tdy,
             .type = TDY_PRESSURE_BC,
             .context = wrapper,
             .compute = WrapperFunction,
-            .dtor = free
+            .dtor = TDyFree
           };
         } else {
           SETERRQ(comm, PETSC_ERR_USER,
@@ -637,7 +637,7 @@ static PetscErrorCode GetBCsForBoundaries(TDy tdy,
             .type = TDY_TEMPERATURE_BC,
             .context = wrapper,
             .compute = WrapperFunction,
-            .dtor = free
+            .dtor = TDyFree
           };
         } else {
           SETERRQ(comm, PETSC_ERR_USER,

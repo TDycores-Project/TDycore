@@ -139,11 +139,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDy tdy, Vec U, PetscRea
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
 
   // Get boundary conditions for each face set.
-  PetscInt num_face_sets = 1; // FIXME
+  PetscInt num_face_sets = ConditionsNumFaceSets(tdy->conditions);
   BoundaryConditions bcs[num_face_sets];
-  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
-    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
-  }
+  ierr = ConditionsGetAllBCs(tdy->conditions, NULL, bcs); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -264,11 +262,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
 
   // Get boundary conditions for each face set.
-  PetscInt num_face_sets = 1; // FIXME
+  PetscInt num_face_sets = ConditionsNumFaceSets(tdy->conditions);
   BoundaryConditions bcs[num_face_sets];
-  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
-    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
-  }
+  ierr = ConditionsGetAllBCs(tdy->conditions, NULL, bcs); CHKERRQ(ierr);
 
     /*
 
@@ -590,11 +586,9 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
   ierr = VecGetArray(localU,&u); CHKERRQ(ierr);
 
   // Get boundary conditions for each face set.
-  PetscInt num_face_sets = 1; // FIXME
+  PetscInt num_face_sets = ConditionsNumFaceSets(tdy->conditions);
   BoundaryConditions bcs[num_face_sets];
-  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
-    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
-  }
+  ierr = ConditionsGetAllBCs(tdy->conditions, NULL, bcs); CHKERRQ(ierr);
 
   for (ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -735,11 +729,9 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
   ierr = VecGetArray(mpfao->P_vec,&p_vec_ptr); CHKERRQ(ierr);
 
   // Get boundary conditions for each face set.
-  PetscInt num_face_sets = 1; // FIXME
+  PetscInt num_face_sets = ConditionsNumFaceSets(tdy->conditions);
   BoundaryConditions bcs[num_face_sets];
-  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
-    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
-  }
+  ierr = ConditionsGetAllBCs(tdy->conditions, NULL, bcs); CHKERRQ(ierr);
 
   PetscInt ncells = mesh->num_cells;
   PetscReal p[ncells];
@@ -814,11 +806,9 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
   ierr = VecGetArray(mpfao->Temp_P_vec,&t_vec_ptr); CHKERRQ(ierr);
 
   // Get boundary conditions for each face set.
-  PetscInt num_face_sets = 1; // FIXME
+  PetscInt num_face_sets = ConditionsNumFaceSets(tdy->conditions);
   BoundaryConditions bcs[num_face_sets];
-  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
-    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
-  }
+  ierr = ConditionsGetAllBCs(tdy->conditions, NULL, bcs); CHKERRQ(ierr);
 
   PetscInt ncells = mesh->num_cells;
   PetscReal t[ncells];
@@ -883,11 +873,9 @@ PetscErrorCode TDyMPFAO_SetBoundarySalineConcentration(TDy tdy, Vec Ul) {
   ierr = VecGetArray(mpfao->Psi_vec,&psi_vec_ptr); CHKERRQ(ierr);
 
   // Get boundary conditions for each face set.
-  PetscInt num_face_sets = 1; // FIXME
+  PetscInt num_face_sets = ConditionsNumFaceSets(tdy->conditions);
   BoundaryConditions bcs[num_face_sets];
-  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
-    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
-  }
+  ierr = ConditionsGetAllBCs(tdy->conditions, NULL, bcs); CHKERRQ(ierr);
 
   for (c=0;c<cEnd-cStart;c++) {
     psi[c] = u_p[c*2+1];

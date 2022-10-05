@@ -33,11 +33,10 @@ PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
   ierr = VecGetArray(mpfao->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
 
   // Get boundary conditions for each face set.
-  PetscInt num_face_sets = 1; // FIXME
+  PetscInt num_face_sets = ConditionsNumFaceSets(tdy->conditions);
+  PetscInt face_sets[num_face_sets];
   BoundaryConditions bcs[num_face_sets];
-  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
-    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
-  }
+  ierr = ConditionsGetAllBCs(tdy->conditions, face_sets, bcs); CHKERRQ(ierr);
 
   for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 
@@ -265,11 +264,10 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
   ierr = VecGetArray(mpfao->GravDisVec, &GravDis_ptr); CHKERRQ(ierr);
 
   // Get boundary conditions for each face set.
-  PetscInt num_face_sets = 1; // FIXME
+  PetscInt num_face_sets = ConditionsNumFaceSets(tdy->conditions);
+  PetscInt face_sets[num_face_sets];
   BoundaryConditions bcs[num_face_sets];
-  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
-    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
-  }
+  ierr = ConditionsGetAllBCs(tdy->conditions, face_sets, bcs); CHKERRQ(ierr);
 
   for (PetscInt ivertex=0; ivertex<mesh->num_vertices; ivertex++) {
 

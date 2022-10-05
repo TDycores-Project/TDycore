@@ -103,9 +103,11 @@ PETSC_INTERN PetscErrorCode ConditionsComputeEnergyForcing(Conditions*,PetscReal
 PETSC_INTERN PetscErrorCode ConditionsComputeSalinitySource(Conditions*,PetscReal,PetscInt,PetscReal*,PetscReal*);
 
 // boundary condition setup and query functions
+PETSC_INTERN PetscInt ConditionsNumFaceSets(Conditions*);
 PETSC_INTERN PetscBool ConditionsHaveBCs(Conditions*, PetscInt);
 PETSC_INTERN PetscErrorCode ConditionsSetBCs(Conditions*, PetscInt, BoundaryConditions);
 PETSC_INTERN PetscErrorCode ConditionsGetBCs(Conditions*, PetscInt, BoundaryConditions*);
+PETSC_INTERN PetscErrorCode ConditionsGetAllBCs(Conditions*, PetscInt*, BoundaryConditions*);
 
 // boundary condition convenience functions
 PETSC_INTERN PetscErrorCode CreateConstantPressureBC(FlowBC*,PetscReal);

@@ -541,11 +541,9 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
   PetscFunctionBegin;
 
   // Get boundary conditions for each face set.
-  PetscInt num_face_sets = 1; // FIXME
+  PetscInt num_face_sets = ConditionsNumFaceSets(tdy->conditions);
   BoundaryConditions bcs[num_face_sets];
-  for (PetscInt face_set = 0; face_set < num_face_sets; ++face_set) {
-    ConditionsGetBCs(tdy->conditions, face_set, &bcs[face_set]);
-  }
+  ierr = ConditionsGetAllBCs(tdy->conditions, NULL, bcs);
 
   DM dm;
   ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
