@@ -552,7 +552,6 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
   TDyVertex     *vertices = &mesh->vertices;
   TDyFace       *faces = &mesh->faces;
   TDySubcell    *subcells = &mesh->subcells;
-  Conditions    *conditions = tdy->conditions;
   PetscInt       ivertex, icell;
   PetscInt       row, iface, isubcell;
   PetscReal      value;
@@ -717,7 +716,6 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
   PetscInt p_bnd_idx, cell_id, iface;
   PetscReal *p_vec_ptr, *u_p;
   PetscInt c, cStart, cEnd;
-  Conditions *conditions = tdy->conditions;
 
   PetscFunctionBegin;
 
@@ -794,7 +792,6 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
   PetscInt t_bnd_idx, cell_id, iface;
   PetscReal *t_vec_ptr, *u_p;
   PetscInt c, cStart, cEnd;
-  Conditions *conditions = tdy->conditions;
 
   PetscFunctionBegin;
 

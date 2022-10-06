@@ -569,7 +569,6 @@ static PetscErrorCode GetBCsForBoundaries(TDy tdy,
                                     &bc_defined); CHKERRQ(ierr); CHKERRQ(ierr);
   if (bc_defined) {
     for (PetscInt i = 0; i < num_spec_boundaries; ++i) {
-      const char *boundary = (const char*)spec_boundaries[i];
       BoundaryConditions *bc_i = &bcs[i];
 
       if (bc_i->flow_bc.type != TDY_UNDEFINED_FLOW_BC) {
@@ -590,7 +589,6 @@ static PetscErrorCode GetBCsForBoundaries(TDy tdy,
                                     &bc_defined); CHKERRQ(ierr);
   if (bc_defined) {
     for (PetscInt i = 0; i < num_spec_boundaries; ++i) {
-      const char *boundary = (const char*)spec_boundaries[i];
       BoundaryConditions *bc_i = &bcs[i];
 
       if (bc_i->flow_bc.type != TDY_UNDEFINED_FLOW_BC) {
@@ -658,7 +656,6 @@ static PetscErrorCode GetBCsForBoundaries(TDy tdy,
                                     &bc_defined); CHKERRQ(ierr);
   if (bc_defined) {
     for (PetscInt i = 0; i < num_spec_boundaries; ++i) {
-      const char *boundary = (const char*)spec_boundaries[i];
       BoundaryConditions *bc_i = &bcs[i];
 
       if (bc_i->thermal_bc.type != TDY_UNDEFINED_THERMAL_BC) {
@@ -1567,7 +1564,6 @@ PetscErrorCode TDySetFlowBCFunction(TDy tdy,
                                     TDyScalarSpatialFunction func) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
-  TDySpatialFunction f;
   BoundaryConditions bcs;
   ierr = ConditionsGetBCs(tdy->conditions, face_set, &bcs); CHKERRQ(ierr);
   if (bcs.flow_bc.context && bcs.flow_bc.dtor) {
