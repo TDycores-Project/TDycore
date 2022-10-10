@@ -13,7 +13,6 @@
 typedef struct TDyMPFAO {
   // Options
   PetscInt gmatrix_method;
-  PetscInt bc_type;
   PetscReal vangenuchten_m, vangenuchten_alpha;
 
   PetscReal mualem_poly_x0;
