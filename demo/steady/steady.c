@@ -919,11 +919,6 @@ int main(int argc, char **argv) {
   ierr = VecView(Ue,viewer); CHKERRQ(ierr);  // the exact solution
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
-  /* Evaluate error norms */
-  PetscReal normp,normv;
-  ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
-  ierr = PetscPrintf(comm,"%e %e\n",normp,normv); CHKERRQ(ierr);
-
   /* Save vertex coordinates */
   PetscBool file_not_specified;
   ierr = PetscStrcasecmp(vertices_filename,"none",&file_not_specified); CHKERRQ(ierr);

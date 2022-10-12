@@ -59,7 +59,6 @@ PETSC_INTERN PetscErrorCode TDySetDMFields_WY(void*,DM);
 PETSC_INTERN PetscInt TDyGetNumDMFields_WY(void*);
 PETSC_INTERN PetscErrorCode TDySetup_WY(void*,TDyDiscretizationType*,EOS*,MaterialProp*,CharacteristicCurves*,Conditions*);
 PETSC_INTERN PetscErrorCode TDyUpdateState_WY(void*,DM,EOS*,MaterialProp*,CharacteristicCurves*,PetscInt,PetscReal*);
-PETSC_INTERN PetscErrorCode TDyComputeErrorNorms_WY(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
 
 PETSC_INTERN PetscErrorCode TDyWYRecoverVelocity(TDy,Vec);
 // TODO: This should be internal.

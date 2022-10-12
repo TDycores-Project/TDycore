@@ -107,11 +107,6 @@ int main(int argc, char **argv) {
   ierr = VecView(Ue,viewer); CHKERRQ(ierr);  // the exact solution
   ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
-  /* Evaluate error norms */
-  PetscReal normp,normv;
-  ierr = TDyComputeErrorNorms(tdy,U,&normp,&normv);
-  ierr = PetscPrintf(PETSC_COMM_WORLD,"%e %e\n",normp,normv); CHKERRQ(ierr);
-
   /* Save regression file */
   ierr = TDyOutputRegression(tdy);
 

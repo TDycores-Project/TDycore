@@ -207,7 +207,6 @@ PETSC_EXTERN PetscErrorCode TDySelectBoundaryTemperatureFunction(TDy,const char*
 PETSC_EXTERN PetscErrorCode TDySelectBoundarySalineConcentrationFunction(TDy,const char*);
 
 PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*,PetscInt);
-PETSC_EXTERN PetscErrorCode TDyComputeErrorNorms(TDy,Vec,PetscReal*,PetscReal*);
 
 // Access to diagnostic variables
 PETSC_EXTERN PetscErrorCode TDyUpdateDiagnostics(TDy);
