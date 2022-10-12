@@ -851,7 +851,6 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->get_num_dm_fields = TDyGetNumDMFields_Richards_MPFAO;
       tdy->ops->setup = TDySetup_Richards_MPFAO;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
-      tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
       tdy->ops->update_diagnostics = TDyUpdateDiagnostics_MPFAO;
     } else if (discretization == MPFA_O_DAE) {
       tdy->ops->create = TDyCreate_MPFAO;
@@ -861,7 +860,6 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->get_num_dm_fields = TDyGetNumDMFields_Richards_MPFAO_DAE;
       tdy->ops->setup = TDySetup_Richards_MPFAO_DAE;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
-      tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
       tdy->ops->update_diagnostics = TDyUpdateDiagnostics_MPFAO;
     } else if (discretization == MPFA_O_TRANSIENTVAR) {
       tdy->ops->create = TDyCreate_MPFAO;
@@ -871,7 +869,6 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->get_num_dm_fields = TDyGetNumDMFields_Richards_MPFAO;
       tdy->ops->setup = TDySetup_Richards_MPFAO;
       tdy->ops->update_state = TDyUpdateState_Richards_MPFAO;
-      tdy->ops->compute_error_norms = TDyComputeErrorNorms_MPFAO;
       tdy->ops->update_diagnostics = TDyUpdateDiagnostics_MPFAO;
     } else if (discretization == BDM) {
       tdy->ops->create = TDyCreate_BDM;
@@ -881,7 +878,6 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->set_dm_fields = TDySetDMFields_BDM;
       tdy->ops->get_num_dm_fields = TDyGetNumDMFields_BDM;
       tdy->ops->update_state = NULL; // FIXME: ???
-      tdy->ops->compute_error_norms = TDyComputeErrorNorms_BDM;
       tdy->ops->update_diagnostics = NULL; // FIXME
     } else if (discretization == WY) {
       tdy->ops->create = TDyCreate_WY;
@@ -891,7 +887,6 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->set_dm_fields = TDySetDMFields_WY;
       tdy->ops->setup = TDySetup_WY;
       tdy->ops->update_state = TDyUpdateState_WY;
-      tdy->ops->compute_error_norms = TDyComputeErrorNorms_WY;
       tdy->ops->update_diagnostics = NULL; // FIXME
     } else if (discretization == FV_TPF) {
       tdy->ops->create = TDyCreate_FVTPF;
@@ -901,7 +896,6 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
       tdy->ops->get_num_dm_fields = TDyGetNumDMFields_Richards_FVTPF;
       tdy->ops->setup = TDySetup_Richards_FVTPF;
       tdy->ops->update_state = TDyUpdateState_Richards_FVTPF;
-      tdy->ops->compute_error_norms = TDyComputeErrorNorms_FVTPF;
       tdy->ops->update_diagnostics = TDyUpdateDiagnostics_FVTPF;
     } else {
       SETERRQ(comm,PETSC_ERR_USER, "Invalid discretization given!");
@@ -1565,27 +1559,6 @@ PetscReal TDyADotB(PetscReal *a,PetscReal *b,PetscInt dim) {
   PetscReal norm = 0;
   for(i=0; i<dim; i++) norm += a[i]*b[i];
   return norm;
-}
-
-/// Computes error norms for the pressure and/or the velocity, given the
-/// solution vector.
-/// @param [in] tdy the dycore instance
-/// @param [in] U the solution vector
-/// @param [out] pressure_norm the norm for the pressure (can be NULL)
-/// @param [out] velocity_norm the norm for the velocity (can be NULL)
-PetscErrorCode TDyComputeErrorNorms(TDy tdy, Vec U,
-                                    PetscReal *pressure_norm,
-                                    PetscReal *velocity_norm) {
-  PetscErrorCode ierr;
-  PetscFunctionBegin;
-  TDY_START_FUNCTION_TIMER()
-  DM dm;
-  ierr = TDyGetDM(tdy, &dm); CHKERRQ(ierr);
-  ierr = tdy->ops->compute_error_norms(tdy->context, dm, tdy->conditions,
-                                       U, pressure_norm, velocity_norm);
-  CHKERRQ(ierr);
-  TDY_STOP_FUNCTION_TIMER()
-  PetscFunctionReturn(0);
 }
 
 PetscErrorCode TDyOutputRegression(TDy tdy, Vec U) {

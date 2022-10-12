@@ -43,7 +43,6 @@
 #define tdygetinitialcondition_                        TDYGETINITIALCONDITION
 #define tdypresolvesnessolver_                         TDYSETPRESOLVESNESSOLVER
 #define tdypostsolve_                                  TDYSETPOSTSOLVE
-#define tdycomputeerrornorms_                          TDYCOMPUTEERRORNORMS
 #define tdyupdatestate_                                TDYUPDATESTATE
 #define tdyglobaltonatural_                            TDYGLOBALTONATURAL
 #define tdyoutputregression_                           TDYOUTPUTREGRESSION
@@ -82,7 +81,6 @@
 #define tdygetinitialcondition_                        tdygetinitialcondition
 #define tdypresolvesnessolver_                         tdypresolvesnessolver
 #define tdypostsolve_                                  tdypostsolve
-#define tdycomputeerrornorms_                          tdycomputeerrornorms
 #define tdyupdatestate_                                tdyupdatestate
 #define tdyglobaltonatural_                            tdyglobaltonatural
 #define tdyoutputregression_                           tdyoutputregression
@@ -225,13 +223,6 @@ PETSC_EXTERN void  tdypostsolve_(TDy tdy, Vec solution, int *__ierr){
 *__ierr = TDyPostSolve(
   (TDy)PetscToPointer(tdy),
   (Vec)PetscToPointer(solution));
-}
-
-PETSC_EXTERN void  tdycomputeerrornorms_(TDy tdy, Vec U, PetscReal *normp, PetscReal *normv,  int *__ierr){
-*__ierr = TDyComputeErrorNorms(
-  (TDy)PetscToPointer((tdy) ),
-  (Vec)PetscToPointer((U) ),
-  normp, normv);
 }
 
 PETSC_EXTERN void  tdycreatevectors_(TDy tdy, int *__ierr){

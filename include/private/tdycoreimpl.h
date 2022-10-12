@@ -72,10 +72,6 @@ struct _TDyOps {
   PetscErrorCode (*update_state)(void*, DM, EOS*, MaterialProp*,
                                  CharacteristicCurves*, PetscInt, PetscReal*);
 
-  // Called by TDyComputeErrorNorms -- computes error norms given a solution
-  // vector.
-  PetscErrorCode (*compute_error_norms)(void*,DM,Conditions*,Vec,PetscReal*,PetscReal*);
-
   // Updates diagnostic fields given an appropriate DM defining their layout,
   // and a multi-component diagnostics Vec created from that DM with
   // DMCreateLocalVector.
