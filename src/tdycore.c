@@ -853,23 +853,43 @@ static PetscErrorCode ExtractBoundaryFaces(TDy tdy) {
 
   DM dm = ((tdy->discretization)->tdydm)->dm;
 
+  // Get the indices of the face sets within the DM.
+  IS fs_is;
+  ierr = DMGetLabelIdIS(dm, "Face Sets", &fs_is); CHKERRQ(ierr);
+  PetscInt num_face_sets;
+  ierr = ISGetSize(fs_is, &num_face_sets); CHKERRQ(ierr);
+
   // If the requested number of boundaries and/or face sets isn't in the
   // mesh, we report an error.
   PetscInt num_req_face_sets = ConditionsNumFaceSets(tdy->conditions);
-  PetscInt num_face_sets;
-  ierr = DMGetNumLabels(dm, &num_face_sets); CHKERRQ(ierr);
   if (num_face_sets < num_req_face_sets) {
     SETERRQ(comm, PETSC_ERR_USER,
       "number of requested face sets exceeds number of labels in the mesh!");
   }
 
   // Extract boundary faces from the face sets.
+  const PetscInt *face_sets;
+  ierr = ISGetIndices(fs_is, &face_sets); CHKERRQ(ierr);
+  PetscInt req_face_sets[num_face_sets];
+  ierr = ConditionsGetAllBoundaryFaces(tdy->conditions, req_face_sets, NULL); CHKERRQ(ierr);
+  ierr = ISGetIndices(fs_is, &face_sets); CHKERRQ(ierr);
   for (PetscInt f = 0; f < num_req_face_sets; ++f) {
+    PetscInt face_set = req_face_sets[f];
+
+    // Make sure this face set is in the mesh!
+    PetscInt index;
+    ierr = PetscFindInt(face_set, num_face_sets, face_sets, &index);
+    if (index < 0) { // not found
+      SETERRQ(comm, PETSC_ERR_USER,
+        "a requested face set was not found in the given DM.");
+    }
+
     BoundaryFaces bfaces;
-    ierr = BoundaryFacesCreate(dm, f, &bfaces); CHKERRQ(ierr);
-    ierr = ConditionsSetBoundaryFaces(tdy->conditions, f, bfaces); CHKERRQ(ierr);
+    ierr = BoundaryFacesCreate(dm, face_set, &bfaces); CHKERRQ(ierr);
+    ierr = ConditionsSetBoundaryFaces(tdy->conditions, face_set, bfaces); CHKERRQ(ierr);
   }
 
+  ierr = ISDestroy(&fs_is); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

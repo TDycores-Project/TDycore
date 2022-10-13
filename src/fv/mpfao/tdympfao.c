@@ -2308,6 +2308,33 @@ static PetscErrorCode ComputeGravityDiscretization(TDyMPFAO *mpfao, DM dm,
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode SetBCType(TDyMPFAO *mpfao, Conditions *conditions) {
+  PetscFunctionBegin;
+  PetscErrorCode ierr;
+
+  mpfao->bc_type = NEUMANN_BC;
+
+  // We should have no more than one face set.
+  PetscInt num_face_sets = ConditionsNumFaceSets(conditions);
+  if (num_face_sets > 1) {
+    SETERRQ(PETSC_COMM_SELF, PETSC_ERR_LIB,
+      "MPFA-O method supports only one face set!");
+  }
+
+  // Extract the flow boundary condition and set it.
+  BoundaryConditions bcs;
+  ierr = ConditionsGetBCs(conditions, 0, &bcs); CHKERRQ(ierr);
+  if (bcs.flow_bc.type == TDY_NOFLOW_BC) {
+    mpfao->bc_type = NEUMANN_BC;
+  } else if (bcs.flow_bc.type == TDY_PRESSURE_BC) {
+    mpfao->bc_type = DIRICHLET_BC;
+  } else if (bcs.flow_bc.type == TDY_SEEPAGE_BC) {
+    mpfao->bc_type = SEEPAGE_BC;
+  }
+
+  PetscFunctionReturn(0);
+}
+
 // Setup function for Richards + MPFA_O
 PetscErrorCode TDySetup_Richards_MPFAO(void *context,
                                        TDyDiscretizationType* discretization,
@@ -2358,6 +2385,8 @@ PetscErrorCode TDySetup_Richards_MPFAO(void *context,
   ierr = ComputeGMatrix(mpfao, dm, matprop); CHKERRQ(ierr);
   ierr = ComputeTransmissibilityMatrix(mpfao, dm, conditions); CHKERRQ(ierr);
   ierr = ComputeGravityDiscretization(mpfao, dm, matprop, conditions); CHKERRQ(ierr);
+
+  ierr = SetBCType(mpfao, conditions); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
@@ -2414,6 +2443,8 @@ PetscErrorCode TDySetup_Richards_MPFAO_DAE(void *context, TDyDiscretizationType 
   ierr = ComputeGMatrix(mpfao, dm, matprop); CHKERRQ(ierr);
   ierr = ComputeTransmissibilityMatrix(mpfao, dm, conditions); CHKERRQ(ierr);
   ierr = ComputeGravityDiscretization(mpfao, dm, matprop, conditions); CHKERRQ(ierr);
+
+  ierr = SetBCType(mpfao, conditions); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
@@ -2477,6 +2508,8 @@ PetscErrorCode TDySetup_TH_MPFAO(void *context, TDyDiscretizationType *discretiz
   ierr = ComputeGMatrix(mpfao, dm, matprop); CHKERRQ(ierr);
   ierr = ComputeTransmissibilityMatrix(mpfao, dm, conditions); CHKERRQ(ierr);
   ierr = ComputeGravityDiscretization(mpfao, dm, matprop, conditions); CHKERRQ(ierr);
+
+  ierr = SetBCType(mpfao, conditions); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
@@ -2546,6 +2579,8 @@ PetscErrorCode TDySetup_Salinity_MPFAO(void *context,
   ierr = ComputeGMatrix(mpfao, dm, matprop); CHKERRQ(ierr);
   ierr = ComputeTransmissibilityMatrix(mpfao, dm, conditions); CHKERRQ(ierr);
   ierr = ComputeGravityDiscretization(mpfao, dm, matprop, conditions); CHKERRQ(ierr);
+
+  ierr = SetBCType(mpfao, conditions); CHKERRQ(ierr);
 
   ierr = AllocateMemoryForBoundaryValues(mpfao, eos); CHKERRQ(ierr);
   ierr = AllocateMemoryForSourceSinkValues(mpfao); CHKERRQ(ierr);
