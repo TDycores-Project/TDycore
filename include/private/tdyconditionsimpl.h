@@ -52,9 +52,25 @@ typedef struct BoundaryConditions {
   SalinityBC salinity_bc;
 } BoundaryConditions;
 
+// This type is a convenient mechanism for retrieving face indices from a
+// face set.
+typedef struct BoundaryFaces {
+  /// number of boundary faces
+  PetscInt  num_faces;
+  /// indices of boundary faces
+  PetscInt *faces;
+} BoundaryFaces;
+
+PETSC_INTERN PetscErrorCode BoundaryFacesCreate(DM, PetscInt, BoundaryFaces*);
+PETSC_INTERN PetscErrorCode BoundaryFacesDestroy(BoundaryFaces);
+
 // This defines as hash map that maps a sparse set of face set indices to
 // flow, thermal, and saline concentration boundary conditions.
 KHASH_MAP_INIT_INT(TDY_BC, BoundaryConditions)
+
+// This defines as hash map that maps a sparse set of face set indices to
+// a set of boundary faces.
+KHASH_MAP_INIT_INT(TDY_BFACE, BoundaryFaces)
 
 /// This type gathers settings related to boundary and source/sink conditions.
 typedef struct Conditions {
@@ -80,6 +96,9 @@ typedef struct Conditions {
 
   /// Mapping of face set indices to boundary conditions.
   khash_t(TDY_BC) *bcs;
+
+  /// Mapping of face set indices to boundary faces.
+  khash_t(TDY_BFACE) *bfaces;
 } Conditions;
 
 // conditions creation/destruction
@@ -109,7 +128,12 @@ PETSC_INTERN PetscErrorCode ConditionsSetBCs(Conditions*, PetscInt, BoundaryCond
 PETSC_INTERN PetscErrorCode ConditionsGetBCs(Conditions*, PetscInt, BoundaryConditions*);
 PETSC_INTERN PetscErrorCode ConditionsGetAllBCs(Conditions*, PetscInt*, BoundaryConditions*);
 
-// boundary condition convenience functions
+// boundary face setup and query functions
+PETSC_INTERN PetscErrorCode ConditionsSetBoundaryFaces(Conditions*, PetscInt, BoundaryFaces);
+PETSC_INTERN PetscErrorCode ConditionsGetBoundaryFaces(Conditions*, PetscInt, BoundaryFaces*);
+PETSC_INTERN PetscErrorCode ConditionsGetAllBoundaryFaces(Conditions*, PetscInt*, BoundaryFaces*);
+
+// boundary condition convenience constructor functions
 PETSC_INTERN PetscErrorCode CreateConstantPressureBC(FlowBC*,PetscReal);
 PETSC_INTERN PetscErrorCode CreateConstantVelocityBC(FlowBC*,PetscReal);
 PETSC_INTERN PetscErrorCode CreateSeepageBC(FlowBC*);

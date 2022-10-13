@@ -536,7 +536,7 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   TDyFVTPF *fvtpf = tdy->context;
   TDyMesh  *mesh = fvtpf->mesh;
   TDyCell  *cells = &mesh->cells;
-  TDyFace  * faces = &mesh->faces;
+  TDyFace  *faces = &mesh->faces;
 
   PetscErrorCode ierr;
 
@@ -589,30 +589,46 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
   }
 
   // Compute contribution to residual for boundary faces
-  for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
+  int num_face_sets = ConditionsNumFaceSets(tdy->conditions);
+  int face_sets[num_face_sets];
+  BoundaryConditions bcs[num_face_sets];
+  BoundaryFaces bfaces[num_face_sets];
+  ierr = ConditionsGetAllBCs(tdy->conditions, face_sets, bcs); CHKERRQ(ierr);
+  ierr = ConditionsGetAllBoundaryFaces(tdy->conditions, NULL, bfaces); CHKERRQ(ierr);
+  for (PetscInt f=0; f<num_face_sets; ++f) {
+    BoundaryConditions bc = bcs[f];
+    PetscInt face_set = face_sets[f];
 
-    if (!faces->is_local[iface]) continue; // skip non-local face
-    if (faces->is_internal[iface]) continue; // skip internal faces
-    if (faces->bc_type[iface] == NEUMANN_BC) continue; // skip non-flux faces
+    // skip zero-flux faces
+    if (bc.flow_bc.type == TDY_NOFLOW_BC) continue;
 
-    PetscInt *cell_ids, num_face_cells;
-    ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
+    // Loop over the faces in this face set.
+    BoundaryFaces bfaces;
+    ierr = ConditionsGetBoundaryFaces(tdy->conditions, face_set, &bfaces); CHKERRQ(ierr);
+    for (PetscInt ff=0; ff<bfaces.num_faces; ++ff) {
+      PetscInt iface = bfaces.faces[ff];
+      if (!faces->is_local[iface]) continue; // skip remote faces
+      if (faces->is_internal[iface]) continue; // skip internal faces
 
-    PetscReal Res = 0.0;
-    switch (faces->bc_type[iface]) {
-    case DIRICHLET_BC:
-      ierr = RichardsBCResidual(fvtpf, dm, tdy->matprop, iface, &Res);
-      break;
-    case SEEPAGE_BC:
-      ierr = RichardsSeepageBCResidual(fvtpf, dm, tdy->matprop, iface, &Res);
-      break;
-    default:
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported bc type in the computation of the residual");
-      break;
+      PetscInt *cell_ids, num_face_cells;
+      ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
+
+      PetscReal Res = 0.0;
+      switch (bc.flow_bc.type) {
+      case TDY_PRESSURE_BC:
+        ierr = RichardsBCResidual(fvtpf, dm, tdy->matprop, iface, &Res);
+        break;
+      case TDY_SEEPAGE_BC:
+        ierr = RichardsSeepageBCResidual(fvtpf, dm, tdy->matprop, iface, &Res);
+        break;
+      default:
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported bc type in the computation of the residual");
+        break;
+      }
+
+      PetscInt cell_id_dn = cell_ids[1];
+      r_ptr[cell_id_dn] -= Res;
     }
-
-    PetscInt cell_id_dn = cell_ids[1];
-    r_ptr[cell_id_dn] -= Res;
   }
 
   PetscReal accum_current;
@@ -684,35 +700,51 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
   }
 
   // Compute contribution to Jacobian for boundary faces
-  for (PetscInt iface=0; iface<mesh->num_faces; iface++) {
+  int num_face_sets = ConditionsNumFaceSets(tdy->conditions);
+  int face_sets[num_face_sets];
+  BoundaryConditions bcs[num_face_sets];
+  BoundaryFaces bfaces[num_face_sets];
+  ierr = ConditionsGetAllBCs(tdy->conditions, face_sets, bcs); CHKERRQ(ierr);
+  ierr = ConditionsGetAllBoundaryFaces(tdy->conditions, NULL, bfaces); CHKERRQ(ierr);
+  for (PetscInt f=0; f<num_face_sets; ++f) {
+    BoundaryConditions bc = bcs[f];
+    PetscInt face_set = face_sets[f];
 
-    if (!faces->is_local[iface]) continue; // skip non-local face
-    if (faces->is_internal[iface]) continue; // skip internal faces
-    if (faces->bc_type[iface] == NEUMANN_BC) continue; // skip non-flux faces
+    // skip zero-flux faces
+    if (bc.flow_bc.type == TDY_NOFLOW_BC) continue;
 
-    PetscInt *cell_ids, num_face_cells;
-    ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
+    // Loop over the faces in this face set.
+    BoundaryFaces bfaces;
+    ierr = ConditionsGetBoundaryFaces(tdy->conditions, face_set, &bfaces); CHKERRQ(ierr);
+    for (PetscInt ff=0; ff<bfaces.num_faces; ++ff) {
+      PetscInt iface = bfaces.faces[ff];
 
-    PetscInt cell_id_dn = cell_ids[1];
-    PetscReal Jdn;
-    switch (faces->bc_type[iface]) {
-    case DIRICHLET_BC:
-      ierr = RichardsBCJacobian(fvtpf, dm, tdy->matprop, iface, &Jdn);
-      break;
-    case SEEPAGE_BC:
-      ierr = RichardsSeepageBCJacobian(fvtpf, dm, tdy->matprop, iface, &Jdn);
-      break;
-    default:
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported bc type in the computation of the jacobian");
-      break;
+      if (!faces->is_local[iface]) continue; // skip non-local face
+      if (faces->is_internal[iface]) continue; // skip internal faces
+
+      PetscInt *cell_ids, num_face_cells;
+      ierr = TDyMeshGetFaceCells(mesh, iface, &cell_ids, &num_face_cells); CHKERRQ(ierr);
+
+      PetscInt cell_id_dn = cell_ids[1];
+      PetscReal Jdn;
+      switch (bc.flow_bc.type) {
+      case TDY_PRESSURE_BC:
+        ierr = RichardsBCJacobian(fvtpf, dm, tdy->matprop, iface, &Jdn);
+        break;
+      case TDY_SEEPAGE_BC:
+        ierr = RichardsSeepageBCJacobian(fvtpf, dm, tdy->matprop, iface, &Jdn);
+        break;
+      default:
+        SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"Unsupported bc type in the computation of the jacobian");
+        break;
+      }
+
+      if (cell_id_dn >= 0 && cells->is_local[cell_id_dn]) {
+        //r_ptr[cell_id_dn] -= Res;
+        Jdn *= -1.0;
+        ierr = MatSetValuesLocal(B,1,&cell_id_dn,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
+      }
     }
-
-    if (cell_id_dn >= 0 && cells->is_local[cell_id_dn]) {
-      //r_ptr[cell_id_dn] -= Res;
-      Jdn *= -1.0;
-      ierr = MatSetValuesLocal(B,1,&cell_id_dn,1,&cell_id_dn,&Jdn,ADD_VALUES);CHKERRQ(ierr);
-    }
-
   }
 
   for (PetscInt icell = 0; icell<mesh->num_cells; icell++) {

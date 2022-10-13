@@ -712,10 +712,12 @@ static PetscErrorCode ProcessBCOptions(TDy tdy) {
       ierr = PetscOptionsGetIntArray(NULL, NULL, option_name, face_sets,
                                      &num_face_sets, &boundary_defined);
       if (boundary_defined) {
-        // Assign BCs to the face sets on this boundary.
+        // Assign BCs to the face sets on this boundary with an empty
+        // BoundaryFaces object.
         for (PetscInt j = 0; j < num_face_sets; ++j) {
-          ierr = ConditionsSetBCs(tdy->conditions, j, bcs[i]);
-          CHKERRQ(ierr);
+          ierr = ConditionsSetBCs(tdy->conditions, face_sets[j], bcs[i]); CHKERRQ(ierr);
+          BoundaryFaces bfaces = {0};
+          ierr = ConditionsSetBoundaryFaces(tdy->conditions, face_sets[j], bfaces); CHKERRQ(ierr);
         }
       } else {
         SETERRQ(comm, PETSC_ERR_USER,
@@ -728,13 +730,13 @@ static PetscErrorCode ProcessBCOptions(TDy tdy) {
     BoundaryConditions bcs[MAX_FACE_SETS];
     char *face_set_names[MAX_FACE_SETS];
     for (PetscInt i = 0; i < MAX_FACE_SETS; ++i) {
-      face_set_names[i] = malloc(sizeof(char) * 33);
+      ierr = TDyAlloc(sizeof(char) * 33, &face_set_names[i]); CHKERRQ(ierr);
       snprintf(face_set_names[i], 32, "%d", i);
     }
     ierr = GetBCsForBoundaries(tdy, MAX_FACE_SETS, face_set_names, bcs);
     CHKERRQ(ierr);
     for (PetscInt i = 0; i < MAX_FACE_SETS; ++i) {
-      free(face_set_names[i]);
+      ierr = TDyFree(face_set_names[i]); CHKERRQ(ierr);
     }
 
     // Assign BCs that are actually defined on face sets.
@@ -742,7 +744,9 @@ static PetscErrorCode ProcessBCOptions(TDy tdy) {
       // Flow BCs are always required, so we check their type to see whether
       // this face set has a BC assigned.
       if (bcs[i].flow_bc.type != TDY_UNDEFINED_FLOW_BC) {
-        ierr = ConditionsSetBCs(tdy->conditions, i, bcs[i]);
+        ierr = ConditionsSetBCs(tdy->conditions, i, bcs[i]); CHKERRQ(ierr);
+        BoundaryFaces bfaces = {0};
+        ierr = ConditionsSetBoundaryFaces(tdy->conditions, i, bfaces); CHKERRQ(ierr);
       }
     }
   }
@@ -840,6 +844,35 @@ static PetscErrorCode ReadCommandLineOptions(TDy tdy) {
   PetscFunctionReturn(0);
 }
 
+static PetscErrorCode ExtractBoundaryFaces(TDy tdy) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+
+  MPI_Comm comm;
+  ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
+
+  DM dm = ((tdy->discretization)->tdydm)->dm;
+
+  // If the requested number of boundaries and/or face sets isn't in the
+  // mesh, we report an error.
+  PetscInt num_req_face_sets = ConditionsNumFaceSets(tdy->conditions);
+  PetscInt num_face_sets;
+  ierr = DMGetNumLabels(dm, &num_face_sets); CHKERRQ(ierr);
+  if (num_face_sets < num_req_face_sets) {
+    SETERRQ(comm, PETSC_ERR_USER,
+      "number of requested face sets exceeds number of labels in the mesh!");
+  }
+
+  // Extract boundary faces from the face sets.
+  for (PetscInt f = 0; f < num_req_face_sets; ++f) {
+    BoundaryFaces bfaces;
+    ierr = BoundaryFacesCreate(dm, f, &bfaces); CHKERRQ(ierr);
+    ierr = ConditionsSetBoundaryFaces(tdy->conditions, f, bfaces); CHKERRQ(ierr);
+  }
+
+  PetscFunctionReturn(0);
+}
+
 /// Sets options for the dycore based on command line arguments supplied by a
 /// user. TDySetFromOptions must be called before TDySetup,
 /// since the latter uses options specified by the former.
@@ -921,13 +954,15 @@ PetscErrorCode TDySetFromOptions(TDy tdy) {
     ierr = DMGetLabel(((tdy->discretization)->tdydm)->dm, "boundary", &boundary_label); CHKERRQ(ierr);
     ierr = DMPlexMarkBoundaryFaces(((tdy->discretization)->tdydm)->dm, 1, boundary_label); CHKERRQ(ierr);
     ierr = DMPlexLabelComplete(((tdy->discretization)->tdydm)->dm, boundary_label); CHKERRQ(ierr);
-
   }
 
-  PetscInt dim = 3;
+  // Now that the DM has been created, fish out the indices of boundary
+  // faces belonging to face sets.
+  ierr = ExtractBoundaryFaces(tdy); CHKERRQ(ierr);
 
   // Create an empty material properties object. Each function must be set
   // explicitly by the driver program.
+  PetscInt dim = 3;
   ierr = MaterialPropCreate(dim, &tdy->matprop); CHKERRQ(ierr);
 
   // Create characteristic curves.
@@ -961,7 +996,7 @@ PetscErrorCode TDySetup(TDy tdy) {
 
   ierr = PetscPrintf(PETSC_COMM_WORLD,"TDycore setup\n"); CHKERRQ(ierr);
 
-  // Set the EOS from options.
+  // Set EOS parameters from options.
   tdy->eos.density_type = tdy->options.rho_type;
   tdy->eos.viscosity_type = tdy->options.mu_type;
   tdy->eos.enthalpy_type = tdy->options.enthalpy_type;
@@ -1033,14 +1068,9 @@ PetscErrorCode TDySetup(TDy tdy) {
 PetscErrorCode TDySetMode(TDy tdy, TDyMode mode) {
   PetscValidPointer(tdy,1);
   PetscFunctionBegin;
+
   tdy->options.mode = mode;
   tdy->setup_flags |= TDyModeSet;
-
-  // If we are resetting the mode and have already set the discretization,
-  // we call TDySetDiscretization again.
-  if (tdy->setup_flags & TDyDiscretizationSet) {
-    PetscInt ierr = TDySetDiscretization(tdy, tdy->options.discretization); CHKERRQ(ierr);
-  }
 
   PetscFunctionReturn(0);
 }
@@ -1059,6 +1089,20 @@ PetscErrorCode TDySetDiscretization(TDy tdy, TDyDiscretization discretization) {
   if ((tdy->setup_flags & TDyModeSet) == 0) {
     SETERRQ(comm,PETSC_ERR_USER,
       "You must call TDySetMode before TDySetDiscretization");
+  }
+
+  // Are we enforcing boundary conditions on than one face set? We only support
+  // this in TPF mode.
+  int num_face_sets = ConditionsNumFaceSets(tdy->conditions);
+  if ((num_face_sets > 1) && (discretization != FV_TPF)) {
+    SETERRQ(comm,PETSC_ERR_USER,
+      "Multiple face sets have been referenced, but only FV_TPF supports this!");
+  }
+
+  // If we are resetting the mode and have already set the discretization,
+  // we call TDySetDiscretization again.
+  if (tdy->setup_flags & TDyDiscretizationSet) {
+    PetscInt ierr = TDySetDiscretization(tdy, tdy->options.discretization); CHKERRQ(ierr);
   }
 
   // Set function pointers for operations.
