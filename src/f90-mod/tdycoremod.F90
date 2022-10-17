@@ -531,34 +531,6 @@ end subroutine
     call TDySetEnergyForcingFunction(tdy, func, ierr)
   end subroutine
 
-  subroutine TDySelectBoundaryPressureFunction(tdy, name, ierr)
-    use, intrinsic :: iso_c_binding
-    use tdycoredef
-    implicit none
-    TDy :: tdy
-    character(len=*), intent(in)   :: name
-    PetscErrorCode                 :: ierr
-
-    procedure(TDySpatialFunction), pointer :: func
-
-    func => GetSpatialFunction(name)
-    call TDySetBoundaryPressureFunction(tdy, func, ierr)
-  end subroutine
-
-  subroutine TDySelectBoundaryVelocityFunction(tdy, name, ierr)
-    use, intrinsic :: iso_c_binding
-    use tdycoredef
-    implicit none
-    TDy :: tdy
-    character(len=*), intent(in)   :: name
-    PetscErrorCode                 :: ierr
-
-    procedure(TDySpatialFunction), pointer :: func
-
-    func => GetSpatialFunction(name)
-    call TDySetBoundaryVelocityFunction(tdy, func, ierr)
-  end subroutine
-
   subroutine TDySetForcingFunction(tdy, f, ierr)
     use, intrinsic :: iso_c_binding
     use tdycoredef
@@ -611,11 +583,13 @@ end subroutine
     ierr = Func(p_tdy, id)
   end subroutine
 
-  subroutine TDySetBoundaryPressureFunction(tdy, f, ierr)
+  subroutine TDySetFlowBCFunction(tdy, face_set, bc_type, f, ierr)
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
     TDy                           :: tdy
+    PetscInt                      :: face_set
+    PetscEnum                     :: bc_type
     procedure(TDySpatialFunction) :: f
     PetscErrorCode                :: ierr
 
@@ -623,10 +597,12 @@ end subroutine
     integer(c_int) :: id
 
     interface
-      function Func(tdy, id) bind(c, name="TDySetBoundaryPressureFunctionF90") result(ierr)
+      function Func(tdy, face_set, bc_type, id) bind(c, name="TDySetFlowBCFunctionF90") result(ierr)
         use, intrinsic :: iso_c_binding
         implicit none
         type(c_ptr),    value, intent(in) :: tdy
+        integer(c_int), value, intent(in) :: face_set
+        integer(c_int), value, intent(in) :: bc_type
         integer(c_int), value, intent(in) :: id
         integer(c_int) :: ierr
       end function
@@ -634,59 +610,23 @@ end subroutine
 
     p_tdy = transfer(tdy%v, p_tdy)
     id = FindOrAppendSpatialFunction(f)
-    ierr = Func(p_tdy, id)
+    ierr = Func(p_tdy, face_set, bc_type, id)
   end subroutine
 
-  subroutine TDySetBoundaryPressureTypeFunction(tdy, f, ierr)
+  subroutine TDySelectFlowBCFunction(tdy, face_set, bc_type, name, ierr)
     use, intrinsic :: iso_c_binding
     use tdycoredef
     implicit none
-    TDy                           :: tdy
-    procedure(TDyIntegerSpatialFunction) :: f
-    PetscErrorCode                :: ierr
+    TDy                            :: tdy
+    PetscInt                       :: face_set
+    PetscEnum                      :: bc_type
+    character(len=*), intent(in)   :: name
+    PetscErrorCode                 :: ierr
 
-    type(c_ptr)    :: p_tdy
-    integer(c_int) :: id
+    procedure(TDySpatialFunction), pointer :: func
 
-    interface
-      function Func(tdy, id) bind(c, name="TDySetBoundaryPressureTypeFunctionF90") result(ierr)
-        use, intrinsic :: iso_c_binding
-        implicit none
-        type(c_ptr),    value, intent(in) :: tdy
-        integer(c_int), value, intent(in) :: id
-        integer(c_int) :: ierr
-      end function
-    end interface
-
-    p_tdy = transfer(tdy%v, p_tdy)
-    id = FindOrAppendIntegerSpatialFunction(f)
-    ierr = Func(p_tdy, id)
-  end subroutine
-
-  subroutine TDySetBoundaryVelocityFunction(tdy, f, ierr)
-    use, intrinsic :: iso_c_binding
-    use tdycoredef
-    implicit none
-    TDy                                    :: tdy
-    procedure(TDySpatialFunction), pointer :: f
-    PetscErrorCode                         :: ierr
-
-    type(c_ptr)    :: p_tdy
-    integer(c_int) :: id
-
-    interface
-      function Func(tdy, id) bind(c, name="TDySetBoundaryVelocityFunctionF90") result(ierr)
-        use, intrinsic :: iso_c_binding
-        implicit none
-        type(c_ptr),    value, intent(in) :: tdy
-        integer(c_int), value, intent(in) :: id
-        integer(c_int) :: ierr
-      end function
-    end interface
-
-    p_tdy = transfer(tdy%v, p_tdy)
-    id = FindOrAppendSpatialFunction(f)
-    ierr = Func(p_tdy, id)
+    func => GetSpatialFunction(name)
+    call TDySetFlowBCFunction(tdy, face_set, bc_type, func, ierr)
   end subroutine
 
   subroutine TDySetConstantPorosity(tdy, val, ierr)
