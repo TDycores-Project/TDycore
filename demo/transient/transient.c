@@ -2,25 +2,25 @@
 #include "private/tdyoptions.h"
 #include "private/tdywyimpl.h"
 
-void Porosity(PetscInt n,PetscReal *x,PetscReal *theta) {
+void Porosity(PetscReal t,PetscInt n,PetscReal *x,PetscReal *theta) {
   for (PetscInt i = 0; i < n; ++i) {
     theta[i] = 0.5;
   }
 }
 
-void Permeability(PetscInt n,PetscReal *x,PetscReal *K) {
+void Permeability(PetscReal t,PetscInt n,PetscReal *x,PetscReal *K) {
   for (PetscInt i = 0; i < n; ++i) {
     K[i] = 1e-10;
   }
 }
 
-void Pressure(PetscInt n,PetscReal *x,PetscReal *p) {
+void Pressure(PetscReal t,PetscInt n,PetscReal *x,PetscReal *p) {
   for (PetscInt i = 0; i < n; ++i) {
     p[i] = 91325;
   }
 }
 
-void Forcing(PetscInt n,PetscReal *x,PetscReal *f) {
+void Forcing(PetscReal t,PetscInt n,PetscReal *x,PetscReal *f) {
   for (PetscInt i = 0; i < n; ++i) {
     (*f) = 0;
   }
@@ -132,15 +132,15 @@ int main(int argc, char **argv) {
   ierr = PerturbInteriorVertices(dm,1./N); CHKERRQ(ierr);
   ierr = DMViewFromOptions(dm, NULL, "-dm_view"); CHKERRQ(ierr);
 
-  /* Setup problem parameters */
+  /* Set problem parameters */
   ierr = TDySetPorosityFunction(tdy,Porosity); CHKERRQ(ierr);
   ierr = TDySetIsotropicPermeabilityFunction(tdy,Permeability); CHKERRQ(ierr);
   ierr = TDySetForcingFunction(tdy,Forcing); CHKERRQ(ierr);
-  ierr = TDySetBoundaryPressureFunction(tdy,Pressure); CHKERRQ(ierr);
+  ierr = TDySetFlowBCFunction(tdy,0,PRESSURE_BC,Pressure); CHKERRQ(ierr);
 
   ierr = TDySetup(tdy); CHKERRQ(ierr);
 
-  /* Setup initial condition */
+  /* Set initial condition */
   Vec U;
   ierr = TDyCreatePrognosticVector(tdy,&U); CHKERRQ(ierr);
   ierr = VecSet(U,91325); CHKERRQ(ierr);
