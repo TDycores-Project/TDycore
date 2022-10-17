@@ -42,15 +42,15 @@ jobs:
         num_failures=$(( $num_failures + $? ))
         cd demo/richards
         make V=1 codecov=1
-        cd ../steady
-        make V=1 codecov=1
+        #cd ../steady
+        #make V=1 codecov=1
         cd ../th
         make V=1 codecov=1
         cd ../transient
         make V=1 codecov=1 transient transient_mpfaof90 transient_snes_mpfaof90
         cd ../../regression_tests
-        make test-steady
-        num_failures=$(( $num_failures + $? ))
+        #make test-steady
+        #num_failures=$(( $num_failures + $? ))
         make test-transient-mpfaof90
         num_failures=$(( $num_failures + $? ))
         make test-transient-snes-mpfaof90

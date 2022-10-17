@@ -78,7 +78,7 @@ void PressureQuadratic3D(PetscReal t, PetscInt n, PetscReal *x, PetscReal *p) {
   }
 }
 
-void VelocityQuadratic3D(PetscInt n, PetscReal *x, PetscReal *v) {
+void VelocityQuadratic3D(PetscReal t, PetscInt n, PetscReal *x, PetscReal *v) {
   PetscReal K[9*n];
   PermTest3D(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
@@ -90,7 +90,7 @@ void VelocityQuadratic3D(PetscInt n, PetscReal *x, PetscReal *v) {
   }
 }
 
-void ForcingQuadratic3D(PetscInt n, PetscReal *x, PetscReal *f) {
+void ForcingQuadratic3D(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   PetscReal K[9*n];
   PermTest3D(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
@@ -226,7 +226,7 @@ void PressureWheeler2012_1(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) 
 
 void VelocityWheeler2012_1(PetscReal t, PetscInt n, PetscReal *x, PetscReal *v) {
   PetscReal K[4*n];
-  PermWheeler2012_1(n, x, K);
+  PermWheeler2012_1(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
     PetscReal sx = PetscSinReal(3*PETSC_PI*X);
@@ -244,7 +244,7 @@ void VelocityWheeler2012_1(PetscReal t, PetscInt n, PetscReal *x, PetscReal *v) 
 
 void ForcingWheeler2012_1(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   PetscReal K[4*n];
-  PermWheeler2012_1(n, x, K);
+  PermWheeler2012_1(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
     PetscReal sx = PetscSinReal(3*PETSC_PI*X);
@@ -612,7 +612,7 @@ PetscErrorCode SaveForcing(TDy tdy, char filename[256]){
   for(c=cStart; c<cEnd; c++) {
     ierr = DMPlexComputeCellGeometryFVM(dm, c, PETSC_NULL, &centroid[0],
                                         PETSC_NULL); CHKERRQ(ierr);
-    ierr = ConditionsComputeForcing(tdy->conditions, 1, &centroid[0],&f[c]);
+    ierr = ConditionsComputeForcing(tdy->conditions, 0.0, 1, &centroid[0],&f[c]);
   }
   ierr = VecRestoreArray(forcing,&f); CHKERRQ(ierr);
   ierr = VecView(forcing,viewer); CHKERRQ(ierr);
