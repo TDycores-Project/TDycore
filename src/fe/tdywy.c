@@ -753,7 +753,7 @@ PetscErrorCode TDyWYComputeSystem(TDy tdy,Mat K,Vec F) {
           // Find the right (flow) boundary condition.
           BoundaryConditions bcs;
           ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
-          if (bcs.flow_bc.type == TDY_PRESSURE_BC) {
+          if (bcs.flow_bc.type == PRESSURE_BC) {
             ierr = EnforceFlowBC(&bcs.flow_bc, 0.0, 1, &(wy->X[global_row*dim]),
                                  &pdirichlet); CHKERRQ(ierr);
             G[local_row] = wgt*sign_row*pdirichlet*wy->V[global_row];
@@ -919,7 +919,7 @@ PetscErrorCode TDyWYRecoverVelocity(TDy tdy,Vec U) {
           // Find the right (flow) boundary condition.
           BoundaryConditions bcs;
           ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
-          if (bcs.flow_bc.type == TDY_PRESSURE_BC) {
+          if (bcs.flow_bc.type == PRESSURE_BC) {
             ierr = EnforceFlowBC(&bcs.flow_bc, 0.0, 1, &(wy->X[global_row*dim]),
                                  &pdirichlet); CHKERRQ(ierr);
             F[local_row] += -wgt*sign_row*pdirichlet*wy->V[global_row];

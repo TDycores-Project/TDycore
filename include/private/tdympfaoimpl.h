@@ -10,9 +10,9 @@
 #include <private/tdydiscretizationimpl.h>
 
 typedef enum {
-  DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
-  NEUMANN_BC,       /* Neumann zero-flux boundary condition */
-  SEEPAGE_BC       /* Seepage boundary condition */
+  MPFAO_DIRICHLET_BC=0,  /* Dirichlet boundary condiiton */
+  MPFAO_NEUMANN_BC,      /* Neumann zero-flux boundary condition */
+  MPFAO_SEEPAGE_BC       /* Seepage boundary condition */
 } TDyMPFAOBCType;
 
 // This struct stores MPFA-O specific data for the dycore.

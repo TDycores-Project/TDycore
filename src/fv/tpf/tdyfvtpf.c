@@ -573,7 +573,7 @@ PetscErrorCode TDyFVTPFSetBoundaryPressure(TDy tdy, Vec Ul) {
       p_bnd_idx = -cell_ids[0] - 1;
     }
 
-    if (bcs[0].flow_bc.type == TDY_PRESSURE_BC) { // FIXME
+    if (bcs[0].flow_bc.type == PRESSURE_BC) { // FIXME
       ierr = EnforceFlowBC(&bcs[0].flow_bc, 0.0, 1, faces->centroid[iface].X,
         &(fvtpf->P_bnd[p_bnd_idx])); CHKERRQ(ierr);
     } else {

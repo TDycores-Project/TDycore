@@ -349,7 +349,7 @@ PetscErrorCode CreateConstantPressureBC(FlowBC *bc, PetscReal p0) {
   PetscReal *val;
   ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = p0;
-  bc->type = TDY_PRESSURE_BC;
+  bc->type = PRESSURE_BC;
   bc->context = val;
   bc->compute = ConstantBoundaryFn;
   bc->dtor = TDyFree;
@@ -362,7 +362,7 @@ PetscErrorCode CreateConstantVelocityBC(FlowBC *bc, PetscReal v0) {
   PetscReal *val;
   ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = v0;
-  bc->type = TDY_VELOCITY_BC;
+  bc->type = VELOCITY_BC;
   bc->context = val;
   bc->compute = ConstantBoundaryFn;
   bc->dtor = TDyFree;
@@ -372,7 +372,7 @@ PetscErrorCode CreateConstantVelocityBC(FlowBC *bc, PetscReal v0) {
 PetscErrorCode CreateSeepageBC(FlowBC *bc) {
   PetscFunctionBegin;
   *bc = (FlowBC){0};
-  bc->type = TDY_SEEPAGE_BC;
+  bc->type = SEEPAGE_BC;
   PetscFunctionReturn(0);
 }
 
@@ -382,7 +382,7 @@ PetscErrorCode CreateConstantTemperatureBC(ThermalBC *bc, PetscReal T0) {
   PetscReal *val;
   ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = T0;
-  bc->type = TDY_TEMPERATURE_BC;
+  bc->type = TEMPERATURE_BC;
   bc->context = val;
   bc->compute = ConstantBoundaryFn;
   bc->dtor = TDyFree;
@@ -395,7 +395,7 @@ PetscErrorCode CreateConstantHeatFluxBC(ThermalBC *bc, PetscReal T0) {
   PetscReal *val;
   ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = T0;
-  bc->type = TDY_HEAT_FLUX_BC;
+  bc->type = HEAT_FLUX_BC;
   bc->context = val;
   bc->compute = ConstantBoundaryFn;
   bc->dtor = TDyFree;
@@ -408,7 +408,7 @@ PetscErrorCode CreateConstantSalinityBC(SalinityBC *bc, PetscReal S0) {
   PetscReal *val;
   ierr = TDyAlloc(sizeof(PetscReal), &val); CHKERRQ(ierr);
   *val = S0;
-  bc->type = TDY_SALINE_CONC_BC;
+  bc->type = SALINE_CONC_BC;
   bc->context = val;
   bc->compute = ConstantBoundaryFn;
   bc->dtor = TDyFree;

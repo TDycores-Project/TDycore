@@ -383,41 +383,62 @@ PETSC_EXTERN PetscErrorCode f90_fn(TDy tdy, PetscInt id) { \
 WRAP_SOURCE(TDySetForcingFunctionF90, ConditionsSetForcing, WrappedF90SpatialFunction)
 WRAP_SOURCE(TDySetEnergyForcingFunctionF90, ConditionsSetEnergyForcing, WrappedF90SpatialFunction)
 
-// This function assigns ids associated with flow, thermal, and salinity
-// boundary conditions to the face set with the given index.
-PETSC_EXTERN PetscErrorCode TDyConditionsSetBCsF90(TDy tdy,
-                                                   PetscInt face_set,
-                                                   TDyFlowBCType flow_bc_type,
-                                                   PetscInt flow_bc_id,
-                                                   TDyThermalBCType thermal_bc_type,
-                                                   PetscInt thermal_bc_id,
-                                                   TDySalinityBCType salinity_bc_type,
-                                                   PetscInt salinity_bc_id) {
+PETSC_EXTERN PetscErrorCode TDySetFlowBCFunctionF90(TDy tdy,
+                                                    PetscInt face_set,
+                                                    TDyFlowBCType bc_type,
+                                                    PetscInt func_id) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
+  void *context;
   PetscInt dim;
   ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
-  void *flow_context, *thermal_context, *salinity_context;
-  ierr = CreateF90SpatialFunctionContext(dim, flow_bc_id, &flow_context); CHKERRQ(ierr);
-  ierr = CreateF90SpatialFunctionContext(dim, thermal_bc_id, &thermal_context); CHKERRQ(ierr);
-  ierr = CreateF90SpatialFunctionContext(dim, salinity_bc_id, &salinity_context); CHKERRQ(ierr);
-  BoundaryConditions bcs = {
-    .flow_bc = (FlowBC){
-      .type    = flow_bc_type,
-      .context = flow_context,
-      .compute = WrappedF90SpatialFunction,
-      .dtor    = TDyFree
-    },
-    .thermal_bc = (ThermalBC){
-      .type    = thermal_bc_type,
-      .context = thermal_context,
-      .compute = WrappedF90SpatialFunction,
-      .dtor    = TDyFree
-    },
-    .salinity_bc = (SalinityBC){
-      .type = salinity_bc_type,
-    }
+  ierr = CreateF90SpatialFunctionContext(dim, func_id, &context); CHKERRQ(ierr);
+  BoundaryConditions bcs;
+  ierr = ConditionsGetBCs(tdy->conditions, face_set, &bcs); CHKERRQ(ierr);
+  bcs.flow_bc = (FlowBC){
+    .type    = bc_type,
+    .context = context,
+    .compute = WrappedF90SpatialFunction,
+    .dtor    = TDyFree
   };
   ierr = ConditionsSetBCs(tdy->conditions, face_set, bcs); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
+
+PETSC_EXTERN PetscErrorCode TDySetThermalBCFunctionF90(TDy tdy,
+                                                       PetscInt face_set,
+                                                       TDyThermalBCType bc_type,
+                                                       PetscInt func_id) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  void *context;
+  PetscInt dim;
+  ierr = DMGetDimension(((tdy->discretization)->tdydm)->dm, &dim); CHKERRQ(ierr); \
+  ierr = CreateF90SpatialFunctionContext(dim, func_id, &context); CHKERRQ(ierr);
+  BoundaryConditions bcs;
+  ierr = ConditionsGetBCs(tdy->conditions, face_set, &bcs); CHKERRQ(ierr);
+  bcs.thermal_bc = (ThermalBC){
+    .type    = bc_type,
+    .context = context,
+    .compute = WrappedF90SpatialFunction,
+    .dtor    = TDyFree
+  };
+  ierr = ConditionsSetBCs(tdy->conditions, face_set, bcs); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
+PETSC_EXTERN PetscErrorCode TDySetSalinityBCFunctionF90(TDy tdy,
+                                                        PetscInt face_set,
+                                                        TDySalinityBCType bc_type,
+                                                        PetscInt func_id) {
+  PetscErrorCode ierr;
+  PetscFunctionBegin;
+  BoundaryConditions bcs;
+  ierr = ConditionsGetBCs(tdy->conditions, face_set, &bcs); CHKERRQ(ierr);
+  bcs.salinity_bc = (SalinityBC){
+   .type = bc_type,
+  };
+  ierr = ConditionsSetBCs(tdy->conditions, face_set, bcs); CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+

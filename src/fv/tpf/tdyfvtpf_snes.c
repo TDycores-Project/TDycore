@@ -600,7 +600,7 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
     PetscInt face_set = face_sets[f];
 
     // skip zero-flux faces
-    if (bc.flow_bc.type == TDY_NOFLOW_BC) continue;
+    if (bc.flow_bc.type == NOFLOW_BC) continue;
 
     // Loop over the faces in this face set.
     BoundaryFaces bfaces;
@@ -615,10 +615,10 @@ PetscErrorCode TDyFVTPFSNESFunction(SNES snes,Vec U,Vec R,void *ctx) {
 
       PetscReal Res = 0.0;
       switch (bc.flow_bc.type) {
-      case TDY_PRESSURE_BC:
+      case PRESSURE_BC:
         ierr = RichardsBCResidual(fvtpf, dm, tdy->matprop, iface, &Res);
         break;
-      case TDY_SEEPAGE_BC:
+      case SEEPAGE_BC:
         ierr = RichardsSeepageBCResidual(fvtpf, dm, tdy->matprop, iface, &Res);
         break;
       default:
@@ -711,7 +711,7 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
     PetscInt face_set = face_sets[f];
 
     // skip zero-flux faces
-    if (bc.flow_bc.type == TDY_NOFLOW_BC) continue;
+    if (bc.flow_bc.type == NOFLOW_BC) continue;
 
     // Loop over the faces in this face set.
     BoundaryFaces bfaces;
@@ -728,10 +728,10 @@ PetscErrorCode TDyFVTPFSNESJacobian(SNES snes,Vec U,Mat A, Mat B,void *ctx) {
       PetscInt cell_id_dn = cell_ids[1];
       PetscReal Jdn;
       switch (bc.flow_bc.type) {
-      case TDY_PRESSURE_BC:
+      case PRESSURE_BC:
         ierr = RichardsBCJacobian(fvtpf, dm, tdy->matprop, iface, &Jdn);
         break;
-      case TDY_SEEPAGE_BC:
+      case SEEPAGE_BC:
         ierr = RichardsSeepageBCJacobian(fvtpf, dm, tdy->matprop, iface, &Jdn);
         break;
       default:

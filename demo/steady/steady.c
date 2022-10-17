@@ -3,7 +3,7 @@
 
 PetscReal alpha = 1;
 
-void PermTest2D(PetscInt n, PetscReal *x,PetscReal *K) {
+void PermTest2D(PetscReal t, PetscInt n, PetscReal *x,PetscReal *K) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal *Ki = &(K[4*i]);
     Ki[0] = 5; Ki[1] = 1;
@@ -11,7 +11,7 @@ void PermTest2D(PetscInt n, PetscReal *x,PetscReal *K) {
   }
 }
 
-void PermTest3D(PetscInt n, PetscReal *x, PetscReal *K) {
+void PermTest3D(PetscReal t, PetscInt n, PetscReal *x, PetscReal *K) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal *Ki = &(K[9*i]);
     Ki[0] = 4.321; Ki[1] = 1;     Ki[2] = 0.5;
@@ -22,13 +22,13 @@ void PermTest3D(PetscInt n, PetscReal *x, PetscReal *K) {
 
 /*--- -dim {2|3} -problem 1 ---------------------------------------------------------------*/
 
-void PressureConstant(PetscInt n, PetscReal *x, PetscReal *p) {
+void PressureConstant(PetscReal t, PetscInt n, PetscReal *x, PetscReal *p) {
   for (PetscInt i = 0; i < n; ++i) {
     p[i] = 3.14;
   }
 }
 
-void VelocityConstant(PetscInt n, PetscReal *x, PetscReal *v) {
+void VelocityConstant(PetscReal t, PetscInt n, PetscReal *x, PetscReal *v) {
   for (PetscInt i = 0; i < n; ++i) {
     v[3*i] = 0;
     v[3*i+1] = 0;
@@ -36,7 +36,7 @@ void VelocityConstant(PetscInt n, PetscReal *x, PetscReal *v) {
   }
 }
 
-void ForcingConstant(PetscInt n, PetscReal *x, PetscReal *f) {
+void ForcingConstant(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   for (PetscInt i = 0; i < n; ++i) {
     f[i] = 0;
   }
@@ -44,16 +44,16 @@ void ForcingConstant(PetscInt n, PetscReal *x, PetscReal *f) {
 
 /*--- -dim 2 -problem 2 ---------------------------------------------------------------*/
 
-void PressureQuadratic2D(PetscInt n, PetscReal *x, PetscReal *p) {
+void PressureQuadratic2D(PetscReal t, PetscInt n, PetscReal *x, PetscReal *p) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
     p[i] = 3.14+X*(1-X)+Y*(1-Y);
   }
 }
 
-void VelocityQuadratic2D(PetscInt n, PetscReal *x, PetscReal *v) {
+void VelocityQuadratic2D(PetscReal t, PetscInt n, PetscReal *x, PetscReal *v) {
   PetscReal K[4*n];
-  PermTest2D(n, x, K);
+  PermTest2D(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
     PetscReal *Ki = &(K[4*i]);
@@ -62,16 +62,16 @@ void VelocityQuadratic2D(PetscInt n, PetscReal *x, PetscReal *v) {
   }
 }
 
-void ForcingQuadratic2D(PetscInt n, PetscReal *x, PetscReal *f) {
+void ForcingQuadratic2D(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   PetscReal K[4*n];
-  PermTest2D(n, x, K);
+  PermTest2D(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal *Ki = &(K[4*i]);
     f[i] = 2*Ki[0]+2*Ki[3];
   }
 }
 
-void PressureQuadratic3D(PetscInt n, PetscReal *x, PetscReal *p) {
+void PressureQuadratic3D(PetscReal t, PetscInt n, PetscReal *x, PetscReal *p) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
     p[i] = 3.14+X*(1-X)+Y*(1-Y)+Z*(1-Z);
@@ -80,7 +80,7 @@ void PressureQuadratic3D(PetscInt n, PetscReal *x, PetscReal *p) {
 
 void VelocityQuadratic3D(PetscInt n, PetscReal *x, PetscReal *v) {
   PetscReal K[9*n];
-  PermTest3D(n, x, K);
+  PermTest3D(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
     PetscReal *Ki = &(K[9*i]);
@@ -92,7 +92,7 @@ void VelocityQuadratic3D(PetscInt n, PetscReal *x, PetscReal *v) {
 
 void ForcingQuadratic3D(PetscInt n, PetscReal *x, PetscReal *f) {
   PetscReal K[9*n];
-  PermTest3D(n, x, K);
+  PermTest3D(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal *Ki = &(K[9*i]);
     f[i] = 2*(Ki[0]+Ki[3]+Ki[8]);
@@ -103,7 +103,7 @@ void ForcingQuadratic3D(PetscInt n, PetscReal *x, PetscReal *f) {
 
 /* -problem 1 */
 
-void PermWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *K) {
+void PermWheeler2006_1(PetscReal t, PetscInt n, PetscReal *x, PetscReal *K) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal *Ki = &(K[4*i]);
     Ki[0] = 5; Ki[1] = 1;
@@ -111,7 +111,7 @@ void PermWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *K) {
   }
 }
 
-void PressureWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *f) {
+void PressureWheeler2006_1(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
     f[i]  = PetscPowReal(1-X,4);
@@ -120,9 +120,9 @@ void PressureWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *f) {
   }
 }
 
-void VelocityWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *v) {
+void VelocityWheeler2006_1(PetscReal t, PetscInt n, PetscReal *x, PetscReal *v) {
   PetscReal K[4*n];
-  PermWheeler2006_1(n, x, K);
+  PermWheeler2006_1(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
     PetscReal vx, vy;
@@ -137,9 +137,9 @@ void VelocityWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *v) {
   }
 }
 
-void ForcingWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *f) {
+void ForcingWheeler2006_1(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   PetscReal K[4*n];
-  PermWheeler2006_1(n, x, K);
+  PermWheeler2006_1(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
     PetscReal *Ki = &(K[4*i]);
@@ -152,7 +152,7 @@ void ForcingWheeler2006_1(PetscInt n, PetscReal *x, PetscReal *f) {
 
 /* -problem 2 */
 
-void PermWheeler2006_2(PetscInt n, PetscReal *x, PetscReal *K) {
+void PermWheeler2006_2(PetscReal t, PetscInt n, PetscReal *x, PetscReal *K) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
     PetscReal *Ki = &(K[4*i]);
@@ -163,7 +163,7 @@ void PermWheeler2006_2(PetscInt n, PetscReal *x, PetscReal *K) {
   }
 }
 
-void PressureWheeler2006_2(PetscInt n, PetscReal *x, PetscReal *f) {
+void PressureWheeler2006_2(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
     PetscReal sx = PetscSinReal(3*PETSC_PI*X);
@@ -172,7 +172,7 @@ void PressureWheeler2006_2(PetscInt n, PetscReal *x, PetscReal *f) {
   }
 }
 
-void VelocityWheeler2006_2(PetscInt n, PetscReal *x, PetscReal *v) {
+void VelocityWheeler2006_2(PetscReal t, PetscInt n, PetscReal *x, PetscReal *v) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
     PetscReal sx = PetscSinReal(3*PETSC_PI*X);
@@ -184,7 +184,7 @@ void VelocityWheeler2006_2(PetscInt n, PetscReal *x, PetscReal *v) {
   }
 }
 
-void ForcingWheeler2006_2(PetscInt n, PetscReal *x,PetscReal *f) {
+void ForcingWheeler2006_2(PetscReal t, PetscInt n, PetscReal *x,PetscReal *f) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
     PetscReal sx = PetscSinReal(3*PETSC_PI*X);
@@ -207,7 +207,7 @@ void ForcingWheeler2006_2(PetscInt n, PetscReal *x,PetscReal *f) {
 
 /* -problem 1 */
 
-void PermWheeler2012_1(PetscInt n, PetscReal *x, PetscReal *K) {
+void PermWheeler2012_1(PetscReal t, PetscInt n, PetscReal *x, PetscReal *K) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal *Ki = &(K[4*i]);
     Ki[0] = 2   ; Ki[1] = 1.25;
@@ -215,7 +215,7 @@ void PermWheeler2012_1(PetscInt n, PetscReal *x, PetscReal *K) {
   }
 }
 
-void PressureWheeler2012_1(PetscInt n, PetscReal *x, PetscReal *f) {
+void PressureWheeler2012_1(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[2*i], Y = x[2*i+1];
     PetscReal sx = PetscSinReal(3*PETSC_PI*X);
@@ -224,7 +224,7 @@ void PressureWheeler2012_1(PetscInt n, PetscReal *x, PetscReal *f) {
   }
 }
 
-void VelocityWheeler2012_1(PetscInt n, PetscReal *x, PetscReal *v) {
+void VelocityWheeler2012_1(PetscReal t, PetscInt n, PetscReal *x, PetscReal *v) {
   PetscReal K[4*n];
   PermWheeler2012_1(n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
@@ -242,7 +242,7 @@ void VelocityWheeler2012_1(PetscInt n, PetscReal *x, PetscReal *v) {
   }
 }
 
-void ForcingWheeler2012_1(PetscInt n, PetscReal *x, PetscReal *f) {
+void ForcingWheeler2012_1(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   PetscReal K[4*n];
   PermWheeler2012_1(n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
@@ -264,7 +264,7 @@ void ForcingWheeler2012_1(PetscInt n, PetscReal *x, PetscReal *f) {
 
 /* -problem 2 */
 
-void PermWheeler2012_2(PetscInt n, PetscReal *x, PetscReal *K) {
+void PermWheeler2012_2(PetscReal t, PetscInt n, PetscReal *x, PetscReal *K) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal *Ki = &(K[9*i]);
     Ki[0] = alpha; Ki[1] = 1; Ki[2] = 1;
@@ -273,7 +273,7 @@ void PermWheeler2012_2(PetscInt n, PetscReal *x, PetscReal *K) {
   }
 }
 
-void PressureWheeler2012_2(PetscInt n, PetscReal *x, PetscReal *f) {
+void PressureWheeler2012_2(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
     PetscReal X2 = X*X, Y2 = Y*Y, Z2 = Z*Z;
@@ -284,9 +284,9 @@ void PressureWheeler2012_2(PetscInt n, PetscReal *x, PetscReal *f) {
   }
 }
 
-void VelocityWheeler2012_2(PetscInt n, PetscReal *x, PetscReal *v) {
+void VelocityWheeler2012_2(PetscReal t, PetscInt n, PetscReal *x, PetscReal *v) {
   PetscReal K[9*n];
-  PermWheeler2012_2(n, x, K);
+  PermWheeler2012_2(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
     PetscReal X2 = X*X, Y2 = Y*Y, Z2 = Z*Z;
@@ -309,9 +309,9 @@ void VelocityWheeler2012_2(PetscInt n, PetscReal *x, PetscReal *v) {
   }
 }
 
-void ForcingWheeler2012_2(PetscInt n, PetscReal *x, PetscReal *f) {
+void ForcingWheeler2012_2(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   PetscReal K[9*n];
-  PermWheeler2012_2(n, x, K);
+  PermWheeler2012_2(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
     PetscReal X2 = X*X, Y2 = Y*Y, Z2 = Z*Z;
@@ -337,16 +337,16 @@ void ForcingWheeler2012_2(PetscInt n, PetscReal *x, PetscReal *f) {
 
 /*--- -dim 3 -problem 3 ---------------------------------------------------------------*/
 
-void Pressure3(PetscInt n, PetscReal *x, PetscReal *f) {
+void Pressure3(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
     f[i] = PetscCosReal(X)*PetscCosReal(Y)*PetscCosReal(Z);
   }
 }
 
-void Velocity3(PetscInt n, PetscReal *x, PetscReal *v) {
+void Velocity3(PetscReal t, PetscInt n, PetscReal *x, PetscReal *v) {
   PetscReal K[9*n];
-  PermWheeler2012_2(n, x, K);
+  PermWheeler2012_2(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
     PetscReal *Ki = &(K[9*i]);
@@ -362,9 +362,9 @@ void Velocity3(PetscInt n, PetscReal *x, PetscReal *v) {
   }
 }
 
-void Forcing3(PetscInt n, PetscReal *x, PetscReal *f) {
+void Forcing3(PetscReal t, PetscInt n, PetscReal *x, PetscReal *f) {
   PetscReal K[9*n];
-  PermWheeler2012_2(n, x, K);
+  PermWheeler2012_2(t, n, x, K);
   for (PetscInt i = 0; i < n; ++i) {
     PetscReal X = x[3*i], Y = x[3*i+1], Z = x[3*i+2];
     PetscReal *Ki = &(K[9*i]);

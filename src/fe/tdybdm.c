@@ -522,7 +522,7 @@ PetscErrorCode TDyBDMComputeSystem(TDy tdy,Mat K,Vec F) {
         // Find the right (flow) boundary condition.
         BoundaryConditions bcs;
         ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
-        if (bcs.flow_bc.type == TDY_PRESSURE_BC) {
+        if (bcs.flow_bc.type == PRESSURE_BC) {
           ierr = IntegratePressureBoundary(bdm,dm,&bcs.flow_bc,cone[f],c,Flocal);
           CHKERRQ(ierr);
         }

@@ -1159,10 +1159,10 @@ static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
       BoundaryConditions bcs;
       ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
       if (((varID == VAR_PRESSURE) &&
-           ((bcs.flow_bc.type == TDY_PRESSURE_BC) ||
-            (bcs.flow_bc.type == TDY_SEEPAGE_BC))) ||
+           ((bcs.flow_bc.type == PRESSURE_BC) ||
+            (bcs.flow_bc.type == SEEPAGE_BC))) ||
           ((varID == VAR_TEMPERATURE) &&
-           (bcs.thermal_bc.type == TDY_TEMPERATURE_BC))) {
+           (bcs.thermal_bc.type == TEMPERATURE_BC))) {
         is_dirichlet_or_seepage_bc = PETSC_TRUE;
       }
     }
@@ -1840,10 +1840,10 @@ static PetscErrorCode ComputeTransmissibilityMatrix(TDyMPFAO *mpfao, DM dm,
           // Find the right boundary condition.
           BoundaryConditions bcs;
           ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
-          if (bcs.flow_bc.type == TDY_PRESSURE_BC) {
+          if (bcs.flow_bc.type == PRESSURE_BC) {
             is_dirichlet_or_seepage_bc = PETSC_TRUE;
           }
-          if (bcs.thermal_bc.type == TDY_TEMPERATURE_BC) {
+          if (bcs.thermal_bc.type == TEMPERATURE_BC) {
             is_temperature_bc = PETSC_TRUE;
           }
         }
@@ -2247,7 +2247,7 @@ static PetscErrorCode ComputeGravityDiscretization(TDyMPFAO *mpfao, DM dm,
       if (face_set >= 0) {
         BoundaryConditions bcs;
         ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);
-        if ((bcs.flow_bc.type == TDY_NOFLOW_BC) &&
+        if ((bcs.flow_bc.type == NOFLOW_BC) &&
             (cell_id_up < 0 || cell_id_dn < 0)) continue;
       }
 
@@ -2312,7 +2312,7 @@ static PetscErrorCode SetBCType(TDyMPFAO *mpfao, Conditions *conditions) {
   PetscFunctionBegin;
   PetscErrorCode ierr;
 
-  mpfao->bc_type = NEUMANN_BC;
+  mpfao->bc_type = MPFAO_NEUMANN_BC;
 
   // We should have no more than one face set.
   PetscInt num_face_sets = ConditionsNumFaceSets(conditions);
@@ -2324,12 +2324,12 @@ static PetscErrorCode SetBCType(TDyMPFAO *mpfao, Conditions *conditions) {
   // Extract the flow boundary condition and set it.
   BoundaryConditions bcs;
   ierr = ConditionsGetBCs(conditions, 0, &bcs); CHKERRQ(ierr);
-  if (bcs.flow_bc.type == TDY_NOFLOW_BC) {
-    mpfao->bc_type = NEUMANN_BC;
-  } else if (bcs.flow_bc.type == TDY_PRESSURE_BC) {
-    mpfao->bc_type = DIRICHLET_BC;
-  } else if (bcs.flow_bc.type == TDY_SEEPAGE_BC) {
-    mpfao->bc_type = SEEPAGE_BC;
+  if (bcs.flow_bc.type == NOFLOW_BC) {
+    mpfao->bc_type = MPFAO_NEUMANN_BC;
+  } else if (bcs.flow_bc.type == PRESSURE_BC) {
+    mpfao->bc_type = MPFAO_DIRICHLET_BC;
+  } else if (bcs.flow_bc.type == SEEPAGE_BC) {
+    mpfao->bc_type = MPFAO_SEEPAGE_BC;
   }
 
   PetscFunctionReturn(0);

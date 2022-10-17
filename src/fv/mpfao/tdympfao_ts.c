@@ -108,7 +108,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
 
           ukvr = Kr/vis;
           PetscInt face_set = 0; // FIXME!
-          if (bcs[face_set].flow_bc.type == TDY_SEEPAGE_BC &&
+          if (bcs[face_set].flow_bc.type == MPFAO_SEEPAGE_BC &&
               mpfao->P_bnd[-cell_id_up-1] <= mpfao->Pref) {
             set_flow_to_zero = PETSC_TRUE;
           }
@@ -126,7 +126,7 @@ PetscErrorCode TDyMPFAOIFunction_Vertices(Vec Ul, Vec R, void *ctx) {
 
           ukvr = Kr/vis;
           PetscInt face_set = 0; // FIXME!
-	        if (bcs[face_set].flow_bc.type == TDY_SEEPAGE_BC &&
+	        if (bcs[face_set].flow_bc.type == MPFAO_SEEPAGE_BC &&
               mpfao->P_bnd[-cell_id_dn-1] <= mpfao->Pref) {
             set_flow_to_zero = PETSC_TRUE;
           }
@@ -323,7 +323,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
       PetscInt cell_id_dn = cell_ids[1];
 
       // If using neumann bc (which is currently no-flux), then skip the face
-      if ( mpfao->bc_type == NEUMANN_BC  && (cell_id_up<0 || cell_id_dn <0))  continue;
+      if ( mpfao->bc_type == MPFAO_NEUMANN_BC  && (cell_id_up<0 || cell_id_dn <0))  continue;
 
       PetscReal dukvr_dPup = 0.0;
       PetscReal dukvr_dPdn = 0.0;
@@ -374,7 +374,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
           dukvr_dPup = 0.0;
 
           PetscInt face_set = 0; // FIXME
-	        if (bcs[face_set].flow_bc.type == TDY_SEEPAGE_BC &&
+	        if (bcs[face_set].flow_bc.type == MPFAO_SEEPAGE_BC &&
               mpfao->P_bnd[-cell_id_up-1] <= mpfao->Pref) {
             set_jac_to_zero = PETSC_TRUE;
           }
@@ -402,7 +402,7 @@ PetscErrorCode TDyMPFAOIJacobian_Vertices(Vec Ul, Mat A, void *ctx) {
           dukvr_dPdn = 0.0;
 
           PetscInt face_set = 0; // FIXME
-	        if (bcs[face_set].flow_bc.type == TDY_SEEPAGE_BC &&
+	        if (bcs[face_set].flow_bc.type == MPFAO_SEEPAGE_BC &&
               mpfao->P_bnd[-cell_id_dn-1] <= mpfao->Pref) {
             set_jac_to_zero = PETSC_TRUE;
           }

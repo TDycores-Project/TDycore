@@ -41,24 +41,24 @@ PETSC_EXTERN const char *const TDyDiscretizations[];
 
 /// Types of flow boundary conditions
 typedef enum {
-  TDY_UNDEFINED_FLOW_BC = 0,
-  TDY_PRESSURE_BC,
-  TDY_VELOCITY_BC,
-  TDY_NOFLOW_BC,
-  TDY_SEEPAGE_BC
+  UNDEFINED_FLOW_BC = 0,
+  PRESSURE_BC,
+  VELOCITY_BC,
+  NOFLOW_BC,
+  SEEPAGE_BC
 } TDyFlowBCType;
 
 /// Types of thermal boundary conditions
 typedef enum {
-  TDY_UNDEFINED_THERMAL_BC = 0,
-  TDY_TEMPERATURE_BC,
-  TDY_HEAT_FLUX_BC,
+  UNDEFINED_THERMAL_BC = 0,
+  TEMPERATURE_BC,
+  HEAT_FLUX_BC,
 } TDyThermalBCType;
 
 /// Types of salinity boundary conditions
 typedef enum {
-  TDY_UNDEFINED_SALINITY_BC = 0,
-  TDY_SALINE_CONC_BC,
+  UNDEFINED_SALINITY_BC = 0,
+  SALINE_CONC_BC,
 } TDySalinityBCType;
 
 typedef enum {
@@ -211,12 +211,12 @@ PETSC_EXTERN PetscErrorCode TDySelectForcingFunction(TDy,const char*);
 PETSC_EXTERN PetscErrorCode TDySelectEnergyForcingFunction(TDy,const char*);
 
 // Set boundary condition functions
-PETSC_EXTERN PetscErrorCode TDySetFlowBCFunction(TDy,TDyFlowBCType,PetscInt,TDyScalarSpatialFunction);
-PETSC_EXTERN PetscErrorCode TDySetThermalBCFunction(TDy,TDyThermalBCType,PetscInt,TDyScalarSpatialFunction);
-PETSC_EXTERN PetscErrorCode TDySetSalinityBCFunction(TDy,TDySalinityBCType,PetscInt,TDyScalarSpatialFunction);
-PETSC_EXTERN PetscErrorCode TDySelectFlowBCFunction(TDy,TDyFlowBCType,PetscInt,const char*);
-PETSC_EXTERN PetscErrorCode TDySelectThermalBCFunction(TDy,TDyThermalBCType,PetscInt,const char*);
-PETSC_EXTERN PetscErrorCode TDySelectSalinityBCFunction(TDy,TDySalinityBCType,PetscInt,const char*);
+PETSC_EXTERN PetscErrorCode TDySetFlowBCFunction(TDy,PetscInt,TDyFlowBCType,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetThermalBCFunction(TDy,PetscInt,TDyThermalBCType,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySetSalinityBCFunction(TDy,PetscInt,TDySalinityBCType,TDyScalarSpatialFunction);
+PETSC_EXTERN PetscErrorCode TDySelectFlowBCFunction(TDy,PetscInt,TDyFlowBCType,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectThermalBCFunction(TDy,PetscInt,TDyThermalBCType,const char*);
+PETSC_EXTERN PetscErrorCode TDySelectSalinityBCFunction(TDy,PetscInt,TDySalinityBCType,const char*);
 
 PETSC_EXTERN PetscErrorCode TDyUpdateState(TDy,PetscReal*,PetscInt);
 

@@ -545,7 +545,7 @@ static PetscErrorCode GetBCsForBoundaries(TDy tdy,
           ierr = TDyGetFunction((const char*)func_name, &wrapper->func);
           CHKERRQ(ierr);
           bc_i->flow_bc = (FlowBC){
-            .type = TDY_PRESSURE_BC,
+            .type = PRESSURE_BC,
             .context = wrapper,
             .compute = WrapperFunction,
             .dtor = TDyFree
@@ -571,7 +571,7 @@ static PetscErrorCode GetBCsForBoundaries(TDy tdy,
     for (PetscInt i = 0; i < num_spec_boundaries; ++i) {
       BoundaryConditions *bc_i = &bcs[i];
 
-      if (bc_i->flow_bc.type != TDY_UNDEFINED_FLOW_BC) {
+      if (bc_i->flow_bc.type != UNDEFINED_FLOW_BC) {
         SETERRQ(comm, PETSC_ERR_USER,
                 "A noflow boundary condition was assigned to a boundary "
                 "previously assigned to a pressure boundary condition. Please "
@@ -591,7 +591,7 @@ static PetscErrorCode GetBCsForBoundaries(TDy tdy,
     for (PetscInt i = 0; i < num_spec_boundaries; ++i) {
       BoundaryConditions *bc_i = &bcs[i];
 
-      if (bc_i->flow_bc.type != TDY_UNDEFINED_FLOW_BC) {
+      if (bc_i->flow_bc.type != UNDEFINED_FLOW_BC) {
         SETERRQ(comm, PETSC_ERR_USER,
                 "A seepage boundary condition was assigned to a boundary "
                 "previously assigned to a pressure boundary condition. Please "
@@ -632,7 +632,7 @@ static PetscErrorCode GetBCsForBoundaries(TDy tdy,
           ierr = TDyGetFunction((const char*)func_name, &wrapper->func);
           CHKERRQ(ierr);
           bc_i->thermal_bc = (ThermalBC){
-            .type = TDY_TEMPERATURE_BC,
+            .type = TEMPERATURE_BC,
             .context = wrapper,
             .compute = WrapperFunction,
             .dtor = TDyFree
@@ -658,7 +658,7 @@ static PetscErrorCode GetBCsForBoundaries(TDy tdy,
     for (PetscInt i = 0; i < num_spec_boundaries; ++i) {
       BoundaryConditions *bc_i = &bcs[i];
 
-      if (bc_i->thermal_bc.type != TDY_UNDEFINED_THERMAL_BC) {
+      if (bc_i->thermal_bc.type != UNDEFINED_THERMAL_BC) {
         SETERRQ(comm, PETSC_ERR_USER,
                 "An insulated boundary condition was assigned to a boundary "
                 "previously assigned to a temperature boundary condition. "
@@ -743,7 +743,7 @@ static PetscErrorCode ProcessBCOptions(TDy tdy) {
     for (PetscInt i = 0; i < MAX_FACE_SETS; ++i) {
       // Flow BCs are always required, so we check their type to see whether
       // this face set has a BC assigned.
-      if (bcs[i].flow_bc.type != TDY_UNDEFINED_FLOW_BC) {
+      if (bcs[i].flow_bc.type != UNDEFINED_FLOW_BC) {
         ierr = ConditionsSetBCs(tdy->conditions, i, bcs[i]); CHKERRQ(ierr);
         BoundaryFaces bfaces = {0};
         ierr = ConditionsSetBoundaryFaces(tdy->conditions, i, bfaces); CHKERRQ(ierr);
@@ -1619,12 +1619,12 @@ PetscErrorCode TDySelectEnergyForcingFunction(TDy tdy,
 /// given scalar spatial function) on all faces belonging to the face set with
 /// the given index.
 /// @param [in] tdy the dycore instance
-/// @param [in] bc_type the type of the desired flow boundary condition
 /// @param [in] face_set the index of the face set identifying boundary faces
+/// @param [in] bc_type the type of the desired flow boundary condition
 /// @param [in] func the scalar spatial function implementing the condition
 PetscErrorCode TDySetFlowBCFunction(TDy tdy,
-                                    TDyFlowBCType bc_type,
                                     PetscInt face_set,
+                                    TDyFlowBCType bc_type,
                                     TDyScalarSpatialFunction func) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -1649,12 +1649,12 @@ PetscErrorCode TDySetFlowBCFunction(TDy tdy,
 /// given scalar spatial function) on all faces belonging to the face set with
 /// the given index.
 /// @param [in] tdy the dycore instance
-/// @param [in] bc_type the type of the desired thermal boundary condition
 /// @param [in] face_set the index of the face set identifying boundary faces
+/// @param [in] bc_type the type of the desired thermal boundary condition
 /// @param [in] func the scalar spatial function implementing the condition
 PetscErrorCode TDySetThermalBCFunction(TDy tdy,
-                                       TDyThermalBCType bc_type,
                                        PetscInt face_set,
+                                       TDyThermalBCType bc_type,
                                        TDyScalarSpatialFunction func) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -1679,12 +1679,12 @@ PetscErrorCode TDySetThermalBCFunction(TDy tdy,
 /// given scalar spatial function) on all faces belonging to the face set with
 /// the given index.
 /// @param [in] tdy the dycore instance
-/// @param [in] bc_type the type of the desired salinity boundary condition
 /// @param [in] face_set the index of the face set identifying boundary faces
+/// @param [in] bc_type the type of the desired salinity boundary condition
 /// @param [in] func the scalar spatial function implementing the condition
 PetscErrorCode TDySetSalinityBCFunction(TDy tdy,
-                                        TDySalinityBCType bc_type,
                                         PetscInt face_set,
+                                        TDySalinityBCType bc_type,
                                         TDyScalarSpatialFunction func) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
@@ -1709,19 +1709,19 @@ PetscErrorCode TDySetSalinityBCFunction(TDy tdy,
 /// scalar spatial function registered with the given name) on all faces
 /// belonging to the face set with the given index.
 /// @param [in] tdy the dycore instance
-/// @param [in] bc_type the type of the desired flow boundary condition
 /// @param [in] face_set the index of the face set identifying boundary faces
+/// @param [in] bc_type the type of the desired flow boundary condition
 /// @param [in] func_name the registered name of a scalar spatial function
 ///                       that implements the desired boundary condition
 PetscErrorCode TDySelectFlowBCFunction(TDy tdy,
-                                       TDyFlowBCType bc_type,
                                        PetscInt face_set,
+                                       TDyFlowBCType bc_type,
                                        const char *func_name) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDySpatialFunction f;
   ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
-  ierr = TDySetFlowBCFunction(tdy, bc_type, face_set, f); CHKERRQ(ierr);
+  ierr = TDySetFlowBCFunction(tdy, face_set, bc_type, f); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1729,19 +1729,19 @@ PetscErrorCode TDySelectFlowBCFunction(TDy tdy,
 /// scalar spatial function registered with the given name) on all faces
 /// belonging to the face set with the given index.
 /// @param [in] tdy the dycore instance
-/// @param [in] bc_type the type of the desired thermal boundary condition
 /// @param [in] face_set the index of the face set identifying boundary faces
+/// @param [in] bc_type the type of the desired thermal boundary condition
 /// @param [in] func_name the registered name of a scalar spatial function
 ///                       that implements the desired boundary condition
 PetscErrorCode TDySelectThermalBCFunction(TDy tdy,
-                                          TDyThermalBCType bc_type,
                                           PetscInt face_set,
+                                          TDyThermalBCType bc_type,
                                           const char *func_name) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDySpatialFunction f;
   ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
-  ierr = TDySetThermalBCFunction(tdy, bc_type, face_set, f); CHKERRQ(ierr);
+  ierr = TDySetThermalBCFunction(tdy, face_set, bc_type, f); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 
@@ -1749,19 +1749,19 @@ PetscErrorCode TDySelectThermalBCFunction(TDy tdy,
 /// scalar spatial function registered with the given name) on all faces
 /// belonging to the face set with the given index.
 /// @param [in] tdy the dycore instance
-/// @param [in] bc_type the type of the desired salinity boundary condition
 /// @param [in] face_set the index of the face set identifying boundary faces
+/// @param [in] bc_type the type of the desired salinity boundary condition
 /// @param [in] func_name the registered name of a scalar spatial function
 ///                       that implements the desired boundary condition
 PetscErrorCode TDySelectSalinityBCFunction(TDy tdy,
-                                           TDySalinityBCType bc_type,
                                            PetscInt face_set,
+                                           TDySalinityBCType bc_type,
                                            const char *func_name) {
   PetscErrorCode ierr;
   PetscFunctionBegin;
   TDySpatialFunction f;
   ierr = TDyGetFunction(func_name, &f); CHKERRQ(ierr);
-  ierr = TDySetSalinityBCFunction(tdy, bc_type, face_set, f); CHKERRQ(ierr);
+  ierr = TDySetSalinityBCFunction(tdy, face_set, bc_type, f); CHKERRQ(ierr);
   PetscFunctionReturn(0);
 }
 

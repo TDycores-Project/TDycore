@@ -32,6 +32,28 @@
       parameter (RICHARDS=0,TH=1)
 
 !
+!  Types of TDy flow boundary conditions
+!
+      PetscEnum UNDEFINED_FLOW_BC
+      PetscEnum PRESSURE_BC
+      PetscEnum VELOCITY_BC
+      PetscEnum NOFLOW_BC
+      PetscEnum SEEPAGE_BC
+
+!
+!  Types of TDy thermal boundary conditions
+!
+      PetscEnum UNDEFINED_THERMAL_BC
+      PetscEnum TEMPERATURE_BC
+      PetscEnum HEAT_FLUX_BC
+
+!
+!  Types of TDy salinity boundary conditions
+!
+      PetscEnum UNDEFINED_SALINITY_BC
+      PetscEnum SALINE_CONC_BC
+
+!
 !  Types of TDy water densities
 !
       PetscEnum WATER_DENSITY_CONSTANT

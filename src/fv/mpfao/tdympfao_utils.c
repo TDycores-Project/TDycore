@@ -201,7 +201,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_InternalVertices(TDy tdy, Vec U, PetscRea
 
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
         PetscInt face_set = 0; // FIXME
-        if (bcs[face_set].flow_bc.type == TDY_VELOCITY_BC) {
+        if (bcs[face_set].flow_bc.type == VELOCITY_BC) {
           ierr = EnforceFlowBC(&bcs[face_set].flow_bc, 0.0, 1, X, vel); CHKERRQ(ierr);
           vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)* face_areas[iface];
 
@@ -338,7 +338,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
           f = faces->id[face_id] + fStart;
 
           PetscInt face_set = 0; // FIXME
-          if (bcs[face_set].flow_bc.type == TDY_PRESSURE_BC) {
+          if (bcs[face_set].flow_bc.type == PRESSURE_BC) {
             ierr = EnforceFlowBC(&bcs[face_set].flow_bc, 0.0, 1,
                 &(mpfao->X[f*dim]), &pBoundary[numBoundary]); CHKERRQ(ierr);
           } else {
@@ -394,7 +394,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
         PetscInt face_set = 0; // FIXME
-        if (bcs[face_set].flow_bc.type == TDY_VELOCITY_BC) {
+        if (bcs[face_set].flow_bc.type == VELOCITY_BC) {
           ierr = EnforceFlowBC(&bcs[face_set].flow_bc, 0.0, 1, X, vel); CHKERRQ(ierr);
           vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)* face_areas[iface];
 
@@ -434,7 +434,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
 
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
         PetscInt face_set = 0; // FIXME
-        if (bcs[face_set].flow_bc.type == TDY_VELOCITY_BC) {
+        if (bcs[face_set].flow_bc.type == VELOCITY_BC) {
           ierr = EnforceFlowBC(&bcs[face_set].flow_bc, 0.0, 1, X, vel); CHKERRQ(ierr);
           vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*face_areas[iface];
 
@@ -486,7 +486,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         mpfao->vel_count[face_id]++;
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
         PetscInt face_set = 0; // FIXME
-        if (bcs[face_set].flow_bc.type == TDY_VELOCITY_BC) {
+        if (bcs[face_set].flow_bc.type == VELOCITY_BC) {
           ierr = EnforceFlowBC(&bcs[face_set].flow_bc, 0.0, 1, X, vel); CHKERRQ(ierr);
           vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*face_areas[iface];
 
@@ -524,7 +524,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_SharedWithInternalVertic
         mpfao->vel_count[face_id]++;
         ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
         PetscInt face_set = 0; // FIXME
-        if (bcs[face_set].flow_bc.type == TDY_VELOCITY_BC) {
+        if (bcs[face_set].flow_bc.type == VELOCITY_BC) {
           ierr = EnforceFlowBC(&bcs[face_set].flow_bc, 0.0, 1, X, vel); CHKERRQ(ierr);
           vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim)*face_areas[ iface];
 
@@ -624,7 +624,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
       PetscInt f;
       f = face_id + fStart;
       PetscInt face_set = 0; // FIXME
-      if (bcs[face_set].flow_bc.type == TDY_PRESSURE_BC) {
+      if (bcs[face_set].flow_bc.type == PRESSURE_BC) {
         ierr = EnforceFlowBC(&bcs[face_set].flow_bc, 0.0, 1,
           &(mpfao->X[f*dim]), &pBoundary[iface]); CHKERRQ(ierr);
       } else {
@@ -657,7 +657,7 @@ PetscErrorCode TDyMPFAORecoverVelocity_BoundaryVertices_NotSharedWithInternalVer
       mpfao->vel_count[face_id]++;
       ierr = TDySubCell_GetIthFaceCentroid(subcells, subcell_id, iface, dim, X); CHKERRQ(ierr);
       PetscInt face_set = 0; // FIXME
-      if (bcs[face_set].flow_bc.type == TDY_VELOCITY_BC) {
+      if (bcs[face_set].flow_bc.type == VELOCITY_BC) {
         ierr = EnforceFlowBC(&bcs[face_set].flow_bc, 0.0, 1, X, vel); CHKERRQ(ierr);
         vel_normal = TDyADotB(vel,&(faces->normal[face_id].V[0]),dim) * face_areas[iface];
 
@@ -765,7 +765,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryPressure(TDy tdy, Vec Ul) {
     }
 
     PetscInt face_set = 0; // FIXME
-    if (bcs[face_set].flow_bc.type == TDY_PRESSURE_BC) {
+    if (bcs[face_set].flow_bc.type == PRESSURE_BC) {
       ierr = EnforceFlowBC(&bcs[face_set].flow_bc, 0.0, 1,
         faces->centroid[iface].X, &mpfao->P_bnd[p_bnd_idx]); CHKERRQ(ierr);
     } else {
@@ -831,7 +831,7 @@ PetscErrorCode TDyMPFAO_SetBoundaryTemperature(TDy tdy, Vec Ul) {
     }
 
     PetscInt face_set = 0; // FIXME
-    if (bcs[face_set].thermal_bc.type == TDY_TEMPERATURE_BC) {
+    if (bcs[face_set].thermal_bc.type == TEMPERATURE_BC) {
       ierr = EnforceThermalBC(&bcs[face_set].thermal_bc, 0.0, 1,
         faces->centroid[iface].X, &(mpfao->T_bnd[t_bnd_idx])); CHKERRQ(ierr);
     } else {
@@ -898,7 +898,7 @@ PetscErrorCode TDyMPFAO_SetBoundarySalineConcentration(TDy tdy, Vec Ul) {
     }
 
     PetscInt face_set = 0; // FIXME
-    if (bcs[face_set].salinity_bc.type == TDY_SALINE_CONC_BC) {
+    if (bcs[face_set].salinity_bc.type == SALINE_CONC_BC) {
       ierr = EnforceSalinityBC(&bcs[face_set].salinity_bc, 0.0, 1,
         (faces->centroid[iface].X), &(mpfao->Psi_bnd[psi_bnd_idx]));
       CHKERRQ(ierr);
