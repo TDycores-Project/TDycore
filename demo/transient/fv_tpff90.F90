@@ -139,7 +139,7 @@ contains
        x1 = x(3*i+1)
        x2 = x(3*i+2)
        x3 = x(3*i+3)
-       
+
        call is_coordinate_top(x1,x2,x3,is_top)
        if (is_top) then
           pressure = seepage_pressure
@@ -151,38 +151,6 @@ contains
     ierr = 0
 
   end subroutine PressureFunction
-
-  subroutine PressureBCTypeFunction(n, x, bc_type, ierr)
-    implicit none
-    PetscInt,                intent(in)  :: n
-    PetscReal, dimension(:), intent(in)  :: x
-    PetscInt, dimension(:), intent(out) :: bc_type
-    PetscErrorCode,          intent(out) :: ierr
-
-    PetscInt             :: i
-    PetscReal            :: x1, x2, x3
-    PetscBool            :: is_top
-
-    bc_type = NEUMANN_BC
-
-    do i = 0, n-1
-       x1 = x(3*i+1)
-       x2 = x(3*i+2)
-       x3 = x(3*i+3)
-
-       call is_coordinate_top(x1,x2,x3,is_top)
-
-       if (is_top) then
-          bc_type = SEEPAGE_BC
-       else
-          bc_type = NEUMANN_BC
-       end if
-       
-    end do
-
-    ierr = 0
-
-  end subroutine PressureBCTypeFunction
 
   subroutine CreateDM(comm, dm, ierr)
     use petscdm
@@ -271,7 +239,7 @@ program main
   dtime = 3600.d0
   ic_value = 102325.d0
   pflotran_consistent = PETSC_FALSE
-  bc_type = NEUMANN_BC
+  bc_type = NOFLOW_BC
   use_tdydriver = PETSC_FALSE
   use_seepage_bc = PETSC_FALSE
 
@@ -302,7 +270,7 @@ program main
 
   if (pflotran_consistent) then
      call Permeability_PFLOTRAN(perm)
-     call ResidualSaturation_PFLOTRAN(resSat) 
+     call ResidualSaturation_PFLOTRAN(resSat)
      call TDySetWaterDensityType(tdy,WATER_DENSITY_EXPONENTIAL, ierr); CHKERRA(ierr)
    else
      call Permeability(perm)
@@ -314,10 +282,7 @@ program main
 
 
   call TDySetPorosityFunction(tdy,PorosityFunction,ierr); CHKERRA(ierr)
-  call TDySetBoundaryPressureFunction(tdy,PressureFunction,ierr); CHKERRA(ierr)
-  if (use_seepage_bc) then
-     call TDySetBoundaryPressureTypeFunction(tdy,PressureBCTypeFunction, ierr); CHKERRA(ierr);
-  end if
+  call TDySetFlowBCFunction(tdy,0,bc_type,PressureFunction,ierr); CHKERRA(ierr)
 
   call TDyMPFAOSetGMatrixMethod(tdy, MPFAO_GMATRIX_TPF, ierr);
   if (use_tdydriver) then
