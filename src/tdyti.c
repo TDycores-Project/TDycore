@@ -141,9 +141,7 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
             icut++;
             ti->dt *= 0.25;
             ierr = TDySetDtimeForSNESSolver(tdy,ti->dt); CHKERRQ(ierr);
-            PetscChar message[1000];
-            sprintf(message,"-> Cut time step: snes=%d icut=%d time=%12.5e dt=%12.5e\n",reason,icut,ti->time,ti->dt);
-            ierr = PetscPrintf(PETSC_COMM_WORLD,message);
+            ierr = PetscPrintf(PETSC_COMM_WORLD,"-> Cut time step: snes=%d icut=%d time=%12.5e dt=%12.5e\n",reason,icut,ti->time,ti->dt);
             ierr = TDyTimeCut(tdy); CHKERRQ(ierr);
             if (icut == max_time_step_cuts) {
               SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"TDyTimeIntegratorRunToTime failed to converge after maximum time step cuts");
@@ -155,10 +153,8 @@ PetscErrorCode TDyTimeIntegratorRunToTime(TDy tdy,PetscReal sync_time) {
             ierr = TDyPostSolve(tdy,tdy->soln); CHKERRQ(ierr);
           }
 
-          PetscChar message[1000];
-          sprintf(message,"\nTime step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n\n",
+          ierr = PetscPrintf(PETSC_COMM_WORLD,"\nTime step %d: time = %f dt = %f ni = %d li = %d rsn = %s\n\n",
             ti->istep,ti->time,ti->dt,nit,lit, SNESConvergedReasons[reason]);
-          ierr = PetscPrintf(PETSC_COMM_WORLD,message); CHKERRQ(ierr);
           if (tdy->io->output_timestep_interval > 0) {
             if ((tdy->ti->istep)%(tdy->io->output_timestep_interval) == 0) {
               ierr = TDyIOWriteVec(tdy); CHKERRQ(ierr);

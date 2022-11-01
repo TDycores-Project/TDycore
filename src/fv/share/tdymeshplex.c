@@ -1758,9 +1758,8 @@ PetscInt VertexIdWithSameXYInACell(TDyMesh *mesh, PetscInt icell, PetscInt ivert
   }
 
   if (!found) {
-    char error_msg[100];
-    sprintf(error_msg,"VertexIdWithSameXYInACell: Could not determine if cell_id %d is above or below vertex_id %d\n",icell,ivertex);
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,error_msg);
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+      "VertexIdWithSameXYInACell: Could not determine if cell_id %d is above or below vertex_id %d\n",icell,ivertex);
   }
 
   PetscFunctionReturn(result);
@@ -1796,9 +1795,8 @@ PetscBool IsCellAboveTheVertex(TDyMesh *mesh, PetscInt icell, PetscInt ivertex) 
   }
 
   if (!found) {
-    char error_msg[100];
-    sprintf(error_msg,"IsCellAboveTheVertex: Could not determine if cell_id %d is above or below vertex_id %d\n",icell,ivertex);
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,error_msg);
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+      "IsCellAboveTheVertex: Could not determine if cell_id %d is above or below vertex_id %d\n",icell,ivertex);
   }
 
   PetscFunctionReturn(is_above);
@@ -1932,17 +1930,14 @@ PetscErrorCode DetermineCellsAboveAndBelow(TDyMesh *mesh, PetscInt ivertex, Pets
 
   if (*ncells_abv>0 && *ncells_blw>0) {
     if (*ncells_abv != *ncells_blw) {
-      char error_msg[400];
       char fun_name[100] = "DetermineCellsAboveAndBelow";
-      sprintf(error_msg,"%s: No. of cells above (=%d) and below (=%d) of the vertex_id %d are not same. Such a mesh is unsupported.\n",
+      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,
+        "%s: No. of cells above (=%d) and below (=%d) of the vertex_id %d are not same. Such a mesh is unsupported.\n",
         fun_name, *ncells_abv, *ncells_blw, ivertex);
-      SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,error_msg);
     }
   } else if (*ncells_abv == 0 && *ncells_blw == 0) {
-    char error_msg[200];
     char fun_name[100] = "DetermineCellsAboveAndBelow";
-    sprintf(error_msg,"%s: Did not find any cells above and below vertex_id %d\n",fun_name,ivertex);
-    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,error_msg);
+    SETERRQ(PETSC_COMM_WORLD,PETSC_ERR_USER,"%s: Did not find any cells above and below vertex_id %d\n",fun_name,ivertex);
   }
 
   PetscFunctionReturn(0);

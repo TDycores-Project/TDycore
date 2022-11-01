@@ -775,7 +775,7 @@ static PetscErrorCode ReadCommandLineOptions(TDy tdy) {
   TDyOptions *options = &tdy->options;
 
   PetscValidHeaderSpecific(tdy,TDY_CLASSID,1);
-  ierr = PetscObjectOptionsBegin((PetscObject)tdy); CHKERRQ(ierr);
+  PetscObjectOptionsBegin((PetscObject)tdy);
 
   TDyMode mode = options->mode;
   TDyDiscretization discretization = options->discretization;
@@ -808,7 +808,7 @@ static PetscErrorCode ReadCommandLineOptions(TDy tdy) {
   // Create boundary conditions.
   ierr = ProcessBCOptions(tdy); CHKERRQ(ierr);
 
-  ierr = PetscOptionsEnd(); CHKERRQ(ierr);
+  PetscOptionsEnd();
 
   // Numerics options
   PetscOptionsBegin(comm,NULL,"TDyCore: Numerics options","");
