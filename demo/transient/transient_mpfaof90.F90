@@ -108,7 +108,7 @@ implicit none
   call TDySetConstantTensorPermeability(tdy,perm,ierr);
   CHKERRA(ierr);
 
-  call TDySetBoundaryPressureFunction(tdy, PressureFunction,ierr);
+  call TDySetFlowBCFunction(tdy, 1, PRESSURE_BC, PressureFunction, ierr);
   CHKERRA(ierr);
 
   call TDySetConstantResidualSaturation(tdy,0.115d0,ierr)

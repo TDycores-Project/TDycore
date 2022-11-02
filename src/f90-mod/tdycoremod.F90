@@ -610,7 +610,7 @@ end subroutine
 
     p_tdy = transfer(tdy%v, p_tdy)
     id = FindOrAppendSpatialFunction(f)
-    ierr = Func(p_tdy, face_set, bc_type, id)
+    ierr = Func(p_tdy, face_set-1, bc_type, id)
   end subroutine
 
   subroutine TDySelectFlowBCFunction(tdy, face_set, bc_type, name, ierr)
