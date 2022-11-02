@@ -319,6 +319,9 @@ PetscErrorCode TDyCreate(MPI_Comm comm, TDy *_tdy) {
 
   ierr = TDyIOCreate(&tdy->io); CHKERRQ(ierr);
 
+  // Create source/sink/boundary conditions.
+  ierr = ConditionsCreate(&tdy->conditions); CHKERRQ(ierr);
+
   // initialize flags/parameters
   ierr = TDyDiscretizationCreate(&tdy->discretization); CHKERRQ(ierr);
 
@@ -683,9 +686,6 @@ static PetscErrorCode ProcessBCOptions(TDy tdy) {
 
   MPI_Comm comm;
   ierr = PetscObjectGetComm((PetscObject)tdy, &comm); CHKERRQ(ierr);
-
-  // Create source/sink/boundary conditions.
-  ierr = ConditionsCreate(&tdy->conditions); CHKERRQ(ierr);
 
   // Are we provided with names (strings) for numbered face sets?
   char *boundary_names[MAX_BOUNDARIES];
