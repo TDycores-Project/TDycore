@@ -347,7 +347,7 @@ implicit none
   end if
 
   if (bc_type == PRESSURE_BC .OR. bc_type == SEEPAGE_BC ) then
-     call TDySetFlowBCFunction(tdy,0,bc_type,PressureFunction,ierr)
+     call TDySetFlowBCFunction(tdy,1,bc_type,PressureFunction,ierr)
      CHKERRA(ierr)
   endif
 
