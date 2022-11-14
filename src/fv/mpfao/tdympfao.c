@@ -1153,7 +1153,7 @@ static PetscErrorCode ComputeTransmissibilityMatrix_ForNonCornerVertex(
   for (PetscInt f = 0; f < num_faces; ++f) {
     PetscInt face_id = face_ids[f];
     PetscInt face_set; // >= 0 for face set, -1 for interior face
-    ierr = DMGetLabelValue(dm, "Face Sets", face_id, &face_set); CHKERRQ(ierr);
+    ierr = DMGetLabelValue(dm, "boundary", face_id, &face_set); CHKERRQ(ierr);
     if (face_set >= 0) {
       // Find the right boundary condition.
       BoundaryConditions bcs;
@@ -1835,7 +1835,7 @@ static PetscErrorCode ComputeTransmissibilityMatrix(TDyMPFAO *mpfao, DM dm,
       for (PetscInt f = 0; f < num_faces; ++f) {
         PetscInt face_id = face_ids[f];
         PetscInt face_set; // >= 0 for face set, -1 for interior face
-        ierr = DMGetLabelValue(dm, "Face Sets", face_id, &face_set); CHKERRQ(ierr);
+        ierr = DMGetLabelValue(dm, "boundary", face_id, &face_set); CHKERRQ(ierr);
         if (face_set >= 0) {
           // Find the right boundary condition.
           BoundaryConditions bcs;
@@ -2243,7 +2243,7 @@ static PetscErrorCode ComputeGravityDiscretization(TDyMPFAO *mpfao, DM dm,
       // Currently, only zero-flux neumann boundary condition is implemented.
       // If the boundary condition is neumann, then gravity discretization term is zero
       PetscInt face_set; // >= 0 for face set, -1 for interior face
-      ierr = DMGetLabelValue(dm, "Face Sets", face_id, &face_set); CHKERRQ(ierr);
+      ierr = DMGetLabelValue(dm, "boundary", face_id, &face_set); CHKERRQ(ierr);
       if (face_set >= 0) {
         BoundaryConditions bcs;
         ierr = ConditionsGetBCs(conditions, face_set, &bcs); CHKERRQ(ierr);

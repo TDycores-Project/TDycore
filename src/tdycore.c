@@ -694,6 +694,12 @@ static PetscErrorCode ProcessBCOptions(TDy tdy) {
   ierr = PetscOptionsGetStringArray(NULL, NULL, "-tdy_bc_sets", boundary_names,
                                     &num_boundaries, &have_boundary_names);
   if (have_boundary_names && (num_boundaries > 0)) {
+    // Named boundaries are allowed only for the TPF approximation.
+    if (tdy->options.discretization != FV_TPF) {
+      SETERRQ(comm, PETSC_ERR_USER,
+        "Named boundaries are supported only for the two-point-flux (TPF) approximation.");
+    }
+
     // Look for boundary conditions assigned to these named boundaries.
     BoundaryConditions bcs[num_boundaries];
     ierr = GetBCsForBoundaries(tdy, num_boundaries, boundary_names, bcs);
@@ -726,28 +732,35 @@ static PetscErrorCode ProcessBCOptions(TDy tdy) {
       }
     }
   } else { // no named boundaries -- face set indices only
-    // Look for boundary conditions assigned to these face sets.
-    BoundaryConditions bcs[MAX_FACE_SETS];
-    char *face_set_names[MAX_FACE_SETS];
-    for (PetscInt i = 0; i < MAX_FACE_SETS; ++i) {
-      ierr = TDyAlloc(sizeof(char) * 33, &face_set_names[i]); CHKERRQ(ierr);
-      snprintf(face_set_names[i], 32, "%d", i);
-    }
-    ierr = GetBCsForBoundaries(tdy, MAX_FACE_SETS, face_set_names, bcs);
-    CHKERRQ(ierr);
-    for (PetscInt i = 0; i < MAX_FACE_SETS; ++i) {
-      ierr = TDyFree(face_set_names[i]); CHKERRQ(ierr);
-    }
-
-    // Assign BCs that are actually defined on face sets.
-    for (PetscInt i = 0; i < MAX_FACE_SETS; ++i) {
-      // Flow BCs are always required, so we check their type to see whether
-      // this face set has a BC assigned.
-      if (bcs[i].flow_bc.type != UNDEFINED_FLOW_BC) {
-        ierr = ConditionsSetBCs(tdy->conditions, i, bcs[i]); CHKERRQ(ierr);
-        BoundaryFaces bfaces = {0};
-        ierr = ConditionsSetBoundaryFaces(tdy->conditions, i, bfaces); CHKERRQ(ierr);
+    if (tdy->options.discretization == FV_TPF) {
+      // Look for boundary conditions assigned to these face sets.
+      BoundaryConditions bcs[MAX_FACE_SETS];
+      char *face_set_names[MAX_FACE_SETS];
+      for (PetscInt i = 0; i < MAX_FACE_SETS; ++i) {
+        ierr = TDyAlloc(sizeof(char) * 33, &face_set_names[i]); CHKERRQ(ierr);
+        snprintf(face_set_names[i], 32, "%d", i);
       }
+      ierr = GetBCsForBoundaries(tdy, MAX_FACE_SETS, face_set_names, bcs);
+      CHKERRQ(ierr);
+      for (PetscInt i = 0; i < MAX_FACE_SETS; ++i) {
+        ierr = TDyFree(face_set_names[i]); CHKERRQ(ierr);
+      }
+
+      // Assign BCs that are actually defined on face sets.
+      for (PetscInt i = 0; i < MAX_FACE_SETS; ++i) {
+        // Flow BCs are always required, so we check their type to see whether
+        // this face set has a BC assigned.
+        if (bcs[i].flow_bc.type != UNDEFINED_FLOW_BC) {
+          ierr = ConditionsSetBCs(tdy->conditions, i, bcs[i]); CHKERRQ(ierr);
+          BoundaryFaces bfaces = {0};
+          ierr = ConditionsSetBoundaryFaces(tdy->conditions, i, bfaces); CHKERRQ(ierr);
+        }
+      }
+    } else {
+      // We fall back on our single-boundary-condition options.
+      // FIXME: Broken at the moment.
+      SETERRQ(comm, PETSC_ERR_USER,
+              "Boundary conditions are currently broken for the given discretization!");
     }
   }
 
@@ -804,10 +817,6 @@ static PetscErrorCode ReadCommandLineOptions(TDy tdy) {
   ierr = PetscOptionsEnum("-tdy_water_density","Water density vertical profile", "TDySetWaterDensityType", TDyWaterDensityTypes, (PetscEnum)options->rho_type, (PetscEnum *)&options->rho_type, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_water_viscosity","Water viscosity model", "TDySetWaterViscosityType", TDyWaterViscosityTypes, (PetscEnum)options->mu_type, (PetscEnum *)&options->mu_type, NULL); CHKERRQ(ierr);
   ierr = PetscOptionsEnum("-tdy_water_enthalpy","Water enthalpy model", "TDySetWaterEnthalpyType", TDyWaterEnthalpyTypes, (PetscEnum)options->enthalpy_type, (PetscEnum *)&options->enthalpy_type, NULL); CHKERRQ(ierr);
-
-  // Create boundary conditions.
-  ierr = ProcessBCOptions(tdy); CHKERRQ(ierr);
-
   PetscOptionsEnd();
 
   // Numerics options
@@ -822,6 +831,9 @@ static PetscErrorCode ReadCommandLineOptions(TDy tdy) {
   if (options->discretization != discretization) {
     TDySetDiscretization(tdy, discretization);
   }
+
+  // Create boundary conditions.
+  ierr = ProcessBCOptions(tdy); CHKERRQ(ierr);
 
   ierr = PetscOptionsBool("-tdy_init_with_random_field","Initialize solution with a random field","",options->init_with_random_field,&(options->init_with_random_field),NULL); CHKERRQ(ierr);
   ierr = PetscOptionsGetString(NULL,NULL,"-tdy_init_file", options->init_file,sizeof(options->init_file),&options->init_from_file); CHKERRQ(ierr);
