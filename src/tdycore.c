@@ -758,9 +758,19 @@ static PetscErrorCode ProcessBCOptions(TDy tdy) {
       }
     } else {
       // We fall back on our single-boundary-condition options.
-      // FIXME: Broken at the moment.
-      SETERRQ(comm, PETSC_ERR_USER,
-              "Boundary conditions are currently broken for the given discretization!");
+      // FIXME: At the moment, we just set up a no-flow BC on boundary faces.
+      BoundaryConditions no_flow_bc = {
+        .flow_bc = {
+          .type = NOFLOW_BC
+        },
+        .salinity_bc = {
+          .type = UNDEFINED_SALINITY_BC
+        }
+      };
+      CreateConstantHeatFluxBC(&no_flow_bc.thermal_bc, 0.0);
+      ierr = ConditionsSetBCs(tdy->conditions, 0, no_flow_bc); CHKERRQ(ierr);
+      BoundaryFaces bfaces = {0}; // FIXME
+      ierr = ConditionsSetBoundaryFaces(tdy->conditions, 0, bfaces); CHKERRQ(ierr);
     }
   }
 
@@ -893,7 +903,7 @@ static PetscErrorCode ExtractBoundaryFaces(TDy tdy) {
     ierr = PetscFindInt(face_set, num_face_sets, face_sets, &index);
     if (index < 0) { // not found
       SETERRQ(comm, PETSC_ERR_USER,
-        "a requested face set was not found in the given DM.");
+        "a requested face set (%d) was not found in the given DM.", face_set);
     }
 
     BoundaryFaces bfaces;
